@@ -2,6 +2,7 @@ import { Notify } from 'quasar';
 import { extractGraphQLErrorMessages } from './errors';
 import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
 import { sanitizeBlockchainError } from 'src/shared/lib/utils/sanitizeBlockchainError';
+import { t } from 'src/shared/i18n';
 
 /**
  * Canon-тосты платформы. Единый визуал и поведение для всех типов
@@ -162,17 +163,17 @@ export function NotifyAlert(
 // тостов расти при серии провалов.
 export function ConnectionLostAlert(onRetry?: () => void): void {
   Notify.create({
-    message: 'Нет связи с сервером',
+    message: t('api.alerts.connectionLostTitle'),
     caption: onRetry
-      ? 'Страница не загрузилась. Проверьте подключение и попробуйте ещё раз.'
-      : 'Страница не загрузилась. Пробуем открыть её ещё раз…',
+      ? t('api.alerts.connectionLostCaptionRetry')
+      : t('api.alerts.connectionLostCaptionAuto'),
     type: 'warning',
     icon: 'wifi_off',
     position: POSITION,
     timeout: onRetry ? 0 : TIMEOUT_INFO + 3000,
     group: 'connection-lost',
     actions: onRetry
-      ? [{ label: 'Повторить', noDismiss: false, handler: onRetry }, CLOSE_ACTION]
+      ? [{ label: t('common.action.retry'), noDismiss: false, handler: onRetry }, CLOSE_ACTION]
       : [CLOSE_ACTION],
   });
 }
@@ -181,8 +182,8 @@ export function ConnectionLostAlert(onRetry?: () => void): void {
 // timeout 0 (не исчезает сам): пользователь сам решает «Обновить»/«Позже».
 export function UpdateAlert(onApply: () => void, onDismiss?: () => void): void {
   Notify.create({
-    message: 'Доступно обновление',
-    caption: 'Вышла новая версия рабочего стола. Без обновления часть функций может работать некорректно.',
+    message: t('api.alerts.updateAvailableTitle'),
+    caption: t('api.alerts.updateAvailableCaption'),
     type: 'info',
     icon: 'update',
     position: POSITION,
@@ -191,8 +192,8 @@ export function UpdateAlert(onApply: () => void, onDismiss?: () => void): void {
     multiLine: true,
     classes: 'q-notification--app-update',
     actions: [
-      { label: 'Обновить', noDismiss: true, handler: onApply },
-      { label: 'Позже', flat: true, size: 'sm', handler: (): void => { onDismiss?.(); } },
+      { label: t('api.alerts.updateApplyAction'), noDismiss: true, handler: onApply },
+      { label: t('api.alerts.updateDismissAction'), flat: true, size: 'sm', handler: (): void => { onDismiss?.(); } },
       // Крестик закрытия — позиционируется в правый верхний угол тоста (CSS .app-update__close)
       { icon: 'close', flat: true, round: true, size: 'sm', class: 'app-update__close', handler: (): void => { onDismiss?.(); } },
     ],

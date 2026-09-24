@@ -10,6 +10,7 @@ import { ITokens } from '../lib/types/user';
 import { getFromIndexedDB, setToIndexedDB } from '../api/indexDB';
 import { client } from '../api/client';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 interface IGlobalStore {
   hasCreditials: Ref<boolean>;
@@ -105,7 +106,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       await setToIndexedDB(info.coopname, 'store', 'encryptedKey', '');
       await setToIndexedDB(info.coopname, 'store', 'encryptedUsername', '');
       await setToIndexedDB(info.coopname, 'store', 'encryptedTokens', '');
-      throw new Error('Ошибка авторизации. Войдите повторно.');
+      throw new Error(t('app.error.authErrorRelogin'));
     }
   };
 
@@ -186,7 +187,7 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
       }
       await unlockInFlight;
     }
-    if (!wif.value) throw new Error('Приватный ключ не установлен');
+    if (!wif.value) throw new Error(t('app.error.privateKeyNotSet'));
     return wif.value.toString();
   };
 
@@ -218,12 +219,12 @@ export const useGlobalStore = defineStore('global', (): IGlobalStore => {
   };
 
   const signDigest = (digest: string): IMessageSignature => {
-    if (!wif.value) throw new Error('ключ не найден');
+    if (!wif.value) throw new Error(t('app.error.signingKeyNotFound'));
 
     const signed = wif.value.signDigest(digest);
     const verified = signed.verifyDigest(digest, wif.value.toPublic());
 
-    if (!verified) throw new Error('Подпись не верифицирована');
+    if (!verified) throw new Error(t('app.error.signatureNotVerified'));
 
     const result: IMessageSignature = {
       message: digest,

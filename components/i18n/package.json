@@ -1,0 +1,50 @@
+{
+  "name": "@coopenomics/i18n",
+  "type": "module",
+  "version": "2026.9.22",
+  "description": "Словари интерфейса, каталог кодов ошибок и форматирование: один формат сообщений для desktop, controller и уведомлений",
+  "author": "Alex Ant <dacom.dark.sun@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.mjs",
+      "require": "./dist/server.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "server": [
+        "./dist/server.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@intlify/core-base": "^11.4.12"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "unbuild": "^2.0.0",
+    "vitest": "^2.1.9",
+    "@types/node": "^20.11.26"
+  }
+}

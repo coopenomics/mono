@@ -13,7 +13,9 @@
 #     согласованность реестров имён процессов ledger2 между контрактом,
 #     cooptypes и локатором бэкенда (см. check-ledger2-processes.mjs); и
 #     плательщик за память в контрактах — только через RamPayer::of, храповиком
-#     по снимку долга (см. check-ram-payer.mjs).
+#     по снимку долга (см. check-ram-payer.mjs); и текст для пользователя —
+#     в словарях i18n, а не в коде: храповик по снимку долга, исправность
+#     словарей и типы ключей (см. check-i18n.mjs).
 #
 #   Ярус B «канон» — только на изменённые файлы, храповиком.
 #     Правила, которым старый код массово не соответствует (сложность, размер
@@ -52,6 +54,7 @@
 #   pnpm check:boundaries           только ярус A
 #   pnpm check:ledger2              только реестры процессов ledger2
 #   pnpm check:fact                 только ярус F (ответ по факту из цепи)
+#   pnpm check:i18n                 только текст в словарях i18n
 #   pnpm check:changed              ярусы B и C
 #   pnpm check:registry             только ярус C
 #   CHECK_BASE=origin/dev pnpm check   с какой веткой сравнивать ярус B
@@ -151,6 +154,10 @@ gate_live_mirror() {
   node "$REPO_ROOT/scripts/check-live-mirror.mjs"
 }
 
+gate_i18n() {
+  node "$REPO_ROOT/scripts/check-i18n.mjs"
+}
+
 gate_unit_tests() {
   pnpm run test:unit
 }
@@ -165,6 +172,7 @@ case "$MODE" in
     run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "плательщик памяти в контрактах" gate_ram_payer
+    run_gate "текст в словарях i18n" gate_i18n
     ;;
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
@@ -173,6 +181,9 @@ case "$MODE" in
     run_gate "факт: пауза вместо факта" gate_timing
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
+    ;;
+  i18n)
+    run_gate "текст в словарях i18n" gate_i18n
     ;;
   changed)
     run_gate "канон: изменённые файлы" gate_changed
@@ -193,6 +204,7 @@ case "$MODE" in
     run_gate "факт: пауза вместо факта" gate_timing
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
+    run_gate "текст в словарях i18n" gate_i18n
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
@@ -203,7 +215,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2 | fact)" >&2
+    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2 | fact | i18n)" >&2
     exit 2
     ;;
 esac

@@ -14,6 +14,7 @@ import { GetRequiredAttributesInput } from '../dto/get-required-attributes-input
  * Результат валидации атрибута
  */
 import { ObjectType, Field } from '@nestjs/graphql';
+import { t } from '../../i18n';
 
 @ObjectType('MarketplaceAttributeValidation')
 export class AttributeValidationResult {
@@ -84,7 +85,7 @@ export class AttributeResolver {
     // Группируем атрибуты
     const groupedAttributes = new Map<string, typeof result.attributes>();
     for (const attribute of result.attributes) {
-      const groupName = attribute.groupName || 'Без группы';
+      const groupName = attribute.groupName || t('marketplace.attribute.noGroupLabel');
       if (!groupedAttributes.has(groupName)) {
         groupedAttributes.set(groupName, []);
       }

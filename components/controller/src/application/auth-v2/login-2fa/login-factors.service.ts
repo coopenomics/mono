@@ -10,6 +10,7 @@ import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-eve
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 import { VaultService } from '../vault/vault.service';
+import { t } from '~/i18n';
 
 export interface LoginFactorsView {
   /** TOTP-секрет подключён (enrollment подтверждён) — фактор можно включить. */
@@ -72,7 +73,7 @@ export class LoginFactorsService {
       if (!(await this.hasPasswordBlob(subjectId))) {
         throw new AuthV2Error(
           AuthV2ErrorCode.InsufficientVerification,
-          'Подтверждение входа станет доступно после установки пароля.',
+          t('authV2.loginFactorsService.passwordRequiredMessage'),
         );
       }
     }
@@ -85,11 +86,11 @@ export class LoginFactorsService {
       if (!enrolled) {
         throw new AuthV2Error(
           AuthV2ErrorCode.TwoFactorNotEnrolled,
-          'Сначала подключите приложение-аутентификатор.',
+          t('authV2.loginFactorsService.totpNotEnrolledMessage'),
         );
       }
       if (!input.code || !(await this.twoFactor.verify(subjectId, input.code.trim()))) {
-        throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, 'Неверный код из приложения-аутентификатора.');
+        throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.loginFactorsService.invalidTotpCodeMessage'));
       }
     }
 
@@ -98,7 +99,7 @@ export class LoginFactorsService {
       if (!user?.is_email_verified) {
         throw new AuthV2Error(
           AuthV2ErrorCode.InvalidCredentials,
-          'Почта не подтверждена — код на неё отправлять нельзя.',
+          t('authV2.loginFactorsService.emailNotVerifiedMessage'),
         );
       }
     }

@@ -6,6 +6,7 @@ import { LOGGER_PORT, type ILoggerPort, PaymentStatus,
 } from '@coopenomics/innercoop';
 import { MARKETPLACE_AID_COUNCIL_DECIDED_EVENT } from '../events/marketplace-notification.events';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Слушатель решений совета по заявлению на материальную помощь (p.brn.aid).
@@ -82,7 +83,7 @@ export class MarketplaceAidCouncilSyncService {
       await this.coreGateway.setPaymentStatus({
         id: payment.id,
         status: approved ? PaymentStatus.PENDING : PaymentStatus.CANCELLED,
-        message: approved ? undefined : (data.reason ?? 'Совет отказал в выплате'),
+        message: approved ? undefined : (data.reason ?? t('marketplace.aidCouncilSync.rejectedReasonLabel')),
       });
 
       this.eventBus.emit(MARKETPLACE_AID_COUNCIL_DECIDED_EVENT, {

@@ -58,13 +58,13 @@ const code = computed(() =>
 <template lang="pug">
 .handoff-code(v-if="code")
   BaseBanner(v-if="needsPassportWarning", variant="warn")
-    | Возьмите с собой паспорт: при первом получении оператор сверит вашу
-    | личность и подтвердит её в системе. Это делается один раз — дальше
-    | документ не понадобится.
+    | {{ $t('marketplace.handoffCodeContent.passportHint1') }}
+    | {{ $t('marketplace.handoffCodeContent.passportHint2') }}
+    | {{ $t('marketplace.handoffCodeContent.passportHint3') }}
   HandoffQr(:value="code", :size="size", :caption="copy.caption")
 EmptyState(
   v-else,
-  title="Код недоступен",
+  :title="$t('marketplace.handoffCodeContent.codeUnavailableTitle')",
   :body="copy.emptyBody"
 )
   template(#icon)

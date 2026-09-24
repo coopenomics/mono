@@ -16,22 +16,22 @@
           thead
             tr
               th.col-toggle
-              th.col-sort(@click='onSort("username")') Пайщик {{ sortMark('username') }}
-              th.col-sort.col-date(@click='onSort("created_at")') Дата создания {{ sortMark('created_at') }}
-              th.col-sort.col-num(@click='onSort("quantity")') Сумма {{ sortMark('quantity') }}
-              th Тип платежа
+              th.col-sort(@click='onSort("username")') {{ $t('cooperative.listOfPaymentsWidget.usernameHeader', { sortMark: sortMark('username') }) }}
+              th.col-sort.col-date(@click='onSort("created_at")') {{ $t('cooperative.listOfPaymentsWidget.createdAtHeader', { sortMark: sortMark('created_at') }) }}
+              th.col-sort.col-num(@click='onSort("quantity")') {{ $t('cooperative.listOfPaymentsWidget.amountHeader', { sortMark: sortMark('quantity') }) }}
+              th {{ $t('cooperative.listOfPaymentsWidget.typeHeader') }}
               //- «Направление» — всегда относительно кооператива: взнос пайщика
               //- входящий, выплата пайщику исходящая (см. displayDirection).
-              th Направление
-              th.col-sort(@click='onSort("status")') Статус {{ sortMark('status') }}
-              th.col-action(v-if='!hideActions') Действия
+              th {{ $t('cooperative.listOfPaymentsWidget.directionHeader') }}
+              th.col-sort(@click='onSort("status")') {{ $t('cooperative.listOfPaymentsWidget.statusHeader', { sortMark: sortMark('status') }) }}
+              th.col-action(v-if='!hideActions') {{ $t('cooperative.listOfPaymentsWidget.actionsHeader') }}
           tbody
             template(v-for='row in items', :key='row.id')
               tr.data-row(:id='`pay-row-${row.id}`', @click='toggleExpand(row.id)')
                 td.col-toggle
                   button.icon-btn(
                     type='button',
-                    :aria-label='expanded.get(row.id) ? "Свернуть" : "Развернуть"',
+                    :aria-label='expanded.get(row.id) ? $t("cooperative.listOfPaymentsWidget.collapseAriaLabel") : $t("cooperative.listOfPaymentsWidget.expandAriaLabel")',
                     @click.stop='toggleExpand(row.id)'
                   )
                     q-icon(:name='expanded.get(row.id) ? "expand_more" : "chevron_right"')
@@ -53,9 +53,9 @@
                     //- Кассирская отметка «чек об оплате приложен» — только на столе совета
                     //- (пайщику чужая бухгалтерия не показывается).
                     q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                      q-tooltip Чек об оплате приложен
+                      q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofAttachedTooltip') }}
                     q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                      q-tooltip Чек об оплате не приложен
+                      q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofMissingTooltip') }}
                 td.col-action(v-if='!hideActions', @click.stop)
                   .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
@@ -72,7 +72,7 @@
                   .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
                     AttachPaymentProofPanel(
                       :payment-hash='paymentProofHash(row) ?? ""',
-                      :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+                      :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
                       @uploaded='onProofUploaded(row)'
                     )
                   //- Расход: закрывающие документы (DIRECT, панель сама скрывается)
@@ -88,7 +88,7 @@
                       :on-behalf='true',
                       :report-state='advanceReportState(row)',
                       :reported-amount='advanceReportedAmount(row)',
-                      :step='{ number: 2, title: "Отчёт пайщика" }',
+                      :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',
                       @reported='onReported'
                     )
                   //- Личный стол: пайщик-получатель отчитывается чеком по своей строке.
@@ -120,7 +120,7 @@
           size='sm',
           :loading='onLoading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('cooperative.listOfPaymentsWidget.loadMoreLabel') }}
 
     //- Мобайл: карточки вместо таблицы. Видны только на узких экранах.
     .payments-cards.pmt-mobile
@@ -132,9 +132,9 @@
               BaseBadge(:variant='getStatusVariant(row.status)') {{ row.status_label }}
               BaseBadge(v-if='reportBadge(row)', :variant='reportBadge(row)?.variant') {{ reportBadge(row)?.label }}
               q-icon.proof-icon.proof-icon--ok(v-if='!hideActions && proofState(row) === "attached"', name='receipt_long', size='16px')
-                q-tooltip Чек об оплате приложен
+                q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofAttachedTooltip') }}
               q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
-                q-tooltip Чек об оплате не приложен
+                q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofMissingTooltip') }}
           .pay-card__row
             span.pay-card__amount
               q-icon.q-mr-xs(
@@ -159,7 +159,7 @@
           .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
             AttachPaymentProofPanel(
               :payment-hash='paymentProofHash(row) ?? ""',
-              :step='expenseProofRef(row) ? { number: 1, title: "Подтвердите оплату" } : undefined',
+              :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
               @uploaded='onProofUploaded(row)'
             )
           .expense-flow.q-mt-sm(v-if='!hideActions && expenseProofRef(row)')
@@ -173,7 +173,7 @@
               :on-behalf='true',
               :report-state='advanceReportState(row)',
               :reported-amount='advanceReportedAmount(row)',
-              :step='{ number: 2, title: "Отчёт пайщика" }',
+              :step='{ number: 2, title: $t("cooperative.listOfPaymentsWidget.reportStep") }',
               @reported='onReported'
             )
           ReportExpenseAdvancePanel.q-mt-sm(
@@ -202,12 +202,12 @@
           size='sm',
           :loading='onLoading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('cooperative.listOfPaymentsWidget.loadMoreLabel') }}
 
   EmptyState(
     v-else,
-    title='Платежи не найдены',
-    body='Здесь появятся ваши платежи и взносы.'
+    :title='$t("cooperative.listOfPaymentsWidget.emptyTitle")',
+    :body='$t("cooperative.listOfPaymentsWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
@@ -243,6 +243,7 @@ import {
 } from 'src/shared/lib/expenses';
 import { paymentStatusVariant } from 'src/shared/lib/payment';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   username: {
@@ -285,12 +286,12 @@ const isIncoming = (direction?: string | null): boolean =>
 // кабинете двумя разными словами в зависимости от того, кто на него смотрит.
 const displayDirection = (row: IPaymentRow): string | null | undefined => row.direction;
 const directionLabel = (row: IPaymentRow): string =>
-  isIncoming(displayDirection(row)) ? 'Входящий' : 'Исходящий';
+  isIncoming(displayDirection(row)) ? t('cooperative.listOfPaymentsWidget.directionIncoming') : t('cooperative.listOfPaymentsWidget.directionOutgoing');
 const directionHint = (row: IPaymentRow): string => {
   const incoming = isIncoming(displayDirection(row));
   return props.hideActions
-    ? incoming ? 'Ваш взнос в кооператив' : 'Выплата вам из кооператива'
-    : incoming ? 'В кооператив' : 'Из кооператива';
+    ? incoming ? t('cooperative.listOfPaymentsWidget.hintIncomingSelf') : t('cooperative.listOfPaymentsWidget.hintOutgoingSelf')
+    : incoming ? t('cooperative.listOfPaymentsWidget.hintIncomingOther') : t('cooperative.listOfPaymentsWidget.hintOutgoingOther');
 };
 
 // Сумма — всегда 2 знака после запятой (не сырой on-chain precision=4).
@@ -411,16 +412,16 @@ const onProofUploaded = (row: IPaymentRow): void => {
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => {
   const cols: TableSkeletonColumn[] = [
     { class: 'col-toggle', cell: 'icon' },
-    { label: 'Пайщик', cell: 'text' },
-    { label: 'Дата создания', cell: 'text', cellWidth: '120px' },
-    { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '64px' },
-    { label: 'Тип платежа', cell: 'text' },
-    { label: 'Направление', cell: 'text', cellWidth: '90px' },
-    { label: 'Статус', cell: 'badge' },
+    { label: t('cooperative.listOfPaymentsWidget.column.username'), cell: 'text' },
+    { label: t('cooperative.listOfPaymentsWidget.column.createdAt'), cell: 'text', cellWidth: '120px' },
+    { label: t('cooperative.listOfPaymentsWidget.column.amount'), class: 'col-num', cell: 'text', cellWidth: '64px' },
+    { label: t('cooperative.listOfPaymentsWidget.typeHeader'), cell: 'text' },
+    { label: t('cooperative.listOfPaymentsWidget.directionHeader'), cell: 'text', cellWidth: '90px' },
+    { label: t('cooperative.listOfPaymentsWidget.statusColumnLabel'), cell: 'badge' },
   ];
   // «Действия» — только на столе совета (не на личном столе пайщика).
   if (!props.hideActions) {
-    cols.push({ label: 'Действия', class: 'col-action', cell: 'icon' });
+    cols.push({ label: t('cooperative.listOfPaymentsWidget.actionsHeader'), class: 'col-action', cell: 'icon' });
   }
   return cols;
 });
@@ -476,7 +477,7 @@ const hasMore = computed(
 const rangeLabel = computed(() => {
   const total = payments.value?.totalCount ?? items.value.length;
   const shown = items.value.length;
-  return shown ? `1–${shown} из ${total}` : `0 из ${total}`;
+  return shown ? t('cooperative.listOfPaymentsWidget.rangeLabel', { shown, total }) : t('cooperative.listOfPaymentsWidget.rangeEmptyLabel', { total });
 });
 
 const loadMore = (): void => {
@@ -509,7 +510,7 @@ const openSourcePayment = async (itemHash: string): Promise<void> => {
     (p) => p.hash?.toLowerCase() === itemHash.toLowerCase(),
   );
   if (!target) {
-    FailAlert('Платёж выдачи аванса не найден на текущей странице реестра');
+    FailAlert(t('cooperative.listOfPaymentsWidget.advancePaymentNotFoundError'));
     return;
   }
   expanded.set(target.id, true);

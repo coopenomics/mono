@@ -20,6 +20,7 @@ import {
   type ChatcoopStateRepository,
 } from '../../domain/repositories/chatcoop-state.repository';
 import { CAPITAL_PROJECT_CREATED_EVENT, CAPITAL_PROJECT_MATRIX_ROOM_ASSIGNED_EVENT, CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, type ICapitalProjectCreatedPayload, type ICapitalProjectMatrixRoomAssignedPayload, type IChatCoopCapitalProjectRoomEnsureMemberPayload } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Заведение и наполнение Matrix-комнат для проектов Благороста: создание комнаты при появлении проекта,
@@ -64,7 +65,7 @@ export class CapitalProjectMatrixSyncService {
 
       const roomId = await this.matrixApiService.createRoom(
         roomName,
-        `Проект ${payload.project_hash}`,
+        t('chatcoop.capitalProjectMatrixSync.roomTopic', { projectHash: payload.project_hash }),
         projectMatrix.isPrivate,
         projectMatrix.roomType,
         projectMatrix.initialState.length > 0 ? projectMatrix.initialState : undefined,

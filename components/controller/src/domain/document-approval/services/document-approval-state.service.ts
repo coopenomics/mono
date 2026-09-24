@@ -9,6 +9,7 @@ import type { DocumentTemplateView } from '../interfaces/document-template-view.
 import { DocumentApprovalRequirement, DocumentApprovalState, type DocumentKind } from '../enums/document-approval.enums';
 import { computeDocumentState } from './compute-document-state';
 import { sha256 } from '~/utils/sha256';
+import { t as i18nT } from '~/i18n';
 
 /** Сколько живёт снимок таблиц цепи, если события парсера не пришли раньше. */
 const CHAIN_CACHE_TTL_MS = 60_000;
@@ -215,7 +216,7 @@ function toTemplateView(
 function resolveTitle(declaration: InnerDocumentDeclaration, draft: DraftRow | null): string {
   if (declaration.title) return declaration.title;
   if (draft?.title) return draft.title;
-  return `Документ ${declaration.registry_id}`;
+  return i18nT('documentApproval.documentApprovalState.fallbackTitle', { registryId: declaration.registry_id });
 }
 
 /** Документы, которые правило отслеживания выносит на совет. */

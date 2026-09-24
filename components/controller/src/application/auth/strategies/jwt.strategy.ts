@@ -1,5 +1,5 @@
 // src/auth/strategies/jwt.strategy.ts
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
 import config from '~/config/config';
@@ -10,6 +10,7 @@ import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 import { SessionAliveService } from '~/application/auth/services/session-alive.service';
 import { USER_ACTIVITY_PORT, type UserActivityPort } from '~/domain/metrics/ports/user-activity.port';
 import { registerWsUserResolver } from '~/infrastructure/graphql/ws-auth.registry';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
@@ -39,7 +40,7 @@ export class JwtAuthStrategy extends PassportStrategy(JwtStrategy) {
     if (!(await this.sessionAlive.isAlive(payload.sid, user.username))) {
       // Формулировка не случайна: клиент распознаёт потерю доступа по слову
       // «авторизац» и сам уводит на вход, отдельного кода ошибки для этого нет.
-      throw new UnauthorizedException('Сессия завершена, требуется повторная авторизация');
+      throw DomainError.unauthorized('AUTH_SESSION_TERMINATED');
     }
 
     // След захода — здесь и только здесь. Это единственная точка, через которую

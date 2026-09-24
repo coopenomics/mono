@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Зеркало enum'а ошибок auth-v2 контроллера (источник истины — controller,
  * появится в Story 1.11). Расширяется синхронно с серверной стороной.
@@ -64,7 +65,7 @@ export class AuthV2Error extends Error {
 export function notImplemented(method: string): never {
   throw new AuthV2Error(
     AuthV2ErrorCode.NotImplemented,
-    `Метод ${method}() ещё не реализован: скелет SDK (Story 1.2), реализация приходит историями Эпиков 1–2.`,
+    lt('authClient.errors.notImplementedDetail', { method }),
   )
 }
 
@@ -105,138 +106,138 @@ type AuthV2ErrorViewBody = Omit<AuthV2ErrorView, 'code'>
  */
 export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> = {
   [AuthV2ErrorCode.NotImplemented]: {
-    message: 'Функция пока недоступна.',
+    message: lt('authClient.errors.notImplemented'),
     action: 'none',
     keepSession: true,
   },
   [AuthV2ErrorCode.InvalidCredentials]: {
-    message: 'Неверный email или пароль.',
+    message: lt('authClient.errors.invalidCredentials'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.WeakPassword]: {
-    message: 'Пароль слишком простой. Нужно минимум 8 символов, хотя бы одна цифра и один спецсимвол.',
+    message: lt('authClient.errors.weakPassword'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.SessionBindingReused]: {
-    message: 'Сессия входа уже использована. Войдите заново.',
+    message: lt('authClient.errors.sessionBindingReused'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.SessionBindingExpired]: {
-    message: 'Время на подтверждение входа истекло. Войдите заново.',
+    message: lt('authClient.errors.sessionBindingExpired'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.TimestampTooOld]: {
-    message: 'Истекло время на подтверждение входа. Повторите попытку.',
+    message: lt('authClient.errors.timestampTooOld'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.VaultDecryptionFailed]: {
-    message: 'Не удалось расшифровать кошелёк. Попробуйте восстановить доступ.',
+    message: lt('authClient.errors.vaultDecryptionFailed'),
     action: 'recover',
     keepSession: false,
   },
   [AuthV2ErrorCode.CertificateExpired]: {
-    message: 'Срок действия удостоверения истёк. Войдите заново, чтобы обновить его.',
+    message: lt('authClient.errors.certificateExpired'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.CertificateRevoked]: {
-    message: 'Удостоверение отозвано. Обратитесь в кооператив.',
+    message: lt('authClient.errors.certificateRevoked'),
     action: 'contact_support',
     keepSession: false,
   },
   [AuthV2ErrorCode.ChainVerificationFailed]: {
-    message: 'Не удалось подтвердить подпись. Обратитесь в поддержку кооператива.',
+    message: lt('authClient.errors.chainVerificationFailed'),
     action: 'contact_support',
     keepSession: false,
   },
   [AuthV2ErrorCode.CooposDegraded]: {
-    message: 'Кооператив временно недоступен. Повторите попытку позже.',
+    message: lt('authClient.errors.cooposDegraded'),
     action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.TooManyAttempts]: {
-    message: 'Слишком много попыток. Подождите немного и попробуйте снова.',
+    message: lt('authClient.errors.tooManyAttempts'),
     action: 'retry',
     // временный троттлинг — не разлогиниваем пайщика, просто просим подождать.
     keepSession: true,
   },
   [AuthV2ErrorCode.TooManyRecoveryAttempts]: {
-    message: 'Слишком много запросов на восстановление. Подождите и попробуйте позже.',
+    message: lt('authClient.errors.tooManyRecoveryAttempts'),
     action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.InvalidTwoFactorCode]: {
-    message: 'Неверный код из приложения-аутентификатора. Проверьте код и попробуйте снова.',
+    message: lt('authClient.errors.invalidTwoFactorCode'),
     action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.TwoFactorNotEnrolled]: {
-    message: 'Второй фактор не подключён.',
+    message: lt('authClient.errors.twoFactorNotEnrolled'),
     action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.InvalidRecoveryToken]: {
-    message: 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.',
+    message: lt('authClient.errors.invalidRecoveryToken'),
     action: 'recover',
     keepSession: false,
   },
   [AuthV2ErrorCode.RecoveryDoneLoginFailed]: {
-    message: 'Пароль изменён, но войти автоматически не получилось. Войдите новым паролём.',
+    message: lt('authClient.errors.recoveryDoneLoginFailed'),
     // Повторять восстановление нечем: ссылка одноразовая и уже сожжена, ключ ротирован.
     // Единственная осмысленная дорога отсюда — обычный вход новым паролём, его и предлагаем.
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.InvalidOfflineCode]: {
-    message: 'Код восстановления неверен или уже использован.',
+    message: lt('authClient.errors.invalidOfflineCode'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.InsufficientVerification]: {
-    message: 'Недостаточный уровень верификации для этого действия. Обратитесь в кооператив.',
+    message: lt('authClient.errors.insufficientVerification'),
     action: 'contact_support',
     // авторизационное ограничение по уровню доверия — сессия валидна, не разлогиниваем.
     keepSession: true,
   },
   [AuthV2ErrorCode.RotationUnavailable]: {
-    message: 'Смена ключа доступна после завершения регистрации.',
+    message: lt('authClient.errors.rotationUnavailable'),
     action: 'retry',
     // технический код для авто-повтора без ротации; до экрана в норме не доходит.
     keepSession: true,
   },
   [AuthV2ErrorCode.SecondFactorRequired]: {
-    message: 'Требуется подтверждение входа: введите код второго фактора.',
+    message: lt('authClient.errors.secondFactorRequired'),
     action: 'retry',
     // не ошибка, а следующая ступень входа — сессия ещё строится.
     keepSession: true,
   },
   [AuthV2ErrorCode.LoginChallengeExpired]: {
-    message: 'Время на подтверждение входа истекло. Войдите заново.',
+    message: lt('authClient.errors.loginChallengeExpired'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.NetworkError]: {
-    message: 'Нет связи с кооперативом. Проверьте интернет.',
+    message: lt('authClient.errors.networkError'),
     action: 'check_connection',
     keepSession: true,
   },
   [AuthV2ErrorCode.WalletLocked]: {
-    message: 'Кошелёк заблокирован. Введите пароль для доступа к ключу.',
+    message: lt('authClient.errors.walletLocked'),
     action: 'retry',
     keepSession: true,
   },
   [AuthV2ErrorCode.ClientWalletMismatch]: {
-    message: 'Ключ в этом браузере не соответствует аккаунту. Войдите заново.',
+    message: lt('authClient.errors.clientWalletMismatch'),
     action: 'retry',
     keepSession: false,
   },
   [AuthV2ErrorCode.ConsentRequired]: {
-    message: 'Для экспорта удостоверения нужно подтверждение.',
+    message: lt('authClient.errors.consentRequired'),
     action: 'retry',
     keepSession: true,
   },
@@ -244,7 +245,7 @@ export const AUTH_V2_ERROR_VIEWS: Record<AuthV2ErrorCode, AuthV2ErrorViewBody> =
 
 /** Безопасный фолбэк для неожиданной (не-AuthV2) ошибки — без утечки технических деталей. */
 const GENERIC_ERROR_VIEW: AuthV2ErrorViewBody = {
-  message: 'Не удалось выполнить операцию. Попробуйте ещё раз.',
+  message: lt('authClient.errors.generic'),
   action: 'retry',
   keepSession: true,
 }

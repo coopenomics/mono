@@ -13,6 +13,7 @@ import {
   type AgendaStepKey,
 } from 'app/extensions/chairman/shared/lib';
 import { api, type OnboardingState } from '../api';
+import { t } from '../../../i18n';
 
 type AgendaStep =
   | {
@@ -106,8 +107,8 @@ export const useOnboardingFlow = () => {
     const importStep: AgendaStep = {
       key: 'import_participants',
       type: 'import',
-      title: 'Импорт пайщиков (опционально)',
-      description: 'Необязательный шаг. Если у вас уже есть пайщики кооператива — загрузите их списком через CSV-файл. Если нет — просто двигайтесь дальше.',
+      title: t('chairman.onboarding.importMembersTitle'),
+      description: t('chairman.onboarding.importMembersHint'),
       done: false,
       pending: false,
     };
@@ -194,7 +195,7 @@ export const useOnboardingFlow = () => {
         decision: agendaDialog.decision,
       });
       onboardingState.value = state;
-      SuccessAlert('Предложение создано и шаг отмечен.');
+      SuccessAlert(t('chairman.onboarding.proposalCreatedMessage'));
       closeAgendaDialog();
     } catch (error) {
       FailAlert(error);
@@ -232,7 +233,7 @@ export const useOnboardingFlow = () => {
       });
 
       onboardingState.value = state;
-      SuccessAlert('Общее собрание создано и шаг отмечен.');
+      SuccessAlert(t('chairman.onboarding.meetingCreatedMessage'));
       meetDialog.value = false;
       return true;
     } catch (error) {

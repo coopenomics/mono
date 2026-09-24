@@ -1,9 +1,8 @@
+import './i18n';
 import { Module, Injectable, Inject, Optional } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
 import { CapitalDesktopGrantsProvider } from './application/desktop/capital-desktop-grants.provider';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { LOGGER_PORT, type ILoggerPort,
   COUNCIL_PORT,
@@ -18,6 +17,7 @@ import { LOGGER_PORT, type ILoggerPort,
 import { z } from 'zod';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, DOCUMENT_DECLARATION_PORT, type IDocumentDeclarationPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -61,12 +61,12 @@ export const defaultConfig = {
 export const Schema = z.object({
   github_sync_branch: z
     .string()
-    .min(1, 'Имя ветки не может быть пустым')
+    .min(1, t('capital.capitalExtension.field.githubSyncBranch.validationRequired'))
     .default(defaultConfig.github_sync_branch)
     .describe(
       describeField({
-        label: 'Ветка GitHub для синхронизации',
-        note: 'Ветка в указанном репозитории (по умолчанию dev). Используется при обходе истории коммитов.',
+        label: t('capital.capitalExtension.field.githubSyncBranch.label'),
+        note: t('capital.capitalExtension.field.githubSyncBranch.hint'),
         rules: ['val.length >= 1'],
       })
     ),
@@ -86,10 +86,10 @@ export const Schema = z.object({
     z.number().int().min(0).max(60).default(0),
   ).describe(
     describeField({
-      label: 'Интервал опроса GitHub (мин)',
-      note: 'Периодичность задачи синхронизации GitHub ↔ БД. 0 — опрос по расписанию отключён. Иначе: от 1 до 60 минут.',
+      label: t('capital.capitalExtension.field.githubPollInterval.label'),
+      note: t('capital.capitalExtension.field.githubPollInterval.hint'),
       rules: ['val >= 0', 'val <= 60'],
-      append: 'мин',
+      append: t('capital.capitalExtension.field.githubPollInterval.unit'),
     })
   ).default(0),
   github_api_token_encrypted: z
@@ -97,8 +97,8 @@ export const Schema = z.object({
     .default(defaultConfig.github_api_token_encrypted)
     .describe(
       describeField({
-        label: 'Токен GitHub API (read-only)',
-        note: 'Токен GitHub API с доступом к репозиториям.',
+        label: t('capital.capitalExtension.field.githubToken.label'),
+        note: t('capital.capitalExtension.field.githubToken.hint'),
         password: true,
       })
     ),
@@ -107,18 +107,18 @@ export const Schema = z.object({
     .default(defaultConfig.github_sync_all_branches)
     .describe(
       describeField({
-        label: 'Синхронизировать все ветки',
-        note: 'Индексировать коммиты со всех веток репозитория, а не только с базовой: работа видна и учитывается сразу, не дожидаясь вливания. Переписанные версии уже учтённых коммитов распознаются по содержимому правки и не задваиваются.',
+        label: t('capital.capitalExtension.field.githubSyncAllBranches.label'),
+        note: t('capital.capitalExtension.field.githubSyncAllBranches.hint'),
       })
     ),
   github_sync_branch_filter: z
     .string()
-    .min(1, 'Фильтр веток не может быть пустым')
+    .min(1, t('capital.capitalExtension.field.githubBranchFilter.validationRequired'))
     .default(defaultConfig.github_sync_branch_filter)
     .describe(
       describeField({
-        label: 'Фильтр веток',
-        note: 'Какие небазовые ветки индексировать: glob-шаблоны через запятую (например «feat/*,fix/*»). «*» — все ветки.',
+        label: t('capital.capitalExtension.field.githubBranchFilter.label'),
+        note: t('capital.capitalExtension.field.githubBranchFilter.hint'),
         rules: ['val.length >= 1'],
       })
     ),
@@ -140,10 +140,10 @@ export const Schema = z.object({
     )
     .describe(
       describeField({
-        label: 'Интервал синхронизации баланса Благороста с проектами (мин)',
-        note: 'Периодичность сверки баланса программы Благорост в кошельке участника с проектами и вызова regshare. 0 — отключено.',
+        label: t('capital.capitalExtension.field.blagorostSyncInterval.label'),
+        note: t('capital.capitalExtension.field.blagorostSyncInterval.hint'),
         rules: ['val >= 0', 'val <= 525600'],
-        append: 'мин',
+        append: t('capital.capitalExtension.field.blagorostSyncInterval.unit'),
       })
     )
     .default(defaultConfig.program_share_registration_interval_minutes),
@@ -152,8 +152,8 @@ export const Schema = z.object({
     .default(defaultConfig.creators_voting_percent)
     .describe(
       describeField({
-        label: 'Пул голосования исполнителей',
-        note: 'Процент от пула премий исполнителей для распределения голосованием по методу Водянова.',
+        label: t('capital.capitalExtension.field.creatorsVotingPercent.label'),
+        note: t('capital.capitalExtension.field.creatorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -163,8 +163,8 @@ export const Schema = z.object({
     .default(defaultConfig.authors_voting_percent)
     .describe(
       describeField({
-        label: 'Пул голосований соавторов',
-        note: 'Процент от пула премий соавторов для распределения голосованием по методу Водянова.',
+        label: t('capital.capitalExtension.field.authorsVotingPercent.label'),
+        note: t('capital.capitalExtension.field.authorsVotingPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -174,8 +174,8 @@ export const Schema = z.object({
     .default(defaultConfig.coordinator_bonus_percent)
     .describe(
       describeField({
-        label: 'Премия координатора',
-        note: 'Процент от суммы взноса инвестора, на который дополнительно увеличивается стоимость результата интеллектуальной деятельности. По факту внесения суммы инвестором, координатор вносит паевым взносом выполненный финансовый план и получает долю в результате.',
+        label: t('capital.capitalExtension.field.coordinatorBonusPercent.label'),
+        note: t('capital.capitalExtension.field.coordinatorBonusPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -185,10 +185,10 @@ export const Schema = z.object({
     .default(defaultConfig.coordinator_invite_validity_days)
     .describe(
       describeField({
-        label: 'Срок действия приглашения координатора',
-        note: 'Продолжительность периода действия приглашений, по ходу которых координатор получает премию от взноса инвестора по его финплану. После истечения этого срока премия координатору при взносах приглашенного инвестора не начисляется.',
+        label: t('capital.capitalExtension.field.coordinatorInviteValidityDays.label'),
+        note: t('capital.capitalExtension.field.coordinatorInviteValidityDays.hint'),
         rules: ['val >= 1'],
-        append: 'дней',
+        append: t('capital.capitalExtension.field.coordinatorInviteValidityDays.unit'),
       })
     ),
   expense_pool_percent: z
@@ -196,8 +196,8 @@ export const Schema = z.object({
     .default(defaultConfig.expense_pool_percent)
     .describe(
       describeField({
-        label: 'Процент пула расходов',
-        note: 'Процент от суммы инвестиций, который направляется в пул расходов.',
+        label: t('capital.capitalExtension.field.expensePoolPercent.label'),
+        note: t('capital.capitalExtension.field.expensePoolPercent.hint'),
         rules: ['val >= 0', 'val <= 100'],
         prepend: '%',
       })
@@ -207,10 +207,10 @@ export const Schema = z.object({
     .default(defaultConfig.voting_period_in_days)
     .describe(
       describeField({
-        label: 'Период голосования',
-        note: 'Продолжительность периода голосования по методу Водянова в днях.',
+        label: t('capital.capitalExtension.field.votingPeriodInDays.label'),
+        note: t('capital.capitalExtension.field.votingPeriodInDays.hint'),
         rules: ['val >= 1'],
-        append: 'дней',
+        append: t('capital.capitalExtension.field.votingPeriodInDays.unit'),
       })
     ),
   energy_decay_rate_per_day: z
@@ -218,11 +218,11 @@ export const Schema = z.object({
     .default(defaultConfig.energy_decay_rate_per_day)
     .describe(
       describeField({
-        label: 'Скорость убывания энергии в день',
-        note: 'Процент энергии, которое теряет участник ежедневно. Это мотивирует к активному участию в проектах для поддержания уровня энергии.',
+        label: t('capital.capitalExtension.field.energyDecayRate.label'),
+        note: t('capital.capitalExtension.field.energyDecayRate.hint'),
         rules: ['val >= 0', 'val <= 1'],
         prepend: '%',
-        append: '/день',
+        append: t('capital.capitalExtension.field.energyDecayRate.unit'),
         visible: false,
       })
     ),
@@ -231,8 +231,8 @@ export const Schema = z.object({
     .default(defaultConfig.level_depth_base)
     .describe(
       describeField({
-        label: 'Базовая глубина уровня',
-        note: 'Базовое количество опыта, необходимое для достижения следующего уровня. Используется в расчете прогрессии уровней участников.',
+        label: t('capital.capitalExtension.field.levelDepthBase.label'),
+        note: t('capital.capitalExtension.field.levelDepthBase.hint'),
         rules: ['val >= 1'],
         visible: false,
       })
@@ -242,8 +242,8 @@ export const Schema = z.object({
     .default(defaultConfig.level_growth_coefficient)
     .describe(
       describeField({
-        label: 'Коэффициент роста уровня',
-        note: 'Множитель, определяющий, насколько сложнее становится достичь следующего уровня. Высокий коэффициент делает прогресс более медленным.',
+        label: t('capital.capitalExtension.field.levelGrowthCoefficient.label'),
+        note: t('capital.capitalExtension.field.levelGrowthCoefficient.hint'),
         rules: ['val >= 1'],
         visible: false,
       })
@@ -253,8 +253,8 @@ export const Schema = z.object({
     .default(defaultConfig.energy_gain_coefficient)
     .describe(
       describeField({
-        label: 'Коэффициент получения энергии',
-        note: 'Множитель, определяющий количество энергии, получаемое за выполнение задач. Влияет на скорость восстановления энергии участников.',
+        label: t('capital.capitalExtension.field.energyGainCoefficient.label'),
+        note: t('capital.capitalExtension.field.energyGainCoefficient.hint'),
         rules: ['val >= 0'],
         visible: false,
       })
@@ -263,26 +263,32 @@ export const Schema = z.object({
   onboarding_generator_program_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generator_program_template_done)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'Шаг положения о программе ГЕНЕРАТОР выполнен', visible: false })),
   onboarding_generation_contract_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generation_contract_template_done)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'Шаг соглашения о генерации выполнен', visible: false })),
   onboarding_generator_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_generator_offer_template_done)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'Шаг шаблона оферты генератора выполнен', visible: false })),
   onboarding_blagorost_provision_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_provision_done)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'Шаг положения Благорост выполнен', visible: false })),
   onboarding_blagorost_offer_template_done: z
     .boolean()
     .default(defaultConfig.onboarding_blagorost_offer_template_done)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'Шаг предложения Благорост выполнен', visible: false })),
   capital_program_doc_data_hash: z
     .string()
     .default(defaultConfig.capital_program_doc_data_hash)
+    // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
     .describe(describeField({ label: 'PrivateData документов ЦПП', visible: false })),
 
 });
@@ -545,8 +551,8 @@ export class CapitalExtension extends BaseExtensionModule {
    */
   private async ensureCppPrograms(): Promise<void> {
     const programs = [
-      { type: BLAGOROST_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Благорост»' },
-      { type: GENERATOR_AGREEMENT_TYPE, title: 'Целевая потребительская программа «Генератор»' },
+      { type: BLAGOROST_AGREEMENT_TYPE, title: t('capital.capitalExtension.program.blagorostTitle') },
+      { type: GENERATOR_AGREEMENT_TYPE, title: t('capital.capitalExtension.program.generatorTitle') },
     ];
 
     for (const program of programs) {
@@ -657,6 +663,8 @@ export class CapitalExtension extends BaseExtensionModule {
         Number(contractConfig.energy_gain_coefficient || 0) !== finalConfig.energy_gain_coefficient;
 
       if (needsUpdate) {
+        // i18n-ignore: текст логов (logger.log), до пайщика не доходит
+        // i18n-ignore: текст логов (logger.log), до пайщика не доходит
         const action = contractConfig ? 'обновление' : 'установка начальной';
         this.logger.log(`Выполняем ${action} конфигурации контракта CAPITAL`);
 
@@ -769,9 +777,7 @@ export class CapitalExtension extends BaseExtensionModule {
         const ext = await this.extensionRepository.findByName(this.name);
         const hash = ext?.config?.capital_program_doc_data_hash?.trim();
         if (!hash) {
-          throw new Error(
-            'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
-          );
+          throw DomainError.internal('CAPITAL_PROGRAM_DOC_DATA_HASH_MISSING');
         }
         return hash;
       };

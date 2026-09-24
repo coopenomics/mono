@@ -11,8 +11,9 @@
 import { computed } from 'vue';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import type { TablePagerProps } from './TablePager.types';
+import { t } from 'src/shared/i18n';
 
-const props = withDefaults(defineProps<TablePagerProps>(), { label: 'Строки' });
+const props = withDefaults(defineProps<TablePagerProps>(), { label: t('ui.tablePager.rowsLabel') });
 
 const emit = defineEmits<{
   'update:page': [page: number];
@@ -30,14 +31,14 @@ function go(page: number): void {
 
 <template lang="pug">
 .table-pager
-  span {{ label }} {{ from }}–{{ to }} из {{ rowsNumber }}
+  span {{ $t('ui.tablePager.rangeText', { label, from, to, rowsNumber }) }}
   .table-pager__buttons
     BaseButton(variant='ghost', size='sm', :disabled='!hasPrev', @click='go(page - 1)')
       template(#icon-left)
         q-icon(name='chevron_left', size='18px')
-      | Назад
+      | {{ $t('common.action.back') }}
     BaseButton(variant='ghost', size='sm', :disabled='!hasNext', @click='go(page + 1)')
-      | Вперёд
+      | {{ $t('ui.tablePager.nextLabel') }}
       template(#icon-right)
         q-icon(name='chevron_right', size='18px')
 </template>

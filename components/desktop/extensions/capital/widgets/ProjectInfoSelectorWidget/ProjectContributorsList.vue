@@ -6,8 +6,8 @@
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    title='Участников пока нет',
-    body='Когда пайщики получат допуск к проекту или компоненту, они появятся в этом списке.'
+    :title='$t("capital.projectContributorsList.emptyTitle")',
+    :body='$t("capital.projectContributorsList.emptyBody")'
   )
     template(#icon)
       q-icon(name='group')
@@ -45,7 +45,7 @@
 
           .contributors-list__side
             .contributors-list__amount
-              .t-sm.t-muted Взнос
+              .t-sm.t-muted {{ $t('capital.projectContributorsList.contributionLabel') }}
               span.t-mono {{ formatAsset2Digits(calculateContributionAmount(row)) }}
             RefreshSegmentButton(
               v-if='segmentNeedsUpdate(row)',
@@ -75,6 +75,7 @@ import {
   RefreshSegmentButton,
 } from 'app/extensions/capital/features/Project/RefreshSegment/ui';
 import { segmentNeedsUpdate } from 'app/extensions/capital/features/Project/RefreshSegment/model';
+import { t } from '../../i18n';
 
 const props = defineProps<{
   project?: IProject | null;
@@ -134,7 +135,7 @@ const loadPage = async (page: number, append: boolean): Promise<void> => {
     nextPage.value = page + 1;
   } catch (error) {
     console.error('Ошибка при загрузке сегментов:', error);
-    FailAlert('Не удалось загрузить список участников');
+    FailAlert(t('capital.projectContributorsList.loadError'));
     throw error;
   } finally {
     if (!append) {
@@ -187,10 +188,10 @@ const parseValueData = (value: string | null | undefined) => {
 };
 
 const roleTitles: Record<string, string> = {
-  author: 'Соавтор',
-  creator: 'Исполнитель',
-  investor: 'Инвестор',
-  contributor: 'Участник',
+  author: t('capital.projectContributorsList.coauthorRole'),
+  creator: t('capital.projectContributorsList.performerRole'),
+  investor: t('capital.projectContributorsList.investorRole'),
+  contributor: t('capital.projectContributorsList.memberRole'),
 };
 
 const roleFields: Record<string, keyof ISegment> = {

@@ -6,21 +6,22 @@
   )
     p.signature-hint {{ hint }}
   .q-mt-md.q-gutter-sm.row.justify-end
-    q-btn(flat, label='Очистить', @click='clear')
-    q-btn(color='primary', label='Подписать', @click='submit')
+    q-btn(flat, :label='$t("documentSigning.documentsSignCanvas.clear")', @click='clear')
+    q-btn(color='primary', :label='$t("common.action.sign")', @click='submit')
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Classes } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
+import { t } from 'src/shared/i18n';
 
 withDefaults(
   defineProps<{
     hint?: string
   }>(),
   {
-    hint: 'Оставьте собственноручную подпись в рамке',
+    hint: t('documentSigning.documentsSignCanvas.hint'),
   }
 )
 
@@ -76,7 +77,7 @@ const clear = () => {
 
 const submit = () => {
   if (!canvasInst) {
-    FailAlert('Пожалуйста, оставьте собственноручную подпись в окне')
+    FailAlert(t('documentSigning.documentsSignCanvas.emptyError'))
     return
   }
   const sign = canvasInst.getSignature()
@@ -85,7 +86,7 @@ const submit = () => {
   const data = ctx.getImageData(0, 0, width, height).data
   const isEmpty = !data.some((channel) => channel !== 0)
   if (!sign || isEmpty) {
-    FailAlert('Пожалуйста, оставьте собственноручную подпись в окне')
+    FailAlert(t('documentSigning.documentsSignCanvas.emptyError'))
     return
   }
   emit('signed', sign)

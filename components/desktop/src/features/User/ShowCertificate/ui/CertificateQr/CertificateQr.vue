@@ -1,12 +1,13 @@
 <template lang="pug">
 .cert-qr(:style='{ width: `${size}px`, height: `${size}px` }')
-  img.cert-qr__img(v-if='src', :src='src', alt='Код удостоверения пайщика')
+  img.cert-qr__img(v-if='src', :src='src', :alt='$t("user.certificateQr.alt")')
   .cert-qr__fallback(v-else-if='error') {{ error }}
 </template>
 
 <script setup lang="ts">
 import { ref, watchEffect } from 'vue';
 import QRCode from 'qrcode';
+import { t } from 'src/shared/i18n';
 
 /**
  * Код удостоверения пайщика. Само удостоверение из приложения не выходит: код
@@ -37,7 +38,7 @@ watchEffect(async () => {
       color: { dark: '#0f172a', light: '#ffffff' },
     });
   } catch {
-    error.value = 'Удостоверение не помещается в код';
+    error.value = t('user.certificateQr.overflowError');
   }
 });
 </script>

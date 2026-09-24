@@ -4,7 +4,7 @@
     //- Sidebar со списком процессов
     .processes-sidebar.q-pa-md(style='width: 280px; border-right: 1px solid #e0e0e0; overflow-y: auto')
       .row.items-center.q-mb-md
-        .text-h6.col Процессы
+        .text-h6.col {{ $t('capital.processesPage.title') }}
         q-btn(
           v-if='canEdit'
           flat
@@ -31,7 +31,7 @@
 
       .text-center.text-grey-5.q-mt-lg(v-if='templates.length === 0')
         q-icon(name='account_tree' size='48px')
-        .q-mt-sm Нет процессов
+        .q-mt-sm {{ $t('capital.processesPage.emptyText') }}
 
     //- Основная область — Vue Flow
     .col.q-pa-md
@@ -45,7 +45,7 @@
               flat
               dense
               icon='save'
-              label='Сохранить'
+              :label='$t("common.action.save")'
               color='primary'
               @click='saveTemplate'
               :disable='!hasChanges'
@@ -55,7 +55,7 @@
               flat
               dense
               icon='play_arrow'
-              label='Активировать'
+              :label='$t("capital.processesPage.activateLabel")'
               color='positive'
               @click='activateTemplate'
             )
@@ -89,27 +89,27 @@
               flat
               dense
               icon='add'
-              label='Добавить шаг'
+              :label='$t("capital.processesPage.addStepLabel")'
               @click='addStep'
             )
 
       .text-center.text-grey-5(v-else style='padding-top: 200px')
         q-icon(name='account_tree' size='64px')
-        .text-h6.q-mt-md Выберите процесс
-        .text-grey-6 или создайте новый
+        .text-h6.q-mt-md {{ $t('capital.processesPage.selectProcessText') }}
+        .text-grey-6 {{ $t('capital.processesPage.orCreateNewText') }}
 
   //- Диалог создания
   q-dialog(v-model='showCreateDialog')
     q-card(style='min-width: 400px')
       q-card-section
-        .text-h6 Новый процесс
+        .text-h6 {{ $t('capital.processesPage.newProcessLabel') }}
       q-card-section
-        q-input(v-model='newTitle' label='Название' autofocus)
-        q-input.q-mt-sm(v-model='newDescription' label='Описание' type='textarea')
-        q-input.q-mt-sm(v-model='newProjectHash' label='Хеш компонента')
+        q-input(v-model='newTitle' :label='$t("capital.processesPage.nameLabel")' autofocus)
+        q-input.q-mt-sm(v-model='newDescription' :label='$t("capital.processesPage.descriptionLabel")' type='textarea')
+        q-input.q-mt-sm(v-model='newProjectHash' :label='$t("capital.processesPage.componentHashLabel")')
       q-card-actions(align='right')
-        q-btn(flat label='Отмена' @click='showCreateDialog = false')
-        q-btn(flat label='Создать' color='primary' @click='createTemplate')
+        q-btn(flat :label='$t("common.action.cancel")' @click='showCreateDialog = false')
+        q-btn(flat :label='$t("common.action.create")' color='primary' @click='createTemplate')
 </template>
 
 <script setup lang="ts">
@@ -124,6 +124,7 @@ import { useSessionStore } from 'src/entities/Session'
 import * as processApi from 'app/extensions/capital/entities/Process/api'
 import type { ProcessTemplate, ProcessStepTemplate, ProcessEdge as PEdge } from 'app/extensions/capital/entities/Process/model/types'
 import type { Connection } from '@vue-flow/core'
+import { t as i18nT } from '../../../i18n';
 
 interface ProcessNodeData {
   label: string
@@ -152,7 +153,7 @@ const canEdit = computed(() => session.isChairman || session.isMember)
 function formatEstimateStep(hours: number): string {
   if (!hours || Number.isNaN(hours)) return ''
   const rounded = hours % 1 === 0 ? hours : parseFloat(hours.toFixed(2))
-  return `${rounded}ч`
+  return i18nT('capital.processesPage.hoursValue', { roundedHours: rounded })
 }
 
 const templates = ref<ProcessTemplate[]>([])
@@ -216,7 +217,7 @@ function onNodesChange() {
 
 function addStep() {
   const id = `step-${Date.now()}`
-  const title = prompt('Название шага:')
+  const title = prompt(i18nT('capital.processesPage.stepNamePrompt'))
   if (!title) return
   const isStart = nodes.value.length === 0
   nodes.value.push({
@@ -273,7 +274,7 @@ async function activateTemplate() {
 
 async function deleteTemplate() {
   if (!selectedTemplate.value) return
-  if (!(await confirm({ title: 'Удалить процесс?', message: `Описание процесса «${selectedTemplate.value.title}» будет удалено.`, confirmLabel: 'Удалить', danger: true }))) return
+  if (!(await confirm({ title: i18nT('capital.processesPage.deleteConfirm'), message: i18nT('capital.processesPage.deleteConfirmMessage', { title: selectedTemplate.value.title }), confirmLabel: i18nT('common.action.delete'), danger: true }))) return
   try {
     await processApi.deleteProcessTemplate(selectedTemplate.value.id)
     templates.value = templates.value.filter(t => t.id !== selectedTemplate.value?.id)

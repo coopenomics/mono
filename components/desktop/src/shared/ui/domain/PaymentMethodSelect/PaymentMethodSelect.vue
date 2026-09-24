@@ -8,7 +8,7 @@
     :model-value='modelValue',
     :options='options',
     :label='label',
-    :placeholder='isEmpty ? "Нет доступных реквизитов" : placeholder',
+    :placeholder='isEmpty ? $t("ui.paymentMethodSelect.emptyText") : placeholder',
     :hint='isEmpty ? undefined : hint',
     :error='error || loadError',
     :disabled='disabled || loading || isEmpty',
@@ -27,6 +27,7 @@ import {
   formatPaymentMethodShort,
   type IPaymentMethodLike,
 } from './formatPaymentMethod';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -44,10 +45,10 @@ const props = withDefaults(
   }>(),
   {
     modelValue: null,
-    label: 'Реквизиты получателя',
-    placeholder: 'Выберите способ получения средств',
+    label: t('ui.paymentMethodSelect.label'),
+    placeholder: t('ui.paymentMethodSelect.placeholder'),
     emptyMessage:
-      'У получателя нет сохранённых реквизитов. Добавьте способ получения средств в профиле.',
+      t('ui.paymentMethodSelect.noDetailsHint'),
   },
 );
 
@@ -82,7 +83,7 @@ watch(
       methods.value = (result.getPaymentMethods.items as unknown as IPaymentMethodLike[]) ?? [];
     } catch (e) {
       console.error('Ошибка загрузки платёжных методов:', e);
-      loadError.value = 'Не удалось загрузить реквизиты получателя';
+      loadError.value = t('ui.paymentMethodSelect.loadError');
     } finally {
       loading.value = false;
     }

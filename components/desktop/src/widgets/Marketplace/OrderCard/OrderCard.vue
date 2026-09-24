@@ -46,7 +46,7 @@
 
     <div class="order-row__money">
       <div class="order-row__sum">{{ formatPrice(order.totalCost) }}</div>
-      <div class="order-row__qty">{{ order.units }}&nbsp;{{ order.unitLabel ?? 'ед.' }}</div>
+      <div class="order-row__qty">{{ order.units }}&nbsp;{{ order.unitLabel ?? $t('marketplace.orderCard.unitFallback') }}</div>
       <div v-if="order.feeNote" class="order-row__fee-note">{{ order.feeNote }}</div>
     </div>
 
@@ -66,10 +66,9 @@
           color="primary"
           track-color="grey-3"
         />
-        <div class="order-row__progress-label">
-          коллективный заказ · {{ Math.round(order.progress * 100) }}%
+        <div class="order-row__progress-label"> {{ $t('marketplace.orderCard.collectiveOrderPrefix') }} {{ Math.round(order.progress * 100) }}%
           <q-icon name="help_outline" size="12px" class="order-row__progress-help">
-            <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
+            <q-tooltip>{{ $t('marketplace.orderCard.collectiveOrderTooltip') }}</q-tooltip>
           </q-icon>
         </div>
       </div>
@@ -113,10 +112,9 @@
     </template>
 
     <div v-if="order.progress !== undefined" class="order-card__progress">
-      <div class="order-card__progress-label">
-        коллективный заказ · {{ Math.round(order.progress * 100) }}%
+      <div class="order-card__progress-label"> {{ $t('marketplace.orderCard.collectiveOrderPrefix') }} {{ Math.round(order.progress * 100) }}%
         <q-icon name="help_outline" size="14px" class="order-card__progress-help">
-          <q-tooltip>Заказ копится вместе с другими пайщиками до минимального объёма поставки на этот пункт выдачи.</q-tooltip>
+          <q-tooltip>{{ $t('marketplace.orderCard.collectiveOrderTooltip') }}</q-tooltip>
         </q-icon>
       </div>
       <q-linear-progress
@@ -131,13 +129,13 @@
 
     <div class="order-card__facts">
       <div class="order-card__fact">
-        <div class="order-card__fact-label">Сумма</div>
+        <div class="order-card__fact-label">{{ $t('marketplace.orderCard.amountLabel') }}</div>
         <div class="order-card__fact-value order-card__fact-value--money">{{ formatPrice(order.totalCost) }}</div>
         <div v-if="order.feeNote" class="order-card__fee-note">{{ order.feeNote }}</div>
       </div>
       <div class="order-card__fact">
-        <div class="order-card__fact-label">Кол-во</div>
-        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? 'ед.' }}</div>
+        <div class="order-card__fact-label">{{ $t('marketplace.orderCard.quantityLabel') }}</div>
+        <div class="order-card__fact-value">{{ order.units }} {{ order.unitLabel ?? $t('marketplace.orderCard.unitFallback') }}</div>
       </div>
     </div>
 
@@ -173,6 +171,7 @@
 
 <script setup lang="ts">
 import { computed, type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import { BaseCard, BaseBadge, BaseButton } from 'src/shared/ui/base'
 import type { OrderStatus, OrderRole, Order } from './OrderCard.types'
 
@@ -225,34 +224,34 @@ const ACTIONS_PER_ROLE: Record<Exclude<OrderRole, 'orderer'>, Record<OrderStatus
     // экраном «Консолидированные заявки», не в OrderCard. Decline требует
     // reason — обрабатывается parent'ом через confirm-dialog.
     draft: [], placed: [
-      { key: 'accept', label: 'Принять', kind: 'primary' },
-      { key: 'decline', label: 'Отказать', kind: 'danger' },
+      { key: 'accept', label: t('marketplace.orderCard.acceptAction'), kind: 'primary' },
+      { key: 'decline', label: t('marketplace.orderCard.declineAction'), kind: 'danger' },
     ],
     // Отгрузка идёт не с карточки заказа, а на странице «Подготовка отгрузки»
     // (формирование партии по КУ). Здесь действий по оплаченному заказу нет.
     paid: [],
     'in-delivery': [], 'arrived-at-pvz': [], 'ready-to-issue': [],
-    issued: [], cancelled: [], dispute: [{ key: 'reply', label: 'Ответить', kind: 'primary' }],
+    issued: [], cancelled: [], dispute: [{ key: 'reply', label: t('marketplace.orderCard.replyAction'), kind: 'primary' }],
     returned: [],
   },
   operator: {
     draft: [], placed: [], paid: [],
-    'in-delivery': [{ key: 'mark-arrived', label: 'Принять на ПВЗ', kind: 'primary' }],
-    'arrived-at-pvz': [{ key: 'issue', label: 'Выдать', kind: 'primary' }],
-    'ready-to-issue': [{ key: 'issue', label: 'Выдать', kind: 'primary' }],
-    issued: [], cancelled: [], dispute: [], returned: [{ key: 'process-return', label: 'Принять возврат', kind: 'primary' }],
+    'in-delivery': [{ key: 'mark-arrived', label: t('marketplace.orderCard.acceptAtPvzAction'), kind: 'primary' }],
+    'arrived-at-pvz': [{ key: 'issue', label: t('marketplace.orderCard.issueAction'), kind: 'primary' }],
+    'ready-to-issue': [{ key: 'issue', label: t('marketplace.orderCard.issueAction'), kind: 'primary' }],
+    issued: [], cancelled: [], dispute: [], returned: [{ key: 'process-return', label: t('marketplace.orderCard.acceptReturnAction'), kind: 'primary' }],
   },
   admin: {
-    draft: [{ key: 'open', label: 'Открыть' }],
-    placed: [{ key: 'open', label: 'Открыть' }],
-    paid: [{ key: 'open', label: 'Открыть' }],
-    'in-delivery': [{ key: 'open', label: 'Открыть' }],
-    'arrived-at-pvz': [{ key: 'open', label: 'Открыть' }],
-    'ready-to-issue': [{ key: 'open', label: 'Открыть' }],
-    issued: [{ key: 'open', label: 'Открыть' }],
-    cancelled: [{ key: 'open', label: 'Открыть' }],
-    dispute: [{ key: 'open', label: 'Открыть' }, { key: 'arbitrate', label: 'Арбитраж', kind: 'primary' }],
-    returned: [{ key: 'open', label: 'Открыть' }],
+    draft: [{ key: 'open', label: t('common.action.open') }],
+    placed: [{ key: 'open', label: t('common.action.open') }],
+    paid: [{ key: 'open', label: t('common.action.open') }],
+    'in-delivery': [{ key: 'open', label: t('common.action.open') }],
+    'arrived-at-pvz': [{ key: 'open', label: t('common.action.open') }],
+    'ready-to-issue': [{ key: 'open', label: t('common.action.open') }],
+    issued: [{ key: 'open', label: t('common.action.open') }],
+    cancelled: [{ key: 'open', label: t('common.action.open') }],
+    dispute: [{ key: 'open', label: t('common.action.open') }, { key: 'arbitrate', label: t('marketplace.orderCard.arbitrateAction'), kind: 'primary' }],
+    returned: [{ key: 'open', label: t('common.action.open') }],
   },
 }
 
@@ -274,11 +273,11 @@ function actionVariant(a: OrderAction): 'primary' | 'danger' | 'ghost' {
 
 function formatDate(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return d.toLocaleDateString(uiLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function formatPrice(v: number) {
-  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0 }).format(v) + ' ₽'
+  return new Intl.NumberFormat(uiLocale(), { minimumFractionDigits: 0 }).format(v) + ' ₽'
 }
 </script>
 

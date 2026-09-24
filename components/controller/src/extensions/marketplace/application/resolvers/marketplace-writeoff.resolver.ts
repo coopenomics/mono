@@ -1,7 +1,7 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Cooperative } from 'cooptypes';
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -196,7 +196,7 @@ export class MarketplaceWriteoffResolver {
   ): Promise<GeneratedDocumentDTO> {
     const draft = await this.service.getProposal(data.draft_id);
     if (!draft.is_draft) {
-      throw new BadRequestException('Подписать Заявление можно только для черновика (DRAFT)');
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_SIGN_NOT_DRAFT');
     }
     const proposalHash = this.service.computeProposalHash({
       coopname: draft.coopname,
@@ -340,7 +340,7 @@ export class MarketplaceWriteoffResolver {
     // регенерируем. Канон — issuance/return-claim.
     const aggregate = await this.service.getProtocolDocumentAggregate(data.proposal_id);
     if (!aggregate) {
-      throw new NotFoundException('Протокол совета по этому проекту недоступен');
+      throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROTOCOL_NOT_FOUND');
     }
     return new DocumentAggregateDTO(aggregate);
   }
@@ -417,9 +417,7 @@ export class MarketplaceWriteoffResolver {
     if (canAccess(roles, 'Writeoff', 'read:all')) return;
     const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
     if (!own.includes(braname)) {
-      throw new BadRequestException(
-        'Подтвердить списание можно только по участку, на котором вы являетесь председателем или доверенным лицом.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE');
     }
   }
 }

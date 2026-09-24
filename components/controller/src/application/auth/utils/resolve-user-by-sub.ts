@@ -1,5 +1,6 @@
 import { UserRepository } from '~/domain/user/repositories/user.repository';
 import { UserDomainService } from '~/domain/user/services/user-domain.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Резолвит пользователя по `sub` из JWT — единый источник для passport-стратегии
@@ -17,11 +18,11 @@ export async function resolveUserBySub(
   if (isValidUuid(sub)) {
     const user = await userRepository.findById(sub);
     if (!user) {
-      throw new Error('Пользователь с указанным JWT не найден');
+      throw DomainError.internal('AUTH_JWT_USER_NOT_FOUND');
     }
     return user;
   }
-  throw new Error('Неверный формат ID пользователя в JWT токене');
+  throw DomainError.internal('AUTH_JWT_INVALID_USER_ID_FORMAT');
 }
 
 function isLegacyMongoId(id: string): boolean {

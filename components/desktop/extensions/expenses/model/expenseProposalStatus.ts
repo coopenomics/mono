@@ -1,14 +1,15 @@
 import { Zeus } from '@coopenomics/sdk';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
+import { t } from '../i18n';
 
 export const expenseProposalStatusLabel: Record<Zeus.ExpenseProposalStatus, string> = {
-  [Zeus.ExpenseProposalStatus.UNDEFINED]: 'Не определён',
-  [Zeus.ExpenseProposalStatus.CREATED]: 'Подан',
-  [Zeus.ExpenseProposalStatus.AUTHORIZED]: 'Утверждён советом',
-  [Zeus.ExpenseProposalStatus.PARTIALLY_PAID]: 'Частично оплачен',
-  [Zeus.ExpenseProposalStatus.REPORT_SUBMITTED]: 'Отчёт подан',
-  [Zeus.ExpenseProposalStatus.CLOSED]: 'Закрыт',
-  [Zeus.ExpenseProposalStatus.DECLINED]: 'Отклонён',
+  [Zeus.ExpenseProposalStatus.UNDEFINED]: t('expenses.expenseProposal.status.undefined'),
+  [Zeus.ExpenseProposalStatus.CREATED]: t('expenses.expenseProposal.status.submitted'),
+  [Zeus.ExpenseProposalStatus.AUTHORIZED]: t('expenses.expenseProposal.status.approvedByCouncil'),
+  [Zeus.ExpenseProposalStatus.PARTIALLY_PAID]: t('expenses.expenseProposal.status.partiallyPaid'),
+  [Zeus.ExpenseProposalStatus.REPORT_SUBMITTED]: t('expenses.expenseProposal.status.reportSubmitted'),
+  [Zeus.ExpenseProposalStatus.CLOSED]: t('expenses.expenseProposal.status.closed'),
+  [Zeus.ExpenseProposalStatus.DECLINED]: t('expenses.expenseProposal.status.declined'),
 };
 
 export const expenseProposalStatusVariant: Record<Zeus.ExpenseProposalStatus, BaseBadgeVariant> = {

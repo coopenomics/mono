@@ -2,7 +2,7 @@
 DetailsDrawer(
   :model-value='overlay.isOpen.value',
   :width='860',
-  title='Заказ',
+  :title='$t("marketplace.orderRegistryOverlay.title")',
   @update:model-value='(v) => !v && overlay.close()'
 )
   template(#actions)
@@ -10,12 +10,12 @@ DetailsDrawer(
       v-if='fullPageRouteName',
       variant='ghost',
       size='sm',
-      aria-label='Открыть заказ на отдельной странице',
+      :aria-label='$t("marketplace.orderRegistryOverlay.openFullPageAriaLabel")',
       @click='openFullPage'
     )
       template(#icon-left)
         q-icon(name='open_in_full', size='16px')
-      | Открыть заказ
+      | {{ $t('marketplace.orderRegistryOverlay.openFullPageButton') }}
 
   OrderRegistryDetail(
     v-if='overlay.value.value',

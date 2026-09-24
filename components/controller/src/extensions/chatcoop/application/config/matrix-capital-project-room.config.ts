@@ -4,6 +4,7 @@
  */
 
 import type { MatrixChatRoomPreset } from './matrix-chat-room-preset.types';
+import { t } from '../../i18n';
 
 /**
  * Те же принципы, что у комнаты пайщиков: модераторы (50) почти по всем настройкам комнаты;
@@ -56,7 +57,7 @@ function buildPowerLevels(adminUserId: string): Record<string, unknown> {
 }
 
 export const CAPITAL_PROJECT_ROOM_MATRIX: MatrixChatRoomPreset = {
-  label: 'Комната проекта Capital',
+  label: t('chatcoop.room.status.capitalProject'),
   isPrivate: true,
   encrypt: false,
   roomType: undefined,

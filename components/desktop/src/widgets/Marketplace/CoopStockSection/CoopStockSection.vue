@@ -23,6 +23,7 @@ import {
   unpublishStock,
   type MarketplaceInventoryItemView,
 } from 'src/pages/Marketplace/OperatorOwnWarehouse/api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Остаток кооператива на складе КУ (requirement 76): обезличенные позиции,
@@ -48,11 +49,11 @@ watch(items, (v) => emit('count', v.length), { immediate: true });
 // не делает.
 const columns: BaseTableColumn<MarketplaceInventoryItemView>[] = [
   { key: 'pick', label: '', width: '56px' },
-  { key: 'product', label: 'Товар', width: '280px', sortable: true, field: 'product_name_snapshot' },
-  { key: 'quantity', label: 'Кол-во', width: '130px', numeric: true },
-  { key: 'price', label: 'Цена прибытия', width: '160px', numeric: true },
-  { key: 'expiry', label: 'Годен до', width: '130px', nowrap: true },
-  { key: 'state', label: 'Состояние', width: '170px' },
+  { key: 'product', label: t('marketplace.coopStockSection.column.product'), width: '280px', sortable: true, field: 'product_name_snapshot' },
+  { key: 'quantity', label: t('marketplace.coopStockSection.column.quantity'), width: '130px', numeric: true },
+  { key: 'price', label: t('marketplace.coopStockSection.column.arrivalPrice'), width: '160px', numeric: true },
+  { key: 'expiry', label: t('marketplace.coopStockSection.column.expiry'), width: '130px', nowrap: true },
+  { key: 'state', label: t('marketplace.coopStockSection.column.state'), width: '170px' },
 ];
 
 const publishDialogOpen = ref(false);
@@ -92,9 +93,9 @@ function stateOf(i: MarketplaceInventoryItemView): StockState {
   return 'free';
 }
 const STATE_BADGE: Record<StockState, { label: string; variant: 'neutral' | 'pos' | 'info' }> = {
-  free: { label: 'Свободна', variant: 'neutral' },
-  published: { label: 'На витрине', variant: 'pos' },
-  reserved: { label: 'Зарезервирована', variant: 'info' },
+  free: { label: t('marketplace.coopStockSection.stateFree'), variant: 'neutral' },
+  published: { label: t('marketplace.coopStockSection.stateOnDisplay'), variant: 'pos' },
+  reserved: { label: t('marketplace.coopStockSection.stateReserved'), variant: 'info' },
 };
 
 function isWarrantyReturn(i: MarketplaceInventoryItemView): boolean {
@@ -144,7 +145,7 @@ async function confirmPublish(): Promise<void> {
       price_per_unit: publishPrice.value ? publishPrice.value : null,
       warranty_days: publishWarrantyDays.value !== '' ? Number(publishWarrantyDays.value) : null,
     });
-    SuccessAlert('Остаток опубликован в каталоге предложением от кооператива.');
+    SuccessAlert(t('marketplace.coopStockSection.publishedHint'));
     publishDialogOpen.value = false;
     selected.value = new Set();
     await reload();
@@ -160,7 +161,7 @@ async function unpublishSelected(): Promise<void> {
     const affected = await unpublishStock({
       inventory_ids: selectedPublished.value.map((i) => i.id),
     });
-    SuccessAlert(`Снято с витрины позиций: ${affected}.`);
+    SuccessAlert(t('marketplace.coopStockSection.unpublishedMessage', { count: affected }));
     selected.value = new Set();
     await reload();
   } catch (e) {
@@ -172,8 +173,8 @@ async function unpublishSelected(): Promise<void> {
 <template lang="pug">
 EmptyState(
   v-if='!firstLoad && !items.length',
-  title='Остатков нет',
-  body='Здесь появятся обезличенные позиции склада после недовыдач и отказов от получения.'
+  :title='$t("marketplace.coopStockSection.emptyTitle")',
+  :body='$t("marketplace.coopStockSection.emptyBody")'
 )
   template(#icon)
     q-icon(name='warehouse', size='48px')
@@ -182,8 +183,8 @@ BaseCard.coop-stock(v-else)
   template(#head)
     .coop-stock__head
       q-icon(name='warehouse', size='22px')
-      span.coop-stock__title Остаток кооператива
-      span.coop-stock__hint осталось после недовыдач и отказов — можно заново предложить пайщикам
+      span.coop-stock__title {{ $t('marketplace.coopStockSection.sectionTitle') }}
+      span.coop-stock__hint {{ $t('marketplace.coopStockSection.sectionHint') }}
   template(#actions)
     .coop-stock__actions
       BaseButton(
@@ -191,13 +192,13 @@ BaseCard.coop-stock(v-else)
         variant='ghost',
         size='sm',
         @click='unpublishSelected'
-      ) Снять с витрины ({{ selectedPublished.length }})
+      ) {{ $t('marketplace.coopStockSection.unpublishButton', { count: selectedPublished.length }) }}
       BaseButton(
         v-if='selectedFree.length',
         variant='primary',
         size='sm',
         @click='openPublishDialog'
-      ) Опубликовать ({{ selectedFree.length }})
+      ) {{ $t('marketplace.coopStockSection.publishButton', { count: selectedFree.length }) }}
 
   BaseTable(
     :columns='columns',
@@ -216,7 +217,7 @@ BaseCard.coop-stock(v-else)
       )
     template(#cell-product='{ row }')
       | {{ row.product_name_snapshot }}
-      BaseBadge.q-ml-sm(v-if='isWarrantyReturn(row)', variant='warn', size='sm') Гарантийный возврат
+      BaseBadge.q-ml-sm(v-if='isWarrantyReturn(row)', variant='warn', size='sm') {{ $t('marketplace.coopStockSection.warrantyReturnLabel') }}
     template(#cell-quantity='{ row }')
       | {{ quantityLabel(row) }}
     template(#cell-price='{ row }')
@@ -229,35 +230,35 @@ BaseCard.coop-stock(v-else)
 
 BaseDialog(
   v-model='publishDialogOpen',
-  title='Публикация остатка в каталог'
+  :title='$t("marketplace.coopStockSection.publishDialogTitle")'
 )
   .coop-stock__publish
     p.coop-stock__publish-note
-      | Выбранные позиции станут предложением от кооператива с мгновенной
-      | выдачей со склада. База цены — цена прибытия; укажите меньшую,
-      | чтобы продать с уценкой.
+      | {{ $t('marketplace.coopStockSection.publishText1') }}
+      | {{ $t('marketplace.coopStockSection.publishText2') }}
+      | {{ $t('marketplace.coopStockSection.publishText3') }}
     .banner.banner--warn(v-if='selectedWarrantyReturns.length')
       q-icon.banner__icon(name='assignment_return', size='18px')
       .banner__body
-        | Среди выбранного — имущество, возвращённое пайщиком по гарантии
-        | ({{ selectedWarrantyReturns.length }} поз.). Убедитесь, что оно пригодно к выдаче,
-        | прежде чем публиковать.
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice1') }}
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice2', { count: selectedWarrantyReturns.length }) }}
+        | {{ $t('marketplace.coopStockSection.publishWarrantyNotice3') }}
     BaseInput(
       v-model='publishPrice',
-      label='Цена за единицу, ₽',
+      :label='$t("marketplace.coopStockSection.unitPriceLabel")',
       type='number',
-      hint='Пусто — по цене прибытия каждой позиции'
+      :hint='$t("marketplace.coopStockSection.unitPriceHint")'
     )
     BaseInput(
       v-model='publishWarrantyDays',
-      label='Срок гарантийного возврата, дней',
+      :label='$t("marketplace.coopStockSection.warrantyDaysLabel")',
       type='number',
-      hint='0 — вернуть нельзя (обычно для скоропорта)'
+      :hint='$t("marketplace.coopStockSection.warrantyDaysHint")'
     )
     .coop-stock__publish-actions
-      BaseButton(variant='ghost', @click='publishDialogOpen = false') Отменить
+      BaseButton(variant='ghost', @click='publishDialogOpen = false') {{ $t('marketplace.coopStockSection.cancelButton') }}
       BaseButton(variant='primary', :loading='publishing', @click='confirmPublish')
-        | Опубликовать {{ selectedFree.length }} поз.
+        | {{ $t('marketplace.coopStockSection.publishSubmit', { count: selectedFree.length }) }}
 </template>
 
 <style scoped lang="scss">

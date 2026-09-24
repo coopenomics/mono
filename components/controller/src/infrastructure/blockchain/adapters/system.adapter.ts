@@ -7,7 +7,7 @@ import type { GetInfoResult } from '~/types/shared/blockchain.types';
 import type { TransactionResult } from '~/domain/blockchain/types/transaction-result.type';
 import { VAULT_DOMAIN_PORT, VaultDomainPort } from '~/domain/vault/ports/vault-domain.port';
 import httpStatus from 'http-status';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SystemBlockchainAdapter implements SystemBlockchainPort {
@@ -26,7 +26,7 @@ export class SystemBlockchainAdapter implements SystemBlockchainPort {
    */
   async convertToAxon(data: ConvertToAxonInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainPort.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 

@@ -2,6 +2,7 @@ import { useSessionStore } from 'src/entities/Session'
 import { Cooperative } from 'cooptypes'
 import type { IDocumentPreset } from './types'
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from '../../../i18n';
 
 export const useBlagorostPresets = (): IDocumentPreset[] => {
   const systemStore = useSystemStore()
@@ -11,9 +12,11 @@ export const useBlagorostPresets = (): IDocumentPreset[] => {
     {
       id: 'blagorost_program',
       registry_id: Cooperative.Registry.BlagorostProgramTemplate.registry_id,
-      title: 'Положение о ЦПП «БЛАГОРОСТ»',
-      description: 'Утверждение Положения о целевой потребительской программе «БЛАГОРОСТ»',
+      title: t('chairman.blagorostPreset.title'),
+      description: t('chairman.blagorostPreset.description'),
+      // i18n-ignore: текст вопроса повестки — дословно уходит в протокол решения совета, юридический документ
       question: 'О утверждении Положения о целевой потребительской программе «БЛАГОРОСТ»',
+      // i18n-ignore: текст решения — дословно уходит в протокол решения совета, юридический документ
       decisionPrefix: 'Утвердить Положение о целевой потребительской программе «БЛАГОРОСТ»:',
       getData: () => ({
         coopname: systemStore.info?.coopname || '',

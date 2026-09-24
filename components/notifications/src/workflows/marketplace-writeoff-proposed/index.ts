@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceWriteoffProposedPayloadSchema = z.object({
   recipientName: z.string(),
@@ -18,32 +18,35 @@ export const marketplaceWriteoffProposedPayloadSchema = z.object({
 export type IPayload = z.infer<typeof marketplaceWriteoffProposedPayloadSchema>;
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Проект списания скоропорта — на повестке совета';
-export const id = slugify(name);
+export const name = nt('marketplaceWriteoffProposed.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'proekt-spisaniya-skoroporta-na-povestke-soveta';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder.create<IWorkflow>()
   .name(name)
   .workflowId(id)
+  .i18nKey('marketplaceWriteoffProposed')
   .description(
-    'Уведомление членам совета и общему администратору, что председатель подписал Заявление о списании и проект встал на повестку совета.'
+    nt('marketplaceWriteoffProposed.description')
   )
   .payloadSchema(marketplaceWriteoffProposedPayloadSchema)
   .tags(['marketplace', 'council', 'writeoff'])
   .addSteps([
     createEmailStep(
       'marketplace-writeoff-proposed-email',
-      'На повестке: списание {{payload.itemsCount}} позиций',
-      'Здравствуйте, {{payload.recipientName}}!<br><br>Председатель подписал Заявление о списании скоропорта. Проект встал на повестку совета: <strong>{{payload.itemsCount}}</strong> позиций на сумму <strong>{{payload.totalAmount}}</strong>.<br><br>Открыть проект: {{payload.deepLinkUrl}}'
+      nt('marketplaceWriteoffProposed.email.subject'),
+      nt('marketplaceWriteoffProposed.email.body')
     ),
     createInAppStep(
       'marketplace-writeoff-proposed-notification',
-      'Проект списания на повестке',
-      '{{payload.itemsCount}} позиций — {{payload.totalAmount}}'
+      nt('marketplaceWriteoffProposed.inApp.subject'),
+      nt('marketplaceWriteoffProposed.inApp.body')
     ),
     createPushStep(
       'marketplace-writeoff-proposed-push',
-      'Проект списания на повестке',
-      '{{payload.itemsCount}} позиций — {{payload.totalAmount}}'
+      nt('marketplaceWriteoffProposed.push.subject'),
+      nt('marketplaceWriteoffProposed.push.body')
     ),
   ])
   .build();

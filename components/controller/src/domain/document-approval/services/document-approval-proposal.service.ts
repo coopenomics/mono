@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
 import { Cooperative, SovietContract } from 'cooptypes';
@@ -26,6 +26,8 @@ import type { DocumentTemplateView } from '../interfaces/document-template-view.
 import { DocumentApprovalStateService } from './document-approval-state.service';
 import { nowChainTimePoint, toChainTimePoint } from './decision-date';
 import { onboardingExtensionOf } from '../constants/core-document-declarations';
+import { t as i18nT } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Метка правила отслеживания, заведённого фабрикой утверждений. */
 export const DOCUMENT_APPROVAL_RULE_KIND = 'document_approval';
@@ -153,16 +155,16 @@ export class DocumentApprovalProposalService {
     input: ProposeDocumentApprovalInput
   ): Promise<{ selected: DocumentTemplateView[]; alreadyPending: DocumentTemplateView[] }> {
     if (input.coopname !== config.coopname) {
-      throw new BadRequestException('Указанное имя аккаунта кооператива не обслуживается здесь');
+      throw DomainError.badRequest('DOCUMENT_APPROVAL_COOPERATIVE_NOT_SERVED');
     }
     const registry_ids = [...new Set(input.registry_ids)];
-    if (registry_ids.length === 0) throw new BadRequestException('Не указаны документы для утверждения');
+    if (registry_ids.length === 0) throw DomainError.badRequest('DOCUMENT_APPROVAL_NO_DOCUMENTS_SELECTED');
 
     const templates = await this.state.getTemplates(input.coopname);
     const selected = registry_ids.map((id) => this.pickTemplate(templates, id));
     const extension = selected[0]!.extension_name;
     if (selected.some((t) => t.extension_name !== extension)) {
-      throw new BadRequestException('Одним решением утверждаются документы одного приложения');
+      throw DomainError.badRequest('DOCUMENT_APPROVAL_MIXED_EXTENSIONS');
     }
     return { selected, alreadyPending: selected.filter((t) => t.state === DocumentApprovalState.Pending) };
   }
@@ -242,13 +244,13 @@ export class DocumentApprovalProposalService {
 
   private pickTemplate(templates: DocumentTemplateView[], registry_id: number): DocumentTemplateView {
     const template = templates.find((t) => t.registry_id === registry_id);
-    if (!template) throw new BadRequestException(`Документ ${registry_id} не объявлен ни одним установленным приложением`);
+    if (!template) throw DomainError.badRequest('DOCUMENT_APPROVAL_TEMPLATE_NOT_DECLARED', { registryId: registry_id });
     if (template.approval !== DocumentApprovalRequirement.Required) {
-      throw new BadRequestException(`Документ ${registry_id} не требует утверждения советом`);
+      throw DomainError.badRequest('DOCUMENT_APPROVAL_NOT_REQUIRED', { registryId: registry_id });
     }
-    if (template.current_version === null) throw new BadRequestException(`Шаблон документа ${registry_id} не найден в сети`);
+    if (template.current_version === null) throw DomainError.badRequest('DOCUMENT_APPROVAL_TEMPLATE_NOT_FOUND', { registryId: registry_id });
     if (template.state === DocumentApprovalState.Approved) {
-      throw new BadRequestException(`Редакция документа ${registry_id} уже утверждена советом`);
+      throw DomainError.badRequest('DOCUMENT_APPROVAL_ALREADY_APPROVED', { registryId: registry_id });
     }
     return template;
   }
@@ -265,7 +267,7 @@ export class DocumentApprovalProposalService {
     doc_data_hash?: string
   ): Promise<RenderedBlank> {
     const template = (await this.state.getTemplates(coopname)).find((t) => t.registry_id === registry_id);
-    if (!template) throw new BadRequestException(`Документ ${registry_id} не объявлен ни одним установленным приложением`);
+    if (!template) throw DomainError.badRequest('DOCUMENT_APPROVAL_TEMPLATE_NOT_DECLARED', { registryId: registry_id });
     return this.renderBlank(coopname, template, edition, doc_data_hash);
   }
 
@@ -426,23 +428,24 @@ function buildRuleMetadata(
 
 function buildTitle(selected: DocumentTemplateView[], blanks: RenderedBlank[]): string {
   if (selected.length === 1) {
-    return `Утверждение редакции № ${selected[0]!.current_version} документа «${blanks[0]!.title}»`;
+    return i18nT('documentApproval.documentApprovalProposal.titleSingle', { version: selected[0]!.current_version, title: blanks[0]!.title });
   }
-  return `Утверждение редакций документов (${selected.length})`;
+  return i18nT('documentApproval.documentApprovalProposal.titleMultiple', { count: selected.length });
 }
 
 function buildQuestion(selected: DocumentTemplateView[], blanks: RenderedBlank[]): string {
   if (selected.length === 1) {
-    return `Об утверждении редакции № ${selected[0]!.current_version} документа «${blanks[0]!.title}»`;
+    return i18nT('documentApproval.documentApprovalProposal.questionSingle', { version: selected[0]!.current_version, title: blanks[0]!.title });
   }
-  const list = blanks.map((b, i) => `«${b.title}» (редакция № ${selected[i]!.current_version})`).join(', ');
-  return `Об утверждении редакций документов: ${list}`;
+  const list = blanks.map((b, i) => i18nT('documentApproval.documentApprovalProposal.questionItem', { title: b.title, version: selected[i]!.current_version })).join(', ');
+  return i18nT('documentApproval.documentApprovalProposal.questionMultiple', { list });
 }
 
 function buildDecision(selected: DocumentTemplateView[], blanks: RenderedBlank[]): string {
   return blanks
     .map((blank, i) => {
       const template = selected[i]!;
+      // i18n-ignore: текст решения совета об утверждении редакции документа — официальный документ, остаётся на языке юрисдикции
       const head = `Утвердить редакцию № ${template.current_version} документа «${blank.title}» в следующей форме (хэш текста ${blank.text_hash}) и применять её в кооперативе с даты настоящего решения.`;
       return `<p>${head}</p>\n${blank.html}`;
     })

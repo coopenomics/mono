@@ -3,12 +3,12 @@
   .meet-voting__voted(v-if='meet?.processing?.isVoted')
     .meet-voting__voted-icon(aria-hidden='true')
       q-icon(name='how_to_vote', size='24px')
-    .meet-voting__voted-text Вы уже приняли участие в голосовании.
+    .meet-voting__voted-text {{ $t('meet.meetDetailsVoting.alreadyVoted') }}
 
   template(v-else)
     .meet-voting__head
       q-icon(name='how_to_vote', size='18px')
-      span.meet-voting__title Голосование
+      span.meet-voting__title {{ $t('meet.meetDetailsVoting.title') }}
 
     .meet-voting__items
       .meet-vote-card(
@@ -25,10 +25,10 @@
         )
 
         .meet-vote-card__decision
-          span.meet-vote-card__decision-label Проект решения
+          span.meet-vote-card__decision-label {{ $t('meet.meetDetailsVoting.decisionLabel') }}
           span.meet-vote-card__decision-text {{ item.decision }}
 
-        .meet-vote-card__prompt Ваш голос
+        .meet-vote-card__prompt {{ $t('meet.meetDetailsVoting.yourVoteLabel') }}
         .meet-vote-card__options
           label.vote-option.vote-option--for
             q-radio(
@@ -36,7 +36,7 @@
               val='for',
               color='positive',
               size='md',
-              label='ЗА'
+              :label='$t("meet.meetDetailsVoting.forOption")'
             )
           label.vote-option.vote-option--against
             q-radio(
@@ -44,7 +44,7 @@
               val='against',
               color='negative',
               size='md',
-              label='ПРОТИВ'
+              :label='$t("meet.meetDetailsVoting.againstOption")'
             )
           label.vote-option.vote-option--abstain
             q-radio(
@@ -52,7 +52,7 @@
               val='abstained',
               color='grey',
               size='md',
-              label='ВОЗДЕРЖАЛСЯ'
+              :label='$t("meet.meetDetailsVoting.abstainOption")'
             )
 
     .meet-voting__foot
@@ -63,7 +63,7 @@
         :disabled='!allVotesSelected',
         @click='submitVote'
       )
-        span Голосовать
+        span {{ $t('meet.meetDetailsVoting.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -79,6 +79,7 @@ import {
   type IVoteOnMeetInput,
 } from 'src/features/Meet/VoteOnMeet';
 import { parseLinks } from 'src/shared/lib/utils';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   meet: IMeet;
@@ -145,7 +146,7 @@ const submitVote = async () => {
     };
 
     await voteOnMeet(vote);
-    SuccessAlert('Ваш голос успешно отправлен');
+    SuccessAlert(t('meet.meetDetailsVoting.voteSuccess'));
   } catch (error: any) {
     console.error(error);
     FailAlert(error);

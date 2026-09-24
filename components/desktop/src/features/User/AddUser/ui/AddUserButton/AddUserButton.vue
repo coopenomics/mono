@@ -9,8 +9,8 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-user-plus')
-  span.q-ml-sm(v-if='!isMobile') Добавить
-  q-tooltip(v-if='isMobile') Добавить пайщика
+  span.q-ml-sm(v-if='!isMobile') {{ $t('common.action.add') }}
+  q-tooltip(v-if='isMobile') {{ $t('user.addUserButton.tooltip') }}
 
 AddUserDialog(v-model='showDialog')
 </template>

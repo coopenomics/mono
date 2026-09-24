@@ -104,7 +104,7 @@ const handleBack = () => {
 <template lang="pug">
 q-step(
   :name="3"
-  title="Соглашение о подключении к платформе"
+  :title="$t('connectionAgreementStepper.agreementStep.title')"
   icon="description"
   :done="isDone"
 )
@@ -112,14 +112,14 @@ q-step(
     template(v-if="html")
       DocumentHtmlReader(:html="html")
     template(v-else)
-      Loader(:text='`Готовим соглашение...`')
+      Loader(:text='$t(`connectionAgreementStepper.agreementStep.preparingText`)')
 
   q-stepper-navigation.q-gutter-sm(v-if="html")
     q-btn(
       v-if="isActive"
       color="grey-6"
       flat
-      label="Назад"
+      :label="$t('common.action.back')"
       @click="handleBack"
     )
 
@@ -128,7 +128,7 @@ q-step(
       color="primary"
       :loading="isSigning"
       :disable="!isDocumentReady"
-      label="Подписать"
+      :label="$t('common.action.sign')"
       @click="handleSign"
     )
 </template>

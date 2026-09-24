@@ -1,4 +1,5 @@
 import { Field, Float, InputType, Int, ObjectType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNumber, IsPositive } from 'class-validator';
 import { PaymentStatus } from '@coopenomics/innercoop';
 
@@ -109,6 +110,6 @@ export class WithheldTaxPaymentPageDTO {
 export class PayWithheldTaxInputDTO {
   @Field(() => Float, { description: 'Сумма платежа' })
   @IsNumber()
-  @IsPositive({ message: 'Сумма платежа должна быть больше нуля' })
+  @IsPositive({ message: validationMessage('reports.withheldTax.amountPositiveFormat') })
   public readonly amount!: number;
 }

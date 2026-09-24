@@ -3,6 +3,7 @@ import { watch, computed } from 'vue';
 import { QSpinnerGears, useQuasar } from 'quasar';
 import { useSystemStore } from 'src/entities/System/model';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 /** Мастер установки не должен перекрываться заглушкой техобслуживания. */
 function isOnInstallPage(): boolean {
@@ -33,7 +34,7 @@ export function useDesktopHealthWatcherProcess() {
   const enableLoading = () => {
     $q.loading.show({
       spinner: QSpinnerGears,
-      message: 'Техническое обслуживание..',
+      message: t('watchDesktopHealth.watchDesktopHealth.maintenanceMessage'),
       spinnerSize: 50,
     });
   };

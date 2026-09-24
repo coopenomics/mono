@@ -13,6 +13,7 @@ import { useSessionStore } from 'src/entities/Session/model';
 import type { Cooperative } from 'cooptypes';
 import type { IGenerateDocumentInput, IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import type { IGetProjectOutput } from 'app/extensions/capital/entities/Project/model';
+import { t } from '../../../../i18n';
 
 export type { IMakeClearanceInput, IMakeClearanceOutput };
 export type { IGenerateProjectGenerationContractInput, IGenerateProjectGenerationContractOutput };
@@ -83,7 +84,7 @@ export function useMakeClearance() {
   ): Promise<IMakeClearanceOutput> => {
     // Проверяем, что проект определен
     if (!project || !project.project_hash) {
-      throw new Error('Проект не найден или некорректен');
+      throw new Error(t('capital.error.clearanceProjectNotFound'));
     }
     isLoading.value = true;
     try {
@@ -95,7 +96,7 @@ export function useMakeClearance() {
       if (isComponent) {
         // Генерируем документ дополнения к приложению для компонента (1003)
         if (!parentProject) {
-          throw new Error('Родительский проект не найден для компонента');
+          throw new Error(t('capital.error.clearanceParentProjectNotFound'));
         }
 
         const generateInput: IGenerateComponentGenerationContractInput = {

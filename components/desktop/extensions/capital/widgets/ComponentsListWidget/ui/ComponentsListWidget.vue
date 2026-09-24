@@ -31,7 +31,7 @@
   // Канон-пустое состояние списка
   .list-empty(v-if='!components || !components.length')
     q-icon(name='inbox', size='20px')
-    span Нет компонентов
+    span {{ $t('capital.componentsListWidget.emptyText') }}
 </template>
 <script lang="ts" setup>
 import { ref, watch } from 'vue';

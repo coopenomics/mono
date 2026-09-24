@@ -3,26 +3,26 @@
   .col-12.col-md-6.text-center.q-pt-xl
     template(v-if='loading')
       q-spinner(size='56px', color='primary')
-      div.text-h6.q-mt-md Подтверждаем выход из кооператива…
+      div.text-h6.q-mt-md {{ $t('membership.exitConfirm.loading') }}
 
     template(v-else-if='error')
       q-icon(name='error_outline', size='56px', color='negative')
-      div.text-h6.q-mt-md Не удалось подтвердить выход
+      div.text-h6.q-mt-md {{ $t('membership.exitConfirm.failedTitle') }}
       p.text-body2.text-grey-7.q-mt-sm {{ error }}
       BaseButton.q-mt-lg(
         variant='secondary',
-        :label='isAuth ? "Вернуться в кабинет" : "Войти в кабинет"',
+        :label='isAuth ? $t("membership.exitConfirm.backToCabinet") : $t("membership.exitConfirm.signIn")',
         @click='goToCabinet'
       )
 
     template(v-else)
       q-icon(name='check_circle', size='56px', color='positive')
-      div.text-h6.q-mt-md Выход подтверждён
-      p.text-body2.text-grey-7.q-mt-sm Заявление отправлено. Процесс выхода запущен — ожидайте решения Совета.
-      p.text-body2.text-grey-7.q-mt-sm(v-if='!isAuth') Войдите в кабинет, чтобы следить за статусом заявления и суммой возврата.
+      div.text-h6.q-mt-md {{ $t('membership.exitConfirm.doneTitle') }}
+      p.text-body2.text-grey-7.q-mt-sm {{ $t('membership.exitConfirm.doneText') }}
+      p.text-body2.text-grey-7.q-mt-sm(v-if='!isAuth') {{ $t('membership.exitConfirm.signInHint') }}
       BaseButton.q-mt-lg(
         variant='primary',
-        :label='isAuth ? "Перейти в кабинет" : "Войти в кабинет"',
+        :label='isAuth ? $t("membership.exitConfirm.goToCabinet") : $t("membership.exitConfirm.signIn")',
         @click='goToCabinet'
       )
 </template>
@@ -34,6 +34,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useMembershipExit, useExitGate } from 'src/features/Membership/ExitFromCoop';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -63,7 +64,7 @@ const goToCabinet = (): void => {
 onMounted(async () => {
   const token = String(route.query.token || '');
   if (!token) {
-    error.value = 'Ссылка некорректна: отсутствует токен подтверждения.';
+    error.value = t('membership.exitConfirm.missingToken');
     loading.value = false;
     return;
   }
@@ -72,7 +73,7 @@ onMounted(async () => {
     await loadExitStatus();
   } catch (e: any) {
     error.value =
-      e?.message || 'Ссылка недействительна или срок её действия истёк. Подайте заявление заново.';
+      e?.message || t('membership.exitConfirm.expiredLink');
   } finally {
     loading.value = false;
   }

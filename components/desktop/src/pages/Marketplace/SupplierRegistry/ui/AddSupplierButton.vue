@@ -4,12 +4,12 @@
 BaseButton(
   variant='primary',
   size='sm',
-  aria-label='Добавить поставщика',
+  :aria-label='$t("marketplace.addSupplierButton.label")',
   @click='props.onClick?.()'
 )
   template(#icon-left)
     q-icon(name='person_add', size='18px')
-  | Добавить поставщика
+  | {{ $t('marketplace.addSupplierButton.label') }}
 </template>
 
 <script setup lang="ts">

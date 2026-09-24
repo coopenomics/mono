@@ -3,6 +3,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { APIClient } from '@wharfkit/antelope';
 import config from '~/config/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Пул COOPOS RPC-узлов с health-aware failover (CoopID, Story 9.4).
@@ -122,7 +123,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
-    throw lastErr ?? new Error('RpcPool: нет доступных RPC-узлов');
+    throw lastErr ?? DomainError.internal('BLOCKCHAIN_RPC_NO_NODES_AVAILABLE');
   }
 
   /**
@@ -188,7 +189,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   private withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     if (!ms || ms <= 0) return p;
     return new Promise<T>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error(`RpcPool: таймаут RPC ${ms}мс`)), ms);
+      const t = setTimeout(() => reject(DomainError.internal('BLOCKCHAIN_RPC_TIMEOUT', { ms })), ms);
       t.unref?.();
       p.then(
         (v) => { clearTimeout(t); resolve(v); },

@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomUUID } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
@@ -31,6 +25,7 @@ import {
 import { VerificationProcedure } from '~/domain/auth-v2/verification/verification.types';
 import { AuditService } from '../audit/audit.service';
 import { VerificationAuthorityService, type VerificationActor } from './verification-authority.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Снимок сверки, как он приходит с экрана оператора. */
 export interface VerificationPhotoUpload {
@@ -89,21 +84,19 @@ export class VerificationReviewService {
    */
   prepareVerification(braname: string, photos: VerificationPhotoUpload[]): PreparedVerificationPhoto[] {
     if (braname && photos.length === 0) {
-      throw new BadRequestException('Приложите хотя бы одну фотографию сверки: пайщика и его паспорт');
+      throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_REQUIRED');
     }
     if (photos.length > VERIFICATION_PHOTOS_MAX) {
-      throw new BadRequestException(`Можно приложить не больше ${VERIFICATION_PHOTOS_MAX} фотографий`);
+      throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTOS_LIMIT', { max: VERIFICATION_PHOTOS_MAX });
     }
     return photos.map((photo) => {
       const body = Buffer.from(photo.content_base64, 'base64');
       if (body.byteLength !== photo.size_bytes) {
-        throw new BadRequestException(
-          `size_bytes (${photo.size_bytes}) не совпадает с фактическим размером содержимого (${body.byteLength})`,
-        );
+        throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_SIZE_MISMATCH', { declaredSize: photo.size_bytes, actualSize: body.byteLength });
       }
       const checksum = createHash('sha256').update(body).digest('hex');
       if (checksum !== photo.checksum_sha256.toLowerCase()) {
-        throw new BadRequestException('checksum_sha256 не совпадает с реальным SHA-256 содержимого');
+        throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_CHECKSUM_MISMATCH');
       }
       return { body, checksum, mime_type: photo.mime_type, original_filename: photo.original_filename ?? null };
     });
@@ -265,9 +258,9 @@ export class VerificationReviewService {
 
   private async requirePending(reviewId: string): Promise<VerificationReview> {
     const review = await this.reviews.findById(reviewId);
-    if (!review) throw new NotFoundException('Запись о сверке личности не найдена');
+    if (!review) throw DomainError.notFound('AUTH_V2_VERIFICATION_RECORD_NOT_FOUND');
     if (review.status !== VerificationReviewStatus.Pending) {
-      throw new ConflictException('По этой сверке решение уже принято');
+      throw DomainError.conflict('AUTH_V2_VERIFICATION_ALREADY_DECIDED');
     }
     return review;
   }

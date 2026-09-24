@@ -1,18 +1,18 @@
 <template lang="pug">
 .results-page(:class='{ "results-page--standalone": isStandaloneResults }')
-  WindowLoader(v-show='isInitialLoading', text='Загрузка данных результатов...')
+  WindowLoader(v-show='isInitialLoading', :text='$t("capital.componentResultsPage.loadingText")')
 
   .results-page__body(v-show='!isInitialLoading')
     .results-page__nav(v-if='isStandaloneResults')
       BaseButton(variant='ghost', size='sm', @click='goBack')
         template(#icon-left)
           q-icon(name='arrow_back')
-        | К результатам
+        | {{ $t('capital.componentResultsPage.backToResultsLabel') }}
 
     EmptyState(
       v-if='!canShowResults',
-      title='Проект ещё не готов к приёмке результатов',
-      body='Результаты можно отправить после завершения голосования и расчёта. Следите за статусом на странице описания.'
+      :title='$t("capital.componentResultsPage.notReadyTitle")',
+      :body='$t("capital.componentResultsPage.notReadyBody")'
     )
       template(#icon)
         q-icon(name='hourglass_empty')
@@ -33,7 +33,7 @@
             WalletCard(
               compact,
               program='generator',
-              title='Стоимость Генерации',
+              :title='$t("capital.componentResultsPage.generatorCostTitle")',
               :balance='formatMoneyAmount(project.fact.total_generation_pool)',
               :symbol='governSymbol',
               :balance-label='`${calcShare("total_generation_pool")}%`',
@@ -42,7 +42,7 @@
             WalletCard(
               compact,
               program='blagorost',
-              title='Стоимость Благороста',
+              :title='$t("capital.componentResultsPage.blagorostCostTitle")',
               :balance='formatMoneyAmount(project.fact.contributors_bonus_pool)',
               :symbol='governSymbol',
               :balance-label='`${calcShare("contributors_bonus_pool")}%`',
@@ -51,7 +51,7 @@
             WalletCard(
               compact,
               neutral,
-              title='Стоимость ОАП',
+              :title='$t("capital.componentResultsPage.oapCostTitle")',
               :balance='formatMoneyAmount(project.fact.total)',
               :symbol='governSymbol',
               balance-label='100%',
@@ -63,8 +63,8 @@
         .results-page__section-head
           .results-page__section-label
             q-icon(name='group', size='18px')
-            span.t-eyebrow Участники
-          h3.results-page__section-title Внесение результатов
+            span.t-eyebrow {{ $t('capital.componentResultsPage.contributorsLabel') }}
+          h3.results-page__section-title {{ $t('capital.componentResultsPage.submissionLabel') }}
         .results-page__panel
           ResultSubmissionSegmentsWidget(
             :project-hash='projectHash',

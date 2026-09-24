@@ -1,3 +1,4 @@
+import './i18n';
 import { ProfilePage } from 'src/pages/User/ProfilePage';
 import { CardcoopPage } from 'src/pages/User/CardcoopPage';
 import { WalletPage } from 'src/pages/User/WalletPage';
@@ -15,18 +16,19 @@ import { SupportTrigger } from 'src/pages/Support';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { markRaw } from 'vue';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'participant',
     extension_name: 'participant',
-    title: 'Стол пайщика',
+    title: t('participant.install.title'),
     icon: 'fa-solid fa-user',
     defaultRoute: 'wallet', // Маршрут по умолчанию для рабочего стола пайщика
     routes: [
       {
         meta: {
-          title: 'Стол пайщика',
+          title: t('participant.install.title'),
           icon: 'fa-solid fa-id-card',
           roles: ['user', 'chairman', 'member'],
         },
@@ -35,7 +37,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         children: [
           {
             meta: {
-              title: 'Кошелёк',
+              title: t('participant.install.walletTitle'),
               icon: 'fa-solid fa-wallet',
               roles: [],
               agreements: agreementsBase,
@@ -51,7 +53,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             // поэтому страница доступна БЕЗ входа — иначе навигационный гард
             // редиректит на login-redirect. requiresAuth:false = исключение из auth-гейта.
             meta: {
-              title: 'Подтверждение выхода',
+              title: t('participant.install.exitConfirmTitle'),
               icon: 'logout',
               roles: [],
               requiresAuth: false,
@@ -64,7 +66,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Удостоверение',
+              title: t('participant.install.identityTitle'),
               icon: 'fa-solid fa-user',
               roles: [],
               agreements: agreementsBase,
@@ -79,7 +81,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             // попала только 02.09.2026: манифесты src/desktops/* никто не читает, маршруты
             // стола пайщика собирает этот install — и карта в нём отсутствовала.
             meta: {
-              title: 'Карта кооператора',
+              title: t('participant.install.cardTitle'),
               icon: 'badge',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
@@ -91,7 +93,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Подключение',
+              title: t('participant.install.connectionTitle'),
               icon: 'link',
               roles: ['user'],
               conditions: 'isCoop === true && coopname === "voskhod"',
@@ -106,7 +108,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'installation-completed',
                 component: markRaw(InstallationCompletedPage),
                 meta: {
-                  title: 'Установка завершена',
+                  title: t('participant.install.installationCompletedTitle'),
                   icon: 'fas fa-check-circle',
                   roles: ['user'],
                   conditions: 'isCoop === true && coopname === "voskhod"',
@@ -118,7 +120,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Реквизиты',
+              title: t('participant.install.requisitesTitle'),
               icon: 'account_balance',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
@@ -129,7 +131,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Документы',
+              title: t('participant.install.documentsTitle'),
               icon: 'fa-solid fa-file-invoice',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
@@ -141,7 +143,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               {
                 // Отдельная страница документа (deep-link из поиска и реестра).
                 meta: {
-                  title: 'Документ',
+                  title: t('participant.install.documentTitle'),
                   roles: ['user', 'member', 'chairman'],
                   requiresAuth: true,
                   hidden: true,
@@ -154,7 +156,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Платежи',
+              title: t('participant.install.paymentsTitle'),
               icon: 'fa-solid fa-money-bill-transfer',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
@@ -165,7 +167,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Собрания',
+              title: t('participant.install.meetingsTitle'),
               icon: 'fa-solid fa-users-between-lines',
               roles: ['user', 'member', 'chairman'],
               requiresAuth: true,
@@ -179,7 +181,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'user-meet-details',
                 component: markRaw(MeetDetailsPage),
                 meta: {
-                  title: 'Детали собрания',
+                  title: t('participant.install.meetingDetailsTitle'),
                   icon: 'fa-solid fa-users-between-lines',
                   roles: ['user', 'member', 'chairman'],
                   requiresAuth: true,
@@ -192,7 +194,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'contacts',
             component: markRaw(ContactsPage),
             meta: {
-              title: 'Контакты',
+              title: t('participant.install.contactsTitle'),
               icon: 'fa-solid fa-info',
               roles: [],
             },
@@ -202,7 +204,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             // сессии, PIN-код. Здесь же, в опасной зоне внизу страницы, живёт
             // выход из кооператива — отдельного пункта меню у него больше нет.
             meta: {
-              title: 'Настройки',
+              title: t('participant.install.settingsTitle'),
               // Material-иконка: канон запрещает FontAwesome в новых правках,
               // соседние fa-* — легаси и меняются попутно при их правке.
               icon: 'settings',
@@ -216,7 +218,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             meta: {
-              title: 'Поддержка',
+              title: t('participant.install.supportTitle'),
               icon: 'fa-solid fa-headset',
               roles: [],
               requiresAuth: true,

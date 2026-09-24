@@ -2,8 +2,8 @@
 q-page.transcriptions-page(padding)
   header.tr-head
     div.tr-head__text
-      h1.tr-head__title Транскрипции звонков
-      p.tr-head__subtitle Записи распознанной речи из кооперативных звонков
+      h1.tr-head__title {{ $t('chatcoop.transcriptionsPage.pageTitle') }}
+      p.tr-head__subtitle {{ $t('chatcoop.transcriptionsPage.pageSubtitle') }}
     q-btn.tr-head__action(
       flat
       round
@@ -11,12 +11,12 @@ q-page.transcriptions-page(padding)
       icon="fa-solid fa-rotate-right"
       @click="handleRefresh"
       :loading="transcriptionStore.isLoading"
-      aria-label="Обновить список"
+      :aria-label="$t('chatcoop.transcriptionsPage.refreshAriaLabel')"
     )
-      q-tooltip Обновить
+      q-tooltip {{ $t('chatcoop.transcriptionsPage.refreshLabel') }}
 
   .text-caption.text-grey-7.q-mb-xs
-    | Время указано в вашем часовом поясе.
+    | {{ $t('chatcoop.transcriptionsPage.timezoneHint') }}
 
   q-table(
     flat
@@ -27,12 +27,12 @@ q-page.transcriptions-page(padding)
     v-model:pagination="pagination"
     :rows-per-page-options="[25]"
     :loading="transcriptionStore.isLoading"
-    no-data-label="Нет транскрипций"
+    :no-data-label="$t('chatcoop.transcriptionsPage.emptyLabel')"
     @row-click="onRowClick"
   )
     template(#body-cell-title="props")
       q-td.tr-title-cell(:props="props")
-        .tr-title-cell__name {{ props.row.roomName || 'Звонок' }}
+        .tr-title-cell__name {{ props.row.roomName || $t('chatcoop.transcriptionsPage.column.call') }}
         .tr-title-cell__memo(v-if="props.row.memo") {{ memoPreview(props.row.memo) }}
     template(#body-cell-startedAt="props")
       q-td(:props="props") {{ formatDateTime(props.row.startedAt) }}
@@ -50,7 +50,7 @@ q-page.transcriptions-page(padding)
         )
 
   div.tr-loadmore(v-if="hasMore")
-    q-btn(flat dense no-caps color="grey-7" @click="loadMore" :loading="transcriptionStore.isLoading") Загрузить ещё
+    q-btn(flat dense no-caps color="grey-7" @click="loadMore" :loading="transcriptionStore.isLoading") {{ $t('chatcoop.transcriptionsPage.loadMoreLabel') }}
 </template>
 
 <script lang="ts" setup>
@@ -64,6 +64,7 @@ import {
 } from '../../../shared/lib/transcriptionUtils';
 import { useTranscriptionStore } from '../../../entities/Transcription/model';
 import type { ITranscription } from '../../../entities/Transcription/model/types';
+import { t } from '../../../i18n';
 
 const router = useRouter();
 const transcriptionStore = useTranscriptionStore();
@@ -79,15 +80,15 @@ const pagination = ref({
 const columns = [
   {
     name: 'title',
-    label: 'Звонок',
+    label: t('chatcoop.transcriptionsPage.column.call'),
     field: 'roomName',
     align: 'left' as const,
     style: 'min-width: 320px;',
   },
-  { name: 'startedAt', label: 'Начало', field: 'startedAt', align: 'left' as const },
-  { name: 'duration', label: 'Длительность', field: 'endedAt', align: 'left' as const },
-  { name: 'participants', label: 'Участники', field: 'participants', align: 'right' as const },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' as const },
+  { name: 'startedAt', label: t('chatcoop.transcriptionsPage.column.start'), field: 'startedAt', align: 'left' as const },
+  { name: 'duration', label: t('chatcoop.transcriptionsPage.column.duration'), field: 'endedAt', align: 'left' as const },
+  { name: 'participants', label: t('chatcoop.transcriptionsPage.column.participants'), field: 'participants', align: 'right' as const },
+  { name: 'status', label: t('chatcoop.transcriptionsPage.column.status'), field: 'status', align: 'left' as const },
 ];
 
 const hasMore = computed(() => {

@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHead(
-    eyebrow='Шасси расходов · Председатель',
-    title='На одобрение председателя',
-    subtitle='Очередь служебных записок в статусе «Подан» — ждут подписи председателя'
+    :eyebrow='$t("expenses.expensesAdminApprovePage.eyebrow")',
+    :title='$t("expenses.expensesAdminApprovePage.pageTitle")',
+    :subtitle='$t("expenses.expensesAdminApprovePage.pageSubtitle")'
   )
 
   .admin-queue
@@ -19,10 +19,10 @@
         table.table
           thead
             tr
-              th Пайщик
-              th.col-date Дата создания
-              th.col-num Сумма (план)
-              th Хеш
+              th {{ $t('expenses.expensesAdminApprovePage.column.member') }}
+              th.col-date {{ $t('expenses.expensesAdminApprovePage.column.createdAt') }}
+              th.col-num {{ $t('expenses.expensesAdminApprovePage.column.amountPlan') }}
+              th {{ $t('expenses.expensesAdminApprovePage.column.hash') }}
               th.col-actions
           tbody
             tr.data-row(
@@ -40,7 +40,7 @@
                   size='sm',
                   icon='chevron_right',
                   @click.stop='openDetail(row.proposal_hash)'
-                ) Открыть
+                ) {{ $t('expenses.expensesAdminApprovePage.openLabel') }}
 
       .table-foot
         span {{ rangeLabel }}
@@ -50,12 +50,12 @@
           size='sm',
           :loading='loading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('expenses.expensesAdminApprovePage.loadMoreLabel') }}
 
     EmptyState(
       v-else,
-      title='Очередь пуста',
-      body='Все поданные служебные записки уже рассмотрены.'
+      :title='$t("expenses.expensesAdminApprovePage.emptyTitle")',
+      :body='$t("expenses.expensesAdminApprovePage.emptyHint")'
     )
       template(#icon)
         q-icon(name='inbox', size='48px')
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { PageHead } from 'src/shared/ui/layout';
@@ -75,6 +76,7 @@ import {
   getExpenseProposalsByCooperative,
   type IExpenseProposalsByCooperativeResult,
 } from '../api';
+import { t } from '../i18n';
 
 type IProposalRow = NonNullable<IExpenseProposalsByCooperativeResult['items']>[number];
 
@@ -90,10 +92,10 @@ const totalCount = ref(0);
 const PAGE_LIMIT = 25;
 
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Пайщик', cell: 'text' },
-  { label: 'Дата создания', cell: 'text', cellWidth: '120px' },
-  { label: 'Сумма (план)', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Хеш', cell: 'text', cellWidth: '160px' },
+  { label: t('expenses.expensesAdminApprovePage.column.member'), cell: 'text' },
+  { label: t('expenses.expensesAdminApprovePage.column.createdAt'), cell: 'text', cellWidth: '120px' },
+  { label: t('expenses.expensesAdminApprovePage.column.amountPlan'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.expensesAdminApprovePage.column.hash'), cell: 'text', cellWidth: '160px' },
   { label: '', cell: 'text', cellWidth: '120px' },
 ]);
 
@@ -105,14 +107,14 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 
 const rangeLabel = computed(() => {
   const shown = filtered.value.length;
-  return `${shown} в очереди · загружено ${items.value.length} из ${totalCount.value}`;
+  return t('expenses.expensesAdminApprovePage.queueCountSummary', { shown, loaded: items.value.length, total: totalCount.value });
 });
 
 function formatCreatedAt(createdAt?: string | null): string {
   if (!createdAt) return '—';
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return createdAt;
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function truncateHash(hash: string): string {

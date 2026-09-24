@@ -88,7 +88,7 @@ static void recalculate_levels(eosio::name coopname) {
  * @brief Вынос текстов проектов из памяти цепи.
  *
  * Описание и приглашение проекта теперь хранятся в базе контроллера, а в цепи
- * остаётся их sha256 (см. Capital::Projects::check_text_digest). Старые строки
+ * остаётся их sha256 (см. lib/core/text_digest.hpp). Старые строки
  * держат полный текст — на восходе это 345 КБ из 406 КБ таблицы проектов.
  * Шаг заменяет текст его хешем прямо в цепи: хеш считается от тех же байтов,
  * которые лежат в строке, поэтому совпадает с тем, что посчитает контроллер от
@@ -109,8 +109,8 @@ static void digest_project_texts(eosio::name coopname) {
   uint64_t digested_bytes = 0;
 
   for (auto itr = projects.begin(); itr != projects.end(); ++itr) {
-    const bool description_done = Capital::Projects::is_text_digest(itr->description);
-    const bool invite_done = Capital::Projects::is_text_digest(itr->invite);
+    const bool description_done = TextDigest::is_digest(itr->description);
+    const bool invite_done = TextDigest::is_digest(itr->invite);
     if (description_done && invite_done) {
       continue;
     }
@@ -122,8 +122,8 @@ static void digest_project_texts(eosio::name coopname) {
 
     digested_bytes += itr->description.size() + itr->invite.size();
     projects.modify(itr, RamPayer::of(projects, coopname), [&](auto &p) {
-      if (!description_done) p.description = Capital::Projects::text_digest(p.description);
-      if (!invite_done) p.invite = Capital::Projects::text_digest(p.invite);
+      if (!description_done) p.description = TextDigest::of(p.description);
+      if (!invite_done) p.invite = TextDigest::of(p.invite);
     });
   }
 }
@@ -131,7 +131,9 @@ static void digest_project_texts(eosio::name coopname) {
 void capital::migrate() {
   require_auth(_capital);
 
-  digest_project_texts("voskhod"_n);
+  // Перевод старых текстов в хеши — второй шаг выноса (см. TextDigest::PHASE2):
+  // прежний контроллер записал бы хеш в базу вместо текста.
+  if (TextDigest::PHASE2) digest_project_texts("voskhod"_n);
 
   // Уровни пересчитываются у всех участников кооператива: сломанная формула
   // начисления действовала на всех, кто вносил вклады.

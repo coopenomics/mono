@@ -3,13 +3,13 @@ q-dialog(v-model='show', maximized, @hide='onClose')
   q-card.import-wizard
     //- ===== Шапка =====
     header.import-wizard__bar
-      .import-wizard__bar-title Импорт пайщиков
+      .import-wizard__bar-title {{ $t('user.importDialog.title') }}
       q-btn(
         flat,
         round,
         dense,
         icon='close',
-        aria-label='Закрыть',
+        :aria-label='$t("common.action.close")',
         @click='show = false'
       )
 
@@ -17,15 +17,15 @@ q-dialog(v-model='show', maximized, @hide='onClose')
     .import-wizard__body
       .import-wizard__col
         p.import-wizard__intro
-          | Массовая загрузка действующих пайщиков из CSV-файла. Выберите тип аккаунтов,
-          | скачайте шаблон, заполните его данными и загрузите обратно — система
-          | проверит записи и заведёт пайщиков в реестр без заявлений и оплаты взноса
-          | (это уже сделано вне цифровой системы).
+          | {{ $t('user.importDialog.introLine1') }}
+          | {{ $t('user.importDialog.introLine2') }}
+          | {{ $t('user.importDialog.introLine3') }}
+          | {{ $t('user.importDialog.introLine4') }}
 
         //- ---------- Выбор типа ----------
         section.import-wizard__section(v-if='!selectedType')
-          h3.import-wizard__section-title Тип аккаунтов
-          p.import-wizard__section-hint От типа зависит набор полей в шаблоне импорта.
+          h3.import-wizard__section-title {{ $t('user.importDialog.typeSectionTitle') }}
+          p.import-wizard__section-hint {{ $t('user.importDialog.typeSectionHint') }}
           .import-wizard__type-list
             BaseRadioCard(
               v-for='opt in typeCards',
@@ -46,15 +46,15 @@ q-dialog(v-model='show', maximized, @hide='onClose')
             q-space
             BaseButton(variant='ghost', size='sm', @click='downloadSample')
               q-icon(name='download', size='16px')
-              span.q-ml-sm Шаблон CSV
+              span.q-ml-sm {{ $t('user.importDialog.downloadTemplate') }}
             BaseButton(variant='ghost', size='sm', @click='backToType')
               q-icon(name='undo', size='16px')
-              span.q-ml-sm Сменить тип
+              span.q-ml-sm {{ $t('user.importDialog.changeType') }}
 
         //- ---------- Загрузка CSV ----------
         section.import-wizard__section(v-if='selectedType && !fileChosen')
-          h3.import-wizard__section-title Загрузка CSV
-          p.import-wizard__section-hint Скачайте шаблон выше, заполните данными пайщиков и загрузите файл сюда.
+          h3.import-wizard__section-title {{ $t('user.importDialog.uploadSectionTitle') }}
+          p.import-wizard__section-hint {{ $t('user.importDialog.uploadSectionHint') }}
           .import-dropzone(
             :class='{ "import-dropzone--drag": isDragOver }',
             @dragover.prevent='onDrag',
@@ -63,7 +63,7 @@ q-dialog(v-model='show', maximized, @hide='onClose')
             @click='fileInput?.click()'
           )
             q-icon(name='cloud_upload', size='36px')
-            .import-dropzone__hint Перетащите CSV-файл или нажмите, чтобы выбрать
+            .import-dropzone__hint {{ $t('user.importDialog.dropzoneHint') }}
             .import-dropzone__file(v-if='selectedFile') {{ selectedFile.name }}
             .import-dropzone__file(v-else-if='fileName') {{ fileName }}
           input(
@@ -78,11 +78,11 @@ q-dialog(v-model='show', maximized, @hide='onClose')
         //- ---------- Предпросмотр ----------
         section.import-wizard__section(v-if='rows.length && !isImporting && !importResults.length')
           .import-wizard__section-head
-            h3.import-wizard__section-title Предпросмотр ({{ rows.length }})
+            h3.import-wizard__section-title {{ $t('user.importDialog.previewTitle', { rowsCount: rows.length }) }}
             q-space
             .import-wizard__warn(v-if='hasErrors')
               q-icon(name='error', size='16px')
-              span Есть строки с ошибками
+              span {{ $t('user.importDialog.hasErrorsWarning') }}
 
           q-table(
             :rows='rows',
@@ -118,7 +118,7 @@ q-dialog(v-model='show', maximized, @hide='onClose')
             q-toggle(
               v-model='spreadInitial',
               color='primary',
-              label='Начислить вступительный взнос в кошелёк'
+              :label='$t("user.importDialog.spreadInitialLabel")'
             )
             q-space
             BaseButton(
@@ -128,17 +128,17 @@ q-dialog(v-model='show', maximized, @hide='onClose')
               @click='startImport'
             )
               q-icon(name='play_arrow', size='16px')
-              span.q-ml-sm Импортировать
+              span.q-ml-sm {{ $t('user.importDialog.startImport') }}
             BaseButton(
               v-if='isImporting',
               variant='danger',
               @click='stopImport'
             )
               q-icon(name='stop', size='16px')
-              span.q-ml-sm Остановить
+              span.q-ml-sm {{ $t('user.importDialog.stopImport') }}
 
           .import-wizard__progress(v-if='isImporting')
-            .import-wizard__progress-label Прогресс: {{ importProgress }}/{{ totalItems }} ({{ progressPercent }}%)
+            .import-wizard__progress-label {{ $t('user.importDialog.progressLabel', { current: importProgress, total: totalItems, percent: progressPercent }) }}
             q-linear-progress(
               :value='progressPercent / 100',
               color='primary',
@@ -148,15 +148,15 @@ q-dialog(v-model='show', maximized, @hide='onClose')
             .import-wizard__progress-counts
               span.import-wizard__count
                 q-icon(name='check_circle', color='positive', size='16px')
-                | Успешно: {{ successCount }}
+                | {{ $t('user.importDialog.successCountLabel', { successCount }) }}
               span.import-wizard__count
                 q-icon(name='error', color='negative', size='16px')
-                | Ошибок: {{ errorCount }}
+                | {{ $t('user.importDialog.errorCountLabel', { errorCount }) }}
 
         //- ---------- Результаты ----------
         section.import-wizard__section(v-if='importResults.length || isImporting')
           .import-wizard__section-head
-            h3.import-wizard__section-title Результаты импорта
+            h3.import-wizard__section-title {{ $t('user.importDialog.resultsTitle') }}
             q-space
             BaseButton(
               variant='ghost',
@@ -165,7 +165,7 @@ q-dialog(v-model='show', maximized, @hide='onClose')
               @click='retryFailed'
             )
               q-icon(name='refresh', size='16px')
-              span.q-ml-sm Повторить ошибки
+              span.q-ml-sm {{ $t('user.importDialog.retryErrors') }}
             BaseButton(
               v-if='importResults.length',
               variant='ghost',
@@ -173,7 +173,7 @@ q-dialog(v-model='show', maximized, @hide='onClose')
               @click='downloadResults'
             )
               q-icon(name='file_download', size='16px')
-              span.q-ml-sm Скачать результаты
+              span.q-ml-sm {{ $t('user.importDialog.downloadResults') }}
             BaseButton(
               v-if='hasData',
               variant='ghost',
@@ -181,7 +181,7 @@ q-dialog(v-model='show', maximized, @hide='onClose')
               @click='clearAll'
             )
               q-icon(name='clear', size='16px')
-              span.q-ml-sm Очистить
+              span.q-ml-sm {{ $t('user.importDialog.clear') }}
 
           q-table(
             :rows='importResults',
@@ -229,6 +229,7 @@ import { useCooperativeStore } from 'src/entities/Cooperative';
 import { useSystemStore } from 'src/entities/System/model';
 import { useAccountStore } from 'src/entities/Account/model';
 import { FailAlert, SuccessAlert, NotifyAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -256,9 +257,9 @@ const spreadInitial = ref(true);
 const fileChosen = ref(false);
 
 const selectedTypeLabelFull = computed(() => {
-  if (selectedType.value === 'individual') return 'Физические лица';
-  if (selectedType.value === 'entrepreneur') return 'Индивидуальные предприниматели';
-  if (selectedType.value === 'organization') return 'Юридические лица';
+  if (selectedType.value === 'individual') return t('user.importDialog.typeIndividualFull');
+  if (selectedType.value === 'entrepreneur') return t('user.importDialog.typeEntrepreneurFull');
+  if (selectedType.value === 'organization') return t('user.importDialog.typeOrganizationFull');
   return '';
 });
 
@@ -310,15 +311,15 @@ const hasErrors = computed(
 );
 
 const typeCards: { label: string; description: string; value: ParticipantType }[] = [
-  { label: 'Физические лица', description: 'Граждане — частные лица', value: 'individual' },
+  { label: t('user.importDialog.typeIndividualFull'), description: t('user.importDialog.typeIndividualDescription'), value: 'individual' },
   {
-    label: 'Индивидуальные предприниматели',
-    description: 'ИП с паспортными и банковскими реквизитами',
+    label: t('user.importDialog.typeEntrepreneurFull'),
+    description: t('user.importDialog.typeEntrepreneurDescription'),
     value: 'entrepreneur',
   },
   {
-    label: 'Юридические лица',
-    description: 'Организации (ООО, кооперативы и др.) с представителем',
+    label: t('user.importDialog.typeOrganizationFull'),
+    description: t('user.importDialog.typeOrganizationDescription'),
     value: 'organization',
   },
 ];
@@ -329,58 +330,58 @@ const detailsList = (row: any) => {
     if (val === undefined || val === null || val === '') return;
     items.push({ label, value: val });
   };
-  push('Дата вступления', row.created_at);
-  push('Вступительный', row.initial);
-  push('Минимальный', row.minimum);
-  push('Реферер', row.referer);
-  push('Взнос в кошелек', row.spread_initial ? 'да' : 'нет');
+  push(t('user.importDialog.detail.joinDate'), row.created_at);
+  push(t('user.importDialog.detail.initial'), row.initial);
+  push(t('user.importDialog.detail.minimum'), row.minimum);
+  push(t('user.importDialog.detail.referer'), row.referer);
+  push(t('user.importDialog.detail.spreadInitial'), row.spread_initial ? t('user.importDialog.detail.yes') : t('user.importDialog.detail.no'));
 
   if (row.type === 'individual') {
-    push('Дата рождения', row.birthdate);
-    push('Адрес', row.full_address);
+    push(t('user.importDialog.detail.birthdate'), row.birthdate);
+    push(t('user.importDialog.detail.address'), row.full_address);
     if (row.passport) {
-      push('Паспорт серия', row.passport.series);
-      push('Паспорт номер', row.passport.number);
-      push('Кем выдан', row.passport.issued_by);
-      push('Когда выдан', row.passport.issued_at);
-      push('Код подразделения', row.passport.code);
+      push(t('user.importDialog.detail.passportSeries'), row.passport.series);
+      push(t('user.importDialog.detail.passportNumber'), row.passport.number);
+      push(t('user.importDialog.detail.passportIssuedBy'), row.passport.issued_by);
+      push(t('user.importDialog.detail.passportIssuedAt'), row.passport.issued_at);
+      push(t('user.importDialog.detail.passportCode'), row.passport.code);
     }
   } else if (row.type === 'entrepreneur') {
-    push('Дата рождения', row.birthdate);
-    push('Страна', row.country);
-    push('Город', row.city);
-    push('Адрес', row.full_address);
-    push('ИНН', row.details?.inn);
-    push('ОГРН', row.details?.ogrn);
-    push('Банк', row.bank_account?.bank_name);
-    push('Р/с', row.bank_account?.account_number);
-    push('БИК', row.bank_account?.details?.bik);
-    push('Корр. счет', row.bank_account?.details?.corr);
-    push('Валюта', row.bank_account?.currency);
+    push(t('user.importDialog.detail.birthdate'), row.birthdate);
+    push(t('user.importDialog.detail.country'), row.country);
+    push(t('user.importDialog.detail.city'), row.city);
+    push(t('user.importDialog.detail.address'), row.full_address);
+    push(t('user.importDialog.detail.inn'), row.details?.inn);
+    push(t('user.importDialog.detail.ogrn'), row.details?.ogrn);
+    push(t('user.importDialog.detail.bank'), row.bank_account?.bank_name);
+    push(t('user.importDialog.detail.accountNumber'), row.bank_account?.account_number);
+    push(t('user.importDialog.detail.bik'), row.bank_account?.details?.bik);
+    push(t('user.importDialog.detail.corrAccount'), row.bank_account?.details?.corr);
+    push(t('user.importDialog.detail.currency'), row.bank_account?.currency);
   } else if (row.type === 'organization') {
-    push('Краткое название', row.short_name);
-    push('Полное название', row.full_name);
-    push('Тип', row.org_type);
-    push('Страна', row.country);
-    push('Город', row.city);
-    push('Юр. адрес', row.full_address);
-    push('Факт. адрес', row.fact_address);
-    push('ИНН', row.details?.inn);
-    push('ОГРН', row.details?.ogrn);
-    push('КПП', row.details?.kpp);
+    push(t('user.importDialog.detail.shortName'), row.short_name);
+    push(t('user.importDialog.detail.fullName'), row.full_name);
+    push(t('user.importDialog.detail.type'), row.org_type);
+    push(t('user.importDialog.detail.country'), row.country);
+    push(t('user.importDialog.detail.city'), row.city);
+    push(t('user.importDialog.detail.legalAddress'), row.full_address);
+    push(t('user.importDialog.detail.factAddress'), row.fact_address);
+    push(t('user.importDialog.detail.inn'), row.details?.inn);
+    push(t('user.importDialog.detail.ogrn'), row.details?.ogrn);
+    push(t('user.importDialog.detail.kpp'), row.details?.kpp);
     if (row.represented_by) {
       push(
-        'Представитель',
+        t('user.importDialog.detail.representative'),
         `${row.represented_by.last_name} ${row.represented_by.first_name} ${row.represented_by.middle_name ?? ''}`.trim(),
       );
-      push('Должность', row.represented_by.position);
-      push('Основание', row.represented_by.based_on);
+      push(t('user.importDialog.detail.position'), row.represented_by.position);
+      push(t('user.importDialog.detail.basis'), row.represented_by.based_on);
     }
-    push('Банк', row.bank_account?.bank_name);
-    push('Р/с', row.bank_account?.account_number);
-    push('БИК', row.bank_account?.details?.bik);
-    push('Корр. счет', row.bank_account?.details?.corr);
-    push('Валюта', row.bank_account?.currency);
+    push(t('user.importDialog.detail.bank'), row.bank_account?.bank_name);
+    push(t('user.importDialog.detail.accountNumber'), row.bank_account?.account_number);
+    push(t('user.importDialog.detail.bik'), row.bank_account?.details?.bik);
+    push(t('user.importDialog.detail.corrAccount'), row.bank_account?.details?.corr);
+    push(t('user.importDialog.detail.currency'), row.bank_account?.currency);
   }
 
   return items;
@@ -388,18 +389,18 @@ const detailsList = (row: any) => {
 
 const previewColumns: QTableProps['columns'] = [
   { name: 'rowNumber', label: '№', field: 'rowNumber', align: 'left' },
-  { name: 'type', label: 'Тип', field: (row) => row.displayType || row.type, align: 'left' },
-  { name: 'displayName', label: 'Имя/Название', field: 'displayName', align: 'left' },
-  { name: 'email', label: 'Почта', field: 'email', align: 'left' },
-  { name: 'phone', label: 'Телефон', field: 'phone', align: 'left' },
-  { name: 'data', label: 'Данные', field: 'data', align: 'center' },
-  { name: 'status', label: 'Статус', field: 'status', align: 'center' },
-  { name: 'error', label: 'Ошибка', field: 'error', align: 'left' },
+  { name: 'type', label: t('user.importDialog.column.type'), field: (row) => row.displayType || row.type, align: 'left' },
+  { name: 'displayName', label: t('user.importDialog.column.name'), field: 'displayName', align: 'left' },
+  { name: 'email', label: t('user.importDialog.column.email'), field: 'email', align: 'left' },
+  { name: 'phone', label: t('user.importDialog.column.phone'), field: 'phone', align: 'left' },
+  { name: 'data', label: t('user.importDialog.column.data'), field: 'data', align: 'center' },
+  { name: 'status', label: t('user.importDialog.column.status'), field: 'status', align: 'center' },
+  { name: 'error', label: t('user.importDialog.column.error'), field: 'error', align: 'left' },
 ];
 
 const resultColumns: QTableProps['columns'] = [
   ...previewColumns,
-  { name: 'actions', label: 'Действия', field: 'actions', align: 'center' },
+  { name: 'actions', label: t('user.importDialog.column.actions'), field: 'actions', align: 'center' },
 ];
 
 const totalItems = computed(
@@ -422,11 +423,11 @@ const getStatusColor = (status?: string) => {
 const getStatusText = (status?: string) => {
   switch (status) {
     case 'pending':
-      return 'Ожидает';
+      return t('user.importDialog.status.pending');
     case 'success':
-      return 'Успешно';
+      return t('user.importDialog.status.success');
     case 'error':
-      return 'Ошибка';
+      return t('user.importDialog.status.error');
     default:
       return '—';
   }
@@ -437,7 +438,7 @@ const ensureCoopData = async () => {
     try {
       await coop.loadPublicCooperativeData(system.info.coopname);
     } catch {
-      FailAlert('Не удалось загрузить данные кооператива');
+      FailAlert(t('user.importDialog.loadCoopDataError'));
     }
   }
 };
@@ -462,7 +463,7 @@ const onFileSelected = async (event: Event) => {
 
 const handleFile = async (file: File) => {
   if (!selectedType.value) {
-    parseError.value = 'Выберите тип аккаунта';
+    parseError.value = t('user.importDialog.selectTypeError');
     return;
   }
   parseError.value = '';
@@ -473,9 +474,9 @@ const handleFile = async (file: File) => {
     await parseCsv(file, selectedType.value);
     fileChosen.value = true;
     resetImport();
-    NotifyAlert(`Файл разобран. Записей: ${rows.value.length}`);
+    NotifyAlert(t('user.importDialog.fileParsedNotice', { rowsCount: rows.value.length }));
   } catch (e: any) {
-    parseError.value = e?.message ?? 'Ошибка при разборе файла';
+    parseError.value = e?.message ?? t('user.importDialog.parseFileError');
     FailAlert(parseError.value);
   }
 };
@@ -496,7 +497,7 @@ const onLeave = () => {
 
 const startImport = async () => {
   if (!rows.value.length) {
-    NotifyAlert('Нет данных для импорта');
+    NotifyAlert(t('user.importDialog.noDataError'));
     return;
   }
 
@@ -510,10 +511,10 @@ const startImport = async () => {
   await startBatchImport(prepared, { spreadInitial: spreadInitial.value });
 
   if (errorCount.value === 0) {
-    SuccessAlert(`Импорт завершен: ${successCount.value}`);
+    SuccessAlert(t('user.importDialog.importDoneAllSuccess', { successCount: successCount.value }));
   } else {
     NotifyAlert(
-      `Импорт завершен. Успешно: ${successCount.value}, Ошибок: ${errorCount.value}`,
+      t('user.importDialog.importDoneMixed', { successCount: successCount.value, errorCount: errorCount.value }),
     );
   }
 
@@ -566,18 +567,27 @@ const sampleTemplates = computed(() => {
 
   return {
     individual: [
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       '№,фамилия,имя,отчество,почта,телефон,дата рождения,адрес,вступительный взнос,минимальный взнос,дата вступления,реферер,паспорт серия,паспорт номер,кем выдан,когда выдан,код подразделения',
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `1,Иванов,Иван,Иванович,ivan@example.com,+7 999 111-22-33,1990-01-01,"г. Москва, ул. Ленина, д.1",${defaultsIndividual.initial},${defaultsIndividual.minimum},2024-01-10,,4000,123456,ОВД Москвы,2010-05-01,770-000`,
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `2,Петров,Петр,Петрович,petrov@example.com,+7 999 444-55-66,1985-02-02,"г. Казань, ул. Баумана, д.5",${defaultsIndividual.initial},${defaultsIndividual.minimum},2024-01-12,,,,,`,
     ].join('\n'),
     entrepreneur: [
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       '№,фамилия,имя,отчество,почта,телефон,дата рождения,страна,город,адрес,инн,огрн,банк,расчетный счет,бик,корр счет,валюта,вступительный взнос,минимальный взнос,дата вступления',
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `1,Смирнов,Алексей,Сергеевич,smirnov@example.com,+7 912 000-11-22,1988-03-03,Russia,Екатеринбург,"ул. Мира, 10",123456789012,1234567890123,"АО Банк",40817810099910004312,044525225,30101810400000000225,RUB,${defaultsIndividual.initial},${defaultsIndividual.minimum},2024-02-01`,
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `2,Кузнецов,Дмитрий,Олегович,dmitry@example.com,+7 921 555-66-77,1991-04-04,Russia,Самара,"ул. Гагарина, 22",9876543210,9876543210987,"ПАО Банк",40817810099910004313,044525226,30101810400000000226,RUB,${defaultsIndividual.initial},${defaultsIndividual.minimum},2024-02-05`,
     ].join('\n'),
     organization: [
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       '№,краткое название,полное название,тип,почта,телефон,страна,город,юрадрес,фактический адрес,инн,огрн,кпп,представитель фамилия,представитель имя,представитель отчество,должность представителя,основание полномочий,банк,расчетный счет,бик,корр счет,валюта,вступительный взнос,минимальный взнос,дата вступления',
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `1,"ООО Ромашка","Общество с ограниченной ответственностью Ромашка",COOP,office@example.com,+7 495 000-11-22,Russia,Москва,"ул. Тверская, 1","ул. Тверская, 1",7701234567,1234567890123,770101001,Сидоров,Виктор,Алексеевич,Генеральный директор,Устав,"АО Банк",40702810999910004312,044525225,30101810400000000225,RUB,${defaultsOrg.initial},${defaultsOrg.minimum},2024-03-01`,
+      // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
       `2,"АНО Прогресс","Автономная некоммерческая организация Прогресс",COOP,contact@progress.ru,+7 812 333-44-55,Russia,Санкт-Петербург,"Невский пр., 10","Невский пр., 10",7801234567,9876543210987,780101001,Ильина,Мария,Игоревна,Директор,Устав,"ПАО Банк",40702810999910004313,044525226,30101810400000000226,RUB,${defaultsOrg.initial},${defaultsOrg.minimum},2024-03-05`,
     ].join('\n'),
   };
@@ -594,6 +604,7 @@ const downloadResults = () => {
   if (!data.length) return;
 
   const lines = [
+    // i18n-ignore: CSV-шаблон — данные, не текст интерфейса
     '№,тип,имя/название,почта,телефон,статус,ошибка',
     ...data.map(
       (row) =>

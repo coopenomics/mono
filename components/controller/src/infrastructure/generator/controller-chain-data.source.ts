@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DraftContract } from 'cooptypes';
+import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
 import { DataSource } from 'typeorm';
 import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
@@ -7,6 +7,7 @@ import { BlockchainActionHistoryService } from '~/domain/parser/services/blockch
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { isHexHash } from '~/shared/sql/hex-value.util';
 import { EffectiveTemplateBlockResolver } from './effective-template-block.resolver';
+import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 
 /**
  * Данные цепи для фабрики документов — из собственной базы узла.
@@ -27,7 +28,8 @@ export class ControllerChainDataSource implements IChainDataSource {
     private readonly draftRegistry: TypeOrmDraftRegistryRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
     private readonly blockchainService: BlockchainService,
-    private readonly effectiveBlock: EffectiveTemplateBlockResolver
+    private readonly effectiveBlock: EffectiveTemplateBlockResolver,
+    private readonly chainTextService: ChainTextService
   ) {}
 
   async getTableRows<T = any>(query: ITableQuery): Promise<T[]> {
@@ -38,7 +40,19 @@ export class ControllerChainDataSource implements IChainDataSource {
       if (fromRegistry) return fromRegistry;
     }
 
-    return this.readFromDeltas<T>(query);
+    const rows = await this.readFromDeltas<T>(query);
+
+    // Формулировки вопросов собрания в цепи лежат хешами — документы собираются по текстам.
+    if (query.code === MeetContract.contractName.production && query.table === MeetContract.Tables.Questions.tableName) {
+      const resolved = await this.chainTextService.resolveFields(rows as Record<string, unknown>[], [
+        'title',
+        'context',
+        'decision',
+      ]);
+      return resolved as unknown as T[];
+    }
+
+    return rows;
   }
 
   async getActions<T = any>(query: IActionQuery): Promise<T[]> {
@@ -151,6 +165,7 @@ function mapToStrings(source: Record<string, unknown>): Record<string, string> {
  */
 function sanitizeKey(key: string): string {
   if (!/^[A-Za-z0-9_]+$/.test(key)) {
+    // i18n-ignore: внутренняя защита построителя запроса (недопустимое имя поля условия) — разработческая, до пайщика не доходит
     throw new Error(`Недопустимое имя поля в условии выборки: ${key}`);
   }
   return key;

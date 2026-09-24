@@ -1,0 +1,12 @@
+{
+  "documentSearch": {
+    "documentSearchDialog": {
+      "empty": "Ничего не найдено",
+      "hint": "Введите запрос для поиска по документам",
+      "placeholder": "Поиск по документам..."
+    },
+    "searchButton": {
+      "tooltip": "Поиск по документам"
+    }
+  }
+}

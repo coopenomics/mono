@@ -419,3 +419,8 @@ cases:
     expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
     status: passing
+
+
+# 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
+# кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
+# и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.

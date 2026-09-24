@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
@@ -55,14 +55,14 @@ export class MarketplaceEventsResolver {
     @Args('input') input: MarketplaceEventsInputDTO
   ): Promise<AsyncIterator<MarketplaceEventPayload>> {
     if (input.coopname !== platformSettings().coopname) {
-      throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
+      throw DomainError.forbidden('MARKETPLACE_SUBSCRIPTION_FOREIGN_COOP');
     }
 
     // Пайщик в контексте подписки — та же учётная запись, что у HTTP-запроса
     // (ws-auth.registry.ts ядра), имя берётся как в любом резолвере.
     const username = user.username;
     if (!username) {
-      throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
+      throw DomainError.forbidden('MARKETPLACE_SUBSCRIPTION_MEMBER_UNRESOLVED');
     }
     const memberTopic = marketplaceMemberTopic(platformSettings().coopname, username);
     const catalogTopic = marketplaceCatalogTopic(platformSettings().coopname);

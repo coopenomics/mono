@@ -3,7 +3,7 @@
   FilterBar.q-mb-md
     BaseSelect(
       v-model="statusFilter"
-      label="Состояние"
+      :label="$t('chairman.approvalsPage.statusFilterLabel')"
       :options="statusOptions"
       style="width: 240px"
       @update:model-value="onFiltersChange"
@@ -27,6 +27,7 @@ import { FilterBar } from 'src/shared/ui/domain';
 import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/model';
 
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../i18n';
 
 const approvalStore = useApprovalStore();
 const route = useRoute();
@@ -37,10 +38,10 @@ const loading = ref(false);
 const statusFilter = ref<string>(Zeus.ApprovalStatus.PENDING);
 
 const statusOptions = [
-  { label: 'Все состояния', value: '' },
-  { label: 'Ожидает', value: Zeus.ApprovalStatus.PENDING },
-  { label: 'Одобрено', value: Zeus.ApprovalStatus.APPROVED },
-  { label: 'Отклонено', value: Zeus.ApprovalStatus.DECLINED },
+  { label: t('chairman.approvalsPage.allStatusesOption'), value: '' },
+  { label: t('chairman.approval.status.pending'), value: Zeus.ApprovalStatus.PENDING },
+  { label: t('chairman.approval.status.approved'), value: Zeus.ApprovalStatus.APPROVED },
+  { label: t('chairman.approval.status.declined'), value: Zeus.ApprovalStatus.DECLINED },
 ];
 
 // Пагинация
@@ -78,7 +79,7 @@ const loadApprovals = async () => {
     pagination.value.rowsNumber = approvalStore.approvals?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка загрузки одобрений:', error);
-    FailAlert('Ошибка загрузки одобрений');
+    FailAlert(t('chairman.approvalsPage.loadError'));
   } finally {
     loading.value = false;
   }

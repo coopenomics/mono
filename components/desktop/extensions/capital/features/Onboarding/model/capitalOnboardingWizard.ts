@@ -1,3 +1,4 @@
+import { t } from '../../../i18n';
 import { Cooperative } from 'cooptypes';
 
 /**
@@ -52,13 +53,13 @@ export const COUNCIL_STEP_IDS_BY_GROUP: Record<CouncilGroupStepKey, readonly str
 
 export const COUNCIL_WIZARD_STEP_META: Record<CouncilGroupStepKey, { label: string; description: string }> = {
   [COUNCIL_GROUP_FOUNDATION]: {
-    label: 'Утверждение положений и шаблонов ЦПП',
+    label: t('capital.capitalOnboardingWizard.approveRegulationsStepTitle'),
     description:
-      'Положение «ГЕНЕРАТОР», шаблон договора участия в хозяйственной деятельности и положение «БЛАГОРОСТ»',
+      t('capital.capitalOnboardingWizard.approveRegulationsStepDescription'),
   },
   [COUNCIL_GROUP_OFFERS]: {
-    label: 'Утверждение оферт ЦПП',
-    description: 'Оферты «ГЕНЕРАТОР» и «БЛАГОРОСТ» для пайщиков',
+    label: t('capital.capitalOnboardingWizard.approveOffersStepTitle'),
+    description: t('capital.capitalOnboardingWizard.approveOffersStepDescription'),
   },
 };
 

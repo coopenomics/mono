@@ -1,5 +1,6 @@
+import './i18n';
 import { Inject, Module, Optional } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   COUNCIL_PORT,
   type ICouncilPort,
@@ -43,6 +44,7 @@ import { EntityName as ApprovalEntityName } from './infrastructure/entities/appr
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Функция для описания полей в схеме конфигурации
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -78,80 +80,97 @@ export const Schema = z.object({
     .default(defaultConfig.checkInterval)
     .describe(
       describeField({
-        label: 'Интервал проверки истекших решений (в минутах)',
-        note: 'Минимум: 1 минута',
+        label: t('chairman.settings.expiredCheckIntervalLabel'),
+        note: t('chairman.settings.expiredCheckIntervalNote'),
         rules: ['val >= 1'],
-        prepend: 'Каждые',
-        append: 'минут',
+        prepend: t('chairman.settings.expiredCheckIntervalPrepend'),
+        append: t('chairman.settings.expiredCheckIntervalAppend'),
       })
     ),
   lastCheckDate: z
     .string()
     .default(defaultConfig.lastCheckDate)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата последней проверки', visible: false })),
   onboarding_init_at: z
     .string()
     .default(defaultConfig.onboarding_init_at)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата старта онбординга председателя', visible: false })),
   onboarding_expire_at: z
     .string()
     .default(defaultConfig.onboarding_expire_at)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Дата истечения онбординга председателя', visible: false })),
   onboarding_wallet_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_wallet_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг кошелькового соглашения выполнен', visible: false })),
   onboarding_wallet_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_wallet_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа кошелькового соглашения', visible: false })),
   onboarding_signature_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_signature_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг простой ЭП выполнен', visible: false })),
   onboarding_signature_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_signature_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа простой ЭП', visible: false })),
   onboarding_privacy_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_privacy_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг политики конфиденциальности выполнен', visible: false })),
   onboarding_privacy_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_privacy_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа политики конфиденциальности', visible: false })),
   onboarding_user_agreement_done: z
     .boolean()
     .default(defaultConfig.onboarding_user_agreement_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг пользовательского соглашения выполнен', visible: false })),
   onboarding_user_agreement_hash: z
     .string()
     .default(defaultConfig.onboarding_user_agreement_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа пользовательского соглашения', visible: false })),
   onboarding_participant_application_done: z
     .boolean()
     .default(defaultConfig.onboarding_participant_application_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг заявлений выполнен', visible: false })),
   onboarding_participant_application_hash: z
     .string()
     .default(defaultConfig.onboarding_participant_application_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash документа заявлений', visible: false })),
   onboarding_voskhod_membership_done: z
     .boolean()
     .default(defaultConfig.onboarding_voskhod_membership_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг вступления в ПК «ВОСХОД» выполнен', visible: false })),
   onboarding_voskhod_membership_hash: z
     .string()
     .default(defaultConfig.onboarding_voskhod_membership_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash решения о вступлении в ПК «ВОСХОД»', visible: false })),
   onboarding_general_meet_done: z
     .boolean()
     .default(defaultConfig.onboarding_general_meet_done)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Шаг общего собрания выполнен', visible: false })),
   onboarding_general_meet_hash: z
     .string()
     .default(defaultConfig.onboarding_general_meet_hash)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Hash повестки общего собрания', visible: false })),
 });
 
@@ -192,7 +211,7 @@ export class ChairmanExtension extends BaseExtensionModule {
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('CHAIRMAN_CONFIG_NOT_FOUND');
 
     // Одобрения — личная таблица: сигнал тому, кто просил одобрения, и совету.
     this.chainChanges?.declareLocalTables([{ code: this.name, table: ApprovalEntityName, owner_field: 'username' }]);

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, Repository, type EntityManager } from 'typeorm';
 import { MarketplaceInventoryDomainEntity } from '../../domain/entities/marketplace-inventory.entity';
@@ -22,6 +22,7 @@ import type {
 import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceInventoryEntity } from '../entities/marketplace-inventory.entity';
 import { MarketplaceInventoryMapper } from '../mappers/marketplace-inventory.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Позиция, покинувшая склад (выдана пайщику или списана), теряет место
@@ -443,9 +444,7 @@ export class MarketplaceInventoryRepositoryAdapter implements MarketplaceInvento
         }
       }
       if (needed > 0) {
-        throw new ConflictException(
-          `Свободного остатка недостаточно: не хватает ${needed} ед. для резерва под заказ.`
-        );
+        throw DomainError.conflict('MARKETPLACE_INVENTORY_INSUFFICIENT_FOR_RESERVE', { needed });
       }
     });
   }

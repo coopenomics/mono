@@ -1,6 +1,7 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import config from '~/config/config';
 import { BRANCH_BLOCKCHAIN_PORT, type BranchBlockchainPort } from '~/domain/branch/interfaces/branch-blockchain.port';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Роль председателя совета — она даёт право распоряжаться верификациями. */
 const CHAIRMAN_ROLE = 'chairman';
@@ -38,28 +39,28 @@ export class VerificationAuthorityService {
   async assertMayVerify(actor: VerificationActor, target?: string): Promise<void> {
     if (!actor.braname) {
       if (actor.role !== CHAIRMAN_ROLE) {
-        throw new ForbiddenException('Подтверждать личность от имени совета вправе председатель совета');
+        throw DomainError.forbidden('AUTH_V2_VERIFICATION_CHAIRMAN_ONLY');
       }
       return;
     }
 
     if (target && target === actor.username) {
-      throw new ForbiddenException('Свою личность на участке не сверяют — её подтверждает председатель совета');
+      throw DomainError.forbidden('AUTH_V2_VERIFICATION_SELF_FORBIDDEN');
     }
 
     const branch = await this.branchBlockchainPort.getBranch(config.coopname, actor.braname);
-    if (!branch) throw new ForbiddenException('Кооперативный участок не найден');
+    if (!branch) throw DomainError.forbidden('AUTH_V2_BRANCH_NOT_FOUND');
 
     const authorized = branch.trustee === actor.username || (branch.trusted ?? []).includes(actor.username);
     if (!authorized) {
-      throw new ForbiddenException('Сверять личность на участке вправе его председатель или доверенное лицо');
+      throw DomainError.forbidden('AUTH_V2_VERIFICATION_BRANCH_AUTHORITY_ONLY');
     }
   }
 
   /** Отзыв верификации — только председатель совета, участок здесь роли не играет. */
   assertMayUnverify(actor: VerificationActor): void {
     if (actor.role !== CHAIRMAN_ROLE) {
-      throw new ForbiddenException('Отзывать верификацию личности вправе председатель совета');
+      throw DomainError.forbidden('AUTH_V2_VERIFICATION_REVOKE_CHAIRMAN_ONLY');
     }
   }
 
@@ -70,7 +71,7 @@ export class VerificationAuthorityService {
    */
   assertMayReview(actor: VerificationActor): void {
     if (actor.role !== CHAIRMAN_ROLE) {
-      throw new ForbiddenException('Проверять сверку личности вправе председатель совета');
+      throw DomainError.forbidden('AUTH_V2_VERIFICATION_REVIEW_CHAIRMAN_ONLY');
     }
   }
 }

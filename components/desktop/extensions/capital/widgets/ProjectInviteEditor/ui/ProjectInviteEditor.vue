@@ -12,7 +12,7 @@ div.q-px-md
         :disabled="!hasChanges || isSaving"
         :loading="isSaving"
         @click="save"
-      ) Сохранить
+      ) {{ $t('common.action.save') }}
   Editor(
     :min-height="300",
     v-if="project"
@@ -33,6 +33,7 @@ import { buildEditProjectInput, useEditProject } from 'app/extensions/capital/fe
 import { useUnsavedGuard } from 'app/extensions/capital/features/ContentRevisions';
 import { toMarkdown } from 'src/shared/lib/utils';
 import { SuccessAlert, FailAlert } from 'src/shared/api/alerts';
+import { t } from '../../../i18n';
 
 defineProps<{
   placeholder: string;
@@ -55,9 +56,9 @@ const permissions = computed((): IProjectPermissions | null => project.value?.pe
 const canEdit = computed(() => !!permissions.value?.can_edit_project);
 const hasChanges = computed(() => !!project.value && invite.value !== originalInvite.value);
 const statusText = computed(() => {
-  if (isSaving.value) return 'Сохранение…';
-  if (hasChanges.value) return 'Есть несохранённые изменения';
-  return saved.value ? 'Сохранено' : '';
+  if (isSaving.value) return t('capital.projectInviteEditor.savingStatus');
+  if (hasChanges.value) return t('capital.projectInviteEditor.unsavedStatus');
+  return saved.value ? t('capital.projectInviteEditor.savedStatus') : '';
 });
 
 const markOriginal = async () => {
@@ -69,12 +70,12 @@ const save = async () => {
   if (!project.value || !canEdit.value || !hasChanges.value) return;
   const result = await saveProject(buildEditProjectInput(project.value, { invite: invite.value }));
   if (!result.ok) {
-    FailAlert('Проект изменён параллельно: обновите страницу и повторите сохранение приглашения');
+    FailAlert(t('capital.projectInviteEditor.conflictNotice'));
     return;
   }
   await loadProject();
   saved.value = true;
-  SuccessAlert('Приглашение сохранено');
+  SuccessAlert(t('capital.projectInviteEditor.savedNotice'));
 };
 
 const onKeydown = (e: KeyboardEvent) => {

@@ -4,7 +4,7 @@
 //- Отклонил — верификация отзывается, и пайщик снова не получит имущество.
 BaseDialog(
   :model-value='modelValue',
-  title='Проверка сверки личности',
+  :title='$t("verification.verificationReviewDialog.title")',
   size='md',
   @update:model-value='(value) => emit("update:modelValue", value)'
 )
@@ -13,12 +13,12 @@ BaseDialog(
     AccountBadge(:account-name='review.username', size='sm')
 
     .review-dialog__facts
-      DataRow(label='Сверил', :value='verificatorName')
-      DataRow(label='Место сверки', :value='placeName')
-      DataRow(label='Дата сверки', :value='formatDateToHumanDateTime(review.created_at)')
+      DataRow(:label='$t("verification.verificationReviewDialog.verifiedByLabel")', :value='verificatorName')
+      DataRow(:label='$t("verification.verificationReviewDialog.placeLabel")', :value='placeName')
+      DataRow(:label='$t("verification.verificationReviewDialog.dateLabel")', :value='formatDateToHumanDateTime(review.created_at)')
 
     .review-dialog__photos
-      .review-dialog__photos-title Фотографии сверки
+      .review-dialog__photos-title {{ $t('verification.verificationReviewDialog.photosTitle') }}
       .review-dialog__grid(v-if='loadingPhotos')
         q-skeleton(type='rect', height='160px')
         q-skeleton(type='rect', height='160px')
@@ -30,26 +30,26 @@ BaseDialog(
           target='_blank',
           rel='noopener'
         )
-          img(:src='photo.read_url', :alt='`Снимок сверки ${review.username}`')
-      .review-dialog__empty(v-else) Снимки недоступны
+          img(:src='photo.read_url', :alt='$t(`verification.verificationReviewDialog.photoAlt`, { username: review.username })')
+      .review-dialog__empty(v-else) {{ $t('verification.verificationReviewDialog.photosUnavailable') }}
 
     BaseInput(
       v-model='reason',
-      label='Причина отклонения',
-      hint='Заполняется только при отклонении — её увидит участок',
+      :label='$t("verification.verificationReviewDialog.rejectReasonLabel")',
+      :hint='$t("verification.verificationReviewDialog.rejectReasonHint")',
       :disabled='busy'
     )
 
     .review-dialog__actions
-      BaseButton(variant='ghost', :disabled='busy', @click='emit("update:modelValue", false)') Закрыть
+      BaseButton(variant='ghost', :disabled='busy', @click='emit("update:modelValue", false)') {{ $t('common.action.close') }}
       BaseButton(variant='danger', :loading='busy', :disabled='!reason.trim()', @click='onReject')
         template(#icon-left)
           q-icon(name='person_off', size='16px')
-        | Отклонить
+        | {{ $t('verification.verificationReviewDialog.reject') }}
       BaseButton(variant='primary', :loading='busy', @click='onApprove')
         template(#icon-left)
           q-icon(name='how_to_reg', size='16px')
-        | Утвердить
+        | {{ $t('verification.verificationReviewDialog.approve') }}
 </template>
 
 <script setup lang="ts">

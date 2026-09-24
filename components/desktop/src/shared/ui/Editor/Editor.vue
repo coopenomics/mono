@@ -30,6 +30,7 @@ import type { Crepe } from '@milkdown/crepe';
 import { CrepeFeature } from '@milkdown/crepe';
 import { sanitizeEditorMarkdown } from 'src/shared/lib/utils/sanitizeEditorMarkdown';
 import { crepeMermaidRenderPreview } from './crepeMermaidRenderPreview';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   modelValue: string | null | undefined;
@@ -49,7 +50,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   readonly: false,
-  placeholder: 'Начните писать...',
+  placeholder: t('ui.editor.placeholder'),
   minHeight: 0,
   padded: true,
   showFocusRing: false,
@@ -101,12 +102,12 @@ const initEditor = async (initialMarkdown?: string) => {
           mode: 'block',
         },
         [CrepeFeature.CodeMirror]: {
-          copyText: 'Копировать',
+          copyText: t('common.action.copy'),
           renderPreview: crepeMermaidRenderPreview(isDark.value),
           /* Сначала превью (mermaid и т.д.), код — по «Редактировать»; «Только превью» — обратно. */
           previewOnlyByDefault: true,
           previewToggleText: (previewOnly: boolean) =>
-            previewOnly ? 'Редактировать' : 'Только превью',
+            previewOnly ? t('common.action.edit') : t('ui.editor.previewOnlyLabel'),
         },
       },
     });
@@ -159,7 +160,7 @@ const initEditor = async (initialMarkdown?: string) => {
     emit('ready');
     console.log('Milkdown (Crepe) editor created');
   } catch (err) {
-    error.value = 'Ошибка инициализации редактора';
+    error.value = t('ui.editor.initError');
     console.error('Milkdown initialization failed:', err);
     isMounted.value = false;
   }

@@ -55,7 +55,7 @@ struct [[eosio::table, eosio::contract(CAPITAL)]] project {
   name master; ///< Мастер проекта
   
   std::string title; ///< Название проекта
-  std::string description; ///< sha256 описания (текст хранится в базе контроллера) или пустая строка
+  std::string description; ///< sha256 описания (текст хранится в базе контроллера, lib/core/text_digest.hpp) или пустая строка
   std::string invite; ///< sha256 приглашения (текст хранится в базе контроллера) или пустая строка
   std::string data; ///< Шаблон/данные проекта
   std::string meta; ///< Метаданные проекта
@@ -183,35 +183,6 @@ namespace Capital::Projects {
   }
 
   /**
-   * @brief Тексты проекта в цепи хранятся хешем.
-   *
-   * Описание и приглашение живут в базе контроллера, в памяти цепи от них
-   * остаётся sha256 текста в шестнадцатеричной записи (64 символа) или пустая
-   * строка, если текста нет. Хеш закрепляет, какой именно текст был у проекта,
-   * и не занимает память кооператива: одна «Концепция» весила 62 КБ.
-   */
-  inline bool is_text_digest(const std::string &value) {
-    if (value.empty()) return true;
-    if (value.size() != 64) return false;
-    for (char c : value) {
-      const bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
-      if (!hex) return false;
-    }
-    return true;
-  }
-
-  inline void check_text_digest(const std::string &value, const char *field) {
-    eosio::check(is_text_digest(value),
-      std::string("Поле ") + field + " принимает sha256 текста (64 шестнадцатеричных символа в нижнем регистре) или пустую строку");
-  }
-
-  /// sha256 текста в той же записи, что считает контроллер; пустой текст остаётся пустым.
-  inline std::string text_digest(const std::string &text) {
-    if (text.empty()) return text;
-    return checksum256_to_hex(eosio::sha256(text.data(), text.size()));
-  }
-
-  /**
    * @brief Создает проект
    *
    * @param coopname Имя кооператива
@@ -225,8 +196,8 @@ namespace Capital::Projects {
    */
   inline void create_project(eosio::name coopname, const checksum256 &project_hash, const checksum256 &parent_hash, const std::string &title, const std::string &description, const std::string &invite, const std::string &meta, const std::string &data) {
     
-    check_text_digest(description, "description");
-    check_text_digest(invite, "invite");
+    TextDigest::check_digest(description, "description");
+    TextDigest::check_digest(invite, "invite");
 
     project_index projects(_capital, coopname.value);
 
@@ -260,8 +231,8 @@ namespace Capital::Projects {
    */
   inline void edit_project(eosio::name coopname, uint64_t project_id, const std::string &title, const std::string &description, const std::string &invite, const std::string &meta, const std::string &data) {
 
-    check_text_digest(description, "description");
-    check_text_digest(invite, "invite");
+    TextDigest::check_digest(description, "description");
+    TextDigest::check_digest(invite, "invite");
 
     project_index projects(_capital, coopname.value);
     auto project_itr = projects.find(project_id);

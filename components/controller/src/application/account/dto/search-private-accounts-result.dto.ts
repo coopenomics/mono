@@ -4,6 +4,7 @@ import { IndividualDTO } from '~/application/common/dto/individual.dto';
 import { EntrepreneurDTO } from '~/application/common/dto/entrepreneur.dto';
 import { OrganizationDTO } from '~/application/common/dto/organization.dto';
 import type { PrivateAccountSearchResultDomainInterface } from '~/domain/common/interfaces/search-private-accounts-domain.interface';
+import { DomainError } from '@coopenomics/extension-kit';
 
 // Создаем Union Type для GraphQL
 export const PrivateAccountSearchDataUnion = createUnionType({
@@ -60,7 +61,7 @@ export class PrivateAccountSearchResultDTO {
         this.data = new OrganizationDTO(entity.data as any);
         break;
       default:
-        throw new Error(`Неизвестный тип аккаунта: ${entity.type}`);
+        throw DomainError.internal('ACCOUNT_UNKNOWN_TYPE', { type: entity.type });
     }
   }
 }

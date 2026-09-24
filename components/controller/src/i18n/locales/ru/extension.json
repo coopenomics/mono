@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "EXTENSION_CONFIG_VALIDATION_FAILED": "Ошибка валидации конфигурации: {errors}",
+    "EXTENSION_NOT_AVAILABLE_FOR_INSTALL": "Приложение {name} недоступно для установки",
+    "EXTENSION_NOT_FOUND": "Приложение {name} не найдено в реестре"
+  }
+}

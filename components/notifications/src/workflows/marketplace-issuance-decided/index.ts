@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceIssuanceDecidedPayloadSchema = z.object({
   ordererName: z.string(),
@@ -21,8 +21,10 @@ export type IPayload = z.infer<typeof marketplaceIssuanceDecidedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Совет решил по выдаче имущества';
-export const id = slugify(name);
+export const name = nt('marketplaceIssuanceDecided.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'sovet-reshil-po-vydache-imuschestva';
 
 /**
  * Паевая модель Стола заказов: совет рассмотрел заявление о возврате паевого
@@ -34,24 +36,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о решении совета по выдаче имущества, принятом после его ухода с пункта выдачи.')
+  .i18nKey('marketplaceIssuanceDecided')
+  .description(nt('marketplaceIssuanceDecided.description'))
   .payloadSchema(marketplaceIssuanceDecidedPayloadSchema)
   .tags(['marketplace', 'orderer'])
   .addSteps([
     createEmailStep(
       'marketplace-issuance-decided-email',
-      'Решение совета по вашему заказу на КУ {{payload.kuName}}',
-      'Уважаемый {{payload.ordererName}}!<br><br>{{payload.outcomeText}}<br><br>{{payload.nextStepText}}<br><br>Заказ: <strong>{{payload.order_id}}</strong>, участок <strong>{{payload.kuName}}</strong>.<br><br>Открыть заказ: {{payload.deepLinkUrl}}'
+      nt('marketplaceIssuanceDecided.email.subject'),
+      nt('marketplaceIssuanceDecided.email.body')
     ),
     createInAppStep(
       'marketplace-issuance-decided-notification',
-      'Решение совета по выдаче',
-      '{{payload.outcomeText}} {{payload.nextStepText}}'
+      nt('marketplaceIssuanceDecided.inApp.subject'),
+      nt('marketplaceIssuanceDecided.inApp.body')
     ),
     createPushStep(
       'marketplace-issuance-decided-push',
-      'Решение совета по выдаче',
-      '{{payload.outcomeText}} {{payload.nextStepText}}'
+      nt('marketplaceIssuanceDecided.push.subject'),
+      nt('marketplaceIssuanceDecided.push.body')
     ),
   ])
   .build();

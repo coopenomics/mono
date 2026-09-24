@@ -7,3 +7,4 @@ export { WorkflowBuilder } from './base/workflow-builder';
 
 // Экспортируем все воркфлоу
 export * as Workflows from './workflows';
+export { nt, templateFor, notificationTemplates, DEFAULT_NOTIFICATION_LOCALE } from './i18n';

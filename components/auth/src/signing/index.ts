@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Подпись: документы (Story 2.3) и timestamp-метка второго этапа аутентификации
  * (Story 2.4). Полностью локальные операции (без сети); подпись timestamp НЕ
@@ -66,7 +67,7 @@ export function canonicalTimestampMessage(payload: { ts: string, binding_token_j
 export async function signDocument(params: SignDocumentParams): Promise<string> {
   const alg = params.alg ?? 'ES256K'
   if (alg !== 'ES256K')
-    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, `Неподдерживаемый алгоритм подписи: ${alg}`)
+    throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, lt('authClient.signing.unsupportedAlgorithm', { algorithm: alg }))
 
   const { account } = currentView() // бросает WalletLocked, если заперт
   const wif = readUnlockedKey()
@@ -102,18 +103,18 @@ export async function signTimestamp(params: { sessionBindingToken: string }): Pr
     claims = decodeJwt(params.sessionBindingToken)
   }
   catch {
-    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, 'Некорректный session_binding_token: не удалось прочитать claims')
+    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, lt('authClient.signing.invalidSessionToken'))
   }
   const sub = claims.sub
   const jti = claims.jti
   if (!sub || !jti)
-    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, 'session_binding_token без обязательных claims sub/jti')
+    throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, lt('authClient.signing.sessionTokenMissingClaims'))
 
   // Кошелёк должен принадлежать тому же субъекту, что и токен (иначе подпишем
   // метку чужим ключом — сервер всё равно отвергнет, но ловим раньше и понятнее).
   const wallet = currentView() // бросает WalletLocked, если заперт
   if (wallet.account !== sub)
-    throw new AuthV2Error(AuthV2ErrorCode.ClientWalletMismatch, `Разблокированный кошелёк (${wallet.account}) не совпадает с субъектом токена (${sub})`)
+    throw new AuthV2Error(AuthV2ErrorCode.ClientWalletMismatch, lt('authClient.signing.walletSubjectMismatch', { walletAccount: wallet.account, tokenSubject: sub }))
 
   const ts = new Date().toISOString()
   const message = canonicalTimestampMessage({ ts, binding_token_jti: jti, sub })

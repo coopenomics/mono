@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleCreateDebt',
   :loading='loading',
-  label='Создать долг'
+  :label='$t("capital.createDebtButton.label")'
 )
 </template>
 

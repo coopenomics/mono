@@ -15,32 +15,32 @@
 
       //- Система Быстрых Платежей
       template(v-if='method.method_type === "sbp" && isSBPData(method.data)')
-        DataRow(label='Телефон', :value='method.data.phone', copyable)
+        DataRow(:label='$t("user.paymentMethods.phoneLabel")', :value='method.data.phone', copyable)
 
       //- Банковский перевод
       template(
         v-if='method.method_type === "bank_transfer" && isBankTransferData(method.data)'
       )
-        DataRow(label='Валюта', :value='method.data.currency')
-        DataRow(label='Банк', :value='method.data.bank_name')
+        DataRow(:label='$t("user.paymentMethods.currencyLabel")', :value='method.data.currency')
+        DataRow(:label='$t("user.paymentMethods.bankLabel")', :value='method.data.bank_name')
         DataRow(
-          label='Номер счёта',
+          :label='$t("user.paymentMethods.accountNumberLabel")',
           :value='method.data.account_number',
           copyable,
           mono
         )
         DataRow(
-          label='Корр. счёт',
+          :label='$t("user.paymentMethods.corrAccountLabel")',
           :value='method.data.details.corr',
           copyable,
           mono
         )
-        DataRow(label='БИК', :value='method.data.details.bik', copyable, mono)
+        DataRow(:label='$t("user.paymentMethods.bikLabel")', :value='method.data.details.bik', copyable, mono)
 
   EmptyState(
     v-else,
-    title='Способы получения платежей не добавлены',
-    body='Добавьте банковскую карту или реквизиты для получения платежей от кооператива.'
+    :title='$t("user.paymentMethods.emptyTitle")',
+    :body='$t("user.paymentMethods.emptyBody")'
   )
     template(#icon)
       q-icon(name='payment', size='48px')
@@ -58,6 +58,7 @@ import { DeletePaymentButton } from 'src/features/PaymentMethod/DeletePaymentMet
 import { BaseCard } from 'src/shared/ui/base/BaseCard';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   username: {
@@ -85,8 +86,8 @@ function isBankTransferData(
 
 function methodTitle(method: { method_type: string }): string {
   return method.method_type === 'sbp'
-    ? 'Система Быстрых Платежей'
-    : 'Банковский перевод';
+    ? t('user.paymentMethods.methodSbp')
+    : t('user.paymentMethods.methodBankTransfer');
 }
 </script>
 

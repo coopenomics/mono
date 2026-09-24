@@ -1,0 +1,10 @@
+{
+  "errors": {
+    "ONBOARDING_EXTENSION_NOT_FOUND": "Расширение не найдено: {extensionName}",
+    "ONBOARDING_FREE_DECISION_STEP_MISCONFIGURED": "Шаг {extensionName}/{stepKey} (generator='free_decision') требует question и decision",
+    "ONBOARDING_MEET_STEP_MISCONFIGURED": "Шаг {extensionName}/{stepKey} (generator='meet') требует proposal_hash",
+    "ONBOARDING_STEP_ALREADY_REGISTERED": "Шаг онбординга уже зарегистрирован: {extensionName}/{stepKey}",
+    "ONBOARDING_STEP_NOT_REGISTERED": "Шаг онбординга не зарегистрирован: {extensionName}/{stepKey}",
+    "ONBOARDING_UNKNOWN_STEP_GENERATOR": "Неизвестный generator шага онбординга: {generator}"
+  }
+}

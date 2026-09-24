@@ -22,8 +22,9 @@ import { AccountDomainService, ACCOUNT_DOMAIN_SERVICE } from '~/domain/account/s
 import { Workflows } from '@coopenomics/notifications';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { HttpApiError, DomainError } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /** Минимум членов совета — как MIN_SOVIET_MEMBERS_COUNT в контракте soviet (3 prod / 1 dev). */
 const MIN_SOVIET_MEMBERS_COUNT = config.min_soviet_members_count;
@@ -52,7 +53,7 @@ export class InstallInteractor {
 
     if (exist && exist.status !== userStatus['1_Created']) {
       if (await this.userDomainService.isEmailTaken(userBody.email)) {
-        throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным EMAIL уже зарегистрирован');
+        throw DomainError.badRequest('USER_EMAIL_ALREADY_REGISTERED');
       }
     }
 
@@ -129,15 +130,11 @@ export class InstallInteractor {
     // - initialized (нормальный прогон)
     // - maintenance без сохранённых vars (прерванная установка, можно повторить)
     if (status !== SystemStatus.initialized && !isIncompleteInstallMaintenance) {
-      throw new BadRequestException(
-        `Установка невозможна. Текущий статус: ${status}. Требуется статус: ${SystemStatus.initialized}`
-      );
+      throw DomainError.badRequest('SYSTEM_INSTALL_STATUS_MISMATCH', { status, requiredStatus: SystemStatus.initialized });
     }
 
     if (data.soviet.length < MIN_SOVIET_MEMBERS_COUNT) {
-      throw new BadRequestException(
-        `Количество членов совета должно быть не менее ${MIN_SOVIET_MEMBERS_COUNT}`
-      );
+      throw DomainError.badRequest('SYSTEM_SOVIET_MEMBERS_MIN_COUNT', { minCount: MIN_SOVIET_MEMBERS_COUNT });
     }
 
     // Повтор после прерванной установки: снимаем maintenance, дальше — обычный прогон.
@@ -148,7 +145,7 @@ export class InstallInteractor {
     const info = await this.blockchainPort.getInfo();
     const coop = await this.blockchainPort.getCooperative(config.coopname);
 
-    if (!coop) throw new BadRequestException('Информация о кооперативе не обнаружена');
+    if (!coop) throw DomainError.badRequest('SYSTEM_COOPERATIVE_INFO_NOT_FOUND');
 
     // ВНИМАНИЕ про лок установки: статус НЕ трогаем здесь, до цикла. Раньше тут
     // стоял setStatus(maintenance), но 'maintenance' на фронте включает
@@ -214,6 +211,7 @@ export class InstallInteractor {
 
         // Настраиваем подписчика уведомлений для члена совета
         try {
+          // i18n-ignore: аргумент context для строки лога setupNotificationSubscriber, не текст интерфейса
           await this.accountDomainService.setupNotificationSubscriber(username, 'члена совета');
         } catch (error: any) {
           logger.error(`Ошибка настройки identity получателя для члена совета ${username}: ${error.message}`, error.stack);
@@ -223,7 +221,7 @@ export class InstallInteractor {
         members.push({
           username: username,
           is_voting: true,
-          position_title: member.role === 'chairman' ? 'Председатель совета' : 'Член совета',
+          position_title: member.role === 'chairman' ? t('system.installInteractor.positionTitleChairman') : t('system.installInteractor.positionTitleMember'),
           position: member.role,
         });
 
@@ -241,7 +239,7 @@ export class InstallInteractor {
         username: config.coopname,
         type: 'soviet',
         members: members,
-        name: 'Совет',
+        name: t('system.installInteractor.councilGroupName'),
         description: '',
       });
 
@@ -250,13 +248,11 @@ export class InstallInteractor {
         const inviteEmail = normalizeUserEmail(member.individual_data.email);
         const user = await this.userDomainService.getUserByEmail(inviteEmail);
         if (!user) {
-          throw new Error(`Пользователь с email ${inviteEmail} не найден`);
+          throw DomainError.internal('SYSTEM_INVITE_USER_NOT_FOUND', { email: inviteEmail });
         }
         const subscriberId = user.subscriber_id?.trim();
         if (!subscriberId) {
-          throw new Error(
-            `subscriber_id не задан для пользователя ${user.username} — нельзя отправить приглашение`
-          );
+          throw DomainError.internal('SYSTEM_INVITE_SUBSCRIBER_ID_MISSING', { username: user.username });
         }
         const token = await this.tokenApplicationService.generateInviteToken(inviteEmail, user.id);
         const inviteUrl = `${config.frontend_url}/${config.coopname}/auth/invite?token=${token}`;
@@ -291,9 +287,7 @@ export class InstallInteractor {
             `Повторный install заблокирован до очистки/доустановки.`,
           e.stack
         );
-        throw new BadRequestException(
-          `Установка прервана после создания аккаунтов на цепи: ${e.message}. Требуется ручной разбор (статус '${SystemStatus.maintenance}').`
-        );
+        throw DomainError.badRequest('SYSTEM_INSTALL_INTERRUPTED_AFTER_CHAIN_ACCOUNTS', { errorMessage: e.message, maintenanceStatus: SystemStatus.maintenance });
       }
 
       // On-chain след отсутствует — безопасно откатываем off-chain и
@@ -315,7 +309,7 @@ export class InstallInteractor {
     // Проверяем, что статус действительно обновился
     const updatedStatus = await this.monoStatusRepository.getStatus();
     if (updatedStatus !== SystemStatus.active) {
-      throw new BadRequestException('Не удалось обновить статус системы');
+      throw DomainError.badRequest('SYSTEM_STATUS_UPDATE_FAILED');
     }
 
     logger.info('Система установлена');

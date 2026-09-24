@@ -1,7 +1,8 @@
 import { Cooperative } from 'cooptypes';
 import { DocumentDomainService } from '~/domain/document/services/document-domain.service';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { DomainError } from '@coopenomics/extension-kit';
 import type { PublishProjectFreeDecisionInputDomainInterface } from '~/domain/free-decision/interfaces/publish-project-free-decision.interface';
 import config from '~/config/config';
 import { SOVIET_BLOCKCHAIN_PORT, SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
@@ -43,15 +44,15 @@ export class FreeDecisionInteractor {
   async publishProjectOfFreeDecision(data: PublishProjectFreeDecisionInputDomainInterface): Promise<boolean> {
     const document = await this.documentDomainService.getDocumentByHash(data.document.doc_hash);
 
-    if (!document) throw new BadRequestException('Документ не найден');
+    if (!document) throw DomainError.badRequest('DOCUMENT_NOT_FOUND');
 
     if (data.document.meta.registry_id != Cooperative.Registry.ProjectFreeDecision.registry_id)
-      throw new BadRequestException(
-        `Неверный registry_id в переданном документе, ожидается registry_id == ${Cooperative.Registry.ProjectFreeDecision.registry_id}`
-      );
+      throw DomainError.badRequest('FREE_DECISION_WRONG_REGISTRY', {
+        expected: Cooperative.Registry.ProjectFreeDecision.registry_id,
+      });
 
     if (data.coopname != config.coopname)
-      throw new BadRequestException('Указанное имя аккаунта кооператива не обслуживается здесь');
+      throw DomainError.badRequest('COOPERATIVE_NOT_SERVED');
 
     await this.SovietBlockchainPort.publishProjectOfFreeDecision({
       coopname: data.coopname,

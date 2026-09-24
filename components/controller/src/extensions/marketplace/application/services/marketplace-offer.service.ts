@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -43,7 +37,7 @@ import {
   type AvailableCategoryDomainService,
 } from '../../domain/services/available-category-domain.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { platformSettings, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { platformSettings, PaginationInputDTO, PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_OFFER_APPROVED_EVENT,
   MARKETPLACE_OFFER_MODERATION_REQUESTED_EVENT,
@@ -54,6 +48,7 @@ import {
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
   MarketplaceSupplierSettingsService,
 } from './marketplace-supplier-settings.service';
+import { t } from '../../i18n';
 
 export const MARKETPLACE_OFFER_SERVICE = Symbol('MARKETPLACE_OFFER_SERVICE');
 
@@ -247,7 +242,7 @@ export class MarketplaceOfferService {
       this.assertUnit(patch.unit_of_measure);
     }
     if (patch.shelf_life_days !== undefined && patch.shelf_life_days < 0) {
-      throw new BadRequestException('Срок годности не может быть отрицательным.');
+      throw DomainError.badRequest('MARKETPLACE_SHELF_LIFE_NEGATIVE');
     }
 
     if (patch.sale_form !== undefined || patch.packages !== undefined) {
@@ -376,15 +371,13 @@ export class MarketplaceOfferService {
   async republish(id: string, supplier_account: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.repo.findById(id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     if (offer.supplier_account !== supplier_account) {
-      throw new ForbiddenException('Можно изменять только свои предложения.');
+      throw DomainError.forbidden('MARKETPLACE_OFFER_EDIT_FORBIDDEN_NOT_OWNER');
     }
     if (offer.status !== MarketplaceOfferStatuses.WITHDRAWN) {
-      throw new ForbiddenException(
-        'Вернуть на публикацию можно только снятое предложение.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_OFFER_REPUBLISH_WRONG_STATUS');
     }
     // Тот же гейт, что и при создании: за время простоя поставщик мог удалить
     // реквизиты — возвращать предложение в каталог без них нельзя.
@@ -476,29 +469,23 @@ export class MarketplaceOfferService {
     // При отпуске упаковкой остаток задаётся на каждой упаковке (см. buildPackages).
     if (!input.unlimited_flag && input.sale_form !== MarketplaceSaleForms.PACKAGED) {
       if (input.quantity_available === null || input.quantity_available < 0) {
-        throw new BadRequestException(
-          'Укажите количество товара (неотрицательное число) или включите «без ограничения».'
-        );
+        throw DomainError.badRequest('MARKETPLACE_OFFER_QUANTITY_REQUIRED');
       }
     }
 
     if (input.shelf_life_days < 0) {
-      throw new BadRequestException('Срок годности не может быть отрицательным.');
+      throw DomainError.badRequest('MARKETPLACE_SHELF_LIFE_NEGATIVE');
     }
 
     if (input.barcode_strategy !== undefined && input.barcode_strategy !== null) {
       this.assertBarcodeConfig(input.barcode_strategy, input.pack_size ?? null);
     } else if (input.pack_size !== undefined && input.pack_size !== null) {
       // pack_size без strategy не имеет смысла.
-      throw new BadRequestException(
-        'Размер упаковки указан, но стратегия маркировки не выбрана — выберите «по упаковке» (PER_PACKAGE).'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_SIZE_WITHOUT_STRATEGY');
     }
 
     if (typeof input.price_per_unit !== 'string' || !/^\d+(\.\d{1,4})?$/.test(input.price_per_unit)) {
-      throw new BadRequestException(
-        'Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PRICE_PRECISION_INVALID');
     }
 
   }
@@ -512,22 +499,20 @@ export class MarketplaceOfferService {
    */
   private assertDeliveryPoints(points: MarketplaceOfferDeliveryPoint[] | undefined): void {
     if (!Array.isArray(points) || points.length === 0) {
-      throw new BadRequestException('Укажите хотя бы один кооперативный участок поставки.');
+      throw DomainError.badRequest('MARKETPLACE_OFFER_DELIVERY_BRANCH_REQUIRED');
     }
     const seen = new Set<string>();
     for (const p of points) {
       const braname = (p?.braname ?? '').trim();
       if (!braname) {
-        throw new BadRequestException('У точки поставки не указан кооперативный участок.');
+        throw DomainError.badRequest('MARKETPLACE_DELIVERY_POINT_BRANCH_MISSING');
       }
       if (seen.has(braname)) {
-        throw new BadRequestException(`Кооперативный участок «${braname}» указан в поставке дважды.`);
+        throw DomainError.badRequest('MARKETPLACE_DELIVERY_BRANCH_DUPLICATED', { braname });
       }
       seen.add(braname);
       if (!Number.isInteger(p.min_supply_volume) || p.min_supply_volume < 1) {
-        throw new BadRequestException(
-          `Минимальный объём для участка «${braname}» должен быть целым числом от 1.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_DELIVERY_MIN_VOLUME_INVALID', { braname });
       }
     }
   }
@@ -557,10 +542,10 @@ export class MarketplaceOfferService {
       return [];
     }
     if (!Array.isArray(raw) || raw.length === 0) {
-      throw new BadRequestException('При отпуске упаковкой добавьте хотя бы одну упаковку.');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_LIST_REQUIRED');
     }
     if (raw.length > MARKETPLACE_OFFER_MAX_PACKAGES) {
-      throw new BadRequestException(`Слишком много упаковок (максимум ${MARKETPLACE_OFFER_MAX_PACKAGES}).`);
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_COUNT_LIMIT_EXCEEDED', { maxPackages: MARKETPLACE_OFFER_MAX_PACKAGES });
     }
     const precision = MARKETPLACE_UNIT_PRECISION[unit];
     const knownIds = new Set(existing.map((p) => p.id));
@@ -594,26 +579,22 @@ export class MarketplaceOfferService {
   /** Содержимое, цена и тара одной упаковки; возвращает нормализованный вид тары. */
   private assertPackageInput(p: MarketplaceOfferPackageInput, precision: number): string {
     if (!Number.isFinite(p.size) || p.size <= 0) {
-      throw new BadRequestException('Размер упаковки должен быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_SIZE_MUST_BE_POSITIVE');
     }
     const scaled = p.size * 10 ** precision;
     if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
-      throw new BadRequestException(
-        `Размер упаковки допускает не более ${precision} знаков после запятой для этой единицы.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_SIZE_PRECISION_INVALID', { precision });
     }
     if (typeof p.price !== 'string' || !/^\d+(\.\d{1,4})?$/.test(p.price) || Number.parseFloat(p.price) <= 0) {
-      throw new BadRequestException('Цена упаковки должна быть положительным числом (до 4 знаков).');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_PRICE_INVALID');
     }
     // Вид упаковки обязателен: заказчик должен знать, в чём получит товар.
     const package_type = typeof p.package_type === 'string' ? p.package_type.trim() : '';
     if (!package_type) {
-      throw new BadRequestException(
-        'Укажите вид упаковки — в чём поставляется товар (например «стекло», «пластиковая бутылка», «корзинка»).'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_KIND_REQUIRED');
     }
     if (package_type.length > 64) {
-      throw new BadRequestException('Вид упаковки не длиннее 64 символов.');
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_KIND_TOO_LONG');
     }
     return package_type;
   }
@@ -659,9 +640,7 @@ export class MarketplaceOfferService {
   ): Pick<MarketplaceOfferPackage, 'quantity_available' | 'quantity_blocked' | 'quantity_consumed'> {
     const available = p.quantity_available ?? existing?.quantity_available ?? null;
     if (!unlimited && (available === null || !Number.isInteger(available) || available < 0)) {
-      throw new BadRequestException(
-        'Укажите, сколько упаковок каждого вида свободно к заказу (целое число, не меньше нуля), или включите «без ограничения».'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_FREE_COUNT_REQUIRED');
     }
     return {
       quantity_available: unlimited ? 0 : (available as number),
@@ -749,21 +728,17 @@ export class MarketplaceOfferService {
   private assertProductName(name: string): void {
     const trimmed = name?.trim() ?? '';
     if (!trimmed) {
-      throw new BadRequestException('Укажите название товара.');
+      throw DomainError.badRequest('MARKETPLACE_PRODUCT_NAME_REQUIRED');
     }
     if (trimmed.length > MarketplaceOfferService.MAX_PRODUCT_NAME_LEN) {
-      throw new BadRequestException(
-        `Название товара слишком длинное (максимум ${MarketplaceOfferService.MAX_PRODUCT_NAME_LEN} символов).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_PRODUCT_NAME_TOO_LONG', { maxLength: MarketplaceOfferService.MAX_PRODUCT_NAME_LEN });
     }
   }
 
   private assertDescription(description: string | null): void {
     if (description === null) return;
     if (description.length > MarketplaceOfferService.MAX_DESCRIPTION_LEN) {
-      throw new BadRequestException(
-        `Описание слишком длинное (максимум ${MarketplaceOfferService.MAX_DESCRIPTION_LEN} символов).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_PRODUCT_DESCRIPTION_TOO_LONG', { maxLength: MarketplaceOfferService.MAX_DESCRIPTION_LEN });
     }
   }
 
@@ -778,27 +753,21 @@ export class MarketplaceOfferService {
   ): void {
     if (strategy === MarketplaceBarcodeStrategies.PER_PACKAGE) {
       if (pack_size === null || pack_size === undefined || pack_size < 1) {
-        throw new BadRequestException(
-          'Для стратегии «по упаковке» укажите размер упаковки (целое число от 1).'
-        );
+        throw DomainError.badRequest('MARKETPLACE_PACKAGE_STRATEGY_SIZE_REQUIRED');
       }
       if (pack_size > MarketplaceOfferService.MAX_PACK_SIZE) {
-        throw new BadRequestException(
-          `Размер упаковки слишком велик (максимум ${MarketplaceOfferService.MAX_PACK_SIZE}). Проверьте, что вы указали именно единиц на упаковку.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_PACKAGE_SIZE_TOO_LARGE', { maxPackSize: MarketplaceOfferService.MAX_PACK_SIZE });
       }
       return;
     }
     if (pack_size !== null && pack_size !== undefined) {
-      throw new BadRequestException(
-        'Размер упаковки применим только к стратегии «по упаковке» (PER_PACKAGE).'
-      );
+      throw DomainError.badRequest('MARKETPLACE_PACKAGE_SIZE_NOT_APPLICABLE');
     }
   }
 
   private assertUnit(u: MarketplaceUnitOfMeasure): void {
     if (!MARKETPLACE_UNITS_OF_MEASURE.includes(u)) {
-      throw new BadRequestException('Выбрана недопустимая единица измерения.');
+      throw DomainError.badRequest('MARKETPLACE_UNIT_OF_MEASURE_INVALID');
     }
   }
 
@@ -808,9 +777,7 @@ export class MarketplaceOfferService {
     const coopCategories = await this.categoryRepo.listForCoop(platformSettings().coopname);
     const category = coopCategories.find((c) => c.id === category_id);
     if (!category) {
-      throw new BadRequestException(
-        `Категория с номером ${category_id} не найдена в справочнике кооператива. Обновите страницу или обратитесь к администратору.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CATEGORY_NOT_FOUND', { categoryId: category_id });
     }
     // Категория должна быть доступна для публикации (включена в whitelist).
     // Пустой whitelist = открытый каталог: доступны все категории.
@@ -819,9 +786,7 @@ export class MarketplaceOfferService {
       category_id
     );
     if (!isAvailable) {
-      throw new BadRequestException(
-        `Категория «${category.display_name}» сейчас недоступна для публикации в этом кооперативе.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CATEGORY_NOT_AVAILABLE', { categoryName: category.display_name });
     }
   }
 
@@ -831,9 +796,7 @@ export class MarketplaceOfferService {
       MarketplaceOfferService.RATE_LIMIT_WINDOW_MS
     );
     if (count >= MarketplaceOfferService.RATE_LIMIT_PER_HOUR) {
-      throw new BadRequestException(
-        `Превышен лимит создания предложений: не более ${MarketplaceOfferService.RATE_LIMIT_PER_HOUR} в час на одного поставщика. Попробуйте позже.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_OFFER_CREATE_RATE_LIMITED', { limitPerHour: MarketplaceOfferService.RATE_LIMIT_PER_HOUR });
     }
   }
 
@@ -844,10 +807,10 @@ export class MarketplaceOfferService {
   ): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.repo.findById(id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     if (offer.supplier_account !== supplier_account) {
-      throw new ForbiddenException('Можно изменять только свои предложения.');
+      throw DomainError.forbidden('MARKETPLACE_OFFER_EDIT_FORBIDDEN_NOT_OWNER');
     }
     if (op[0] === 'withdraw') {
       // Снять можно только опубликованное/ожидающее. Уже снятое или
@@ -857,10 +820,8 @@ export class MarketplaceOfferService {
         offer.status === MarketplaceOfferStatuses.REJECTED
       ) {
         const statusLabel =
-          offer.status === MarketplaceOfferStatuses.WITHDRAWN ? 'снято' : 'отклонено';
-        throw new ForbiddenException(
-          `Нельзя снять предложение, которое уже ${statusLabel}.`
-        );
+          offer.status === MarketplaceOfferStatuses.WITHDRAWN ? t('marketplace.offer.unpublishedStatusLabel') : t('marketplace.offer.rejectedStatusLabel');
+        throw DomainError.forbidden('MARKETPLACE_OFFER_UNPUBLISH_ALREADY_DONE', { statusLabel });
       }
     }
     // Редактировать можно в любом не-удалённом статусе: ACTIVE/PENDING_MODERATION
@@ -891,9 +852,7 @@ export class MarketplaceOfferService {
     raw: MarketplaceOfferImageUpload[]
   ): Promise<{ images: MarketplaceOfferImage[]; newlyUploaded: MarketplaceOfferImage[] }> {
     if (raw.length > MARKETPLACE_OFFER_MAX_IMAGES) {
-      throw new BadRequestException(
-        `Слишком много изображений: максимум ${MARKETPLACE_OFFER_MAX_IMAGES} на одно предложение.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGES_LIMIT_EXCEEDED', { maxImages: MARKETPLACE_OFFER_MAX_IMAGES });
     }
     const existingByKey = new Map(
       (offer.images ?? []).map((img) => [img.bucket_key, img])
@@ -905,19 +864,17 @@ export class MarketplaceOfferService {
         if (item.bucket_key) {
           const kept = existingByKey.get(item.bucket_key);
           if (!kept) {
-            throw new BadRequestException(
-              'Неизвестное изображение: сослаться можно только на собственные изображения этого предложения.'
-            );
+            throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_FOREIGN_REFERENCE');
           }
           images.push(kept);
           continue;
         }
         if (!item.base64) {
-          throw new BadRequestException('Пустое изображение: отсутствует содержимое файла.');
+          throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_CONTENT_EMPTY');
         }
         const bytes = Buffer.from(item.base64, 'base64');
         if (bytes.length === 0) {
-          throw new BadRequestException('Не удалось декодировать изображение (пустые данные).');
+          throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_DECODE_FAILED');
         }
         const image = await this.imagesService.putImage({
           bytes,
@@ -932,9 +889,7 @@ export class MarketplaceOfferService {
     } catch (e) {
       await this.cleanupImages(newlyUploaded);
       if (e instanceof BadRequestException) throw e;
-      throw new BadRequestException(
-        `Не удалось загрузить изображение: ${e instanceof Error ? e.message : String(e)}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_UPLOAD_FAILED', { errorMessage: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -945,20 +900,18 @@ export class MarketplaceOfferService {
   ): Promise<MarketplaceOfferImage[]> {
     if (raw.length === 0) return [];
     if (raw.length > MARKETPLACE_OFFER_MAX_IMAGES) {
-      throw new BadRequestException(
-        `Слишком много изображений: максимум ${MARKETPLACE_OFFER_MAX_IMAGES} на одно предложение.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGES_LIMIT_EXCEEDED', { maxImages: MARKETPLACE_OFFER_MAX_IMAGES });
     }
 
     const result: MarketplaceOfferImage[] = [];
     try {
       for (const file of raw) {
         if (!file.base64 || !file.mime_type) {
-          throw new BadRequestException('Пустое изображение: отсутствует содержимое файла.');
+          throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_CONTENT_EMPTY');
         }
         const bytes = Buffer.from(file.base64, 'base64');
         if (bytes.length === 0) {
-          throw new BadRequestException('Не удалось декодировать изображение (пустые данные).');
+          throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_DECODE_FAILED');
         }
         const image = await this.imagesService.putImage({
           bytes,
@@ -972,9 +925,7 @@ export class MarketplaceOfferService {
     } catch (e) {
       await this.cleanupImages(result);
       if (e instanceof BadRequestException) throw e;
-      throw new BadRequestException(
-        `Не удалось загрузить изображение: ${e instanceof Error ? e.message : String(e)}`
-      );
+      throw DomainError.badRequest('MARKETPLACE_OFFER_IMAGE_UPLOAD_FAILED', { errorMessage: e instanceof Error ? e.message : String(e) });
     }
   }
 

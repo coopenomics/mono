@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { MarketplaceStorageCellDomainEntity } from '../../domain/entities/marketplace-storage-cell.entity';
 import { buildStorageCellCode } from '../../domain/entities/marketplace-storage-cell.types';
 import {
@@ -14,6 +14,8 @@ import {
   type MarketplaceStorageCellCreateInput,
   type MarketplaceStorageCellDomainRepository,
 } from '../../domain/repositories/marketplace-storage-cell.repository';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_STORAGE_CELL_SERVICE = Symbol('MARKETPLACE_STORAGE_CELL_SERVICE');
 
@@ -99,24 +101,22 @@ export class MarketplaceStorageCellService {
   async createGrid(input: CreateStorageCellGridInput): Promise<MarketplaceStorageCellDomainEntity[]> {
     const sections = input.sections.map((s) => s.trim()).filter((s) => s.length > 0);
     if (sections.length === 0) {
-      throw new BadRequestException('Укажите хотя бы одну секцию.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_SECTION_REQUIRED');
     }
     if (new Set(sections).size !== sections.length) {
-      throw new BadRequestException('Секции в сетке не должны повторяться.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_SECTIONS_DUPLICATE');
     }
     if (!Number.isInteger(input.level_from) || !Number.isInteger(input.level_to)) {
-      throw new BadRequestException('Ярусы задаются целыми числами.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_LEVELS_MUST_BE_INTEGERS');
     }
     if (input.level_from < 1 || input.level_to < input.level_from) {
-      throw new BadRequestException('Диапазон ярусов должен начинаться с 1 и возрастать.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_LEVEL_RANGE_INVALID');
     }
 
     const levelsCount = input.level_to - input.level_from + 1;
     const total = sections.length * levelsCount;
     if (total > MAX_GRID_CELLS_PER_CALL) {
-      throw new BadRequestException(
-        `За один раз можно завести не больше ${MAX_GRID_CELLS_PER_CALL} ячеек (запрошено ${total}).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_BATCH_LIMIT', { maxCells: MAX_GRID_CELLS_PER_CALL, total });
     }
 
     const inputs: MarketplaceStorageCellCreateInput[] = [];
@@ -149,7 +149,7 @@ export class MarketplaceStorageCellService {
   async getById(coopname: string, id: string): Promise<MarketplaceStorageCellDomainEntity> {
     const cell = await this.cellRepo.findById(id);
     if (!cell || cell.coopname !== coopname) {
-      throw new NotFoundException('Ячейка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_STORAGE_CELL_NOT_FOUND');
     }
     return cell;
   }
@@ -168,7 +168,7 @@ export class MarketplaceStorageCellService {
       is_active: input.is_active,
     });
     if (!updated) {
-      throw new NotFoundException('Ячейка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_STORAGE_CELL_NOT_FOUND');
     }
     return updated;
   }
@@ -184,10 +184,10 @@ export class MarketplaceStorageCellService {
     const from = input.section.trim();
     const to = input.new_section.trim();
     if (!from) {
-      throw new BadRequestException('Укажите секцию, которую переименовываете.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_RENAME_SECTION_REQUIRED');
     }
     if (!to) {
-      throw new BadRequestException('Название секции не может быть пустым.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_SECTION_NAME_EMPTY');
     }
     if (from === to) {
       return this.cellRepo.list({
@@ -205,9 +205,7 @@ export class MarketplaceStorageCellService {
       section: to,
     });
     if (occupied.length > 0) {
-      throw new ConflictException(
-        `На складе уже есть секция «${to}». Выберите другое название или выведите прежнюю секцию из оборота.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STORAGE_CELL_SECTION_NAME_TAKEN', { to });
     }
 
     const renamed = await this.cellRepo.renameSection({
@@ -217,7 +215,7 @@ export class MarketplaceStorageCellService {
       new_section: to,
     });
     if (renamed.length === 0) {
-      throw new NotFoundException(`Секция «${from}» на складе участка не найдена.`);
+      throw DomainError.notFound('MARKETPLACE_STORAGE_CELL_SECTION_NOT_FOUND', { from });
     }
     return renamed;
   }
@@ -234,7 +232,7 @@ export class MarketplaceStorageCellService {
     const hasSection = Boolean(section);
     const hasLevel = input.level !== undefined && input.level !== null;
     if (hasSection === hasLevel) {
-      throw new BadRequestException('Укажите либо секцию, либо ярус — что-то одно.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_SECTION_OR_LEVEL_ONLY');
     }
 
     const cells = await this.cellRepo.list({
@@ -247,8 +245,8 @@ export class MarketplaceStorageCellService {
     if (target.length === 0) {
       throw new NotFoundException(
         hasSection
-          ? `Секция «${section}» на складе участка не найдена.`
-          : `Ярус ${input.level} на складе участка не найден.`
+          ? t('marketplace.storageCell.sectionNotFoundMessage', { section })
+          : t('marketplace.storageCell.levelNotFoundMessage', { level: input.level })
       );
     }
 
@@ -265,9 +263,7 @@ export class MarketplaceStorageCellService {
       })
     );
     if (occupied.length > 0) {
-      throw new ConflictException(
-        `Сначала освободите занятые ячейки: ${occupied.sort().join(', ')}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STORAGE_CELL_OCCUPIED_MUST_FREE', { occupiedList: occupied.sort().join(', ') });
     }
 
     return this.cellRepo.retireMany(target.map((c) => c.id));
@@ -284,23 +280,19 @@ export class MarketplaceStorageCellService {
       this.containerRepo.countByCell(cell.coopname, cell.id),
     ]);
     if (containers > 0) {
-      throw new ConflictException(
-        `В ячейке «${cell.code}» стоят боксы (${containers}). Переставьте их, прежде чем выводить ячейку из оборота.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STORAGE_CELL_HAS_CONTAINERS', { cellCode: cell.code, containers });
     }
     if (items > 0) {
-      throw new ConflictException(
-        `В ячейке «${cell.code}» лежит имущество (позиций: ${items}). Переложите его, прежде чем выводить ячейку из оборота.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STORAGE_CELL_HAS_ITEMS', { cellCode: cell.code, items });
     }
   }
 
   private assertCoordinates(section: string, level: number): void {
     if (!section.trim()) {
-      throw new BadRequestException('Укажите секцию.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_SECTION_REQUIRED_SIMPLE');
     }
     if (!Number.isInteger(level) || level < 1) {
-      throw new BadRequestException('Ярус задаётся целым числом от 1.');
+      throw DomainError.badRequest('MARKETPLACE_STORAGE_CELL_LEVEL_INVALID');
     }
   }
 }

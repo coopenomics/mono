@@ -2,23 +2,23 @@
 .q-pa-md
   .ndfl-page
     PageHint(storage-key='reports:ndfl:banner-dismissed')
-      | Удерживая налог с выплат физическим лицам, кооператив выступает налоговым
-      | агентом: деньги остаются на расчётном счёте, а долг перед бюджетом
-      | копится. Гасится он единым налоговым платежом — бухгалтер отправляет
-      | накопленное на оплату, кассир перечисляет по реквизитам налоговой и
-      | прикладывает чек. Расчётный период платежа — тот же, за который подаётся
-      | уведомление об исчисленных суммах НДФЛ.
+      | {{ $t('reports.ndflPage.bannerLine1') }}
+      | {{ $t('reports.ndflPage.bannerLine2') }}
+      | {{ $t('reports.ndflPage.bannerLine3') }}
+      | {{ $t('reports.ndflPage.bannerLine4') }}
+      | {{ $t('reports.ndflPage.bannerLine5') }}
+      | {{ $t('reports.ndflPage.bannerLine6') }}
 
     .ndfl-card
       .ndfl-card__stat
-        .ndfl-card__label Удержанный налог к перечислению
+        .ndfl-card__label {{ $t('reports.ndflPage.cardLabel') }}
         .ndfl-card__value
           span.ndfl-card__amount {{ withheldDisplay }}
         .ndfl-card__caption
           template(v-if='hasInPayment')
-            | из них {{ inPaymentDisplay }} уже у кассира на оплате
+            | {{ $t('reports.ndflPage.inPaymentCaption', { amount: inPaymentDisplay }) }}
           template(v-else)
-            | НДФЛ, удержанный с выплат доходов физическим лицам
+            | {{ $t('reports.ndflPage.cardCaption') }}
       BaseButton.ndfl-card__action(
         variant='secondary',
         size='sm',
@@ -27,9 +27,9 @@
       )
         template(#icon-left)
           q-icon(name='account_balance', size='16px')
-        | Отправить на оплату
+        | {{ $t('reports.ndflPage.sendToPayLabel') }}
 
-    h2.ndfl-page__section-title Перечисления
+    h2.ndfl-page__section-title {{ $t('reports.ndflPage.sectionTitle') }}
 
     TableSkeleton(
       v-if='paymentsLoading && !payments.length',
@@ -43,11 +43,11 @@
         table.table
           thead
             tr
-              th.col-date Отправлен
-              th.col-num Сумма
-              th.col-period Расчётный период
-              th Состояние
-              th.col-date Оплачен
+              th.col-date {{ $t('reports.ndflPage.column.sentAt') }}
+              th.col-num {{ $t('reports.ndflPage.column.amount') }}
+              th.col-period {{ $t('reports.ndflPage.column.period') }}
+              th {{ $t('reports.ndflPage.column.status') }}
+              th.col-date {{ $t('reports.ndflPage.column.paidAt') }}
               th.col-chevron
           tbody
             template(v-for='row in payments', :key='row.hash')
@@ -67,12 +67,12 @@
                       .banner__icon
                         q-icon(name='block', size='sm')
                       .banner__body
-                        .t-sm.t-muted Кассир не смог заплатить. Причина:
+                        .t-sm.t-muted {{ $t('reports.ndflPage.cashierFailedLabel') }}
                         div {{ row.message }}
-                    DataRow(label='Назначение платежа', :value='row.memo', copyable)
+                    DataRow(:label='$t("reports.ndflPage.paymentPurposeLabel")', :value='row.memo', copyable)
                     DataRow(
                       v-if='row.recipient_name',
-                      label='Получатель',
+                      :label='$t("reports.ndflPage.recipientLabel")',
                       :value='row.recipient_name',
                       copyable
                     )
@@ -94,24 +94,24 @@
           size='sm',
           :loading='paymentsLoading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('reports.ndflPage.loadMoreLabel') }}
 
     EmptyState(
       v-else,
-      title='Перечислений пока не было',
-      body='Здесь появятся платежи в бюджет: сумма, расчётный период и чек кассира.'
+      :title='$t("reports.ndflPage.emptyTitle")',
+      :body='$t("reports.ndflPage.emptyBody")'
     )
       template(#icon)
         q-icon(name='account_balance', size='48px')
 
-  BaseDialog(v-model='payDialogOpen', title='Перечисление налога в бюджет', size='sm')
+  BaseDialog(v-model='payDialogOpen', :title='$t("reports.ndflPage.payDialogTitle")', size='sm')
     p.ndfl-page__dialog-hint
-      | Заявка уйдёт кассиру в реестр исходящих платежей — он перечислит сумму
-      | по реквизитам налоговой и подтвердит перевод. Доступно к перечислению
-      | {{ availableDisplay }}: больше удержанного отправить нельзя.
+      | {{ $t('reports.ndflPage.payDialogHintLine1') }}
+      | {{ $t('reports.ndflPage.payDialogHintLine2') }}
+      | {{ $t('reports.ndflPage.payDialogHintLine3', { available: availableDisplay }) }}
     AmountInput(
       v-model='draftAmount',
-      label='Сумма платежа',
+      :label='$t("reports.ndflPage.amountLabel")',
       symbol='₽',
       :precision='2',
       :min='0',
@@ -119,17 +119,18 @@
       :disabled='paying'
     )
     template(#footer)
-      BaseButton(variant='ghost', :disabled='paying', @click='payDialogOpen = false') Отмена
+      BaseButton(variant='ghost', :disabled='paying', @click='payDialogOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='paying',
         :disabled='!canPay',
         @click='onPay'
-      ) Отправить
+      ) {{ $t('common.action.submit') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
@@ -147,6 +148,7 @@ import {
   payWithheldTax,
   type IWithheldTaxPayment,
 } from './ndfl-api';
+import { t } from '../../../i18n';
 
 /**
  * Стол бухгалтера → «НДФЛ»: долг перед бюджетом и история его погашения.
@@ -178,11 +180,11 @@ const totalCount = ref(0);
 const expanded = ref(new Set<string>());
 
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Отправлен', class: 'col-date', cell: 'text', cellWidth: '140px' },
-  { label: 'Сумма', class: 'col-num', cell: 'text', cellWidth: '120px' },
-  { label: 'Расчётный период', class: 'col-period', cell: 'text', cellWidth: '180px' },
-  { label: 'Состояние', cell: 'badge' },
-  { label: 'Оплачен', class: 'col-date', cell: 'text', cellWidth: '140px' },
+  { label: t('reports.ndflPage.column.sentAt'), class: 'col-date', cell: 'text', cellWidth: '140px' },
+  { label: t('reports.ndflPage.column.amount'), class: 'col-num', cell: 'text', cellWidth: '120px' },
+  { label: t('reports.ndflPage.column.period'), class: 'col-period', cell: 'text', cellWidth: '180px' },
+  { label: t('reports.ndflPage.column.status'), cell: 'badge' },
+  { label: t('reports.ndflPage.column.paidAt'), class: 'col-date', cell: 'text', cellWidth: '140px' },
   { label: '', class: 'col-chevron', cell: 'text', cellWidth: '40px' },
 ]);
 
@@ -204,7 +206,7 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 
 const rangeLabel = computed(() => {
   const shown = payments.value.length;
-  return shown ? `1–${shown} из ${totalCount.value}` : `0 из ${totalCount.value}`;
+  return shown ? t('reports.ndflPage.rangeLabel', { shown, total: totalCount.value }) : t('reports.ndflPage.rangeEmptyLabel', { total: totalCount.value });
 });
 
 function formatAmount(asset?: string | null): string {
@@ -217,7 +219,7 @@ function formatDateTime(value?: unknown): string {
   if (!value) return '—';
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 /** «Август · 1–22» плюс год: два периода одного месяца иначе не различить. */
@@ -248,7 +250,7 @@ async function loadState(): Promise<void> {
     inPayment.value = state.in_payment;
     available.value = state.available;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить удержанный налог');
+    FailAlert(e, t('reports.ndflPage.loadWithheldError'));
   } finally {
     stateLoading.value = false;
   }
@@ -264,7 +266,7 @@ async function loadPayments(page = 1): Promise<void> {
     totalPages.value = result.totalPages ?? 1;
     totalCount.value = result.totalCount ?? payments.value.length;
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить историю перечислений');
+    FailAlert(e, t('reports.ndflPage.loadPaymentsError'));
   } finally {
     paymentsLoading.value = false;
   }
@@ -287,10 +289,10 @@ async function onPay(): Promise<void> {
   try {
     const paid = await payWithheldTax({ amount: Number(draftAmount.value) });
     payDialogOpen.value = false;
-    SuccessAlert(`Отправлено на оплату: ${formatAsset2Digits(paid)}. Заявка ушла кассиру.`);
+    SuccessAlert(t('reports.ndflPage.sendSuccess', { amount: formatAsset2Digits(paid) }));
     await Promise.all([loadState(), loadPayments(1)]);
   } catch (e) {
-    FailAlert(e, 'Не удалось отправить налог на оплату');
+    FailAlert(e, t('reports.ndflPage.sendError'));
   } finally {
     paying.value = false;
   }

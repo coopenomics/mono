@@ -40,6 +40,7 @@ div
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { t } from 'src/shared/i18n';
 
 // Микро-компонент для отображения факта/оценки задачи в часах или днях.
 // Если передан fact — рендерится мини-прогресс-бар fact/estimation.
@@ -52,13 +53,13 @@ const props = defineProps<{
 }>();
 
 function formatHours(hours: number | undefined | null): string {
-  if (hours == null || Number.isNaN(hours) || hours <= 0) return '0ч';
+  if (hours == null || Number.isNaN(hours) || hours <= 0) return t('ui.estimation.zeroHoursText');
   if (hours < 8) {
     const rounded = hours % 1 === 0 ? hours : parseFloat(hours.toFixed(2));
-    return `${rounded}ч`;
+    return t('ui.estimation.hoursText', { hours: rounded });
   }
   const days = Math.round((hours / 8) * 10) / 10;
-  return `${days}д`;
+  return t('ui.estimation.daysText', { days });
 }
 
 const formattedEstimation = computed(() => formatHours(props.estimation));
@@ -98,9 +99,9 @@ const progressColor = computed(() => {
 const tooltipText = computed(() => {
   if (!hasFact.value) return '';
   if (hasEstimate.value) {
-    return `Отработано ${formatHours(props.fact)} из ${formattedEstimation.value} запланированных`;
+    return t('ui.estimation.progressWithPlanText', { factHours: formatHours(props.fact), plannedHours: formattedEstimation.value });
   }
-  return `Отработано ${formatHours(props.fact)} (плана нет)`;
+  return t('ui.estimation.progressNoPlanText', { factHours: formatHours(props.fact) });
 });
 
 // Класс для размера

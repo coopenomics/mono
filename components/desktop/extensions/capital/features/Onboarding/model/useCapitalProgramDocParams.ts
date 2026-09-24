@@ -24,6 +24,7 @@ import {
   readCapitalProgramDocParamsDraft,
   writeCapitalProgramDocParamsDraft,
 } from './useCapitalProgramDocParamsDraft';
+import { t } from '../../../i18n';
 
 type PreviewState = {
   html: string;
@@ -100,7 +101,7 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
       .map((key) => FIELD_LABELS[key]);
 
     if (missing.length) {
-      return `Заполните все поля документа: ${missing.join(', ')}`;
+      return t('capital.useCapitalProgramDocParams.fillAllFieldsError', { missing: missing.join(', ') });
     }
 
     return null;
@@ -112,7 +113,7 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
       .map(({ label }) => label);
 
     if (missing.length) {
-      return `Заполните все параметры в документах: ${missing.join(', ')}`;
+      return t('capital.useCapitalProgramDocParams.fillAllParamsError', { missing: missing.join(', ') });
     }
 
     return null;
@@ -144,7 +145,7 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
     } catch (error) {
       $q.notify({
         type: 'negative',
-        message: error instanceof Error ? error.message : 'Не удалось сформировать предпросмотр',
+        message: error instanceof Error ? error.message : t('capital.useCapitalProgramDocParams.previewError'),
       });
       throw error;
     } finally {
@@ -167,7 +168,7 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
 
       const hash = previews[GENERATOR_PROGRAM_REGISTRY_ID]?.docDataHash ?? previews[BLAGOROST_PROGRAM_REGISTRY_ID]?.docDataHash;
       if (!hash) {
-        throw new Error('Не удалось получить хеш параметров документов');
+        throw new Error(t('capital.error.onboardingParamsHashFailed'));
       }
 
       await api.saveProgramDocDataHash({ doc_data_hash: hash });
@@ -178,14 +179,14 @@ export function useCapitalProgramDocParams(options?: { onSaved?: (hash: string) 
 
       $q.notify({
         type: 'positive',
-        message: 'Параметры документов ЦПП сохранены',
+        message: t('capital.useCapitalProgramDocParams.saveSuccess'),
       });
 
       return true;
     } catch (error) {
       $q.notify({
         type: 'negative',
-        message: error instanceof Error ? error.message : 'Не удалось сохранить параметры',
+        message: error instanceof Error ? error.message : t('capital.useCapitalProgramDocParams.saveError'),
       });
       return false;
     } finally {

@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceOfferApprovedPayloadSchema = z.object({
   supplierName: z.string(),
@@ -16,8 +16,10 @@ export type IPayload = z.infer<typeof marketplaceOfferApprovedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Предложение прошло модерацию';
-export const id = slugify(name);
+export const name = nt('marketplaceOfferApproved.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'predlozhenie-proshlo-moderatsiyu';
 
 /**
  * Предложение допущено в каталог.
@@ -30,24 +32,25 @@ export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление поставщику о том, что его предложение прошло модерацию и опубликовано в каталоге — по нему можно принимать заказы.')
+  .i18nKey('marketplaceOfferApproved')
+  .description(nt('marketplaceOfferApproved.description'))
   .payloadSchema(marketplaceOfferApprovedPayloadSchema)
   .tags(['marketplace', 'offerer', 'offer'])
   .addSteps([
     createEmailStep(
       'marketplace-offer-approved-email',
-      'Предложение прошло модерацию: {{payload.productName}}',
-      'Уважаемый {{payload.supplierName}}!<br><br>Ваше предложение <strong>{{payload.productName}}</strong> прошло модерацию и опубликовано в каталоге — заказчики уже могут его заказать.<br><br>Открыть предложение: {{payload.deepLinkUrl}}'
+      nt('marketplaceOfferApproved.email.subject'),
+      nt('marketplaceOfferApproved.email.body')
     ),
     createInAppStep(
       'marketplace-offer-approved-notification',
-      'Предложение опубликовано',
-      '{{payload.productName}} прошло модерацию и появилось в каталоге.'
+      nt('marketplaceOfferApproved.inApp.subject'),
+      nt('marketplaceOfferApproved.inApp.body')
     ),
     createPushStep(
       'marketplace-offer-approved-push',
-      'Предложение опубликовано',
-      '{{payload.productName}} прошло модерацию — предложение в каталоге.'
+      nt('marketplaceOfferApproved.push.subject'),
+      nt('marketplaceOfferApproved.push.body')
     ),
   ])
   .build();

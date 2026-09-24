@@ -2,6 +2,7 @@ import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { UserProgramsPage } from 'src/pages/User/ProgramsPage';
 import { UserSettingsPage } from 'src/pages/User/SettingsPage';
 import { markRaw } from 'vue';
+import { t } from 'src/shared/i18n';
 
 export const manifest = {
   'name': 'ChairmanDesktop',
@@ -11,7 +12,7 @@ export const manifest = {
   'routes': [
     {
       meta: {
-        title: 'Пайщик',
+        title: t('desktop.chairmanMenu.memberItem'),
         icon: 'fa-solid fa-id-card',
         roles: [],
       },
@@ -19,7 +20,7 @@ export const manifest = {
       name: 'home',
       children: [{
           meta: {
-            title: 'Реквизиты',
+            title: t('desktop.chairmanMenu.requisitesItem'),
             icon: '',
             roles: [],
           },
@@ -30,7 +31,7 @@ export const manifest = {
         },
         {
           meta: {
-            title: 'Участие в программах',
+            title: t('desktop.chairmanMenu.programsItem'),
             icon: 'handshake',
             roles: [],
           },
@@ -41,7 +42,7 @@ export const manifest = {
         },
         {
           meta: {
-            title: 'Настройки',
+            title: t('desktop.chairmanMenu.settingsItem'),
             icon: 'settings',
             roles: [],
           },

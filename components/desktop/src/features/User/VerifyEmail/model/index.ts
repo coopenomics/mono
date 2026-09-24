@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, type Ref } from 'vue';
 import { FailAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session';
 import { api } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Призыв подтвердить почту отложен на эту сессию вкладки.
@@ -103,7 +104,7 @@ export function useEmailVerification(email: Ref<string>) {
     } catch (e: any) {
       // Ошибку показываем под полем, а не всплывающим уведомлением: пайщик
       // смотрит на код, а не в угол экрана.
-      error.value = e?.message || 'Неверный код';
+      error.value = e?.message || t('user.verifyEmail.invalidCode');
       code.value = '';
       return false;
     } finally {

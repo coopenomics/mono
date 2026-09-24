@@ -1,22 +1,22 @@
 <template lang="pug">
 BaseDialog(
   v-model='isOpen',
-  title='Получить долю в объекте авторских прав',
+  :title='$t("capital.convertSegmentDialog.title")',
   size='lg',
   :close-on-backdrop='false'
 )
   BaseForm(:loading='loading', @submit='handleConvert')
     .convert-dialog
       p.convert-dialog__lead.t-sm.t-muted
-        | Распределите средства между главным кошельком и кошельком программы «Благорост».
+        | {{ $t('capital.convertSegmentDialog.description') }}
 
       WalletCard(
         compact,
         neutral,
-        title='Всего к получению',
+        :title='$t("capital.convertSegmentDialog.totalTitle")',
         :balance='formatBalance(displayTotalToReceive)',
         :symbol='governSymbol',
-        balance-label='сумма',
+        :balance-label='$t("capital.convertSegmentDialog.totalBalanceLabel")',
         icon='payments'
       )
 
@@ -24,19 +24,19 @@ BaseDialog(
         WalletCard(
           compact,
           program='wallet',
-          title='Главный кошелёк',
+          :title='$t("capital.convertSegmentDialog.mainWalletTitle")',
           :balance='formatBalance(displayWalletAmount)',
           :symbol='governSymbol',
-          balance-label='получите',
+          :balance-label='$t("capital.convertSegmentDialog.mainWalletBalanceLabel")',
           icon='account_balance_wallet'
         )
         WalletCard(
           compact,
           program='blagorost',
-          title='Программа «Благорост»',
+          :title='$t("capital.convertSegmentDialog.blagorostTitle")',
           :balance='formatBalance(displayCapitalAmount)',
           :symbol='governSymbol',
-          balance-label='получите',
+          :balance-label='$t("capital.convertSegmentDialog.blagorostBalanceLabel")',
           icon='savings'
         )
 
@@ -57,19 +57,19 @@ BaseDialog(
           thumb-size='55px'
         )
         p.convert-dialog__hint.t-sm.t-muted(v-if='canMoveSlider')
-          | 0% — всё доступное в главный кошелёк · 100% — всё в программу «Благорост»
+          | {{ $t('capital.convertSegmentDialog.sliderHint') }}
         p.convert-dialog__hint.t-sm.t-muted(v-else)
-          | Все средства автоматически направляются в программу «Благорост»
+          | {{ $t('capital.convertSegmentDialog.allToBlagorostHint') }}
 
     template(#footer)
       BaseButton(variant='ghost', :disabled='loading', @click='isOpen = false')
-        | Отмена
+        | {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         type='submit',
         :loading='loading',
         :disabled='!isValidDistribution'
-      ) Получить
+      ) {{ $t('capital.convertSegmentDialog.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -82,6 +82,7 @@ import { BaseButton, BaseDialog, BaseForm } from 'src/shared/ui/base';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from '../../../../i18n';
 
 interface Props {
   segment: ISegment;
@@ -231,13 +232,13 @@ const handleConvert = async () => {
     if (updatedSegment) {
       segmentStore.addSegmentToList(props.segment.project_hash, updatedSegment);
       SuccessAlert(
-        'Доля в объекте интеллектуальной собственности успешно получена',
+        t('capital.convertSegmentDialog.success'),
       );
       isOpen.value = false;
       emit('converted', updatedSegment);
     } else {
       throw new Error(
-        'Не удалось получить обновленную долю после конвертации',
+        t('capital.error.segmentShareRefreshFailed'),
       );
     }
   } catch (error) {

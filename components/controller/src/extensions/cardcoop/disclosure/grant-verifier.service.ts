@@ -58,6 +58,7 @@ export class CardcoopGrantVerifier {
    */
   async verify(apiUrl: string, grant: string): Promise<CardcoopGrantClaims> {
     const parts = parseGrant(grant);
+    // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
     if (!parts) throw new CardcoopGrantRejected('грант не разбирается либо предъявлен документ другого вида');
 
     const reason = grantRejectionReason(parts.claims, platformSettings().coopname, Math.floor(Date.now() / 1000));
@@ -67,6 +68,7 @@ export class CardcoopGrantVerifier {
       return parts.claims;
     }
 
+    // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
     throw new CardcoopGrantRejected('подпись гранта не сходится с ключом сети');
   }
 

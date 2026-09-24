@@ -5,12 +5,12 @@
   //- Название бытовое, а не техническое: председатель видит строку пайщика и
   //- должен понимать, о чём речь, без знания слов «фактор» и «TOTP»
   //- (владелец 04.09.2026).
-  .reset-2fa__title.t-sm.t-muted Приложение двойной аутентификации
+  .reset-2fa__title.t-sm.t-muted {{ $t('user.resetTwoFactorAction.title') }}
   .reset-2fa__row
     BaseBadge(:variant='security.totp_enrolled ? "pos" : "neutral"')
-      | {{ security.totp_enrolled ? 'Подключено' : 'Не подключено' }}
+      | {{ security.totp_enrolled ? $t('user.resetTwoFactorAction.enrolled') : $t('user.resetTwoFactorAction.notEnrolled') }}
     span.t-sm.t-muted(v-if='security.totp_enrolled && !security.totp_enabled')
-      | Код при входе временно не запрашивается
+      | {{ $t('user.resetTwoFactorAction.disabledHint') }}
     BaseButton(
       v-if='security.totp_enrolled',
       variant='ghost',
@@ -20,22 +20,22 @@
     )
       template(#icon-left)
         q-icon(name='phonelink_erase', size='16px')
-      | Сбросить
+      | {{ $t('user.resetTwoFactorAction.reset') }}
 
-  BaseDialog(v-model='confirmOpen', title='Сброс приложения двойной аутентификации', size='sm')
+  BaseDialog(v-model='confirmOpen', :title='$t("user.resetTwoFactorAction.confirmTitle")', size='sm')
     .reset-2fa__confirm
       .reset-2fa__confirm-name(v-if='fullName') {{ fullName }}
       .reset-2fa__confirm-hint
-        | Код из приложения перестанет запрашиваться при входе — пайщик войдёт по
-        | одному паролю и сможет подключить приложение заново на новом устройстве.
-        | Сбрасывайте, когда устройство с кодами утеряно: сам пайщик снять фактор
-        | не может, для отключения нужен действующий код.
+        | {{ $t('user.resetTwoFactorAction.confirmLine1') }}
+        | {{ $t('user.resetTwoFactorAction.confirmLine2') }}
+        | {{ $t('user.resetTwoFactorAction.confirmLine3') }}
+        | {{ $t('user.resetTwoFactorAction.confirmLine4') }}
       .reset-2fa__confirm-hint
-        | Пайщик получит уведомление о снятии защиты, а действие попадёт в журнал
-        | безопасности с вашим именем.
+        | {{ $t('user.resetTwoFactorAction.confirmLine5') }}
+        | {{ $t('user.resetTwoFactorAction.confirmLine6') }}
       .reset-2fa__confirm-actions
-        BaseButton(variant='ghost', :disabled='loading', @click='confirmOpen = false') Отмена
-        BaseButton(variant='danger', :loading='loading', @click='onReset') Сбросить
+        BaseButton(variant='ghost', :disabled='loading', @click='confirmOpen = false') {{ $t('common.action.cancel') }}
+        BaseButton(variant='danger', :loading='loading', @click='onReset') {{ $t('user.resetTwoFactorAction.reset') }}
 </template>
 
 <script setup lang="ts">

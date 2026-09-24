@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CANDIDATE_REPOSITORY, CandidateRepository } from '~/domain/account/repository/candidate.repository';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
 import { CandidateIntakeDTO } from '../dto/candidate-intake.dto';
@@ -81,7 +81,7 @@ export class RegistrationService implements CandidateDataPort {
     // Проверка ролей: если не председатель и не член совета, проверяем доступ
     if (currentUser.role !== 'chairman' && currentUser.role !== 'member') {
       if (filter?.referer && filter.referer !== currentUser.username) {
-        throw new ForbiddenException('У вас нет доступа к просмотру кандидатов другого реферера');
+        throw DomainError.forbidden('REGISTRATION_REFERRER_ACCESS_DENIED');
       }
       referer = currentUser.username;
     }

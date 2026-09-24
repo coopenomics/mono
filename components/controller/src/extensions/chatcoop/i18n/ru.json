@@ -1,0 +1,106 @@
+{
+  "chatcoop": {
+    "calendarEvent": {
+      "linkLine": "Стол связи: {deepLink}",
+      "roomLine": "Комната: {roomLabel}"
+    },
+    "calendarEventNotification": {
+      "notSpecified": "не указано",
+      "timezoneMsk": "Мск"
+    },
+    "callTranscriptDocument": {
+      "endedLine": "- Окончание: {endedAt}",
+      "heading": "# Транскрипция звонка",
+      "startedLine": "- Начало: {startedAt}"
+    },
+    "capitalProjectMatrixSync": {
+      "roomTopic": "Проект {projectHash}"
+    },
+    "createMatrixAccount": {
+      "passwordMinLength": "Пароль должен содержать минимум 6 символов",
+      "usernameMinLength": "Имя пользователя должно содержать минимум 3 символа",
+      "usernamePattern": "Имя пользователя может содержать только буквы, цифры, подчеркивания и дефисы"
+    },
+    "room": {
+      "status": {
+        "capitalProject": "Комната проекта Capital",
+        "council": "Комната совета",
+        "councilFull": "Комната совета кооператива",
+        "members": "Комната пайщиков",
+        "membersFull": "Комната пайщиков кооператива",
+        "secretary": "Комната секретаря"
+      }
+    },
+    "roomNames": {
+      "council": "Комната совета {shortAbbr} {name}",
+      "members": "Комната пайщиков {shortAbbr} {name}"
+    },
+    "roomTopics": {
+      "council": "Чат для членов совета кооператива",
+      "members": "Чат для всех пайщиков кооператива"
+    },
+    "secretaryAccount": {
+      "displayName": "Секретарь {'|'} {shortAbbr} {name}"
+    },
+    "secretaryAgent": {
+      "defaultName": "Секретарь",
+      "joinedMessage": "🤖 Секретарь подключился к звонку и начал запись транскрипции.",
+      "leftMessage": "🤖 Секретарь отключился от звонка. Транскрипция завершена и сохранена."
+    },
+    "secretaryRoom": {
+      "deletedKickReason": "Комната секретаря удалена",
+      "topic": "Комната секретаря — создал {creatorUsername}"
+    },
+    "secretaryRooms": {
+      "untitled": "Без названия"
+    },
+    "settings": {
+      "historySyncIntervalLabel": "Интервал синхронизации истории чата (мин)",
+      "historySyncIntervalNote": "Как часто бот подтягивает сообщения в PG (независимо от звонков). 1 = каждую минуту."
+    },
+    "spaceTopic": {
+      "private": "Частное пространство кооператива {name}"
+    },
+    "unionChat": {
+      "defaultUnionName": "СПО РУСЬ",
+      "roomTopic": "Связь с представителем {unionName}",
+      "welcomeMessage": "Добро пожаловать в комнату связи между представителем кооператива {coopName} и {unionName}."
+    }
+  },
+  "errors": {
+    "CHATCOOP_CALENDAR_EVENT_NOT_FOUND": "Событие календаря не найдено",
+    "CHATCOOP_CALENDAR_ROOM_UNAVAILABLE": "Комната не найдена в реестре или недоступна для календаря (только незашифрованные комнаты)",
+    "CHATCOOP_CONFIG_NOT_FOUND": "Конфиг чаткооп не найден",
+    "CHATCOOP_COOP_VARS_UNAVAILABLE": "Не удалось получить переменные кооператива",
+    "CHATCOOP_COOP_VARS_UNAVAILABLE_FOR_MEMBERS": "Не удалось получить переменные кооператива для комнаты пайщиков",
+    "CHATCOOP_LIVEKIT_NOT_CONFIGURED": "Видеосвязь не настроена в контуре: нет ключей LiveKit",
+    "CHATCOOP_LIVEKIT_WEBHOOK_NOT_CONFIGURED": "Вебхук LiveKit не принимается: ключи LiveKit не настроены",
+    "CHATCOOP_LIVEKIT_WEBHOOK_SIGNATURE_INVALID": "Подпись вебхука LiveKit не прошла проверку",
+    "CHATCOOP_LIVEKIT_WEBHOOK_UNSIGNED": "Вебхук LiveKit без подписи",
+    "CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS": "Matrix аккаунт уже существует для данного пользователя",
+    "CHATCOOP_MATRIX_ACCOUNT_CREATE_FAILED": "Не удалось создать Matrix аккаунт",
+    "CHATCOOP_MATRIX_ADMIN_LOGIN_FAILED": "Не удалось войти в Matrix как администратор",
+    "CHATCOOP_MATRIX_EVENT_ID_MISSING": "Matrix не вернул event_id",
+    "CHATCOOP_MATRIX_INVITE_FAILED": "Не удалось пригласить пользователя в комнату",
+    "CHATCOOP_MATRIX_JOIN_FAILED": "Не удалось присоединить пользователя к комнате",
+    "CHATCOOP_MATRIX_KICK_FAILED": "Не удалось исключить пользователя из комнаты",
+    "CHATCOOP_MATRIX_MESSAGE_DELETE_FAILED": "Не удалось удалить сообщение в Matrix",
+    "CHATCOOP_MATRIX_MESSAGE_EDIT_FAILED": "Не удалось отредактировать сообщение в Matrix",
+    "CHATCOOP_MATRIX_MESSAGE_PIN_FAILED": "Не удалось закрепить сообщение в комнате",
+    "CHATCOOP_MATRIX_MESSAGE_SEND_FAILED": "Не удалось отправить сообщение",
+    "CHATCOOP_MATRIX_POWER_LEVELS_UPDATE_FAILED": "Не удалось обновить права в комнате",
+    "CHATCOOP_MATRIX_ROOM_ADD_TO_SPACE_FAILED": "Не удалось добавить комнату в пространство",
+    "CHATCOOP_MATRIX_ROOM_CREATE_FAILED": "Не удалось создать комнату в Matrix",
+    "CHATCOOP_MATRIX_ROOM_PINS_READ_FAILED": "Не удалось прочитать закрепления комнаты",
+    "CHATCOOP_MATRIX_USER_ALREADY_EXISTS": "Matrix пользователь для данного кооперативного пользователя уже существует",
+    "CHATCOOP_MATRIX_USER_LOGIN_FAILED": "Не удалось войти в Matrix",
+    "CHATCOOP_MATRIX_USER_REGISTER_FAILED": "Не удалось зарегистрировать пользователя в Matrix",
+    "CHATCOOP_NOT_INITIALIZED": "ChatCoop не инициализирован — нельзя создать комнату секретаря",
+    "CHATCOOP_ROOM_ACCESS_DENIED": "Нет доступа к переписке этой комнаты: её читают совет и ведущий проекта",
+    "CHATCOOP_ROOM_DELETE_FORBIDDEN": "Удалять можно только комнаты секретаря (системные и проектные защищены)",
+    "CHATCOOP_ROOM_NAME_EMPTY": "Название комнаты не может быть пустым",
+    "CHATCOOP_ROOM_NOT_FOUND": "Комната не найдена в реестре ChatCoop",
+    "CHATCOOP_SECRETARY_NOT_INITIALIZED": "Секретарь не инициализирован — нельзя создать комнату секретаря",
+    "CHATCOOP_TRANSCRIPTION_NOT_FOUND": "Транскрипция {id} не найдена"
+  }
+}

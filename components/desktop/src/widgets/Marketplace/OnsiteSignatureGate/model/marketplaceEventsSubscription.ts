@@ -64,6 +64,7 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
         if (catchUpTimer) clearTimeout(catchUpTimer);
         catchUpTimer = setTimeout(() => {
           catchUpTimer = null;
+          // i18n-ignore: отладочная метка источника дочитки для console.info, пайщик её не видит
           void gate.refresh(`ПОДПИСКА (${reason})`);
           resyncMarketplaceConsumers(reason);
         }, CATCH_UP_DEBOUNCE_MS);
@@ -78,6 +79,7 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
           ?.marketplaceEvents;
         if (!event) return;
         if (GATE_EVENT_TYPES.has(event.__typename)) {
+          // i18n-ignore: отладочная метка источника дочитки для console.info, пайщик её не видит
           void gate.refresh('ПОДПИСКА (ws-сигнал)');
         }
         dispatchMarketplaceEvent(event);
@@ -87,6 +89,7 @@ export function createMarketplaceEventsSubscription(): RealtimeSubscription {
       // бэкенде каждый open → шквал refresh и вкладка встаёт.
       stream.open(() => {
         alive = true;
+        // i18n-ignore: отладочная метка источника дочитки, уходит в debug-refresh/console, не в UI
         scheduleCatchUp('ws-реконнект');
       });
 

@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
 import { Cooperative, SovietContract, type MarketContract } from 'cooptypes';
@@ -78,7 +70,7 @@ import {
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import type { MarketplaceReturnStatementSignedInputDTO } from '../documents-dto/marketplace-return-statement-document.dto';
 import type { MarketplaceReturnCancelStatementSignedInputDTO } from '../documents-dto/marketplace-return-cancel-statement-document.dto';
-import { SignedDigitalDocumentInputDTO, HttpApiError, waitForEvent } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, waitForEvent, DomainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_RETURN_CLAIM_SUBMITTED_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -89,6 +81,7 @@ import {
   type MarketplaceReturnClaimDecidedEvent,
   type MarketplaceReturnClaimFinalizedEvent,
 } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Сырой файл фото, поступающий из mutation. UI кодирует содержимое в base64
@@ -257,7 +250,7 @@ export class MarketplaceReturnClaimService {
   async findById(coopname: string, id: string): Promise<MarketplaceReturnClaimDomainEntity> {
     const claim = await this.claimRepo.findById(id);
     if (!claim || claim.coopname !== coopname) {
-      throw new NotFoundException(`Заявление на возврат ${id} не найдено.`);
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND', { id });
     }
     return claim;
   }
@@ -313,18 +306,16 @@ export class MarketplaceReturnClaimService {
     this.requireInspectionResult(input.inspection_result);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}»: заявление об отмене сделки готовится только после одобрения очного визита.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_CANCEL_STATEMENT_REQUIRES_VISIT_APPROVAL', { status: claim.status });
     }
     if (!claim.statement) {
-      throw new ConflictException(`Заявление ${claim.id}: рекламация пайщика не сохранена — приём невозможен.`);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_STATEMENT_MISSING', { claimId: claim.id });
     }
     // Вторая подпись оператора ставится на исходную рекламацию без регенерации:
     // с двумя подписями она уйдёт поставщику как гарантийная претензия.
     const reclamation = await this.documentPort.buildAggregate(claim.statement);
     if (!reclamation) {
-      throw new ConflictException(`Заявление ${claim.id}: тело рекламации по doc_hash ${claim.statement.doc_hash} не найдено.`);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_STATEMENT_BODY_NOT_FOUND', { claimId: claim.id, docHash: claim.statement.doc_hash });
     }
     const cancel_statement = await this.generateCancelStatementDocument({
       claim,
@@ -344,16 +335,16 @@ export class MarketplaceReturnClaimService {
    */
   private validateSubmitInput(input: MarketplaceCreateReturnClaimInput): void {
     if (!input.reason_text || input.reason_text.trim().length === 0) {
-      throw new BadRequestException('Опишите причину возврата.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED');
     }
     if (input.reason_text.length > 2000) {
-      throw new BadRequestException('Причина возврата не должна превышать 2000 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_REASON_TOO_LONG');
     }
     if (!Array.isArray(input.photos) || input.photos.length === 0) {
-      throw new BadRequestException('Приложите хотя бы одну фотографию товара.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_REQUIRED');
     }
     if (input.photos.length > 10) {
-      throw new BadRequestException('Можно приложить не более 10 фотографий.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_LIMIT');
     }
     this.validatePhotoPayloads(input.photos);
   }
@@ -367,9 +358,7 @@ export class MarketplaceReturnClaimService {
     const actual_quantity = this.resolveActualQuantity(order, input.actual_quantity);
     const existingActive = await this.claimRepo.findActiveByOrderId(input.coopname, order.id);
     if (existingActive) {
-      throw new ConflictException(
-        'По этому заказу уже открыто заявление на возврат.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ALREADY_OPEN');
     }
 
     this.verifySignatures(input.signed_statement);
@@ -414,17 +403,13 @@ export class MarketplaceReturnClaimService {
         `Подача заявления на возврат order ${order.id}: on-chain submretrn упал (${message}); заявление не зарегистрировано, фото удалены из bucket.`
       );
       await this.cleanupBucketPhotos(photos);
-      throw new ConflictException(
-        `Подача заявления на возврат не выполнена: ${message}. Повторите попытку.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_SUBMIT_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(photos);
-      throw new ConflictException(
-        'Подача заявления на возврат: цепь не вернула tx_hash — заявление не зарегистрировано, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_SUBMIT_NO_TX_HASH');
     }
     const claim = await this.claimRepo.create({
       id: claimId,
@@ -470,15 +455,13 @@ export class MarketplaceReturnClaimService {
     input: MarketplaceApproveReturnVisitInput
   ): Promise<MarketplaceReturnClaimResult> {
     if (input.comment && input.comment.length > 500) {
-      throw new BadRequestException('Комментарий не может быть длиннее 500 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_COMMENT_TOO_LONG');
     }
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», удалённое одобрение недопустимо.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'удалённое одобрение');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.remoteApproval'));
 
     let tx;
     try {
@@ -493,16 +476,12 @@ export class MarketplaceReturnClaimService {
       this.logger.warn(
         `Одобрение возврата claim ${claim.id}: on-chain aprretrem упал (${message}); статус не меняется.`
       );
-      throw new ConflictException(
-        `Одобрение очного визита на цепи не выполнено: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
-      throw new ConflictException(
-        'Одобрение очного визита: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_APPROVAL_NO_TX_HASH');
     }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
@@ -532,11 +511,9 @@ export class MarketplaceReturnClaimService {
     this.requireComment(input.comment);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.PENDING_CHAIRMAN_REVIEW) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», удалённый отказ недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'удалённый отказ');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.remoteRejection'));
 
     let tx;
     try {
@@ -552,16 +529,12 @@ export class MarketplaceReturnClaimService {
       this.logger.warn(
         `Отказ удалённо claim ${claim.id}: on-chain rejretrem упал (${message}); статус не меняется.`
       );
-      throw new ConflictException(
-        `Отказ удалённо на цепи не выполнен: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
-      throw new ConflictException(
-        'Отказ удалённо: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_REMOTE_REJECTION_NO_TX_HASH');
     }
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
       stage: 'remote',
@@ -602,11 +575,9 @@ export class MarketplaceReturnClaimService {
       return { claim: settled, tx_hash: this.lastTxHash(settled) };
     }
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», приём имущества недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'приём имущества');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.receiveProperty'));
 
     const cancelStatement = this.requireOperatorCancelStatement(input, claim);
     const reclamation = this.requireCoSignedReclamation(input, claim);
@@ -637,15 +608,13 @@ export class MarketplaceReturnClaimService {
         `Приём имущества claim ${claim.id}: on-chain accretrn упал (${message}); фото осмотра удалены из bucket.`
       );
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(`Приём имущества на цепи не выполнен: ${message}.`);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        'Приём имущества: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_NO_TX_HASH');
     }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
@@ -700,9 +669,7 @@ export class MarketplaceReturnClaimService {
     claim: MarketplaceReturnClaimDomainEntity
   ): MarketContract.Actions.AccRetrn.IAccRetrn['statement'] {
     if (!input.signed_statement) {
-      throw new BadRequestException(
-        'Для приёма имущества требуется подписанное оператором заявление в совет об отмене сделки.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_REQUIRES_CANCEL_STATEMENT');
     }
     this.assertCancelStatementMeta(
       (input.signed_statement.meta ?? {}) as CancelStatementMeta,
@@ -726,13 +693,13 @@ export class MarketplaceReturnClaimService {
     claim: MarketplaceReturnClaimDomainEntity
   ): MarketContract.Actions.AccRetrn.IAccRetrn['reclamation'] {
     if (!input.signed_reclamation) {
-      throw new BadRequestException('Для приёма имущества требуется рекламация пайщика со второй подписью оператора.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_REQUIRES_OPERATOR_SIGNATURE');
     }
     if (!claim.statement || String(input.signed_reclamation.hash) !== String(claim.statement.hash)) {
-      throw new BadRequestException('Подписана не та рекламация — обновите экран заявления.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_WRONG_STATEMENT_SIGNED');
     }
     if ((input.signed_reclamation.signatures ?? []).length < 2) {
-      throw new BadRequestException('На рекламации должны стоять подписи пайщика и оператора.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_STATEMENT_MISSING_SIGNATURES');
     }
     this.verifySignatures(input.signed_reclamation);
     return new SignedDigitalDocumentInputDTO(
@@ -752,15 +719,13 @@ export class MarketplaceReturnClaimService {
       (!meta.order_hash || meta.order_hash === claim.order_hash) &&
       (!meta.request_hash || meta.request_hash === claim.request_hash);
     if (!sameClaim) {
-      throw new BadRequestException('Подписан не тот документ — обновите экран заявления.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_WRONG_DOCUMENT_SIGNED');
     }
     if (meta.operator && meta.operator !== operator) {
-      throw new BadRequestException('Заявление об отмене сделки подписывает тот оператор, на чьё имя оно составлено.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_CANCEL_STATEMENT_WRONG_SIGNER');
     }
     if ((meta.inspection_result ?? '').trim() !== inspection_result.trim()) {
-      throw new BadRequestException(
-        'Результат осмотра в подписанном заявлении отличается от введённого — подпишите заявление заново.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_MISMATCH');
     }
   }
 
@@ -845,7 +810,7 @@ export class MarketplaceReturnClaimService {
       decision: 'council_authorized',
       by_chairman_account: claim.coopname,
       braname: claim.delivery_braname,
-      comment: 'Совет принял имущество как паевой взнос — все движения по заказу восстановлены.',
+      comment: t('marketplace.returnClaim.propertyAcceptedAsShare'),
       at,
       tx_hash: input.tx_hash,
     };
@@ -894,7 +859,7 @@ export class MarketplaceReturnClaimService {
         decision: 'fee_pending',
         by_chairman_account: claim.coopname,
         braname: claim.delivery_braname,
-        comment: `Имущество и паевой взнос возвращены; членский взнос ${claim.fee_refund} ждёт пополнения общего кошелька участка.`,
+        comment: t('marketplace.returnClaim.propertyAndShareReturned', { feeRefund: claim.fee_refund }),
         at,
         tx_hash: input.tx_hash,
       },
@@ -915,7 +880,7 @@ export class MarketplaceReturnClaimService {
         decision: 'fee_settled',
         by_chairman_account: claim.coopname,
         braname: claim.delivery_braname,
-        comment: input.comment ?? `Членский взнос ${claim.fee_refund} возвращён на членский кошелёк программы.`,
+        comment: input.comment ?? t('marketplace.returnClaim.membershipFeeReturned', { feeRefund: claim.fee_refund }),
         at: new Date(),
         tx_hash: input.tx_hash,
       },
@@ -962,12 +927,12 @@ export class MarketplaceReturnClaimService {
   async handBackReturn(input: MarketplaceHandBackReturnInput): Promise<MarketplaceReturnClaimResult> {
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status === MarketplaceReturnClaimStatuses.PENDING_COUNCIL) {
-      throw new ConflictException('Совет ещё рассматривает заявление — выдать имущество обратно можно только после его отказа.');
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_COUNCIL_STILL_REVIEWING');
     }
     if (claim.status !== MarketplaceReturnClaimStatuses.DECLINED_BY_COUNCIL) {
-      throw new ConflictException(`Заявление в статусе «${claim.status}» — выдавать имущество обратно нечего.`);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ISSUE_BACK_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'выдача имущества обратно');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.issueBack'));
     let tx;
     try {
       tx = await this.chainPort.handBack({
@@ -978,7 +943,7 @@ export class MarketplaceReturnClaimService {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new ConflictException(`Выдача имущества обратно не выполнена: ${message}.`);
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ISSUE_BACK_CHAIN_FAILED', { message });
     }
     const txHash = this.extractTxHash(tx);
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
@@ -986,7 +951,7 @@ export class MarketplaceReturnClaimService {
       decision: 'hand_back',
       by_chairman_account: input.operator_account,
       braname: input.braname,
-      comment: 'Имущество выдано пайщику обратно после отказа совета.',
+      comment: t('marketplace.returnClaim.propertyIssuedBack'),
       at: new Date(),
       tx_hash: txHash,
     };
@@ -1031,11 +996,9 @@ export class MarketplaceReturnClaimService {
     this.requireInspectionResult(input.inspection_result);
     const claim = await this.findById(input.coopname, input.claim_id);
     if (claim.status !== MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT) {
-      throw new ConflictException(
-        `Заявление в статусе «${claim.status}», отказ на месте недопустим.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_INVALID_STATUS', { status: claim.status });
     }
-    this.assertBranameMatchesClaim(claim, input.braname, 'отказ на месте');
+    this.assertBranameMatchesClaim(claim, input.braname, t('marketplace.returnClaim.action.onSiteRejection'));
 
     const inspectionPhotos = await this.uploadOptionalPhotos({
       files: input.inspection_photos,
@@ -1060,17 +1023,13 @@ export class MarketplaceReturnClaimService {
         `Отказ на месте claim ${claim.id}: on-chain rejretrn упал (${message}); статус не меняется, фото осмотра удалены из bucket.`
       );
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        `Отказ на цепи не выполнен: ${message}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_CHAIN_FAILED', { message });
     }
 
     const txHash = this.extractTxHash(tx);
     if (!txHash) {
       await this.cleanupBucketPhotos(inspectionPhotos);
-      throw new ConflictException(
-        'Отказ на месте: цепь не вернула tx_hash — статус не меняем, попробуйте ещё раз.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ON_SITE_REJECTION_NO_TX_HASH');
     }
     const at = new Date();
     const entry: MarketplaceReturnClaimDecisionLogEntry = {
@@ -1115,25 +1074,19 @@ export class MarketplaceReturnClaimService {
   ): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.orderRepo.findById(order_id);
     if (!order || order.coopname !== coopname) {
-      throw new NotFoundException(`Заказ ${order_id} не найден.`);
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: order_id });
     }
     if (order.orderer_account !== orderer_account) {
-      throw new ForbiddenException('Подавать заявление на возврат может только заказчик-владелец заказа.');
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_NOT_ORDER_OWNER');
     }
     if (order.status !== 'RECEIVED') {
-      throw new ConflictException(
-        `Возврат возможен только по выданному заказу (текущий статус «${order.status}»).`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ORDER_NOT_ISSUED', { orderStatus: order.status });
     }
     if (order.warranty_until === null) {
-      throw new ConflictException(
-        'По этому заказу гарантия не предусмотрена — возврат невозможен.'
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_NO_WARRANTY');
     }
     if (order.warranty_until.getTime() <= Date.now()) {
-      throw new ConflictException(
-        `Гарантийный срок истёк ${order.warranty_until.toISOString().slice(0, 10)}.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_WARRANTY_EXPIRED', { warrantyUntil: order.warranty_until.toISOString().slice(0, 10) });
     }
     return order;
   }
@@ -1144,12 +1097,10 @@ export class MarketplaceReturnClaimService {
     actionLabel: string
   ): void {
     if (!braname || braname.trim().length === 0) {
-      throw new BadRequestException(`Не указан кооперативный участок для действия «${actionLabel}».`);
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_BRANAME_REQUIRED', { actionLabel });
     }
     if (claim.delivery_braname !== braname) {
-      throw new ForbiddenException(
-        `Заявление привязано к кооперативному участку «${claim.delivery_braname}»; действие «${actionLabel}» от участка «${braname}» недопустимо.`
-      );
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_BRANAME_MISMATCH', { deliveryBraname: claim.delivery_braname, actionLabel, braname });
     }
   }
 
@@ -1172,13 +1123,11 @@ export class MarketplaceReturnClaimService {
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!f || typeof f.base64 !== 'string' || f.base64.length === 0) {
-        throw new BadRequestException(`Фото #${i + 1}: пустое содержимое.`);
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_EMPTY', { photoIndex: i + 1 });
       }
       const approxBytes = Math.floor((f.base64.length * 3) / 4);
       if (approxBytes > MAX_BYTES) {
-        throw new BadRequestException(
-          `Фото #${i + 1}: размер ${(approxBytes / 1024 / 1024).toFixed(1)} МБ превышает лимит 10 МБ.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_PHOTO_TOO_LARGE', { photoIndex: i + 1, sizeMb: (approxBytes / 1024 / 1024).toFixed(1) });
       }
     }
   }
@@ -1187,12 +1136,10 @@ export class MarketplaceReturnClaimService {
     const factQty = order.issuance_fact?.actual_quantity ?? order.quantity;
     if (requested === undefined || requested === null) return factQty;
     if (requested <= 0) {
-      throw new BadRequestException('Возвращаемое количество должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_MUST_BE_POSITIVE');
     }
     if (requested > factQty) {
-      throw new BadRequestException(
-        `Нельзя вернуть больше единиц, чем было выдано (выдано ${factQty}).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_ISSUED', { factQty });
     }
     return requested;
   }
@@ -1324,7 +1271,7 @@ export class MarketplaceReturnClaimService {
       actual_quantity: input.actual_quantity,
       fact_cost,
       sku: input.order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.returnClaim.defaultProductTitle'),
       unit_of_measurement: marketplaceOrderUnitLabel(input.order.unit_of_measure),
       unit_cost: this.effectiveUnitCost(input.order).toFixed(4),
       currency: this.assetConfig.symbol,
@@ -1349,7 +1296,7 @@ export class MarketplaceReturnClaimService {
     const { claim } = input;
     const order = await this.orderRepo.findById(claim.order_id);
     if (!order || order.coopname !== claim.coopname) {
-      throw new NotFoundException(`Заказ ${claim.order_id} по заявлению ${claim.id} не найден.`);
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_ORDER_FOR_CLAIM_NOT_FOUND', { orderId: claim.order_id, claimId: claim.id });
     }
     const offer = await this.offerRepo.findById(order.offer_id);
     const fee_refund = claim.fee_refund ?? '0';
@@ -1366,7 +1313,7 @@ export class MarketplaceReturnClaimService {
       operator: input.operator,
       issue_decision_id: Number(order.issue_decision_id ?? 0) || 0,
       sku: order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.returnClaim.defaultProductTitle'),
       unit_of_measurement: marketplaceOrderUnitLabel(order.unit_of_measure),
       actual_quantity: claim.actual_quantity,
       unit_cost: this.effectiveUnitCost(order).toFixed(4),
@@ -1417,7 +1364,7 @@ export class MarketplaceReturnClaimService {
   }): Promise<MarketplaceReturnClaimPhoto[]> {
     if (!input.files || input.files.length === 0) return [];
     if (input.files.length > 10) {
-      throw new BadRequestException('Можно приложить не более 10 фотографий очного осмотра.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_PHOTO_LIMIT');
     }
     this.validatePhotoPayloads(input.files);
     return this.uploadPhotos({
@@ -1431,14 +1378,14 @@ export class MarketplaceReturnClaimService {
 
   private verifySignatures(document: ISignedDocument): void {
     if (!document.signatures || document.signatures.length === 0) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DOCUMENT_NOT_SIGNED');
     }
     for (const sig of document.signatures) {
       const publicKey = PublicKey.from(sig.public_key);
       const signature = Signature.from(sig.signature);
       const verified = signature.verifyDigest(sig.signed_hash, publicKey);
       if (!verified) {
-        throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись документа возврата.');
+        throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INVALID_SIGNATURE');
       }
     }
   }
@@ -1461,19 +1408,19 @@ export class MarketplaceReturnClaimService {
 
   private requireComment(comment: string): void {
     if (!comment || comment.trim().length === 0) {
-      throw new BadRequestException('Укажите комментарий к решению.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_REQUIRED');
     }
     if (comment.length > 500) {
-      throw new BadRequestException('Комментарий не должен превышать 500 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_TOO_LONG');
     }
   }
 
   private requireInspectionResult(result: string): void {
     if (!result || result.trim().length === 0) {
-      throw new BadRequestException('Укажите результат очного осмотра.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_REQUIRED');
     }
     if (result.length > 2000) {
-      throw new BadRequestException('Результат осмотра не должен превышать 2000 символов.');
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_TOO_LONG');
     }
   }
 
@@ -1540,7 +1487,7 @@ export class MarketplaceReturnClaimService {
     const current = await this.claimRepo.findById(claim_id);
     if (!current) {
       decided.cancel();
-      throw new NotFoundException('Заявление на возврат не найдено.');
+      throw DomainError.notFound('MARKETPLACE_RETURN_CLAIM_NOT_FOUND_GENERIC');
     }
     if (current.status !== status) {
       decided.cancel();
@@ -1678,7 +1625,7 @@ export class MarketplaceReturnClaimService {
         shipment_id,
         braname,
         status: MarketplaceInventoryStatuses.RECEIVED,
-        product_name_snapshot: offer?.product_name ?? 'Возвращённый товар',
+        product_name_snapshot: offer?.product_name ?? t('marketplace.returnClaim.returnedProductTitle'),
         quantity_per_label: claim.actual_quantity,
         orderer_account_snapshot: claim.orderer_account,
         received_at: at,

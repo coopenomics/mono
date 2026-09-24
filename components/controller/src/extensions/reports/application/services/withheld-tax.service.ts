@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { SovietContract } from 'cooptypes';
-import { platformSettings, rethrowChainError } from '@coopenomics/extension-kit';
+import { platformSettings, rethrowChainError, DomainError } from '@coopenomics/extension-kit';
 import {
   getTaxTransferRequisites,
   type TaxTransferRequisites,
@@ -28,6 +28,7 @@ import type {
   WithheldTaxPaymentPageDTO,
   WithheldTaxStateDTO,
 } from '../dto/withheld-tax.dto';
+import { t } from '../../i18n';
 
 /**
  * Перечисление удержанного налога в бюджет (решение владельца 2026-08-13).
@@ -149,15 +150,15 @@ export class WithheldTaxService {
    */
   async pay(coopname: string, amount: number): Promise<string> {
     if (!Number.isFinite(amount) || amount <= 0) {
-      throw new BadRequestException('Сумма платежа должна быть больше нуля');
+      throw DomainError.badRequest('REPORTS_PAYMENT_AMOUNT_NOT_POSITIVE');
     }
 
     const state = await this.getState(coopname);
     const available = this.assetToNumber(state.available);
     if (amount > available) {
       throw new BadRequestException(
-        `Доступно к перечислению ${state.available}: перечислить можно не больше удержанного, ` +
-          `а ${state.in_payment} уже отправлено кассиру и ждёт подтверждения`
+        t('reports.taxPayment.amountExceedsAvailablePart1', { available: state.available }) +
+          t('reports.taxPayment.amountExceedsAvailablePart2', { inPayment: state.in_payment })
       );
     }
 
@@ -176,7 +177,7 @@ export class WithheldTaxService {
         username: coopname,
         quantity: amount,
         symbol: platformSettings().blockchain.rootGovernSymbol,
-        memo: requisites?.memo ?? 'Перечисление удержанного НДФЛ',
+        memo: requisites?.memo ?? t('reports.taxPayment.defaultMemo'),
         type: PaymentType.TAX,
         status: PaymentStatus.PENDING,
         related_extension: 'reports',
@@ -185,9 +186,7 @@ export class WithheldTaxService {
         ...this.budgetPaymentDetails(asset, requisites),
       });
     } catch (e: any) {
-      throw new BadRequestException(
-        `Не удалось зарегистрировать платёж в реестре: ${e.message}. Заявка не создана, повторите попытку.`
-      );
+      throw DomainError.badRequest('REPORTS_PAYMENT_REGISTRATION_FAILED', { message: e.message });
     }
 
     try {
@@ -248,7 +247,7 @@ export class WithheldTaxService {
         await this.paymentDesk.setPaymentStatus({
           id: payment.id,
           status: PaymentStatus.CANCELLED,
-          message: 'Заявку на перечисление налога не удалось зарегистрировать',
+          message: t('reports.taxPayment.registrationFailedMessage'),
         });
       }
     } catch (e: any) {

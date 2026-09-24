@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -111,9 +111,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Приёмка доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_NOT_TRUSTEE');
       }
     }
 
@@ -191,7 +189,7 @@ export class MarketplaceAplReceptionResolver {
 
     const reception = await this.receptionRepo.findById(data.apl_reception_id);
     if (!reception || reception.coopname !== coopname) {
-      throw new NotFoundException('Акт приёмки не найден.');
+      throw DomainError.notFound('MARKETPLACE_RECEPTION_NOT_FOUND');
     }
 
     const asOperator = canAccess(roles, 'Receiving', 'create');
@@ -200,9 +198,7 @@ export class MarketplaceAplReceptionResolver {
       reception.offerer_account === member.username;
 
     if (!asOperator && !asSupplier) {
-      throw new ForbiddenException(
-        'Отмена приёмки доступна оператору участка или поставщику этого акта.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_RECEPTION_CANCEL_FORBIDDEN');
     }
 
     // Оператор без read:all — только свой КУ (как create/close приёмки).
@@ -213,9 +209,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Отмена приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_CANCEL_NOT_TRUSTEE');
       }
     }
 
@@ -250,12 +244,10 @@ export class MarketplaceAplReceptionResolver {
     if (!canAccess(roles, 'Receiving', 'read:all')) {
       const reception = await this.receptionRepo.findById(data.apl_reception_id);
       if (!reception || reception.coopname !== coopname) {
-        throw new NotFoundException('Акт приёмки не найден.');
+        throw DomainError.notFound('MARKETPLACE_RECEPTION_NOT_FOUND');
       }
       if (reception.offerer_account !== member.username) {
-        throw new ForbiddenException(
-          'Превью акта приёмки доступно только поставщику этой партии.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_PREVIEW_FORBIDDEN_SUPPLIER');
       }
     }
 
@@ -287,7 +279,7 @@ export class MarketplaceAplReceptionResolver {
     if (!canAccess(roles, 'Receiving', 'read:all')) {
       const reception = await this.receptionRepo.findById(data.apl_reception_id);
       if (!reception || reception.coopname !== coopname) {
-        throw new NotFoundException('Акт приёмки не найден.');
+        throw DomainError.notFound('MARKETPLACE_RECEPTION_NOT_FOUND');
       }
       const isMember = await this.kuChairmanService.isMemberOfBranch(
         coopname,
@@ -295,9 +287,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Превью акта приёмки доступно только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_PREVIEW_NOT_TRUSTEE');
       }
     }
 
@@ -332,9 +322,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Лента приёмок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_FEED_NOT_TRUSTEE');
       }
     }
 
@@ -363,9 +351,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Лента самовывоза доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_PICKUP_FEED_NOT_TRUSTEE');
       }
     }
 
@@ -394,9 +380,7 @@ export class MarketplaceAplReceptionResolver {
         member.username
       );
       if (!isMember) {
-        throw new ForbiddenException(
-          'Лента приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_RECEPTION_SINGLE_FEED_NOT_TRUSTEE');
       }
     }
 

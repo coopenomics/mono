@@ -21,6 +21,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopHealthWatcherProcess } from 'src/processes/watch-desktop-health';
 import { useSessionStore } from 'src/entities/Session';
 import { initOpenReplayTracker } from 'src/shared/config';
+import { t } from 'src/shared/i18n';
 // Start tracker
 const session = useSessionStore();
 const system = useSystemStore();
@@ -121,7 +122,7 @@ function removeLoader() {
   if (loaderContainer) {
     loaderContainer.remove();
   } else {
-    FailAlert('Возникла ошибка при загрузке сайта :(');
+    FailAlert(t('app.app.loadError'));
   }
 }
 </script>

@@ -50,14 +50,14 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
               color="amber",
               text-color="black",
               icon="hourglass_top"
-            ) Ожидаем решение совета
+            ) {{ $t('ui.councilOnboardingCard.waitingDecisionText') }}
           div.council-onboarding__step-action(v-else-if="showAction(index)")
             BaseButton(
               variant="primary",
               size="sm",
               :loading="submitting",
               @click="() => handleStepClick(step)"
-            ) Объявить собрание совета
+            ) {{ $t('ui.councilOnboardingCard.announceMeetLabel') }}
 
       div.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
         div.council-onboarding__step-head
@@ -85,14 +85,14 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
   )
     div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
       q-icon(name="help_outline" size="18px" class="text-primary")
-      span Вопрос на повестке
+      span {{ $t('ui.councilOnboardingCard.agendaQuestionLabel') }}
     div.q-mt-sm.q-pa-sm.text-body1.rounded-borders {{ dialogQuestion }}
 
     q-separator.q-my-md
 
     div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
       q-icon(name="gavel" size="18px" class="text-primary")
-      span Проект решения
+      span {{ $t('ui.councilOnboardingCard.draftDecisionLabel') }}
     div.q-mt-sm.q-pa-sm.rounded-borders
       div(v-if="dialogDecisionPrefix") {{ dialogDecisionPrefix }}
       DocumentHtmlReader(v-if="dialogDecision" :html="dialogDecision" profile="document")
@@ -103,8 +103,8 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
         q-skeleton(v-for="(w, i) in ghostLines" :key="i" type="text" :width="w")
 
     template(#footer)
-      BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') Отмена
-      BaseButton(variant='primary' :disabled='!dialogDecision' :loading='submitting' @click='submitStep') Объявить
+      BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary' :disabled='!dialogDecision' :loading='submitting' @click='submitStep') {{ $t('ui.councilOnboardingCard.announceButton') }}
 </template>
 
 <script setup lang="ts">
@@ -119,6 +119,7 @@ import type {
   ICouncilOnboardingConfig,
   ICouncilOnboardingExtraStep,
 } from './types';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   config: ICouncilOnboardingConfig;
@@ -140,10 +141,10 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   submitting: false,
-  loadingText: 'Загрузка данных онбординга...',
-  title: 'Адаптация к работе на платформе',
-  completionTitle: 'Онбординг завершен!',
-  completionMessage: 'Все необходимые документы утверждены.',
+  loadingText: t('ui.councilOnboardingCard.loadingText'),
+  title: t('ui.councilOnboardingCard.subtitleText'),
+  completionTitle: t('ui.councilOnboardingCard.completedTitle'),
+  completionMessage: t('ui.councilOnboardingCard.completedText'),
   extraSteps: () => [],
 });
 
@@ -179,15 +180,15 @@ const countdownLabel = computed(() => {
   if (!props.config.expireAt) return null;
   const now = new Date();
   const diff = props.config.expireAt.getTime() - now.getTime();
-  if (diff <= 0) return 'Время истекло';
+  if (diff <= 0) return t('ui.councilOnboardingCard.expiredText');
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
   if (days > 0) {
-    return `Осталось ${days} дн. ${hours} ч.`;
+    return t('ui.councilOnboardingCard.remainingDaysHours', { days, hours });
   }
-  return `Осталось ${hours} ч.`;
+  return t('ui.councilOnboardingCard.remainingHours', { hours });
 });
 
 const isCompleted = computed(() => {

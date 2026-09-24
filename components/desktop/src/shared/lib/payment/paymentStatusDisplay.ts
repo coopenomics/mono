@@ -1,5 +1,6 @@
 import { Zeus } from '@coopenomics/sdk'
 import type { BaseBadgeVariant } from 'src/shared/ui/base'
+import { t } from 'src/shared/i18n';
 
 /**
  * Статус платежа (кассирский реестр, `Zeus.PaymentStatus`) → canon-вариант
@@ -21,15 +22,15 @@ const STATUS_VARIANTS: Record<string, BaseBadgeVariant> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  [Zeus.PaymentStatus.COMPLETED]: 'Выплачено',
-  [Zeus.PaymentStatus.PAID]: 'Переведено, ожидает подтверждения',
-  [Zeus.PaymentStatus.PENDING]: 'Ожидает обработки',
-  [Zeus.PaymentStatus.PROCESSING]: 'В обработке',
-  [Zeus.PaymentStatus.AWAITING_AUTHORIZATION]: 'Ожидает подтверждения',
-  [Zeus.PaymentStatus.FAILED]: 'Ошибка платежа',
-  [Zeus.PaymentStatus.CANCELLED]: 'Отклонено кассиром',
-  [Zeus.PaymentStatus.EXPIRED]: 'Истёк срок',
-  [Zeus.PaymentStatus.REFUNDED]: 'Возвращено',
+  [Zeus.PaymentStatus.COMPLETED]: t('payment.paymentStatusDisplay.status.completed'),
+  [Zeus.PaymentStatus.PAID]: t('payment.paymentStatusDisplay.status.paid'),
+  [Zeus.PaymentStatus.PENDING]: t('payment.paymentStatusDisplay.status.pending'),
+  [Zeus.PaymentStatus.PROCESSING]: t('payment.paymentStatusDisplay.status.processing'),
+  [Zeus.PaymentStatus.AWAITING_AUTHORIZATION]: t('payment.paymentStatusDisplay.status.awaitingAuthorization'),
+  [Zeus.PaymentStatus.FAILED]: t('payment.paymentStatusDisplay.status.failed'),
+  [Zeus.PaymentStatus.CANCELLED]: t('payment.paymentStatusDisplay.status.cancelled'),
+  [Zeus.PaymentStatus.EXPIRED]: t('payment.paymentStatusDisplay.status.expired'),
+  [Zeus.PaymentStatus.REFUNDED]: t('payment.paymentStatusDisplay.status.refunded'),
 }
 
 export function paymentStatusVariant(status?: string | null): BaseBadgeVariant {
@@ -38,6 +39,6 @@ export function paymentStatusVariant(status?: string | null): BaseBadgeVariant {
 }
 
 export function paymentStatusLabel(status?: string | null): string {
-  if (!status) return 'Обрабатывается'
+  if (!status) return t('payment.paymentStatusDisplay.status.unknown')
   return STATUS_LABELS[status] ?? status
 }

@@ -1,6 +1,6 @@
 <template lang="pug">
 .text-caption.text-grey-7.q-mb-xs
-  | События в таблице показаны в вашем местном времени (часовой пояс устройства).
+  | {{ $t('chatcoop.calendarEventsTable.timezoneHint') }}
 q-table(
   flat,
 
@@ -10,7 +10,7 @@ q-table(
   row-key="id",
   :loading="calendarStore.isLoading",
   :rows-per-page-options="[25]",
-  no-data-label="Нет событий"
+  :no-data-label="$t('chatcoop.calendarEventsTable.emptyLabel')"
 )
   template(#body-cell-title="props")
     q-td.title-cell(:props="props")
@@ -30,7 +30,7 @@ q-table(
         icon="fa-solid fa-door-open",
         @click="goChat(props.row.matrixRoomId)"
       )
-        q-tooltip Войти в комнату
+        q-tooltip {{ $t('chatcoop.calendarEventsTable.joinRoomLabel') }}
       q-btn(
         v-if="canManageCalendarEvents",
         flat,
@@ -57,6 +57,7 @@ import { useChatCoopCalendarStore } from '../../../entities/ChatCoopCalendar/mod
 import type { IChatCoopCalendarEvent } from '../../../entities/ChatCoopCalendar/model/types'
 import { formatCalendarDateTime } from '../../../shared/lib/calendarDateFormat'
 import { useCalendarBoardPermissions } from '../../../shared/lib/useCalendarBoardPermissions'
+import { t } from '../../../i18n';
 
 defineProps<{
   onEdit: (row: IChatCoopCalendarEvent) => void
@@ -75,14 +76,14 @@ const pagination = ref({
 const columns = [
   {
     name: 'title',
-    label: 'Событие',
+    label: t('chatcoop.calendarEventsTable.column.event'),
     field: 'title',
     align: 'left' as const,
     style: 'max-width: 400px; width: 400px;',
   },
-  { name: 'room', label: 'Комната', field: 'matrixRoomId', align: 'left' as const },
-  { name: 'starts', label: 'Начало', field: 'startsAt', align: 'left' as const },
-  { name: 'ends', label: 'Окончание', field: 'endsAt', align: 'left' as const },
+  { name: 'room', label: t('chatcoop.calendarEventsTable.column.room'), field: 'matrixRoomId', align: 'left' as const },
+  { name: 'starts', label: t('chatcoop.calendarEventsTable.column.start'), field: 'startsAt', align: 'left' as const },
+  { name: 'ends', label: t('chatcoop.calendarEventsTable.column.end'), field: 'endsAt', align: 'left' as const },
   { name: 'actions', label: '', field: 'id', align: 'right' as const },
 ]
 

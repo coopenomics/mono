@@ -14,6 +14,7 @@ import {
   type FlowAnswer,
   type FlowChallenge,
 } from 'src/shared/api/authentik-flow';
+import { t } from 'src/shared/i18n';
 
 export enum FlowState {
   Starting = 'starting',
@@ -64,7 +65,7 @@ export const createFlowRunner = (
   };
 
   const fail = (error: unknown): void => {
-    broken.value = error instanceof FlowUnavailable ? error.message : 'Вход не отвечает';
+    broken.value = error instanceof FlowUnavailable ? error.message : t('coopidFlow.flowRunner.unavailableError');
     state.value = FlowState.Broken;
   };
 

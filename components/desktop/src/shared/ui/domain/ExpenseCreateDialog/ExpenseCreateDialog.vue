@@ -5,39 +5,39 @@
 //- проп `submit` (capital — мутацией программного расхода, КУ — своей).
 BaseDialog(
   :model-value='modelValue',
-  :title='title || "Создание расхода"',
+  :title='title || $t("ui.expenseCreateDialog.title")',
   size='lg',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .create-form
     section.create-form__section
-      h3.create-form__section-label.t-eyebrow Цель и параметры
+      h3.create-form__section-label.t-eyebrow {{ $t('ui.expenseCreateDialog.purposeSectionTitle') }}
       .create-form__fields
         BaseInput(
           v-model='form.description',
-          label='Цель расходов',
-          placeholder='Например: «Закупка хостинга и канцелярии на июнь»',
+          :label='$t("ui.expenseCreateDialog.purposeLabel")',
+          :placeholder='$t("ui.expenseCreateDialog.purposePlaceholder")',
           required
         )
         BaseInput(
           v-model='form.deadline',
           type='date',
-          label='Срок исполнения (в срок до)',
+          :label='$t("ui.expenseCreateDialog.dueDateLabel")',
           required
         )
 
     section.create-form__section
       .create-form__section-head
-        h3.create-form__section-label.t-eyebrow Строки расходов
+        h3.create-form__section-label.t-eyebrow {{ $t('ui.expenseCreateDialog.itemsSectionTitle') }}
         BaseButton(variant='ghost', size='sm', @click='addItem')
           template(#icon-left)
             q-icon(name='add', size='18px')
-          | Добавить позицию
+          | {{ $t('ui.expenseCreateDialog.addItemLabel') }}
 
       EmptyState(
         v-if='!form.items.length',
-        title='Нет позиций',
-        body='Добавьте хотя бы одну строку расхода: получатель, способ оплаты и сумма.'
+        :title='$t("ui.expenseCreateDialog.emptyItemsTitle")',
+        :body='$t("ui.expenseCreateDialog.emptyItemsBody")'
       )
         template(#icon)
           q-icon(name='playlist_add', size='40px')
@@ -45,12 +45,12 @@ BaseDialog(
       .create-form__items(v-else)
         .create-form__item(v-for='(item, idx) in form.items', :key='idx')
           .create-form__item-head
-            span.create-form__item-title Позиция №{{ idx + 1 }}
+            span.create-form__item-title {{ $t('ui.expenseCreateDialog.itemNumberTitle', { index: idx + 1 }) }}
             BaseButton(
               variant='ghost',
               size='sm',
               icon-only,
-              aria-label='Удалить позицию',
+              :aria-label='$t("ui.expenseCreateDialog.removeItemAriaLabel")',
               @click='removeItem(idx)'
             )
               template(#icon-left)
@@ -60,13 +60,13 @@ BaseDialog(
             BaseSelect(
               v-model='item.recipient_type',
               :options='recipientTypeOptions',
-              label='Тип получателя',
+              :label='$t("ui.expenseCreateDialog.recipientTypeLabel")',
               @update:model-value='onRecipientTypeChange(item)'
             )
             BaseSelect(
               v-model='item.mechanics',
               :options='mechanicsOptions',
-              label='Способ оплаты',
+              :label='$t("ui.expenseCreateDialog.paymentMethodLabel")',
               disabled
             )
 
@@ -75,7 +75,7 @@ BaseDialog(
             )
               UserSearchSelector(
                 v-model='item.recipient_account',
-                label='Пайщик-получатель (по ФИО)',
+                :label='$t("ui.expenseCreateDialog.recipientMemberLabel")',
                 :types='["individual"]',
                 @update:model-value='item.payment_method_id = null'
               )
@@ -83,14 +83,14 @@ BaseDialog(
             BaseInput(
               v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG',
               v-model='item.recipient_name',
-              label='Название организации',
-              placeholder='Например: ООО «Хостинг-центр»',
+              :label='$t("ui.expenseCreateDialog.recipientOrgNameLabel")',
+              :placeholder='$t("ui.expenseCreateDialog.recipientOrgNamePlaceholder")',
               required
             )
 
             AmountInput(
               :model-value='amountAsNumber(item.amount)',
-              label='Сумма (план)',
+              :label='$t("ui.expenseCreateDialog.plannedAmountLabel")',
               :symbol='symbol',
               :precision='precision',
               placeholder='1000',
@@ -100,8 +100,8 @@ BaseDialog(
             .create-form__span
               BaseInput(
                 v-model='item.description',
-                label='Что оплачиваем',
-                placeholder='Своими словами: что это за расход и зачем',
+                :label='$t("ui.expenseCreateDialog.itemPurposeLabel")',
+                :placeholder='$t("ui.expenseCreateDialog.itemPurposePlaceholder")',
                 required
               )
 
@@ -109,30 +109,30 @@ BaseDialog(
               PaymentMethodSelect(
                 v-model='item.payment_method_id',
                 :username='session.username',
-                hint='Реквизиты фиксируются на момент подачи — на них придёт выплата',
+                :hint='$t("ui.expenseCreateDialog.detailsHint")',
                 required
               )
             .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.MEMBER')
               PaymentMethodSelect(
                 v-model='item.payment_method_id',
                 :username='item.recipient_account?.trim() || ""',
-                :hint='item.recipient_account?.trim() ? "Реквизиты фиксируются на момент подачи" : "Сначала укажите аккаунт пайщика-получателя"',
-                :empty-message='item.recipient_account?.trim() ? "У выбранного пайщика нет сохранённых реквизитов." : "Сначала укажите аккаунт пайщика-получателя."',
+                :hint='item.recipient_account?.trim() ? $t("ui.expenseCreateDialog.detailsFixedText") : $t("ui.expenseCreateDialog.selectRecipientFirstText")',
+                :empty-message='item.recipient_account?.trim() ? $t("ui.expenseCreateDialog.noSavedDetailsText") : $t("ui.expenseCreateDialog.selectRecipientFirstDotText")',
                 required
               )
 
             .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
               BaseInput(
                 v-model='item.requisites',
-                label='Реквизиты получателя',
-                placeholder='ИНН, р/с, БИК',
+                :label='$t("ui.expenseCreateDialog.recipientDetailsLabel")',
+                :placeholder='$t("ui.expenseCreateDialog.recipientDetailsPlaceholder")',
                 required
               )
             .create-form__span(v-if='item.recipient_type === Zeus.ExpenseRecipientType.ORG')
               BaseInput(
                 v-model='item.payment_purpose',
-                label='Назначение платежа',
-                placeholder='Например: «Оплата по счёту № 814 от 01.06.2026 за аренду серверов»',
+                :label='$t("ui.expenseCreateDialog.paymentPurposeLabel")',
+                :placeholder='$t("ui.expenseCreateDialog.paymentPurposePlaceholder")',
                 required
               )
 
@@ -140,21 +140,21 @@ BaseDialog(
       v-if='totalPlanned > 0',
       compact,
       program='blagorost',
-      title='Итого по позициям',
+      :title='$t("ui.expenseCreateDialog.totalTitle")',
       :balance='totalPlannedFormatted',
       :symbol='symbol',
-      balance-label='план',
+      :balance-label='$t("ui.expenseCreateDialog.totalPlanLabel")',
       icon='receipt_long'
     )
 
   template(#footer)
-    BaseButton(variant='ghost', :disabled='submitting', @click='close') Отмена
+    BaseButton(variant='ghost', :disabled='submitting', @click='close') {{ $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='submitting',
       :disabled='!canSubmit',
       @click='submitForm'
-    ) Подать на одобрение
+    ) {{ $t('ui.expenseCreateDialog.submitLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -182,6 +182,7 @@ import type {
   ExpenseCreateDialogProps,
   ExpenseCreateDraftItem,
 } from './ExpenseCreateDialog.types';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<ExpenseCreateDialogProps>();
 const emit = defineEmits<{
@@ -284,14 +285,14 @@ onMounted(() => {
 });
 
 const mechanicsOptions = [
-  { label: 'Аванс под отчёт', value: Zeus.ExpenseMechanics.ADVANCE },
-  { label: 'Оплата по счету', value: Zeus.ExpenseMechanics.DIRECT },
+  { label: t('ui.expenseCreateDialog.paymentMethodAdvanceOption'), value: Zeus.ExpenseMechanics.ADVANCE },
+  { label: t('ui.expenseCreateDialog.paymentMethodInvoiceOption'), value: Zeus.ExpenseMechanics.DIRECT },
 ];
 
 const recipientTypeOptions = [
-  { label: 'Я сам', value: Zeus.ExpenseRecipientType.SELF },
-  { label: 'Пайщик', value: Zeus.ExpenseRecipientType.MEMBER },
-  { label: 'Организация/ИП', value: Zeus.ExpenseRecipientType.ORG },
+  { label: t('ui.expenseCreateDialog.recipientTypeSelfOption'), value: Zeus.ExpenseRecipientType.SELF },
+  { label: t('ui.expenseCreateDialog.recipientTypeMemberOption'), value: Zeus.ExpenseRecipientType.MEMBER },
+  { label: t('ui.expenseCreateDialog.recipientTypeOrgOption'), value: Zeus.ExpenseRecipientType.ORG },
 ];
 
 // Пайщик получает только аванс под отчёт (личные реквизиты, отчитается чеком);
@@ -355,7 +356,7 @@ function close(): void {
 function resolveRecipient(item: ExpenseCreateDraftItem, creator: string): string {
   if (item.recipient_type === Zeus.ExpenseRecipientType.MEMBER) {
     const account = item.recipient_account?.trim();
-    if (!account) throw new Error('Для получателя-пайщика укажите его аккаунт');
+    if (!account) throw new Error(t('ui.error.expenseRecipientAccountRequired'));
     return account;
   }
   if (item.recipient_type === Zeus.ExpenseRecipientType.ORG) return '';
@@ -376,7 +377,7 @@ function generateItemHash(expenseHash: string, idx: number): string {
 function formatDeadline(value: string): string {
   const [year, month, day] = value.split('-');
   if (!year || !month || !day) {
-    throw new Error('Укажите срок исполнения — дату, к которой расход должен быть оплачен');
+    throw new Error(t('ui.error.expenseDueDateRequired'));
   }
   return `${day}.${month}.${year}`;
 }
@@ -389,7 +390,7 @@ async function submitForm(): Promise<void> {
     submitting.value = true;
 
     if (!form.deadline.trim()) {
-      throw new Error('Укажите срок исполнения — дату, к которой расход должен быть оплачен');
+      throw new Error(t('ui.error.expenseDueDateRequired'));
     }
 
     const expense_hash = await generateUniqueHash();
@@ -462,7 +463,7 @@ async function submitForm(): Promise<void> {
       statement: signed,
     });
 
-    SuccessAlert('Расход подан — заявление подписано и передано в совет');
+    SuccessAlert(t('ui.expenseCreateDialog.submittedText'));
     clearDraft();
     form.description = '';
     form.deadline = '';

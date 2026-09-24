@@ -29,6 +29,7 @@ export class SessionBindingService {
 
   async issue(sub: string): Promise<IssuedBinding> {
     const secret = config.authV2.sessionBindingSecret;
+    // i18n-ignore: внутренняя ошибка конфигурации — отсутствует секрет окружения, до пайщика не доходит
     if (!secret) throw new Error('AUTH_V2_SESSION_BINDING_SECRET не задан');
 
     const jti = randomUUID();

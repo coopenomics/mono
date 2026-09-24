@@ -4,10 +4,10 @@
 //- для следующего уровня взнос растёт.
 BaseChip(:variant='energyVariant')
   q-icon.q-mr-xs(name='local_fire_department', size='14px')
-  | Уровень {{ Number(contributorStore.self?.level) || 1 }} ·
+  | {{ $t('capital.contributorGamificationWidget.levelLabel', { level: Number(contributorStore.self?.level) || 1 }) }}
   q-icon.energy-decay-tick(name='arrow_left', color='negative', size='16px')
   | {{ currentEnergy.toFixed(0) }}%
-  q-tooltip До следующего уровня: {{ nextLevelRequirement }} {{ info.symbols.root_govern_symbol }}
+  q-tooltip {{ $t('capital.contributorGamificationWidget.nextLevelHint', { amount: nextLevelRequirement, symbol: info.symbols.root_govern_symbol }) }}
 </template>
 
 <script lang="ts" setup>

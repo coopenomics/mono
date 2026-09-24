@@ -3,7 +3,7 @@
   .resource-card__head
     .resource-card__icon
       i.fas.fa-memory
-    .resource-card__title Оперативная память (RAM)
+    .resource-card__title {{ $t('powerup.ramResourceWidget.title') }}
 
   .resource-card__gauge
     q-circular-progress(
@@ -17,27 +17,27 @@
     )
       .gauge-inner
         .gauge-value {{ usagePercent.toFixed(2) }}%
-        .gauge-label Использовано
+        .gauge-label {{ $t('powerup.ramResourceWidget.usedLabel') }}
 
-  .resource-card__note RAM используется для временного хранения данных пайщиков при исполнении смарт-контрактов.
+  .resource-card__note {{ $t('powerup.ramResourceWidget.note') }}
 
   button.resource-card__toggle(type="button", @click="showDetails = !showDetails")
-    span {{ showDetails ? 'Скрыть детали' : 'Подробнее' }}
+    span {{ showDetails ? $t('powerup.ramResourceWidget.hideDetails') : $t('powerup.ramResourceWidget.showDetails') }}
     q-icon(:name="showDetails ? 'expand_less' : 'expand_more'", size="18px")
 
   q-slide-transition
     .resource-card__details(v-show="showDetails")
       .detail-row
-        span.detail-label Используется
+        span.detail-label {{ $t('powerup.ramResourceWidget.usedDetailLabel') }}
         span.detail-value {{ formatBytes(ramUsage) }}
       .detail-row
-        span.detail-label Доступно
+        span.detail-label {{ $t('powerup.ramResourceWidget.availableLabel') }}
         span.detail-value {{ formatBytes(available) }} ({{ availablePercent.toFixed(1) }}%)
       .detail-row
-        span.detail-label Квота
+        span.detail-label {{ $t('powerup.ramResourceWidget.quotaLabel') }}
         span.detail-value {{ formatBytes(ramQuota) }}
       .detail-row
-        span.detail-label Стоимость
+        span.detail-label {{ $t('powerup.ramResourceWidget.costLabel') }}
         span.detail-value {{ formatCost(estimatedCost) }}
 </template>
 

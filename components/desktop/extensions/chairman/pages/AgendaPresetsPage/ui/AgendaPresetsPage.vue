@@ -2,8 +2,8 @@
 div
   q-card(flat)
     q-card-section
-      .text-h5 Пресеты предложений повестки
-      .text-caption Генерация документов для предложения повестки совета
+      .text-h5 {{ $t('chairman.agendaPresetsPage.pageTitle') }}
+      .text-caption {{ $t('chairman.agendaPresetsPage.pageSubtitle') }}
 
     q-separator
 
@@ -16,14 +16,14 @@ div
           q-item-section(side)
             q-btn(
               color="primary"
-              label="Сгенерировать"
+              :label="$t('chairman.agendaPresetsPage.generateLabel')"
               :loading="loading"
               @click="() => generateDocument(preset)"
             )
 
   BaseDialog(
     v-model="showDialog",
-    title="Предложение повестки",
+    :title="$t('chairman.agendaPresetsPage.dialogTitle')",
     size="lg",
     :close-on-backdrop="false",
     :close-on-escape="false",
@@ -32,14 +32,14 @@ div
     q-card-section(v-if="currentPreset && generatedDocument")
       div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium.q-mb-md
         q-icon(name="help_outline" size="18px" class="text-primary")
-        span Вопрос на повестке
+        span {{ $t('chairman.agendaPresetsPage.agendaQuestionLabel') }}
       div.q-mb-md.q-pa-sm.text-body1.rounded-borders {{ currentPreset.question }}
 
       q-separator.q-my-md
 
       div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium.q-mb-md
         q-icon(name="gavel" size="18px" class="text-primary")
-        span Проект решения
+        span {{ $t('chairman.agendaPresetsPage.decisionDraftLabel') }}
       div.q-pa-sm.rounded-borders(style="max-height: 400px; overflow-y: auto;")
         div(v-if="currentPreset") {{ currentPreset.decisionPrefix }}
         div(v-if="currentPreset").q-mt-md
@@ -48,10 +48,10 @@ div
         strong {{ generatedDocument.full_title }}
 
     div.q-pb-lg
-      q-btn(flat label="Отмена" @click="closeDialog" :disable="submitting")
+      q-btn(flat :label="$t('common.action.cancel')" @click="closeDialog" :disable="submitting")
       q-btn(
         color="primary"
-        label="Создать предложение"
+        :label="$t('chairman.agendaPresetsPage.createProposalLabel')"
         :loading="submitting"
         @click="handleSubmit"
       )

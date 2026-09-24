@@ -1,7 +1,7 @@
 import { getDirective, MapperKind, mapSchema } from '@graphql-tools/utils';
-import { UnauthorizedException } from '@nestjs/common';
 import { GraphQLSchema, defaultFieldResolver } from 'graphql';
 import config from '~/config/config';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Значения объекта по пути вида `trustee.username` либо `trusted[].username`.
@@ -74,7 +74,7 @@ export function fieldAuthDirectiveTransformer(schema: GraphQLSchema, directiveNa
 
           const user = req?.user;
           if (!user) {
-            throw new Error(`Пользователь не авторизован для доступа к полю "${info.fieldName}". Выполните вход.`);
+            throw DomainError.internal('GRAPHQL_FIELD_UNAUTHORIZED', { fieldName: info.fieldName });
           }
 
           // Проверка соответствия ролей
@@ -85,9 +85,7 @@ export function fieldAuthDirectiveTransformer(schema: GraphQLSchema, directiveNa
             // нельзя — оно роняет весь ответ, и вместе с чужим объектом
             // пропадает свой. Поэтому такие поля просто пустеют.
             if (selfPaths.length > 0) return null;
-            throw new UnauthorizedException(
-              `Недостаточно прав доступа к полю "${info.fieldName}". Требуемые роли: ${requiredRoles.join(', ')}.`
-            );
+            throw DomainError.unauthorized('GRAPHQL_FIELD_FORBIDDEN', { fieldName: info.fieldName, requiredRoles: requiredRoles.join(', ') });
           }
 
           return resolve(source, args, context, info);

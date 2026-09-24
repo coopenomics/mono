@@ -5,6 +5,7 @@ import { useMeetStore } from 'src/entities/Meet'
 import type { IMeet } from 'src/entities/Meet'
 import type { IVoteOnMeetInput, IVoteOnMeetResult } from './types'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone'
+import { t } from 'src/shared/i18n';
 
 export type IGenerateBallotInput = Mutations.Meet.GenerateBallotForAnnualGeneralMeetDocument.IInput['data'];
 export type IGenerateBallotResult = Mutations.Meet.GenerateBallotForAnnualGeneralMeetDocument.IOutput[typeof Mutations.Meet.GenerateBallotForAnnualGeneralMeetDocument.name];
@@ -24,7 +25,7 @@ async function generateBallot(data: IGenerateBallotInput, options?: any): Promis
   })
 
   if (!meet?.processing?.questions?.length) {
-    throw new Error('Не удалось получить вопросы собрания')
+    throw new Error(t('meet.error.agendaFetchFailed'))
   }
 
   // Создаем массив ответов на основе вопросов и голосов

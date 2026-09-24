@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для branch-trusted-requested воркфлоу
 export const branchTrustedRequestedPayloadSchema = z.object({
@@ -16,31 +16,34 @@ export type IPayload = z.infer<typeof branchTrustedRequestedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новая заявка доверенного лица участка';
-export const id = slugify(name);
+export const name = nt('branchTrustedRequested.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'novaya-zayavka-doverennogo-litsa-uchastka';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление председателю кооперативного участка о новой заявке пайщика на приём доверенным лицом')
+  .i18nKey('branchTrustedRequested')
+  .description(nt('branchTrustedRequested.description'))
   .payloadSchema(branchTrustedRequestedPayloadSchema)
   .tags(['user'])
   .addSteps([
     createEmailStep(
       'branch-trusted-requested-email',
-      'Новая заявка доверенного лица участка в {{payload.coopShortName}}',
-      'Уважаемый председатель кооперативного участка!<br><br>Пайщик {{payload.applicantName}} подал заявку на приём доверенным лицом вашего кооперативного участка.<br><br>Рассмотреть заявку можно на странице участка:<br><a href="{{payload.branchUrl}}">{{payload.branchUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.'
+      nt('branchTrustedRequested.email.subject'),
+      nt('branchTrustedRequested.email.body')
     ),
     createInAppStep(
       'branch-trusted-requested-notification',
-      'Новая заявка доверенного лица',
-      '{{payload.applicantName}} подал заявку на приём доверенным лицом участка'
+      nt('branchTrustedRequested.inApp.subject'),
+      nt('branchTrustedRequested.inApp.body')
     ),
     createPushStep(
       'branch-trusted-requested-push',
-      'Новая заявка доверенного лица',
-      '{{payload.applicantName}} подал заявку доверенного'
+      nt('branchTrustedRequested.push.subject'),
+      nt('branchTrustedRequested.push.body')
     ),
   ])
   .build();

@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
@@ -56,7 +56,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'onboarding_blagorost_offer_template_done';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -73,7 +73,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'onboarding_blagorost_offer_template_hash';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -90,7 +90,7 @@ export class CapitalOnboardingService {
       case CapitalOnboardingStepEnum.blagorost_offer_template:
         return 'blagorost_offer_template';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CAPITAL_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -126,7 +126,7 @@ export class CapitalOnboardingService {
 
   private async loadExtension(): Promise<ExtensionDomainEntity<CapitalOnboardingConfig>> {
     const extension = await this.extensionRepository.findByName('capital');
-    if (!extension) throw new Error('Конфигурация расширения capital не найдена');
+    if (!extension) throw DomainError.internal('CAPITAL_EXTENSION_CONFIG_NOT_FOUND');
     const extensionConfig: CapitalOnboardingConfig = { ...extension.config };
 
     const patch: Partial<CapitalOnboardingConfig> = {};
@@ -218,7 +218,7 @@ export class CapitalOnboardingService {
     const normalizedHash = docDataHash.trim();
 
     if (!normalizedHash) {
-      throw new Error('Hash PrivateData документов ЦПП не может быть пустым');
+      throw DomainError.internal('CAPITAL_PROGRAM_DOC_DATA_HASH_EMPTY');
     }
 
     const updated = await this.extensionRepository.patchConfig('capital', {

@@ -1,17 +1,17 @@
 <template lang="pug">
 .user-data-stack
   slot(name="top")
-  q-input(ref="firstInput" :autofocus="!slots.top" v-model="data.last_name" outlined color="primary" label="Фамилия" :rules="[val => notEmpty(val), val => validatePersonalName(val)]" autocomplete="off")
-  q-input(v-model="data.first_name" outlined color="primary" label="Имя" :rules="[val => notEmpty(val), val => validatePersonalName(val)]" autocomplete="off")
-  q-input(v-model="data.middle_name" outlined color="primary" label="Отчество" :rules="[val => validatePersonalName(val)]" autocomplete="off")
+  q-input(ref="firstInput" :autofocus="!slots.top" v-model="data.last_name" outlined color="primary" :label="$t('ui.createIndividualDataForm.lastNameLabel')" :rules="[val => notEmpty(val), val => validatePersonalName(val)]" autocomplete="off")
+  q-input(v-model="data.first_name" outlined color="primary" :label="$t('ui.createIndividualDataForm.firstNameLabel')" :rules="[val => notEmpty(val), val => validatePersonalName(val)]" autocomplete="off")
+  q-input(v-model="data.middle_name" outlined color="primary" :label="$t('ui.createIndividualDataForm.middleNameLabel')" :rules="[val => validatePersonalName(val)]" autocomplete="off")
 
-  q-input(v-model="data.full_address" outlined color="primary" label="Адрес регистрации (как в паспорте)" :rules="[val => notEmpty(val)]" autocomplete="off")
+  q-input(v-model="data.full_address" outlined color="primary" :label="$t('ui.createIndividualDataForm.addressLabel')" :rules="[val => notEmpty(val)]" autocomplete="off")
 
   q-input(
     outlined color="primary"
     v-model="data.birthdate"
     mask="date"
-    label="Дата рождения (год/месяц/день)"
+    :label="$t('ui.createIndividualDataForm.birthDateLabel')"
     :rules="['date', val => notEmpty(val)]"
     autocomplete="off"
   )
@@ -22,7 +22,7 @@
             .row.items-center.justify-end
               q-btn(v-close-popup label="Close" color="primary" flat)
 
-  q-input(v-model="data.phone" outlined color="primary" mask="+7 (###) ###-##-##" fill-mask label="Номер телефона" :rules="[val => notEmpty(val), val => notEmptyPhone(val)]" autocomplete="off")
+  q-input(v-model="data.phone" outlined color="primary" mask="+7 (###) ###-##-##" fill-mask :label="$t('ui.createIndividualDataForm.phoneLabel')" :rules="[val => notEmpty(val), val => notEmptyPhone(val)]" autocomplete="off")
 </template>
 
 <script setup lang="ts">

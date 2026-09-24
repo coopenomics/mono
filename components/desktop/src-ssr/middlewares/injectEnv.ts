@@ -42,6 +42,7 @@ export default ssrMiddleware(({ app }) => {
     };
 
     // Создаем скрипт, который добавит переменные в window.__ENV__
+    // i18n-ignore: сгенерированный код с console.log для отладки SSR, не текст интерфейса
     const script = `
     <script>
       window.__ENV__ = ${JSON.stringify(envForClient)};

@@ -32,9 +32,10 @@ import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 import { FAVORITE_REPOSITORY, type FavoriteRepository } from '../../domain/repositories/favorite.repository';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для управления проектами CAPITAL контракта
@@ -94,13 +95,13 @@ export class ProjectManagementInteractor {
     currentUser: IMonoAccount
   ): Promise<ProjectDomainEntity> {
     if (!currentUser?.username) {
-      throw new Error('Требуется авторизация');
+      throw DomainError.internal('CAPITAL_AUTH_REQUIRED');
     }
 
     const projectHash = data.project_hash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(projectHash);
     if (existing) {
-      throw new Error(`Проект с хэшем ${projectHash} уже существует`);
+      throw DomainError.internal('CAPITAL_PROJECT_ALREADY_EXISTS', { hash: projectHash });
     }
 
     const emptyHash = DomainToBlockchainUtils.getEmptyHash().toLowerCase();
@@ -111,13 +112,13 @@ export class ProjectManagementInteractor {
     if (parentHash) {
       const parent = await this.projectRepository.findByHash(parentHash);
       if (!parent) {
-        throw new Error(`Родительский проект ${parentHash} не найден`);
+        throw DomainError.internal('CAPITAL_PARENT_PROJECT_MISSING', { hash: parentHash });
       }
       if (!isLocalProject(parent)) {
-        throw new Error('Персональный компонент можно создать только внутри персонального проекта');
+        throw DomainError.internal('CAPITAL_PERSONAL_COMPONENT_REQUIRES_PERSONAL_PROJECT');
       }
       if (parent.master !== currentUser.username && parent.local_owner !== currentUser.username) {
-        throw new Error('Недостаточно прав для создания компонента в этом проекте');
+        throw DomainError.internal('CAPITAL_COMPONENT_CREATE_FORBIDDEN');
       }
       inheritedDevUrl = parent.development_repository_url ?? null;
     }
@@ -167,7 +168,7 @@ export class ProjectManagementInteractor {
   async editProject(data: EditProjectDomainInput, author = 'system'): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     if (!project) {
-      throw new Error(`Проект с хешем ${data.project_hash} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
     // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService).
     // Слитый текст уже записан в БД; для блокчейн-проекта он же уходит в цепь, при провале — откат.
@@ -193,7 +194,7 @@ export class ProjectManagementInteractor {
       return {} as InnerTransactResult;
     }
 
-    assertBlockchainProject(project, 'редактирование');
+    assertBlockchainProject(project, t('capital.projectManagement.actionLabel.edit'));
     let transactResult: InnerTransactResult;
     try {
       transactResult = await this.capitalBlockchainPort.editProject(merged);
@@ -227,7 +228,7 @@ export class ProjectManagementInteractor {
    * Установка мастера проекта CAPITAL контракта
    */
   async setMaster(data: SetMasterDomainInput, _currentUser: IMonoAccount): Promise<InnerTransactResult> {
-    await this.requireBlockchainProject(data.project_hash, 'назначение мастера');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.assignMaster'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.setMaster(data);
 
@@ -245,7 +246,7 @@ export class ProjectManagementInteractor {
    * Добавление автора проекта CAPITAL контракта
    */
   async addAuthor(data: AddAuthorDomainInput, _currentUser: IMonoAccount): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'добавление автора');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.addAuthor'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.addAuthor(data);
 
@@ -253,7 +254,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после добавления автора`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_AUTHOR_ADDED_FAILED', { hash: data.project_hash });
     }
 
     // Добавление автора заводит его долю в проекте, а синхронизация проекта её не
@@ -269,7 +270,7 @@ export class ProjectManagementInteractor {
    * Установка плана проекта CAPITAL контракта
    */
   async setPlan(data: SetPlanDomainInput): Promise<InnerTransactResult> {
-    await this.requireBlockchainProject(data.project_hash, 'установку плана');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.setPlan'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.setPlan(data);
 
@@ -283,7 +284,7 @@ export class ProjectManagementInteractor {
    * Запуск проекта CAPITAL контракта
    */
   async startProject(data: StartProjectDomainInput): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'запуск');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.start'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.startProject(data);
 
@@ -291,7 +292,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после запуска`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_START_FAILED', { hash: data.project_hash });
     }
 
     return projectEntity;
@@ -301,7 +302,7 @@ export class ProjectManagementInteractor {
    * Открытие проекта для инвестиций CAPITAL контракта
    */
   async openProject(data: OpenProjectDomainInput): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'открытие для инвестиций');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.open'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.openProject(data);
 
@@ -309,7 +310,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после открытия`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_OPEN_FAILED', { hash: data.project_hash });
     }
 
     return projectEntity;
@@ -319,7 +320,7 @@ export class ProjectManagementInteractor {
    * Закрытие проекта от инвестиций CAPITAL контракта
    */
   async closeProject(data: CloseProjectDomainInput): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'закрытие от инвестиций');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.close'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.closeProject(data);
 
@@ -327,7 +328,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после закрытия`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_CLOSE_FAILED', { hash: data.project_hash });
     }
 
     return projectEntity;
@@ -337,7 +338,7 @@ export class ProjectManagementInteractor {
    * Остановка проекта CAPITAL контракта
    */
   async stopProject(data: StopProjectDomainInput): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'остановку');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.stop'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.stopProject(data);
 
@@ -345,7 +346,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после остановки`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_STOP_FAILED', { hash: data.project_hash });
     }
 
     return projectEntity;
@@ -359,7 +360,7 @@ export class ProjectManagementInteractor {
     data: IFinalizeProjectDomainInput,
     _currentUser: IMonoAccount
   ): Promise<ProjectDomainEntity> {
-    await this.requireBlockchainProject(data.project_hash, 'финализацию');
+    await this.requireBlockchainProject(data.project_hash, t('capital.projectManagement.actionLabel.finalize'));
     // Вызываем блокчейн порт
     const transactResult = await this.capitalBlockchainPort.finalizeProject(data);
 
@@ -367,7 +368,7 @@ export class ProjectManagementInteractor {
     const projectEntity = await this.projectSyncService.syncProject(data.coopname, data.project_hash, transactResult);
 
     if (!projectEntity) {
-      throw new Error(`Не удалось синхронизировать проект ${data.project_hash} после финализации`);
+      throw DomainError.internal('CAPITAL_PROJECT_SYNC_AFTER_FINALIZE_FAILED', { hash: data.project_hash });
     }
 
     return projectEntity;
@@ -387,7 +388,7 @@ export class ProjectManagementInteractor {
       return {} as InnerTransactResult;
     }
 
-    assertBlockchainProject(projectEntity, 'удаление');
+    assertBlockchainProject(projectEntity, t('capital.projectManagement.actionLabel.delete'));
     if (projectEntity?.isComponent()) {
       this.componentMatrixAnnouncement.removePinnedForDeletedComponent(projectEntity);
     }
@@ -467,12 +468,12 @@ export class ProjectManagementInteractor {
     const h = projectHash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(h);
     if (!existing) {
-      throw new Error(`Проект с хэшем ${h} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     await this.projectRepository.setPriority(h, priority);
     const updated = await this.projectRepository.findByHash(h);
     if (!updated) {
-      throw new Error(`Не удалось перечитать проект ${h} после сохранения приоритета`);
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_PRIORITY_FAILED', { hash: h });
     }
     return updated;
   }
@@ -484,12 +485,12 @@ export class ProjectManagementInteractor {
     const h = projectHash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(h);
     if (!existing) {
-      throw new Error(`Проект с хэшем ${h} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     await this.projectRepository.setDevelopmentRepositoryUrl(h, url);
     const updated = await this.projectRepository.findByHash(h);
     if (!updated) {
-      throw new Error(`Не удалось перечитать проект ${h} после сохранения URL репозитория`);
+      throw DomainError.internal('CAPITAL_PROJECT_REPO_URL_REFRESH_FAILED', { hash: h });
     }
     return updated;
   }

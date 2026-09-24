@@ -8,16 +8,16 @@
 
   CapitalWalletsCardsWidget
 
-  BaseCard(title='Параметры участия')
+  BaseCard(:title='$t("capital.capitalProfilePage.participationParamsTitle")')
     .capital-profile__fields
       EditAboutInput(@about-updated='handleFieldUpdated')
       EditHoursPerDayInput(@hours-updated='handleFieldUpdated')
       EditRatePerHourInput(@rate-updated='handleFieldUpdated')
 
-  BaseCard(title='Взносы по ролям')
+  BaseCard(:title='$t("capital.capitalProfilePage.contributionsByRoleTitle")')
     //- Итог — выделенной плашкой, детализация — строками с иконками ролей
     .contrib-total
-      .contrib-total__label.t-sm.t-muted Общая сумма взносов
+      .contrib-total__label.t-sm.t-muted {{ $t('capital.capitalProfilePage.totalContributionsLabel') }}
       .contrib-total__value {{ totalContributions }}
     .contrib-rows
       .contrib-row(v-for='role in roleContributions', :key='role.key')
@@ -49,6 +49,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseCard } from 'src/shared/ui/base';
 import { IdentityPanel, type Identity } from 'src/shared/ui/domain/IdentityPanel';
 import { CapitalWalletsCardsWidget } from 'app/extensions/capital/widgets/CapitalWalletsCardsWidget';
+import { t } from '../../../i18n';
 
 const contributorStore = useContributorStore();
 const system = useSystemStore();
@@ -115,25 +116,25 @@ const roleContributions = computed(() => {
   return [
     {
       key: 'author',
-      name: 'Соавтор',
+      name: t('capital.capitalProfilePage.coauthorRole'),
       value: formattedAuthor.value,
       icon: 'lightbulb',
     },
     {
       key: 'creator',
-      name: 'Исполнитель',
+      name: t('capital.capitalProfilePage.executorRole'),
       value: formattedCreator.value,
       icon: 'build',
     },
     {
       key: 'investor',
-      name: 'Инвестор',
+      name: t('capital.capitalProfilePage.investorRole'),
       value: formattedInvestor.value,
       icon: 'account_balance_wallet',
     },
     {
       key: 'coordinator',
-      name: 'Координатор',
+      name: t('capital.capitalProfilePage.coordinatorRole'),
       value: formattedCoordinator.value,
       icon: 'campaign',
     },

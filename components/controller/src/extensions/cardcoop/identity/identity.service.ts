@@ -26,6 +26,7 @@ import {
   type IOrganizationPort,
 } from '@coopenomics/innercoop';
 import type { CardcoopIdentityBlock, CardcoopIdentityDigests } from './identity.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Поля, попадающие в отпечатки, — явным списком на каждый вид субъекта.
@@ -175,14 +176,14 @@ export class CardcoopIdentityService {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw new Error(`Анкета пайщика ${username} не заполнена`);
+      throw DomainError.internal('CARDCOOP_PARTICIPANT_PROFILE_EMPTY', { username });
     }
 
     const kind = privateAccount.type;
     const source = await this.readCard(kind, username, privateAccount);
 
     if (!source) {
-      throw new Error(`Данные пайщика ${username} для вида субъекта «${kind}» не найдены`);
+      throw DomainError.internal('CARDCOOP_PARTICIPANT_SUBJECT_DATA_NOT_FOUND', { username, kind });
     }
 
     return { kind, source };

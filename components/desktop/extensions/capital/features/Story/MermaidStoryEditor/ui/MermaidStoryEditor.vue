@@ -8,11 +8,11 @@
         type="textarea"
         outlined
         :readonly="readonly"
-        label="Исходник Mermaid"
+        :label="$t('capital.mermaidStoryEditor.sourceLabel')"
         :input-style="{ minHeight: `${minHeight}px`, fontFamily: 'monospace', fontSize: '13px' }"
       )
     .col-12.col-md-6
-      .text-caption.text-grey-7.q-mb-xs Предпросмотр (только чтение)
+      .text-caption.text-grey-7.q-mb-xs {{ $t('capital.mermaidStoryEditor.previewLabel') }}
       ClientOnly
         template(#fallback)
           .mermaid-story-editor__fallback.flex.flex-center

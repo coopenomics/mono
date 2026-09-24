@@ -1,4 +1,5 @@
 import { InputType, Field, IntersectionType, OmitType, Int } from '@nestjs/graphql';
+import { validationMessage } from '../errors/domain-error';
 import { IsString, IsNotEmpty, IsArray, ValidateNested, ArrayMinSize, IsInt, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Cooperative } from 'cooptypes';
@@ -121,7 +122,7 @@ class ExpenseProposalHeaderInputDTO implements HeaderAction {
   @Field(() => String, { description: 'Срок исполнения («в срок до»), формат DD.MM.YYYY' })
   @IsString()
   @Matches(/^\d{2}\.\d{2}\.\d{4}$/, {
-    message: 'Укажите срок исполнения расхода в формате ДД.ММ.ГГГГ',
+    message: validationMessage('kit.expenseStatement.dueDateFormat'),
   })
   deadline!: string;
 

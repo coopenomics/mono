@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 /**
  * Совет отклонил утверждение редакции документа или не рассмотрел его в срок.
@@ -24,31 +24,34 @@ export type IPayload = z.infer<typeof documentApprovalDeclinedPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Утверждение редакции документа не принято советом';
-export const id = slugify(name);
+export const name = nt('documentApprovalDeclined.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'utverzhdenie-redaktsii-dokumenta-ne-prinyato-sovetom';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление председателю: совет отклонил утверждение редакции документа или решение снято как просроченное')
+  .i18nKey('documentApprovalDeclined')
+  .description(nt('documentApprovalDeclined.description'))
   .payloadSchema(documentApprovalDeclinedPayloadSchema)
   .tags(['chairman'])
   .addSteps([
     createEmailStep(
       'document-approval-declined-email',
-      'Утверждение редакции документа не принято советом {{payload.short_abbr}} {{payload.name}}',
-      'Уважаемый {{payload.userName}}!<br><br>Решение № {{payload.decision_id}} об утверждении редакции документов <strong>{{payload.documentTitles}}</strong> {{payload.reasonText}}.<br><br>Кооператив продолжает работать по прежней редакции. Вынести документ на совет повторно можно во вкладке «Шаблоны документов»: <a href="{{payload.templatesUrl}}">{{payload.templatesUrl}}</a>'
+      nt('documentApprovalDeclined.email.subject'),
+      nt('documentApprovalDeclined.email.body')
     ),
     createInAppStep(
       'document-approval-declined-notification',
-      'Утверждение редакции не принято',
-      'Решение № {{payload.decision_id}} по документам {{payload.documentTitles}} {{payload.reasonText}}'
+      nt('documentApprovalDeclined.inApp.subject'),
+      nt('documentApprovalDeclined.inApp.body')
     ),
     createPushStep(
       'document-approval-declined-push',
-      'Утверждение редакции не принято',
-      'Решение № {{payload.decision_id}} {{payload.reasonText}}'
+      nt('documentApprovalDeclined.push.subject'),
+      nt('documentApprovalDeclined.push.body')
     ),
   ])
   .build();

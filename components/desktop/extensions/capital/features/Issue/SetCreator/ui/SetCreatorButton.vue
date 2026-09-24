@@ -9,7 +9,7 @@ ContributorSelector(
   :readonly='!(props.permissions)?.can_assign_creator'
   placeholder=''
   class='creators-selector'
-  label='Исполнители'
+  :label='$t("capital.setCreatorButton.label")'
   style="width: 220px;"
 )
 </template>
@@ -22,6 +22,7 @@ import { FailAlert } from 'src/shared/api/alerts';
 import { ContributorSelector } from '../../../../entities/Contributor';
 import type { IIssue, IIssuePermissions } from '../../../../entities/Issue/model';
 import type { IContributor } from '../../../../entities/Contributor/model';
+import { t } from '../../../../i18n';
 
 interface Props {
   issue: IIssue;
@@ -80,7 +81,7 @@ const loadCreators = async (creatorUsernames: string[]) => {
     await nextTick();
   } catch (error) {
     console.error('Error loading creators:', error);
-    FailAlert('Не удалось загрузить создателей задачи');
+    FailAlert(t('capital.setCreatorButton.loadError'));
     currentCreators.value = [];
     selectedCreators.value = [];
     await nextTick();
@@ -130,7 +131,7 @@ watch(selectedCreators, async (newCreators, oldCreators) => {
       return;
     }
 
-    FailAlert('У вас нет прав на назначение исполнителей задачи');
+    FailAlert(t('capital.setCreatorButton.forbiddenError'));
     // Восстанавливаем предыдущее состояние при отсутствии прав
     isProgrammaticChange.value = true;
     selectedCreators.value = [...normalizedOldCreators];
@@ -143,7 +144,7 @@ watch(selectedCreators, async (newCreators, oldCreators) => {
   const invalidContributors = normalizedNewCreators.filter(c => !c?.username);
   if (invalidContributors.length > 0) {
     console.error('SetCreatorButton: invalid contributors', invalidContributors);
-    FailAlert('У некоторых выбранных участников отсутствует имя пользователя');
+    FailAlert(t('capital.setCreatorButton.missingUsernameError'));
     return;
   }
 

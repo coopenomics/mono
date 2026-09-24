@@ -5,14 +5,14 @@
     .subscriptions-header
       .subscriptions-title
         q-icon(name="subscriptions" size="20px").q-mr-sm
-        | Подписки
+        | {{ $t('connectionDashboard.subscriptionsCard.title') }}
 
     // Список подписок
     .subscriptions-list
       template(v-if="isLoading")
         .text-center.q-pa-md
           q-spinner(color="orange" size="24px")
-          .text-caption.text-grey-7.q-mt-sm Загрузка подписок...
+          .text-caption.text-grey-7.q-mt-sm {{ $t('connectionDashboard.subscriptionsCard.loadingText') }}
 
       template(v-else-if="subscriptions.length > 0")
         q-list(separator)
@@ -33,17 +33,17 @@
 
             q-item-section(side)
               .text-weight-medium {{ formatPrice(subscription.price) }}
-              .text-caption.text-grey-7 {{ currencySymbol }}/месяц
+              .text-caption.text-grey-7 {{ $t('connectionDashboard.subscriptionsCard.perMonthPrice', { currencySymbol }) }}
 
       template(v-else-if="error")
         .text-center.q-pa-md
-          .text-negative Ошибка загрузки подписок
+          .text-negative {{ $t('connectionDashboard.subscriptionsCard.loadError') }}
           .text-caption.text-grey-7.q-mt-sm {{ error }}
 
       template(v-else)
         .text-center.q-pa-md
-          .text-grey-6 Нет активных подписок
-          .text-caption.text-grey-7.q-mt-sm Подписки появятся после подключения услуг платформы
+          .text-grey-6 {{ $t('connectionDashboard.subscriptionsCard.emptyTitle') }}
+          .text-caption.text-grey-7.q-mt-sm {{ $t('connectionDashboard.subscriptionsCard.emptyHint') }}
 </template>
 
 <script setup lang="ts">

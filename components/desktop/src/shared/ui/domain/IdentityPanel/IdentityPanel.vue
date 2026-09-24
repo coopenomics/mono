@@ -49,6 +49,7 @@ import { Avatar } from 'src/shared/ui/base/Avatar';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
 import { AccountBadge } from 'src/shared/ui/domain/AccountBadge';
 import type { IdentityPanelProps, IdentityStatus } from './IdentityPanel.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<IdentityPanelProps>(), {
   compact: false,
@@ -61,9 +62,9 @@ const STATUS_VARIANT: Record<IdentityStatus, 'pos' | 'neg' | 'warn'> = {
   pending: 'warn',
 };
 const STATUS_LABEL: Record<IdentityStatus, string> = {
-  active: 'Активен',
-  blocked: 'Заблокирован',
-  pending: 'Ожидает',
+  active: t('ui.identityPanel.status.active'),
+  blocked: t('ui.identityPanel.status.blocked'),
+  pending: t('ui.identityPanel.status.pending'),
 };
 
 const statusVariant = computed(() => props.identity.status ? STATUS_VARIANT[props.identity.status] : 'pos');

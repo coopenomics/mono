@@ -1,0 +1,128 @@
+name: Blackbox
+
+# Внешний слой тестов (C28-80): поднимает стенд целиком — цепь, индексер,
+# контроллер, базы, файловое хранилище, CoopID — и гоняет тесты, которые
+# разговаривают с платформой только через API (components/boot/src/tests).
+# Он дополняет юнит-тесты, а не заменяет их: юнит-тесты проверяют правила
+# изнутри, этот слой — что правила доходят до клиента и что сценарии проходят
+# целиком. От языка сервера он не зависит, поэтому переживёт и уход с TypeORM,
+# и смену бэкенда.
+#
+# Расписания нет намеренно. Прогон по ночам запускает агент: пушит проверяемый
+# код в ветку-полигон ci/blackbox, разбирает падения, чинит и развивает тесты,
+# утром отчитывается. Полигон — не история, пуш туда форсированный.
+#
+# Как поднимается стенд — scripts/blackbox/stack.sh, по фазе на шаг, чтобы в
+# сводке было видно время каждой.
+on:
+  push:
+    branches: [ci/blackbox]
+  workflow_dispatch:
+
+concurrency:
+  group: blackbox-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  blackbox:
+    # 22.04 — как на dev-машинах: node_modules с нативными модулями ставятся на
+    # хосте и монтируются в контейнер node:22-slim (bookworm, glibc 2.36).
+    # Собранное под glibc 2.39 (24.04) в нём могло бы не загрузиться.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+
+    env:
+      COMPOSE_FILE: ${{ github.workspace }}/docker-compose.yaml:${{ github.workspace }}/scripts/blackbox/docker-compose.blackbox.yml
+      BLACKBOX_OUT: ${{ github.workspace }}/.blackbox
+      # Режим сборки контрактов тот же, что у dev-стендов и релизов dev/testnet.
+      CONTRACTS_MODE: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install workspace
+        run: pnpm install --frozen-lockfile
+
+      # Компиляция контрактов — около десяти минут. Кеш по содержимому
+      # исходников: пока контракты не менялись, берём готовые wasm/abi.
+      - name: Контракты — кеш
+        id: contracts
+        uses: actions/cache@v4
+        with:
+          path: components/contracts/build/contracts
+          key: blackbox-contracts-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+
+      # Как в release.yaml: CDT из .deb, /cdt/build — симлинк на его каталог.
+      - name: Контракты — CDT
+        if: steps.contracts.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
+            curl ca-certificates cmake make build-essential \
+            libz3-4 libtinfo6 libxml2 zlib1g
+          curl -fsSL -o /tmp/cdt.deb \
+            https://git.coopenomics.world/C9S/cdt/releases/download/v4.2.0/cdt_4.2.0-1_amd64.deb
+          sudo apt-get install -y /tmp/cdt.deb
+          sudo mkdir -p /cdt
+          sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
+
+      - name: Контракты — компиляция
+        if: steps.contracts.outputs.cache-hit != 'true'
+        working-directory: components/contracts
+        run: ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Build all workspace packages
+        run: pnpm lerna run build
+
+      - name: Стенд — окружение и секреты
+        run: bash scripts/blackbox/stack.sh env
+
+      - name: Стенд — образ контроллера
+        run: bash scripts/blackbox/stack.sh image
+
+      - name: Стенд — базы, хранилище, CoopID, миграции
+        run: bash scripts/blackbox/stack.sh infra
+
+      - name: Стенд — цепь, контракты, совет и пайщики (boot:extra)
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh boot
+
+      - name: Стенд — индексер и контроллер
+        timeout-minutes: 20
+        run: bash scripts/blackbox/stack.sh app
+
+      - name: Внешние тесты
+        timeout-minutes: 60
+        run: bash scripts/blackbox/stack.sh tests
+
+      - name: Логи стенда
+        if: always()
+        run: bash scripts/blackbox/stack.sh collect
+
+      - name: Артефакты
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blackbox-${{ github.run_id }}
+          path: .blackbox
+          retention-days: 14
+
+      - name: Сводка
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/blackbox/stack.sh summary

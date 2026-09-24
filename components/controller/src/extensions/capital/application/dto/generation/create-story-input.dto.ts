@@ -1,4 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsOptional, IsEnum, Min } from 'class-validator';
 import { StoryStatus } from '../../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../../domain/enums/story-content-format.enum';
@@ -11,22 +12,22 @@ export class CreateStoryInputDTO {
   @Field(() => String, {
     description: 'Хеш истории для внешних ссылок',
   })
-  @IsNotEmpty({ message: 'Хеш истории не должен быть пустым' })
-  @IsString({ message: 'Хеш истории должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createStoryInput.storyHash.required') })
+  @IsString({ message: validationMessage('capital.createStoryInput.storyHash.string') })
   story_hash!: string;
 
   @Field(() => String, {
     description: 'Имя аккаунта кооператива',
   })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createStoryInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.createStoryInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, {
     description: 'Название истории',
   })
-  @IsNotEmpty({ message: 'Название истории не должно быть пустым' })
-  @IsString({ message: 'Название истории должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createStoryInput.title.required') })
+  @IsString({ message: validationMessage('capital.createStoryInput.title.string') })
   title!: string;
 
   @Field(() => String, {
@@ -34,7 +35,7 @@ export class CreateStoryInputDTO {
     description: 'Описание истории',
   })
   @IsOptional()
-  @IsString({ message: 'Описание истории должно быть строкой' })
+  @IsString({ message: validationMessage('capital.createStoryInput.description.string') })
   description?: string;
 
   @Field(() => StoryContentFormat, {
@@ -43,7 +44,7 @@ export class CreateStoryInputDTO {
     defaultValue: StoryContentFormat.MARKDOWN,
   })
   @IsOptional()
-  @IsEnum(StoryContentFormat, { message: 'Неверный формат содержимого истории' })
+  @IsEnum(StoryContentFormat, { message: validationMessage('capital.createStoryInput.contentFormat.invalid') })
   content_format?: StoryContentFormat;
 
   @Field(() => StoryStatus, {
@@ -52,7 +53,7 @@ export class CreateStoryInputDTO {
     defaultValue: StoryStatus.PENDING,
   })
   @IsOptional()
-  @IsEnum(StoryStatus, { message: 'Неверный статус истории' })
+  @IsEnum(StoryStatus, { message: validationMessage('capital.createStoryInput.status.invalid') })
   status?: StoryStatus;
 
   @Field(() => String, {
@@ -60,7 +61,7 @@ export class CreateStoryInputDTO {
     description: 'Хеш проекта (если история привязана к проекту)',
   })
   @IsOptional()
-  @IsString({ message: 'Хеш проекта должен быть строкой' })
+  @IsString({ message: validationMessage('capital.createStoryInput.projectHash.string') })
   project_hash?: string;
 
   @Field(() => String, {
@@ -68,7 +69,7 @@ export class CreateStoryInputDTO {
     description: 'Хеш задачи (если история привязана к задаче)',
   })
   @IsOptional()
-  @IsString({ message: 'Хеш задачи должен быть строкой' })
+  @IsString({ message: validationMessage('capital.createStoryInput.issueHash.string') })
   issue_hash?: string;
 
   @Field(() => Int, {
@@ -77,6 +78,6 @@ export class CreateStoryInputDTO {
     defaultValue: 0,
   })
   @IsOptional()
-  @Min(0, { message: 'Порядок сортировки не может быть отрицательным' })
+  @Min(0, { message: validationMessage('capital.createStoryInput.sortOrder.min') })
   sort_order?: number;
 }

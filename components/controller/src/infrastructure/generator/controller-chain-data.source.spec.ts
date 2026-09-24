@@ -19,6 +19,7 @@ describe('ControllerChainDataSource', () => {
   const findTemplateAt = jest.fn();
   const actionsFind = jest.fn();
   const getInfo = jest.fn();
+  const resolveFields = jest.fn();
 
   const source = new ControllerChainDataSource(
     { query } as any,
@@ -26,7 +27,8 @@ describe('ControllerChainDataSource', () => {
     { find: actionsFind } as any,
     { getInfo } as any,
     // Утверждённых редакций в этих пробах нет: читается текущее состояние.
-    { resolve: jest.fn(async () => undefined) } as any
+    { resolve: jest.fn(async () => undefined) } as any,
+    { resolveFields } as any
   );
 
   beforeEach(() => {
@@ -34,6 +36,7 @@ describe('ControllerChainDataSource', () => {
     findTemplateAt.mockReset().mockResolvedValue(null);
     actionsFind.mockReset().mockResolvedValue({ results: [], page: 1, limit: 10, total: 0 });
     getInfo.mockReset().mockResolvedValue({ head_block_num: 42 });
+    resolveFields.mockReset().mockImplementation(async (rows: unknown[]) => rows);
   });
 
   it('шаблон берётся из реестра на указанный блок', async () => {
@@ -153,5 +156,25 @@ describe('ControllerChainDataSource', () => {
 
   it('текущий блок берётся у цепи', async () => {
     await expect(source.getCurrentBlock()).resolves.toBe(42);
+  });
+
+  it('формулировки вопросов собрания подставляются вместо хешей, прочие таблицы не трогаются', async () => {
+    const digest = 'a'.repeat(64);
+    query.mockResolvedValue([{ value: { id: 1, meet_id: 7, title: digest, context: '', decision: digest }, present: true }]);
+    resolveFields.mockImplementation(async (rows: any[]) =>
+      rows.map((row) => ({ ...row, title: 'Утвердить отчёт', decision: 'Утвердить' }))
+    );
+
+    const questions = await source.getTableRows({ code: 'meet', scope: 'voskhod', table: 'questions', filter: { meet_id: 7 } });
+    expect(resolveFields).toHaveBeenCalledWith([{ id: 1, meet_id: 7, title: digest, context: '', decision: digest }], [
+      'title',
+      'context',
+      'decision',
+    ]);
+    expect(questions).toEqual([{ id: 1, meet_id: 7, title: 'Утвердить отчёт', context: '', decision: 'Утвердить' }]);
+
+    resolveFields.mockClear();
+    await source.getTableRows({ code: 'meet', scope: 'voskhod', table: 'meets', filter: { hash: 'x' } });
+    expect(resolveFields).not.toHaveBeenCalled();
   });
 });

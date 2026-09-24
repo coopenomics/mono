@@ -41,6 +41,7 @@ export class DocumentDeclarationsRegistryService
       const existing = this.declarations.get(declaration.registry_id);
       if (existing && existing.extension_name !== declaration.extension_name) {
         throw new Error(
+          // i18n-ignore: конфликт регистрации шаблона документа между расширениями — ошибка конфигурации при установке, до пайщика не доходит
           `Шаблон ${declaration.registry_id} уже объявлен расширением ${existing.extension_name}, повторно его объявляет ${declaration.extension_name}`
         );
       }

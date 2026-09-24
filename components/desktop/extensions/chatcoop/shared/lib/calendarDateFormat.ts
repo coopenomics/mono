@@ -1,8 +1,9 @@
+import { uiLocale } from 'src/shared/i18n';
 export function formatCalendarDateTime(v: Date | string | null | undefined): string {
   if (v == null) return '—'
   const d = v instanceof Date ? v : new Date(v)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('ru-RU')
+  return d.toLocaleString(uiLocale())
 }
 
 export function toDatetimeLocalValue(d: Date | string | null | undefined): string {

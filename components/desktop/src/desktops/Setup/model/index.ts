@@ -1,5 +1,6 @@
 import { UserPaymentMethodsPage } from 'src/pages/User/PaymentMethodsPage';
 import { markRaw } from 'vue';
+import { t } from 'src/shared/i18n';
 
 export const manifest = {
   'name': 'ChairmanDesktop',
@@ -9,7 +10,7 @@ export const manifest = {
   'routes': [
     {
       meta: {
-        title: 'Пайщик',
+        title: t('desktop.setupMenu.memberItem'),
         icon: 'fa-solid fa-id-card',
         roles: [],
       },
@@ -17,7 +18,7 @@ export const manifest = {
       name: 'home',
       children: [{
           meta: {
-            title: 'Реквизиты',
+            title: t('desktop.setupMenu.requisitesItem'),
             icon: '',
             roles: [],
           },

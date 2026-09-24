@@ -1,20 +1,20 @@
 <template lang="pug">
-BaseCard.uv-ndfl(v-if='editsValue', title='Налог к перечислению')
+BaseCard.uv-ndfl(v-if='editsValue', :title='$t("reports.uvNdflAmountSection.title")')
   .uv-ndfl__period
-    span.uv-ndfl__period-label Расчётный период
+    span.uv-ndfl__period-label {{ $t('reports.uvNdflAmountSection.periodLabel') }}
     span.uv-ndfl__period-value {{ periodTitle }}
 
   p.uv-ndfl__hint
-    | Сумма посчитана по налогу, удержанному из материальной помощи за этот
-    | период. Уведомление подаётся только за периоды с удержаниями — если
-    | выплат не было, подавать нечего.
+    | {{ $t('reports.uvNdflAmountSection.hintPart1') }}
+    | {{ $t('reports.uvNdflAmountSection.hintPart2') }}
+    | {{ $t('reports.uvNdflAmountSection.hintPart3') }}
 
   BaseInput(
-    label='Сумма налога, ₽'
+    :label='$t("reports.uvNdflAmountSection.amountLabel")'
     type='number'
     :model-value='editsValue.payment.amount'
     :error='msgFor("payment.amount")'
-    :hint='editsValue.payment.amount === 0 ? "За этот период удержаний не было — выберите период, в котором была выплата" : ""'
+    :hint='editsValue.payment.amount === 0 ? $t("reports.uvNdflAmountSection.noWithholdingsHint") : ""'
     @update:model-value='v => update(toInt(v))'
   )
 </template>

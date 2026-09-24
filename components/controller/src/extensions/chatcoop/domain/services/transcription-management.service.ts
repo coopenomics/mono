@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import {
   CallTranscriptionRepository,
   CALL_TRANSCRIPTION_REPOSITORY,
@@ -10,6 +10,7 @@ import {
 import { CallTranscriptionDomainEntity, TranscriptionStatus } from '../entities/call-transcription.entity';
 import { TranscriptionSegmentDomainEntity } from '../entities/transcription-segment.entity';
 import { canonicalizeMatrixUserId } from '../utils/matrix-user-id.util';
+import { DomainError } from '@coopenomics/extension-kit';
 
 // Доменный сервис для управления транскрипциями звонков
 @Injectable()
@@ -52,7 +53,7 @@ export class TranscriptionManagementService {
   async updateTranscriptionMemo(id: string, memo: string): Promise<CallTranscriptionDomainEntity> {
     const existing = await this.transcriptionRepo.findById(id);
     if (!existing) {
-      throw new NotFoundException(`Транскрипция ${id} не найдена`);
+      throw DomainError.notFound('CHATCOOP_TRANSCRIPTION_NOT_FOUND', { id });
     }
     return this.transcriptionRepo.update(id, { memo });
   }

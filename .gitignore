@@ -33,3 +33,6 @@ schema.gql
 
 # CoopID: file-based Docker Secrets (генерируются scripts/coopid-gen-secrets.sh)
 infra/coopid/secrets/
+
+# Внешний слой тестов (scripts/blackbox/stack.sh): логи и отчёты прогона
+.blackbox/

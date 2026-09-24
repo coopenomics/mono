@@ -12,7 +12,7 @@ import {
   CapitalGetOpenTimerInputDTO,
   CapitalTimerSessionOutputDTO,
 } from '../dto/time_tracker/worklog.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
@@ -160,6 +160,6 @@ export class TimeTrackerResolver {
     if (username === currentUser.username) return;
     const role = (currentUser as { role?: string }).role;
     if (role === 'chairman' || role === 'member') return;
-    throw new Error('Можно учитывать время только от своего имени');
+    throw DomainError.internal('CAPITAL_TIME_TRACKING_SELF_ONLY');
   }
 }

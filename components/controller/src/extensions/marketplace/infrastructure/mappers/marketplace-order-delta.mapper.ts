@@ -129,6 +129,7 @@ export class MarketplaceOrderDeltaMapper extends AbstractBlockchainDeltaMapper<
     const value = delta.value as IOrderRow | undefined;
     if (!value?.hash) {
       throw new Error(
+        // i18n-ignore: техническое сообщение разработчику (несогласованность delta), до пайщика не доходит
         `MarketplaceOrderDeltaMapper.extractSyncValue: delta без поля hash (primary_key=${delta.primary_key})`
       );
     }

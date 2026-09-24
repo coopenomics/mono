@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { USER_DOMAIN_SERVICE, UserDomainService } from '~/domain/user/services/user-domain.service';
 import { DocumentInteractor } from '~/application/document/interactors/document.interactor';
@@ -9,7 +9,7 @@ import type { TransactResult } from '@wharfkit/session';
 import { SendAgreementInputDTO } from '../dto/send-agreement-input.dto';
 import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
-import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainToBlockchainUtils, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainToBlockchainUtils, GenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 /** Псевдо-аккаунт из одного ключа — сверка через hasActiveKey (нормализация форматов там же). */
 function keyToAccount(key: string) {
   return { permissions: [{ perm_name: 'active', required_auth: { keys: [{ key, weight: 1 }] } }] } as any;
@@ -40,12 +40,12 @@ export class AgreementInteractor {
   private async assertSignedByParticipant(data: SendAgreementInputDTO, actor: { username: string; role: string }): Promise<void> {
     const isBoard = actor.role === 'chairman' || actor.role === 'member';
     if (!isBoard && data.username !== actor.username) {
-      throw new ForbiddenException('Подать соглашение можно только за себя');
+      throw DomainError.forbidden('AGREEMENT_ONLY_FOR_SELF');
     }
 
     const own = (data.document?.signatures ?? []).filter((signature) => signature.signer === data.username);
     if (own.length === 0) {
-      throw new ForbiddenException('В документе нет подписи пайщика, от имени которого подаётся соглашение');
+      throw DomainError.forbidden('AGREEMENT_MISSING_SIGNATURE');
     }
 
     const account = await this.blockchainPort.getAccount(data.username).catch(() => null);
@@ -55,7 +55,7 @@ export class AgreementInteractor {
       (!!user?.public_key && this.blockchainPort.hasActiveKey(keyToAccount(user.public_key), key));
 
     if (!own.every((signature) => keyOwned(signature.public_key))) {
-      throw new ForbiddenException('Подпись сделана не ключом пайщика, от имени которого подаётся соглашение');
+      throw DomainError.forbidden('AGREEMENT_SIGNATURE_KEY_MISMATCH');
     }
   }
 
@@ -105,7 +105,7 @@ export class AgreementInteractor {
     // меняется только владельцем кооператива и без миграций фронта).
     const coagreement = await this.sovietBlockchainPort.getCoagreement(data.coopname, data.agreement_type);
     if (!coagreement) {
-      throw new Error(`Соглашение типа "${data.agreement_type}" не настроено в кооперативе ${data.coopname}`);
+      throw DomainError.internal('AGREEMENT_TYPE_NOT_CONFIGURED', { agreementType: data.agreement_type, coopname: data.coopname });
     }
 
     const programId = Number(coagreement.program_id);

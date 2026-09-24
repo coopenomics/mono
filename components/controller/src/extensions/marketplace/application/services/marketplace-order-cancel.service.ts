@@ -1,5 +1,5 @@
-import { rethrowChainError } from '@coopenomics/extension-kit';
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_ORDER_REPOSITORY,
@@ -21,6 +21,7 @@ import {
 } from '../../domain/repositories/marketplace-inventory.repository';
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
 import { orderPackageDelta, splitBlockedByReceived } from '../shared/offer-settlement.util';
+import { t } from '../../i18n';
 
 
 export interface MarketplaceOrderCancelInputDto {
@@ -82,19 +83,19 @@ export class MarketplaceOrderCancelService {
 
   async execute(input: MarketplaceOrderCancelInputDto): Promise<MarketplaceOrderCancelResult> {
     if (!input.order_id) {
-      throw new BadRequestException('Не указан order_id.');
+      throw DomainError.badRequest('MARKETPLACE_ORDER_ID_REQUIRED');
     }
 
     // ── 1. Guard ────────────────────────────────────────────────────
     const order = await this.orderRepo.findById(input.order_id);
     if (!order) {
-      throw new NotFoundException('Заказ не найден.');
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND');
     }
     if (order.coopname !== input.coopname) {
-      throw new ForbiddenException('Заказ принадлежит другому кооперативу.');
+      throw DomainError.forbidden('MARKETPLACE_ORDER_FOREIGN_COOP');
     }
     if (order.orderer_account !== input.orderer_account) {
-      throw new ForbiddenException('Отменить заказ может только его заказчик.');
+      throw DomainError.forbidden('MARKETPLACE_ORDER_CANCEL_FORBIDDEN_NOT_OWNER');
     }
     // Отмена / отказ от получения заказчиком. Граница удержания — акцепт
     // поставщиком (это решает КОНТРАКТ): до акцепта (ACTIVE / ожидание
@@ -112,9 +113,7 @@ export class MarketplaceOrderCancelService {
       MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
     ] as const;
     if (!(CANCELABLE_STATUSES as readonly string[]).includes(order.status)) {
-      throw new BadRequestException(
-        `Нельзя отменить заказ в статусе «${order.status}». Отмена закрыта после открытия акта выдачи.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_ORDER_CANCEL_WRONG_STATUS', { status: order.status });
     }
 
     // ── 2. Chain submit cancelorder ─────────────────────────────────
@@ -127,7 +126,7 @@ export class MarketplaceOrderCancelService {
       });
       txHash = normalizeChainTxHash(
         tx,
-        'Отмена заказа: цепь не вернула tx_hash. Повторите попытку.'
+        t('marketplace.orderCancel.chainNoTxHash')
       );
     } catch (error: any) {
       this.logger.error(
@@ -144,7 +143,7 @@ export class MarketplaceOrderCancelService {
     const updated = await this.orderRepo.applyStatusTransition(
       order.id,
       'CANCELLED_BY_ORDERER',
-      'Отменён заказчиком'
+      t('marketplace.orderCancel.cancelledByCustomerLabel')
     );
 
     this.logger.log(

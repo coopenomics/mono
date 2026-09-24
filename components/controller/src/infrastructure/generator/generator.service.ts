@@ -7,7 +7,7 @@ import { GeneratorPort } from '~/domain/document/ports/generator.port';
 import { Generator, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
 @Injectable()
 export class GeneratorInfrastructureService implements GeneratorPort, OnModuleInit {
@@ -45,7 +45,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       return await this.generator.generateBlank(data);
     } catch (error) {
       console.error('Ошибка при сборке бланка документа:', error);
-      const wrapped = new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при сборке бланка документа');
+      const wrapped = DomainError.badRequest('GENERATOR_BLANK_ASSEMBLY_FAILED');
       Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
       throw wrapped;
     }
@@ -110,7 +110,7 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       // Исходная ошибка фабрики остаётся причиной: по ней вызывающий различает
       // отказы (робот совета так узнаёт отставание индекса голосов). Свойство
       // неперечисляемое — в ответы API и сериализацию ошибки оно не попадает.
-      const wrapped = new HttpApiError(httpStatus.BAD_REQUEST, 'Ошибка при генерации документа');
+      const wrapped = DomainError.badRequest('GENERATOR_DOCUMENT_GENERATION_FAILED');
       Object.defineProperty(wrapped, 'cause', { value: error, enumerable: false, configurable: true, writable: true });
       throw wrapped;
     }

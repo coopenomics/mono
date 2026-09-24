@@ -3,7 +3,7 @@
 //- ключ черновика и программную подачу на чейн (capital::createpgexp).
 ExpenseCreateDialog(
   :model-value='modelValue',
-  title='Создание программного расхода',
+  :title='$t("capital.createProgramExpenseDialog.title")',
   :source-wallet='PROGRAM_EXPENSE_SOURCE_WALLET',
   :draft-key='PROGRAM_EXPENSE_DRAFT_KEY',
   :submit='submitProgramExpense',

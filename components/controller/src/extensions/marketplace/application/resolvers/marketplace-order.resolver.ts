@@ -1,7 +1,7 @@
-import { Inject, Injectable, NotFoundException, ForbiddenException, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -45,6 +45,7 @@ import {
   MARKETPLACE_KU_CHAIRMAN_SERVICE,
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
+import { t } from '../../i18n';
 
 const toOrderDTO = toMarketplaceOrderDTO;
 
@@ -238,7 +239,7 @@ export class MarketplaceOrderResolver {
   ): Promise<MarketplaceOrderDTO> {
     const order = await this.orderRepo.findById(input.order_id);
     if (!order || order.coopname !== platformSettings().coopname) {
-      throw new NotFoundException('Заказ не найден.');
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND');
     }
     const roles = member.marketplace_roles as MarketplaceRole[];
     const isOwner = order.orderer_account === member.username;
@@ -258,7 +259,7 @@ export class MarketplaceOrderResolver {
         member.username
       ));
     if (!canReadOwn && !canReadToSelf && !canReadAll && !canReadOwnKU) {
-      throw new ForbiddenException('Нет прав на просмотр заказа.');
+      throw DomainError.forbidden('MARKETPLACE_ORDER_VIEW_FORBIDDEN');
     }
     // Обе стороны сделки видны только тем, кто смотрит заказ «сверху» —
     // администратору кооператива и участку получения.
@@ -275,7 +276,7 @@ export class MarketplaceOrderResolver {
       platformSettings().coopname,
       braname,
       member.username,
-      'Реестр заказов участка доступен его председателю и доверенным'
+      t('marketplace.orderResolver.registryAccessHint')
     );
   }
 

@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
@@ -15,18 +16,19 @@ import { MeetDetailsPage } from 'src/pages/Cooperative/MeetDetails';
 import { UnionPageListOfCooperatives } from 'src/pages/Union/ListOfCooperatives';
 import { ExpensesRegistryPage } from 'app/extensions/expenses/pages';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'soviet',
     extension_name: 'soviet',
-    title: 'Стол совета',
+    title: t('soviet.install.title'),
     icon: 'fa-solid fa-gavel',
     defaultRoute: 'agenda', // Маршрут по умолчанию для рабочего стола совета
     routes: [
       {
         meta: {
-          title: 'Стол совета',
+          title: t('soviet.install.title'),
           icon: 'fa-regular fa-circle',
           roles: ['chairman', 'member'],
         },
@@ -38,7 +40,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'agenda',
             component: markRaw(ListOfAgendaQuestions),
             meta: {
-              title: 'Повестка совета',
+              title: t('soviet.install.agendaTitle'),
               icon: 'fa-solid fa-check-to-slot',
               roles: ['chairman', 'member'],
             },
@@ -48,7 +50,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'participants',
             component: markRaw(ListOfParticipantsPage),
             meta: {
-              title: 'Реестр пайщиков',
+              title: t('soviet.install.participantsRegistryTitle'),
               icon: 'fa-solid fa-users',
               roles: ['chairman', 'member'],
             },
@@ -69,7 +71,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'documents',
             component: markRaw(ListOfDocumentsPage),
             meta: {
-              title: 'Реестр документов',
+              title: t('soviet.install.documentsRegistryTitle'),
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
             },
@@ -82,7 +84,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'document-templates',
                 component: markRaw(DocumentTemplatesPage),
                 meta: {
-                  title: 'Шаблоны документов',
+                  title: t('soviet.install.documentTemplatesTitle'),
                   roles: ['chairman', 'member'],
                   hidden: true,
                 },
@@ -93,7 +95,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'document-details',
                 component: markRaw(DocumentDetailsPage),
                 meta: {
-                  title: 'Документ',
+                  title: t('soviet.install.documentTitle'),
                   roles: ['chairman', 'member'],
                   hidden: true,
                 },
@@ -105,7 +107,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'payments',
             component: markRaw(PaymentsPage),
             meta: {
-              title: 'Реестр платежей',
+              title: t('soviet.install.paymentsRegistryTitle'),
               icon: 'fa-solid fa-file-invoice',
               roles: ['chairman', 'member'],
             },
@@ -120,7 +122,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'soviet-expenses-registry',
             component: markRaw(ExpensesRegistryPage),
             meta: {
-              title: 'Реестр расходов',
+              title: t('soviet.install.expensesRegistryTitle'),
               icon: 'receipt_long',
               roles: ['chairman', 'member'],
             },
@@ -130,7 +132,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'meets',
             component: markRaw(ListOfMeetsPage),
             meta: {
-              title: 'Реестр собраний',
+              title: t('soviet.install.meetsRegistryTitle'),
               icon: 'fa-solid fa-users-between-lines',
               roles: ['chairman', 'member'],
             },
@@ -147,7 +149,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'union-cooperatives',
             component: markRaw(UnionPageListOfCooperatives),
             meta: {
-              title: 'Реестр кооперативов',
+              title: t('soviet.install.cooperativesRegistryTitle'),
               icon: 'fa-solid fa-handshake',
               roles: ['chairman', 'member'],
               conditions: 'coopname === "voskhod"',

@@ -11,6 +11,7 @@ import {
   getQuarterPeriodCode,
   getTaxOfficeCode,
 } from './xml-utils';
+import { t } from '../../i18n';
 
 /** КБК ОПС (обязательные пенсионные взносы) — эталон принятого Астралом нулевого РСВ. */
 const KBK_OPS = '18210201000011000160';
@@ -40,7 +41,7 @@ export class RsvGenerator implements IReportGenerator {
       const xml = this.buildXml(edits);
       return { reportType: this.reportType, xml, fileName, errors, isValid: true };
     } catch (e) {
-      errors.push(`Ошибка генерации РСВ: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(t('reports.rsv.generationErrorMessage', { message: e instanceof Error ? e.message : String(e) }));
       return { reportType: this.reportType, xml: '', fileName, errors, isValid: false };
     }
   }
@@ -51,11 +52,17 @@ export class RsvGenerator implements IReportGenerator {
     const kodNO = getTaxOfficeCode(organization.kpp);
 
     const doc = createXmlDoc()
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('Файл')
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ВерсПрог', header.versProgram)
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ВерсФорм', '5.08')
+        // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
         .att('ИдФайл', header.idFile);
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const dokument = doc.ele('Документ').att('КНД', '1151111');
     addHeaderMeta(dokument, {
       docDate: header.docDate,
@@ -66,13 +73,20 @@ export class RsvGenerator implements IReportGenerator {
       poMestu: '214',
     });
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const svnp = dokument.ele('СвНП');
     // СрЧисл обязателен при ПоМесту≠335/222 (Schematron XSD). Нулёвка → 0.
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     svnp.att('СрЧисл', '0');
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     if (organization.phone) svnp.att('Тлф', organization.phone);
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     svnp.ele('НПЮЛ')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('НаимОрг', organization.orgName)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('ИННЮЛ', organization.inn)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КПП', organization.kpp)
       .up();
     svnp.up();
@@ -82,27 +96,43 @@ export class RsvGenerator implements IReportGenerator {
       orgName: organization.orgName,
     });
 
+    // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
     const raschet = dokument.ele('РасчетСВ');
     const obyaz = raschet
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('ОбязПлатСВ')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('ТипПлат', '2')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('ОКТМО', organization.oktmo ?? '');
 
     obyaz
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('УплПерОПС')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КБК', KBK_OPS)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУплПер', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл1М', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл2М', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл3М', '0')
       .up();
 
     obyaz
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .ele('УплПерОПСДоп')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('КБК', KBK_OPS_DOP)
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУплПер', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл1М', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл2М', '0')
+      // i18n-ignore: официальная форма — имя тега/атрибута/константа XSD-схемы отчёта
       .att('СумСВУпл3М', '0')
       .up();
 

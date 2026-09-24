@@ -192,6 +192,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
   ): Promise<MarketplaceOrderDomainEntity | null> {
     if (syncKey !== 'order_hash') {
       throw new Error(
+        // i18n-ignore: техническое сообщение разработчику (несовпадение sync-ключа), до пайщика не доходит
         `MarketplaceOrderRepositoryAdapter.findBySyncKey: ожидался order_hash, получено "${syncKey}"`
       );
     }
@@ -209,6 +210,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
   async create(_entity: MarketplaceOrderDomainEntity): Promise<unknown> {
     throw new Error(
+      // i18n-ignore: техническое сообщение разработчику (метод не используется), до пайщика не доходит
       'MarketplaceOrderRepositoryAdapter.create(entity): не используется в Story 4.1 — используйте persistAfterBlock(input).'
     );
   }
@@ -258,6 +260,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     // Out-of-band on-chain Order: оставляем минимальный stub-row,
     // backend create-flow дополнит остальные поля по unique-conflict.
     throw new Error(
+      // i18n-ignore: техническое сообщение разработчику (нереализованный фолбэк), до пайщика не доходит
       `MarketplaceOrderRepositoryAdapter.createIfNotExists: out-of-band on-chain Order без backend create-flow (order_hash=${blockchainData.order_hash}); фолбэк не реализован в Story 4.1 — заведите Order через marketplaceCreateOrder mutation.`
     );
   }

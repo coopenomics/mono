@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, Ref } from 'vue';
 import { api } from '../api';
 import type { ISecretaryRoom, ICreateSecretaryRoomInput } from './types';
+import { t } from '../../../i18n';
 
 const namespace = 'secretaryRoomStore';
 
@@ -31,7 +32,7 @@ export const useSecretaryRoomStore = defineStore(namespace, (): ISecretaryRoomSt
       return result;
     } catch (err) {
       console.error('Failed to load secretary rooms:', err);
-      error.value = 'Не удалось загрузить список комнат. Попробуйте обновить страницу.';
+      error.value = t('chatcoop.secretaryRoomStore.loadError');
       return [];
     } finally {
       isLoading.value = false;

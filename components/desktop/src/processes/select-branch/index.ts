@@ -7,9 +7,10 @@ import { useBranchStore } from 'src/entities/Branch/model'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
 import { Cooperative } from 'cooptypes'
+import { t } from 'src/shared/i18n';
 
 export function useSelectBranchProcess() {
-  const title = ref('Выберите кооперативный участок')
+  const title = ref(t('selectBranch.selectBranch.title'))
   const step = ref(1)
   const isSubmitting = ref(false)
   const isLoading = ref(false)
@@ -103,7 +104,7 @@ export function useSelectBranchProcess() {
       if (refreshed) session.setCurrentUserAccount(refreshed)
 
       useSelectBranch().isVisible.value = false
-      SuccessAlert('Кооперативный участок выбран')
+      SuccessAlert(t('selectBranch.selectBranch.selectSuccess'))
     } catch (e: any) {
       FailAlert(e)
     } finally {

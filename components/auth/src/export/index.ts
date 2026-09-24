@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Экспорт удостоверения наружу (QR для Vision/предъявления). В MVP существует
  * только ПОЛНАЯ форма (`full_certificate`) — она несёт PII пайщика, поэтому
@@ -30,11 +31,11 @@ export interface ExportFullQROptions {
  */
 export async function exportFullQR(certificate: string, options: ExportFullQROptions): Promise<Uint8Array> {
   if (!isWalletUnlocked())
-    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, 'Экспорт удостоверения возможен только при разблокированном кошельке')
+    throw new AuthV2Error(AuthV2ErrorCode.WalletLocked, lt('authClient.export.walletLocked'))
 
   const consented = await options.confirm().catch(() => false)
   if (!consented)
-    throw new AuthV2Error(AuthV2ErrorCode.ConsentRequired, 'Экспорт удостоверения с персональными данными требует явного подтверждения')
+    throw new AuthV2Error(AuthV2ErrorCode.ConsentRequired, lt('authClient.export.consentRequired'))
 
   return new TextEncoder().encode(certificate)
 }

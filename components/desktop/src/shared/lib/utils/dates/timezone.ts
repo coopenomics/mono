@@ -1,5 +1,6 @@
 import moment from './moment'
 import { env } from 'src/shared/config/Environment'
+import { t } from 'src/shared/i18n';
 
 // Дефолтный часовой пояс - московский
 const DEFAULT_TIMEZONE = 'Europe/Moscow'
@@ -16,7 +17,7 @@ export function getTimezone(): string {
  */
 export function getTimezoneLabel(): string {
   const tz = getTimezone()
-  return tz === 'Europe/Moscow' ? 'МСК' : tz
+  return tz === 'Europe/Moscow' ? t('utils.timezone.moscowAbbr') : tz
 }
 
 /**

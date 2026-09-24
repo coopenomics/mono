@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для new-agenda-item воркфлоу
 export const newAgendaItemPayloadSchema = z.object({
@@ -21,31 +21,34 @@ export type IPayload = z.infer<typeof newAgendaItemPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новый вопрос на повестке совета';
-export const id = slugify(name);
+export const name = nt('newAgendaItem.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'noviy-vopros-na-povestke-soveta';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление о новом вопросе на повестке дня заседания совета для всех членов совета')
+  .i18nKey('newAgendaItem')
+  .description(nt('newAgendaItem.description'))
   .payloadSchema(newAgendaItemPayloadSchema)
   .tags(['member']) // Доступно только для членов совета
   .addSteps([
     createEmailStep(
       'new-agenda-item-email',
-      'Новый вопрос на повестке совета {{payload.coopShortName}}',
-      'Уважаемый член совета!<br><br>Добавлен новый вопрос на повестку заседания совета:<br><br><strong>{{payload.itemTitle}}</strong><br><br>{{payload.itemDescription}}<br><br>Заявитель: {{payload.authorName}}<br><br>Ссылка для рассмотрения: {{payload.agendaUrl}}<br><br>'
+      nt('newAgendaItem.email.subject'),
+      nt('newAgendaItem.email.body')
     ),
     createInAppStep(
       'new-agenda-item-notification',
-      'Новый вопрос на повестке совета',
-      '{{payload.itemTitle}}\nОт: {{payload.authorName}}'
+      nt('newAgendaItem.inApp.subject'),
+      nt('newAgendaItem.inApp.body')
     ),
     createPushStep(
       'new-agenda-item-push',
-      'Новый вопрос на повестке',
-      '{{payload.itemTitle}} от {{payload.authorName}}'
+      nt('newAgendaItem.push.subject'),
+      nt('newAgendaItem.push.body')
     ),
   ])
   .build(); 

@@ -5,7 +5,7 @@ import { ChairmanBlockchainPort } from '../../../domain/interfaces/chairman-bloc
 import httpStatus from 'http-status';
 import { ConfirmApproveDomainInput } from '../../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../../domain/actions/decline-approve-domain-input.interface';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
@@ -29,7 +29,7 @@ export class ChairmanBlockchainAdapter implements ChairmanBlockchainPort {
    */
   async confirmApprove(data: ConfirmApproveDomainInput): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('CHAIRMAN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -57,7 +57,7 @@ export class ChairmanBlockchainAdapter implements ChairmanBlockchainPort {
    */
   async declineApprove(data: DeclineApproveDomainInput): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('CHAIRMAN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 

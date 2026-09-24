@@ -149,3 +149,5 @@ jobs:
 
       - name: tsc --noEmit (innercoop)
         run: pnpm --filter @coopenomics/innercoop run typecheck
+      - name: tsc --noEmit (i18n)
+        run: pnpm --filter @coopenomics/i18n run typecheck

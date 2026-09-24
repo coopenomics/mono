@@ -2,6 +2,7 @@ import { createPrivateKey, type KeyObject } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { Bytes, KeyType, PrivateKey, PublicKey } from '@wharfkit/antelope';
 import type { ICertKeyCrypto } from '~/domain/auth-v2/ports/cert-key-crypto.port';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Криптография ключа заверения на библиотеке цепи. Здесь же — единственный в
@@ -24,7 +25,7 @@ export class CertKeyCryptoAdapter implements ICertKeyCrypto {
 
   pemToChainKey(pem: string): string {
     const jwk = createPrivateKey(pem).export({ format: 'jwk' }) as { d?: string };
-    if (!jwk.d) throw new Error('Ключ заверения не содержит приватной части');
+    if (!jwk.d) throw DomainError.internal('AUTH_V2_CERT_KEY_MISSING_PRIVATE_PART');
     return new PrivateKey(KeyType.K1, Bytes.from(Buffer.from(jwk.d, 'base64url'))).toWif();
   }
 

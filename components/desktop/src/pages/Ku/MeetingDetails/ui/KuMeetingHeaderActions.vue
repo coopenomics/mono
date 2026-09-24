@@ -5,60 +5,60 @@
     variant='primary',
     size='sm',
     :loading='state.busy',
-    aria-label='Участвовать в собрании',
+    :aria-label='$t("ku.kuMeetingHeaderActions.joinAction")',
     @click='state.onJoin'
   )
     template(#icon-left)
       q-icon(name='how_to_reg', size='18px')
-    | Участвовать
+    | {{ $t('ku.kuMeetingHeaderActions.joinLabel') }}
   span(v-if='state.canStart')
     BaseButton(
       variant='primary',
       size='sm',
       :disabled='!state.hasQuorum',
       :loading='state.busy',
-      aria-label='Открыть голосование',
+      :aria-label='$t("ku.kuMeetingHeaderActions.openVotingAction")',
       @click='state.onStartOpen'
     )
       template(#icon-left)
         q-icon(name='how_to_vote', size='18px')
-      | Открыть голосование
+      | {{ $t('ku.kuMeetingHeaderActions.openVotingAction') }}
     q-tooltip(v-if='!state.hasQuorum')
-      | Для открытия голосования нужно не менее 3 участников собрания.
-      | Пока их меньше — собрание можно только отменить.
+      | {{ $t('ku.kuMeetingHeaderActions.noQuorumHintLine1') }}
+      | {{ $t('ku.kuMeetingHeaderActions.noQuorumHintLine2') }}
   BaseButton(
     v-if='state.canClose',
     variant='primary',
     size='sm',
     :loading='state.busy',
-    aria-label='Завершить и утвердить протокол',
+    :aria-label='$t("ku.kuMeetingHeaderActions.closeAction")',
     @click='state.onClose'
   )
     template(#icon-left)
       q-icon(name='task_alt', size='18px')
-    | Завершить и утвердить протокол
+    | {{ $t('ku.kuMeetingHeaderActions.closeAction') }}
   BaseButton(
     v-if='state.canExec',
     variant='primary',
     size='sm',
     :loading='state.busy',
-    aria-label='Направить в совет',
+    :aria-label='$t("ku.kuMeetingHeaderActions.execAction")',
     @click='state.onExec'
   )
     template(#icon-left)
       q-icon(name='send', size='18px')
-    | Направить в совет
+    | {{ $t('ku.kuMeetingHeaderActions.execAction') }}
   BaseButton(
     v-if='state.canCancel',
     variant='secondary',
     size='sm',
     :loading='state.busy',
-    aria-label='Отменить собрание',
+    :aria-label='$t("ku.kuMeetingHeaderActions.cancelAction")',
     @click='state.onCancelOpen'
   )
     template(#icon-left)
       q-icon(name='event_busy', size='18px')
-    | Отменить собрание
+    | {{ $t('ku.kuMeetingHeaderActions.cancelAction') }}
 </template>
 
 <script setup lang="ts">

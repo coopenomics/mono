@@ -22,7 +22,7 @@
           icon='fa-solid fa-hashtag'
           @remove='clearIdFilter'
           class='font-monospace'
-        ) № операции {{ filters.applyGlobalSequence }}
+        ) {{ $t('reports.operationsPage.chip.operationNumber', { number: filters.applyGlobalSequence }) }}
         q-chip(
           v-if='filters.processHash'
           removable
@@ -31,7 +31,7 @@
           icon='fa-solid fa-fingerprint'
           @remove='clearIdFilter'
           class='font-monospace'
-        ) Процесс {{ filters.processHash.slice(0, 8) }}
+        ) {{ $t('reports.operationsPage.chip.process', { hash: filters.processHash.slice(0, 8) }) }}
         q-chip(
           v-if='filters.username'
           removable
@@ -39,11 +39,11 @@
           text-color='white'
           icon='fa-solid fa-user'
           @remove='clearUsernameFilter'
-        ) Пайщик {{ fioCache.get(filters.username) || filters.username }}
+        ) {{ $t('reports.operationsPage.chip.participant', { name: fioCache.get(filters.username) || filters.username }) }}
       .row.q-gutter-sm.items-end
         q-input.col-md-3.col-12(
           v-model='searchInput'
-          label='Поиск (№ операции / процесса)'
+          :label='$t("reports.operationsPage.searchLabel")'
           dense
           outlined
           clearable
@@ -54,7 +54,7 @@
             q-icon.cursor-pointer(name='fa-solid fa-magnifying-glass' @click='applyIdSearch')
         q-input.col-md-2.col-12(
           v-model='filters.dateFrom'
-          label='С даты'
+          :label='$t("reports.operationsPage.dateFromLabel")'
           dense
           outlined
           clearable
@@ -72,10 +72,10 @@
                   @update:model-value='reload'
                 )
                   .row.items-center.justify-end
-                    q-btn(v-close-popup flat label='Готово' color='primary')
+                    q-btn(v-close-popup flat :label='$t("reports.operationsPage.dateDoneLabel")' color='primary')
         q-input.col-md-2.col-12(
           v-model='filters.dateTo'
-          label='По дату'
+          :label='$t("reports.operationsPage.dateToLabel")'
           dense
           outlined
           clearable
@@ -93,10 +93,10 @@
                   @update:model-value='reload'
                 )
                   .row.items-center.justify-end
-                    q-btn(v-close-popup flat label='Готово' color='primary')
+                    q-btn(v-close-popup flat :label='$t("reports.operationsPage.dateDoneLabel")' color='primary')
         q-toggle.col-md-auto(
           v-model='filters.adjustmentsOnly'
-          label='Только корректировки'
+          :label='$t("reports.operationsPage.correctionsOnlyLabel")'
           color='warning'
           @update:model-value='reload'
         )
@@ -104,7 +104,7 @@
           v-if='hasAnyFilter'
           flat
           icon='fa-solid fa-rotate'
-          label='Сбросить'
+          :label='$t("reports.operationsPage.resetLabel")'
           @click='resetFilters'
         )
 
@@ -119,7 +119,7 @@
       :loading='loading'
       v-model:pagination='pagination'
       :rows-per-page-options='[25, 50, 100, 200]'
-      :no-data-label='"Операции не найдены"'
+      :no-data-label='$t("reports.operationsPage.emptyLabel")'
       @request='onRequest'
     )
       template(#body='props')
@@ -138,14 +138,14 @@
               :rawId='props.row.globalSequence'
               @click='copyText(String(props.row.globalSequence))'
             )
-              q-tooltip Клик — копировать
+              q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
           q-td
             EntityIdBadge(
               v-if='props.row.processHash'
               :rawId='shortHash(props.row.processHash)'
               @click='goToProcess(props.row.processHash)'
             )
-              q-tooltip Открыть процесс в реестре процессов
+              q-tooltip {{ $t('reports.operationsPage.openProcessLabel') }}
             span.t-faint(v-else) —
           q-td {{ formatDate(props.row.createdAt) }}
           q-td
@@ -172,19 +172,19 @@
               )
                 .text-h6.text-weight-medium {{ rowLabel(props.row) }}
                 .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.operationCode')
-                  .text-caption.t-muted Тип процесса:
+                  .text-caption.t-muted {{ $t('reports.operationsPage.processTypeLabel') }}
                   EntityIdBadge(
                     :rawId='props.row.operationCode'
                     copy-on-click
                   )
-                    q-tooltip Клик — копировать
+                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
                 .row.items-center.q-gutter-sm.q-mb-xs(v-if='props.row.processHash')
-                  .text-caption.t-muted ID процесса:
+                  .text-caption.t-muted {{ $t('reports.operationsPage.processIdLabel') }}
                   EntityIdBadge(
                     :rawId='props.row.processHash'
                     copy-on-click
                   )
-                    q-tooltip Клик — копировать
+                    q-tooltip {{ $t('reports.operationsPage.copyHintLabel') }}
                 .row.items-center.q-gutter-sm(v-if='props.row.memo')
                   q-icon(name='fa-solid fa-note-sticky' color='grey-6' size='xs')
                   .text-caption.t-muted {{ props.row.memo }}
@@ -197,7 +197,7 @@
                 .col-12.col-md-6
                   q-card(flat bordered)
                     q-card-section.q-pb-none
-                      .text-subtitle2 Движения по кошелькам
+                      .text-subtitle2 {{ $t('reports.operationsPage.walletMovementsTitle') }}
                     q-card-section.q-pt-sm
                       q-table(
                         v-if='walletRows(props.row.globalSequence).length'
@@ -219,13 +219,13 @@
                             WalletIdCell(:wallet-name='cp.row.walletTo')
                         template(#body-cell-quantity='cp')
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) Движений по кошелькам нет
+                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.walletMovementsEmptyLabel') }}
 
                 //- Таблица 2: Проводки по счетам (Дт → Кт парами)
                 .col-12.col-md-6
                   q-card(flat bordered)
                     q-card-section.q-pb-none
-                      .text-subtitle2 Проводки по счетам
+                      .text-subtitle2 {{ $t('reports.operationsPage.postingsTitle') }}
                     q-card-section.q-pt-sm
                       q-table(
                         v-if='accountRows(props.row.globalSequence).length'
@@ -244,7 +244,7 @@
                             AccountIdCell(:account-code='cp.row.creditCode')
                         template(#body-cell-quantity='cp')
                           q-td.text-right(:props='cp') {{ formatAmount(cp.row.quantity) }}
-                      .text-caption.t-faint(v-else) Проводок нет
+                      .text-caption.t-faint(v-else) {{ $t('reports.operationsPage.postingsEmptyLabel') }}
 
               //- Слот расширения: содержание процесса в бизнес-терминах.
               //- Рисуется только если соответствующее расширение зарегистрировало
@@ -252,7 +252,7 @@
               .q-mt-md(v-if='props.row.processHash && hasProcessInfo(props.row)')
                 q-card(flat bordered)
                   q-card-section.q-pb-none
-                    .text-subtitle2 Содержание процесса
+                    .text-subtitle2 {{ $t('reports.operationsPage.processContentTitle') }}
                   q-card-section.q-pt-sm
                     component(
                       :is='processInfoComponent(props.row)'
@@ -270,17 +270,17 @@
                 .text-body2.text-weight-medium {{ actionLabel(props.row.operationCode) }}
                 .text-caption.t-faint.font-monospace {{ props.row.operationCode || '-' }}
               .col-auto.text-right
-                .text-caption.t-faint Сумма
+                .text-caption.t-faint {{ $t('reports.operationsPage.column.amount') }}
                 .text-body1.text-weight-bold.font-monospace {{ formatAmount(props.row.quantity) }}
               .col-12.text-caption.t-muted
-                | Пайщик: {{ fioCache.get(props.row.username ?? '') || props.row.username || '-' }}
+                | {{ $t('reports.operationsPage.participantLabel', { name: fioCache.get(props.row.username ?? '') || props.row.username || '-' }) }}
               .col-12.row.q-gutter-xs.q-mt-xs.items-center
-                .text-caption.t-muted № операции
+                .text-caption.t-muted {{ $t('reports.operationsPage.column.operationId') }}
                 EntityIdBadge(
                   :rawId='props.row.globalSequence'
                   @click='copyText(String(props.row.globalSequence))'
                 )
-                .text-caption.t-muted № процесса
+                .text-caption.t-muted {{ $t('reports.operationsPage.column.processId') }}
                 EntityIdBadge(
                   v-if='props.row.processHash'
                   :rawId='shortHash(props.row.processHash)'
@@ -290,6 +290,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, nextTick, reactive, ref } from 'vue'
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
@@ -307,6 +308,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
 import { processInfoFactory } from 'src/shared/lib/process-info-factory'
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
@@ -330,8 +332,8 @@ function actionLabel(code: string | null | undefined): string {
  */
 function rowLabel(row: ILedger2Operation): string {
   if (row.operationCode) return actionLabel(row.operationCode)
-  if (row.action === 'walmove') return Ledger2.getOperationHumanName('o.adj.walmove') ?? 'Перевод между кошельками'
-  if (row.action === 'revert') return Ledger2.getOperationHumanName('o.adj.rev') ?? 'Откат операции'
+  if (row.action === 'walmove') return Ledger2.getOperationHumanName('o.adj.walmove') ?? t('reports.operationsPage.operationType.walletTransfer')
+  if (row.action === 'revert') return Ledger2.getOperationHumanName('o.adj.rev') ?? t('reports.operationsPage.operationType.rollback')
   return '—'
 }
 
@@ -522,20 +524,20 @@ async function applyIdSearch(): Promise<void> {
 async function copyText(text: string) {
   try {
     await copyToClipboard(text)
-    SuccessAlert('Скопировано')
+    SuccessAlert(t('reports.operationsPage.copySuccess'))
   } catch {
-    FailAlert('Не удалось скопировать')
+    FailAlert(t('reports.operationsPage.copyError'))
   }
 }
 
 
 const accountFilterLabel = computed(() => {
   if (filters.accountKind === 'wallet' && filters.walletName) {
-    return `Кошелёк ${filters.walletName}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+    return t('reports.operationsPage.chip.wallet', { wallet: filters.walletName, accountSuffix: filters.accountName ? ` — ${filters.accountName}` : '' })
   }
   if (filters.accountId !== null) {
     const displayCode = Math.round(filters.accountId / 1000)
-    return `Счёт ${displayCode}${filters.accountName ? ` — ${filters.accountName}` : ''}`
+    return t('reports.operationsPage.chip.account', { account: displayCode, accountSuffix: filters.accountName ? ` — ${filters.accountName}` : '' })
   }
   return ''
 })
@@ -594,25 +596,25 @@ async function resolveAccountName(id: number) {
 
 const columns = [
   { name: 'expand', align: 'left' as const, label: '', field: 'expand', sortable: false },
-  { name: 'operationId', align: 'left' as const, label: '№ операции', field: 'globalSequence' },
-  { name: 'processHash', align: 'left' as const, label: '№ процесса', field: 'processHash' },
-  { name: 'createdAt', align: 'left' as const, label: 'Дата', field: 'createdAt' },
-  { name: 'actionName', align: 'left' as const, label: 'Операция', field: 'operationCode' },
-  { name: 'quantity', align: 'right' as const, label: 'Сумма', field: 'quantity' },
-  { name: 'username', align: 'left' as const, label: 'Пайщик', field: 'username' },
+  { name: 'operationId', align: 'left' as const, label: t('reports.operationsPage.column.operationId'), field: 'globalSequence' },
+  { name: 'processHash', align: 'left' as const, label: t('reports.operationsPage.column.processId'), field: 'processHash' },
+  { name: 'createdAt', align: 'left' as const, label: t('reports.operationsPage.column.date'), field: 'createdAt' },
+  { name: 'actionName', align: 'left' as const, label: t('reports.operationsPage.column.operation'), field: 'operationCode' },
+  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
+  { name: 'username', align: 'left' as const, label: t('reports.operationsPage.column.participant'), field: 'username' },
 ]
 
 const walletColumns = [
   { name: 'direction', align: 'center' as const, label: '', field: 'direction' },
-  { name: 'walletFrom', align: 'left' as const, label: 'Из', field: 'walletFrom' },
-  { name: 'walletTo', align: 'left' as const, label: 'В', field: 'walletTo' },
-  { name: 'quantity', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'walletFrom', align: 'left' as const, label: t('reports.operationsPage.column.walletFrom'), field: 'walletFrom' },
+  { name: 'walletTo', align: 'left' as const, label: t('reports.operationsPage.column.walletTo'), field: 'walletTo' },
+  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
 ]
 
 const accountColumns = [
-  { name: 'debit', align: 'center' as const, label: 'Дебет', field: 'debit' },
-  { name: 'credit', align: 'center' as const, label: 'Кредит', field: 'credit' },
-  { name: 'quantity', align: 'right' as const, label: 'Сумма', field: 'quantity' },
+  { name: 'debit', align: 'center' as const, label: t('reports.operationsPage.column.debit'), field: 'debit' },
+  { name: 'credit', align: 'center' as const, label: t('reports.operationsPage.column.credit'), field: 'credit' },
+  { name: 'quantity', align: 'right' as const, label: t('reports.operationsPage.column.amount'), field: 'quantity' },
 ]
 
 // Группированные sibling-операции по parent apply globalSequence
@@ -729,7 +731,7 @@ async function loadChildOps(seq: string, processHash: string) {
 }
 
 function formatDate(d: string | Date): string {
-  return new Date(d).toLocaleString('ru-RU', {
+  return new Date(d).toLocaleString(uiLocale(), {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }

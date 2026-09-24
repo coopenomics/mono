@@ -8,14 +8,14 @@ q-dialog(
   @show='onShow',
   @hide='onHide'
 )
-  .command-palette(role='dialog', aria-label='Поиск рабочих столов и страниц')
+  .command-palette(role='dialog', :aria-label='$t("ui.commandPalette.searchAriaLabel")')
     header.command-palette__search
       q-icon.command-palette__search-icon(name='search', size='18px')
       input.command-palette__input(
         ref='inputRef',
         v-model='query',
         type='text',
-        :placeholder='placeholder ?? "Поиск рабочих столов и страниц…"',
+        :placeholder='placeholder ?? $t("ui.commandPalette.searchPlaceholder")',
         autocomplete='off',
         spellcheck='false',
         @keydown.down.prevent='moveSelection(1)',
@@ -24,7 +24,7 @@ q-dialog(
       )
       button.command-palette__close(
         type='button',
-        aria-label='Закрыть',
+        :aria-label='$t("common.action.close")',
         @click='close'
       )
         q-icon(name='close', size='18px')
@@ -44,7 +44,7 @@ q-dialog(
             )
               q-icon.command-palette__workspace-icon(:name='ws.icon', size='20px')
               span.command-palette__workspace-title {{ ws.title }}
-              span.command-palette__workspace-badge(v-if='ws.isActive') {{ activeLabel ?? 'Активный' }}
+              span.command-palette__workspace-badge(v-if='ws.isActive') {{ activeLabel ?? $t('ui.commandPalette.activeLabel') }}
           ul.command-palette__pages(v-if='ws.pages.length')
             li(v-for='page in ws.pages', :key='page.name')
               button.command-palette__page(
@@ -79,27 +79,28 @@ q-dialog(
                 | {{ entry.kind === 'workspace' ? entry.workspace.title : entry.page.title }}
                 span.command-palette__workspace-badge(
                   v-if='entry.kind === "workspace" && entry.workspace.isActive'
-                ) {{ activeLabel ?? 'Активный' }}
+                ) {{ activeLabel ?? $t('ui.commandPalette.activeLabel') }}
             kbd.command-palette__page-shortcut(v-if='entry.kind === "page" && entry.page.shortcut') {{ entry.page.shortcut }}
 
       .command-palette__empty(v-else)
-        EmptyState(title='Ничего не найдено', body='Попробуйте другой запрос')
+        EmptyState(:title='$t("ui.commandPalette.emptyTitle")', :body='$t("ui.commandPalette.emptyBody")')
 
     footer.command-palette__footer
       span.command-palette__hint
         kbd ↑
         kbd ↓
-        | для навигации
+        | {{ $t('ui.commandPalette.navigateHint') }}
       span.command-palette__hint
         kbd ↵ Enter
-        | для выбора
+        | {{ $t('ui.commandPalette.selectHint') }}
       span.command-palette__hint
         kbd Esc
-        | для закрытия
+        | {{ $t('ui.commandPalette.closeHint') }}
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import { t } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import type {
   CommandPalettePage,
@@ -160,7 +161,7 @@ const flatSearchResults = computed<FlatEntry[]>(() => {
   if (!q) return [];
 
   const isSearchingWorkspaces =
-    q.includes('стол') ||
+    q.includes(t('ui.commandPalette.workspaceKeyword')) ||
     q.includes('workspace') ||
     props.workspaces.some(
       (ws) =>

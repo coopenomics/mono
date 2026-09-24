@@ -5,17 +5,17 @@
     .wallet-header
       .wallet-title
         q-icon(name="account_balance_wallet" size="20px").q-mr-sm
-        | Кошелек AXON
+        | {{ $t('connection.axonWallet.title') }}
 
     // Описание
     .wallet-description
       .text-body2.text-grey-7
-        | AXON используется для оплаты пакетов документов. Минимально 5 AXON в день, по факту - от использования.
+        | {{ $t('connection.axonWallet.intro') }}
 
     // Баланс
     .balance-section
       .balance-value {{ formattedBalance }}
-      .balance-label Доступно
+      .balance-label {{ $t('connection.axonWallet.available') }}
 
     // Действия
     .actions-section
@@ -23,46 +23,46 @@
         q-btn(
           color="primary"
           icon="add"
-          label="Пополнить"
+          :label="$t('connection.axonWallet.topUp')"
           @click.stop="showDepositDialog = true"
         )
 
   BaseDialog(
     v-model='showDepositDialog',
-    title='Пополнение кошелька AXON',
+    :title='$t("connection.axonWallet.topUpDialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     .current-balance-section.q-mb-md
       .text-body2.text-grey-7.q-mb-xs
-        | Текущий баланс: {{ formattedRubBalance }}.
-        | Для оплаты AXON используется паевой взнос на вашем кошельке.
-        | При недостатке средств на балансе совершите паевой взнос:
+        | {{ $t('connection.axonWallet.currentBalance', { balance: formattedRubBalance }) }}
+        | {{ $t('connection.axonWallet.paymentSource') }}
+        | {{ $t('connection.axonWallet.topUpHint') }}
         q-btn(
           flat,
           dense,
           no-caps,
           color="primary",
-          label="перейти в кошелек",
+          :label="$t('connection.axonWallet.goToWallet')",
           @click="goToWallet"
         )
 
     Form(
       :handler-submit="handlerSubmit",
       :is-submitting="isSubmitting",
-      button-cancel-txt="Отменить",
-      button-submit-txt="Пополнить",
+      :button-cancel-txt="$t('connection.axonWallet.cancel')",
+      :button-submit-txt="$t('connection.axonWallet.submit')",
       @cancel="clear"
     )
       q-input(
         v-model="depositAmount",
         standout="bg-teal text-white",
-        placeholder="Введите сумму в RUB",
+        :placeholder="$t('connection.axonWallet.amountPlaceholder')",
         type="number",
         :min="0",
         :step="10",
         :hint="depositHint",
-        :rules="[(val) => val > 0 || 'Сумма должна быть положительной']"
+        :rules="[(val) => val > 0 || $t('connection.axonWallet.amountPositive')]"
       )
         template(#append)
           span.text-overline RUB
@@ -80,6 +80,7 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
 import { useProviderAxonConvert, AXON_GOVERN_RATE } from 'src/features/Provider/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const session = useSessionStore();
@@ -108,7 +109,7 @@ const depositHint = computed(() => {
 
   const rubAmount = parseFloat(depositAmount.value);
   const axonAmount = rubAmount / AXON_GOVERN_RATE;
-  return `Будет зачислено: ${formatAsset2Digits(`${axonAmount} AXON`)} (курс: 1 AXON = ${AXON_GOVERN_RATE} RUB)`;
+  return t('connection.axonWallet.willBeCredited', { amount: formatAsset2Digits(`${axonAmount} AXON`), rate: AXON_GOVERN_RATE });
 });
 
 const clear = () => {

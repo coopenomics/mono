@@ -3,8 +3,8 @@
   .decision-result__head
     .decision-result__label
       q-icon(name='description', size='18px')
-      span.t-eyebrow Детальная информация
-    h3.decision-result__title Результат интеллектуальной деятельности
+      span.t-eyebrow {{ $t('capital.createResultDecisionInfoWidget.title') }}
+    h3.decision-result__title {{ $t('capital.createResultDecisionInfoWidget.resultTitle') }}
 
   .decision-result__skel(v-if='loading')
     .skel(v-for='i in 3', :key='i')
@@ -16,37 +16,37 @@
   template(v-else)
     .decision-result__panel
       .decision-result__summary
-        DataRow(label='Компонент', :value='componentTitle')
-        DataRow(v-if='projectTitle', label='Проект', :value='projectTitle')
-        DataRow(label='Заявитель', :value='applicantName')
+        DataRow(:label='$t("capital.createResultDecisionInfoWidget.componentLabel")', :value='componentTitle')
+        DataRow(v-if='projectTitle', :label='$t("capital.createResultDecisionInfoWidget.projectLabel")', :value='projectTitle')
+        DataRow(:label='$t("capital.createResultDecisionInfoWidget.applicantLabel")', :value='applicantName')
         DataRow(
           v-if='sharePercent',
-          label='Доля в результате',
+          :label='$t("capital.createResultDecisionInfoWidget.shareLabel")',
           :value='`${sharePercent}%`',
           mono
         )
         DataRow(
           v-if='contributionAmount',
-          label='Паевой взнос',
+          :label='$t("capital.createResultDecisionInfoWidget.shareContributionLabel")',
           :value='contributionAmount',
           mono
         )
         DataRow(
           v-if='debtAmount',
-          label='Погашаемая ссуда',
+          :label='$t("capital.createResultDecisionInfoWidget.loanRepaymentLabel")',
           :value='debtAmount',
           mono
         )
         DataRow(
           v-if='shortResultHash',
-          label='Хеш результата',
+          :label='$t("capital.createResultDecisionInfoWidget.resultHashLabel")',
           :value='shortResultHash',
           mono,
           copyable
         )
 
       .decision-result__tasks(v-if='issues.length')
-        .decision-result__section-label.t-sm.t-muted Задачи в результате
+        .decision-result__section-label.t-sm.t-muted {{ $t('capital.createResultDecisionInfoWidget.tasksTitle') }}
         ul.decision-result__issues
           li(v-for='issue in issues', :key='issue.issue_hash')
             a.decision-result__issue-link(
@@ -60,7 +60,7 @@
         @click='previewOpen = !previewOpen'
       )
         q-icon(:name='previewOpen ? "expand_less" : "expand_more"', size='20px')
-        span {{ previewOpen ? 'Скрыть текст результата' : 'Показать текст результата' }}
+        span {{ previewOpen ? $t('capital.createResultDecisionInfoWidget.hideResultText') : $t('capital.createResultDecisionInfoWidget.showResultText') }}
 
       .decision-result__preview-body(v-if='previewOpen')
         ResultPreviewCard(
@@ -70,7 +70,7 @@
         )
         .banner.banner--info(v-else)
           q-icon.banner__icon(name='info', size='20px')
-          .banner__body Текст результата ещё не сформирован.
+          .banner__body {{ $t('capital.createResultDecisionInfoWidget.resultTextEmpty') }}
 </template>
 
 <script lang="ts" setup>
@@ -87,6 +87,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useCommitStore } from 'app/extensions/capital/entities/Commit/model';
 import { ResultPreviewCard } from 'app/extensions/capital/features/Result/PreviewResult/ui';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../i18n';
 
 interface Props {
   agenda: IAgenda;
@@ -241,7 +242,7 @@ async function loadDetails() {
     }
 
     if (!username) {
-      throw new Error('В решении не указан заявитель');
+      throw new Error(t('capital.error.resultDecisionApplicantMissing'));
     }
 
     resultUsername.value = username;
@@ -257,7 +258,7 @@ async function loadDetails() {
       : items[0];
 
     if (!matched) {
-      throw new Error('Результат по заявлению не найден');
+      throw new Error(t('capital.error.resultNotFound'));
     }
 
     result.value = matched;
@@ -308,7 +309,7 @@ async function loadDetails() {
   } catch (e: unknown) {
     console.error(e);
     error.value =
-      e instanceof Error ? e.message : 'Не удалось загрузить детали результата';
+      e instanceof Error ? e.message : t('capital.createResultDecisionInfoWidget.loadError');
   } finally {
     loading.value = false;
   }

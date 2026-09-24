@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для meet-reminder-end воркфлоу
 export const meetReminderEndPayloadSchema = z.object({
@@ -21,31 +21,34 @@ export type IPayload = z.infer<typeof meetReminderEndPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Напоминание о завершении собрания';
-export const id = slugify(name);
+export const name = nt('meetReminderEnd.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'napominanie-o-zavershenii-sobraniya';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Напоминание пайщикам о скором завершении общего собрания')
+  .i18nKey('meetReminderEnd')
+  .description(nt('meetReminderEnd.description'))
   .payloadSchema(meetReminderEndPayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'meet-reminder-end-email',
-      'Напоминание о завершении собрания пайщиков №{{payload.meetId}} в {{payload.coopShortName}}',
-      'Уважаемый пайщик!<br><br>Общее собрание №{{payload.meetId}} завершится {{payload.timeDescription}} ({{payload.meetEndDate}} в {{payload.meetEndTime}} {{payload.timezone}}).<br><br>Если вы еще не проголосовали, пожалуйста, примите участие в голосовании по вопросам повестки дня.<br>Для голосования перейдите по ссылке:<br><a href="{{payload.meetUrl}}">{{payload.meetUrl}}</a><br><br>С уважением, Совет {{payload.coopShortName}}.'
+      nt('meetReminderEnd.email.subject'),
+      nt('meetReminderEnd.email.body')
     ),
     createInAppStep(
       'meet-reminder-end-notification',
-      'Собрание №{{payload.meetId}} скоро завершится',
-      'Завершится {{payload.timeDescription}}'
+      nt('meetReminderEnd.inApp.subject'),
+      nt('meetReminderEnd.inApp.body')
     ),
     createPushStep(
       'meet-reminder-end-push',
-      'Собрание №{{payload.meetId}} скоро завершится',
-      'Успейте проголосовать'
+      nt('meetReminderEnd.push.subject'),
+      nt('meetReminderEnd.push.body')
     ),
   ])
   .build();

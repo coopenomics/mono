@@ -10,7 +10,7 @@ BaseDialog(
 )
   .sign-agreement
     h1.sign-agreement__title {{ title }}
-    .sign-agreement__ghost(v-if='isLoading', aria-busy='true', aria-label='Формируем документ')
+    .sign-agreement__ghost(v-if='isLoading', aria-busy='true', :aria-label='$t(`agreementer.signAgreementDialog.loadingText`)')
       q-skeleton(v-for='(w, i) in ghostLines', :key='i', type='text', :width='w')
     slot(v-else)
   template(#footer)
@@ -20,7 +20,7 @@ BaseDialog(
         :disabled='isLoading',
         :loading='isSubmitting',
         @click='sign'
-      ) Подписать
+      ) {{ $t('common.action.sign') }}
 </template>
 
 <script lang="ts" setup>
@@ -33,12 +33,13 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSignAgreement } from '../model';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore()
 
 import { useSessionStore } from 'src/entities/Session';
 
 const session = useSessionStore()
-const title = computed(() => props.is_modify ? 'Прочитайте и подпишите обновлённый документ' : 'Прочитайте и подпишите документ')
+const title = computed(() => props.is_modify ? t('agreementer.signAgreementDialog.titleModify') : t('agreementer.signAgreementDialog.title'))
 
 const props = defineProps({
   agreement: {
@@ -66,7 +67,7 @@ const agreementOnSign = computed(() => agreementStore.generatedAgreements.find(e
 const sign = async () => {
 
   if (!agreementOnSign.value){
-    FailAlert('Возникла ошибка подписи документа');
+    FailAlert(t('agreementer.signAgreementDialog.signMissingError'));
     return
   }
 
@@ -81,11 +82,11 @@ const sign = async () => {
     await walletStore.loadUserWallet({coopname: info.coopname, username: session.username})
     isSubmitting.value = false
     show.value = false
-    SuccessAlert('Документ принят')
+    SuccessAlert(t('agreementer.signAgreementDialog.acceptedSuccess'))
   } catch(e: any){
     isSubmitting.value = false
     console.error(e)
-    FailAlert(`Ошибка подписи документа: ${e.message}`)
+    FailAlert(t('agreementer.signAgreementDialog.signError', { message: e.message }))
   }
 
 }

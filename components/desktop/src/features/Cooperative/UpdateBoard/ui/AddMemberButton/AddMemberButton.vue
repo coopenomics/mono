@@ -11,8 +11,8 @@ q-btn(
   no-wrap
 )
   q-icon(name='fa-solid fa-user-plus')
-  span.q-ml-sm(v-if='!isMobile') Добавить члена
-  q-tooltip(v-if='isMobile') Добавить члена
+  span.q-ml-sm(v-if='!isMobile') {{ $t('cooperative.addMemberButton.triggerLabel') }}
+  q-tooltip(v-if='isMobile') {{ $t('cooperative.addMemberButton.triggerLabel') }}
 
 AddMemberDialog(
   v-model='showDialog',
@@ -32,6 +32,7 @@ import {
 import { readBlockchain, SuccessAlert, FailAlert } from 'src/shared/api';
 import { sleep } from 'src/shared/api/sleep';
 import { useWindowSize } from 'src/shared/hooks';
+import { t } from 'src/shared/i18n';
 
 const showDialog = ref(false);
 const loading = ref(false);
@@ -45,14 +46,14 @@ const addMember = async (username: string) => {
     const verified = await verify(username);
 
     if (!verified) {
-      FailAlert('Имя аккаунта не найдено');
+      FailAlert(t('cooperative.addMemberButton.usernameNotFoundError'));
       return;
     }
 
     const membersForSend = (systemStore.info.board_members || []).map(
       (member) => ({
         username: member.username,
-        position_title: member.is_chairman ? 'Председатель совета' : 'Член совета',
+        position_title: member.is_chairman ? t('cooperative.addMemberButton.chairmanTitle') : t('cooperative.addMemberButton.memberTitle'),
         position: member.is_chairman ? 'chairman' : 'member',
         is_voting: true,
       }),
@@ -60,7 +61,7 @@ const addMember = async (username: string) => {
 
     membersForSend.push({
       username,
-      position_title: 'Член совета',
+      position_title: t('cooperative.addMemberButton.memberTitle'),
       position: 'member',
       is_voting: true,
     });
@@ -92,12 +93,12 @@ const updateBoard = async (members: any[]) => {
       username: useSessionStore().username,
       board_id: 0,
       members,
-      name: 'Совет',
-      description: 'Совет кооператива',
+      name: t('cooperative.addMemberButton.boardName'),
+      description: t('cooperative.addMemberButton.boardDescription'),
     });
 
     await sleep(3000);
-    SuccessAlert('Состав совета обновится через несколько секунд');
+    SuccessAlert(t('cooperative.addMemberButton.updateDelayNotice'));
     await systemStore.loadSystemInfo();
   } catch (e) {
     await systemStore.loadSystemInfo();

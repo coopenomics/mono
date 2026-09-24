@@ -9,6 +9,7 @@ import type { AgreementNumberDomainInterface } from '~/domain/agreement/interfac
 import type { VarsDomainInterface } from '~/domain/system/interfaces/vars-domain.interface';
 import { TrackingRuleRepository } from '../repositories/tracking-rule.repository';
 import { IDecisionTrackingPort, CreateTrackingRuleInput, DecisionEventType, DecisionProcessedResult, TrackingRule, DecisionTrackedEvent } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Адаптер для отслеживания решений
@@ -82,7 +83,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
   async deactivateRule(id: string): Promise<void> {
     const rule = await this.repository.findById(id);
     if (!rule) {
-      throw new Error(`Правило ${id} не найдено`);
+      throw DomainError.internal('DECISION_TRACKING_RULE_NOT_FOUND', { id });
     }
 
     rule.active = false;

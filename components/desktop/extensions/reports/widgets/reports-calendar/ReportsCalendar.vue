@@ -2,30 +2,30 @@
 .reports-calendar
   .calendar-header
     .row.items-center.q-gutter-sm
-      .text-subtitle2.col Календарь отчётности {{ year }} год
+      .text-subtitle2.col {{ $t('reports.reportsCalendar.title', { year }) }}
       q-btn-group(flat dense)
         q-btn(
           flat dense
           icon='chevron_left'
           @click='changeYear(-1)'
-          aria-label='Предыдущий год'
+          :aria-label='$t("reports.reportsCalendar.prevYearLabel")'
         )
-          q-tooltip Предыдущий год
+          q-tooltip {{ $t('reports.reportsCalendar.prevYearLabel') }}
         q-btn(
           flat dense
           :label='String(year)'
           @click='resetYear'
         )
-          q-tooltip Текущий год
+          q-tooltip {{ $t('reports.reportsCalendar.currentYearLabel') }}
         q-btn(
           flat dense
           icon='chevron_right'
           @click='changeYear(1)'
-          aria-label='Следующий год'
+          :aria-label='$t("reports.reportsCalendar.nextYearLabel")'
         )
-          q-tooltip Следующий год
+          q-tooltip {{ $t('reports.reportsCalendar.nextYearLabel') }}
       q-btn(flat dense icon='refresh' @click='reload' :loading='loading')
-        q-tooltip Обновить
+        q-tooltip {{ $t('reports.reportsCalendar.refreshLabel') }}
 
   q-inner-loading(:showing='loading')
     q-spinner(size='40px' color='primary')
@@ -54,7 +54,7 @@
 
   .empty-state(v-else-if='!loading')
     q-icon(name='event_busy' size='32px' color='grey-5')
-    .text-caption.q-mt-sm Нет данных по формам
+    .text-caption.q-mt-sm {{ $t('reports.reportsCalendar.emptyState') }}
 </template>
 
 <script setup lang="ts">
@@ -67,10 +67,11 @@ import {
   type IReportType,
 } from 'src/entities/Report'
 import CalendarCell from './CalendarCell.vue'
+import { t } from '../../i18n';
 
 const MONTH_LABELS = [
-  'Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн',
-  'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек',
+  t('reports.reportsCalendar.month.jan'), t('reports.reportsCalendar.month.feb'), t('reports.reportsCalendar.month.mar'), t('reports.reportsCalendar.month.apr'), t('reports.reportsCalendar.month.may'), t('reports.reportsCalendar.month.jun'),
+  t('reports.reportsCalendar.month.jul'), t('reports.reportsCalendar.month.aug'), t('reports.reportsCalendar.month.sep'), t('reports.reportsCalendar.month.oct'), t('reports.reportsCalendar.month.nov'), t('reports.reportsCalendar.month.dec'),
 ]
 
 const reportStore = useReportStore()
@@ -88,7 +89,7 @@ async function reload(): Promise<void> {
   try {
     rows.value = await reportStore.loadCalendar(year.value)
   } catch (e) {
-    FailAlert(e, 'Ошибка загрузки календаря')
+    FailAlert(e, t('reports.reportsCalendar.loadError'))
   } finally {
     loading.value = false
   }
@@ -113,10 +114,10 @@ function cellsAtMonth(row: IReportCalendarRow, month: number): IReportCalendarPe
 function kindLabel(kind: string): string {
   return (
     {
-      yearly: 'годовая',
-      quarterly: 'квартальная',
-      monthly: 'ежемесячная',
-      'semi-monthly': 'дважды в месяц',
+      yearly: t('reports.reportsCalendar.periodKind.yearly'),
+      quarterly: t('reports.reportsCalendar.periodKind.quarterly'),
+      monthly: t('reports.reportsCalendar.periodKind.monthly'),
+      'semi-monthly': t('reports.reportsCalendar.periodKind.semiMonthly'),
     }[kind] ?? kind
   )
 }

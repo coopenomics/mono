@@ -3,7 +3,7 @@ import { ExpenseContract } from 'cooptypes'
 
 import httpStatus from 'http-status'
 import { ExpensesBlockchainPort } from '../../../domain/interfaces/expenses-blockchain.port'
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { VAULT_PORT, type IVaultPort,
   CHAIN_PORT,
   type IChainPort,
@@ -29,7 +29,7 @@ export class ExpensesBlockchainAdapter implements ExpensesBlockchainPort {
   private async initWithCoopKey(coopname: string): Promise<void> {
     const wif = await this.vaultDomainService.getWif(coopname)
     if (!wif) {
-      throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции')
+      throw new DomainError('EXPENSES_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY)
     }
     this.blockchainService.initialize(coopname, wif)
   }

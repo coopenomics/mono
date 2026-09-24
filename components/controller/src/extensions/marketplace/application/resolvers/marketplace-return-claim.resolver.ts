@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DocumentAggregateDTO, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -237,9 +237,7 @@ export class MarketplaceReturnClaimResolver {
       member.username
     );
     if (!isMember) {
-      throw new ForbiddenException(
-        'Чтение заявлений возможно только для участка, на котором вы являетесь председателем или доверенным лицом.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_READ_NOT_TRUSTEE');
     }
     const claims = await this.service.listByDeliveryBraname(
       platformSettings().coopname,
@@ -276,7 +274,7 @@ export class MarketplaceReturnClaimResolver {
         member.username
       ));
     if (!isOwnerOrderer && !isOperatorOfDeliveryKu) {
-      throw new ForbiddenException('Это чужое заявление на возврат.');
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_FOREIGN');
     }
     return this.toClaimDTO(claim);
   }
@@ -321,9 +319,7 @@ export class MarketplaceReturnClaimResolver {
       member.username
     );
     if (!isMember) {
-      throw new ForbiddenException(
-        'Заявление об отмене сделки готовится только для участка, на котором вы являетесь председателем или доверенным лицом.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_PREPARE_NOT_TRUSTEE');
     }
     const docs = await this.service.getChairmanReturnSignablePayload({
       coopname: platformSettings().coopname,

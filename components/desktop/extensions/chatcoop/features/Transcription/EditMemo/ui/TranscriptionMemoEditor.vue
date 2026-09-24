@@ -4,7 +4,7 @@
     Editor.transcription-memo-editor__editor(
       :model-value="draft"
       :readonly="isSaving || !canEditMemo"
-      :placeholder="canEditMemo ? 'Кратко, о чём был разговор. Первая строка — одно предложение-резюме до 150 символов.' : 'Заметка не заполнена.'"
+      :placeholder="canEditMemo ? $t('chatcoop.transcriptionMemoEditor.placeholderHint') : $t('chatcoop.transcriptionMemoEditor.emptyText')"
       :min-height="180"
       :padded="true"
       :show-focus-ring="false"
@@ -17,13 +17,13 @@
         no-caps
         color="primary"
         icon="fa-solid fa-floppy-disk"
-        :label="isSaving ? 'Сохраняем…' : 'Сохранить'"
+        :label="isSaving ? $t('chatcoop.transcriptionMemoEditor.savingLabel') : $t('common.action.save')"
         :loading="isSaving"
         :disable="!isDirty || isSaving"
         @click="onSave"
       )
   p.transcription-memo-editor__hint(v-if="!canEditMemo")
-    | Редактирование доступно председателю и членам совета
+    | {{ $t('chatcoop.transcriptionMemoEditor.permissionHint') }}
 </template>
 
 <script lang="ts" setup>
@@ -33,6 +33,7 @@ import { FailAlert } from 'src/shared/api';
 import { Editor } from 'src/shared/ui/Editor';
 import { useSessionStore } from 'src/entities/Session';
 import { useSaveTranscriptionMemo } from '../model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{
   transcriptionId: string;
@@ -63,7 +64,7 @@ async function onSave(): Promise<void> {
   if (!canEditMemo.value || !isDirty.value || isSaving.value) return;
   const ok = await save(props.transcriptionId, draft.value);
   if (!ok) {
-    FailAlert('Не удалось сохранить заметку');
+    FailAlert(t('chatcoop.transcriptionMemoEditor.saveError'));
   }
 }
 </script>

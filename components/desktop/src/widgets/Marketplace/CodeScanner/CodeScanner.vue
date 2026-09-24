@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, useTemplateRef } from 'vue';
 import { BaseButton, BaseInput } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 /**
  * Единый сканер кодов камерой устройства (QR и 1D штрих-коды).
@@ -34,12 +35,12 @@ const props = withDefaults(
   }>(),
   {
     formats: () => ['qr_code'],
-    idleCaption: 'Наведите камеру на QR-код передачи',
-    frameHint: 'Поместите QR-код в рамку',
-    startLabel: 'Включить камеру',
-    manualLabel: 'Или введите код вручную',
-    manualPlaceholder: 'идентификатор',
-    manualButton: 'Применить',
+    idleCaption: t('marketplace.codeScanner.idleCaption'),
+    frameHint: t('marketplace.codeScanner.frameHint'),
+    startLabel: t('marketplace.codeScanner.enableCameraButton'),
+    manualLabel: t('marketplace.codeScanner.manualEntryLabel'),
+    manualPlaceholder: t('marketplace.codeScanner.manualInputPlaceholder'),
+    manualButton: t('marketplace.codeScanner.applyButton'),
   },
 );
 
@@ -130,7 +131,7 @@ async function start(): Promise<void> {
   errorMessage.value = '';
   if (!supported) {
     state.value = 'error';
-    errorMessage.value = 'Камера-сканер недоступна в этом браузере — введите код вручную.';
+    errorMessage.value = t('marketplace.codeScanner.unsupportedError');
     return;
   }
   state.value = 'requesting';
@@ -139,7 +140,7 @@ async function start(): Promise<void> {
     if (state.value !== 'requesting') return;
     teardown();
     state.value = 'error';
-    errorMessage.value = 'Камера не ответила — введите код вручную.';
+    errorMessage.value = t('marketplace.codeScanner.timeoutError');
   }, REQUEST_TIMEOUT_MS);
   try {
     detector = new DetectorCtor!({ formats: props.formats });
@@ -160,7 +161,7 @@ async function start(): Promise<void> {
   } catch {
     teardown();
     state.value = 'error';
-    errorMessage.value = 'Не удалось получить доступ к камере — введите код вручную.';
+    errorMessage.value = t('marketplace.codeScanner.accessError');
   }
 }
 
@@ -198,7 +199,7 @@ defineExpose({ start, stop });
       BaseButton(variant='primary', size='sm', @click='start') {{ startLabel }}
     .code-scanner__overlay(v-else-if='state === "requesting"')
       q-spinner(color='primary', size='40px')
-      .code-scanner__caption Запрос доступа к камере…
+      .code-scanner__caption {{ $t('marketplace.codeScanner.requestingAccessText') }}
     .code-scanner__frame(v-else-if='state === "scanning"')
       .code-scanner__corners
       .code-scanner__hint {{ frameHint }}
@@ -212,7 +213,7 @@ defineExpose({ start, stop });
     no-caps,
     dense,
     color='primary',
-    label='Остановить',
+    :label='$t("marketplace.codeScanner.stopLabel")',
     @click='stop'
   )
 

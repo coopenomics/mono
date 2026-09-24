@@ -5,9 +5,9 @@
       q-spinner(size='32px', color='primary')
   template(v-else-if='error')
     BaseBanner.q-mb-md(variant='neg')
-      | Не удалось загрузить состояние онбординга: {{ error }}
+      | {{ $t('cooperativeOnboarding.cooperativeOnboardingGate.loadError', { error }) }}
       template(#action)
-        BaseButton(variant='ghost', size='sm', @click='load') Повторить
+        BaseButton(variant='ghost', size='sm', @click='load') {{ $t('common.action.retry') }}
   template(v-else-if='!allDone')
     slot(name='onboarding', :steps='steps', :on-propose='handlePropose', :all-done='allDone', :expires-at='expiresAt', :is-expired='isExpired')
       CooperativeOnboardingSteps(:steps='steps', @propose='handlePropose')

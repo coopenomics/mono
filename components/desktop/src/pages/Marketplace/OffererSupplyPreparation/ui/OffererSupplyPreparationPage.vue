@@ -19,6 +19,7 @@ import { fetchSupplierOrders } from '../../OffererIncomingOrders/api';
 import type { MarketplaceOrderView } from '../../MyOrders/types';
 import { buildTtnData } from '../lib/ttn';
 import CreateShipmentDialog from './CreateShipmentDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 5 / Story 5.1 + Эпик 14 / Story 14.1, 14.5: offerer-стол «Подготовка
@@ -83,12 +84,12 @@ const showEmpty = computed(() => !firstLoad.value && shipments.value.length === 
 const emptyState = computed(() =>
   hasFormable.value
     ? {
-        title: 'Партии ещё не сформированы',
-        body: 'Принятые заказы готовы к отгрузке. Нажмите «Сформировать партию» в шапке — выберите способ доставки и КУ, и партия появится здесь.',
+        title: t('marketplace.offererSupplyPreparationPage.emptyAcceptedTitle'),
+        body: t('marketplace.offererSupplyPreparationPage.emptyAcceptedBody'),
       }
     : {
-        title: 'Партий пока нет',
-        body: 'Примите заказы во «Входящих заказах» — затем нажмите «Сформировать партию» в шапке, чтобы собрать отгрузку. Сформированные партии появятся здесь.',
+        title: t('marketplace.offererSupplyPreparationPage.emptyNoPartiesTitle'),
+        body: t('marketplace.offererSupplyPreparationPage.emptyNoPartiesBody'),
       },
 );
 
@@ -136,11 +137,11 @@ function openTtn(row: MarketplaceShipmentView): void {
 
 // Статус партии → метка + canon-вариант бейджа.
 const SHIPMENT_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  DRAFT: { label: 'Черновик', variant: 'neutral' },
-  SUPPLY_PREPARED: { label: 'Собрана к отгрузке', variant: 'info' },
-  RECEPTION_IN_PROGRESS: { label: 'Идёт приёмка', variant: 'warn' },
-  ACCEPTED_TO_COOP: { label: 'Принята кооперативом', variant: 'pos' },
-  CANCELLED: { label: 'Отменена', variant: 'neutral' },
+  DRAFT: { label: t('marketplace.offererSupplyPreparationPage.statusDraft'), variant: 'neutral' },
+  SUPPLY_PREPARED: { label: t('marketplace.offererSupplyPreparationPage.statusReadyToShip'), variant: 'info' },
+  RECEPTION_IN_PROGRESS: { label: t('marketplace.offererSupplyPreparationPage.statusReceiving'), variant: 'warn' },
+  ACCEPTED_TO_COOP: { label: t('marketplace.offererSupplyPreparationPage.statusAcceptedByCoop'), variant: 'pos' },
+  CANCELLED: { label: t('marketplace.offererSupplyPreparationPage.statusCancelled'), variant: 'neutral' },
 };
 
 function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant } {
@@ -149,10 +150,10 @@ function statusOf(v?: string | null): { label: string; variant: BaseBadgeVariant
 }
 
 const DELIVERY_VARIANT_LABEL: Record<string, string> = {
-  SELF: 'Поставщик сам',
-  EXPEDITOR: 'Через экспедитора',
-  A: 'Поставщик сам',
-  B: 'Через экспедитора',
+  SELF: t('marketplace.offererSupplyPreparationPage.deliveryMethodSelf'),
+  EXPEDITOR: t('marketplace.offererSupplyPreparationPage.deliveryMethodExpeditor'),
+  A: t('marketplace.offererSupplyPreparationPage.deliveryMethodSelf'),
+  B: t('marketplace.offererSupplyPreparationPage.deliveryMethodExpeditor'),
 };
 
 function deliveryVariantLabel(v: string): string {
@@ -170,10 +171,10 @@ function nextStep(row: MarketplaceShipmentView): string {
   switch (row.status) {
     case 'SUPPLY_PREPARED':
       return isExpeditor(row.delivery_variant)
-        ? 'Передайте груз экспедитору по ТТН — оператор КУ примет по накладной'
-        : 'Привезите имущество на КУ — оператор откроет приёмку';
+        ? t('marketplace.offererSupplyPreparationPage.statusHintExpeditor')
+        : t('marketplace.offererSupplyPreparationPage.statusHintSelf');
     case 'RECEPTION_IN_PROGRESS':
-      return 'Идёт приёмка на КУ — дождитесь подписей акта';
+      return t('marketplace.offererSupplyPreparationPage.statusHintReceiving');
     // ACCEPTED_TO_COOP — терминальный: следующего шага нет, подсказка
     // дублировала бы бейдж статуса («Принята кооперативом» дважды).
     default:
@@ -185,12 +186,12 @@ function nextStep(row: MarketplaceShipmentView): string {
 // вбок: участок и статус ужаты, «следующий шаг» переехал в панель партии —
 // длинной фразой он и раздувал колонку статуса.
 const columns: BaseTableColumn<MarketplaceShipmentView>[] = [
-  { key: 'cycle', label: 'Партия', width: '130px' },
-  { key: 'ku', label: 'Пункт выдачи', width: '210px', sortable: true, field: (row) => kuName(row.braname) },
-  { key: 'variant', label: 'Доставка', width: '150px', sortable: true, field: (row) => deliveryVariantLabel(row.delivery_variant) },
-  { key: 'status', label: 'Статус', width: '160px', sortable: true, field: 'status' },
-  { key: 'amount', label: 'Сумма', width: '130px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.total_amount) || 0 },
-  { key: 'ttn', label: 'Накладная', width: '150px' },
+  { key: 'cycle', label: t('marketplace.offererSupplyPreparationPage.partyColumnLabel'), width: '130px' },
+  { key: 'ku', label: t('marketplace.offererSupplyPreparationPage.pvzColumnLabel'), width: '210px', sortable: true, field: (row) => kuName(row.braname) },
+  { key: 'variant', label: t('marketplace.offererSupplyPreparationPage.deliveryColumnLabel'), width: '150px', sortable: true, field: (row) => deliveryVariantLabel(row.delivery_variant) },
+  { key: 'status', label: t('marketplace.offererSupplyPreparationPage.statusColumnLabel'), width: '160px', sortable: true, field: 'status' },
+  { key: 'amount', label: t('marketplace.offererSupplyPreparationPage.amountColumnLabel'), width: '130px', numeric: true, sortable: true, field: (row) => Number.parseFloat(row.total_amount) || 0 },
+  { key: 'ttn', label: t('marketplace.offererSupplyPreparationPage.waybillColumnLabel'), width: '150px' },
 ];
 
 async function load(): Promise<void> {
@@ -212,7 +213,7 @@ async function load(): Promise<void> {
       (o) => o.status === 'SUPPLY_PREPARED',
     );
   } catch (e) {
-    FailAlert(e, 'Не удалось загрузить партии');
+    FailAlert(e, t('marketplace.offererSupplyPreparationPage.loadPartiesFailedMessage'));
   } finally {
     loading.value = false;
   }
@@ -247,14 +248,14 @@ q-page.offerer-supply
     BaseButton(variant='primary', size='sm', :disabled='!hasFormable', @click='dialogOpen = true')
       template(#icon-left)
         q-icon(name='local_shipping', size='16px')
-      | Сформировать партию
+      | {{ $t('marketplace.offererSupplyPreparationPage.createPartyAction') }}
 
   PageHint(storage-key='mp:offerer-supply:banner-dismissed')
-    | Нажмите «Сформировать партию» в шапке: выберите способ доставки (самовывоз
-    | или экспедитор по накладной), пункт выдачи и перенесите в партию заказы,
-    | которые реально грузите. Невыбранное останется принятым и дождётся
-    | следующей партии. Нажмите на партию в списке, чтобы увидеть её состав,
-    | реквизиты доставки и что делать дальше.
+    | {{ $t('marketplace.offererSupplyPreparationPage.hintIntro') }}
+    | {{ $t('marketplace.offererSupplyPreparationPage.hintDeliveryChoice') }}
+    | {{ $t('marketplace.offererSupplyPreparationPage.hintUnselected') }}
+    | {{ $t('marketplace.offererSupplyPreparationPage.hintNextParty') }}
+    | {{ $t('marketplace.offererSupplyPreparationPage.hintDetails') }}
 
   BaseTable(
     v-if='firstLoad || shipments.length',
@@ -291,7 +292,7 @@ q-page.offerer-supply
         BaseButton(variant='ghost', size='sm', @click.stop='openTtn(row)')
           template(#icon-left)
             q-icon(name='print', size='16px')
-          | Открыть
+          | {{ $t('common.action.open') }}
       span(v-else) —
 
   //- Placeholder держит центр пустой области (flex-grow), как на других столах.
@@ -324,7 +325,7 @@ q-page.offerer-supply
     @print-ttn='openTtn'
   )
 
-  BaseDialog(v-model='ttnDialogOpen', title='Товарно-транспортная накладная', maximized)
+  BaseDialog(v-model='ttnDialogOpen', :title='$t("marketplace.offererSupplyPreparationPage.waybillTitle")', maximized)
     TTNPrintPreview(v-if='ttnData', :data='ttnData')
 </template>
 

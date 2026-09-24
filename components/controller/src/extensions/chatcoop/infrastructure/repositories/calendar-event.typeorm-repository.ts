@@ -12,6 +12,7 @@ import type {
 import { CalendarEventTypeormEntity } from '../entities/calendar-event.typeorm-entity';
 import { ManagedMatrixRoomTypeormEntity } from '../entities/managed-matrix-room.typeorm-entity';
 import { CalendarEventMapper } from '../mappers/calendar-event.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CalendarEventTypeormRepository implements ChatCoopCalendarEventRepository {
@@ -37,7 +38,7 @@ export class CalendarEventTypeormRepository implements ChatCoopCalendarEventRepo
   async update(input: UpdateChatCoopCalendarEventDomainInput): Promise<ChatCoopCalendarEventDomainEntity> {
     const existing = await this.repo.findOne({ where: { id: input.id } });
     if (!existing) {
-      throw new Error('Событие календаря не найдено');
+      throw DomainError.internal('CHATCOOP_CALENDAR_EVENT_NOT_FOUND');
     }
     const nextSeq = existing.icsSequence + 1;
     await this.repo.update(

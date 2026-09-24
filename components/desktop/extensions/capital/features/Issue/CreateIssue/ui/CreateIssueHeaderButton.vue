@@ -3,12 +3,12 @@ div
   BaseButton(
     variant='primary',
     :size='isMobile ? "sm" : "md"',
-    aria-label='Создать задачу',
+    :aria-label='$t("capital.createIssueHeaderButton.ariaLabel")',
     @click='dialogRef?.openDialog()'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Задача
+    | {{ $t('capital.createIssueHeaderButton.label') }}
 
   CreateIssueDialog(
     ref='dialogRef',

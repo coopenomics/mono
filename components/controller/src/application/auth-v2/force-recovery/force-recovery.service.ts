@@ -18,6 +18,7 @@ import {
   type IPendingCriticalActionsRepository,
 } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { AuditService } from '../audit/audit.service';
+import { t } from '~/i18n';
 
 /** TTL consent-токена (magic-link пайщику) и отметки согласия. */
 export const FORCE_RECOVERY_CONSENT_TTL_SEC = 24 * 60 * 60;
@@ -92,7 +93,7 @@ export class ForceRecoveryService {
   /** Пайщик подтверждает согласие кликом по magic-link. Без auth-guard (доступ мог быть утрачен). */
   async grantConsent(token: string, ip: string | null): Promise<{ targetId: string }> {
     const request = await this.consent.consumeRequest(token);
-    if (!request) throw new ForbiddenException({ error: 'invalid_consent_token', error_description: 'Ссылка согласия недействительна или истекла' });
+    if (!request) throw new ForbiddenException({ error: 'invalid_consent_token', error_description: t('authV2.forceRecoveryService.consentLinkInvalidMessage') });
     await this.consent.markGranted(request.targetId, request.initiatorId, FORCE_RECOVERY_GRANTED_TTL_SEC);
     await this.audit.record({
       event: 'ForceRecoveryConsentGranted',
@@ -162,7 +163,7 @@ export class ForceRecoveryService {
     this.logger.warn(`force-recovery отказан [${reason}]: target=${input.targetId} initiator=${input.initiatorId}`);
     return new ForbiddenException({
       error: 'force_recovery_denied',
-      error_description: 'Force-recovery невозможен без согласия пайщика или решения общего собрания',
+      error_description: t('authV2.forceRecoveryService.consentOrDecisionRequiredMessage'),
     });
   }
 }

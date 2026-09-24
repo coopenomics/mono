@@ -19,7 +19,7 @@ import { AddAvailableCategoryTypesInput } from '../dto/add-available-category-ty
 import { RemoveAvailableCategoriesInput } from '../dto/remove-available-categories-input.dto';
 import { RemoveAvailableCategoryTypesInput } from '../dto/remove-available-category-types-input.dto';
 import { ReplaceAvailableItemsInput } from '../dto/replace-available-items-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 
 /**
@@ -102,7 +102,7 @@ export class AvailableCategoryAdminResolver {
   ): Promise<boolean> {
     const deleted = await this.categoryService.deleteCustom(platformSettings().coopname, categoryId);
     if (!deleted) {
-      throw new BadRequestException('Базовую категорию удалить нельзя');
+      throw DomainError.badRequest('MARKETPLACE_CATEGORY_BASE_DELETE_FORBIDDEN');
     }
     // Снимаем категорию из whitelist (если была там), чтобы не осталась ссылка на удалённую.
     await this.availableCategoryService.removeAvailableCategory(platformSettings().coopname, categoryId);

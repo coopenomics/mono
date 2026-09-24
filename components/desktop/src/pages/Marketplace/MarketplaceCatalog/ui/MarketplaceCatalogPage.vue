@@ -34,6 +34,7 @@ import type {
   MarketplaceOfferView,
 } from '../types';
 import AddToCartDialog from './AddToCartDialog.vue';
+import { t } from 'src/shared/i18n';
 
 /**
  * Story 3.5: каталог Стола заказов на orderer-столе.
@@ -82,7 +83,7 @@ const totalActiveCount = computed(() =>
 // которых под его пунктом выдачи ничего нет. Счётчики КУ-скоупные (бэкенд),
 // поэтому фильтр следует за выбранным пунктом.
 const categoryTabs = computed<PageTab[]>(() => [
-  { key: 'all', label: 'Все', count: totalActiveCount.value },
+  { key: 'all', label: t('marketplace.marketplaceCatalogPage.filterAll'), count: totalActiveCount.value },
   ...categories.value
     .filter((cat) => (counts.value.get(cat.id) ?? 0) > 0)
     .map((cat) => ({
@@ -101,19 +102,19 @@ function onSelectCategory(tab: PageTab): void {
 }
 
 const sortOptions: Array<{ label: string; value: CatalogSort }> = [
-  { label: 'Свежие сначала', value: 'created_at_desc' },
-  { label: 'Цена ↑', value: 'price_asc' },
-  { label: 'Цена ↓', value: 'price_desc' },
+  { label: t('marketplace.marketplaceCatalogPage.sortNewest'), value: 'created_at_desc' },
+  { label: t('marketplace.marketplaceCatalogPage.sortPriceAsc'), value: 'price_asc' },
+  { label: t('marketplace.marketplaceCatalogPage.sortPriceDesc'), value: 'price_desc' },
 ];
 
 const currentSortLabel = computed(
-  () => sortOptions.find((o) => o.value === sort.value)?.label ?? 'Сортировка',
+  () => sortOptions.find((o) => o.value === sort.value)?.label ?? t('marketplace.marketplaceCatalogPage.sortDefaultLabel'),
 );
 
 const emptyBody = computed(() =>
   selectedCategoryId.value !== ALL_KEY
-    ? 'Попробуйте сменить категорию.'
-    : 'В каталоге пока нет активных предложений.'
+    ? t('marketplace.marketplaceCatalogPage.emptyBodyCategory')
+    : t('marketplace.marketplaceCatalogPage.emptyBodyNoOffers')
 );
 
 // Справочник id → название категории (для подписи в карточке).
@@ -393,7 +394,7 @@ useMarketplaceRealtime(
 </script>
 
 <template lang="pug">
-q-page.catalog(role="region", aria-label="Каталог Стола заказов")
+q-page.catalog(role="region", :aria-label="$t('marketplace.marketplaceCatalogPage.ariaLabel')")
   //- Кошелёк стола заказов в шапке: баланс виден там, где заказчик работает,
   //- и оттуда же пополняется (правка 2026-08-13 — раньше за деньгами
   //- приходилось уходить на стол пайщика).
@@ -410,7 +411,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
   //- заказа нужно выбрать пункт выдачи (кнопка «Выбрать пункт» в шапке выше).
   .catalog__guest-note(v-if="needsKU")
     q-icon(name="info", size="18px")
-    span Показаны все товары кооператива. Чтобы заказывать и отфильтровать витрину под себя — выберите пункт выдачи в шапке.
+    span {{ $t('marketplace.marketplaceCatalogPage.guestNote') }}
 
   PageTabs.catalog__tabs(
     :tabs="categoryTabs",
@@ -449,7 +450,7 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
 
   EmptyState(
     v-if="!firstLoad && items.length === 0",
-    title="Ничего не найдено",
+    :title="$t('marketplace.marketplaceCatalogPage.emptyTitle')",
     :body="emptyBody"
   )
     template(#icon)
@@ -462,14 +463,14 @@ q-page.catalog(role="region", aria-label="Каталог Стола заказо
           template(v-if="needsKU && offerKUNames(o).length", #details)
             .catalog__offer-ku
               q-icon(name="location_on", size="14px")
-              span Доступно в: {{ offerKUNames(o).join(', ') }}
+              span {{ $t('marketplace.marketplaceCatalogPage.availableAtLabel', { kuNames: offerKUNames(o).join(', ') }) }}
           template(#actions)
             BaseButton(
               variant="primary",
               size="sm",
               :disabled="!canOrder(o) || needsKU",
               @click.stop="onSelectOffer(o)"
-            ) В корзину
+            ) {{ $t('marketplace.marketplaceCatalogPage.addToCartAction') }}
     template(#loading)
       .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")

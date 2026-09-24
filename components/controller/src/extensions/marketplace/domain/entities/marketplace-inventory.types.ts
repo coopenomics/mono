@@ -1,4 +1,5 @@
 import type { MarketplaceUnitOfMeasure } from './marketplace-offer.types';
+import { t } from '../../i18n';
 
 /**
  * Story 5.5: типы инвентарной записи — внутренний штрих-код имущества на КУ.
@@ -214,9 +215,9 @@ export interface MarketplaceInventoryLocation {
 /** Человекочитаемый адрес: «Бокс BX-0007 · A-02», «Ячейка A-02». */
 export function formatInventoryLocation(location: MarketplaceInventoryLocation): string {
   if (location.container_code && location.cell_code) {
-    return `Бокс ${location.container_code} · ${location.cell_code}`;
+    return t('marketplace.inventoryTypes.boxWithCell', { containerCode: location.container_code, cellCode: location.cell_code });
   }
-  if (location.container_code) return `Бокс ${location.container_code}`;
-  if (location.cell_code) return `Ячейка ${location.cell_code}`;
-  return 'Без места';
+  if (location.container_code) return t('marketplace.inventoryTypes.boxOnly', { containerCode: location.container_code });
+  if (location.cell_code) return t('marketplace.inventoryTypes.cellOnly', { cellCode: location.cell_code });
+  return t('marketplace.inventoryTypes.noLocation');
 }

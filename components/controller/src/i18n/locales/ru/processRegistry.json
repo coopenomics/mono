@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "PROCESS_REGISTRY_HASH_INVALID_FORMAT": "process_hash должен быть hex-64 (получено: \"{hash}\")",
+    "PROCESS_REGISTRY_LIMIT_EXCEEDED": "Превышен лимит {limit} в {collection} для процесса {hash} (фактически: {count})",
+    "PROCESS_REGISTRY_NOT_FOUND": "Процесс с хэшем {hash} не найден"
+  }
+}

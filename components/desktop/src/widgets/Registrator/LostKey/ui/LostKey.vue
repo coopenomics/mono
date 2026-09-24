@@ -1,12 +1,12 @@
 <template>
   <AuthSplit
     :eyebrow="coopTitle"
-    title="Перевыпуск ключа"
-    lead="Новый ключ доступа создаётся в вашем браузере и заменяет утерянный."
-    quote="Ключ подписывает документы от вашего имени — храните его в менеджере паролей."
-    step-eyebrow="Перевыпуск ключа"
-    heading="Куда прислать ссылку"
-    text="Введите электронную почту, на которую зарегистрирован аккаунт."
+    :title="$t('registrator.lostKey.title')"
+    :lead="$t('registrator.lostKey.lead')"
+    :quote="$t('registrator.lostKey.quote')"
+    :step-eyebrow="$t('registrator.lostKey.title')"
+    :heading="$t('registrator.lostKey.heading')"
+    :text="$t('registrator.lostKey.text')"
   >
     <template v-if="$slots.actions" #actions>
       <slot name="actions" />
@@ -17,7 +17,7 @@
     <BaseForm :loading="loading" :error="errorMessage" @submit="submit">
       <BaseInput
         v-model="email"
-        label="Электронная почта"
+        :label="$t('registrator.lostKey.emailLabel')"
         type="email"
         autocomplete="email"
         :error="emailError"
@@ -29,9 +29,7 @@
         block
         :loading="loading"
         :disabled="!isValidEmail"
-      >
-        Продолжить
-      </BaseButton>
+      > {{ $t('registrator.lostKey.submit') }} </BaseButton>
     </BaseForm>
     <template v-if="$slots.footer" #foot>
       <slot name="footer" />
@@ -47,6 +45,7 @@ import { useLostKey } from 'src/features/User/LostKey/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const { startResetKey } = useLostKey();
@@ -60,7 +59,7 @@ const errorMessage = ref('');
 
 const isValidEmail = computed(() => emailIsValid(email.value));
 const emailError = computed(() =>
-  email.value && !isValidEmail.value ? 'Введите корректный email' : '',
+  email.value && !isValidEmail.value ? t('registrator.lostKey.emailInvalid') : '',
 );
 
 const submit = async (): Promise<void> => {
@@ -71,7 +70,7 @@ const submit = async (): Promise<void> => {
     await startResetKey({ email: email.value });
     void router.push({ name: 'resetkey' });
   } catch (e: any) {
-    errorMessage.value = e?.message || 'Не удалось отправить запрос. Попробуйте позже.';
+    errorMessage.value = e?.message || t('registrator.lostKey.submitError');
     FailAlert(e);
   } finally {
     loading.value = false;

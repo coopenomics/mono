@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, type InnerDocumentAggregate, USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 import {
@@ -77,7 +70,7 @@ import { PublicKey, Signature } from '@wharfkit/antelope';
 import http from 'http-status';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceAplReceptionSignedDocumentInputDTO } from '../documents-dto/marketplace-apl-reception-document.dto';
-import { SignedDigitalDocumentInputDTO, HttpApiError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import {
   MarketplaceAplReceptionStatuses,
   MarketplaceAplReceptionVariants,
@@ -110,6 +103,7 @@ import type { MarketplaceAplReceptionDomainEntity } from '../../domain/entities/
 import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketplace-order.entity';
 import { MarketplaceOrderStatuses } from '../../domain/entities/marketplace-order.types';
 import { presentSaleUnit } from '../shared/packaging.util';
+import { t } from '../../i18n';
 
 export interface MarketplaceAplReceptionCreateInputDto {
   coopname: string;
@@ -344,17 +338,13 @@ export class MarketplaceAplReceptionService {
     const reception = await this.loadReception(coopname, apl_reception_id);
     const signedDocs = reception.supplier_signed_documents;
     if (!signedDocs || signedDocs.length === 0) {
-      throw new ConflictException(
-        `АПП ${reception.id}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_BEFORE_SUPPLIER', { receptionId: reception.id });
     }
     const aggregates: InnerDocumentAggregate[] = [];
     for (const signed of signedDocs) {
       const aggregate = await this.documentPort.buildAggregate(signed);
       if (!aggregate) {
-        throw new ConflictException(
-          `АПП ${reception.id}: исходный документ по doc_hash ${signed.doc_hash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_SOURCE_DOCUMENT_NOT_FOUND', { receptionId: reception.id, docHash: signed.doc_hash });
       }
       aggregates.push(aggregate);
     }
@@ -411,7 +401,7 @@ export class MarketplaceAplReceptionService {
       total_amount,
       supplier_account: input.reception.offerer_account,
       sku: input.order.offer_id,
-      product_title: offer?.product_name ?? 'Товар по предложению',
+      product_title: offer?.product_name ?? t('marketplace.aplReception.itemFallbackName'),
       unit_of_measurement: pres.unitLabel,
       unit_cost: fact_unit_price,
       currency: this.assetConfig.symbol,
@@ -428,24 +418,20 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceAplReceptionCreateInputDto
   ): Promise<MarketplaceAplReceptionResult> {
     if (!input.shipment_id) {
-      throw new BadRequestException('Не указан shipment_id.');
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_ID_REQUIRED');
     }
 
     const shipment = await this.shipmentRepo.findById(input.shipment_id);
     if (!shipment || shipment.coopname !== input.coopname) {
-      throw new NotFoundException('Партия поставки не найдена.');
+      throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
     }
     if (shipment.status !== MarketplaceShipmentStatuses.SUPPLY_PREPARED) {
-      throw new BadRequestException(
-        `Партия не готова к приёмке: статус «${shipment.status}», ожидался SUPPLY_PREPARED.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_NOT_READY_FOR_RECEPTION', { status: shipment.status });
     }
     // Один Shipment — одна активная АПП.
     const existing = await this.receptionRepo.findByShipmentId(input.coopname, shipment.id);
     if (existing) {
-      throw new ConflictException(
-        `АПП для партии ${shipment.id} уже сформирована (id=${existing.id}); повторное создание запрещено.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_ALREADY_CREATED', { shipmentId: shipment.id, existingId: existing.id });
     }
 
     // Состав партии — по прямой связи order.shipment_id (обязательно при
@@ -457,9 +443,7 @@ export class MarketplaceAplReceptionService {
       groupOrders = orders.filter((o) => o.delivery_braname === shipment.braname);
     }
     if (groupOrders.length === 0) {
-      throw new BadRequestException(
-        'В партии поставки нет Order\'ов на этот КУ — нечего принимать.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SHIPMENT_NO_ORDERS_FOR_BRANCH');
     }
 
     const fact = this.buildFactQuantity(input.fact_quantity_per_order ?? [], groupOrders);
@@ -508,7 +492,7 @@ export class MarketplaceAplReceptionService {
         supplier_account: reception.offerer_account,
         ku_name: reception.braname,
         ttn_number: reception.ttn_number ?? '—',
-        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? 'экспедитор',
+        expeditor_name: reception.expeditor_data?.expeditor_full_name ?? t('marketplace.aplReception.expediterRoleLabel'),
       };
       this.eventBus.emit(MARKETPLACE_APL_SUPPLIER_SIGN_REQUEST_EVENT, event);
     } else {
@@ -595,7 +579,7 @@ export class MarketplaceAplReceptionService {
     input: MarketplaceCreateExpressReceptionInputDto
   ): Promise<MarketplaceCreateExpressReceptionResult> {
     if (!input.offerer_account || !input.braname) {
-      throw new BadRequestException('Не указан поставщик или ПВЗ для express-приёмки.');
+      throw DomainError.badRequest('MARKETPLACE_EXPRESS_RECEPTION_PARAMS_REQUIRED');
     }
 
     const page = await this.orderRepo.list(
@@ -609,9 +593,7 @@ export class MarketplaceAplReceptionService {
     );
     const orders = page.items.filter((o) => o.cycle_id);
     if (orders.length === 0) {
-      throw new BadRequestException(
-        'У поставщика нет принятых заказов, ожидающих самовывоза на этом КУ.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_NO_ORDERS_AWAITING_PICKUP');
     }
 
     // Партия (и приёмка) формируется per (cycle, КУ) — группируем по заявке.
@@ -654,7 +636,7 @@ export class MarketplaceAplReceptionService {
       await this.orderRepo.assignToShipment(
         cycleOrders.map((o) => o.id),
         shipment.id,
-        `Express-приёмка самовывоза (оператор ${input.operator_account}, партия ${shipment.id})`
+        t('marketplace.aplReception.expressPickupTitle', { operatorAccount: input.operator_account, shipmentId: shipment.id })
       );
 
       const result = await this.create({
@@ -680,12 +662,10 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
     if (reception.offerer_account !== input.supplier_account) {
-      throw new ForbiddenException('АПП подписывает только поставщик-владелец Offer\'ов.');
+      throw DomainError.forbidden('MARKETPLACE_RECEPTION_SIGN_FORBIDDEN_NOT_OWNER');
     }
     if (!reception.awaits_supplier) {
-      throw new ConflictException(
-        `АПП находится в статусе «${reception.status}», подпись поставщика недопустима.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_WRONG_STATUS', { status: reception.status });
     }
 
     // Разнос позиций: оператор на стойке снял некондицию (факт = 0). Поставщик
@@ -703,7 +683,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         offerer_account: input.supplier_account,
         orders: rejected,
-        reason: 'Отказ в приёмке: вся партия снята оператором (некондиция)',
+        reason: t('marketplace.aplReception.wholeBatchRejectedNote'),
       });
       const cancelled = await this.receptionRepo.applySignatures(reception.id, {
         status: MarketplaceAplReceptionStatuses.CANCELLED,
@@ -731,9 +711,7 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `АПП ${reception.id}: on-chain signsupp упал (${err.message}); статус не меняется, повторите подпись.`
       );
-      throw new ConflictException(
-        `Подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_CHAIN_FAILED', { errorMessage: err.message });
     }
 
     // Снятые позиции — отказ в приёмке (полный возврат заказчику, без штрафа).
@@ -744,7 +722,7 @@ export class MarketplaceAplReceptionService {
         coopname: reception.coopname,
         offerer_account: input.supplier_account,
         orders: rejected,
-        reason: 'Отказ в приёмке: позиция снята оператором (некондиция)',
+        reason: t('marketplace.aplReception.itemRejectedNote'),
       });
     }
 
@@ -782,9 +760,7 @@ export class MarketplaceAplReceptionService {
     }
 
     if (!reception.awaits_chairman) {
-      throw new ConflictException(
-        `АПП находится в статусе «${reception.status}», закрывающая подпись председателя недопустима.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_WRONG_STATUS', { status: reception.status });
     }
 
     // Председатель закрывает приёмку только по принятым позициям (факт > 0).
@@ -815,9 +791,7 @@ export class MarketplaceAplReceptionService {
       this.logger.warn(
         `АПП ${reception.id}: on-chain signchair упал (${err.message}); статус не меняется, повторите подпись.`
       );
-      throw new ConflictException(
-        `Закрывающая подпись на цепи не выполнена: ${err.message}. Повторите подписание.`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_CHAIN_FAILED', { errorMessage: err.message });
     }
     const acceptedAt = new Date();
 
@@ -835,7 +809,7 @@ export class MarketplaceAplReceptionService {
       await this.orderRepo.applyStatusTransition(
         o.id,
         'ACCEPTED_TO_COOP',
-        `АПП #${reception.id} закрывающая подпись председателя ${input.chairman_account}`
+        t('marketplace.aplReception.chairmanSignTitle', { receptionId: reception.id, chairmanAccount: input.chairman_account })
       );
     }
 
@@ -924,9 +898,7 @@ export class MarketplaceAplReceptionService {
   }): Promise<MarketplaceAplReceptionResult> {
     const reception = await this.loadReception(input.coopname, input.apl_reception_id);
     if (reception.status !== MarketplaceAplReceptionStatuses.PENDING_SUPPLIER_SIGN) {
-      throw new ConflictException(
-        `Отменить приёмку можно только до подписи поставщика. Текущий статус: «${reception.status}».`
-      );
+      throw DomainError.conflict('MARKETPLACE_RECEPTION_CANCEL_WRONG_STATUS', { status: reception.status });
     }
 
     const cancelled = await this.receptionRepo.applySignatures(reception.id, {
@@ -1001,10 +973,10 @@ export class MarketplaceAplReceptionService {
    * поставщика номер договора не задан — обобщённая формулировка без акта.
    */
   private buildPayoutPurpose(contractNumber: string | null, contractDate: string | null): string {
-    if (!contractNumber) return 'Оплата по договору поставки';
+    if (!contractNumber) return t('marketplace.aplReception.contractPaymentLabel');
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(contractDate ?? '');
-    const datePart = m ? ` от ${m[3]}.${m[2]}.${m[1]}` : '';
-    return `Оплата по договору № ${contractNumber}${datePart}`;
+    const datePart = m ? t('marketplace.aplReception.contractDatePart', { day: m[3], month: m[2], year: m[1] }) : '';
+    return t('marketplace.aplReception.contractNumberLabel', { contractNumber, datePart });
   }
 
   private async initiatePayouts(
@@ -1258,7 +1230,7 @@ export class MarketplaceAplReceptionService {
   ): Promise<MarketplaceAplReceptionDomainEntity> {
     const reception = await this.receptionRepo.findById(id);
     if (!reception || reception.coopname !== coopname) {
-      throw new NotFoundException('АПП приёмки не найден.');
+      throw DomainError.notFound('MARKETPLACE_RECEPTION_ACT_NOT_FOUND');
     }
     return reception;
   }
@@ -1342,9 +1314,7 @@ export class MarketplaceAplReceptionService {
 
     for (const placement of placements) {
       if (!targetOrderIds.has(placement.order_id)) {
-        throw new BadRequestException(
-          'Указано место для заказа, которого нет в этой приёмке.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_PLACEMENT_UNKNOWN_ORDER');
       }
       const container_id = placement.container_id ?? null;
       const cell_id = placement.cell_id ?? null;
@@ -1356,12 +1326,10 @@ export class MarketplaceAplReceptionService {
       );
 
       if (container_id && cell_id) {
-        throw new BadRequestException(
-          'Для одного заказа укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_PLACEMENT_SINGLE_LOCATION_REQUIRED');
       }
       if (quantity !== null && quantity <= 0) {
-        throw new BadRequestException('Количество в месте хранения должно быть больше нуля.');
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_QUANTITY_MUST_BE_POSITIVE');
       }
 
       const parts = resolved.get(placement.order_id) ?? [];
@@ -1379,15 +1347,13 @@ export class MarketplaceAplReceptionService {
       if (container_id) {
         const container = await this.containerRepo.findById(container_id);
         if (!container || container.coopname !== reception.coopname) {
-          throw new NotFoundException('Бокс не найден.');
+          throw DomainError.notFound('MARKETPLACE_CONTAINER_NOT_FOUND');
         }
         if (!container.is_active) {
-          throw new ConflictException(`Бокс «${container.code}» выведен из оборота.`);
+          throw DomainError.conflict('MARKETPLACE_CONTAINER_DECOMMISSIONED', { containerCode: container.code });
         }
         if (container.braname !== reception.braname) {
-          throw new ConflictException(
-            `Бокс «${container.code}» числится за участком ${container.braname}, а приёмка идёт на ${reception.braname}.`
-          );
+          throw DomainError.conflict('MARKETPLACE_CONTAINER_BRANCH_MISMATCH_RECEPTION', { containerCode: container.code, containerBranch: container.braname, receptionBranch: reception.braname });
         }
         parts.push({ container_id, cell_id: null, barcode_value, quantity });
         resolved.set(placement.order_id, parts);
@@ -1396,15 +1362,13 @@ export class MarketplaceAplReceptionService {
 
       const cell = await this.cellRepo.findById(cell_id as string);
       if (!cell || cell.coopname !== reception.coopname) {
-        throw new NotFoundException('Ячейка не найдена.');
+        throw DomainError.notFound('MARKETPLACE_CELL_NOT_FOUND');
       }
       if (!cell.is_active) {
-        throw new ConflictException(`Ячейка «${cell.code}» выведена из оборота.`);
+        throw DomainError.conflict('MARKETPLACE_CELL_DECOMMISSIONED', { cellCode: cell.code });
       }
       if (cell.braname !== reception.braname) {
-        throw new ConflictException(
-          `Ячейка «${cell.code}» относится к участку ${cell.braname}, а приёмка идёт на ${reception.braname}.`
-        );
+        throw DomainError.conflict('MARKETPLACE_CELL_BRANCH_MISMATCH_RECEPTION', { cellCode: cell.code, cellBranch: cell.braname, receptionBranch: reception.braname });
       }
       parts.push({ container_id: null, cell_id, barcode_value, quantity });
       resolved.set(placement.order_id, parts);
@@ -1426,9 +1390,7 @@ export class MarketplaceAplReceptionService {
         return this.placedQuantityOf(resolved.get(o.id) ?? [], fact) + MARKETPLACE_QUANTITY_EPSILON < fact;
       });
       if (missing.length > 0) {
-        throw new BadRequestException(
-          `Укажите место хранения для всего принятого: не размещено позиций — ${missing.length}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_PLACEMENT_INCOMPLETE', { missingCount: missing.length });
       }
     }
 
@@ -1462,15 +1424,11 @@ export class MarketplaceAplReceptionService {
       const fact = factByOrderId.get(orderId) ?? 0;
       const withoutQuantity = parts.filter((p) => p.quantity === null);
       if (parts.length > 1 && withoutQuantity.length > 0) {
-        throw new BadRequestException(
-          'Когда принятое по заказу раскладывают по нескольким местам, у каждого места укажите количество.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_SPLIT_QUANTITY_REQUIRED');
       }
       const total = parts.reduce((sum, p) => sum + (p.quantity ?? fact), 0);
       if (total > fact + MARKETPLACE_QUANTITY_EPSILON) {
-        throw new BadRequestException(
-          `По местам хранения разложено больше, чем принято по заказу: ${total} при принятых ${fact}.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STORAGE_PLACEMENT_EXCEEDS_ACCEPTED', { placedTotal: total, acceptedFact: fact });
       }
     }
   }
@@ -1495,21 +1453,15 @@ export class MarketplaceAplReceptionService {
     // акт закроется on-chain, а позиция склада не создастся, и закрыть приёмку
     // повторно будет уже нечем.
     if (!isValidEan13(barcode)) {
-      throw new BadRequestException(
-        `Этикетка «${barcode}» не похожа на штрихкод с листа этикеток: нужны 13 цифр. Отсканируйте штрихкод, а не QR-код тары.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_LABEL_BARCODE_FORMAT_INVALID', { barcode });
     }
 
     if (seenInBatch.has(barcode)) {
-      throw new ConflictException(
-        `Этикетка «${barcode}» указана дважды в одной приёмке — на каждой единице имущества свой номер.`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABEL_DUPLICATE_IN_RECEPTION', { barcode });
     }
     const conflict = await this.inventoryRepo.findByBarcode(coopname, barcode);
     if (conflict) {
-      throw new ConflictException(
-        `Этикетка «${barcode}» уже привязана к другой позиции склада.`
-      );
+      throw DomainError.conflict('MARKETPLACE_LABEL_ALREADY_BOUND', { barcode });
     }
     seenInBatch.add(barcode);
     return barcode;
@@ -1664,9 +1616,7 @@ export class MarketplaceAplReceptionService {
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
-        throw new BadRequestException(
-          `Нет подписанного акта приёмки для Order ${order.id}; нужны акты по всем Order'ам группы (${groupOrders.length}).`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_SUPPLIER_ACT_MISSING', { orderId: order.id, groupOrdersCount: groupOrders.length });
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignSupp.ISignSupp['act'];
@@ -1684,9 +1634,7 @@ export class MarketplaceAplReceptionService {
         // в БД с фантомным fallback'ом ('signsupp-<reception_id>')
         // означает потерять связь с конкретным tx. Лучше отбить — ретрай
         // безопасен (цепь идемпотентна по order_hash).
-        throw new ConflictException(
-          `signsupp по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_SUPPLIER_SIGN_NO_TX_HASH', { orderId: order.id });
       }
       lastTxHash = txHash;
       this.logger.debug(`signsupp on-chain OK: order ${order.id} → tx ${txHash}`);
@@ -1709,9 +1657,7 @@ export class MarketplaceAplReceptionService {
     for (const order of groupOrders) {
       const signed = byOrderId.get(order.id);
       if (!signed) {
-        throw new BadRequestException(
-          `Нет подписанного акта приёмки председателя для Order ${order.id}; нужны акты по всем Order'ам группы.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_CHAIRMAN_ACT_MISSING', { orderId: order.id });
       }
       this.verifyDocumentSignature(signed);
       const act = this.toChainDocument(signed) as MarketContract.Actions.SignChair.ISignChair['act'];
@@ -1731,9 +1677,7 @@ export class MarketplaceAplReceptionService {
       });
       const txHash = this.extractTxHash(tx);
       if (!txHash) {
-        throw new ConflictException(
-          `signchair по Order ${order.id}: цепь не вернула tx_hash. Повторите подписание группы.`
-        );
+        throw DomainError.conflict('MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_NO_TX_HASH', { orderId: order.id });
       }
       lastTxHash = txHash;
       this.logger.debug(`signchair on-chain OK: order ${order.id} → tx ${txHash}`);
@@ -1748,9 +1692,7 @@ export class MarketplaceAplReceptionService {
     for (const d of docs) {
       const orderId = d.meta?.order_id;
       if (!orderId) {
-        throw new BadRequestException(
-          'Каждый подписанный акт приёмки должен содержать meta.order_id, по которому он привязывается к Order группы.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_RECEPTION_ACT_META_ORDER_ID_MISSING');
       }
       out.set(orderId, d);
     }
@@ -1770,13 +1712,13 @@ export class MarketplaceAplReceptionService {
   private verifyDocumentSignature(document: ISignedDocument): void {
     const sig = document.signatures?.[0];
     if (!sig) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Документ не подписан: signatures пуст.');
+      throw DomainError.badRequest('MARKETPLACE_DOCUMENT_NOT_SIGNED');
     }
     const publicKey = PublicKey.from(sig.public_key);
     const signature = Signature.from(sig.signature);
     const verified = signature.verifyDigest(sig.signed_hash, publicKey);
     if (!verified) {
-      throw new HttpApiError(http.BAD_REQUEST, 'Недействительная подпись акта приёмки.');
+      throw DomainError.badRequest('MARKETPLACE_RECEPTION_SIGNATURE_INVALID');
     }
   }
 
@@ -1803,17 +1745,13 @@ export class MarketplaceAplReceptionService {
       if (entry !== undefined) {
         const fact = entry.fact_quantity;
         if (!Number.isInteger(fact) || fact < 0) {
-          throw new BadRequestException(
-            `Некорректное fact_quantity для Order ${o.id}: ${fact}.`
-          );
+          throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_QUANTITY_INVALID', { orderId: o.id, factQuantity: fact });
         }
         // Потолок приёмки = акцепт (заказанное кол-во): сверх акцепта
         // принципиально не принимаем («больше, чем заказано — не надо»).
         // Меньше — допустимо (недовоз). Партия/ТТН — лишь декларация, не лимит.
         if (fact > o.quantity) {
-          throw new BadRequestException(
-            `Нельзя принять сверх акцепта по Order ${o.id}: факт ${fact} > заказано ${o.quantity}.`
-          );
+          throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED', { orderId: o.id, factQuantity: fact, orderedQuantity: o.quantity });
         }
         // Цена за единицу: оператор может скорректировать (привезли хуже —
         // принимаем со скидкой). По умолчанию — цена заказа.
@@ -1821,9 +1759,7 @@ export class MarketplaceAplReceptionService {
         if (entry.fact_unit_price !== undefined) {
           const priceNum = Number.parseFloat(entry.fact_unit_price);
           if (Number.isNaN(priceNum) || priceNum <= 0) {
-            throw new BadRequestException(
-              `Некорректная цена за единицу для Order ${o.id}: ${entry.fact_unit_price}.`
-            );
+            throw DomainError.badRequest('MARKETPLACE_ORDER_FACT_UNIT_PRICE_INVALID', { orderId: o.id, factUnitPrice: entry.fact_unit_price });
           }
           fact_unit_price = priceNum.toFixed(this.assetConfig.decimals);
         }

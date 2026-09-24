@@ -2,15 +2,15 @@
 div.capital-onboarding.q-pa-md
   WindowLoader(
     v-if='loading'
-    text='Загрузка данных онбординга...'
+    :text='$t("capital.capitalOnboardingCard.loadingText")'
   )
   template(v-else-if='!isOnboardingCompleted')
     .capital-onboarding__shell
       BaseBanner.capital-onboarding__banner(variant='info')
         template(#icon)
           q-icon(name='info' size='20px')
-        | Сначала заполните параметры положений «ГЕНЕРАТОР» и «БЛАГОРОСТ», затем объявите собрания
-        | совета для утверждения документов ЦПП.
+        | {{ $t('capital.capitalOnboardingCard.hintPre') }}
+        | {{ $t('capital.capitalOnboardingCard.hintPost') }}
 
       VerticalStepper.capital-onboarding__stepper(
         :steps='wizardSteps'
@@ -42,7 +42,7 @@ div.capital-onboarding.q-pa-md
           variant='ghost'
           :disable='footerBusy'
           @click='goBack'
-        ) Назад
+        ) {{ $t('common.action.back') }}
         q-space(v-if='showBackButton && showContinueButton')
         BaseButton(
           v-if='showContinueButton'
@@ -54,7 +54,7 @@ div.capital-onboarding.q-pa-md
 
   BaseDialog(
     v-model='dialogOpen'
-    title='Предложение повестки'
+    :title='$t("capital.capitalOnboardingCard.agendaProposalTitle")'
     size='lg'
     :close-on-backdrop='false'
     :close-on-escape='false'
@@ -62,20 +62,20 @@ div.capital-onboarding.q-pa-md
   )
     Loader(
       v-if='generatingDocument'
-      text='Генерация документа...'
+      :text='$t("capital.capitalOnboardingCard.generatingText")'
     )
     template(v-else-if='currentStep && currentGeneratedDoc && !generatingDocument')
       .capital-onboarding__dialog-section
         div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
           q-icon(name='help_outline' size='18px' color='primary')
-          span Вопрос на повестке
+          span {{ $t('capital.capitalOnboardingCard.agendaQuestionLabel') }}
         div.q-mt-sm.t-body {{ currentStep.question }}
 
         q-separator.q-my-md
 
         div.row.items-center.q-gutter-xs.text-subtitle1.text-weight-medium
           q-icon(name='gavel' size='18px' color='primary')
-          span Проект решения
+          span {{ $t('capital.capitalOnboardingCard.draftDecisionLabel') }}
         div.q-mt-sm
           div(v-if='currentStep.decisionPrefix') {{ currentStep.decisionPrefix }}
           DocumentHtmlReader(:html='currentGeneratedDoc.html' profile='document')
@@ -83,8 +83,8 @@ div.capital-onboarding.q-pa-md
           strong {{ currentGeneratedDoc.full_title }}
 
     template(#footer v-if='currentGeneratedDoc && !generatingDocument')
-      BaseButton(variant='ghost' :disable='submitting' @click='closeDialog') Отмена
-      BaseButton(variant='primary' :loading='submitting' @click='submitStep') Объявить
+      BaseButton(variant='ghost' :disable='submitting' @click='closeDialog') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary' :loading='submitting' @click='submitStep') {{ $t('capital.capitalOnboardingCard.announceAction') }}
 </template>
 
 <script setup lang="ts">
@@ -119,6 +119,7 @@ import {
   normalizeWizardStepKey,
   type CouncilGroupStepKey,
 } from '../model/capitalOnboardingWizard';
+import { t } from '../../../i18n';
 
 const $q = useQuasar();
 
@@ -165,13 +166,13 @@ const councilSteps = computed(() => config.value?.steps ?? []);
 const wizardSteps = computed<StepperStep[]>(() => [
   {
     key: DOC_WIZARD_STEP_GENERATOR,
-    label: 'Параметры «ГЕНЕРАТОР»',
-    description: 'Переменные положения о целевой программе «ГЕНЕРАТОР»',
+    label: t('capital.capitalOnboardingCard.generatorParamsTitle'),
+    description: t('capital.capitalOnboardingCard.generatorParamsSubtitle'),
   },
   {
     key: DOC_WIZARD_STEP_BLAGOROST,
-    label: 'Параметры «БЛАГОРОСТ»',
-    description: 'Переменные положения о целевой программе «БЛАГОРОСТ»',
+    label: t('capital.capitalOnboardingCard.blagorostParamsTitle'),
+    description: t('capital.capitalOnboardingCard.blagorostParamsSubtitle'),
   },
   ...COUNCIL_STEP_GROUP_ORDER.map((groupKey) => ({
     key: groupKey,
@@ -218,7 +219,7 @@ const showContinueButton = computed(() => isDocWizardStep(activeWizardStep.value
 const showFooter = computed(() => showBackButton.value || showContinueButton.value);
 
 const continueLabel = computed(() =>
-  activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST ? 'Сохранить и продолжить' : 'Продолжить',
+  activeWizardStep.value === DOC_WIZARD_STEP_BLAGOROST ? t('capital.capitalOnboardingCard.saveAndContinueAction') : t('capital.capitalOnboardingCard.continueAction'),
 );
 
 function getCouncilStep(stepId: string): ICouncilOnboardingStep | undefined {

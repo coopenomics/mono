@@ -11,6 +11,7 @@ import type { UserDomainService } from '~/domain/user/services/user-domain.servi
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { AuditService } from '../audit/audit.service';
 import { RecoveryStrategyService } from './recovery-strategy.service';
+import { t } from '~/i18n';
 
 /** TTL recovery-токена — как у magic-link (Story 3.1): 5 минут. */
 const RECOVERY_TOKEN_TTL_SEC = 5 * 60;
@@ -96,7 +97,7 @@ export class OfflineRecoveryService {
   private invalidCode(): AuthV2Error {
     return new AuthV2Error(
       AuthV2ErrorCode.InvalidOfflineCode,
-      'Код восстановления неверен или уже использован.',
+      t('authV2.offlineRecoveryService.invalidCodeMessage'),
     );
   }
 }

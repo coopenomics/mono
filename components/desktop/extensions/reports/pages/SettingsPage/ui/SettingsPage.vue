@@ -3,8 +3,8 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
   //- Реквизиты организации (read-only — берутся из профиля кооператива)
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
-      .text-h6 Реквизиты организации
-      .text-caption.t-muted Справочные данные кооператива — не редактируются
+      .text-h6 {{ $t('reports.settingsPage.orgRequisitesTitle') }}
+      .text-caption.t-muted {{ $t('reports.settingsPage.orgRequisitesHint') }}
 
     q-separator
 
@@ -22,8 +22,8 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
   //- Классификаторы (ручной ввод, обязательные)
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
-      .text-h6 Классификаторы
-      .text-caption.t-muted ОКВЭД, ОКФС, ОКОПФ, ОКТМО, ОКПО — обязательны для большинства отчётов ФНС
+      .text-h6 {{ $t('reports.settingsPage.classifiersTitle') }}
+      .text-caption.t-muted {{ $t('reports.settingsPage.classifiersHint') }}
 
     q-separator
 
@@ -49,8 +49,8 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
   //- СФР/ПФР (ЕФС-1)
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
-      .text-h6 СФР/ПФР (для ЕФС-1)
-      .text-caption.t-muted Регистрационные номера страхователя и должность председателя
+      .text-h6 {{ $t('reports.settingsPage.sfrTitle') }}
+      .text-caption.t-muted {{ $t('reports.settingsPage.sfrHint') }}
 
     q-separator
 
@@ -58,34 +58,34 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
       .row.q-col-gutter-sm
         RequisiteField.col-md-6.col-12(
           id='field-sfrRegNumber'
-          label='Рег. номер СФР'
+          :label='$t("reports.settingsPage.sfrNumberLabel")'
           :value='manualInput.sfrRegNumber'
-          placeholder='10 цифр'
+          :placeholder='$t("reports.settingsPage.sfrNumberPlaceholder")'
           mask='##########'
           :max-length='10'
           :exact-lengths='[10]'
           :pattern='SFR_REG_PATTERN'
-          pattern-message='Формат: 10 цифр без разделителей'
+          :pattern-message='$t("reports.settingsPage.sfrNumberFormatError")'
           required
           @update:value='v => (manualInput.sfrRegNumber = v)'
         )
         RequisiteField.col-md-6.col-12(
           id='field-pfrRegNumber'
-          label='Рег. номер ПФР'
+          :label='$t("reports.settingsPage.pfrNumberLabel")'
           :value='manualInput.pfrRegNumber'
           placeholder='XXX-XXX-XXXXXX'
           mask='###-###-######'
           :max-length='14'
           :pattern='PFR_REG_PATTERN'
-          pattern-message='Формат: XXX-XXX-XXXXXX (12 цифр с тире)'
+          :pattern-message='$t("reports.settingsPage.pfrNumberFormatError")'
           required
           @update:value='v => (manualInput.pfrRegNumber = v)'
         )
         RequisiteField.col-md-6.col-12(
           id='field-chairmanPosition'
-          label='Должность председателя'
+          :label='$t("reports.settingsPage.chairmanPositionLabel")'
           :value='manualInput.chairmanPosition'
-          placeholder='Председатель'
+          :placeholder='$t("reports.settingsPage.chairmanPositionPlaceholder")'
           :max-length='100'
           required
           @update:value='v => (manualInput.chairmanPosition = v)'
@@ -94,8 +94,8 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
   //- Подписант
   q-card.q-mt-md(flat)
     q-card-section.q-py-sm
-      .text-h6 Подписант
-      .text-caption.t-muted Кто подписывает отчёты: председатель или представитель (по доверенности)
+      .text-h6 {{ $t('reports.settingsPage.signerTitle') }}
+      .text-caption.t-muted {{ $t('reports.settingsPage.signerHint') }}
 
     q-separator
 
@@ -105,40 +105,40 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
           q-select(
             v-model='signerType'
             :options='signerTypeOptions'
-            label='Тип подписанта'
+            :label='$t("reports.settingsPage.signerTypeLabel")'
             dense outlined
             emit-value map-options
           )
         RequisiteField.col-md-6.col-12(
           id='field-signerSnils'
-          label='СНИЛС подписанта'
+          :label='$t("reports.settingsPage.signerSnilsLabel")'
           :value='manualInput.signerSnils'
           placeholder='XXX-XXX-XXX XX'
           mask='###-###-### ##'
           :pattern='SNILS_PATTERN'
-          pattern-message='Формат: XXX-XXX-XXX XX (11 цифр)'
+          :pattern-message='$t("reports.settingsPage.signerSnilsFormatError")'
           required
           @update:value='v => (manualInput.signerSnils = v)'
         )
         RequisiteField.col-md-6.col-12(
           id='field-signerInn'
-          label='ИНН подписанта'
+          :label='$t("reports.settingsPage.signerInnLabel")'
           :value='manualInput.signerInn'
-          placeholder='12 цифр'
+          :placeholder='$t("reports.settingsPage.signerInnPlaceholder")'
           mask='############'
           :max-length='12'
           :exact-lengths='[12]'
           :pattern='INN_FL_PATTERN'
-          pattern-message='Формат: 12 цифр'
+          :pattern-message='$t("reports.settingsPage.signerInnFormatError")'
           required
           @update:value='v => (manualInput.signerInn = v)'
         )
         RequisiteField.col-12(
           v-if='signerType === "representative"'
           id='field-signerRepDoc'
-          label='Документ представителя'
+          :label='$t("reports.settingsPage.signerRepDocLabel")'
           :value='manualInput.signerRepDoc'
-          placeholder='Доверенность № X от DD.MM.YYYY'
+          :placeholder='$t("reports.settingsPage.signerRepDocPlaceholder")'
           :max-length='200'
           required
           @update:value='v => (manualInput.signerRepDoc = v)'
@@ -150,16 +150,16 @@ q-form.settings-page(@submit.prevent='save' @validation-error='onValidationError
   .save-bar
     .save-bar-status(v-if='saveStatus === "saved"')
       q-icon(name='fa-solid fa-circle-check' color='positive' size='16px')
-      span Реквизиты сохранены
+      span {{ $t('reports.settingsPage.saveSuccess') }}
     .save-bar-status.text-negative(v-else-if='saveStatus === "error"')
       q-icon(name='fa-solid fa-triangle-exclamation' size='16px')
-      span Ошибка сохранения
+      span {{ $t('reports.settingsPage.saveError') }}
     q-space
     q-btn(
       type='submit'
       color='primary'
       icon='fa-solid fa-floppy-disk'
-      label='Сохранить реквизиты'
+      :label='$t("reports.settingsPage.saveButtonLabel")'
       :loading='saveStatus === "saving"'
       :disable='saveStatus === "saving"'
       no-caps
@@ -174,6 +174,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useReportStore } from 'src/entities/Report'
 import type { IReportRequisitesView, IUpdateReportRequisitesInput } from 'src/entities/Report'
 import RequisiteField from './RequisiteField.vue'
+import { t } from '../../../i18n';
 
 const route = useRoute()
 const reportStore = useReportStore()
@@ -217,15 +218,15 @@ const manualInput = reactive<Record<ManualKey, string>>({
 const signerType = ref<'chairman' | 'representative'>('chairman')
 
 const orgFields: { key: keyof IReportRequisitesView; label: string }[] = [
-  { key: 'inn', label: 'ИНН' },
-  { key: 'kpp', label: 'КПП' },
-  { key: 'ogrn', label: 'ОГРН' },
-  { key: 'orgName', label: 'Наименование' },
-  { key: 'address', label: 'Адрес' },
-  { key: 'phone', label: 'Телефон' },
-  { key: 'signerLastName', label: 'Фамилия подписанта' },
-  { key: 'signerFirstName', label: 'Имя подписанта' },
-  { key: 'signerMiddleName', label: 'Отчество подписанта' },
+  { key: 'inn', label: t('reports.settingsPage.field.inn') },
+  { key: 'kpp', label: t('reports.settingsPage.field.kpp') },
+  { key: 'ogrn', label: t('reports.settingsPage.field.ogrn') },
+  { key: 'orgName', label: t('reports.settingsPage.field.orgName') },
+  { key: 'address', label: t('reports.settingsPage.field.address') },
+  { key: 'phone', label: t('reports.settingsPage.field.phone') },
+  { key: 'signerLastName', label: t('reports.settingsPage.field.signerLastName') },
+  { key: 'signerFirstName', label: t('reports.settingsPage.field.signerFirstName') },
+  { key: 'signerMiddleName', label: t('reports.settingsPage.field.signerMiddleName') },
 ]
 
 interface ClassifierField {
@@ -247,40 +248,40 @@ interface ClassifierField {
 const classifierFields: ClassifierField[] = [
   {
     key: 'okved',
-    label: 'ОКВЭД',
-    placeholder: 'XX.XX или XX.XX.XX',
+    label: t('reports.settingsPage.classifier.okvedLabel'),
+    placeholder: t('reports.settingsPage.classifier.okvedPlaceholder'),
     digitsExtraChars: '.',
     maxLength: 8,
     pattern: /^\d{2}(\.\d{1,2}){0,2}$/,
-    patternMessage: 'Формат: XX.XX или XX.XX.XX',
+    patternMessage: t('reports.settingsPage.classifier.okvedFormatError'),
   },
   {
     key: 'okfs',
-    label: 'ОКФС',
-    placeholder: '1–3 цифры',
+    label: t('reports.settingsPage.classifier.okfsLabel'),
+    placeholder: t('reports.settingsPage.classifier.okfsPlaceholder'),
     mask: '###',
     maxLength: 3,
   },
   {
     key: 'okopf',
-    label: 'ОКОПФ',
-    placeholder: '5 цифр',
+    label: t('reports.settingsPage.classifier.okopfLabel'),
+    placeholder: t('reports.settingsPage.classifier.okopfPlaceholder'),
     mask: '#####',
     maxLength: 5,
     exactLengths: [5],
   },
   {
     key: 'oktmo',
-    label: 'ОКТМО',
-    placeholder: '8 или 11 цифр',
+    label: t('reports.settingsPage.classifier.oktmoLabel'),
+    placeholder: t('reports.settingsPage.classifier.oktmoPlaceholder'),
     mask: '###########',
     maxLength: 11,
     exactLengths: [8, 11],
   },
   {
     key: 'okpo',
-    label: 'ОКПО',
-    placeholder: '8 или 10 цифр',
+    label: t('reports.settingsPage.classifier.okpoLabel'),
+    placeholder: t('reports.settingsPage.classifier.okpoPlaceholder'),
     mask: '##########',
     maxLength: 10,
     exactLengths: [8, 10],
@@ -288,8 +289,8 @@ const classifierFields: ClassifierField[] = [
 ]
 
 const signerTypeOptions = [
-  { label: 'Председатель', value: 'chairman' },
-  { label: 'Представитель', value: 'representative' },
+  { label: t('reports.settingsPage.signerType.chairman'), value: 'chairman' },
+  { label: t('reports.settingsPage.signerType.representative'), value: 'representative' },
 ]
 
 // Паттерны полных значений под фиксированные маски — ловят случай, когда
@@ -323,7 +324,7 @@ async function loadRequisites() {
       }
     }
   } catch (e: any) {
-    FailAlert(e, 'Ошибка загрузки реквизитов')
+    FailAlert(e, t('reports.settingsPage.loadError'))
   }
 }
 
@@ -341,16 +342,16 @@ async function save() {
     input.signerType = signerType.value
     await reportStore.updateRequisites(input as IUpdateReportRequisitesInput)
     saveStatus.value = 'saved'
-    SuccessAlert('Реквизиты сохранены')
+    SuccessAlert(t('reports.settingsPage.saveSuccess'))
   } catch (e: any) {
     saveStatus.value = 'error'
-    FailAlert(e, 'Ошибка сохранения')
+    FailAlert(e, t('reports.settingsPage.saveError'))
   }
 }
 
 function onValidationError() {
   // q-form нашёл поле с ошибкой — фокусит первое красное сам.
-  FailAlert(new Error('Проверьте выделенные поля — есть незаполненные или некорректные значения'))
+  FailAlert(new Error(t('reports.error.requisitesValidationFailed')))
 }
 
 onMounted(async () => {

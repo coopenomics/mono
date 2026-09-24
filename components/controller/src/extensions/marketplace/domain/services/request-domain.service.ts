@@ -8,7 +8,8 @@ import { TypeDomainRepository, TYPE_DOMAIN_REPOSITORY } from '../repositories/ty
 import { AttributeDomainRepository, ATTRIBUTE_DOMAIN_REPOSITORY } from '../repositories/attribute-domain.repository';
 import { AvailableCategoryDomainService, AVAILABLE_CATEGORY_DOMAIN_SERVICE } from './available-category-domain.service';
 import { randomBytes } from 'crypto';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Токен для внедрения зависимостей
@@ -87,17 +88,17 @@ export class RequestDomainService {
     // Получение категории и типа
     const category = await this.categoryRepository.findById(params.descriptionCategoryId);
     if (!category) {
-      throw new Error(`Категория с ID ${params.descriptionCategoryId} не найдена`);
+      throw DomainError.internal('MARKETPLACE_REQUEST_CATEGORY_NOT_FOUND', { categoryId: params.descriptionCategoryId });
     }
 
     const productType = await this.typeRepository.findById(params.typeId);
     if (!productType) {
-      throw new Error(`Тип товара с ID ${params.typeId} не найден`);
+      throw DomainError.internal('MARKETPLACE_REQUEST_TYPE_NOT_FOUND', { typeId: params.typeId });
     }
 
     // Проверка соответствия типа категории
     if (productType.descriptionCategoryId !== params.descriptionCategoryId) {
-      throw new Error('Указанный тип товара не принадлежит выбранной категории');
+      throw DomainError.internal('MARKETPLACE_REQUEST_TYPE_CATEGORY_MISMATCH');
     }
 
     // Генерация уникального хэша
@@ -109,7 +110,7 @@ export class RequestDomainService {
       params.username
     );
     if (!isArticleNumberUnique) {
-      throw new Error(`Артикул ${params.articleNumber} уже используется в ваших заявках`);
+      throw DomainError.internal('MARKETPLACE_REQUEST_ARTICLE_ALREADY_USED', { articleNumber: params.articleNumber });
     }
 
     // Создание атрибутов заявки
@@ -210,11 +211,11 @@ export class RequestDomainService {
   ): Promise<RequestDomainEntity> {
     const existingRequest = await this.requestRepository.findById(requestId);
     if (!existingRequest) {
-      throw new Error('Заявка не найдена');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     if (!existingRequest.canBeEdited()) {
-      throw new Error('Заявку нельзя редактировать в текущем статусе');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_EDITABLE');
     }
 
     // Создание обновленных атрибутов если они переданы
@@ -248,13 +249,13 @@ export class RequestDomainService {
   async publishRequest(requestId: number): Promise<RequestDomainEntity> {
     const request = await this.requestRepository.findById(requestId);
     if (!request) {
-      throw new Error('Заявка не найдена');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     // Валидация готовности к публикации
     const validation = request.isValidForPublication();
     if (!validation.valid) {
-      throw new Error(`Заявка не готова к публикации: ${validation.errors.join(', ')}`);
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_READY_FOR_PUBLISH', { errorsJoined: validation.errors.join(', ') });
     }
 
     await this.requestRepository.updateStatus(requestId, RequestStatus.MODERATION);
@@ -267,7 +268,7 @@ export class RequestDomainService {
   async findPotentialMatches(requestId: number): Promise<RequestDomainEntity[]> {
     const request = await this.requestRepository.findById(requestId);
     if (!request) {
-      throw new Error('Заявка не найдена');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     return await this.requestRepository.findPotentialMatches(request);
@@ -343,7 +344,7 @@ export class RequestDomainService {
       attempts++;
 
       if (attempts >= maxAttempts) {
-        throw new Error('Не удалось сгенерировать уникальный хэш после нескольких попыток');
+        throw DomainError.internal('MARKETPLACE_REQUEST_HASH_GENERATION_FAILED');
       }
     } while (!isUnique);
 
@@ -356,12 +357,12 @@ export class RequestDomainService {
   private async validateBasicParams(params: any): Promise<void> {
     const errors: string[] = [];
 
-    if (!params.name?.trim()) errors.push('Название товара обязательно');
-    if (!params.articleNumber?.trim()) errors.push('Артикул обязателен');
-    if (!params.price || params.price <= 0) errors.push('Цена должна быть больше 0');
-    if (!params.units || params.units <= 0) errors.push('Количество должно быть больше 0');
-    if (!params.currencyCode?.trim()) errors.push('Валюта обязательна');
-    if (!params.vat) errors.push('НДС обязателен');
+    if (!params.name?.trim()) errors.push(t('marketplace.requestDomain.titleRequired'));
+    if (!params.articleNumber?.trim()) errors.push(t('marketplace.requestDomain.articleRequired'));
+    if (!params.price || params.price <= 0) errors.push(t('marketplace.requestDomain.priceMustBePositive'));
+    if (!params.units || params.units <= 0) errors.push(t('marketplace.requestDomain.quantityMustBePositive'));
+    if (!params.currencyCode?.trim()) errors.push(t('marketplace.requestDomain.currencyRequired'));
+    if (!params.vat) errors.push(t('marketplace.requestDomain.vatRequired'));
 
     if (errors.length > 0) {
       throw new Error(errors.join(', '));
@@ -374,7 +375,7 @@ export class RequestDomainService {
   private async validateCategoryTypeAvailability(coopname: string, categoryId: number, typeId: number): Promise<void> {
     const isAvailable = await this.availableCategoryService.isTypeAvailable(coopname, categoryId, typeId);
     if (!isAvailable) {
-      throw new Error('Выбранная категория или тип товара недоступны для вашего кооператива');
+      throw DomainError.internal('MARKETPLACE_REQUEST_CATEGORY_OR_TYPE_UNAVAILABLE');
     }
   }
 
@@ -394,7 +395,7 @@ export class RequestDomainService {
     for (const attrData of attributesData) {
       const attribute = await this.attributeRepository.findById(attrData.attributeId);
       if (!attribute) {
-        throw new Error(`Атрибут с ID ${attrData.attributeId} не найден`);
+        throw DomainError.internal('MARKETPLACE_REQUEST_ATTRIBUTE_NOT_FOUND', { attributeId: attrData.attributeId });
       }
 
       const attributeValue = new RequestAttributeValueDomainEntity({
@@ -408,7 +409,7 @@ export class RequestDomainService {
       // Валидация значения атрибута
       const validation = attributeValue.validateValue();
       if (!validation.valid) {
-        throw new Error(`Ошибка валидации атрибута: ${validation.errors.join(', ')}`);
+        throw DomainError.internal('MARKETPLACE_REQUEST_ATTRIBUTE_VALIDATION_FAILED', { errorsJoined: validation.errors.join(', ') });
       }
 
       attributeValues.push(attributeValue);
@@ -435,7 +436,7 @@ export class RequestDomainService {
       const missingNames = requiredAttributes
         .filter((attr) => missingRequired.includes(attr.attributeId))
         .map((attr) => attr.name);
-      throw new Error(`Не заполнены обязательные атрибуты: ${missingNames.join(', ')}`);
+      throw DomainError.internal('MARKETPLACE_REQUEST_REQUIRED_ATTRIBUTES_MISSING', { missingNamesJoined: missingNames.join(', ') });
     }
   }
 
@@ -461,19 +462,19 @@ export class RequestDomainService {
     for (const image of images) {
       const validation = image.validateImageUrl();
       if (!validation.valid) {
-        throw new Error(`Ошибка изображения: ${validation.errors.join(', ')}`);
+        throw DomainError.internal('MARKETPLACE_REQUEST_IMAGE_VALIDATION_FAILED', { errorsJoined: validation.errors.join(', ') });
       }
     }
 
     // Проверка наличия хотя бы одного изображения
     if (images.length === 0 && !primaryImageUrl) {
-      throw new Error('Необходимо добавить хотя бы одно изображение');
+      throw DomainError.internal('MARKETPLACE_REQUEST_IMAGE_REQUIRED');
     }
 
     // Проверка уникальности главного изображения
     const primaryImages = images.filter((img) => img.isPrimary());
     if (primaryImages.length > 1) {
-      throw new Error('Может быть только одно главное изображение');
+      throw DomainError.internal('MARKETPLACE_REQUEST_SINGLE_MAIN_IMAGE');
     }
   }
 }

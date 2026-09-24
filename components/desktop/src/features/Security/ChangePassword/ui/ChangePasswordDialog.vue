@@ -1,12 +1,12 @@
 <template lang="pug">
-BaseDialog(v-model='open', title='Смена пароля', size='sm')
+BaseDialog(v-model='open', :title='$t("security.changePasswordDialog.title")', size='sm')
   .chpwd__form
     BaseBanner(variant='info')
-      | Сеансы на других устройствах завершатся — там нужно будет войти заново.
-      | Здесь выходить не придётся. Цифровая подпись перевыпустится автоматически.
+      | {{ $t('security.changePasswordDialog.otherDevicesNote') }}
+      | {{ $t('security.changePasswordDialog.thisDeviceNote') }}
     BaseInput(
       v-model='oldPassword',
-      label='Старый пароль',
+      :label='$t("security.changePasswordDialog.oldPasswordLabel")',
       type='password',
       autocomplete='current-password',
       required,
@@ -15,7 +15,7 @@ BaseDialog(v-model='open', title='Смена пароля', size='sm')
     BaseInput(
       ref='newRef',
       v-model='newPassword',
-      label='Новый пароль',
+      :label='$t("security.changePasswordDialog.newPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :hint='PASSWORD_POLICY_HINT',
@@ -26,7 +26,7 @@ BaseDialog(v-model='open', title='Смена пароля', size='sm')
     BaseInput(
       ref='repeatRef',
       v-model='repeatPassword',
-      label='Повторите новый пароль',
+      :label='$t("security.changePasswordDialog.repeatPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :error='repeatError',
@@ -34,13 +34,13 @@ BaseDialog(v-model='open', title='Смена пароля', size='sm')
       @keydown.enter.prevent='onSubmitEnter'
     )
   template(#footer)
-    BaseButton(variant='secondary', :disabled='saving', @click='open = false') Отмена
+    BaseButton(variant='secondary', :disabled='saving', @click='open = false') {{ $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='saving',
       :disabled='!canSubmit',
       @click='onSubmit'
-    ) Сменить пароль
+    ) {{ $t('security.changePasswordDialog.submit') }}
 </template>
 
 <script lang="ts" setup>
@@ -49,6 +49,7 @@ import { PASSWORD_POLICY_HINT, passwordPolicyErrors } from '@coopenomics/auth';
 import { BaseBanner, BaseButton, BaseDialog, BaseInput } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useChangePassword } from '../model';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
@@ -80,7 +81,7 @@ const passwordError = computed(() =>
   newPassword.value ? passwordPolicyErrors(newPassword.value).join(', ') : '',
 );
 const repeatError = computed(() =>
-  repeatPassword.value && repeatPassword.value !== newPassword.value ? 'Пароли не совпадают' : '',
+  repeatPassword.value && repeatPassword.value !== newPassword.value ? t('security.changePasswordDialog.mismatchError') : '',
 );
 const canSubmit = computed(
   () =>
@@ -103,7 +104,7 @@ async function onSubmit(): Promise<void> {
     // паролём — выходить и вести на форму входа некого. Уходят только сеансы на
     // других устройствах, и об этом стоит сказать прямо: иначе пайщик узнает об
     // этом, когда его выбросит из кабинета на телефоне.
-    SuccessAlert('Пароль изменён. Здесь можно работать дальше, а на других устройствах нужно войти заново.');
+    SuccessAlert(t('security.changePasswordDialog.success'));
   } catch (e) {
     FailAlert(e);
   } finally {

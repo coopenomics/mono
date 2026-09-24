@@ -11,6 +11,7 @@ import { DigitalDocument } from 'src/shared/lib/document';
 import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { useProjectStore } from '../../../../entities/Project/model/store';
 import { useWalletStore } from 'src/entities/Wallet';
+import { t } from '../../../../i18n';
 
 export type ICreateProjectInvestInput =
   Mutations.Capital.CreateProjectInvest.IInput['data'];
@@ -75,7 +76,7 @@ export function useCreateProjectInvest() {
       // Генерируем заявление
       const document = await generateInvestStatement(projectHash, amount);
       if (!document) {
-        throw new Error('Не удалось сгенерировать заявление');
+        throw new Error(t('capital.error.investGenerateFailed'));
       }
 
       // Подписываем документ

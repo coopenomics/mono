@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { uiLocale } from 'src/shared/i18n';
 import { computed, ref } from 'vue'
 import {
   listContainerTypes,
@@ -42,14 +43,14 @@ export const useMarketplaceStorageStore = defineStore(namespace, () => {
   const activeCells = computed(() =>
     cells.value
       .filter((c) => c.is_active)
-      .sort((a, b) => a.section.localeCompare(b.section, 'ru') || a.level - b.level),
+      .sort((a, b) => a.section.localeCompare(b.section, uiLocale()) || a.level - b.level),
   )
 
   /** Боксы в обороте, по коду. */
   const activeContainers = computed(() =>
     containers.value
       .filter((c) => c.is_active)
-      .sort((a, b) => a.code.localeCompare(b.code, 'ru')),
+      .sort((a, b) => a.code.localeCompare(b.code, uiLocale())),
   )
 
   const activeTypes = computed(() => types.value.filter((t) => t.is_active))
@@ -60,7 +61,7 @@ export const useMarketplaceStorageStore = defineStore(namespace, () => {
   const sections = computed(() => {
     const set = new Set<string>()
     for (const c of activeCells.value) set.add(c.section)
-    return [...set].sort((a, b) => a.localeCompare(b, 'ru'))
+    return [...set].sort((a, b) => a.localeCompare(b, uiLocale()))
   })
 
   /** Ярусы склада сверху вниз — строки координатной сетки. */

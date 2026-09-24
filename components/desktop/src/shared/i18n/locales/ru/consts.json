@@ -1,0 +1,15 @@
+{
+  "consts": {
+    "marketplaceUnits": {
+      "kgLabel": "кг",
+      "kgShort": "кг",
+      "literLabel": "литр",
+      "literShort": "л",
+      "packageLabel": "упак. {packageSize} {baseLabel}",
+      "pieceLabel": "шт.",
+      "pieceShort": "шт",
+      "unitLabelFallback": "ед.",
+      "unitShortFallback": "ед."
+    }
+  }
+}

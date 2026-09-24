@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 export * from './useLoginStepHeading';
 import { useSessionStore } from 'src/entities/Session';
 import { useGlobalStore } from 'src/shared/store';
@@ -135,7 +136,7 @@ export function useLoginUser() {
   async function loginWithPassword(email: string, password: string): Promise<void> {
     if (!env.COOPID_ISSUER) {
       throw new Error(
-        'Вход по паролю станет доступен после подключения авторизации кооператива. Пока войдите по ключу доступа.',
+        t('user.error.passwordLoginUnavailable'),
       );
     }
     const storage = createCoopIdStorage(systemStore.info.coopname);
@@ -152,7 +153,7 @@ export function useLoginUser() {
   async function establishSessionAfterCoopIdLogin(): Promise<void> {
     const ok = await session.establishCoopIdSession({ persistPin: true });
     if (!ok) {
-      throw new Error('Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.');
+      throw new Error(t('user.error.sessionEstablishFailed'));
     }
 
     // Легаси-артефакты в IndexedDB (ключ/токены под пустым паролем) — мусор с

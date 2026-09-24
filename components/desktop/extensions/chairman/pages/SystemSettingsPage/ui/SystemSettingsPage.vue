@@ -5,8 +5,7 @@
   .banner
     q-icon.banner__icon(name='fa-solid fa-circle-info' size='18px')
     .banner__body
-      | Настройте рабочие столы и страницы, которые будут открываться по
-      | умолчанию для новых пользователей при входе на сайт.
+      | {{ $t('chairman.systemSettingsPage.intro') }}
 
   q-card(flat)
     q-card-section

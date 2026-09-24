@@ -15,7 +15,7 @@ jest.mock('~/config/config', () => ({
 
 import { BadRequestException } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { BranchInteractor } from '~/application/branch/use-cases/branch.interactor';
 import { Cooperative } from 'cooptypes';
 
@@ -96,8 +96,8 @@ describe('BranchInteractor.selectBranch', () => {
       thrown = e;
     }
 
-    expect(thrown).toBeInstanceOf(HttpApiError);
-    expect((thrown as HttpApiError).getStatus()).toBe(httpStatus.FORBIDDEN);
+    expect(thrown).toBeInstanceOf(DomainError);
+    expect((thrown as DomainError).getStatus()).toBe(httpStatus.FORBIDDEN);
     expect(branchBlockchainPort.selectBranch).not.toHaveBeenCalled();
   });
 
@@ -132,7 +132,7 @@ describe('BranchInteractor.selectBranch', () => {
 
     const data = input({ coopname: 'othercoop' });
 
-    await expect(interactor.selectBranch(data as any, 'ant')).rejects.toThrow(HttpApiError);
+    await expect(interactor.selectBranch(data as any, 'ant')).rejects.toThrow(DomainError);
     expect(branchBlockchainPort.selectBranch).not.toHaveBeenCalled();
   });
 });

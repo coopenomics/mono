@@ -5,6 +5,7 @@
  * идентичный MarketplaceOrderPaginationResult, поэтому один тип на оба стола.
  */
 import { Queries } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 type _RawOrderPage = Queries.Marketplace.ListAllOrders.IOutput['marketplaceListAllOrders'];
 type _RawOrder = _RawOrderPage['items'][number];
@@ -54,21 +55,21 @@ export interface OrderRegistryFilterOption {
  * пунктами с одинаковой подписью список выглядел как ошибка.
  */
 export const ORDER_REGISTRY_FILTERS: OrderRegistryFilterOption[] = [
-  { key: 'active', label: 'Ожидает сборки партии', statuses: ['ACTIVE'] },
+  { key: 'active', label: t('marketplace.order.status.pendingAssembly'), statuses: ['ACTIVE'] },
   {
     key: 'pending_supplier',
-    label: 'Ждёт акцепта поставщика',
+    label: t('marketplace.order.status.pendingSupplierAcceptance'),
     statuses: ['ACCEPTED_PENDING_SUPPLIER', 'ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL'],
   },
-  { key: 'accepted', label: 'Ожидает отгрузки', statuses: ['ACCEPTED'] },
-  { key: 'supply_prepared', label: 'Собрана к отгрузке', statuses: ['SUPPLY_PREPARED'] },
-  { key: 'accepted_to_coop', label: 'Принят кооперативом', statuses: ['ACCEPTED_TO_COOP'] },
-  { key: 'ready', label: 'Готов к выдаче', statuses: ['READY_TO_RECEIVE'] },
-  { key: 'issue_pending', label: 'На решении совета', statuses: ['ISSUE_PENDING'] },
-  { key: 'issue_authorized', label: 'Совет согласовал — подпишите акт', statuses: ['ISSUE_AUTHORIZED'] },
-  { key: 'issue_act1', label: 'Акт подписан — выдаётся', statuses: ['ISSUE_ACT1'] },
-  { key: 'received', label: 'Получен', statuses: ['RECEIVED'] },
-  { key: 'returned', label: 'Возвращён', statuses: ['RETURNED'] },
-  { key: 'cancelled_orderer', label: 'Отменён заказчиком', statuses: ['CANCELLED_BY_ORDERER'] },
-  { key: 'cancelled_supplier', label: 'Отменён поставщиком', statuses: ['CANCELLED_BY_SUPPLIER'] },
+  { key: 'accepted', label: t('marketplace.order.status.pendingShipment'), statuses: ['ACCEPTED'] },
+  { key: 'supply_prepared', label: t('marketplace.order.status.readyToShip'), statuses: ['SUPPLY_PREPARED'] },
+  { key: 'accepted_to_coop', label: t('marketplace.order.status.acceptedByCoop'), statuses: ['ACCEPTED_TO_COOP'] },
+  { key: 'ready', label: t('marketplace.order.status.readyToIssue'), statuses: ['READY_TO_RECEIVE'] },
+  { key: 'issue_pending', label: t('marketplace.order.status.councilPending'), statuses: ['ISSUE_PENDING'] },
+  { key: 'issue_authorized', label: t('marketplace.order.status.councilApproved'), statuses: ['ISSUE_AUTHORIZED'] },
+  { key: 'issue_act1', label: t('marketplace.order.status.actSignedIssuing'), statuses: ['ISSUE_ACT1'] },
+  { key: 'received', label: t('marketplace.order.status.received'), statuses: ['RECEIVED'] },
+  { key: 'returned', label: t('marketplace.order.status.returned'), statuses: ['RETURNED'] },
+  { key: 'cancelled_orderer', label: t('marketplace.order.status.cancelledByOrderer'), statuses: ['CANCELLED_BY_ORDERER'] },
+  { key: 'cancelled_supplier', label: t('marketplace.order.status.cancelledBySupplier'), statuses: ['CANCELLED_BY_SUPPLIER'] },
 ];

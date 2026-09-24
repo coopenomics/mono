@@ -67,6 +67,8 @@ export interface WorkflowDefinition<T extends BaseWorkflowPayload = BaseWorkflow
   preferences: PreferencesConfig;
   origin?: NovuOrigin; // Делаем optional
   tags?: string[]; // Теги для группировки воркфлоу
+  // Ключ сценария в словаре текстов (src/i18n): шаблон на языке получателя
+  i18nKey?: string;
   // Типизированная схема для валидации payload
   payloadZodSchema: z.ZodSchema<T>;
 }

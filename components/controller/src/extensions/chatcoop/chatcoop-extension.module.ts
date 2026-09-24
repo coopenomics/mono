@@ -1,5 +1,6 @@
+import './i18n';
 import { Module, Injectable, Inject } from '@nestjs/common';
-import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
@@ -57,6 +58,7 @@ import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from './domain/reposito
 import { CHATCOOP_STATE_REPOSITORY } from './domain/repositories/chatcoop-state.repository';
 import type { ChatcoopStateRepository } from './domain/repositories/chatcoop-state.repository';
 import { ChatcoopStateTypeormRepository } from './infrastructure/repositories/chatcoop-state.typeorm-repository';
+import { t } from './i18n';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -73,8 +75,8 @@ export const Schema = z.object({
     .default(2)
     .describe(
       describeField({
-        label: 'Интервал синхронизации истории чата (мин)',
-        note: 'Как часто бот подтягивает сообщения в PG (независимо от звонков). 1 = каждую минуту.',
+        label: t('chatcoop.settings.historySyncIntervalLabel'),
+        note: t('chatcoop.settings.historySyncIntervalNote'),
         visible: true,
       })
     ),
@@ -137,7 +139,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
       // Получаем конфигурацию расширения
       const extensionData = await this.extensionRepository.findByName(this.name);
-      if (!extensionData) throw new Error('Конфиг чаткооп не найден');
+      if (!extensionData) throw DomainError.internal('CHATCOOP_CONFIG_NOT_FOUND');
 
       this.extension = extensionData;
 
@@ -260,17 +262,17 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива для комнаты пайщиков');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE_FOR_MEMBERS');
       }
 
-      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
+      const membersRoomName = t('chatcoop.roomNames.members', { shortAbbr: vars.shortAbbr, name: vars.name });
       const membersMatrix = COOPERATIVE_MEMBERS_ROOM_MATRIX;
       const adminUserId = this.matrixApiService.getAdminUserId();
       const membersRoomPowerLevels = membersMatrix.buildPowerLevels(adminUserId);
 
       const membersRoomId = await this.matrixApiService.createRoom(
         membersRoomName,
-        'Чат для всех пайщиков кооператива',
+        t('chatcoop.roomTopics.members'),
         membersMatrix.isPrivate,
         membersMatrix.roomType,
         membersMatrix.initialState.length > 0 ? membersMatrix.initialState : undefined,
@@ -284,7 +286,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
         matrixRoomId: membersRoomId,
         encrypted: membersMatrix.encrypt,
         kind: 'members',
-        displayLabel: 'Комната пайщиков',
+        displayLabel: t('chatcoop.room.status.members'),
         projectHash: null,
       });
 
@@ -305,12 +307,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Получаем переменные кооператива
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE');
       }
 
       const spaceName = `${vars.shortAbbr} ${vars.name.toUpperCase()}`;
-      const membersRoomName = `Комната пайщиков ${vars.shortAbbr} ${vars.name}`;
-      const councilRoomName = `Комната совета ${vars.shortAbbr} ${vars.name}`;
+      const membersRoomName = t('chatcoop.roomNames.members', { shortAbbr: vars.shortAbbr, name: vars.name });
+      const councilRoomName = t('chatcoop.roomNames.council', { shortAbbr: vars.shortAbbr, name: vars.name });
 
       // Получаем user_id администратора Matrix
       const adminUserId = this.matrixApiService.getAdminUserId();
@@ -322,12 +324,12 @@ export class ChatCoopExtension extends BaseExtensionModule {
       const councilRoomPowerLevels = councilMatrix.buildPowerLevels(adminUserId);
 
       // Создаем пространство кооператива
-      const spaceId = await this.matrixApiService.createSpace(spaceName, `Частное пространство кооператива ${vars.name}`);
+      const spaceId = await this.matrixApiService.createSpace(spaceName, t('chatcoop.spaceTopic.private', { name: vars.name }));
       this.logger.log(`Создано пространство кооператива: ${spaceId}`);
 
       const membersRoomId = await this.matrixApiService.createRoom(
         membersRoomName,
-        'Чат для всех пайщиков кооператива',
+        t('chatcoop.roomTopics.members'),
         membersMatrix.isPrivate,
         membersMatrix.roomType,
         membersMatrix.initialState.length > 0 ? membersMatrix.initialState : undefined,
@@ -339,7 +341,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Создаем комнату для совета
       const councilRoomId = await this.matrixApiService.createRoom(
         councilRoomName,
-        'Чат для членов совета кооператива',
+        t('chatcoop.roomTopics.council'),
         councilMatrix.isPrivate,
         councilMatrix.roomType,
         councilMatrix.initialState.length > 0 ? councilMatrix.initialState : undefined,
@@ -365,14 +367,14 @@ export class ChatCoopExtension extends BaseExtensionModule {
         matrixRoomId: membersRoomId,
         encrypted: membersMatrix.encrypt,
         kind: 'members',
-        displayLabel: 'Комната пайщиков',
+        displayLabel: t('chatcoop.room.status.members'),
         projectHash: null,
       });
       await this.managedMatrixRooms.upsertRoom({
         matrixRoomId: councilRoomId,
         encrypted: councilMatrix.encrypt,
         kind: 'council',
-        displayLabel: 'Комната совета',
+        displayLabel: t('chatcoop.room.status.council'),
         projectHash: null,
       });
 
@@ -402,7 +404,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       // Получаем имя кооператива для формирования username
       const vars = await this.cooperativeVars.get();
       if (!vars) {
-        throw new Error('Не удалось получить переменные кооператива');
+        throw DomainError.internal('CHATCOOP_COOP_VARS_UNAVAILABLE');
       }
 
       const coopname = vars.coopname || platformSettings().coopname;
@@ -421,7 +423,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       const randomSuffix = Math.random().toString(36).substring(2, 5);
       const secretaryUsername = `secretary-${coopname}-${randomSuffix}`;
       const secretaryPassword = crypto.randomBytes(32).toString('hex');
-      const displayName = `Секретарь | ${vars.shortAbbr} ${vars.name}`;
+      const displayName = t('chatcoop.secretaryAccount.displayName', { shortAbbr: vars.shortAbbr, name: vars.name });
 
       this.logger.log(`Создание Matrix аккаунта секретаря: ${secretaryUsername}`);
 

@@ -7,7 +7,7 @@
 //- а закрытие трактуется как «Позже» — пайщик оффера просто не увидит.
 BaseDialog(
   v-model='visible',
-  title='Удостоверение пайщика',
+  :title='$t("security.migrationOfferDialog.title")',
   size='sm',
   :close-on-route-change='false'
 )
@@ -17,7 +17,7 @@ BaseDialog(
   .migration-offer(v-else)
     BaseInput(
       v-model='password',
-      label='Новый пароль',
+      :label='$t("security.migrationOfferDialog.newPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :hint='PASSWORD_POLICY_HINT',
@@ -26,7 +26,7 @@ BaseDialog(
     )
     BaseInput(
       v-model='repeat',
-      label='Повторите пароль',
+      :label='$t("security.migrationOfferDialog.repeatPasswordLabel")',
       type='password',
       autocomplete='new-password',
       :error='repeatError'
@@ -34,19 +34,19 @@ BaseDialog(
 
   template(#footer)
     template(v-if='step === "intro"')
-      BaseButton(variant='secondary', @click='postpone') Позже
+      BaseButton(variant='secondary', @click='postpone') {{ $t('security.migrationOfferDialog.later') }}
       BaseButton(variant='primary', @click='step = "form"')
         template(#icon-left)
           q-icon(name='password', size='18px')
-        | Установить пароль
+        | {{ $t('security.migrationOfferDialog.setPassword') }}
     template(v-else)
-      BaseButton(variant='secondary', :disabled='saving', @click='step = "intro"') Назад
+      BaseButton(variant='secondary', :disabled='saving', @click='step = "intro"') {{ $t('common.action.back') }}
       BaseButton(
         variant='primary',
         :loading='saving',
         :disabled='!isValid',
         @click='onSetPassword'
-      ) Установить
+      ) {{ $t('security.migrationOfferDialog.submit') }}
 </template>
 
 <script lang="ts" setup>

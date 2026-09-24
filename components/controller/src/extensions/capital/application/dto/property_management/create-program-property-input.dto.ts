@@ -2,7 +2,7 @@ import { Field, InputType } from '@nestjs/graphql';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { CreateProgramPropertyDomainInput } from '../../../domain/actions/create-program-property-domain-input.interface';
-import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL DTO для создания программного имущественного взноса CAPITAL контракта
@@ -10,28 +10,28 @@ import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 @InputType('CreateProgramPropertyInput')
 export class CreateProgramPropertyInputDTO implements CreateProgramPropertyDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProgramPropertyInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.createProgramPropertyInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProgramPropertyInput.username.required') })
+  @IsString({ message: validationMessage('capital.createProgramPropertyInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш имущества' })
-  @IsNotEmpty({ message: 'Хэш имущества не должен быть пустым' })
-  @IsString({ message: 'Хэш имущества должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProgramPropertyInput.propertyHash.required') })
+  @IsString({ message: validationMessage('capital.createProgramPropertyInput.propertyHash.string') })
   property_hash!: string;
 
   @Field(() => String, { description: 'Сумма имущества' })
-  @IsNotEmpty({ message: 'Сумма имущества не должна быть пустой' })
-  @IsString({ message: 'Сумма имущества должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProgramPropertyInput.propertyAmount.required') })
+  @IsString({ message: validationMessage('capital.createProgramPropertyInput.propertyAmount.string') })
   property_amount!: string;
 
   @Field(() => String, { description: 'Описание имущества' })
-  @IsNotEmpty({ message: 'Описание имущества не должно быть пустым' })
-  @IsString({ message: 'Описание имущества должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createProgramPropertyInput.propertyDescription.required') })
+  @IsString({ message: validationMessage('capital.createProgramPropertyInput.propertyDescription.string') })
   property_description!: string;
 
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Заявление' })

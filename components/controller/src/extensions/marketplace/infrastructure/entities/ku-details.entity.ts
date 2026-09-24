@@ -24,6 +24,7 @@ export class KuDetailsTypeormEntity {
   @Column({ name: 'coopname', type: 'varchar', length: 13 })
   coopname!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'core_braname', type: 'varchar', length: 13, comment: 'braname в core coop_ku' })
   coreBraname!: string;
 
@@ -32,6 +33,7 @@ export class KuDetailsTypeormEntity {
     type: 'varchar',
     length: 1000,
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Адрес, по которому посчитаны координаты (кэш-ключ геокода)',
   })
   geocodedAddress?: string;

@@ -29,7 +29,7 @@ VerificationConfirmDialog(
   //- Фотофиксация нужна там, где сверку потом проверяет совет — на участке.
   //- Совет сверяет сам и себя не проверяет, поэтому снимки у него не просим.
   .verify-dialog__photos(v-if='braname')
-    .verify-dialog__photos-title Фотографии сверки
+    .verify-dialog__photos-title {{ $t('user.verifyIdentityDialog.photosTitle') }}
     FileUploader(
       v-model='photos',
       accept='image/*',
@@ -38,8 +38,8 @@ VerificationConfirmDialog(
       :max-files='PHOTOS_MAX',
       :max-size='PHOTO_MAX_BYTES',
       :disabled='verifying',
-      title='Снимите пайщика с паспортом',
-      hint='Пайщик держит раскрытый паспорт у лица. Снимки хранятся до решения совета и затем удаляются',
+      :title='$t("user.verifyIdentityDialog.uploaderTitle")',
+      :hint='$t("user.verifyIdentityDialog.uploaderHint")',
       @error='onPhotoError'
     )
 </template>

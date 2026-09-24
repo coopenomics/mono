@@ -31,6 +31,7 @@ import {
   type FileStorageInfrastructureOptions,
 } from './file-storage.config';
 import { signReadUrl } from './signing';
+import { t } from '~/i18n';
 
 /**
  * Окно стабилизации signed-URL чтения (сек). `exp` округляется к границе окна,
@@ -96,6 +97,7 @@ export class MinioFileStorageAdapter implements IFileStoragePort, OnApplicationB
   private assertEnabled(): S3Client {
     if (!this.enabled || !this.s3) {
       throw new InnerFileStorageBackendUnavailableError(
+        // i18n-ignore: file storage не сконфигурирован (MINIO_ENDPOINT пуст) — ошибка окружения, до пайщика не доходит
         'File storage не сконфигурирован: MINIO_ENDPOINT пуст. Задайте переменную окружения, чтобы включить загрузку/чтение файлов.',
       );
     }
@@ -110,6 +112,7 @@ export class MinioFileStorageAdapter implements IFileStoragePort, OnApplicationB
     } catch (e) {
       if (!isNotFound(e)) {
         throw new InnerFileStorageBackendUnavailableError(
+          // i18n-ignore: ошибка проверки бакета MinIO при старте — техническая, до пайщика не доходит
           `HeadBucket(${this.opts.bucket}) не удался: ${getMessage(e)}`,
           { cause: asError(e) },
         );
@@ -120,6 +123,7 @@ export class MinioFileStorageAdapter implements IFileStoragePort, OnApplicationB
       this.logger.log(`Создан физический бакет '${this.opts.bucket}'`);
     } catch (e) {
       throw new InnerFileStorageBackendUnavailableError(
+        // i18n-ignore: ошибка создания бакета MinIO при старте — техническая, до пайщика не доходит
         `CreateBucket(${this.opts.bucket}) не удался: ${getMessage(e)}`,
         { cause: asError(e) },
       );
@@ -151,7 +155,7 @@ export class MinioFileStorageAdapter implements IFileStoragePort, OnApplicationB
       };
     } catch (e) {
       if (isNotFound(e)) {
-        throw new InnerFileStorageObjectNotFoundError(`Объект '${physicalKey}' не найден`);
+        throw new InnerFileStorageObjectNotFoundError(t('fileStorage.minioFileStorage.objectNotFound', { key: physicalKey }));
       }
       throw wrapBackendError(e, `getObject '${physicalKey}'`);
     }
@@ -183,7 +187,7 @@ class MinioBucketHandle implements InnerFileStorageBucket {
   ): Promise<InnerFileStoragePutResult> {
     if (!this.spec.allowedMime.includes(opts.contentType)) {
       throw new InnerFileStorageMimeRejectedError(
-        `MIME '${opts.contentType}' не входит в allowedMime бакета '${this.spec.name}'`,
+        t('fileStorage.minioFileStorage.mimeNotAllowed', { contentType: opts.contentType, bucketName: this.spec.name }),
       );
     }
     this.validateMetadata(opts.metadata);
@@ -258,7 +262,7 @@ class MinioBucketHandle implements InnerFileStorageBucket {
     } catch (e) {
       if (isNotFound(e)) {
         throw new InnerFileStorageObjectNotFoundError(
-          `Объект '${this.spec.name}/${key}' не найден`,
+          t('fileStorage.minioFileStorage.objectNotFoundInBucket', { bucketName: this.spec.name, key }),
         );
       }
       throw wrapBackendError(e, `head '${this.spec.name}/${key}'`);
@@ -272,7 +276,7 @@ class MinioBucketHandle implements InnerFileStorageBucket {
       const value = metadata?.[field];
       if (!value) {
         throw new InnerFileStorageMetadataValidationError(
-          `Метаданное '${field}' обязательно для бакета '${this.spec.name}'`,
+          t('fileStorage.minioFileStorage.metadataRequired', { field, bucketName: this.spec.name }),
         );
       }
     }
@@ -293,16 +297,19 @@ export interface FileStorageObjectStream {
 function validateSpec(spec: InnerFileStorageBucketSpec): void {
   if (!spec.name || !spec.name.includes(':')) {
     throw new InnerFileStorageBucketNotConfiguredError(
+      // i18n-ignore: ошибка конфигурации BucketSpec.name расширением — разработческая, до пайщика не доходит
       `BucketSpec.name должен иметь формат '<extension>:<purpose>', получено '${spec.name}'`,
     );
   }
   if (!Number.isFinite(spec.maxBytes) || spec.maxBytes <= 0) {
     throw new InnerFileStorageBucketNotConfiguredError(
+      // i18n-ignore: ошибка конфигурации BucketSpec.maxBytes расширением — разработческая, до пайщика не доходит
       `BucketSpec.maxBytes должно быть положительным конечным числом, получено ${spec.maxBytes}`,
     );
   }
   if (!spec.allowedMime || spec.allowedMime.length === 0) {
     throw new InnerFileStorageBucketNotConfiguredError(
+      // i18n-ignore: ошибка конфигурации BucketSpec.allowedMime расширением — разработческая, до пайщика не доходит
       `BucketSpec.allowedMime должен содержать хотя бы один MIME-тип`,
     );
   }
@@ -316,7 +323,7 @@ async function materializeAndCheckSize(
   if (body instanceof Uint8Array) {
     if (body.byteLength > maxBytes) {
       throw new InnerFileStorageObjectTooLargeError(
-        `Размер ${body.byteLength} байт превышает лимит ${maxBytes} бакета '${specName}'`,
+        t('fileStorage.minioFileStorage.sizeLimitExceeded', { bytes: body.byteLength, maxBytes, bucketName: specName }),
       );
     }
     return Buffer.from(body);
@@ -344,7 +351,7 @@ async function materializeAndCheckSize(
             // ignore
           }
           throw new InnerFileStorageObjectTooLargeError(
-            `Размер тела превышает лимит ${maxBytes} бакета '${specName}'`,
+            t('fileStorage.minioFileStorage.bodySizeLimitExceeded', { maxBytes, bucketName: specName }),
           );
         }
         chunks.push(value);
@@ -353,6 +360,7 @@ async function materializeAndCheckSize(
     return Buffer.concat(chunks);
   }
   throw new InnerFileStorageBackendUnavailableError(
+    // i18n-ignore: внутренняя проверка типа тела запроса (не Buffer/Stream) — разработческая, до пайщика не доходит
     `Неподдерживаемый тип тела для бакета '${specName}'`,
   );
 }

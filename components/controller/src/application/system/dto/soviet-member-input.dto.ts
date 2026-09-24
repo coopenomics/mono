@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsIn, ValidateNested } from 'class-validator';
 import { CreateSovietIndividualDataInputDTO } from '~/application/account/dto/create-individual-data-input.dto';
 
@@ -9,6 +10,6 @@ export class SovietMemberInputDTO {
   individual_data!: CreateSovietIndividualDataInputDTO;
 
   @Field(() => String)
-  @IsIn(['chairman', 'member'], { message: 'Роль должна быть "chairman" или "member"' })
+  @IsIn(['chairman', 'member'], { message: validationMessage('system.sovietMemberInput.roleInvalid') })
   role!: 'chairman' | 'member';
 }

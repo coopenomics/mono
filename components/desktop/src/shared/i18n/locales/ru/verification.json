@@ -1,0 +1,90 @@
+{
+  "verification": {
+    "review": {
+      "status": {
+        "approved": "Подтверждена",
+        "pending": "На проверке",
+        "rejected": "Отклонена",
+        "revoked": "Отозвана"
+      }
+    },
+    "reviewModel": {
+      "approveSuccess": "Сверка подтверждена. Фотографии удалены",
+      "rejectSuccess": "Сверка отклонена. Верификация пайщика отозвана"
+    },
+    "verification": {
+      "attestedAtBranch": "участок «{branch}»",
+      "attestedBy": "подтвердил {who}, {where}",
+      "basedOnLabel": "Действует на основании",
+      "birthdateLabel": "Дата рождения",
+      "councilLabel": "совет кооператива",
+      "individualHint": "Сверьте с оригиналом паспорта все данные выше: фамилию, имя, отчество, дату рождения, серию и номер, кем и когда выдан, код подразделения и адрес регистрации. Подтверждение записывается в цепи от вашего имени и делается один раз.",
+      "innLabel": "ИНН",
+      "issuedAtLabel": "Дата выдачи",
+      "issuedByLabel": "Кем выдан",
+      "legalAddressLabel": "Юридический адрес",
+      "ogrnLabel": "ОГРН",
+      "ogrnipLabel": "ОГРНИП",
+      "organizationHint": "Сверьте данные выше с документом, удостоверяющим личность, и с документом о полномочиях. Подтверждение записывается в цепи от вашего имени и делается один раз.",
+      "passportCodeLabel": "Код подразделения",
+      "passportSeriesLabel": "Серия и номер",
+      "positionLabel": "Должность",
+      "registrationAddressLabel": "Адрес регистрации",
+      "representativeLabel": "Представитель",
+      "sinceDate": "с {date}"
+    },
+    "verificationReviewDialog": {
+      "approve": "Утвердить",
+      "dateLabel": "Дата сверки",
+      "photoAlt": "Снимок сверки {username}",
+      "photosTitle": "Фотографии сверки",
+      "photosUnavailable": "Снимки недоступны",
+      "placeLabel": "Место сверки",
+      "reject": "Отклонить",
+      "rejectReasonHint": "Заполняется только при отклонении — её увидит участок",
+      "rejectReasonLabel": "Причина отклонения",
+      "title": "Проверка сверки личности",
+      "verifiedByLabel": "Сверил"
+    },
+    "verificationsJournal": {
+      "branchPlaceName": "Участок «{branch}»",
+      "councilPlaceName": "Совет кооператива",
+      "emptyBody": "Здесь появятся сверки личности, как только их проведут на кооперативных участках или в совете.",
+      "emptyTitle": "Журнал пуст",
+      "memberColumn": "Пайщик",
+      "pendingBannerLine1": "Сверок ждёт решения: {count}. Пайщик уже получает имущество —",
+      "pendingBannerLine2": "отклонение отзовёт подтверждение личности.",
+      "placeColumn": "Где сверяли",
+      "reviewAction": "Проверить",
+      "statusColumn": "Состояние",
+      "verificatorColumn": "Кто сверял",
+      "whenColumn": "Когда"
+    },
+    "verifyCertificatePage": {
+      "browserUnsupportedError": "Этот браузер не умеет читать коды — вставьте содержимое вручную",
+      "cameraUnavailableError": "Камера недоступна — вставьте содержимое кода вручную",
+      "chainBrokenError": "Цепочка подтверждения разорвана",
+      "chainForgedError": "Подтверждение кооператива не сходится — цепочка поддельна",
+      "checkNext": "Проверить следующего",
+      "coopConfirmationExpiredError": "Подтверждение кооператива просрочено",
+      "coopNotConfirmedError": "Кооператив не подтверждён: заверения в удостоверении нет",
+      "enableCamera": "Включить камеру",
+      "expiredError": "Срок удостоверения истёк",
+      "issuerMismatchError": "Удостоверение выпущено не тем, кого подтверждает цепочка",
+      "legacyFormatError": "Удостоверение устаревшего образца",
+      "noRootKeyError": "Считыватель не настроен: не задан корневой ключ проверки",
+      "notCertificateError": "Код не является удостоверением пайщика",
+      "notConfirmed": "Не подтверждено",
+      "notConfirmedError": "Удостоверение не подтверждено",
+      "pasteLabel": "Или вставьте содержимое кода",
+      "resultLine": "{coop} · действует до {until}",
+      "scanHint": "Наведите камеру на код удостоверения",
+      "signatureMismatchError": "Подпись не сходится — удостоверение подделано или изменено",
+      "submit": "Проверить",
+      "title": "Проверка удостоверения",
+      "unknownMethodError": "Удостоверение выпущено неизвестным способом",
+      "welcome": "Добро пожаловать",
+      "wrongNetworkError": "Удостоверение выпущено в другой сети"
+    }
+  }
+}

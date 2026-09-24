@@ -7,6 +7,7 @@ import type {
   BalanceCorrectionRepository,
   UpsertBalanceCorrectionInput,
 } from '../../domain/repositories/balance-correction.repository';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class BalanceCorrectionTypeormRepository implements BalanceCorrectionRepository {
@@ -38,7 +39,7 @@ export class BalanceCorrectionTypeormRepository implements BalanceCorrectionRepo
       },
     });
     if (!saved) {
-      throw new Error('balance_correction upsert: запись не найдена после upsert');
+      throw DomainError.internal('REPORTS_BALANCE_CORRECTION_UPSERT_NOT_FOUND');
     }
     return this.toRecord(saved);
   }

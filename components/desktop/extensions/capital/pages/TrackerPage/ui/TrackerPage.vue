@@ -1,18 +1,18 @@
 <template lang="pug">
 //- Моё время: surface + агрегаты WalletCard сверху + плоский аккордеон без ColorCard.
 .tracker-page
-  WindowLoader(v-show='isInitialLoading', text='Загрузка данных трекера...')
+  WindowLoader(v-show='isInitialLoading', :text='$t("capital.trackerPage.loadingText")')
   .tracker-page__body(v-show='!isInitialLoading')
     .banner.banner--info(v-if='!bannerDismissed')
       q-icon.banner__icon(name='info', size='20px')
       .banner__body
-        | Билеты времени становятся доступны для коммита после перевода задачи в статус «выполнена».
-        | Дробная часть часа сохраняется в учёте до следующего накопления полного часа.
+        | {{ $t('capital.trackerPage.hintCommitAvailability') }}
+        | {{ $t('capital.trackerPage.hintFractionalHours') }}
       BaseButton.banner__dismiss(
         variant='ghost',
         size='sm',
         icon-only,
-        aria-label='Скрыть подсказку',
+        :aria-label='$t("capital.trackerPage.hideHintAriaLabel")',
         @click='dismissBanner'
       )
         template(#icon-left)
@@ -27,30 +27,30 @@
       .col-12.col-md-4
         WalletCard(
           neutral,
-          title='Доступно',
+          :title='$t("capital.trackerPage.availableTitle")',
           :balance='aggregates.available',
-          symbol='ч',
-          balance-label='к коммиту по всем компонентам',
+          :symbol='$t("capital.trackerPage.hoursSymbol")',
+          :balance-label='$t("capital.trackerPage.availableBalanceLabel")',
           icon='schedule',
           :loading='isInitialLoading'
         )
       .col-12.col-md-4
         WalletCard(
           neutral,
-          title='В ожидании',
+          :title='$t("capital.trackerPage.pendingTitle")',
           :balance='aggregates.pending',
-          symbol='ч',
-          balance-label='ожидают подтверждения',
+          :symbol='$t("capital.trackerPage.hoursSymbol")',
+          :balance-label='$t("capital.trackerPage.pendingBalanceLabel")',
           icon='hourglass_empty',
           :loading='isInitialLoading'
         )
       .col-12.col-md-4
         WalletCard(
           neutral,
-          title='Подтверждено',
+          :title='$t("capital.trackerPage.confirmedTitle")',
           :balance='aggregates.committed',
-          symbol='ч',
-          balance-label='зафиксировано в учёте',
+          :symbol='$t("capital.trackerPage.hoursSymbol")',
+          :balance-label='$t("capital.trackerPage.confirmedBalanceLabel")',
           icon='verified',
           :loading='isInitialLoading'
         )

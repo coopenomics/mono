@@ -1,0 +1,215 @@
+{
+  "chatcoop": {
+    "calendarEventsTable": {
+      "column": {
+        "end": "Окончание",
+        "event": "Событие",
+        "room": "Комната",
+        "start": "Начало"
+      },
+      "emptyLabel": "Нет событий",
+      "joinRoomLabel": "Войти в комнату",
+      "timezoneHint": "События в таблице показаны в вашем местном времени (часовой пояс устройства)."
+    },
+    "calendarPageToolbar": {
+      "installLabel": "Установить",
+      "newEventLabel": "Новое событие",
+      "refreshLabel": "Обновить",
+      "subscribeHint": "Скопируйте ссылку и импортируйте в ваш календарь для синхронизации событий"
+    },
+    "calendarStore": {
+      "loadError": "Не удалось загрузить календарь."
+    },
+    "chatCoopPage": {
+      "checkingStatusText": "Проверка статуса аккаунта...",
+      "goToMobileClientLabel": "Перейти к мобильному клиенту",
+      "loadingClientText": "Загрузка клиента...",
+      "mobileAvailableHint": "На мобильных устройствах кооперативный мессенджер работает только через мобильное приложение Element X.",
+      "mobileAvailableTitle": "Мобильный клиент доступен",
+      "mobileInstructionsHint": "Перейдите на страницу с инструкциями по подключению.",
+      "retryLabel": "Повторить попытку"
+    },
+    "chatStore": {
+      "statusError": "Не удалось получить статус аккаунта. Попробуйте обновить страницу."
+    },
+    "createMatrixAccount": {
+      "createError": "Не удалось создать аккаунт Matrix"
+    },
+    "createMatrixAccountButton": {
+      "createError": "Не удалось создать аккаунт",
+      "createLabel": "Создать аккаунт Matrix",
+      "loadingLabel": "Создание аккаунта..."
+    },
+    "deleteCalendarEventDialog": {
+      "confirmText": "Удалить событие «{title}»?"
+    },
+    "install": {
+      "calendarNavTitle": "Календарь событий",
+      "extensionName": "Кооперативный мессенджер",
+      "mobileClientNavTitle": "Мобильный клиент",
+      "quickClientNavTitle": "Быстрый клиент",
+      "secretaryRoomsNavTitle": "Комнаты секретаря",
+      "transcriptionDetailNavTitle": "Транскрипция",
+      "transcriptionsNavTitle": "Транскрипции звонков"
+    },
+    "matrixRegistration": {
+      "continueLabel": "Продолжить",
+      "creatingLabel": "Создание аккаунта...",
+      "emailPlaceholder": "Ваш email",
+      "passwordDigitError": "Пароль должен содержать хотя бы одну цифру",
+      "passwordLabel": "Пароль",
+      "passwordLetterError": "Пароль должен содержать хотя бы одну букву",
+      "passwordMinLengthError": "Пароль должен содержать минимум 6 символов",
+      "passwordMismatchError": "Пароли не совпадают",
+      "passwordPlaceholder": "Введите пароль (минимум 6 символов, буквы, цифры и символы)",
+      "passwordSpecialCharError": "Пароль должен содержать хотя бы один специальный символ (!{'@'}#$%^&*()_+-=[]{'{'}{'}'}{'|'};\":,./<>?`~)",
+      "repeatPasswordLabel": "Повторите пароль",
+      "title": "Создать аккаунт",
+      "usernameLabel": "Имя пользователя",
+      "usernamePlaceholder": "Введите имя пользователя (минимум 3 символа)"
+    },
+    "matrixRegistrationValidation": {
+      "fillAllFieldsError": "Заполните все поля",
+      "passwordMismatchError": "Пароли не совпадают",
+      "usernameCharsError": "Имя пользователя может содержать только буквы, цифры, подчеркивания и дефисы",
+      "usernameMinLengthError": "Имя пользователя должно содержать минимум 3 символа",
+      "usernameRequiredError": "Введите имя пользователя",
+      "usernameTakenError": "Пользователь с таким именем уже существует"
+    },
+    "mobileClientPage": {
+      "checkingStatusText": "Проверка статуса аккаунта...",
+      "copiedMessage": "Адрес сервера скопирован в буфер обмена",
+      "goToRegistrationLabel": "Перейти к регистрации",
+      "loadingLabel": "Загружается...",
+      "missingCredentialsHint": "У вас есть аккаунт кооперативного мессенджера, но отсутствуют данные для входа в мобильное приложение.",
+      "missingCredentialsRetryHint": "Попробуйте обновить страницу или обратитесь в поддержку.",
+      "noAccountHint1": "У кооперативного мессенджера есть мобильное приложение Element X.",
+      "noAccountHint2": "Для подключения вам нужен аккаунт кооперативного мессенджера.",
+      "noAccountHint3": "Зарегистрируйте аккаунт на главной странице и получите инструкцию для мобильного приложения.",
+      "noAccountTitle": "Нет аккаунта кооперативного мессенджера",
+      "otherPlatformsLabel": "Другие платформы",
+      "pageSubtitle": "Подключитесь к кооперативному мессенджеру через мобильное приложение Element X",
+      "pageTitle": "Мобильный клиент",
+      "passwordHint": "Получен при регистрации аккаунта",
+      "passwordLabel": "Пароль:",
+      "refreshDataLabel": "Обновить данные",
+      "retryLabel": "Повторить попытку",
+      "step1Hint": "Выберите версию для вашей платформы:",
+      "step1Title": "Скачайте приложение Element X",
+      "step2Hint": "Запустите приложение и нажмите кнопку \"Войти вручную\" (или \"Sign in manually\")",
+      "step2Title": "Войдите вручную",
+      "step3Hint": "Нажмите на ссылку \"Сменить поставщика учетной записи\" (или \"Change homeserver\")",
+      "step3Title": "Смените поставщика учетной записи",
+      "step4Title": "Введите адрес сервера",
+      "step5Hint": "Используйте данные вашего аккаунта кооперативного мессенджера:",
+      "step5Title": "Войдите под своими учетными данными",
+      "usernameLabel": "Имя пользователя:"
+    },
+    "saveCalendarEventDialog": {
+      "createTitle": "Новое событие",
+      "descriptionLabel": "Описание",
+      "editTitle": "Изменить событие",
+      "endLabel": "Окончание (необязательно)",
+      "roomLabel": "Комната",
+      "startLabel": "Начало",
+      "timezoneHint": "Укажите время в вашем местном часовом поясе; у других участников оно отобразится по их поясу.",
+      "titleLabel": "Заголовок"
+    },
+    "secretaryRoom": {
+      "status": {
+        "capitalProject": "Проект",
+        "council": "Совет",
+        "members": "Пайщики",
+        "secretary": "Секретарь"
+      }
+    },
+    "secretaryRoomStore": {
+      "loadError": "Не удалось загрузить список комнат. Попробуйте обновить страницу."
+    },
+    "secretaryRoomsPage": {
+      "column": {
+        "kind": "Тип",
+        "room": "Комната",
+        "secretary": "Секретарь"
+      },
+      "createDialogTitle": "Новая комната секретаря",
+      "createRoomLabel": "Создать комнату",
+      "createdMessage": "Комната создана, секретарь подключён",
+      "deleteConfirmMessage": "Секретарь выйдет из «{roomName}», комната перестанет транскрибироваться и синхронизироваться.",
+      "deleteConfirmTitle": "Удалить комнату секретаря?",
+      "deletedMessage": "Комната удалена",
+      "emptyLabel": "Комнат пока нет",
+      "encryptedRoomHint": "Зашифрованная комната — транскрипция недоступна",
+      "nameLabel": "Название комнаты",
+      "namePlaceholder": "Введите название",
+      "operationError": "Не удалось выполнить операцию",
+      "pageHint": "Системные и проектные комнаты показаны для справки и не удаляются.",
+      "pageSubtitle": "Создавайте комнаты для звонков с секретарём — он подключается сразу и ведёт транскрипцию.",
+      "pageTitle": "Комнаты секретаря",
+      "privateTypeHint": "Приватная: участников приглашаете вы (в клиенте мессенджера).",
+      "privateTypeOption": "Приватная (по приглашению)",
+      "publicTypeHint": "Публичная: войти может любой пайщик.",
+      "publicTypeOption": "Публичная (открытый вход)",
+      "refreshAriaLabel": "Обновить список",
+      "refreshLabel": "Обновить",
+      "secretaryAbsentLabel": "Секретаря нет",
+      "secretaryPresentLabel": "Секретарь в комнате",
+      "typeLabel": "Тип комнаты"
+    },
+    "transcription": {
+      "status": {
+        "active": "Активен",
+        "completed": "Завершён",
+        "error": "Ошибка"
+      }
+    },
+    "transcriptionDetailPage": {
+      "backLabel": "К списку",
+      "callLabel": "Звонок",
+      "durationLabel": "Длительность",
+      "emptyTranscriptText": "Транскрипция пока пуста",
+      "endLabel": "Окончание",
+      "loadingText": "Загрузка транскрипции...",
+      "memoTitle": "Заметка о звонке",
+      "notFoundTitle": "Запись не найдена",
+      "participantsLabel": "Участники",
+      "startLabel": "Начало",
+      "transcriptTextLabel": "Текст"
+    },
+    "transcriptionMemoEditor": {
+      "emptyText": "Заметка не заполнена.",
+      "permissionHint": "Редактирование доступно председателю и членам совета",
+      "placeholderHint": "Кратко, о чём был разговор. Первая строка — одно предложение-резюме до 150 символов.",
+      "saveError": "Не удалось сохранить заметку",
+      "savingLabel": "Сохраняем…"
+    },
+    "transcriptionStore": {
+      "loadListError": "Не удалось загрузить транскрипции. Попробуйте обновить страницу.",
+      "loadOneError": "Не удалось загрузить транскрипцию. Попробуйте обновить страницу."
+    },
+    "transcriptionUtils": {
+      "durationMinSecFormat": "{minutes} мин {seconds} сек",
+      "durationSecFormat": "{seconds} сек",
+      "participantsCountFallback": "0 участников",
+      "participantsWordFew": "участника",
+      "participantsWordMany": "участников",
+      "participantsWordOne": "участник"
+    },
+    "transcriptionsPage": {
+      "column": {
+        "call": "Звонок",
+        "duration": "Длительность",
+        "participants": "Участники",
+        "start": "Начало",
+        "status": "Статус"
+      },
+      "emptyLabel": "Нет транскрипций",
+      "loadMoreLabel": "Загрузить ещё",
+      "pageSubtitle": "Записи распознанной речи из кооперативных звонков",
+      "pageTitle": "Транскрипции звонков",
+      "refreshAriaLabel": "Обновить список",
+      "refreshLabel": "Обновить",
+      "timezoneHint": "Время указано в вашем часовом поясе."
+    }
+  }
+}

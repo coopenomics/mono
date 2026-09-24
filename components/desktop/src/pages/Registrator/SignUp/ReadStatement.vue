@@ -27,20 +27,20 @@ div(v-show='registratorStore.isStep("ReadStatement")')
 
       //- Устав кооператива (всегда показывается)
       BaseCheckbox(block v-model='registratorStore.state.agreements.ustav')
-        | Я прочитал и принимаю
-        a(v-if='hasStatuteLink' @click.stop='(event) => event.stopPropagation()' :href='statuteLink' target='_blank').agreements__link Устав кооператива
-        span(v-else).agreements__link Устав кооператива
+        | {{ $t('registrator.readStatement.agreementPrefix') }}
+        a(v-if='hasStatuteLink' @click.stop='(event) => event.stopPropagation()' :href='statuteLink' target='_blank').agreements__link {{ $t('registrator.readStatement.statuteLinkText') }}
+        span(v-else).agreements__link {{ $t('registrator.readStatement.statuteLinkText') }}
 
     .row.q-gutter-md.q-mt-lg.q-mb-lg(v-if='!isLoading')
       BaseButton(variant='ghost', @click='back')
         q-icon(name='arrow_back')
-        span.q-ml-md назад
+        span.q-ml-md {{ $t('registrator.readStatement.back') }}
 
       BaseButton(
         variant='primary',
         :disabled='!agreeWithAll',
         @click='registratorStore.next()'
-      ) Продолжить
+      ) {{ $t('registrator.readStatement.submit') }}
 </template>
 <script lang="ts" setup>
 import { ref, computed, watch, nextTick } from 'vue'
@@ -55,6 +55,7 @@ import { useRegistratorStore } from 'src/entities/Registrator'
 import { useRegistrationStore } from 'src/entities/Registration'
 import { useSystemStore } from 'src/entities/System/model'
 import { sanitizeDocumentHtml } from 'src/shared/lib/utils'
+import { t } from 'src/shared/i18n';
 
 const registratorStore = useRegistratorStore()
 const registrationStore = useRegistrationStore()
@@ -74,7 +75,7 @@ const html = ref()
 const safeHtml = computed(() => sanitizeDocumentHtml(html.value))
 const isLoading = ref(false)
 const isGenerating = ref(false)
-const loadingText = ref('Загружаем документы...')
+const loadingText = ref(t('registrator.readStatement.loadingDocuments'))
 const statementDiv = ref<any>()
 
 const loadDocuments = async (): Promise<void> => {
@@ -86,12 +87,12 @@ const loadDocuments = async (): Promise<void> => {
   try {
     isGenerating.value = true
     isLoading.value = true
-    loadingText.value = 'Генерируем документы для подписи...'
+    loadingText.value = t('registrator.readStatement.generatingDocuments')
 
     // Генерируем все документы регистрации с бэкенда (они уже содержат HTML для отображения)
     await generateAllRegistrationDocuments(registratorStore.state.selectedProgramKey || undefined)
 
-    loadingText.value = 'Заполняем заявление...'
+    loadingText.value = t('registrator.readStatement.fillingStatement')
 
     // Генерируем заявление для просмотра
     const document = await generateStatementWithoutSignature()

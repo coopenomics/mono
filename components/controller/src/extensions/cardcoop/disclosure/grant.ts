@@ -179,9 +179,13 @@ export function grantRejectionReason(
 ): string | null {
   // Анкету у нас — значит `from` обязан быть нами. Иначе это грант на чужую анкету, и
   // предъявитель просто принёс его не в ту дверь.
+  // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
   if (claims.from !== coopname) return `грант выдан на анкету кооператива ${claims.from}`;
+  // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
   if (claims.aud === coopname) return 'грант выдан нам же — раскрывать анкету самим себе незачем';
+  // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
   if (claims.exp <= now - CLOCK_SKEW_SECONDS) return 'грант просрочен';
+  // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
   if (claims.iat > now + CLOCK_SKEW_SECONDS) return 'грант выпущен будущим временем';
 
   return null;

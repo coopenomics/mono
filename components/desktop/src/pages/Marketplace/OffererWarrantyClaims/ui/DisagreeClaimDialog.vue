@@ -24,26 +24,26 @@ const emit = defineEmits<{
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Не согласны с претензией?',
+  :title='$t("marketplace.disagreeClaimDialog.dialogTitle")',
   @update:model-value='(v: boolean) => emit("update:modelValue", v)'
 )
   .mp-claim-disagree(v-if='claim')
     p.mp-claim-disagree__lead
-      | Претензия на {{ formatAsset2Digits(claim.amount) }} ₽ остаётся непризнанной — из ваших
-      | выплат она не удерживается. Свяжитесь с кооперативным участком, где принято
-      | имущество, и разберитесь с оператором на месте: имущество можно осмотреть и
-      | забрать там же.
-    DataRow(label='Участок', :value='claim.branch_contacts.name || claim.delivery_braname')
-    DataRow(v-if='claim.branch_contacts.address', label='Адрес', :value='claim.branch_contacts.address')
-    DataRow(v-if='claim.branch_contacts.phone', label='Телефон', :value='claim.branch_contacts.phone')
-    DataRow(v-if='claim.branch_contacts.email', label='Почта', :value='claim.branch_contacts.email')
+      | {{ $t('marketplace.disagreeClaimDialog.hintIntro', { amount: formatAsset2Digits(claim.amount) }) }}
+      | {{ $t('marketplace.disagreeClaimDialog.hintContact') }}
+      | {{ $t('marketplace.disagreeClaimDialog.hintInspect') }}
+      | {{ $t('marketplace.disagreeClaimDialog.hintPickup') }}
+    DataRow(:label='$t("marketplace.disagreeClaimDialog.kuLabel")', :value='claim.branch_contacts.name || claim.delivery_braname')
+    DataRow(v-if='claim.branch_contacts.address', :label='$t("marketplace.disagreeClaimDialog.addressLabel")', :value='claim.branch_contacts.address')
+    DataRow(v-if='claim.branch_contacts.phone', :label='$t("marketplace.disagreeClaimDialog.phoneLabel")', :value='claim.branch_contacts.phone')
+    DataRow(v-if='claim.branch_contacts.email', :label='$t("marketplace.disagreeClaimDialog.emailLabel")', :value='claim.branch_contacts.email')
     DataRow(
       v-if='claim.branch_contacts.operator_name || claim.branch_contacts.operator_account',
-      label='Оператор, принявший имущество',
+      :label='$t("marketplace.disagreeClaimDialog.operatorLabel")',
       :value='claim.branch_contacts.operator_name || claim.branch_contacts.operator_account'
     )
     .mp-claim-disagree__actions
-      BaseButton(variant='primary', size='sm', @click='emit("update:modelValue", false)') Понятно
+      BaseButton(variant='primary', size='sm', @click='emit("update:modelValue", false)') {{ $t('marketplace.disagreeClaimDialog.closeAction') }}
 </template>
 
 <style scoped lang="scss">

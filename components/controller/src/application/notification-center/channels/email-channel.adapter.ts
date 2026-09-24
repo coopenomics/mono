@@ -59,7 +59,7 @@ export class EmailChannelAdapter implements EmailChannelPort {
       return { delivered: false, error: 'recipient has no email' };
     }
 
-    const template = resolveTemplate(message.workflowId, NotificationChannel.EMAIL);
+    const template = resolveTemplate(message.workflowId, NotificationChannel.EMAIL, message.locale);
     if (!template) {
       return { delivered: false, error: `no email template for workflow '${message.workflowId}'` };
     }

@@ -3,238 +3,238 @@
   .resource-info-card__head
     .resource-info-card__icon
       q-icon(name="help_outline", size="20px")
-    .resource-info-card__title Как это работает
+    .resource-info-card__title {{ $t('powerup.resourceInfoWidget.cardTitle') }}
 
   .resource-info-card__body
     p.resource-info-card__lead
-      | Вычислительные ресурсы арендуются на 24 часа у делегатов блокчейн-платформы. Минимальная квота — 5 AXON в сутки.
+      | {{ $t('powerup.resourceInfoWidget.leadLine1') }}
     p.resource-info-card__text
-      | Когда использование любого ресурса превышает 70% от доступной квоты, система автоматически арендует
-      | дополнительную квоту за 5 AXON из вашего баланса.
+      | {{ $t('powerup.resourceInfoWidget.leadLine2') }}
+      | {{ $t('powerup.resourceInfoWidget.leadLine3') }}
 
   BaseButton.resource-info-card__action(variant="secondary", size="sm", @click="showHowItWorksDialog = true")
     template(#icon-left)
       q-icon(name="menu_book", size="16px")
-    | Подробнее о системе ресурсов
+    | {{ $t('powerup.resourceInfoWidget.detailsButton') }}
 
   //- Диалог "Как это работает"
   BaseDialog(
     v-model="showHowItWorksDialog",
-    title="Как работает система ресурсов",
+    :title="$t('powerup.resourceInfoWidget.dialogTitle')",
     size="lg"
   )
     .q-pa-md
       .how-it-works-content
         .intro-section.q-mb-lg
-          .text-h6.q-mb-md Что такое вычислительные ресурсы
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.whatIsResourcesHeading') }}
           p.text-body1
-            | Для работы вашего кооператива в системе COOPOS требуются вычислительные ресурсы реальных серверов. Каждая операция —
-            | регистрация пайщика, обработка заявления, проведение собрания совета — использует три типа ресурсов:
+            | {{ $t('powerup.resourceInfoWidget.whatIsResourcesLine1') }}
+            | {{ $t('powerup.resourceInfoWidget.whatIsResourcesLine2') }}
           ul.q-mt-sm
-            li <b>RAM (оперативная память)</b> — для хранения анонимизированных данных пайщиков и документов в смарт-контрактах
-            li <b>CPU (время работы процессора)</b> — для выполнения вычислений при обработке документов
-            li <b>NET (трафик передаваемый по сети)</b> — для передачи данных между узлами блокчейна
+            li {{ $t('powerup.resourceInfoWidget.ramBullet') }}
+            li {{ $t('powerup.resourceInfoWidget.cpuBullet') }}
+            li {{ $t('powerup.resourceInfoWidget.netBullet') }}
 
         .resources-section.q-mb-lg
-          .text-h6.q-mb-md Система квот: аренда ресурсов
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.quotaSystemHeading') }}
           .resource-explanation
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 📦 Что такое квота
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.quotaWhatIsHeading') }}
               p
-                | <b>1 квота = 5 AXON</b> — это пакет вычислительных ресурсов на 24 часа. Квота включает:
+                | {{ $t('powerup.resourceInfoWidget.quotaWhatIsLine1') }}
                 br
-                | • 2.5 AXON на RAM (~25 000 байт или ~24.4 КБ) — для хранения данных
+                | {{ $t('powerup.resourceInfoWidget.quotaRamShareBullet') }}
                 br
-                | • 1.25 AXON на CPU — для вычислений
+                | {{ $t('powerup.resourceInfoWidget.quotaCpuShareBullet') }}
                 br
-                | • 1.25 AXON на NET — для передачи данных
+                | {{ $t('powerup.resourceInfoWidget.quotaNetShareBullet') }}
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 📄 Пакеты документов
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.documentPackagesHeading') }}
               p
-                | Все операции в системе оформляются пакетами документов (заявление, протокол совета, решение и т.д.).
-                | Один пакет документов в среднем занимает ~10 КБ оперативной памяти. Значит, одна квота (24.4 КБ RAM)
-                | позволяет одновременно хранить 2 полных пакета документов с небольшим запасом.
+                | {{ $t('powerup.resourceInfoWidget.documentPackagesLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.documentPackagesLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.documentPackagesLine3') }}
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 🔄 Многократное использование
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.reuseHeading') }}
               p
-                | Одну квоту можно использовать многократно в течение 24 часов. После завершения обработки
-                | документа оперативная память освобождается, и вы можете обработать новый пакет документов, используя
-                | ту же квоту. Квота ограничивает <b>одновременное</b> использование ресурсов, а не общее количество
-                | операций за сутки.
+                | {{ $t('powerup.resourceInfoWidget.reuseLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.reuseLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.reuseLine3') }}
+                | {{ $t('powerup.resourceInfoWidget.reuseLine4') }}
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm ⏰ Возврат и продление аренды
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.renewalHeading') }}
               p
-                | Через 24 часа квота возвращается в тот час, когда была арендована. Если на момент возврата
-                | в оперативной памяти всё ещё хранятся активные данные (например, не принятые решения),
-                | система автоматически продлевает аренду этого объема на следующие сутки при наличии достаточного количества AXON на балансе.
+                | {{ $t('powerup.resourceInfoWidget.renewalLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.renewalLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.renewalLine3') }}
 
         .delegates-section.q-mb-lg
-          .text-h6.q-mb-md Кто предоставляет ресурсы
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.delegatesHeading') }}
           .resource-explanation
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 🖥️ Делегаты блокчейн-сети
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.delegatesWhoHeading') }}
               p
-                | Делегаты — это операторы серверов, которые поддерживают работу блокчейн-платформы COOPOS.
-                | Они инвестируют в оборудование (серверы, процессоры, память, интернет-каналы) и получают оплату
-                | в AXON за предоставление вычислительных мощностей в кооперативную экономику.
+                | {{ $t('powerup.resourceInfoWidget.delegatesWhoLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.delegatesWhoLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.delegatesWhoLine3') }}
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 💱 Монетизация AXON
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.monetizationHeading') }}
               p
-                | Делегаты могут обменять полученные AXON на рубли через паевой взнос у кооператива-оператора платформы.
-                | Курс обмена: <b>1 AXON = 10 RUB</b>. Это обеспечивает справедливую компенсацию за поддержку инфраструктуры.
+                | {{ $t('powerup.resourceInfoWidget.monetizationLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.monetizationLine2') }}
 
         .accounts-section.q-mb-lg
-          .text-h6.q-mb-md Регистрация аккаунтов пайщиков
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.registrationHeading') }}
           .resource-explanation
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 👤 Стоимость регистрации
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.registrationCostHeading') }}
               p
-                | Регистрация одного аккаунта пайщика стоит <b>1 AXON</b> (10 RUB). Эта оплата единоразовая и покрывает
-                | стоимость постоянного хранения базовой информации об аккаунте в блокчейне. Для регистрации аккаунта также
-                | потребуется достаточная квота ресурсов для формирования и обработки пакета регистрационных документов (заявление - протокол решения совета).
+                | {{ $t('powerup.resourceInfoWidget.registrationCostLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.registrationCostLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.registrationCostLine3') }}
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 📊 Пример расчета на месяц
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.registrationExampleHeading') }}
               p
-                | При бюджете 1500 RUB (150 AXON) в месяц:
+                | {{ $t('powerup.resourceInfoWidget.registrationExampleIntro') }}
                 br
-                | • Минимум 1 квота в день: 30 дней × 5 AXON = 150 AXON (всё уходит на квоты)
+                | {{ $t('powerup.resourceInfoWidget.registrationExampleBullet1') }}
                 br
-                | • Если нужно зарегистрировать пайщиков: потребуется дополнительно по 1 AXON на каждого
+                | {{ $t('powerup.resourceInfoWidget.registrationExampleBullet2') }}
                 br
-                | • При регистрации 3 пайщиков одновременно нужна 1 дополнительная квота (для одновременной обработки ~3 пакетов документов)
+                | {{ $t('powerup.resourceInfoWidget.registrationExampleBullet3') }}
 
         .automation-section.q-mb-lg
-          .text-h6.q-mb-md Автоматическое управление
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.automationHeading') }}
           .automation-explanation
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm ⚙️ Пополнение при достижении порога
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.automationThresholdHeading') }}
               p
-                | Система непрерывно отслеживает использование ресурсов. Когда любой ресурс (CPU, NET или RAM)
-                | достигает 70% использования, автоматически арендуется дополнительная квота за 5 AXON.
-                | Это настраивается в настройках рабочего стола монитора ресурсов (сейчас значения заданы в абсолютных величинах:
+                | {{ $t('powerup.resourceInfoWidget.automationThresholdLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.automationThresholdLine2') }}
+                | {{ $t('powerup.resourceInfoWidget.automationThresholdLine3') }}
                 | CPU < 5000 ms, NET < 1024 bytes, RAM < 10240 bytes).
 
             .explanation-item.q-mb-md
-              .text-subtitle1.q-mb-sm 🔁 Ежедневное пополнение
+              .text-subtitle1.q-mb-sm {{ $t('powerup.resourceInfoWidget.automationDailyHeading') }}
               p
-                | Каждый день в 00:00 система автоматически арендует минимальную квоту на 5 AXON. Это обеспечивает
-                | постоянную доступность базовых ресурсов для работы кооператива.
+                | {{ $t('powerup.resourceInfoWidget.automationDailyLine1') }}
+                | {{ $t('powerup.resourceInfoWidget.automationDailyLine2') }}
 
             .important-note.q-mt-md
-              .text-subtitle2.text-weight-bold.q-mb-sm ⚠️ Важно знать:
+              .text-subtitle2.text-weight-bold.q-mb-sm {{ $t('powerup.resourceInfoWidget.automationImportantHeading') }}
               ul
-                li Поддерживайте баланс AXON не менее 50-100 токенов для бесперебойной работы
-                li Не допускайте полного исчерпания ресурсов — это заблокирует все блокчейн-операции
-                li Регулярно проверяйте баланс и состояние ресурсов в мониторе ресурсов
-                li При массовой регистрации пайщиков планируйте бюджет: 1 AXON за аккаунт + квоты для обработки
+                li {{ $t('powerup.resourceInfoWidget.automationImportantBullet1') }}
+                li {{ $t('powerup.resourceInfoWidget.automationImportantBullet2') }}
+                li {{ $t('powerup.resourceInfoWidget.automationImportantBullet3') }}
+                li {{ $t('powerup.resourceInfoWidget.automationImportantBullet4') }}
 
         .faq-section.q-mb-lg
-          .text-h6.q-mb-md Часто задаваемые вопросы
+          .text-h6.q-mb-md {{ $t('powerup.resourceInfoWidget.faqHeading') }}
           q-expansion-item(
             icon="help_outline"
-            label="Из чего складывается стоимость пакета документов?"
+            :label="$t('powerup.resourceInfoWidget.faqPackageCostQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Стоимость пакета документов — это динамическая величина, которая зависит от:
+                  | {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerLine1') }}
                 ul
-                  li <b>Объема данных</b> — сколько информации нужно сохранить в RAM (анонимизированные данные пайщиков, данные об условиях работы смарт-контрактов, и т.д., которые хранятся в RAM)
-                  li <b>Сложности вычислений</b> — сколько проверок и расчетов нужно выполнить (например, проверка подписей на документе требует выполнения вычислений на CPU)
-                  li <b>Передаваемых данных</b> — сколько информации передается между узлами сети (например, передача данных между узлами сети требует использования NET)
-                  li <b>Времени хранения</b> — как долго данные остаются в оперативной памяти
+                  li {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerBullet1') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerBullet2') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerBullet3') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerBullet4') }}
                 p.q-mt-sm
-                  | В среднем один пакет документов занимает ~10 КБ RAM и требует около половины ежедневной квоты (2.5 AXON),
-                  | если данные хранятся весь день. Но если пакет обрабатывается быстро и память освобождается,
-                  | ту же ежедневную квоту можно использовать для следующих документов.
+                  | {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerLine2') }}
+                  | {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerLine3') }}
+                  | {{ $t('powerup.resourceInfoWidget.faqPackageCostAnswerLine4') }}
 
           q-expansion-item(
             icon="help_outline"
-            label="Сколько пакетов документов я могу обработать за день на одной квоте?"
+            :label="$t('powerup.resourceInfoWidget.faqDailyPackagesQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Это зависит от того, как быстро освобождается память:
+                  | {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerLine1') }}
                 ul
-                  li <b>Одновременно</b> — на одной квоте (24.4 КБ) можно держать 2 полных пакета документов (~10 КБ каждый)
-                  li <b>Последовательно</b> — если документы обрабатываются быстро (в течение часа), то за сутки можно
-                    | обработать 24-48 пакетов на одной квоте, используя её многократно
-                  li <b>При массовых операциях</b> — если нужно обработать много документов одновременно (например,
-                    | регистрация 10 пайщиков за раз), потребуются дополнительные квоты
+                  li {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerBullet1') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerBullet2a') }}
+                    | {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerBullet2b') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerBullet3a') }}
+                    | {{ $t('powerup.resourceInfoWidget.faqDailyPackagesAnswerBullet3b') }}
 
           q-expansion-item(
             icon="help_outline"
-            label="Почему мне списали больше, чем минимальные 5 AXON в день?"
+            :label="$t('powerup.resourceInfoWidget.faqExtraChargeQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Дополнительные списания происходят в двух случаях:
+                  | {{ $t('powerup.resourceInfoWidget.faqExtraChargeAnswerLine1') }}
                 ol
-                  li <b>Автоматическое пополнение</b> — когда использование любого ресурса превышает 70% от квоты,
-                    | система арендует ещё одну квоту за 5 AXON
-                  li <b>Регистрация аккаунтов</b> — каждый новый аккаунт пайщика стоит 1 AXON единоразово
+                  li {{ $t('powerup.resourceInfoWidget.faqExtraChargeAnswerBullet1a') }}
+                    | {{ $t('powerup.resourceInfoWidget.faqExtraChargeAnswerBullet1b') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqExtraChargeAnswerBullet2') }}
                 p.q-mt-sm
-                  | Проверьте логи расширения powerup, чтобы увидеть точные причины и время всех операций пополнения.
+                  | {{ $t('powerup.resourceInfoWidget.faqExtraChargeAnswerLine2') }}
 
           q-expansion-item(
             icon="help_outline"
-            label="Что будет, если у меня закончатся AXON?"
+            :label="$t('powerup.resourceInfoWidget.faqOutOfAxonQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Если баланс AXON недостаточен:
+                  | {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerLine1') }}
                 ul
-                  li Система <b>не сможет</b> автоматически пополнить квоты
-                  li Когда текущая квота исчерпается, все операции <b>будут заблокированы</b>
-                  li Пайщики не смогут подавать заявления, совет не сможет принимать решения
-                  li Новых пайщиков невозможно будет зарегистрировать
+                  li {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerBullet1') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerBullet2') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerBullet3') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerBullet4') }}
                 p.q-mt-sm.text-negative
-                  | <b>Критично:</b> следите за балансом! Рекомендуем поддерживать запас минимум 50-100 AXON.
+                  | {{ $t('powerup.resourceInfoWidget.faqOutOfAxonAnswerLine2') }}
 
           q-expansion-item(
             icon="help_outline"
-            label="Как узнать, сколько AXON мне нужно в месяц?"
+            :label="$t('powerup.resourceInfoWidget.faqMonthlyBudgetQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Базовый расчет:
+                  | {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerLine1') }}
                 ul
-                  li <b>Минимум</b>: 30 дней × 5 AXON = 150 AXON (1500 RUB)
-                  li <b>+ Регистрация пайщиков</b>: количество пайщиков × 1 AXON
-                  li <b>+ Активные операции</b>: если проводите много собраний или обрабатываете много документов
-                    | одновременно, закладывайте +20-30% на дополнительные квоты
+                  li {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerBullet1') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerBullet2') }}
+                  li {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerBullet3a') }}
+                    | {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerBullet3b') }}
                 p.q-mt-sm
-                  | <b>Пример:</b> кооператив на 50 пайщиков с умеренной активностью — около 200 AXON в месяц (2000 RUB).
+                  | {{ $t('powerup.resourceInfoWidget.faqMonthlyBudgetAnswerLine2') }}
 
           q-expansion-item(
             icon="help_outline"
-            label="Могу ли я вернуть неиспользованные AXON?"
+            :label="$t('powerup.resourceInfoWidget.faqRefundQuestion')"
             dense
           )
             q-card
               q-card-section.text-body2
                 p
-                  | Нет. AXON, потраченные на аренду квот, идут делегатам сети в качестве оплаты за предоставленные ими
-                  | вычислительные мощности.
+                  | {{ $t('powerup.resourceInfoWidget.faqRefundAnswerLine1a') }}
+                  | {{ $t('powerup.resourceInfoWidget.faqRefundAnswerLine1b') }}
                 p.q-mt-sm
-                  | Планируйте расходы заранее и отслеживайте фактическое потребление, чтобы оптимизировать затраты.
+                  | {{ $t('powerup.resourceInfoWidget.faqRefundAnswerLine2') }}
 
       .q-pt-md.text-right
-        BaseButton(variant="ghost", @click="showHowItWorksDialog = false") Закрыть
+        BaseButton(variant="ghost", @click="showHowItWorksDialog = false") {{ $t('common.action.close') }}
 </template>
 
 <script setup lang="ts">

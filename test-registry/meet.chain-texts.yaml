@@ -1,0 +1,116 @@
+feature: meet.chain-texts
+title: Формулировки вопросов общего собрания хранятся в базе, в цепи — их хеш; закрытое собрание стирается из цепи
+
+# Вопрос, контекст и проект решения живут в базе контроллера (таблица
+# chain_texts, адресуется sha256 текста), в повестке createmeet, в таблице
+# вопросов и в событии newgdecision лежит sha256 или пустая строка. Контракт
+# другое значение не принимает. Контроллер хеширует повестку при отправке,
+# а при чтении — стол, итоги собрания, документы фабрики — подставляет тексты
+# (C28-78, решение владельца 23.09.2026).
+#
+# Раскатка ставит контракты раньше контроллера, поэтому вынос идёт в два
+# релиза (TextDigest::PHASE2 в lib/core/text_digest.hpp). Первый: контракт
+# принимает и текст, и хеш, закрытые собрания не стирает; новый контроллер
+# шлёт хеши и читает оба вида. Второй, когда новый контроллер уже стоит:
+# PHASE2 = true — только хеш, стирание закрытых собраний.
+#
+# Закрытое собрание больше никогда не понадобится цепи: итоги уходят событием
+# newgdecision, протокол — в реестр документов совета. signbypresid стирает
+# строку собрания целиком, cleanup подметает закрытые прежней версией.
+# Контроллер читает закрытое собрание из журнала дельт — последняя дельта
+# стирания несёт прежнее содержимое строки, — поэтому на столе оно остаётся.
+#
+# Подписанная повестка (документ 300) и решение совета о собрании несут
+# тексты в meta подписанного документа — их не трогаем: это подписанный
+# документ. Из памяти цепи они уходят вместе со строками собрания и решения.
+
+sources:
+  contract:
+    - components/contracts/cpp/lib/core/text_digest.hpp
+    - components/contracts/cpp/meet/src/createmeet.cpp
+    - components/contracts/cpp/meet/src/signbypresid.cpp
+    - components/contracts/cpp/meet/meet.cpp
+  backend:
+    - components/extension-kit/src/blockchain/chain-text-digest.ts
+    - components/controller/src/domain/chain-text/*.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-chain-text.repository.ts
+    - components/controller/src/infrastructure/blockchain/adapters/meet-blockchain.adapter.ts
+    - components/controller/src/application/meet/services/meet-event.service.ts
+    - components/controller/src/infrastructure/generator/controller-chain-data.source.ts
+
+cases:
+  - id: meet.texts.break.01
+    level: contract
+    kind: break
+    scenario: в повестке createmeet пришла формулировка вопроса текстом
+    expect: >
+      во втором релизе цепь отказывает, текст в память не попадает. В первом релизе (TextDigest::PHASE2 = false) контракт текст ещё принимает — раскатка ставит контракты раньше контроллера; тест проверяет это переходное поведение и упадёт, когда PHASE2 включат, напомнив вернуть отказ.
+    test: components/boot/src/tests/meet-text-digest.test.ts
+    status: passing
+
+  - id: meet.texts.happy.01
+    level: contract
+    kind: happy
+    scenario: собрание заводится с хешами формулировок, у второго вопроса нет контекста
+    expect: в вопросах лежат присланные хеши по порядку, пустой контекст остаётся пустым
+    test: components/boot/src/tests/meet-text-digest.test.ts
+    status: passing
+
+  - id: meet.texts.happy.02
+    level: backend
+    kind: happy
+    scenario: контроллер отправляет повестку и читает вопросы
+    expect: тексты сохраняются по хешу, в ответе вместо хешей — тексты
+    test: components/controller/tests/unit/meet/chain-text.service.test.ts
+    status: passing
+
+  - id: meet.texts.side.01
+    level: backend
+    kind: side
+    scenario: строка вопроса записана до выноса текстов или хеш неизвестен контроллеру
+    expect: старый текст проходит как есть, неизвестный хеш остаётся хешем и пишется в журнал
+    test: components/controller/tests/unit/meet/chain-text.service.test.ts
+    status: passing
+
+  - id: meet.texts.side.02
+    level: backend
+    kind: side
+    scenario: собрание закрыто и стёрто из цепи
+    expect: стол показывает его из журнала дельт — статус, вопросы по порядку с текстами, отметку «голосовал»
+    test: components/controller/tests/unit/meet/meet-history.test.ts
+    status: passing
+
+  - id: meet.texts.side.03
+    level: backend
+    kind: side
+    scenario: отклонённое собрание стёрто из цепи
+    expect: в списке и по хешу его нет, как и раньше
+    test: components/controller/tests/unit/meet/meet-history.test.ts
+    status: passing
+
+  - id: meet.texts.side.04
+    level: backend
+    kind: side
+    scenario: закрытое собрание прежней версии ещё лежит в цепи
+    expect: в списке одно собрание, журнал его не дублирует
+    test: components/controller/tests/unit/meet/meet-history.test.ts
+    status: passing
+
+  - id: meet.texts.side.05
+    level: backend
+    kind: side
+    scenario: фабрика собирает документ собрания по вопросам из журнала дельт
+    expect: в документ попадают тексты формулировок, а не хеши
+    test: components/controller/src/infrastructure/generator/controller-chain-data.source.spec.ts
+    status: passing
+
+  - id: meet.texts.side.06
+    level: contract
+    kind: side
+    scenario: >
+      председатель подписывает протокол — собрание закрыто (стирание — второй
+      релиз, TextDigest::PHASE2; в первом строка остаётся, как раньше)
+    expect: строка собрания стёрта, событие newgdecision и протокол в реестре совета ушли
+    # Полный путь собрания (решение совета, голосование, подписи протокола) в
+    # boot-тестах не заведён — отдельный долг.
+    status: missing

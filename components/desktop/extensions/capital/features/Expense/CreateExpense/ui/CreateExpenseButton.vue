@@ -3,7 +3,7 @@ q-btn(
   color='primary',
   @click='handleCreateExpense',
   :loading='loading',
-  label='Создать расход'
+  :label='$t("capital.createExpenseButton.label")'
 )
 </template>
 

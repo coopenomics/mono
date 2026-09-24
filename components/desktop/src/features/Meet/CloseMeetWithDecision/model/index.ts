@@ -7,6 +7,7 @@ import { useSessionStore } from 'src/entities/Session'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import moment from 'src/shared/lib/utils/dates/moment'
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from 'src/shared/i18n';
 
 export type ISignBySecretaryResult = Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.IOutput[typeof Mutations.Meet.SignBySecretaryOnAnnualGeneralMeet.name]
 export type ISignByPresiderResult = Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.IOutput[typeof Mutations.Meet.SignByPresiderOnAnnualGeneralMeet.name]
@@ -64,19 +65,19 @@ export async function signByPresiderOnAnnualGeneralMeetWithDecision(data: IClose
   // Получаем текущее собрание из store
   const currentMeet = meetStore.currentMeet
   if (!currentMeet?.processing?.meet) {
-    throw new Error('Собрание не найдено в store')
+    throw new Error(t('meet.error.notFoundInStore'))
   }
 
   if (!currentMeet.processing.meet.decision1) {
-    throw new Error('Документ решения секретаря (decision1) не найден')
+    throw new Error(t('meet.error.decision1NotFound'))
   }
 
   if (!currentMeet.processing.meet.decision1.rawDocument) {
-    throw new Error('Сырой документ решения секретаря (rawDocument) не найден')
+    throw new Error(t('meet.error.decision1RawDocumentNotFound'))
   }
 
   if (!currentMeet.processing.meet.decision1.document) {
-    throw new Error('Подписанный документ решения секретаря (document) не найден')
+    throw new Error(t('meet.error.decision1DocumentNotFound'))
   }
 
   // Используем существующий rawDocument из decision1 (созданный секретарем)
@@ -154,7 +155,7 @@ export const useCloseMeet = (
       })
 
       await meetStore.loadMeet({ coopname: info.coopname, hash: meetStore.currentMeet.hash })
-      SuccessAlert('Собрание успешно закрыто')
+      SuccessAlert(t('meet.closeMeetWithDecision.success'))
     } catch (error: any) {
       FailAlert(error)
     } finally {
@@ -173,7 +174,7 @@ export const useCloseMeet = (
       })
 
       await meetStore.loadMeet({ coopname: info.coopname, hash: meetStore.currentMeet.hash })
-      SuccessAlert('Собрание успешно закрыто')
+      SuccessAlert(t('meet.closeMeetWithDecision.success'))
     } catch (error: any) {
       FailAlert(error)
     } finally {

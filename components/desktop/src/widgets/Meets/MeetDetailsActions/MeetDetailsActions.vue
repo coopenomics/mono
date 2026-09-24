@@ -7,7 +7,7 @@
     @click="closeMeetBySecretary"
   )
     q-icon(name="fa-solid fa-signature", size="16px")
-    span.q-ml-sm Подписать протокол
+    span.q-ml-sm {{ $t('meet.meetDetailsActions.signProtocol') }}
   BaseButton(
     v-if="canCloseByPresider",
     variant="primary",
@@ -15,7 +15,7 @@
     @click="closeMeetByPresider"
   )
     q-icon(name="fa-solid fa-stamp", size="16px")
-    span.q-ml-sm Утвердить протокол
+    span.q-ml-sm {{ $t('meet.meetDetailsActions.approveProtocol') }}
   RestartMeet(
     v-if="canRestartMeet",
     show-button,

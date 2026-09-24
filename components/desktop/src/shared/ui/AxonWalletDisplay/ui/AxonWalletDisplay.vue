@@ -5,17 +5,17 @@
     .wallet-header
       .wallet-title
         q-icon(name="account_balance_wallet" size="20px").q-mr-sm
-        | Кошелек AXON
+        | {{ $t('ui.axonWalletDisplay.title') }}
 
     // Описание
     .wallet-description
       .text-body2.text-white
-        | AXON используется для оплаты пакетов документов. Минимально 5 AXON в день, по факту - от использования.
+        | {{ $t('ui.axonWalletDisplay.description') }}
 
     // Баланс
     .balance-section
       .balance-value {{ formattedBalance }}
-      .balance-label Доступно
+      .balance-label {{ $t('ui.axonWalletDisplay.availableLabel') }}
 </template>
 
 <script setup lang="ts">

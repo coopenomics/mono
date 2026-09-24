@@ -1,3 +1,4 @@
+import './i18n';
 import { markRaw } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
@@ -46,6 +47,7 @@ import {
   COMPONENTS_TREE_NAMES,
   COMPONENTS_TREE_OPTIONS,
 } from './routes/projectTreeChildren';
+import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Регистрируем обработчики решений для расширения capital
@@ -54,8 +56,8 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   // (страница «Расходы» стола совета собирает пулы всех расширений).
   registerExpenseWallet({
     wallet: 'w.cap.pgexp',
-    title: 'Пул расходов программы «Благорост»',
-    subtitle: 'Программные расходы ЦПП «Благорост»',
+    title: t('capital.install.expensePoolWalletTitle'),
+    subtitle: t('capital.install.expensePoolWalletSubtitle'),
     icon: 'receipt_long',
     program: 'blagorost',
     route: { name: 'capital-program-expenses' },
@@ -104,13 +106,13 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   return [{
     workspace: 'capital',
     extension_name: 'capital',
-    title: 'Благорост',
+    title: t('capital.install.extensionTitle'),
     icon: 'fa-solid fa-seedling',
     defaultRoute: 'capital-wallet', // Маршрут по умолчанию для рабочего стола
     routes: [
       {
         meta: {
-          title: 'Шаблон',
+          title: t('capital.install.templateRouteTitle'),
           icon: 'fa-solid fa-user-tie',
           requires: 'Capital:access',
         },
@@ -126,7 +128,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-wallet',
             component: markRaw(CapitalProfilePage),
             meta: {
-              title: 'Профиль',
+              title: t('capital.install.profileRouteTitle'),
               icon: 'fa-solid fa-wallet',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -139,7 +141,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-registration',
             component: markRaw(CapitalRegistrationPage),
             meta: {
-              title: 'Регистрация',
+              title: t('capital.install.registrationRouteTitle'),
               icon: 'fa-solid fa-user-plus',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -153,7 +155,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-my-projects',
             component: markRaw(MyProjectsPage),
             meta: {
-              title: 'Мои проекты',
+              title: t('capital.install.myProjectsRouteTitle'),
               icon: 'folder_special',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -167,7 +169,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'tracker',
             component: markRaw(TrackerPage),
             meta: {
-              title: 'Время',
+              title: t('capital.install.trackerRouteTitle'),
               icon: 'fa-solid fa-clock',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -181,7 +183,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'projects-list',
             component: markRaw(ProjectsListPage),
             meta: {
-              title: 'Проекты',
+              title: t('capital.install.projectsRouteTitle'),
               icon: 'fa-solid fa-list',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -197,7 +199,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'components-list',
             component: markRaw(ComponentsListPage),
             meta: {
-              title: 'Компоненты',
+              title: t('capital.install.componentsRouteTitle'),
               icon: 'account_tree',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -211,7 +213,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-my-tasks',
             component: markRaw(MyTasksPage),
             meta: {
-              title: 'Задачи',
+              title: t('capital.install.tasksRouteTitle'),
               icon: 'assignment',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -223,7 +225,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'my-task-issue',
                 component: markRaw(IssuePage),
                 meta: {
-                  title: 'Задача',
+                  title: t('capital.install.issueRouteTitle'),
                   icon: 'task',
                   requires: 'Capital:access',
                   agreements: agreementsBase,
@@ -241,7 +243,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'my-task-issue-description',
                     component: markRaw(IssueDescriptionPage),
                     meta: {
-                      title: 'Описание задачи',
+                      title: t('capital.install.issueDescriptionRouteTitle'),
                       icon: 'description',
                       requires: 'Capital:access',
                       agreements: agreementsBase,
@@ -254,7 +256,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'my-task-issue-requirements',
                     component: markRaw(IssueRequirementsPage),
                     meta: {
-                      title: 'Артефакты задачи',
+                      title: t('capital.install.issueRequirementsRouteTitle'),
                       icon: 'assignment',
                       requires: 'Capital:access',
                       agreements: agreementsBase,
@@ -267,7 +269,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'my-task-issue-commits',
                     component: markRaw(IssueCommitsPage),
                     meta: {
-                      title: 'Коммиты задачи',
+                      title: t('capital.install.issueCommitsRouteTitle'),
                       icon: 'commit',
                       requires: 'Capital:access',
                       agreements: agreementsBase,
@@ -280,7 +282,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     name: 'my-task-issue-history',
                     component: markRaw(IssueHistoryPage),
                     meta: {
-                      title: 'История задачи',
+                      title: t('capital.install.issueHistoryRouteTitle'),
                       icon: 'history',
                       requires: 'Capital:access',
                       agreements: agreementsBase,
@@ -297,7 +299,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'artifacts-list',
             component: markRaw(ArtifactsListPage),
             meta: {
-              title: 'Артефакты',
+              title: t('capital.install.artifactsRouteTitle'),
               icon: 'article',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -309,7 +311,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'commits-list',
             component: markRaw(MasterCommitsPage),
             meta: {
-              title: 'Коммиты',
+              title: t('capital.install.masterCommitsRouteTitle'),
               icon: 'fa-solid fa-code-commit',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -326,7 +328,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'voting',
             component: markRaw(ProjectsVotingPage),
             meta: {
-              title: 'Голосования',
+              title: t('capital.install.projectsVotingRouteTitle'),
               icon: 'how_to_vote',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -339,7 +341,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'voting-detail',
                 component: markRaw(ComponentVotingPage),
                 meta: {
-                  title: 'Голосование',
+                  title: t('capital.install.componentVotingRouteTitle'),
                   icon: 'how_to_vote',
                   requires: 'Capital:access',
                   agreements: agreementsBase,
@@ -354,7 +356,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'results',
             component: markRaw(ProjectsResultsPage),
             meta: {
-              title: 'Результаты',
+              title: t('capital.install.projectsResultsRouteTitle'),
               icon: 'assessment',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -366,7 +368,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'results-detail',
                 component: markRaw(ComponentResultsPage),
                 meta: {
-                  title: 'Результаты',
+                  title: t('capital.install.componentResultsRouteTitle'),
                   icon: 'assessment',
                   requires: 'Capital:access',
                   agreements: agreementsBase,
@@ -381,7 +383,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'my-invitations',
             component: markRaw(InvitationsPage),
             meta: {
-              title: 'Приглашения',
+              title: t('capital.install.invitationsRouteTitle'),
               icon: 'fa-solid fa-envelope-open-text',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -394,7 +396,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'contributors',
             component: markRaw(ContributorsPage),
             meta: {
-              title: 'Участники',
+              title: t('capital.install.contributorsRouteTitle'),
               icon: 'fa-solid fa-users',
               requires: 'Capital:board',
               agreements: agreementsBase,
@@ -407,7 +409,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-measures',
             component: markRaw(MeasuresPage),
             meta: {
-              title: 'Меры',
+              title: t('capital.install.measuresRouteTitle'),
               icon: 'straighten',
               requires: 'Capital:chairman',
               agreements: agreementsBase,
@@ -424,7 +426,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-allocations',
             component: markRaw(AllocationsPage),
             meta: {
-              title: 'Аллокации',
+              title: t('capital.install.allocationsRouteTitle'),
               icon: 'savings',
               requires: 'Capital:board',
               agreements: agreementsBase,
@@ -437,7 +439,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'capital-program-expenses',
             component: markRaw(ProgramExpensesPage),
             meta: {
-              title: 'Расходы',
+              title: t('capital.install.programExpensesRouteTitle'),
               icon: 'receipt_long',
               requires: 'Capital:board',
               agreements: agreementsBase,
@@ -449,7 +451,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 name: 'capital-program-expense',
                 component: markRaw(ProgramExpensePage),
                 meta: {
-                  title: 'Расход',
+                  title: t('capital.install.programExpenseRouteTitle'),
                   icon: 'receipt_long',
                   requires: 'Capital:board',
                   agreements: agreementsBase,
@@ -465,7 +467,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             name: 'activity-feed',
             component: markRaw(ActivityFeedPage),
             meta: {
-              title: 'Лента',
+              title: t('capital.install.activityFeedRouteTitle'),
               icon: 'fa-solid fa-stream',
               requires: 'Capital:access',
               agreements: agreementsBase,
@@ -488,7 +490,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
 export const walletCards: DesktopWalletCard[] = [
   {
     wallet_name: 'w.cap.blago',
-    label: 'Благорост',
+    label: t('capital.install.walletLabel'),
     accent: 'blagorost',
     icon: 'savings',
   },

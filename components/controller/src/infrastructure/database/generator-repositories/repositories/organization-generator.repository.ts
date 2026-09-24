@@ -6,7 +6,7 @@ import { OrganizationDomainEntity } from '~/domain/branch/entities/organization-
 import type { OrganizationDomainInterface } from '~/domain/common/interfaces/organization-domain.interface';
 import { OrganizationRepository } from '~/domain/common/repositories/organization.repository';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class OrganizationRepositoryImplementation implements OrganizationRepository {
@@ -17,7 +17,7 @@ export class OrganizationRepositoryImplementation implements OrganizationReposit
     const organization = (await this.generatorPort.get('organization', {
       username: coopname,
     })) as Cooperative.Users.IOrganizationData;
-    if (!organization) throw new HttpApiError(httpStatus.BAD_REQUEST, `Организация ${coopname} не найдена`);
+    if (!organization) throw DomainError.badRequest('DATABASE_ORGANIZATION_NOT_FOUND', { coopname });
 
     return new OrganizationDomainEntity(organization);
   }

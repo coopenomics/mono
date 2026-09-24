@@ -4,7 +4,7 @@ div.invite-widget
     :model-value="invite"
     :readonly="true"
     :toolbar="false"
-    placeholder="Нет инвайта"
+    :placeholder="$t('capital.inviteWidget.emptyPlaceholder')"
     class="invite-editor"
     :padded="false"
   )

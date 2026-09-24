@@ -16,7 +16,7 @@ import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
 import { ApprovalDTO } from '../dto/approval.dto';
 import { ChairmanBlockchainAdapter } from '../../infrastructure/blockchain/adapters/chairman-blockchain.adapter';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from '../../domain/interfaces/chairman-blockchain.port';
-import { PaginationResult, PaginationInputDTO } from '@coopenomics/extension-kit';
+import { PaginationResult, PaginationInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { ConfirmApproveDomainInput } from '../../domain/actions/confirm-approve-domain-input.interface';
 import { DeclineApproveDomainInput } from '../../domain/actions/decline-approve-domain-input.interface';
 
@@ -107,7 +107,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw new Error(`Одобрение с хешем ${input.approval_hash} не найдено`);
+      throw DomainError.internal('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия
@@ -139,7 +139,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw new Error(`Одобрение с хешем ${input.approval_hash} не найдено`);
+      throw DomainError.internal('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия

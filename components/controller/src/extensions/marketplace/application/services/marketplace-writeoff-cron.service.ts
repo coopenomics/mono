@@ -15,6 +15,7 @@ import {
   type MarketplaceAssetConfig,
 } from './marketplace-asset.config';
 import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Story 8.3 (Эпик 8): крон-сканер скоропорта.
@@ -32,7 +33,7 @@ import { MARKETPLACE_WRITEOFF_DRAFT_BUILT_EVENT } from '../events/marketplace-no
  */
 @Injectable()
 export class MarketplaceWriteoffCronService implements OnModuleInit {
-  private static readonly EXPIRED_REASON = 'Истёк срок годности';
+  private static readonly EXPIRED_REASON = t('marketplace.writeoffCron.expiredReason');
 
   constructor(
     @InjectRepository(MarketplaceInventoryEntity, 'marketplace')

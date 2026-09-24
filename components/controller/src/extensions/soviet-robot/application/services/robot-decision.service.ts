@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Classes } from '@coopenomics/sdk';
 import { Cooperative } from 'cooptypes';
-import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
 import {
   DOCUMENT_PORT,
   LOGGER_PORT,
@@ -38,6 +38,7 @@ export interface RobotLimits {
  * (components/factory/src/Factory/index.ts, getDecision). Типизированного кода у
  * этой ошибки нет, поэтому узнаём её по тексту.
  */
+// i18n-ignore: строка для сравнения с текстом чужой ошибки индексатора, не создаётся здесь как сообщение
 const VOTES_NOT_INDEXED_PREFIX = 'Голоса за решение не найдены';
 
 /**
@@ -100,7 +101,7 @@ export class RobotDecisionService {
     if (Number(decision.authorized) === 1 || decision.authorized === true) return entry;
 
     const [automations, board] = await Promise.all([this.chain.getAutomations(entry.coopname), this.chain.getSovietBoard(entry.coopname)]);
-    if (!board) throw new Error('Совет кооператива не найден');
+    if (!board) throw DomainError.internal('SOVIET_ROBOT_COUNCIL_NOT_FOUND');
     const alive = automations.filter((a) => !isAutomationExpired(a));
 
     // Шаг 1. Голоса — одна транзакция, дальше ждём следующего прохода.
@@ -140,7 +141,7 @@ export class RobotDecisionService {
     const key = await this.keys.getWif(entry.coopname, chairman);
     if (!key) return null;
     if (key.permission_name !== row.permission_name) {
-      throw new Error(`Разрешение ключа председателя (${key.permission_name}) не совпадает с реестром (${row.permission_name})`);
+      throw DomainError.internal('SOVIET_ROBOT_CHAIRMAN_PERMISSION_MISMATCH', { keyPermission: key.permission_name, registryPermission: row.permission_name });
     }
     return { username: String(chairman), wif: key.wif, permission: row.permission_name };
   }
@@ -155,9 +156,7 @@ export class RobotDecisionService {
     entry.stage = RobotDecisionStage.AWAITING_PROTOCOL;
     const registryId = Cooperative.Document.decisionTypesRegistry[entry.decision_type]?.protocol_registry_id;
     if (!registryId)
-      throw new Error(
-        `Тип решения ${entry.decision_type} не описан в реестре решений совета — автоматизировать его нельзя`
-      );
+      throw DomainError.internal('SOVIET_ROBOT_DECISION_TYPE_UNKNOWN', { decisionType: entry.decision_type });
 
     const generated = await this.generateProtocol(
       {

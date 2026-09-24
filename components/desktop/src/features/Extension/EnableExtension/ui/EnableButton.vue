@@ -7,7 +7,7 @@ q-btn.full-width(
   :loading='isEnabling'
 )
   q-icon.text-grey(name='fa-solid fa-toggle-off')
-  span.q-ml-xs отключено
+  span.q-ml-xs {{ $t('extension.enableButton.stateLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -22,6 +22,7 @@ import {
   FailAlert,
   SuccessAlert,
 } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extensionName: string;
@@ -53,9 +54,9 @@ const enable = async () => {
       const coopname = useSystemStore().info?.coopname;
       router.push(coopname ? { name: target.name, params: { coopname } } : { name: target.name });
     }
-    SuccessAlert('Расширение обновлено');
+    SuccessAlert(t('extension.enableButton.updatedSuccess'));
   } catch (e: any) {
-    FailAlert(`Ошибка включения расширения: ${extractGraphQLErrorMessages(e)}`);
+    FailAlert(t('extension.enableButton.enableError', { errorMessage: extractGraphQLErrorMessages(e) }));
   } finally {
     isEnabling.value = false;
   }

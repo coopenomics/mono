@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type {
   InnerCalendarEventWindow,
   InnerCoopCalendarEventNotificationInput,
@@ -15,6 +15,7 @@ import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from '../../domain/repositories/ca
 import type { ChatCoopCalendarIcsSubscriptionRepository } from '../../domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from '../../domain/repositories/calendar-ics-subscription.repository';
 import type { ChatCoopCalendarEventDomainEntity } from '../../domain/entities/calendar-event.entity';
+import { t } from '../../i18n';
 function sha256Hex(plain: string): string {
   return crypto.createHash('sha256').update(plain, 'utf8').digest('hex');
 }
@@ -118,7 +119,7 @@ export class ChatCoopCalendarApplicationService {
   async assertPlaintextManagedRoom(matrixRoomId: string): Promise<void> {
     const room = await this.managedRooms.findByMatrixRoomId(matrixRoomId);
     if (!room || room.encrypted) {
-      throw new Error('Комната не найдена в реестре или недоступна для календаря (только незашифрованные комнаты)');
+      throw DomainError.internal('CHATCOOP_CALENDAR_ROOM_UNAVAILABLE');
     }
   }
 
@@ -214,8 +215,8 @@ export class ChatCoopCalendarApplicationService {
       const deepLink = `${frontendBase}/${coopname}/chatcoop/chat?matrix_room=${encodeURIComponent(ev.matrixRoomId)}`;
       const descParts = [
         ev.description ? escapeIcsText(ev.description) : '',
-        escapeIcsText(`Комната: ${roomLabel}`),
-        escapeIcsText(`Стол связи: ${deepLink}`),
+        escapeIcsText(t('chatcoop.calendarEvent.roomLine', { roomLabel })),
+        escapeIcsText(t('chatcoop.calendarEvent.linkLine', { deepLink })),
       ].filter((p) => p.length > 0);
       const description = descParts.join('\\n\\n');
       const end = ev.endsAt ?? new Date(ev.startsAt.getTime() + 60 * 60 * 1000);

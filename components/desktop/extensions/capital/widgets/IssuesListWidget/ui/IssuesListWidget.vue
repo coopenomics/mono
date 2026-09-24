@@ -43,7 +43,7 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span Нет задач
+          span {{ $t('capital.issuesListWidget.emptyText') }}
 
   //- Компактный режим без фиксированной высоты (для вложенного использования)
   template(v-else)
@@ -79,7 +79,7 @@
       template(#no-data)
         .list-empty
           q-icon(name='inbox', size='20px')
-          span Нет задач
+          span {{ $t('capital.issuesListWidget.emptyText') }}
 
 </template>
 <script lang="ts" setup>
@@ -92,6 +92,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { CreateIssueButton } from 'app/extensions/capital/features/Issue/CreateIssue';
 import IssueListRow from './IssueListRow.vue';
+import { t } from '../../../i18n';
 
 // Память списка между заходами: скролл и ключ фильтра (данные ленты — в
 // сторе, per-project). Возврат «назад» с задачи восстанавливает позицию и
@@ -288,7 +289,7 @@ const loadIssues = async (page = 1, append = false) => {
     }
   } catch (error) {
     console.error('Ошибка при загрузке задач компонента:', error);
-    FailAlert('Не удалось загрузить задачи компонента');
+    FailAlert(t('capital.issuesListWidget.loadError'));
   } finally {
     loading.value = false;
     onLoading.value = false;

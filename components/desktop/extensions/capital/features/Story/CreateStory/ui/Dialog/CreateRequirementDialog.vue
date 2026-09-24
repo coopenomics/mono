@@ -1,8 +1,8 @@
 <template lang="pug">
 CreateDialog(
   ref="dialogRef"
-  title="Создать артефакт"
-  submit-text="Создать"
+  :title="$t('capital.createRequirementDialog.title')"
+  :submit-text="$t('common.action.create')"
   dialog-style="width: 500px; max-width: 100% !important;"
   :is-submitting="isSubmitting"
   :disabled="!canCreate"
@@ -14,8 +14,8 @@ CreateDialog(
     .create-requirement-form
       .crf-block
         .crf-block__head
-          .crf-block__title.text-weight-medium Формат содержимого
-          .crf-block__caption.text-grey-7 Markdown, BPMN, Draw.io или Mermaid — формат задаётся до сохранения.
+          .crf-block__title.text-weight-medium {{ $t('capital.createRequirementDialog.formatLabel') }}
+          .crf-block__caption.text-grey-7 {{ $t('capital.createRequirementDialog.formatHint') }}
         .crf-toggle-shell.q-pa-xs.rounded-borders
           q-btn-toggle.crf-toggle(
             v-model="contentFormat"
@@ -34,8 +34,8 @@ CreateDialog(
           autofocus
           outlined
           v-model='formData.title'
-          label='Суть артефакта'
-          hint='Коротко опишите ожидаемое поведение или результат — детали можно добавить позже. Ctrl+Enter или ⌘+Enter — создать.'
+          :label='$t("capital.createRequirementDialog.essenceLabel")'
+          :hint='$t("capital.createRequirementDialog.essenceHint")'
           :rules='[(val) => notEmpty(val)]'
           autocomplete='off'
           @keydown='handleTitleKeydown'
@@ -45,7 +45,7 @@ CreateDialog(
         q-checkbox.crf-checkbox(
           v-model='createAnother'
           dense
-          label='Создать ещё один артефакт'
+          :label='$t("capital.createRequirementDialog.createAnotherLabel")'
         )
 </template>
 
@@ -56,6 +56,7 @@ import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { useCreateStory } from '../../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { Zeus } from '@coopenomics/sdk';
+import { t } from '../../../../../i18n';
 
 const props = defineProps<{
   filter?: {
@@ -95,7 +96,7 @@ const formData = ref({
 });
 
 const notEmpty = (val: any) => {
-  return !!val || 'Это поле обязательно для заполнения';
+  return !!val || t('capital.createRequirementDialog.requiredFieldError');
 };
 
 const handleTitleKeydown = (e: KeyboardEvent): void => {
@@ -142,7 +143,7 @@ const handleSubmit = async () => {
 
     await createStory(inputData);
 
-    SuccessAlert('Артефакт успешно создан');
+    SuccessAlert(t('capital.createRequirementDialog.success'));
 
     if (createAnother.value) {
       // Очищаем форму для создания следующего артефакта

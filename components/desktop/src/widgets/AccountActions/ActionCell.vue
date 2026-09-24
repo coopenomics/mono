@@ -6,6 +6,7 @@
 </template>
 <script setup lang="ts">
   import { computed } from 'vue'
+import { t } from 'src/shared/i18n';
 
   const getActionContract = (row: any, actionName: string) => {
     const { contract, action } = row
@@ -30,12 +31,12 @@
 
   const ACTION_NAMES = {
     [ACTION_TYPES.OTHER]: null,
-    [ACTION_TYPES.BUYRAM]: 'Покупка RAM',
-    [ACTION_TYPES.STAKECPUNET]: 'Ставка CPU/NET',
-    [ACTION_TYPES.SENDTOKEN]: 'Отправка токенов',
-    [ACTION_TYPES.RECEIVETOKEN]: 'Приём токенов',
-    [ACTION_TYPES.RAMFEE]: 'Продажа RAM',
-    [ACTION_TYPES.NEWACCOUNT]: 'Регистрация аккаунта',
+    [ACTION_TYPES.BUYRAM]: t('accountActions.actionCell.buyram'),
+    [ACTION_TYPES.STAKECPUNET]: t('accountActions.actionCell.stakecpunet'),
+    [ACTION_TYPES.SENDTOKEN]: t('accountActions.actionCell.sendtoken'),
+    [ACTION_TYPES.RECEIVETOKEN]: t('accountActions.actionCell.receivetoken'),
+    [ACTION_TYPES.RAMFEE]: t('accountActions.actionCell.ramfee'),
+    [ACTION_TYPES.NEWACCOUNT]: t('accountActions.actionCell.newaccount'),
   }
 
   const ACTION_BADGE_COLORS = {

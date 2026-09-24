@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import type { CooperativeContactsDomainInterface } from '~/domain/system/interfaces/cooperative-contacts-domain.interface';
 import { RegistratorContract, type Cooperative } from 'cooptypes';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
@@ -6,6 +6,7 @@ import config from '~/config/config';
 import logger from '~/config/logger';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { Name } from '@wharfkit/antelope';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class LoadContactsInteractor {
@@ -19,7 +20,7 @@ export class LoadContactsInteractor {
       config.coopname
     );
 
-    if (!cooperative) throw new BadRequestException('Кооператив не найден');
+    if (!cooperative) throw DomainError.badRequest('SYSTEM_COOPERATIVE_NOT_FOUND');
 
     const coopAccount = await this.blockchainPort.getSingleRow(
       RegistratorContract.contractName.production,
@@ -28,7 +29,7 @@ export class LoadContactsInteractor {
       Name.from(config.coopname)
     );
 
-    if (!coopAccount) throw new BadRequestException('Аккаунт не найден');
+    if (!coopAccount) throw DomainError.badRequest('SYSTEM_ACCOUNT_NOT_FOUND');
 
     let meta: Cooperative.Users.IAccountMeta = { phone: cooperative?.phone, email: cooperative?.email };
 

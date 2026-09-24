@@ -54,7 +54,8 @@ import type {
   SearchPrivateAccountsInputDomainInterface,
   PrivateAccountSearchResultDomainInterface,
 } from '~/domain/common/interfaces/search-private-accounts-domain.interface';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { HttpApiError, DomainError } from '@coopenomics/extension-kit';
+import { t } from '~/i18n';
 
 @Injectable()
 export class AccountInteractor {
@@ -89,7 +90,7 @@ export class AccountInteractor {
 
     if (exist && exist.status !== 'created') {
       if (await this.userRepository.isEmailTaken(userBody.email)) {
-        throw new HttpApiError(httpStatus.BAD_REQUEST, 'Пользователь с указанным EMAIL уже зарегистрирован');
+        throw DomainError.badRequest('ACCOUNT_EMAIL_ALREADY_REGISTERED');
       }
     }
 
@@ -149,7 +150,7 @@ export class AccountInteractor {
     if (exist) {
       const updatedUser = await this.userRepository.updateByUsername(exist.username, userBody);
       console.log('updatedUser', updatedUser);
-      if (!updatedUser) throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      if (!updatedUser) throw DomainError.notFound('ACCOUNT_USER_NOT_FOUND');
       return updatedUser;
     } else {
       return await this.userRepository.create(userBody);
@@ -170,20 +171,20 @@ export class AccountInteractor {
 
       const email = normalizeUserEmail(data.individual_data.email);
       user = await this.userRepository.updateByUsername(data.username, { email });
-      if (!user) throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      if (!user) throw DomainError.notFound('ACCOUNT_USER_NOT_FOUND');
       this.individualRepository.create({ ...data.individual_data, email, username: data.username });
     } else if (data.organization_data) {
       const email = normalizeUserEmail(data.organization_data.email);
       user = await this.userRepository.updateByUsername(data.username, { email });
-      if (!user) throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      if (!user) throw DomainError.notFound('ACCOUNT_USER_NOT_FOUND');
       this.organizationRepository.create({ ...data.organization_data, email, username: data.username });
     } else if (data.entrepreneur_data) {
       const email = normalizeUserEmail(data.entrepreneur_data.email);
       user = await this.userRepository.updateByUsername(data.username, { email });
-      if (!user) throw new HttpApiError(httpStatus.NOT_FOUND, 'Пользователь не найден');
+      if (!user) throw DomainError.notFound('ACCOUNT_USER_NOT_FOUND');
       this.entrepreneurRepository.create({ ...data.entrepreneur_data, email, username: data.username });
     } else {
-      throw new Error('Не получены входные данные для обновления');
+      throw DomainError.internal('ACCOUNT_UPDATE_DATA_MISSING');
     }
 
     // Получаем финальный аккаунт
@@ -212,13 +213,10 @@ export class AccountInteractor {
   async saveOwnPassport(username: string, passport: PassportDataDomainInterface): Promise<AccountDomainEntity> {
     const existing = await this.individualRepository.findByUsername(username);
     if (!existing) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Паспортные данные можно сохранить только для физического лица');
+      throw DomainError.badRequest('ACCOUNT_PASSPORT_ONLY_FOR_INDIVIDUAL');
     }
     if (existing.passport) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        'Паспортные данные уже установлены ранее — их изменение производится отдельным процессом'
-      );
+      throw DomainError.badRequest('ACCOUNT_PASSPORT_ALREADY_SET');
     }
 
     await this.individualRepository.create({ ...existing, passport, username });
@@ -258,10 +256,7 @@ export class AccountInteractor {
     const account = await this.accountDomainService.getAccount(username);
 
     if (account.participant_account) {
-      throw new HttpApiError(
-        HttpStatus.BAD_REQUEST,
-        'Пайщик принят в кооператив — удаление невозможно.'
-      );
+      throw DomainError.badRequest('ACCOUNT_DELETE_FORBIDDEN_MEMBER');
     }
 
     await this.userDomainService.deleteUserByUsername(username);
@@ -279,7 +274,7 @@ export class AccountInteractor {
       case AccountType.entrepreneur:
         return new EntrepreneurDomainEntity(await this.entrepreneurRepository.findByUsername(username));
       default:
-        throw new Error(`Неизвестный тип аккаунта: ${accountType}`);
+        throw DomainError.internal('ACCOUNT_UNKNOWN_TYPE', { type: accountType });
     }
   }
 
@@ -306,6 +301,7 @@ export class AccountInteractor {
 
     // Настраиваем identity получателя
     try {
+      // i18n-ignore: внутренний код причины для setupNotificationSubscriber, не текст интерфейса
       await this.accountDomainService.setupNotificationSubscriber(user.username, 'регистрации');
     } catch (error: any) {
       this.logger.error(`Ошибка настройки identity получателя при регистрации ${data.username}: ${error.message}`, error.stack);
@@ -380,8 +376,8 @@ export class AccountInteractor {
         account.registration_payment = {
           status: done ? PaymentStatusEnum.REFUNDED : PaymentStatusEnum.PROCESSING,
           message: done
-            ? 'Совет отказал в приёме. Регистрационный взнос возвращён. Вы можете подать заявку заново.'
-            : 'Совет отказал в приёме. Регистрационный взнос возвращается. Дождитесь его завершения, чтобы подать заявку заново.',
+            ? t('account.accountInteractor.registrationDeclinedRefundedMessage')
+            : t('account.accountInteractor.registrationDeclinedRefundingMessage'),
           hash: refund.hash,
           quantity: refund.quantity,
           symbol: refund.symbol,
@@ -472,7 +468,7 @@ export class AccountInteractor {
     // Получаем кандидата из репозитория
     const candidate = await this.candidateRepository.findByUsername(username);
     if (!candidate) {
-      throw new HttpApiError(HttpStatus.NOT_FOUND, `Кандидат с именем ${username} не найден`);
+      throw DomainError.notFound('ACCOUNT_CANDIDATE_NOT_FOUND', { username });
     }
 
     // Гард A (замок профиля): на цепь не должны уйти данные, отличные от
@@ -491,10 +487,7 @@ export class AccountInteractor {
       const account = await this.accountDomainService.getAccount(username);
       const currentFingerprint = registrationProfileFingerprint(account?.private_account);
       if (currentFingerprint && currentFingerprint !== lockedFingerprint) {
-        throw new HttpApiError(
-          HttpStatus.BAD_REQUEST,
-          'Данные пайщика изменены после подписания заявления. Пожалуйста, переподпишите заявление перед регистрацией.'
-        );
+        throw DomainError.badRequest('ACCOUNT_DATA_CHANGED_AFTER_SIGNING');
       }
     }
 
@@ -518,7 +511,7 @@ export class AccountInteractor {
       this.logger.log(`Успешная регистрация аккаунта ${username} в блокчейне`);
     } catch (error: any) {
       this.logger.error(`Ошибка при регистрации аккаунта ${username} в блокчейне: ${error.message}`, error.stack);
-      throw new HttpApiError(HttpStatus.INTERNAL_SERVER_ERROR, `Ошибка при регистрации в блокчейне: ${error.message}`);
+      throw DomainError.internal('ACCOUNT_BLOCKCHAIN_REGISTRATION_FAILED', { errorMessage: error.message });
     }
   }
 
@@ -540,7 +533,7 @@ export class AccountInteractor {
   async resetRegistration(username: string): Promise<AccountDomainEntity> {
     const user = await this.userDomainService.getUserByUsername(username);
     if (!user) {
-      throw new HttpApiError(HttpStatus.NOT_FOUND, `Пользователь ${username} не найден`);
+      throw DomainError.notFound('ACCOUNT_USERNAME_NOT_FOUND', { username });
     }
 
     // Повторная подача после отказа совета (вариант 1): в отличие от обычного
@@ -563,10 +556,7 @@ export class AccountInteractor {
 
     if (isCouncilDeclined && refund) {
       if (refund.status !== PaymentStatusEnum.COMPLETED) {
-        throw new HttpApiError(
-          HttpStatus.BAD_REQUEST,
-          'Возврат регистрационного взноса ещё выполняется. Подайте заявку заново после его завершения.'
-        );
+        throw DomainError.badRequest('ACCOUNT_REGISTRATION_REFUND_IN_PROGRESS');
       }
       // Старые платежи не удаляем: getAccount различает циклы по дате — новый
       // вступительный платёж будет свежее этого возврата, и прошлый отказ исчезнет.
@@ -578,17 +568,11 @@ export class AccountInteractor {
         user.status === userStatus['4_Registered'] ||
         user.status === userStatus['5_Active']
       ) {
-        throw new HttpApiError(
-          HttpStatus.BAD_REQUEST,
-          'Регистрация уже отправлена в блокчейн — откат к редактированию невозможен, требуется перерегистрация.'
-        );
+        throw DomainError.badRequest('ACCOUNT_REGISTRATION_ALREADY_SUBMITTED');
       }
       if (payment) {
         if (payment.status === PaymentStatusEnum.PAID || payment.status === PaymentStatusEnum.COMPLETED) {
-          throw new HttpApiError(
-            HttpStatus.BAD_REQUEST,
-            'Вступительный взнос уже принят — для отката требуется возврат средств.'
-          );
+          throw DomainError.badRequest('ACCOUNT_ENTRY_FEE_ALREADY_ACCEPTED');
         }
         if (payment.id) {
           await this.paymentRepository.delete(payment.id);

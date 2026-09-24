@@ -1,9 +1,6 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 
-import {
-  EXTENSION_REPOSITORY,
-  ExtensionDomainRepository,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   REGISTRATION_REGISTRY_PORT,
   type IRegistrationRegistryPort,
@@ -67,9 +64,7 @@ export class MarketplaceCoopAcceptanceService {
   async getStatus(): Promise<IMarketplaceCppStatus> {
     const extension = await this.extensionRepository.findByName(MARKETPLACE_EXTENSION_NAME);
     if (!extension) {
-      throw new NotFoundException(
-        `Расширение '${MARKETPLACE_EXTENSION_NAME}' не установлено — выполните Story 1.1 (install)`
-      );
+      throw DomainError.notFound('MARKETPLACE_EXTENSION_NOT_INSTALLED', { extensionName: MARKETPLACE_EXTENSION_NAME });
     }
 
     const acceptance: ICoopAcceptanceConfig =
@@ -90,9 +85,7 @@ export class MarketplaceCoopAcceptanceService {
   async accept(input: IAcceptCppInput): Promise<IMarketplaceCppStatus> {
     const extension = await this.extensionRepository.findByName(MARKETPLACE_EXTENSION_NAME);
     if (!extension) {
-      throw new NotFoundException(
-        `Расширение '${MARKETPLACE_EXTENSION_NAME}' не установлено — выполните Story 1.1 (install)`
-      );
+      throw DomainError.notFound('MARKETPLACE_EXTENSION_NOT_INSTALLED', { extensionName: MARKETPLACE_EXTENSION_NAME });
     }
 
     const now = new Date();
@@ -100,14 +93,10 @@ export class MarketplaceCoopAcceptanceService {
     if (input.accepted_at) {
       const parsed = new Date(input.accepted_at);
       if (Number.isNaN(parsed.getTime())) {
-        throw new BadRequestException(
-          `Некорректный формат accepted_at: '${input.accepted_at}' — ожидается ISO-8601`
-        );
+        throw DomainError.badRequest('MARKETPLACE_ACCEPTED_AT_INVALID_FORMAT', { acceptedAt: input.accepted_at });
       }
       if (parsed.getTime() > now.getTime() + 60_000) {
-        throw new BadRequestException(
-          `accepted_at не может быть в будущем (${input.accepted_at})`
-        );
+        throw DomainError.badRequest('MARKETPLACE_ACCEPTED_AT_IN_FUTURE', { acceptedAt: input.accepted_at });
       }
     }
     const acceptance: ICoopAcceptanceConfig = {

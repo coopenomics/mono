@@ -1,4 +1,5 @@
 import type { Queries } from '@coopenomics/sdk'
+import { t } from 'src/shared/i18n';
 
 export * from './store'
 export type { IGenerateRegistrationDocumentsInput, IGenerateRegistrationDocumentsOutput, IGeneratedRegistrationDocument, IRegistrationDocument } from './store'
@@ -14,9 +15,9 @@ export type ICandidateIntakeAnswer = ICandidateIntake['answers'][number]
  * (`ProgramKey`), формулировки — по семантике программ кооператива.
  */
 const PROGRAM_TITLES: Record<string, string> = {
-  GENERATION: 'Генератор',
-  CAPITALIZATION: 'Благорост',
-  MARKETPLACE: 'Стол заказов',
+  GENERATION: t('registration.model.programTitle.generation'),
+  CAPITALIZATION: t('registration.model.programTitle.capitalization'),
+  MARKETPLACE: t('registration.model.programTitle.marketplace'),
 }
 
 export const registrationProgramTitle = (programKey?: string | null): string =>

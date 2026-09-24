@@ -13,7 +13,7 @@ q-form(ref="form" v-if="data")
     dense
     v-model="data.first_name"
     standout="bg-teal text-white"
-    label="Имя"
+    :label="$t('ui.editableIndividualCard.firstNameLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
@@ -23,7 +23,7 @@ q-form(ref="form" v-if="data")
     dense
     v-model="data.middle_name"
     standout="bg-teal text-white"
-    label="Отчество"
+    :label="$t('ui.editableIndividualCard.middleNameLabel')"
     :readonly="readonly"
     :rules="[val => validatePersonalName(val)]"
     autocomplete="off"
@@ -33,7 +33,7 @@ q-form(ref="form" v-if="data")
     dense
     v-model="data.last_name"
     standout="bg-teal text-white"
-    label="Фамилия"
+    :label="$t('ui.editableIndividualCard.lastNameLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val), val => validatePersonalName(val)]"
     autocomplete="off"
@@ -44,8 +44,8 @@ q-form(ref="form" v-if="data")
     v-model="data.birthdate"
     standout="bg-teal text-white"
     mask="date"
-    label="Дата рождения"
-    placeholder="Формат: год/месяц/день"
+    :label="$t('ui.editableIndividualCard.birthDateLabel')"
+    :placeholder="$t('ui.editableIndividualCard.birthDatePlaceholder')"
     :readonly="readonly"
     :rules="['date', val => notEmpty(val)]"
     autocomplete="off"
@@ -55,13 +55,13 @@ q-form(ref="form" v-if="data")
         q-popup-proxy(cover transition-show="scale" transition-hide="scale")
           q-date(v-model="data.birthdate")
             .row.items-center.justify-end
-              q-btn(v-close-popup label="Закрыть" color="primary" flat)
+              q-btn(v-close-popup :label="$t('common.action.close')" color="primary" flat)
 
   q-input(
     dense
     v-model="data.phone"
     standout="bg-teal text-white"
-    label="Телефон"
+    :label="$t('ui.editableIndividualCard.phoneLabel')"
     :readonly="readonly"
     :rules="[val => notEmpty(val)]"
     autocomplete="off"
@@ -72,10 +72,10 @@ q-form(ref="form" v-if="data")
       dense
       v-model="data.passport.code"
       standout="bg-teal text-white"
-      label="Код подразделения"
+      :label="$t('ui.editableIndividualCard.deptCodeLabel')"
       mask="###-###"
       :readonly="readonly"
-      :rules="[val => notEmpty(val), val => val.length === 7 || 'Код подразделения состоит из 6 цифр и тире (xxx-xxx)']"
+      :rules="[val => notEmpty(val), val => val.length === 7 || $t('ui.editableIndividualCard.deptCodeError')]"
       autocomplete="off"
     )
 
@@ -84,11 +84,11 @@ q-form(ref="form" v-if="data")
       :model-value="data.passport.series"
       @update:model-value="val => data.passport.series = Number(val)"
       standout="bg-teal text-white"
-      label="Серия паспорта"
+      :label="$t('ui.editableIndividualCard.passportSeriesLabel')"
       mask="####"
       type="text"
       :readonly="readonly"
-      :rules="[val => notEmpty(val), val => String(val).length === 4 || 'Серия должна состоять из 4 цифр']"
+      :rules="[val => notEmpty(val), val => String(val).length === 4 || $t('ui.editableIndividualCard.passportSeriesError')]"
       autocomplete="off"
     )
 
@@ -97,11 +97,11 @@ q-form(ref="form" v-if="data")
       :model-value="data.passport.number"
       @update:model-value="val => data.passport.number = Number(val)"
       standout="bg-teal text-white"
-      label="Номер паспорта"
+      :label="$t('ui.editableIndividualCard.passportNumberLabel')"
       mask="######"
       type="text"
       :readonly="readonly"
-      :rules="[val => notEmpty(val), val => String(val).length === 6 || 'Номер паспорта должен состоять из 6 цифр']"
+      :rules="[val => notEmpty(val), val => String(val).length === 6 || $t('ui.editableIndividualCard.passportNumberError')]"
       autocomplete="off"
     )
 
@@ -112,7 +112,7 @@ q-form(ref="form" v-if="data")
       v-model="data.passport.issued_at"
       standout="bg-teal text-white"
       mask="date"
-      label="Дата выдачи"
+      :label="$t('ui.editableIndividualCard.issueDateLabel')"
       :readonly="readonly"
       :rules="['date', val => notEmpty(val)]"
       autocomplete="off"
@@ -122,13 +122,13 @@ q-form(ref="form" v-if="data")
           q-popup-proxy(cover transition-show="scale" transition-hide="scale")
             q-date(v-model="data.passport.issued_at")
               .row.items-center.justify-end
-                q-btn(v-close-popup label="Закрыть" color="primary" flat)
+                q-btn(v-close-popup :label="$t('common.action.close')" color="primary" flat)
 
     q-input(
       dense
       v-model="data.passport.issued_by"
       standout="bg-teal text-white"
-      label="Кем выдан"
+      :label="$t('ui.editableIndividualCard.issuedByLabel')"
       :readonly="readonly"
       :rules="[val => notEmpty(val)]"
       autocomplete="off"
@@ -138,7 +138,7 @@ q-form(ref="form" v-if="data")
       dense
       v-model="data.full_address"
       standout="bg-teal text-white"
-      label="Адрес регистрации"
+      :label="$t('ui.editableIndividualCard.addressLabel')"
       :readonly="readonly"
       :rules="[val => notEmpty(val)]"
       autocomplete="off"
@@ -162,6 +162,7 @@ q-form(ref="form" v-if="data")
   import { type IUpdateAccountInput, useUpdateAccount } from 'src/features/Account/UpdateAccount/model';
   import { EditableActions } from 'src/shared/ui/EditableActions';
   import { type IIndividualData } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
   const { updateAccount } = useUpdateAccount()
 
@@ -188,7 +189,7 @@ q-form(ref="form" v-if="data")
       }
       await updateAccount(account_data);
       emit('update', JSON.parse(JSON.stringify(data.value)))
-      SuccessAlert('Данные аккаунта обновлены')
+      SuccessAlert(t('ui.editableIndividualCard.updatedText'))
     } catch (e: any) {
       FailAlert(e);
     }

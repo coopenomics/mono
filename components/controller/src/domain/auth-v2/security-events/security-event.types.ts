@@ -1,3 +1,4 @@
+import { t } from '~/i18n';
 /**
  * Критичные события безопасности аккаунта (CoopID Story 3.11) — повод уведомить
  * пайщика, чтобы он заметил изменение, сделанное без его ведома.
@@ -16,10 +17,10 @@ export enum SecurityEventKind {
 
 /** Человекочитаемый заголовок события для тела уведомления. */
 export const SECURITY_EVENT_TITLES: Record<SecurityEventKind, string> = {
-  [SecurityEventKind.TwoFactorEnabled]: 'Подключён второй фактор (2FA)',
-  [SecurityEventKind.TwoFactorDisabled]: 'Отключён второй фактор (2FA)',
-  [SecurityEventKind.RecoveryStrategyChanged]: 'Изменён способ восстановления доступа',
-  [SecurityEventKind.PasswordChanged]: 'Изменён пароль',
-  [SecurityEventKind.KeyRotated]: 'Перевыпущен ключ доступа',
-  [SecurityEventKind.LoginFactorsChanged]: 'Изменены настройки подтверждения входа',
+  [SecurityEventKind.TwoFactorEnabled]: t('authV2.securityEvent.type.twoFaEnabled'),
+  [SecurityEventKind.TwoFactorDisabled]: t('authV2.securityEvent.type.twoFaDisabled'),
+  [SecurityEventKind.RecoveryStrategyChanged]: t('authV2.securityEvent.type.recoveryMethodChanged'),
+  [SecurityEventKind.PasswordChanged]: t('authV2.securityEvent.type.passwordChanged'),
+  [SecurityEventKind.KeyRotated]: t('authV2.securityEvent.type.accessKeyReissued'),
+  [SecurityEventKind.LoginFactorsChanged]: t('authV2.securityEvent.type.loginConfirmationSettingsChanged'),
 };

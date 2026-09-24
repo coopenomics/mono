@@ -4,8 +4,8 @@ div.q-px-md(v-if="issue")
     :filter="requirementsFilter"
     :max-items="50"
     :permissions="issue.permissions"
-    empty-title="Артефактов пока нет"
-    empty-body="Добавьте первый артефакт, чтобы зафиксировать требования к задаче."
+    :empty-title="$t('capital.issueRequirementsPage.emptyTitle')"
+    :empty-body="$t('capital.issueRequirementsPage.emptyBody')"
   )
 </template>
 
@@ -16,6 +16,7 @@ import { ISSUE_PAGE_KEY } from '../../IssuePage/model/context'
 
 const ctx = inject(ISSUE_PAGE_KEY)
 if (!ctx) {
+  // i18n-ignore: внутренняя проверка контекста компонента — видит только разработчик
   throw new Error('IssueRequirementsPage: отсутствует контекст IssuePage')
 }
 

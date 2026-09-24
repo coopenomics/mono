@@ -4,23 +4,23 @@ span
     variant='ghost',
     size='sm',
     :loading='isGenerating',
-    aria-label='Инвестировать в проект',
+    :aria-label='$t("capital.createProjectInvestButton.ariaLabel")',
     @click.stop='showDialog = true'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
-    | Инвестиция
+    | {{ $t('capital.createProjectInvestButton.label') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Инвестирование в проект',
+    :title='$t("capital.createProjectInvestButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     BaseForm(:loading='isGenerating', @submit='handleInvest')
       AmountInput(
         v-model='quantity',
-        label='Сумма',
+        :label='$t("capital.createProjectInvestButton.amountLabel")',
         placeholder='0,00',
         :symbol='currency',
         :precision='2',
@@ -28,13 +28,13 @@ span
         :error='amountError'
       )
       template(#footer)
-        BaseButton(variant='ghost', @click='clear') Отменить
+        BaseButton(variant='ghost', @click='clear') {{ $t('capital.createProjectInvestButton.cancel') }}
         BaseButton(
           variant='primary',
           type='submit',
           :loading='isGenerating',
           :disabled='!isValidAmount'
-        ) Инвестировать
+        ) {{ $t('capital.createProjectInvestButton.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -45,6 +45,7 @@ import { useCreateProjectInvest } from '../model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { useSetPlan } from '../../../Project/SetPlan/model';
 import type { IProject } from '../../../../entities/Project/model';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{ project: IProject | null | undefined }>();
 
@@ -68,7 +69,7 @@ const isValidAmount = computed(() => Number(quantity.value) > 0);
 // Ошибку показываем только после ввода, чтобы пустая форма не краснела
 const amountError = computed(() =>
   quantity.value !== null && quantity.value !== '' && !isValidAmount.value
-    ? 'Сумма инвестиций должна быть положительной'
+    ? t('capital.createProjectInvestButton.positiveAmountError')
     : undefined,
 );
 
@@ -80,7 +81,7 @@ const clear = (): void => {
 // Обработка инвестирования (генерация + подпись + создание)
 const handleInvest = async (): Promise<void> => {
   if (!props.project?.project_hash) {
-    FailAlert('Не указан проект');
+    FailAlert(t('capital.createProjectInvestButton.projectMissingError'));
     return;
   }
   if (!isValidAmount.value) return;
@@ -92,7 +93,7 @@ const handleInvest = async (): Promise<void> => {
       props.project.project_hash
     );
 
-    SuccessAlert('Инвестиция принята');
+    SuccessAlert(t('capital.createProjectInvestButton.success'));
     clear();
     emit('actionCompleted');
   } catch (e: any) {

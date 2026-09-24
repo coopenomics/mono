@@ -30,7 +30,7 @@
             span.auth-split__step-label {{ step.label }}
         .auth-split__progress(role='progressbar', :aria-valuenow='activeIndex + 1', :aria-valuemax='steps.length')
           .auth-split__progress-text
-            span Шаг {{ activeIndex + 1 }} из {{ steps.length }}
+            span {{ $t('ui.authSplit.stepText', { step: activeIndex + 1, total: steps.length }) }}
             span.auth-split__progress-label(v-if='activeStep') {{ activeStep.label }}
           .auth-split__progress-bar
             i(v-for='step in steps', :key='step.key', :class='stepClass(step.key)')

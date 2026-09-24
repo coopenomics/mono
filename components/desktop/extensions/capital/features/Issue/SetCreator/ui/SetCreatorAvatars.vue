@@ -37,8 +37,8 @@
           :dense='true'
           :loading='loading'
           :project-hash='issue?.project_hash'
-          placeholder='поиск...'
-          label='Исполнители'
+          :placeholder='$t("capital.setCreatorAvatars.searchPlaceholder")'
+          :label='$t("capital.setCreatorAvatars.label")'
           autofocus
         )
 </template>
@@ -54,6 +54,7 @@ import type {
   IIssuePermissions,
 } from '../../../../entities/Issue/model';
 import type { IContributor } from '../../../../entities/Contributor/model';
+import { t } from '../../../../i18n';
 
 interface Props {
   issue: IIssue;
@@ -119,7 +120,7 @@ const loadCreators = async (creatorUsernames: string[]) => {
     await nextTick();
   } catch (error) {
     console.error('SetCreatorAvatars: load creators failed', error);
-    FailAlert('Не удалось загрузить исполнителей задачи');
+    FailAlert(t('capital.setCreatorAvatars.loadError'));
     currentCreators.value = [];
     selectedCreators.value = [];
     await nextTick();
@@ -162,7 +163,7 @@ watch(
         .filter(Boolean)
         .sort();
       if (JSON.stringify(newIds) === JSON.stringify(curIds)) return;
-      FailAlert('У вас нет прав на назначение исполнителей задачи');
+      FailAlert(t('capital.setCreatorAvatars.forbiddenError'));
       isProgrammaticChange.value = true;
       selectedCreators.value = [...normalizedOld];
       await nextTick();

@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsString, ValidateNested, IsNotEmpty, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { CreateMembershipExitInputDomainInterface } from '~/domain/account/interfaces/create-membership-exit-input.interface';
@@ -26,7 +27,7 @@ export class CreateMembershipExitInputDTO implements CreateMembershipExitInputDo
     description: 'Подписанное пайщиком заявление о выходе из кооператива',
   })
   @ValidateNested()
-  @IsNotEmpty({ message: 'Поле "statement" обязательно для заполнения.' })
+  @IsNotEmpty({ message: validationMessage('membershipExit.createMembershipExitInput.fieldStatementRequired') })
   @Type(() => MembershipExitApplicationSignedDocumentInputDTO)
   statement!: MembershipExitApplicationSignedDocumentInputDTO;
 

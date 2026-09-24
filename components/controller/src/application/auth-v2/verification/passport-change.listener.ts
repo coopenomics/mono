@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { chainErrorCode } from '@coopenomics/extension-kit';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   ACCOUNT_PASSPORT_CHANGED_EVENT,
@@ -7,9 +8,10 @@ import {
 import { VerificationType } from '~/domain/auth-v2/verification/verification.types';
 import { VerificationOnsiteService } from './verification-onsite.service';
 import { VerificationTypesService } from './verification-types.service';
+import { t } from '~/i18n';
 
 /** Причина отзыва в журнале верификаций. */
-const PASSPORT_CHANGED_REASON = 'Паспортные данные изменены советом — нужна повторная сверка';
+const PASSPORT_CHANGED_REASON = t('authV2.passportChangeListener.revokeReasonMessage');
 
 /**
  * Сверка по паспорту подтверждала конкретный документ. Когда совет меняет
@@ -38,8 +40,7 @@ export class PassportChangeListener {
     } catch (error) {
       // Сверку провёл другой кооператив: снять её мы не вправе, и нашей
       // записи о ней нет — менять данные это не мешает.
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('проведённая вашим кооперативом, не найдена')) return;
+      if (chainErrorCode(error) === 'REGISTRATOR_VERIFICATION_NOT_OURS') return;
       throw error;
     }
   }

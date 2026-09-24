@@ -31,7 +31,7 @@
           button.contrib-results__title(
             type='button',
             @click.stop='navigateToComponent(row.project_hash)'
-          ) {{ row.project_title || 'Компонент' }}
+          ) {{ row.project_title || $t('capital.contributorResultsListWidget.componentLabel') }}
 
           .contrib-results__path
             q-icon(name='folder', size='14px')
@@ -39,14 +39,14 @@
               v-if='row.parent_hash',
               type='button',
               @click.stop='navigateToProject(row.parent_hash)'
-            ) {{ row.parent_title || 'Проект' }}
+            ) {{ row.parent_title || $t('capital.contributorResultsListWidget.projectLabel') }}
             span.t-sm.t-muted(v-if='showOwner') · {{ row.display_name || row.username }}
 
         .contrib-results__meta
           span.contrib-results__amount.t-mono {{ formatMoney(row.intellectual_cost) }}
           span.contrib-results__share.t-sm.t-muted
-            | {{ Number(row.share_percent || 0).toFixed(2) }}% объекта
-            q-tooltip {{ showOwner ? 'Доля участника в объекте авторских прав' : 'Ваша доля в объекте авторских прав' }}
+            | {{ $t('capital.contributorResultsListWidget.sharePercent', { percent: Number(row.share_percent || 0).toFixed(2) }) }}
+            q-tooltip {{ showOwner ? $t('capital.contributorResultsListWidget.shareTooltip') : $t('capital.contributorResultsListWidget.ownShareTooltip') }}
 
         //- Состояние доли и действия по ней держатся отдельной колонкой справа:
         //- длинное название компонента не сдвигает ни статус, ни кнопки
@@ -66,7 +66,7 @@
             )
               template(#icon-left)
                 q-icon(name='how_to_vote', size='16px')
-              | Голосовать
+              | {{ $t('capital.contributorResultsListWidget.voteButton') }}
 
             ResultSubmissionActionsWidget(
               :segment='row',
@@ -79,7 +79,7 @@
         template(v-if='ownerAction(row) === "vote"')
           .contrib-results__loading(v-if='!votingProjects[row.project_hash]')
             q-spinner(color='primary', size='24px')
-            span.t-sm.t-muted Загружаем голосование…
+            span.t-sm.t-muted {{ $t('capital.contributorResultsListWidget.votingLoading') }}
           ProjectVotingSegmentsWidget(
             v-else,
             :project-hash='row.project_hash',
@@ -118,6 +118,7 @@ import {
 import { SegmentResultInfoWidget } from '../SegmentResultInfoWidget';
 import { ResultSubmissionActionsWidget } from '../ResultSubmissionActionsWidget';
 import { ProjectVotingSegmentsWidget } from '../ProjectVotingSegmentsWidget';
+import { t } from '../../i18n';
 
 interface Props {
   rows: ISegment[];
@@ -204,7 +205,7 @@ const ensureVotingProject = async (segment: ISegment) => {
     }
   } catch (error) {
     console.error('Ошибка при загрузке проекта для голосования:', error);
-    FailAlert('Не удалось загрузить данные голосования');
+    FailAlert(t('capital.contributorResultsListWidget.votingLoadError'));
   }
 };
 

@@ -41,7 +41,7 @@ import {
   mapPlatformAgreementIdToDocumentType,
 } from '~/domain/registration/utils/candidate-agreement.utils';
 import { EventsService } from '~/infrastructure/events/events.service';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { HttpApiError, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ParticipantInteractor {
@@ -118,10 +118,10 @@ export class ParticipantInteractor {
 
     const verified: boolean = signatureObj.verifyDigest(signed_hash, publicKeyObj);
     if (!verified) {
-      throw new HttpApiError(http.INTERNAL_SERVER_ERROR, 'Недействительная подпись');
+      throw DomainError.internal('PARTICIPATION_INVALID_SIGNATURE');
     }
 
-    if (public_key !== doc_public_key) throw new HttpApiError(http.BAD_REQUEST, 'Несовпадение публичных ключей');
+    if (public_key !== doc_public_key) throw DomainError.badRequest('PARTICIPATION_PUBLIC_KEY_MISMATCH');
   }
 
   async registerParticipant(data: RegisterParticipantDomainInterface): Promise<AccountDomainEntity> {
@@ -129,11 +129,11 @@ export class ParticipantInteractor {
     const user = await this.userDomainService.getUserByUsername(data.username);
 
     if (!user) {
-      throw new HttpApiError(http.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('PARTICIPATION_USER_NOT_FOUND');
     }
 
     if (user.status !== userStatus['1_Created'] && user.status !== userStatus['2_Joined']) {
-      throw new HttpApiError(http.NOT_FOUND, 'Пользователь уже вступил в кооператив');
+      throw DomainError.notFound('PARTICIPATION_ALREADY_JOINED');
     }
 
     // Получаем кандидата из репозитория
@@ -141,17 +141,14 @@ export class ParticipantInteractor {
 
     if (!candidate) {
       this.logger.error(`Кандидат с именем ${data.username} не найден`);
-      throw new HttpApiError(http.NOT_FOUND, 'Кандидат не найден');
+      throw DomainError.notFound('PARTICIPATION_CANDIDATE_NOT_FOUND');
     }
 
     // ПРОВЕРКА 1: Сверка типа аккаунта
     // Проверяем, что в заявлении указан тот же тип аккаунта, что и у кандидата
     const statementMeta = data.statement.meta as any;
     if (statementMeta?.participant_data?.type && statementMeta.participant_data.type !== candidate.type) {
-      throw new HttpApiError(
-        http.BAD_REQUEST,
-        `Тип аккаунта в заявлении (${statementMeta.participant_data.type}) не совпадает с типом зарегистрированного кандидата (${candidate.type})`
-      );
+      throw DomainError.badRequest('PARTICIPATION_ACCOUNT_TYPE_MISMATCH', { statementType: statementMeta.participant_data.type, candidateType: candidate.type });
     }
 
     // ПРОВЕРКА 1: Получаем список всех требуемых соглашений из конфигурации
@@ -181,10 +178,7 @@ export class ParticipantInteractor {
     }
 
     if (missingAgreements.length > 0) {
-      throw new HttpApiError(
-        http.BAD_REQUEST,
-        `Отсутствуют обязательные соглашения для типа аккаунта "${candidate.type}": ${missingAgreements.join(', ')}`
-      );
+      throw DomainError.badRequest('PARTICIPATION_MISSING_AGREEMENTS', { accountType: candidate.type, missingAgreements: missingAgreements.join(', ') });
     }
 
     // ПРОВЕРКА 2а: анкеты вступления. Что заполнять, решает реестр на сервере,
@@ -204,7 +198,7 @@ export class ParticipantInteractor {
     if (!this.documentValidationService.allDocumentsValid(validationResults)) {
       const errors = this.documentValidationService.getErrorMessages(validationResults);
       this.logger.error(`Ошибка валидации документов: ${errors.join('; ')}`);
-      throw new HttpApiError(http.BAD_REQUEST, `Ошибка валидации документов: ${errors.join('; ')}`);
+      throw DomainError.badRequest('PARTICIPATION_DOCUMENT_VALIDATION_FAILED', { errors: errors.join('; ') });
     }
 
     // ПРОВЕРКА 4: Проверка линкованных документов в заявлении на основе конфигурации
@@ -239,10 +233,7 @@ export class ParticipantInteractor {
     const missingLinks = expectedLinks.filter((hash) => !statementLinks.includes(hash));
 
     if (missingLinks.length > 0) {
-      throw new HttpApiError(
-        http.BAD_REQUEST,
-        `В заявлении отсутствуют ссылки на следующие документы: ${missingLinks.join(', ')}`
-      );
+      throw DomainError.badRequest('PARTICIPATION_MISSING_DOCUMENT_LINKS', { missingLinks: missingLinks.join(', ') });
     }
 
     // Сохраняем заявление
@@ -354,6 +345,7 @@ export class ParticipantInteractor {
 
     // Настраиваем identity получателя для участника
     try {
+      // i18n-ignore: внутренний код причины для setupNotificationSubscriber, не текст интерфейса
       await this.accountDomainService.setupNotificationSubscriber(data.username, 'участника');
     } catch (error: any) {
       this.logger.error(`Ошибка настройки identity получателя для участника ${data.username}: ${error.message}`, error.stack);
@@ -377,7 +369,7 @@ export class ParticipantInteractor {
     const inviteEmail = normalizeUserEmail(data.email);
     const user = await this.userDomainService.getUserByEmail(inviteEmail);
     if (!user) {
-      throw new HttpApiError(http.NOT_FOUND, 'Пользователь не найден');
+      throw DomainError.notFound('PARTICIPATION_USER_NOT_FOUND');
     }
     const token = await this.tokenApplicationService.generateInviteToken(inviteEmail, user.id);
     const inviteUrl = `${config.frontend_url}/${config.coopname}/auth/invite?token=${token}`;

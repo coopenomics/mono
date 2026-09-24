@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 
 /**
@@ -35,6 +36,6 @@ export class ReportExpenseItemInputDTO {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: 'actual_amount должен быть в формате asset (например "800.0000 RUB").' })
+  @Matches(/^\d+\.\d{1,8} [A-Z]{1,7}$/, { message: validationMessage('expenses.reportExpenseItem.amountFormatHint') })
   actual_amount?: string;
 }

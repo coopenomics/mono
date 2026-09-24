@@ -32,6 +32,7 @@ import { BaseDocument } from '../BaseDocument';
 import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentRow';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model/types'
 import type { IDocumentAggregate } from 'src/entities/Document/model'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   documents: {
@@ -80,11 +81,11 @@ const items = computed<IPackageItem[]>(() => {
   if (!pack) return list
   const statement = pack.statement?.documentAggregate
   const decision = pack.decision?.documentAggregate
-  if (statement) list.push({ key: 'statement', aggregate: statement, row: toRow(statement, 'Заявление') })
-  if (decision) list.push({ key: 'decision', aggregate: decision, row: toRow(decision, 'Решение') })
+  if (statement) list.push({ key: 'statement', aggregate: statement, row: toRow(statement, t('ui.complexDocument.statementLabel')) })
+  if (decision) list.push({ key: 'decision', aggregate: decision, row: toRow(decision, t('ui.complexDocument.decisionLabel')) })
   if (pack.statement) {
     pack.links.forEach((linked, index) => {
-      list.push({ key: `link-${index}`, aggregate: linked, row: toRow(linked, 'Документ') })
+      list.push({ key: `link-${index}`, aggregate: linked, row: toRow(linked, t('ui.complexDocument.documentLabel')) })
     })
   }
   return list

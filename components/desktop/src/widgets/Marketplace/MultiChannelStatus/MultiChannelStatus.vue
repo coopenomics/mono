@@ -13,9 +13,9 @@
         <span class="mp-mcs__chip-status">{{ statusLabel[ch.status] }}</span>
         <q-tooltip>
           <div><strong>{{ kindLabel[ch.kind] }}</strong></div>
-          <div>Статус: {{ statusLabel[ch.status] }}</div>
-          <div v-if="ch.at">Время: {{ formatTime(ch.at) }}</div>
-          <div v-if="ch.error">Ошибка: {{ ch.error }}</div>
+          <div>{{ $t('marketplace.multiChannelStatus.statusLabel') }} {{ statusLabel[ch.status] }}</div>
+          <div v-if="ch.at">{{ $t('marketplace.multiChannelStatus.timeLabel') }} {{ formatTime(ch.at) }}</div>
+          <div v-if="ch.error">{{ $t('marketplace.multiChannelStatus.errorLabel') }} {{ ch.error }}</div>
         </q-tooltip>
       </div>
     </div>
@@ -24,10 +24,11 @@
 
 <script setup lang="ts">
 import { type PropType } from 'vue'
+import { uiLocale, t } from 'src/shared/i18n';
 import type { ChannelKind, ChannelStatus, ChannelStatusEntry } from './MultiChannelStatus.types'
 
 defineProps({
-  label: { type: String, default: 'Доставка уведомления' },
+  label: { type: String, default: t('marketplace.multiChannelStatus.title') },
   channels: { type: Array as PropType<ChannelStatusEntry[]>, required: true },
 })
 
@@ -38,12 +39,12 @@ const kindLabel: Record<ChannelKind, string> = {
 }
 
 const statusLabel: Record<ChannelStatus, string> = {
-  sent:      'Отправлено',
-  delivered: 'Доставлено',
-  read:      'Прочитано',
-  failed:    'Ошибка',
-  pending:   'В очереди',
-  disabled:  'Отключено',
+  sent:      t('marketplace.multiChannelStatus.statusSent'),
+  delivered: t('marketplace.multiChannelStatus.statusDelivered'),
+  read:      t('marketplace.multiChannelStatus.statusRead'),
+  failed:    t('marketplace.multiChannelStatus.statusError'),
+  pending:   t('marketplace.multiChannelStatus.statusQueued'),
+  disabled:  t('marketplace.multiChannelStatus.statusDisabled'),
 }
 
 type ChipKind = 'ok' | 'warn' | 'fail' | 'idle'
@@ -65,7 +66,7 @@ function iconOf(k: ChannelKind): string {
 
 function formatTime(v: string | Date) {
   const d = typeof v === 'string' ? new Date(v) : v
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(uiLocale(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 

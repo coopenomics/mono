@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для approval-request воркфлоу
 export const approvalRequestPayloadSchema = z.object({
@@ -21,31 +21,34 @@ export type IPayload = z.infer<typeof approvalRequestPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Запрос на одобрение председателя'
-export const id = slugify(name);
+export const name = nt('approvalRequest.name')
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'zapros-na-odobrenie-predsedatelya';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление председателю совета о новом запросе на одобрение')
+  .i18nKey('approvalRequest')
+  .description(nt('approvalRequest.description'))
   .payloadSchema(approvalRequestPayloadSchema)
   .tags(['chairman']) // Только для председателя
   .addSteps([
     createEmailStep(
       'approval-request-email',
-      'Новый запрос на одобрение действия: {{payload.requestTitle}}',
-      'Уважаемый {{payload.chairmanName}}!<br><br>Поступил новый запрос на одобрение:<br><br><strong>{{payload.requestTitle}}</strong><br><br>{{payload.requestDescription}}<br><br>Автор запроса: {{payload.authorName}}<br><br>Ссылка для одобрения или отклонения запроса: {{payload.approvalUrl}}'
+      nt('approvalRequest.email.subject'),
+      nt('approvalRequest.email.body')
     ),
     createInAppStep(
       'approval-request-notification',
-      'Новый запрос на одобрение действия',
-      'Запрос: {{payload.requestTitle}}\nАвтор: {{payload.authorName}}'
+      nt('approvalRequest.inApp.subject'),
+      nt('approvalRequest.inApp.body')
     ),
     createPushStep(
       'approval-request-push',
-      'Новый запрос на одобрение действия',
-      'Запрос: {{payload.requestTitle}} от {{payload.authorName}}'
+      nt('approvalRequest.push.subject'),
+      nt('approvalRequest.push.body')
     ),
   ])
   .build();

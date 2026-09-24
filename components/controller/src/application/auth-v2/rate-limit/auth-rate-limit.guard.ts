@@ -9,6 +9,7 @@ import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.er
 import { RATE_LIMIT_STORAGE, type IEscalatingRateLimitStorage } from '~/domain/auth-v2/ports/rate-limit-storage.port';
 import { AuditService } from '../audit/audit.service';
 import { AUTH_RATE_LIMIT_METADATA, type AuthRateLimitConfig, type RateLimitRule } from './auth-rate-limit.types';
+import { t } from '~/i18n';
 
 /** Переход в блок, замеченный этим запросом — для одноразовой audit-записи. */
 interface LockoutEvent {
@@ -105,7 +106,7 @@ export class AuthRateLimitGuard implements CanActivate {
       // Кастомный код эндпоинта (напр. recovery → TooManyRecoveryAttempts) либо дефолт.
       throw new AuthV2Error(
         config.error?.code ?? AuthV2ErrorCode.TooManyAttempts,
-        config.error?.message ?? 'Слишком много попыток. Подождите и повторите позже.',
+        config.error?.message ?? t('authV2.authRateLimitGuard.tooManyAttemptsMessage'),
       );
     }
     return true;

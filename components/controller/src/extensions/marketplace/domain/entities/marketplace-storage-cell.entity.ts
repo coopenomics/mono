@@ -20,14 +20,17 @@ export class MarketplaceStorageCellDomainEntity {
 
   constructor(props: MarketplaceStorageCellProps) {
     if (!props.section.trim()) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceStorageCellDomainEntity: секция не может быть пустой.');
     }
     if (!Number.isInteger(props.level) || props.level < 1) {
       throw new Error(
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         `MarketplaceStorageCellDomainEntity: ярус должен быть целым числом от 1 (получено: ${props.level}).`
       );
     }
     if (!props.code.trim()) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceStorageCellDomainEntity: адрес ячейки не может быть пустым.');
     }
     this.id = props.id;

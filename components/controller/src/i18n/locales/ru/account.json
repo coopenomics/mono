@@ -1,0 +1,130 @@
+{
+  "account": {
+    "accountInteractor": {
+      "registrationDeclinedRefundedMessage": "Совет отказал в приёме. Регистрационный взнос возвращён. Вы можете подать заявку заново.",
+      "registrationDeclinedRefundingMessage": "Совет отказал в приёме. Регистрационный взнос возвращается. Дождитесь его завершения, чтобы подать заявку заново."
+    },
+    "createEntrepreneurDataInput": {
+      "fieldBankAccountRequired": "Поле \"bank_account\" обязательно для заполнения.",
+      "fieldBirthdateRequired": "Поле \"birthdate\" обязательно для заполнения.",
+      "fieldCityRequired": "Поле \"city\" обязательно для заполнения.",
+      "fieldCountryRequired": "Поле \"country\" обязательно для заполнения.",
+      "fieldDetailsRequired": "Поле \"details\" обязательно для заполнения.",
+      "fieldFirstNameRequired": "Поле \"first_name\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldLastNameRequired": "Поле \"last_name\" обязательно для заполнения.",
+      "fieldMiddleNameRequired": "Поле \"middle_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения."
+    },
+    "createIndividualDataInput": {
+      "fieldBirthdateRequired": "Поле \"birthdate\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldFirstNameRequired": "Поле \"first_name\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldLastNameRequired": "Поле \"last_name\" обязательно для заполнения.",
+      "fieldMiddleNameRequired": "Поле \"middle_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения."
+    },
+    "createOrganizationDataInput": {
+      "fieldBankAccountRequired": "Поле \"bank_account\" обязательно для заполнения.",
+      "fieldCityRequired": "Поле \"city\" обязательно для заполнения.",
+      "fieldCountryRequired": "Поле \"country\" обязательно для заполнения.",
+      "fieldDetailsRequired": "Поле \"details\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldFactAddressRequired": "Поле \"fact_address\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldFullNameRequired": "Поле \"full_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения.",
+      "fieldRepresentedByRequired": "Поле \"represented_by\" обязательно для заполнения.",
+      "fieldShortNameRequired": "Поле \"short_name\" обязательно для заполнения.",
+      "fieldTypeRequired": "Поле \"type\" обязательно для заполнения."
+    },
+    "deleteAccountInput": {
+      "fieldUsernameForDeleteRequired": "Поле \"username_for_delete\" обязательно для заполнения."
+    },
+    "registerAccountInput": {
+      "atLeastOneDataRequired": "Необходимо указать хотя бы одно из полей: \"entrepreneur_data\", \"individual_data\" или \"organization_data\".",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldTypeRequired": "Поле \"type\" обязательно для заполнения.",
+      "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    },
+    "registrationDeclineListener": {
+      "refundMemo": "Возврат вступительного и минимального паевого взносов №{hashPrefix}. {vatExemptNote}"
+    },
+    "representedByDto": {
+      "basedOnMustBeString": "Поле \"На основании чего действует\" должно быть строкой",
+      "basedOnRequired": "Поле \"На основании чего действует\" не должно быть пустым",
+      "firstNameMustBeString": "Имя должно быть строкой",
+      "firstNameRequired": "Имя не должно быть пустым",
+      "lastNameMustBeString": "Фамилия должна быть строкой",
+      "middleNameMustBeString": "Отчество должно быть строкой",
+      "middleNameRequired": "Отчество не должно быть пустым",
+      "positionMustBeString": "Должность должна быть строкой",
+      "positionRequired": "Должность не должна быть пустой"
+    },
+    "searchPrivateAccountsInput": {
+      "queryMustBeString": "Поисковый запрос должен быть строкой",
+      "queryRequired": "Поисковый запрос не может быть пустым"
+    },
+    "updateAccountInput": {
+      "atLeastOneDataRequired": "Необходимо указать хотя бы одно из полей: \"entrepreneur_data\", \"individual_data\" или \"organization_data\".",
+      "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    },
+    "updateEntrepreneurDataInput": {
+      "fieldBirthdateRequired": "Поле \"birthdate\" обязательно для заполнения.",
+      "fieldCityRequired": "Поле \"city\" обязательно для заполнения.",
+      "fieldCountryRequired": "Поле \"country\" обязательно для заполнения.",
+      "fieldDetailsRequired": "Поле \"details\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldFirstNameRequired": "Поле \"first_name\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldLastNameRequired": "Поле \"last_name\" обязательно для заполнения.",
+      "fieldMiddleNameRequired": "Поле \"middle_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения.",
+      "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    },
+    "updateIndividualDataInput": {
+      "fieldBirthdateRequired": "Поле \"birthdate\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldFirstNameRequired": "Поле \"first_name\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldLastNameRequired": "Поле \"last_name\" обязательно для заполнения.",
+      "fieldMiddleNameRequired": "Поле \"middle_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения.",
+      "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    },
+    "updateOrganizationDataInput": {
+      "fieldCityRequired": "Поле \"city\" обязательно для заполнения.",
+      "fieldCountryRequired": "Поле \"country\" обязательно для заполнения.",
+      "fieldDetailsRequired": "Поле \"details\" обязательно для заполнения.",
+      "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",
+      "fieldFactAddressRequired": "Поле \"fact_address\" обязательно для заполнения.",
+      "fieldFullAddressRequired": "Поле \"full_address\" обязательно для заполнения.",
+      "fieldFullNameRequired": "Поле \"full_name\" обязательно для заполнения.",
+      "fieldPhoneRequired": "Поле \"phone\" обязательно для заполнения.",
+      "fieldRepresentedByRequired": "Поле \"represented_by\" обязательно для заполнения.",
+      "fieldShortNameRequired": "Поле \"short_name\" обязательно для заполнения.",
+      "fieldTypeRequired": "Поле \"type\" обязательно для заполнения.",
+      "fieldUsernameRequired": "Поле \"username\" обязательно для заполнения."
+    }
+  },
+  "errors": {
+    "ACCOUNT_BLOCKCHAIN_REGISTRATION_FAILED": "Ошибка при регистрации в блокчейне: {errorMessage}",
+    "ACCOUNT_CANDIDATE_NOT_FOUND": "Кандидат с именем {username} не найден",
+    "ACCOUNT_DATA_CHANGED_AFTER_SIGNING": "Данные пайщика изменены после подписания заявления. Пожалуйста, переподпишите заявление перед регистрацией.",
+    "ACCOUNT_DELETE_FORBIDDEN_MEMBER": "Пайщик принят в кооператив — удаление невозможно.",
+    "ACCOUNT_EMAIL_ALREADY_REGISTERED": "Пользователь с указанным EMAIL уже зарегистрирован",
+    "ACCOUNT_ENTRY_FEE_ALREADY_ACCEPTED": "Вступительный взнос уже принят — для отката требуется возврат средств.",
+    "ACCOUNT_PASSPORT_ALREADY_SET": "Паспортные данные уже установлены ранее — их изменение производится отдельным процессом",
+    "ACCOUNT_PASSPORT_ONLY_FOR_INDIVIDUAL": "Паспортные данные можно сохранить только для физического лица",
+    "ACCOUNT_REGISTRATION_ALREADY_SUBMITTED": "Регистрация уже отправлена в блокчейн — откат к редактированию невозможен, требуется перерегистрация.",
+    "ACCOUNT_REGISTRATION_REFUND_IN_PROGRESS": "Возврат регистрационного взноса ещё выполняется. Подайте заявку заново после его завершения.",
+    "ACCOUNT_SYNC_IN_PROGRESS": "Синхронизация уже выполняется",
+    "ACCOUNT_UNKNOWN_TYPE": "Неизвестный тип аккаунта: {type}",
+    "ACCOUNT_UPDATE_DATA_MISSING": "Не получены входные данные для обновления",
+    "ACCOUNT_USERNAME_NOT_FOUND": "Пользователь {username} не найден",
+    "ACCOUNT_USER_CREATE_FAILED": "Не удалось создать пользователя",
+    "ACCOUNT_USER_NOT_FOUND": "Пользователь не найден",
+    "ACCOUNT_USER_UPDATE_FAILED": "Не удалось обновить пользователя"
+  }
+}

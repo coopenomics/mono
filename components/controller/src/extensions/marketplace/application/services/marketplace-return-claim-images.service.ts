@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import type { MarketplaceReturnClaimPhoto } from '../../domain/entities/marketplace-return-claim.types';
-import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
+import { InjectBucket, UseBucket, DomainError } from '@coopenomics/extension-kit';
 
 const MB = 1024 * 1024;
 
@@ -54,9 +54,7 @@ export class MarketplaceReturnClaimImagesService {
    */
   async putPhoto(input: MarketplaceReturnClaimImageUploadInput): Promise<MarketplaceReturnClaimPhoto> {
     if (!ALLOWED_MIME.includes(input.contentType as (typeof ALLOWED_MIME)[number])) {
-      throw new Error(
-        `Поддерживаются только изображения JPEG/PNG/WEBP; получен ${input.contentType}.`
-      );
+      throw DomainError.internal('MARKETPLACE_RETURN_CLAIM_IMAGE_UNSUPPORTED_TYPE', { contentType: input.contentType });
     }
 
     const contentHashHex = createHash('sha256').update(input.bytes).digest('hex');

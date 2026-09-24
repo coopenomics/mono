@@ -9,11 +9,11 @@ div
   )
     template(#icon-left)
       q-icon(name='add')
-    | Коммит
+    | {{ $t('capital.createCommitButton.title') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Зафиксировать взнос',
+    :title='$t("capital.createCommitButton.buttonTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
@@ -22,37 +22,37 @@ div
       :handler-submit='handleCreateCommit',
       :is-submitting='isSubmitting',
       :disabled='!hasValidHourlyRate',
-      :button-submit-txt='"Зафиксировать"',
-      :button-cancel-txt='"Отмена"',
+      :button-submit-txt='$t("capital.createCommitButton.submit")',
+      :button-cancel-txt='$t("common.action.cancel")',
       @cancel='clear'
     )
       .create-commit-dialog-content.column.q-gutter-y-sm
         section.create-commit-block
           .column.q-gutter-y-sm
             .create-commit-kv
-              .text-caption.text-grey-7 Компонент проекта
+              .text-caption.text-grey-7 {{ $t('capital.createCommitButton.componentLabel') }}
               .text-body1.text-weight-medium.text-primary {{ projectLabel }}
             .create-commit-kv
-              .text-caption.text-grey-7 Время
+              .text-caption.text-grey-7 {{ $t('capital.createCommitButton.timeLabel') }}
               .text-body1.text-weight-medium
                 | {{ formatHours(formData.creator_hours) }}
             .create-commit-kv(v-if='commitCostFormatted')
-              .text-caption.text-grey-7 Себестоимость
+              .text-caption.text-grey-7 {{ $t('capital.createCommitButton.costLabel') }}
               .text-body1.text-weight-medium.text-primary {{ commitCostFormatted }}
               .text-caption.text-grey-6.q-pl-sm {{ commitCostCaption }}
             .create-commit-kv(v-else)
-              .text-caption.text-grey-7 Себестоимость
+              .text-caption.text-grey-7 {{ $t('capital.createCommitButton.costLabel') }}
               .text-body2.text-negative
-                | Укажите стоимость часа в профиле участника — без ставки коммит зафиксировать нельзя.
+                | {{ $t('capital.createCommitButton.noRateHint') }}
             template(v-if='commitBreakdown?.tail && commitBreakdown.tail > 1e-6')
               q-separator(color='grey-5', style='opacity: 0.35')
               .text-caption.text-grey-7
-                | После фиксации в накоплении останется {{ formatHours(commitBreakdown.tail) }}.
+                | {{ $t('capital.createCommitButton.remainingAfterCommitHint', { remainingHours: formatHours(commitBreakdown.tail) }) }}
 
         section.create-commit-block
           .column.q-gutter-y-md
             .row.items-center.q-gutter-x-sm
-              span.text-caption.text-grey-7 Удовлетворение результатом
+              span.text-caption.text-grey-7 {{ $t('capital.createCommitButton.satisfactionLabel') }}
               span.text-body2.text-weight-medium.text-accent
                 | {{ satisfactionLabel }}
             q-rating(
@@ -68,8 +68,8 @@ div
               color="accent"
               filled,
               stack-label,
-              label='Отзыв (необязательно)',
-              placeholder='Например, что сработало хорошо или что стоит учесть дальше…',
+              :label='$t("capital.createCommitButton.feedbackLabel")',
+              :placeholder='$t("capital.createCommitButton.feedbackPlaceholder")',
               :maxlength='8000',
               counter,
               :input-style='{ minHeight: "96px" }'
@@ -89,6 +89,7 @@ import { useWindowSize } from 'src/shared/hooks';
 import { formatHours } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
+import { t as i18nT } from '../../../../i18n';
 
 const HOURS_EPS = 1e-9;
 
@@ -137,7 +138,7 @@ const formData = ref({
 
 const satisfactionLabel = computed(() => {
   const stars = formData.value.satisfaction_stars;
-  return stars > 0 ? `${stars} / 5` : 'не указано';
+  return stars > 0 ? `${stars} / 5` : i18nT('capital.createCommitButton.notSpecified');
 });
 
 const commitBreakdown = computed(() => {
@@ -195,7 +196,7 @@ const clear = () => {
 
 const handleCreateCommit = async () => {
   if (!hasValidHourlyRate.value) {
-    FailAlert('Укажите стоимость часа в профиле участника — без ставки коммит зафиксировать нельзя.');
+    FailAlert(i18nT('capital.createCommitButton.noRateHint'));
     return;
   }
 
@@ -228,7 +229,7 @@ const handleCreateCommit = async () => {
 
     await createCommit(commitDataPayload);
 
-    SuccessAlert('Коммит успешно создан');
+    SuccessAlert(i18nT('capital.createCommitButton.success'));
     clear();
   } catch (error) {
     FailAlert(error);

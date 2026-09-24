@@ -1,4 +1,5 @@
 import { Queries } from '@coopenomics/sdk';
+import { uiLocale, t } from 'src/shared/i18n';
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units';
 import type { Order, OrderStatus } from '../OrderCard.types';
 import { orderStatusDisplay } from './orderStatusDisplay';
@@ -107,14 +108,14 @@ export function toOrderCardModel(o: OrderCardSource, role: 'orderer' | 'offerer'
   return {
     id: o.id,
     shortId: o.id.slice(0, 8),
-    title: o.product_name || 'Товар по предложению',
+    title: o.product_name || t('marketplace.toOrderCardModel.fallbackTitle'),
     imageUrl: o.image_url ?? undefined,
     units: saleUnit.units,
     unitLabel: saleUnit.unitLabel,
     totalCost: isOfferer ? rawCost : Number(o.total_cost_with_fee),
     feeNote:
       isOfferer && feeAmount > 0
-        ? `Цена для заказчика: ${new Intl.NumberFormat('ru-RU').format(Number(o.total_cost_with_fee))} ₽`
+        ? t('marketplace.toOrderCardModel.ordererPriceNote', { amount: new Intl.NumberFormat(uiLocale()).format(Number(o.total_cost_with_fee)) })
         : undefined,
     progress: orderProgress(o),
     status: announcedReady ? 'ready-to-issue' : STATUS_TO_CARD[o.status],

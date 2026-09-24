@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { MarketplaceConvertPayloadDTO } from '../dto/marketplace-checkout.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -47,6 +47,7 @@ import { MarketplaceOrderDTO, toMarketplaceOrderDTO } from '../dto/marketplace-o
 import type { MarketplaceStockProposalStatus } from '../../domain/entities/marketplace-stock-proposal.types';
 import type { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
 import { toMarketplaceIssuanceSagaDTO } from '../dto/marketplace-issuance-saga.dto';
+import { t } from '../../i18n';
 
 /**
  * requirement 76 «Склад кооператива на КУ»: обезличенный остаток, его
@@ -314,7 +315,7 @@ export class MarketplaceStockResolver {
       platformSettings().coopname,
       data.order_id,
       member.username,
-      data.reason ?? 'Докладка переформирована оператором'
+      data.reason ?? t('marketplace.stockResolver.replenishmentReformedNote')
     );
     return toMarketplaceOrderDTO(order);
   }
@@ -396,9 +397,7 @@ export class MarketplaceStockResolver {
     );
     if (requested) {
       if (!ownBranames.includes(requested)) {
-        throw new ForbiddenException(
-          'Остаток доступен только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_STOCK_NOT_TRUSTEE');
       }
       return [requested];
     }
@@ -418,9 +417,7 @@ export class MarketplaceStockResolver {
       member.username
     );
     if (!ownBranames.includes(braname)) {
-      throw new ForbiddenException(
-        'Действие доступно только на участке, где вы являетесь председателем или доверенным лицом.'
-      );
+      throw DomainError.forbidden('MARKETPLACE_ACTION_NOT_TRUSTEE');
     }
   }
 }

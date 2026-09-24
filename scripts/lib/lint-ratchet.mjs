@@ -15,14 +15,36 @@
 // Новый файл сравнивается с пустой базой, поэтому для него правило работает
 // в полную силу — ровно как раньше.
 //
-// Копии базовых версий кладутся рядом с оригиналом (префикс `__lintbase__`),
-// иначе eslint не найдёт нужный .eslintrc и tsconfig. Удаляются всегда.
+// Базовая версия линтуется из памяти (`ESLint#lintText` с путём оригинала):
+// конфиг и tsconfig находятся по этому пути, а на диск не пишется ничего.
+// Прежде копии клались рядом с оригиналом, и вотчеры dev-стенда (nodemon
+// контроллера, ESLint-плагин Vite) ловили их как правку исходников.
 
-import { execFileSync, spawnSync } from 'node:child_process';
-import { writeFileSync, rmSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname, basename } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
 
-const PREFIX = '__lintbase__';
+function countByRule(messages, gateRules) {
+  const perRule = new Map();
+  for (const m of messages) {
+    if (!gateRules.includes(m.ruleId)) continue;
+    if (!perRule.has(m.ruleId)) perRule.set(m.ruleId, []);
+    perRule.get(m.ruleId).push(m);
+  }
+  return perRule;
+}
+
+function baseContent(repoPrefix, diffFrom, file) {
+  try {
+    return execFileSync('git', ['show', `${diffFrom}:${repoPrefix}/${file}`], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return undefined; // файла в базе нет — он новый, база пустая
+  }
+}
 
 /**
  * @param {object} o
@@ -32,107 +54,71 @@ const PREFIX = '__lintbase__';
  * @param {string} o.rules        JSON для `eslint --rule`
  * @param {string[]} o.gateRules  правила, попадания по которым считаются
  * @param {string[]} o.files      пути файлов относительно componentDir
- * @returns {number} 0 — рост долга не обнаружен, 1 — обнаружен
+ * @returns {Promise<number>} 0 — рост долга не обнаружен, 1 — обнаружен
  */
-export function ratchet({ componentDir, repoPrefix, diffFrom, rules, gateRules, files }) {
-  const temps = [];
-  const baseOf = new Map(); // временный путь -> исходный путь
+export async function ratchet({ componentDir, repoPrefix, diffFrom, rules, gateRules, files }) {
+  // eslint компонента, а не корня: у controller и desktop разные версии
+  const { ESLint } = createRequire(join(componentDir, 'package.json'))('eslint');
+  const eslint = new ESLint({ cwd: componentDir, overrideConfig: { rules: JSON.parse(rules) } });
 
+  let current;
   try {
-    for (const file of files) {
-      const tmpRel = join(dirname(file), PREFIX + basename(file));
-      const tmpAbs = join(componentDir, tmpRel);
-      let content;
-      try {
-        content = execFileSync('git', ['show', `${diffFrom}:${repoPrefix}/${file}`], {
-          encoding: 'utf8',
-          maxBuffer: 64 * 1024 * 1024,
-          stdio: ['ignore', 'pipe', 'ignore'],
-        });
-      } catch {
-        continue; // файла в базе нет — он новый, база пустая
-      }
-      mkdirSync(dirname(tmpAbs), { recursive: true });
-      writeFileSync(tmpAbs, content);
-      temps.push(tmpAbs);
-      baseOf.set(tmpRel, file);
-    }
-
-    const targets = [...files, ...baseOf.keys()];
-    const res = spawnSync(
-      'pnpm',
-      ['exec', 'eslint', ...targets, '-f', 'json', '--rule', rules],
-      { cwd: componentDir, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }
-    );
-
-    let report;
-    try {
-      report = JSON.parse(res.stdout || '[]');
-    } catch {
-      console.log('  не удалось разобрать вывод eslint — гейт не может вынести вердикт');
-      if (res.stderr) console.log('  ' + res.stderr.trim().split('\n').slice(0, 5).join('\n  '));
-      return 1;
-    }
-
-    // filePath -> {rule -> messages[]}
-    const byFile = new Map();
-    for (const entry of report) {
-      const rel = entry.filePath.startsWith(componentDir)
-        ? entry.filePath.slice(componentDir.length + 1)
-        : entry.filePath;
-      const perRule = new Map();
-      for (const m of entry.messages) {
-        if (!gateRules.includes(m.ruleId)) continue;
-        if (!perRule.has(m.ruleId)) perRule.set(m.ruleId, []);
-        perRule.get(m.ruleId).push(m);
-      }
-      byFile.set(rel, perRule);
-    }
-
-    const baseCounts = new Map(); // исходный путь -> {rule -> n}
-    for (const [tmpRel, origin] of baseOf) {
-      const perRule = byFile.get(tmpRel) ?? new Map();
-      const counts = new Map();
-      for (const [rule, list] of perRule) counts.set(rule, list.length);
-      baseCounts.set(origin, counts);
-    }
-
-    let grew = false;
-    let debt = 0;
-    let other = 0;
-
-    for (const file of files) {
-      const perRule = byFile.get(file) ?? new Map();
-      const base = baseCounts.get(file) ?? new Map();
-      for (const [rule, list] of perRule) {
-        const was = base.get(rule) ?? 0;
-        if (list.length > was) {
-          grew = true;
-          console.log(`  ✗ ${file} — ${rule}: было ${was}, стало ${list.length}`);
-          for (const m of list) console.log(`      ${m.line}:${m.column} ${m.message}`);
-        } else {
-          debt += list.length;
-        }
-      }
-      // прочие ошибки линта в этом файле вердикт не роняют
-      for (const e of report) {
-        if (!e.filePath.endsWith('/' + file)) continue;
-        other += e.messages.filter((m) => !gateRules.includes(m.ruleId)).length;
-      }
-    }
-
-    if (debt > 0) {
-      console.log(`  вне гейта: ${debt} нарушени(й) канона унаследовано из базы — долг, вердикт не роняют`);
-    }
-    if (other > 0) {
-      console.log(`  вне гейта: ${other} прочих ошибок линта — долг, вердикт не роняют`);
-    }
-    if (!grew) console.log('  роста долга канона нет');
-
-    return grew ? 1 : 0;
-  } finally {
-    for (const t of temps) if (existsSync(t)) rmSync(t, { force: true });
+    current = await eslint.lintFiles(files.map((f) => join(componentDir, f)));
+  } catch (e) {
+    console.log('  eslint не отработал — гейт не может вынести вердикт');
+    console.log('  ' + String(e?.message ?? e).split('\n').slice(0, 5).join('\n  '));
+    return 1;
   }
+
+  const byFile = new Map(); // исходный путь -> результат eslint
+  for (const entry of current) {
+    const rel = entry.filePath.startsWith(componentDir)
+      ? entry.filePath.slice(componentDir.length + 1)
+      : entry.filePath;
+    byFile.set(rel, entry);
+  }
+
+  const baseCounts = new Map(); // исходный путь -> {rule -> n}
+  for (const file of files) {
+    const content = baseContent(repoPrefix, diffFrom, file);
+    if (content === undefined) continue;
+    const [base] = await eslint.lintText(content, { filePath: join(componentDir, file) });
+    const counts = new Map();
+    for (const [rule, list] of countByRule(base?.messages ?? [], gateRules)) counts.set(rule, list.length);
+    baseCounts.set(file, counts);
+  }
+
+  let grew = false;
+  let debt = 0;
+  let other = 0;
+
+  for (const file of files) {
+    const entry = byFile.get(file);
+    const perRule = countByRule(entry?.messages ?? [], gateRules);
+    const base = baseCounts.get(file) ?? new Map();
+    for (const [rule, list] of perRule) {
+      const was = base.get(rule) ?? 0;
+      if (list.length > was) {
+        grew = true;
+        console.log(`  ✗ ${file} — ${rule}: было ${was}, стало ${list.length}`);
+        for (const m of list) console.log(`      ${m.line}:${m.column} ${m.message}`);
+      } else {
+        debt += list.length;
+      }
+    }
+    // прочие ошибки линта в этом файле вердикт не роняют
+    other += (entry?.messages ?? []).filter((m) => !gateRules.includes(m.ruleId)).length;
+  }
+
+  if (debt > 0) {
+    console.log(`  вне гейта: ${debt} нарушени(й) канона унаследовано из базы — долг, вердикт не роняют`);
+  }
+  if (other > 0) {
+    console.log(`  вне гейта: ${other} прочих ошибок линта — долг, вердикт не роняют`);
+  }
+  if (!grew) console.log('  роста долга канона нет');
+
+  return grew ? 1 : 0;
 }
 
 // CLI: node lint-ratchet.mjs <componentDir> <repoPrefix> <diffFrom> <rulesJson> <rule...>
@@ -148,15 +134,13 @@ if (process.argv[1] && process.argv[1].endsWith('lint-ratchet.mjs')) {
       console.log('  проверять нечего');
       process.exit(0);
     }
-    process.exit(
-      ratchet({
-        componentDir: join(process.cwd(), componentDir),
-        repoPrefix,
-        diffFrom,
-        rules,
-        gateRules,
-        files,
-      })
-    );
+    ratchet({
+      componentDir: join(process.cwd(), componentDir),
+      repoPrefix,
+      diffFrom,
+      rules,
+      gateRules,
+      files,
+    }).then(process.exit);
   });
 }

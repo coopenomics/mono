@@ -2,6 +2,7 @@ import { decryptPrivateKey, fetchVaultBlob, migrate } from '@coopenomics/auth';
 import { env } from 'src/shared/config';
 import { useSessionStore } from 'src/entities/Session';
 import { useLoginUser } from 'src/features/User/LoginUser';
+import { t } from 'src/shared/i18n';
 
 /**
  * Смена пароля из настроек (при известном старом пароле).
@@ -32,7 +33,7 @@ export function useChangePassword() {
     const account = session.username;
     const email = session.providerAccount?.email;
     if (!account || !email) {
-      throw new Error('Не удалось определить аккаунт для смены пароля. Обновите страницу и попробуйте снова.');
+      throw new Error(t('security.error.accountNotDetermined'));
     }
 
     const blob = await fetchVaultBlob(env.BACKEND_URL, account);
@@ -43,7 +44,7 @@ export function useChangePassword() {
         subject_id: account,
       });
     } catch {
-      throw new Error('Старый пароль неверен.');
+      throw new Error(t('security.error.oldPasswordInvalid'));
     }
 
     await migrate({ email, privateKey, newPassword });

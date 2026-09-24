@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type FindOptionsWhere } from 'typeorm';
 import { ExtensionEntity } from '../entities/extension.entity';
-import { ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { ExtensionDomainRepository, ExtensionDomainEntity, DomainError } from '@coopenomics/extension-kit';
 @Injectable()
 export class TypeOrmExtensionDomainRepository<TConfig = any> implements ExtensionDomainRepository<TConfig> {
   constructor(
@@ -37,12 +37,12 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
   async update(data: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>> {
     // Поиск существующей записи по name
     const name = data.name;
-    if (!name) throw new Error('Имя расширения для обновления обязательный параметр');
+    if (!name) throw DomainError.internal('DATABASE_EXTENSION_NAME_REQUIRED');
 
     const existingEntity = await this.ormRepo.findOne({ where: { name } });
 
     if (!existingEntity) {
-      throw new Error('Расширение не найдено в установленных');
+      throw DomainError.internal('DATABASE_EXTENSION_NOT_INSTALLED');
     }
 
     // Обновление только переданных полей
@@ -80,7 +80,7 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
     ];
 
     const row = rows[0];
-    if (!row) throw new Error('Расширение не найдено в установленных');
+    if (!row) throw DomainError.internal('DATABASE_EXTENSION_NOT_INSTALLED');
 
     return new ExtensionDomainEntity<TConfig>(
       row.name,

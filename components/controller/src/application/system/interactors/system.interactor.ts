@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { SYSTEM_BLOCKCHAIN_PORT, SystemBlockchainPort } from '~/domain/system/interfaces/system-blockchain.port';
 import { SystemInfoDomainEntity } from '~/domain/system/entities/systeminfo-domain.entity';
 import config from '~/config/config';
@@ -37,6 +37,8 @@ import {
 } from '~/domain/payment-method/ports/payment-method-domain.port';
 import { LoadContactsInteractor } from './load-contacts.interactor';
 import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
+import { t } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class SystemInteractor {
@@ -66,7 +68,7 @@ export class SystemInteractor {
     // 3. Статус 'initialized' (предустановка через server_secret уже выполнена, теперь устанавливаем ключ)
     if (existingMono && existingMono.status) {
       if (existingMono.status !== SystemStatus.install && existingMono.status !== SystemStatus.initialized) {
-        throw new Error('Установка ключа невозможна. Система находится в статусе: ' + existingMono.status);
+        throw new Error(t('system.systemInteractor.installKeyStatusPrefix') + existingMono.status);
       }
     }
 
@@ -113,7 +115,7 @@ export class SystemInteractor {
   async assertInstallCode(code: string | undefined, trusted: boolean): Promise<void> {
     if (trusted) return;
     if (!code || !(await this.monoStatusRepository.validateInstallCode(code))) {
-      throw new ForbiddenException('Неверный или истекший код установки — начните установку заново с ключа кооператива');
+      throw DomainError.forbidden('SYSTEM_INSTALL_CODE_INVALID_RESTART');
     }
   }
 
@@ -121,7 +123,7 @@ export class SystemInteractor {
     // Проверяем валидность кода установки
     const isValidCode = await this.monoStatusRepository.validateInstallCode(data.install_code);
     if (!isValidCode) {
-      throw new Error('Неверный или истекший код установки');
+      throw DomainError.internal('SYSTEM_INSTALL_CODE_INVALID');
     }
 
     // Получаем mono документ для получения дополнительных данных
@@ -178,7 +180,7 @@ export class SystemInteractor {
 
     // Проверяем, что статус действительно изменился на активный
     if (systemInfo.system_status !== SystemStatus.active) {
-      throw new Error('Система не была правильно установлена: статус не изменился на активный');
+      throw DomainError.internal('SYSTEM_INSTALL_NOT_ACTIVE');
     }
 
     return systemInfo;

@@ -33,6 +33,7 @@ div.settings-form
   import { QInput, QCheckbox, QSelect, copyToClipboard } from 'quasar';
   import type { IExtensionConfigSchema, ISchemaProperty } from 'src/entities/Extension/model';
   import { SuccessAlert } from 'src/shared/api/alerts';
+import { t } from 'src/shared/i18n';
 
   // Устанавливаем имя компонента для рекурсивного вызова
   defineOptions({
@@ -94,7 +95,7 @@ div.settings-form
       copyToClipboard(valueToCopy);
 
       // Показываем уведомление об успешном копировании
-      SuccessAlert('Значение скопировано в буфер обмена');
+      SuccessAlert(t('ui.zodForm.copiedText'));
     } else if (property?.description?.password) {
       // Переключаем видимость пароля
       togglePasswordVisibility(propertyName);
@@ -188,7 +189,7 @@ div.settings-form
   function parseRules(rules: string[]): Array<(val: any) => boolean | string> {
     return rules.map(rule => {
       const fn = new Function('val', `return ${rule};`);
-      return (val: any) => fn(val) || `Значение должно удовлетворять правилу: ${rule}`;
+      return (val: any) => fn(val) || t('ui.zodForm.ruleError', { rule });
     });
   }
 
@@ -224,7 +225,7 @@ div.settings-form
     if (props.schema.required?.includes(propertyName)) {
       rules.unshift((val: unknown) => {
         const filled = typeof val === 'string' ? val.trim() !== '' : val !== null && val !== undefined;
-        return filled || 'Заполните поле';
+        return filled || t('ui.zodForm.requiredError');
       });
     }
 
@@ -236,12 +237,12 @@ div.settings-form
     const lengthOf = (val: unknown) => String(val ?? '').trim().length;
 
     if (typeof minLength === 'number') {
-      rules.push((val: unknown) => lengthOf(val) >= minLength || `Минимальная длина: ${minLength}`);
+      rules.push((val: unknown) => lengthOf(val) >= minLength || t('ui.zodForm.minLengthError', { minLength }));
       componentProps.minLength = minLength;
     }
 
     if (typeof maxLength === 'number') {
-      rules.push((val: unknown) => lengthOf(val) <= maxLength || `Максимальная длина: ${maxLength}`);
+      rules.push((val: unknown) => lengthOf(val) <= maxLength || t('ui.zodForm.maxLengthError', { maxLength }));
       componentProps.maxLength = maxLength;
       componentProps.counter = true;
     }
@@ -252,9 +253,9 @@ div.settings-form
         if (!text) return true;
         try {
           const url = new URL(text);
-          return ['http:', 'https:'].includes(url.protocol) || 'Нужна ссылка вида https://…';
+          return ['http:', 'https:'].includes(url.protocol) || t('ui.zodForm.urlError');
         } catch {
-          return 'Нужна ссылка вида https://…';
+          return t('ui.zodForm.urlError');
         }
       });
     }

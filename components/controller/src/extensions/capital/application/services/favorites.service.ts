@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   FAVORITE_REPOSITORY,
   FavoriteRepository,
@@ -9,6 +9,7 @@ import {
   CapitalFavoriteOutputDTO,
   CapitalFavoritesFilterInputDTO,
 } from '../dto/favorites';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class FavoritesService {
@@ -20,7 +21,7 @@ export class FavoritesService {
   async addFavorite(data: CapitalFavoriteInputDTO): Promise<CapitalFavoriteOutputDTO[]> {
     const exists = await this.favoriteRepository.targetExists(data.target_type, data.target_hash);
     if (!exists) {
-      throw new BadRequestException('Сущность для добавления в избранное не найдена');
+      throw DomainError.badRequest('CAPITAL_FAVORITE_TARGET_NOT_FOUND');
     }
     await this.favoriteRepository.add(data);
     return this.getFavorites({ coopname: data.coopname, username: data.username });

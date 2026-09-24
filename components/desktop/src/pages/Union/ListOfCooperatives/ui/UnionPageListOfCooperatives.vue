@@ -13,7 +13,7 @@
       :virtual-scroll-item-size="48"
       :rows-per-page-options="[10]"
       :loading="onLoading"
-      :no-data-label="'Нет кооперативов'"
+      :no-data-label="$t('union.unionPageListOfCooperatives.noDataLabel')"
     ).full-height
       template(#top)
 
@@ -37,21 +37,21 @@
           q-td {{ props.row.announce }}
 
           q-td
-            q-badge(v-if="props.row.status === 'active'" color="teal") активен
-            q-badge(v-if="props.row.status === 'pending'" color="orange") на рассмотрении
-            q-badge(v-if="props.row.status === 'blocked'" color="red") заблокирован
+            q-badge(v-if="props.row.status === 'active'" color="teal") {{ $t('union.unionPageListOfCooperatives.statusActive') }}
+            q-badge(v-if="props.row.status === 'pending'" color="orange") {{ $t('union.unionPageListOfCooperatives.statusPending') }}
+            q-badge(v-if="props.row.status === 'blocked'" color="red") {{ $t('union.unionPageListOfCooperatives.statusBlocked') }}
 
           q-td {{ moment(props.row.created_at).format('DD.MM.YY HH:mm:ss') }}
 
           q-td
-            q-btn-dropdown( label="действия" flat size="sm")
+            q-btn-dropdown( :label="$t('union.unionPageListOfCooperatives.actionsLabel')" flat size="sm")
               q-list
                 q-item(v-if="props.row.status !== 'active'" clickable v-close-popup @click="activate(props.row.username)")
                   q-item-section
-                    q-item-label Активировать
+                    q-item-label {{ $t('union.unionPageListOfCooperatives.activateAction') }}
                 q-item(v-if="props.row.status !== 'blocked'" clickable v-close-popup @click="block(props.row.username)")
                   q-item-section
-                    q-item-label Заблокировать
+                    q-item-label {{ $t('union.unionPageListOfCooperatives.blockAction') }}
                 //- q-item(clickable v-close-popup @click="deleteCoop(props.row.username)")
                 //-   q-item-section
                 //-     q-item-label Удалить
@@ -69,6 +69,7 @@
   </template>
   <script setup lang="ts">
   import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives';
+import { t } from 'src/shared/i18n';
   const {loadCooperatives} = useLoadCooperatives()
   import { useUnionStore } from 'src/entities/Union/model';
   import { computed, ref } from 'vue';
@@ -97,7 +98,7 @@
     try {
       await activateCooperative(coopname)
       loadCooperatives()
-      SuccessAlert('Кооператив активирован')
+      SuccessAlert(t('union.unionPageListOfCooperatives.activateSuccess'))
     } catch(e: any) {
       FailAlert(e)
     }
@@ -109,7 +110,7 @@
     try {
       await blockCooperative(coopname)
       loadCooperatives()
-      SuccessAlert('Кооператив заблокирован')
+      SuccessAlert(t('union.unionPageListOfCooperatives.blockSuccess'))
     } catch(e: any) {
       FailAlert(e)
     }
@@ -119,14 +120,14 @@
   const onLoading = ref(false)
 
   const columns = [
-    { name: 'username', align: 'left', label: 'Аккаунт', field: 'username', sortable: true },
-    { name: 'announce', align: 'left', label: 'Сайт', field: 'announce', sortable: false },
+    { name: 'username', align: 'left', label: t('union.unionPageListOfCooperatives.column.username'), field: 'username', sortable: true },
+    { name: 'announce', align: 'left', label: t('union.unionPageListOfCooperatives.column.announce'), field: 'announce', sortable: false },
 
-    { name: 'status', align: 'left', label: 'Статус', field: 'status', sortable: true },
+    { name: 'status', align: 'left', label: t('union.unionPageListOfCooperatives.column.status'), field: 'status', sortable: true },
     {
       name: 'created_at',
       align: 'left',
-      label: 'Дата заявки',
+      label: t('union.unionPageListOfCooperatives.column.createdAt'),
       field: 'created_at',
       sortable: true,
     },

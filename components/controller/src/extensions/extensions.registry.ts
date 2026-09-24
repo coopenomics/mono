@@ -67,6 +67,7 @@ import {
   registerExtensionEntities,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
+import { t } from '~/i18n';
 
 // Форма записи реестра, enum доступности и её вычисление живут в @coopenomics/extension-kit —
 // расширению нужен этот контракт, чтобы типизировать свою запись. Здесь остаётся сам реестр:
@@ -95,13 +96,13 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'robot',
-        title: 'Робот совета',
+        title: t('app.extensionsRegistry.robot.windowTitle'),
         icon: 'smart_toy',
       },
     ],
-    title: 'Робот совета',
+    title: t('app.extensionsRegistry.robot.title'),
     description:
-      'Принимает типовые решения совета автоматически по правилам, которые члены совета задали заранее: голосует и подписывает протоколы ключами делегированных разрешений.',
+      t('app.extensionsRegistry.robot.description'),
     image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
     class: SovietRobotExtensionModule,
     extensionClass: SovietRobotExtension,
@@ -112,7 +113,7 @@ export const AppRegistry: INamedExtension = {
     // любое приложение. Запись `defaults` означала бы установку в каждом новом
     // кооперативе — с `enabled: false` это выглядело как «установлен, но
     // выключен» и требовало объяснений вместо честного «не установлен».
-    tags: ['стол', 'совет', 'автоматизация'],
+    tags: [t('app.extensionsRegistry.robot.tagDesk'), t('app.extensionsRegistry.robot.tagCouncil'), t('app.extensionsRegistry.robot.tagAutomation')],
     readme: getReadmeContent('./soviet-robot'),
     instructions: getInstructionsContent('./soviet-robot'),
     get is_desktop() {
@@ -125,19 +126,19 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'soviet',
-        title: 'Стол Совета',
+        title: t('app.extensionsRegistry.soviet.windowTitle'),
         icon: 'fa-solid fa-gavel',
       },
     ],
-    title: 'Стол Совета',
-    description: 'Приложение для управления решениями в кооперативе.',
+    title: t('app.extensionsRegistry.soviet.title'),
+    description: t('app.extensionsRegistry.soviet.description'),
     image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
     class: BuiltinExtensionModule,
     extensionClass: BuiltinExtension,
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
     ports: builtinPorts,
-    tags: ['стол', 'управление'],
+    tags: [t('app.extensionsRegistry.soviet.tagDesk'), t('app.extensionsRegistry.soviet.tagManagement')],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),
     get is_desktop() {
@@ -150,19 +151,19 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'capital',
-        title: 'Стол благороста',
+        title: t('app.extensionsRegistry.capital.windowTitle'),
         icon: 'fa-solid fa-seedling',
       },
     ],
-    title: 'Благорост',
-    description: 'Приложение для управления интеллектуальными и имущественными вкладами по целевой программе "Благорост".',
+    title: t('app.extensionsRegistry.capital.title'),
+    description: t('app.extensionsRegistry.capital.description'),
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: CapitalExtensionModule,
     extensionClass: CapitalExtension,
     entities: capitalEntities,
     ports: capitalPorts,
     schema: CapitalSchema,
-    tags: ['стол', 'управление'],
+    tags: [t('app.extensionsRegistry.capital.tagDesk'), t('app.extensionsRegistry.capital.tagManagement')],
     readme: getReadmeContent('./capital'),
     instructions: getInstructionsContent('./capital'),
     get is_desktop() {
@@ -175,12 +176,12 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'chairman',
-        title: 'Стол Председателя',
+        title: t('app.extensionsRegistry.chairman.windowTitle'),
         icon: 'fa-solid fa-user-tie',
       },
     ],
-    title: 'Стол Председателя',
-    description: 'Приложение для председателя совета кооператива.',
+    title: t('app.extensionsRegistry.chairman.title'),
+    description: t('app.extensionsRegistry.chairman.description'),
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ChairmanExtensionModule,
     extensionClass: ChairmanExtension,
@@ -188,7 +189,7 @@ export const AppRegistry: INamedExtension = {
     defaults: { enabled: true, config: chairmanDefaultConfig },
     ports: chairmanPorts,
     schema: ChairmanSchema,
-    tags: ['стол', 'управление'],
+    tags: [t('app.extensionsRegistry.chairman.tagDesk'), t('app.extensionsRegistry.chairman.tagManagement')],
     readme: getReadmeContent('./chairman'),
     instructions: getInstructionsContent('./chairman'),
     get is_desktop() {
@@ -201,19 +202,19 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'trustee',
-        title: 'Кооперативный участок',
+        title: t('app.extensionsRegistry.trustee.windowTitle'),
         icon: 'fa-solid fa-users-cog',
       },
     ],
-    title: 'Кооперативный участок',
-    description: 'Собрания пайщиков кооперативных участков: учреждение участков решением собрания с утверждением советом, свободные решения и приём доверенных лиц по заявлению.',
+    title: t('app.extensionsRegistry.trustee.title'),
+    description: t('app.extensionsRegistry.trustee.description'),
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
     class: KuExtensionModule,
     extensionClass: KuExtension,
     entities: kuEntities,
     ports: kuPorts,
     schema: KuSchema,
-    tags: ['стол', 'управление'],
+    tags: [t('app.extensionsRegistry.trustee.tagDesk'), t('app.extensionsRegistry.trustee.tagManagement')],
     readme: getReadmeContent('./ku'),
     instructions: getInstructionsContent('./ku'),
     get is_desktop() {
@@ -226,19 +227,19 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'participant',
-        title: 'Стол Пайщика',
+        title: t('app.extensionsRegistry.participant.windowTitle'),
         icon: 'fa-solid fa-user',
       },
     ],
-    title: 'Стол Пайщика',
-    description: 'Приложение для управления персональным членством пайщика в кооперативе и отслеживания общих собраний.',
+    title: t('app.extensionsRegistry.participant.title'),
+    description: t('app.extensionsRegistry.participant.description'),
     image: 'https://i.ibb.co/gFHMX4s9/Chat-GPT-Image-11-2025-18-17-27.png',
     class: ParticipantExtensionModule,
     extensionClass: BuiltinExtension, // Participant использует тот же BuiltinExtension
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: ParticipantSchema,
     ports: participantPorts,
-    tags: ['стол', 'управление', 'уведомления'],
+    tags: [t('app.extensionsRegistry.participant.tagDesk'), t('app.extensionsRegistry.participant.tagManagement'), t('app.extensionsRegistry.participant.tagNotifications')],
     readme: getReadmeContent('./participant'),
     instructions: getInstructionsContent('./participant'),
     get is_desktop() {
@@ -251,12 +252,12 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'powerup',
-        title: 'Стол вычислительных ресурсов',
+        title: t('app.extensionsRegistry.powerup.windowTitle'),
         icon: 'fa-solid fa-server',
       },
     ],
-    title: 'Стол вычислительных ресурсов',
-    description: 'Приложение для управления вычислительными ресурсами кооператива.',
+    title: t('app.extensionsRegistry.powerup.title'),
+    description: t('app.extensionsRegistry.powerup.description'),
     image: 'https://i.ibb.co/7np8Bpm/DALL-E-Futuristic-Robot-Art-Nouveau.webp',
     class: PowerupExtensionModule,
     extensionClass: PowerupExtension,
@@ -264,7 +265,7 @@ export const AppRegistry: INamedExtension = {
     defaults: { enabled: true, config: powerupDefaultConfig },
     ports: powerupPorts,
     schema: PowerupSchema,
-    tags: ['утилиты', 'ресурсы'],
+    tags: [t('app.extensionsRegistry.powerup.tagUtilities'), t('app.extensionsRegistry.powerup.tagResources')],
     readme: getReadmeContent('./powerup'),
     instructions: getInstructionsContent('./powerup'),
     get is_desktop() {
@@ -275,8 +276,8 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'Оплата по Yookassa',
-    description: 'Приложение для приёма платежей с помощью ЮКасса. Для использования необходимо установить API-ключ.',
+    title: t('app.extensionsRegistry.yookassa.title'),
+    description: t('app.extensionsRegistry.yookassa.description'),
     image: 'https://i.ibb.co/Hq6CJFj/Yookassa-Image.png',
     class: YookassaExtensionModule,
     extensionClass: YookassaExtension,
@@ -290,7 +291,7 @@ export const AppRegistry: INamedExtension = {
       client: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
       secret: { secret: true, suppliedBy: ExtensionConfigSuppliedBy.COOPERATIVE },
     },
-    tags: ['платежи'],
+    tags: [t('app.extensionsRegistry.yookassa.tagPayments')],
     readme: getReadmeContent('./yookassa'),
     instructions: getInstructionsContent('./yookassa'),
     get is_desktop() {
@@ -301,9 +302,9 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'Карта кооператора',
+    title: t('app.extensionsRegistry.cardcoop.title'),
     description:
-      'Подтверждение членства пайщика в сети «Карта кооператора»: кооператив свидетельствует участие, карта живёт в сети.',
+      t('app.extensionsRegistry.cardcoop.description'),
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: CardcoopExtensionModule,
     extensionClass: CardcoopExtension,
@@ -316,7 +317,7 @@ export const AppRegistry: INamedExtension = {
     entities: cardcoopEntities,
     ports: cardcoopPorts,
     schema: CardcoopSchema,
-    tags: ['членство'],
+    tags: [t('app.extensionsRegistry.cardcoop.tagMembership')],
     readme: getReadmeContent('./cardcoop'),
     instructions: getInstructionsContent('./cardcoop'),
     get is_desktop() {
@@ -327,15 +328,15 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.NOWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'Приём платежей на р/с в Сбере',
-    description: 'Приложение для автоматического приёма паевых взносов в Сбербанке.',
+    title: t('app.extensionsRegistry.sberpoll.title'),
+    description: t('app.extensionsRegistry.sberpoll.description'),
     image: 'https://i.ibb.co/5rQTPLN/sber.png',
     class: SberpollExtensionModule,
     extensionClass: SberpollExtension,
     defaults: { enabled: false, config: sberpollDefaultConfig },
     ports: sberpollPorts,
     schema: SberpollSchema,
-    tags: ['платежи'],
+    tags: [t('app.extensionsRegistry.sberpoll.tagPayments')],
     readme: getReadmeContent('./sberpoll'),
     instructions: getInstructionsContent('./sberpoll'),
     get is_desktop() {
@@ -346,15 +347,15 @@ export const AppRegistry: INamedExtension = {
     is_internal: true,
     availability: ExtensionAvailability.EVERYWHERE,
     desktops: undefined, // Это не desktop расширение
-    title: 'Оплата по QR',
-    description: 'Приложение для выставления QR-счёта на оплату из любого банковского приложения.',
+    title: t('app.extensionsRegistry.qrpay.title'),
+    description: t('app.extensionsRegistry.qrpay.description'),
     image: 'https://i.ibb.co/Y7pByhp/QR-Code-3.png',
     class: QrPayExtensionModule,
     extensionClass: QrPayExtension,
     defaults: { enabled: true, config: qrpayDefaultConfig },
     ports: qrpayPorts,
     schema: QRPaySchema,
-    tags: ['платежи'],
+    tags: [t('app.extensionsRegistry.qrpay.tagPayments')],
     readme: getReadmeContent('./qrpay'),
     instructions: getInstructionsContent('./qrpay'),
     get is_desktop() {
@@ -367,12 +368,12 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'chatcoop',
-        title: 'Стол связи',
+        title: t('app.extensionsRegistry.chatcoop.windowTitle'),
         icon: 'fa-solid fa-comments',
       },
     ],
-    title: 'Стол связи',
-    description: 'Приложения для общения и звонков между участниками кооперативной экономики.',
+    title: t('app.extensionsRegistry.chatcoop.title'),
+    description: t('app.extensionsRegistry.chatcoop.description'),
     image: 'https://i.ibb.co/3yWV8Wdp/Chat-GPT-Image-8-2025-22-45-36.png',
     class: ChatCoopExtensionModule,
     extensionClass: ChatCoopExtension,
@@ -380,7 +381,7 @@ export const AppRegistry: INamedExtension = {
     migrations: chatcoopMigrations,
     ports: chatcoopPorts,
     schema: ChatCoopSchema,
-    tags: ['стол', 'общение'],
+    tags: [t('app.extensionsRegistry.chatcoop.tagDesk'), t('app.extensionsRegistry.chatcoop.tagCommunication')],
     readme: getReadmeContent('./chatcoop'),
     instructions: getInstructionsContent('./chatcoop'),
     get is_desktop() {
@@ -393,12 +394,12 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'reports',
-        title: 'Стол бухгалтера',
+        title: t('app.extensionsRegistry.reports.windowTitle'),
         icon: 'fa-solid fa-file-invoice',
       },
     ],
-    title: 'Стол бухгалтера',
-    description: 'Двойная бухгалтерия кооператива: реестры операций, проводок, кошельков и счетов; календарь и формы налоговой отчётности (бухбаланс, 6-НДФЛ, РСВ, ПСВ, декларация УСН, уведомления ФНС).',
+    title: t('app.extensionsRegistry.reports.title'),
+    description: t('app.extensionsRegistry.reports.description'),
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ReportsExtensionModule,
     extensionClass: BuiltinExtension,
@@ -406,7 +407,7 @@ export const AppRegistry: INamedExtension = {
     ports: reportsPorts,
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
-    tags: ['бухгалтерия', 'отчётность', 'ФНС'],
+    tags: [t('app.extensionsRegistry.reports.tagAccounting'), t('app.extensionsRegistry.reports.tagReporting'), t('app.extensionsRegistry.reports.tagFns')],
     readme: getReadmeContent('./reports'),
     instructions: getInstructionsContent('./reports'),
     get is_desktop() {
@@ -431,27 +432,27 @@ export const AppRegistry: INamedExtension = {
     desktops: [
       {
         name: 'market',
-        title: 'Стол заказчика',
+        title: t('app.extensionsRegistry.market.windowTitleCustomer'),
         icon: 'fa-solid fa-cart-shopping',
       },
       {
         name: 'market-supplier',
-        title: 'Стол поставщика',
+        title: t('app.extensionsRegistry.market.windowTitleSupplier'),
         icon: 'fa-solid fa-store',
       },
       {
         name: 'market-pvz',
-        title: 'Стол ПВЗ',
+        title: t('app.extensionsRegistry.market.windowTitlePvz'),
         icon: 'fa-solid fa-map-location-dot',
       },
       {
         name: 'market-admin',
-        title: 'Стол администратора',
+        title: t('app.extensionsRegistry.market.windowTitleAdmin'),
         icon: 'fa-solid fa-shield-halved',
       },
     ],
-    title: 'Стол заказов',
-    description: 'Приложение для заказа и поставки имущества в кооперативе.',
+    title: t('app.extensionsRegistry.market.title'),
+    description: t('app.extensionsRegistry.market.description'),
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
     class: MarketplaceExtensionModule,
     extensionClass: MarketplaceExtension,
@@ -459,7 +460,7 @@ export const AppRegistry: INamedExtension = {
     migrations: marketplaceMigrations,
     ports: marketplacePorts,
     schema: MarketplaceSchema,
-    tags: ['стол', 'управление'],
+    tags: [t('app.extensionsRegistry.market.tagDesk'), t('app.extensionsRegistry.market.tagManagement')],
     readme: getReadmeContent('./marketplace'),
     instructions: getInstructionsContent('./marketplace'),
     get is_desktop() {

@@ -24,6 +24,7 @@ import { useUpdateIssue } from '../../model'
 import { useIssueStore } from 'app/extensions/capital/entities/Issue/model'
 import { getIssueStatusLabel } from 'app/extensions/capital/shared/lib'
 import { ISSUE_PAGE_KEY } from 'app/extensions/capital/pages/IssuePage/model/context'
+import { t } from '../../../../../i18n';
 
 interface Props {
   modelValue: Zeus.IssueStatus
@@ -38,7 +39,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Статус',
+  label: t('capital.updateStatus.label'),
   readonly: false
 })
 

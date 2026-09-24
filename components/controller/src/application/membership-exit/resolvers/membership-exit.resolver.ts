@@ -1,7 +1,7 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { ProgramAgreementsAnnulmentGenerateDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
 import { MembershipExitApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
@@ -125,7 +125,7 @@ export class MembershipExitResolver {
   ): Promise<MembershipExitDTO | null> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && username !== currentUser.username) {
-      throw new ForbiddenException('Доступен только собственный статус выхода');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_STATUS_SELF_ONLY');
     }
     return this.membershipExitService.getMembershipExit(coopname, username);
   }
@@ -143,7 +143,7 @@ export class MembershipExitResolver {
   ): Promise<MembershipExitReturnPreviewDTO> {
     const isOperator = currentUser.role === 'chairman' || currentUser.role === 'member';
     if (!isOperator && username !== currentUser.username) {
-      throw new ForbiddenException('Доступен только собственный расчёт возврата');
+      throw DomainError.forbidden('MEMBERSHIP_EXIT_CALCULATION_SELF_ONLY');
     }
     return this.membershipExitService.getReturnPreview(coopname, username);
   }

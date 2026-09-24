@@ -19,14 +19,24 @@ import { SignBySecretaryOnAnnualGeneralMeetInputDomainInterface } from '~/domain
 import { SignByPresiderOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/sign-by-presider-on-annual-general-meet-input-domain.interface';
 import { NotifyOnAnnualGeneralMeetInputDomainInterface } from '~/domain/meet/interfaces/notify-on-annual-general-meet-input-domain.interface';
 import { generateUniqueHash } from '~/utils/generate-hash.util';
-import { DomainToBlockchainUtils, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainToBlockchainUtils, DomainError } from '@coopenomics/extension-kit';
+import { ChainTextService } from '~/domain/chain-text/chain-text.service';
+import { DELTA_REPOSITORY_PORT, type DeltaRepositoryPort } from '~/domain/parser/ports/delta-repository.port';
+
+/** Поля вопроса, которые в цепи лежат хешем текста. */
+const QUESTION_TEXT_FIELDS = ['title', 'context', 'decision'] as const;
+
+/** Статус закрытого собрания: строку контракт стирает, собрание читается из журнала дельт. */
+const CLOSED_MEET_STATUS = 'closed';
 
 @Injectable()
 export class MeetBlockchainAdapter implements MeetBlockchainPort {
   constructor(
     private readonly blockchainService: BlockchainService,
     private readonly domainToBlockchainUtils: DomainToBlockchainUtils,
-    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService
+    @Inject(VAULT_DOMAIN_SERVICE) private readonly vaultDomainService: VaultDomainService,
+    private readonly chainTextService: ChainTextService,
+    @Inject(DELTA_REPOSITORY_PORT) private readonly deltaRepository: DeltaRepositoryPort
   ) {}
 
   async getMeet(data: GetMeetInputDomainInterface): Promise<MeetProcessingDomainEntity | null> {
@@ -42,58 +52,96 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
     );
 
     if (!meetData) {
-      return null;
+      // Закрытое собрание контракт стирает целиком — читаем его последнее состояние из журнала.
+      const [closed] = await this.getClosedMeetsFromHistory(coopname, hash);
+      return closed ? this.buildProcessing(closed.meet, closed.questions, username) : null;
     }
 
-    // Получаем вопросы повестки
     const questions = await this.getQuestions({ coopname, meetId: meetData.id });
-
-    // Создаем данные для доменной модели
-    const processingData = new MeetProcessingDomainEntity(
-      {
-        hash: meetData.hash,
-        meet: await this.convertBlockchainMeetToDomainMeet(meetData),
-        questions: questions.map((q) => this.convertBlockchainQuestionToDomainQuestion(q)),
-      },
-      username
-    );
-
-    return processingData;
+    return this.buildProcessing(meetData, questions, username);
   }
 
   async getMeets(data: GetMeetsInputDomainInterface): Promise<MeetProcessingDomainEntity[]> {
     const { coopname, username } = data;
-    const meetsData = await this.blockchainService.getAllRows(
-      MeetContract.contractName.production,
-      coopname,
-      MeetContract.Tables.Meets.tableName
-    );
+    const meetsData =
+      (await this.blockchainService.getAllRows(
+        MeetContract.contractName.production,
+        coopname,
+        MeetContract.Tables.Meets.tableName
+      )) ?? [];
 
-    if (!meetsData || meetsData.length === 0) {
-      return [];
-    }
-
-    // Преобразуем данные в домен
-    const meetsProcessing = await Promise.all(
+    const live = await Promise.all(
       meetsData.map(async (meetData) => {
-        // Получаем вопросы повестки для каждого собрания
         const questions = await this.getQuestions({ coopname, meetId: meetData.id });
-
-        // Создаем данные для доменной модели
-        const processingData = new MeetProcessingDomainEntity(
-          {
-            hash: meetData.hash,
-            meet: await this.convertBlockchainMeetToDomainMeet(meetData),
-            questions: questions.map((q) => this.convertBlockchainQuestionToDomainQuestion(q)),
-          },
-          username
-        );
-
-        return processingData;
+        return this.buildProcessing(meetData, questions, username);
       })
     );
 
-    return meetsProcessing;
+    // Закрытые собрания в цепи больше не лежат — добираем их из журнала дельт.
+    const liveHashes = new Set(meetsData.map((meet) => String(meet.hash).toLowerCase()));
+    const closed = (await this.getClosedMeetsFromHistory(coopname)).filter(
+      (entry) => !liveHashes.has(String(entry.meet.hash).toLowerCase())
+    );
+    const history = await Promise.all(
+      closed.map((entry) => this.buildProcessing(entry.meet, entry.questions, username))
+    );
+
+    return [...live, ...history];
+  }
+
+  /**
+   * Закрытые собрания из журнала дельт: контракт стирает собрание и его вопросы при
+   * закрытии, а последняя дельта каждой строки хранит её прежнее содержимое. Отклонённые
+   * собрания тоже стёрты, но закрытыми не были — они в список не попадают, как и раньше.
+   */
+  private async getClosedMeetsFromHistory(
+    coopname: string,
+    hash?: string
+  ): Promise<{ meet: MeetContract.Tables.Meets.IOutput; questions: MeetContract.Tables.Questions.IOutput[] }[]> {
+    const meets = await this.deltaRepository.findLatestRows(
+      { code: MeetContract.contractName.production, scope: coopname, table: MeetContract.Tables.Meets.tableName },
+      hash ? { hash } : {}
+    );
+    // Закрытость решает последнее известное состояние, а не отметка стирания: сразу после
+    // подписи протокола в журнале может лежать дельта «closed», а дельта стирания ещё не
+    // дошла. Собрания, которые ещё в цепи, вызывающий отсекает сам.
+    const closed = meets.filter((row) => row.value?.status === CLOSED_MEET_STATUS);
+
+    return Promise.all(
+      closed.map(async (row) => {
+        const questions = await this.deltaRepository.findLatestRows(
+          {
+            code: MeetContract.contractName.production,
+            scope: coopname,
+            table: MeetContract.Tables.Questions.tableName,
+          },
+          { meet_id: String(row.value.id) }
+        );
+        return {
+          meet: row.value as MeetContract.Tables.Meets.IOutput,
+          questions: questions
+            .map((question) => question.value as MeetContract.Tables.Questions.IOutput)
+            .sort((a, b) => Number(a.number) - Number(b.number)),
+        };
+      })
+    );
+  }
+
+  /** Доменная модель собрания; хеши текстов вопросов заменяются текстами из базы. */
+  private async buildProcessing(
+    meetData: MeetContract.Tables.Meets.IOutput,
+    questions: MeetContract.Tables.Questions.IOutput[],
+    username?: string
+  ): Promise<MeetProcessingDomainEntity> {
+    const resolved = await this.chainTextService.resolveFields(questions, QUESTION_TEXT_FIELDS);
+    return new MeetProcessingDomainEntity(
+      {
+        hash: meetData.hash,
+        meet: await this.convertBlockchainMeetToDomainMeet(meetData),
+        questions: resolved.map((q) => this.convertBlockchainQuestionToDomainQuestion(q)),
+      },
+      username
+    );
   }
 
   async getQuestions(data: { coopname: string; meetId: string }): Promise<MeetContract.Tables.Questions.IOutput[]> {
@@ -176,15 +224,28 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async createMeet(data: CreateAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
     const { details: _details, ...meetPayload } = data;
 
     // Преобразуем доменный объект в инфраструктурный тип (поле details только в PG, не в цепи)
+    // Формулировки вопросов остаются в базе, в цепь уходят их хеши.
+    const agenda = await Promise.all(
+      meetPayload.agenda.map(async (point) => {
+        const [title, context, decision] = await this.chainTextService.toChain([
+          point.title,
+          point.context,
+          point.decision,
+        ]);
+        return { title, context, decision };
+      })
+    );
+
     const blockchainData: MeetContract.Actions.CreateMeet.IInput = {
       ...meetPayload,
+      agenda,
       hash: data.hash || generateUniqueHash(),
       proposal: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.proposal),
       open_at: this.domainToBlockchainUtils.convertDateToBlockchainFormat(data.open_at),
@@ -203,7 +264,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async vote(data: VoteOnAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -228,7 +289,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async restartMeet(data: RestartAnnualGeneralMeetInputDomainInterface): Promise<string> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -259,7 +320,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
     data: SignBySecretaryOnAnnualGeneralMeetInputDomainInterface
   ): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -284,7 +345,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
     data: SignByPresiderOnAnnualGeneralMeetInputDomainInterface
   ): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 
@@ -307,7 +368,7 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
 
   async notifyOnAnnualGeneralMeet(data: NotifyOnAnnualGeneralMeetInputDomainInterface): Promise<TransactionResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 

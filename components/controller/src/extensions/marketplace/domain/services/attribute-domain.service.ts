@@ -8,6 +8,7 @@ import {
   DictionaryValueDomainRepository,
   DICTIONARY_VALUE_DOMAIN_REPOSITORY,
 } from '../repositories/dictionary-value-domain.repository';
+import { t } from '../../i18n';
 
 /**
  * Доменный сервис для работы с атрибутами товаров и их значениями
@@ -91,7 +92,7 @@ export class AttributeDomainService {
     const grouped = new Map<string, AttributeDomainEntity[]>();
 
     for (const attribute of attributes) {
-      const groupName = attribute.groupName || 'Без группы';
+      const groupName = attribute.groupName || t('marketplace.attributeDomain.noGroup');
 
       if (!grouped.has(groupName)) {
         grouped.set(groupName, []);
@@ -136,7 +137,7 @@ export class AttributeDomainService {
     if (!attribute) {
       return {
         isValid: false,
-        errors: ['Атрибут не найден'],
+        errors: [t('marketplace.attributeDomain.attributeNotFound')],
       };
     }
 
@@ -145,17 +146,17 @@ export class AttributeDomainService {
     // Проверка количества значений
     const maxValues = attribute.getMaxValues();
     if (values.length > maxValues) {
-      errors.push(`Превышено максимальное количество значений: ${maxValues}`);
+      errors.push(t('marketplace.attributeDomain.maxValuesExceeded', { maxValues }));
     }
 
     // Проверка обязательности
     if (attribute.isRequired && values.length === 0) {
-      errors.push('Атрибут является обязательным');
+      errors.push(t('marketplace.attributeDomain.attributeRequired'));
     }
 
     // Проверка для коллекции
     if (!attribute.isCollection && values.length > 1) {
-      errors.push('Атрибут не поддерживает множественные значения');
+      errors.push(t('marketplace.attributeDomain.multipleValuesNotSupported'));
     }
 
     // Проверка словарных значений
@@ -165,7 +166,7 @@ export class AttributeDomainService {
 
       for (const value of values) {
         if (typeof value === 'number' && !validValueIds.includes(value)) {
-          errors.push(`Недопустимое значение словаря: ${value}`);
+          errors.push(t('marketplace.attributeDomain.invalidDictionaryValue', { value }));
         }
       }
     }

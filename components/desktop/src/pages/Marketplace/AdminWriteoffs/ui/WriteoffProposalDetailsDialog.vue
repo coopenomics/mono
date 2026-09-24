@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { BaseDialog, BaseBadge, BaseCard, BaseTable } from 'src/shared/ui/base';
@@ -25,25 +26,25 @@ function itemQuantityLabel(it: { quantity: string; unit_of_measure?: string | nu
 function fmtDate(value: string | null | undefined): string {
   if (!value) return '—';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('ru-RU');
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString(uiLocale());
 }
 
 function humanStatus(status: MarketplaceWriteoffProposalView['status']): string {
   switch (status) {
     case 'DRAFT':
-      return 'Черновик';
+      return t('marketplace.writeoff.status.draft');
     case 'ON_AGENDA':
-      return 'На повестке совета';
+      return t('marketplace.writeoffDetailsDialog.status.onAgendaFull');
     case 'AUTHORIZED':
-      return 'Утверждено советом';
+      return i18nT('marketplace.writeoffProposalDetails.approvedStatus');
     case 'PENDING_CONFIRMATION':
-      return 'Ожидает подтверждения склада';
+      return t('marketplace.writeoff.status.pendingWarehouse');
     case 'EXECUTING':
-      return 'Идёт списание';
+      return t('marketplace.writeoff.status.inProgress');
     case 'EXECUTED':
-      return 'Исполнено';
+      return t('marketplace.writeoff.status.done');
     case 'REJECTED':
-      return 'Отклонено';
+      return t('marketplace.writeoff.status.rejected');
     default:
       return String(status);
   }
@@ -53,28 +54,28 @@ function humanStatus(status: MarketplaceWriteoffProposalView['status']): string 
 function councilOutcome(status: MarketplaceWriteoffProposalView['status']): string {
   switch (status) {
     case 'DRAFT':
-      return 'Не вынесено';
+      return t('marketplace.writeoffDetailsDialog.decisionStatus.notSubmitted');
     case 'ON_AGENDA':
-      return 'На рассмотрении';
+      return t('marketplace.writeoffDetailsDialog.decisionStatus.underReview');
     case 'REJECTED':
-      return 'Отклонено советом';
+      return t('marketplace.writeoffDetailsDialog.decisionStatus.rejectedBySoviet');
     default:
-      return 'Одобрено советом';
+      return t('marketplace.writeoffDetailsDialog.decisionStatus.approvedBySoviet');
   }
 }
 
 // Журнал решений — коды действий в человеческие формулировки + тип события
 // для канонического таймлайна (иконка/цвет берутся из типа).
 const LOG_LABELS: Record<string, string> = {
-  draft_created: 'Черновик создан',
-  draft_updated: 'Состав изменён',
-  submitted_to_council: 'Отправлено в совет',
-  authorized_by_council: 'Совет одобрил',
-  declined_by_council: 'Совет отклонил',
-  confirmed_by_branch: 'Подтверждено складом',
-  execution_started: 'Списание начато',
-  item_executed: 'Позиция списана',
-  execution_completed: 'Списание завершено',
+  draft_created: t('marketplace.writeoffDetailsDialog.event.draftCreated'),
+  draft_updated: t('marketplace.writeoffDetailsDialog.event.compositionChanged'),
+  submitted_to_council: t('marketplace.writeoffDetailsDialog.event.sentToSoviet'),
+  authorized_by_council: t('marketplace.writeoffDetailsDialog.event.sovietApproved'),
+  declined_by_council: t('marketplace.writeoffDetailsDialog.event.sovietRejected'),
+  confirmed_by_branch: t('marketplace.writeoffDetailsDialog.event.confirmedByWarehouse'),
+  execution_started: t('marketplace.writeoffDetailsDialog.event.writeoffStarted'),
+  item_executed: t('marketplace.writeoffDetailsDialog.event.itemWrittenOff'),
+  execution_completed: t('marketplace.writeoffDetailsDialog.event.writeoffCompleted'),
 };
 const LOG_TYPES: Record<string, ActivityEventType> = {
   draft_created: 'create',
@@ -94,12 +95,12 @@ const title = computed(() => proposalTitle(props.proposal));
 type WriteoffProposalItem = MarketplaceWriteoffProposalView['items'][number];
 
 const itemColumns: BaseTableColumn<WriteoffProposalItem>[] = [
-  { key: 'branch', label: 'Пункт выдачи', width: '220px' },
-  { key: 'asset', label: 'Наименование', width: '260px', field: 'asset_title' },
-  { key: 'quantity', label: 'Кол-во', width: '130px', numeric: true },
-  { key: 'amount', label: 'Сумма', width: '130px', numeric: true },
-  { key: 'reason', label: 'Причина', width: '240px', field: 'reason' },
-  { key: 'status', label: 'Статус', width: '140px' },
+  { key: 'branch', label: t('marketplace.writeoffDetailsDialog.column.issuancePoint'), width: '220px' },
+  { key: 'asset', label: t('marketplace.writeoffDetailsDialog.column.name'), width: '260px', field: 'asset_title' },
+  { key: 'quantity', label: t('marketplace.writeoffDetailsDialog.column.quantity'), width: '130px', numeric: true },
+  { key: 'amount', label: t('marketplace.writeoffDetailsDialog.column.amount'), width: '130px', numeric: true },
+  { key: 'reason', label: t('marketplace.writeoffDetailsDialog.column.reason'), width: '240px', field: 'reason' },
+  { key: 'status', label: t('marketplace.writeoffDetailsDialog.column.status'), width: '140px' },
 ];
 
 /** У позиции проекта своего идентификатора нет — ключ собираем из участка и товара. */
@@ -125,13 +126,13 @@ BaseDialog(
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
   .writeoff-details
-    BaseCard(title="Основные параметры")
-      DataRow(label="Цикл списания", :value="fmtDate(proposal.cycle_started_at)")
-      DataRow(label="Позиций", :value="positionsLabel(proposal.items.length)")
-      DataRow(label="Сумма списания", :value="formatAsset2Digits(proposal.total_amount)")
-      DataRow(label="Решение совета", :value="councilOutcome(proposal.status)")
+    BaseCard(:title="$t('marketplace.writeoffDetailsDialog.mainInfoTitle')")
+      DataRow(:label="$t('marketplace.writeoffDetailsDialog.cycleLabel')", :value="fmtDate(proposal.cycle_started_at)")
+      DataRow(:label="$t('marketplace.writeoffDetailsDialog.itemsCountLabel')", :value="positionsLabel(proposal.items.length)")
+      DataRow(:label="$t('marketplace.writeoffDetailsDialog.totalAmountLabel')", :value="formatAsset2Digits(proposal.total_amount)")
+      DataRow(:label="$t('marketplace.writeoffDetailsDialog.decisionLabel')", :value="councilOutcome(proposal.status)")
 
-    BaseCard(title="Позиции к списанию")
+    BaseCard(:title="$t('marketplace.writeoffDetailsDialog.itemsListTitle')")
       BaseTable(
         :columns="itemColumns",
         :rows="proposal.items",
@@ -145,12 +146,12 @@ BaseDialog(
         template(#cell-amount="{ row }")
           | {{ formatAsset2Digits(row.amount) }}
         template(#cell-status="{ row }")
-          BaseBadge(:variant="row.executed ? 'pos' : 'neutral'") {{ row.executed ? 'Списано' : 'Ожидает' }}
+          BaseBadge(:variant="row.executed ? 'pos' : 'neutral'") {{ row.executed ? $t('marketplace.writeoffDetailsDialog.itemStatusDone') : $t('marketplace.writeoffDetailsDialog.itemStatusPending') }}
 
-    BaseCard(v-if="proposal.reject_reason", title="Причина отказа совета")
+    BaseCard(v-if="proposal.reject_reason", :title="$t('marketplace.writeoffDetailsDialog.rejectReasonTitle')")
       .text-body2 {{ proposal.reject_reason }}
 
-    BaseCard(v-if="journalEvents.length", title="Журнал решений")
+    BaseCard(v-if="journalEvents.length", :title="$t('marketplace.writeoffDetailsDialog.historyTitle')")
       ActivityTimeline(:events="journalEvents", :group-by-date="true")
 </template>
 

@@ -1,5 +1,6 @@
 import { markRaw, type Component } from 'vue';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
+import { t } from '../i18n';
 
 type PageMap = {
   IssuePage: Component;
@@ -73,7 +74,7 @@ export function buildProjectTreeChildren(
       path: paths.issue,
       name: I,
       component: markRaw(pages.IssuePage),
-      meta: { title: 'Задача компонента', icon: 'task', ...hiddenMeta },
+      meta: { title: t('capital.projectTreeChildren.route.issue'), icon: 'task', ...hiddenMeta },
       children: [
         {
           path: '',
@@ -84,25 +85,25 @@ export function buildProjectTreeChildren(
           path: 'description',
           name: `${I}-description`,
           component: markRaw(pages.IssueDescriptionPage),
-          meta: { title: 'Описание задачи', icon: 'description', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.issueDescription'), icon: 'description', ...hiddenMeta },
         },
         {
           path: 'requirements',
           name: `${I}-requirements`,
           component: markRaw(pages.IssueRequirementsPage),
-          meta: { title: 'Артефакты задачи', icon: 'assignment', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.issueRequirements'), icon: 'assignment', ...hiddenMeta },
         },
         {
           path: 'commits',
           name: `${I}-commits`,
           component: markRaw(pages.IssueCommitsPage),
-          meta: { title: 'Коммиты задачи', icon: 'commit', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.issueCommits'), icon: 'commit', ...hiddenMeta },
         },
         {
           path: 'history',
           name: `${I}-history`,
           component: markRaw(pages.IssueHistoryPage),
-          meta: { title: 'История задачи', icon: 'history', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.issueHistory'), icon: 'history', ...hiddenMeta },
         },
       ],
     },
@@ -111,7 +112,7 @@ export function buildProjectTreeChildren(
       path: paths.component,
       name: `${C}-base`,
       component: markRaw(pages.ComponentPage),
-      meta: { title: 'Компонент', icon: 'account_tree', ...hiddenMeta },
+      meta: { title: t('capital.projectTreeChildren.route.component'), icon: 'account_tree', ...hiddenMeta },
       children: [
         {
           path: '',
@@ -122,55 +123,55 @@ export function buildProjectTreeChildren(
           path: 'description',
           name: `${C}-description`,
           component: markRaw(pages.ComponentDescriptionPage),
-          meta: { title: 'Описание компонента', icon: 'description', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentDescription'), icon: 'description', ...hiddenMeta },
         },
         {
           path: 'planning',
           name: `${C}-planning`,
           component: markRaw(pages.ComponentPlanningPage),
-          meta: { title: 'Планирование компонента', icon: 'insights', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentPlanning'), icon: 'insights', ...hiddenMeta },
         },
         {
           path: 'contributors',
           name: `${C}-contributors`,
           component: markRaw(pages.ComponentContributorsPage),
-          meta: { title: 'Участники компонента', icon: 'group', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentContributors'), icon: 'group', ...hiddenMeta },
         },
         {
           path: 'history',
           name: `${C}-history`,
           component: markRaw(pages.ComponentHistoryPage),
-          meta: { title: 'История компонента', icon: 'history', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentHistory'), icon: 'history', ...hiddenMeta },
         },
         {
           path: 'tasks',
           name: `${C}-tasks`,
           component: markRaw(pages.ComponentTasksPage),
-          meta: { title: 'Задачи компонента', icon: 'account_tree', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentTasks'), icon: 'account_tree', ...hiddenMeta },
         },
         {
           path: 'requirements/:story_hash',
           name: `${C}-requirement-detail`,
           component: markRaw(pages.RequirementDetailPage),
-          meta: { title: 'Артефакт', icon: 'assignment', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentRequirementDetail'), icon: 'assignment', ...hiddenMeta },
         },
         {
           path: 'requirements',
           name: `${C}-requirements`,
           component: markRaw(pages.ComponentRequirementsPage),
-          meta: { title: 'Артефакты компонента', icon: 'assignment', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentRequirements'), icon: 'assignment', ...hiddenMeta },
         },
         {
           path: 'voting',
           name: `${C}-voting`,
           component: markRaw(pages.ComponentVotingPage),
-          meta: { title: 'Голосование компонента', icon: 'how_to_vote', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentVoting'), icon: 'how_to_vote', ...hiddenMeta },
         },
         {
           path: 'results',
           name: `${C}-results`,
           component: markRaw(pages.ComponentResultsPage),
-          meta: { title: 'Результаты компонента', icon: 'insights', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.componentResults'), icon: 'insights', ...hiddenMeta },
         },
       ],
     },
@@ -179,7 +180,7 @@ export function buildProjectTreeChildren(
       path: paths.project,
       name: `${P}-base`,
       component: markRaw(pages.ProjectPage),
-      meta: { title: 'Проект', icon: 'account_tree', ...hiddenMeta },
+      meta: { title: t('capital.projectTreeChildren.route.project'), icon: 'account_tree', ...hiddenMeta },
       children: [
         {
           path: '',
@@ -190,43 +191,43 @@ export function buildProjectTreeChildren(
           path: 'description',
           name: `${P}-description`,
           component: markRaw(pages.ProjectDescriptionPage),
-          meta: { title: 'Описание проекта', icon: 'description', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectDescription'), icon: 'description', ...hiddenMeta },
         },
         {
           path: 'planning',
           name: `${P}-planning`,
           component: markRaw(pages.ProjectPlanningPage),
-          meta: { title: 'Планирование проекта', icon: 'insights', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectPlanning'), icon: 'insights', ...hiddenMeta },
         },
         {
           path: 'contributors',
           name: `${P}-contributors`,
           component: markRaw(pages.ProjectContributorsPage),
-          meta: { title: 'Участники проекта', icon: 'group', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectContributors'), icon: 'group', ...hiddenMeta },
         },
         {
           path: 'history',
           name: `${P}-history`,
           component: markRaw(pages.ProjectHistoryPage),
-          meta: { title: 'История проекта', icon: 'history', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectHistory'), icon: 'history', ...hiddenMeta },
         },
         {
           path: 'components',
           name: `${P}-components`,
           component: markRaw(pages.ProjectComponentsPage),
-          meta: { title: 'Компоненты проекта', icon: 'account_tree', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectComponents'), icon: 'account_tree', ...hiddenMeta },
         },
         {
           path: 'requirements/:story_hash',
           name: `${P}-requirement-detail`,
           component: markRaw(pages.RequirementDetailPage),
-          meta: { title: 'Артефакт', icon: 'assignment', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectRequirementDetail'), icon: 'assignment', ...hiddenMeta },
         },
         {
           path: 'requirements',
           name: `${P}-requirements`,
           component: markRaw(pages.ProjectRequirementsPage),
-          meta: { title: 'Артефакты проекта', icon: 'assignment', ...hiddenMeta },
+          meta: { title: t('capital.projectTreeChildren.route.projectRequirements'), icon: 'assignment', ...hiddenMeta },
         },
       ],
     },

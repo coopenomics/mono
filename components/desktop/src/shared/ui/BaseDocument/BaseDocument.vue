@@ -9,7 +9,7 @@ q-card.dynamic-padding(
 )
   .base-document__loader(v-if='loading')
     q-spinner(color='primary', size='32px')
-    span.base-document__loader-label Формируем документ{{ doc?.meta?.title ? ` «${doc.meta.title}»` : '' }}…
+    span.base-document__loader-label {{ $t('ui.baseDocument.generatingLabel', { titleSuffix: doc?.meta?.title ? ` «${doc.meta.title}»` : '' }) }}
   div(v-if='!loading')
     ShadowHtml(:html='safeHtml', :styles='shadowStyles')
     //- Блок контрольной суммы/подписей/скачивания показываем только у документов
@@ -43,6 +43,7 @@ import { sameHash } from 'src/shared/lib/utils/sameHash';
 import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { ShadowHtml } from '../ShadowHtml';
 import { DocumentSignatures, type DocumentSignatureEntry } from 'src/shared/ui/domain/DocumentSignatures';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   documentAggregate: {
@@ -78,11 +79,11 @@ const regenerate = async () => {
 
     if (sameHash(regenerated.value.hash, regeneratedHash.value))
       SuccessAlert(
-        'Сверка прошла успешно: аналогичный документ восстановлен из исходных данных',
+        t('ui.baseDocument.compareSuccessText'),
       );
     else
       FailAlert(
-        'Сверка прошла безуспешно: аналогичный документ невозможно получить из исходных данных',
+        t('ui.baseDocument.compareFailText'),
       );
 
     onRegenerate.value = false;
@@ -96,6 +97,7 @@ const safeHtml = computed(() => sanitizeDocumentHtml(doc.value?.html));
 // Стили для Shadow DOM
 const shadowStyles = computed(
   () =>
+    // i18n-ignore: CSS-стили таблиц, не текст интерфейса
     `
   /* Универсальные стили для всех таблиц */
   table {
@@ -227,8 +229,8 @@ watch(
 
 // Получение ФИО/названия подписанта по сертификату
 const getSignerName = (signer_certificate: any) => {
-  if (!signer_certificate) return 'Неизвестный подписант';
-  return getNameFromCertificate(signer_certificate) || 'Неизвестный подписант';
+  if (!signer_certificate) return t('ui.baseDocument.unknownSigner');
+  return getNameFromCertificate(signer_certificate) || t('ui.baseDocument.unknownSigner');
 };
 
 // Верификация всех подписей из агрегата
@@ -273,7 +275,7 @@ async function download() {
     document.body.removeChild(link);
   } catch (error) {
     console.error('Ошибка при скачивании файла:', error);
-    FailAlert('Не удалось подготовить архив документа');
+    FailAlert(t('ui.baseDocument.archiveError'));
   } finally {
     loading.value = false;
   }

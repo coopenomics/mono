@@ -1,4 +1,5 @@
 import { date } from 'quasar';
+import { t } from 'src/shared/i18n';
 
 /**
  * Форматирует значение даты/времени в читаемый формат DD.MM.YYYY HH:mm
@@ -16,11 +17,11 @@ export function formatDateToHumanDateTime(dateValue: unknown): string {
     } else if (dateValue instanceof Date) {
       dateObj = dateValue;
     } else {
-      return String(dateValue || 'Неверная дата');
+      return String(dateValue || t('utils.formatDateToHumanDateTime.invalidDate'));
     }
 
     return date.formatDate(dateObj, 'DD.MM.YYYY HH:mm');
   } catch {
-    return String(dateValue || 'Неверная дата');
+    return String(dateValue || t('utils.formatDateToHumanDateTime.invalidDate'));
   }
 }

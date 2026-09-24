@@ -15,6 +15,7 @@ export function createRobustFetch(
     init?: RequestInit,
   ): Promise<Response> {
     if (typeof fetch === 'undefined') {
+      // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
       throw new Error('Fetch API недоступен в этом окружении');
     }
 
@@ -64,6 +65,7 @@ export function createRobustFetch(
     }
 
     // Если все попытки неудачны, выбрасываем последнюю ошибку
+    // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
     throw lastError || new Error('Все попытки fetch неудачны');
   };
 }
@@ -94,6 +96,7 @@ export function waitForTabActive(timeout = 30000): Promise<void> {
 
     const timeoutId = setTimeout(() => {
       document.removeEventListener('visibilitychange', handler);
+      // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
       reject(new Error('Таймаут ожидания активности вкладки'));
     }, timeout);
 
@@ -117,6 +120,7 @@ export async function backgroundAwareFetch(
   init?: RequestInit,
 ): Promise<Response> {
   if (typeof fetch === 'undefined') {
+    // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
     throw new Error('Fetch API недоступен в этом окружении');
   }
 
@@ -152,7 +156,9 @@ export function setupServiceWorkerErrorHandling() {
           'Notification' in window &&
           Notification.permission === 'granted'
         ) {
+          // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
           new Notification('Проблема с сетью', {
+            // i18n-ignore: сервис-воркер собирается отдельно, без словарей приложения
             body: 'Некоторые запросы были заблокированы. Попробуйте обновить страницу.',
             icon: '/icons/icon-192x192.png',
           });

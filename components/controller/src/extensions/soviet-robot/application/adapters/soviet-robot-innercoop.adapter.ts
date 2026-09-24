@@ -12,6 +12,7 @@ import { RobotDecisionStage } from '../../domain/enums/robot-decision-stage.enum
 import type { RobotDecisionDomainEntity } from '../../domain/entities/robot-decision.entity';
 import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../domain/repositories/robot-decision.repository';
 import { RobotWatchdogService } from '../services/robot-watchdog.service';
+import { t } from '../../i18n';
 
 /**
  * Порт робота для других расширений (Стол заказов): прямой вызов «реши сейчас»
@@ -51,10 +52,10 @@ export class SovietRobotInnercoopAdapter implements ISovietRobotPort {
 
   async requestDecision(input: InnerRobotDecisionRequest): Promise<InnerRobotDecisionResult> {
     if (input.coopname !== this.coopname) {
-      return { outcome: 'failed', detail: `робот обслуживает кооператив ${this.coopname}, запрошен ${input.coopname}` };
+      return { outcome: 'failed', detail: t('sovietRobot.decisionAdapter.wrongCoopDetail', { served: this.coopname, requested: input.coopname }) };
     }
     if (!(await this.isEnabled())) {
-      return { outcome: 'manual', detail: 'расширение «Робот совета» не установлено или выключено' };
+      return { outcome: 'manual', detail: t('sovietRobot.decisionAdapter.disabledDetail') };
     }
     const entry =
       (await this.journal.findByDecision(input.coopname, input.decision_id)) ??
@@ -102,7 +103,7 @@ export class SovietRobotInnercoopAdapter implements ISovietRobotPort {
       [RobotDecisionStage.FAILED]: 'failed',
     };
     const outcome = map[entry.stage] ?? 'pending';
-    const waiting = entry.waiting_for.length ? `ждёт голоса: ${entry.waiting_for.join(', ')}` : undefined;
+    const waiting = entry.waiting_for.length ? t('sovietRobot.decisionAdapter.waitingForVotesDetail', { members: entry.waiting_for.join(', ') }) : undefined;
     return { outcome, tx_hash, detail: detail ?? waiting };
   }
 }

@@ -9,7 +9,7 @@ ul.contact-sheet(:class='`contact-sheet--${density}`')
           v-if='c.verified',
           name='verified',
           size='14px',
-          aria-label='Подтверждённый контакт'
+          :aria-label='$t("ui.contactSheet.verifiedAriaLabel")'
         )
       .contact-sheet__value-row
         component.contact-sheet__value(
@@ -20,7 +20,7 @@ ul.contact-sheet(:class='`contact-sheet--${density}`')
         ) {{ c.value }}
         button.contact-sheet__copy(
           type='button',
-          aria-label='Скопировать значение',
+          :aria-label='$t("ui.contactSheet.copyValueAriaLabel")',
           @click.stop.prevent='() => onCopy(c)'
         )
           q-icon(name='content_copy' size='14px')
@@ -30,6 +30,7 @@ ul.contact-sheet(:class='`contact-sheet--${density}`')
 <script setup lang="ts">
 import { copyToClipboard, Notify } from 'quasar';
 import type { ContactItem, ContactSheetProps, ContactType } from './ContactSheet.types';
+import { t as i18nT } from 'src/shared/i18n';
 
 withDefaults(defineProps<ContactSheetProps>(), {
   density: 'comfortable',
@@ -52,10 +53,10 @@ function iconFor(t: ContactType): string {
 function labelFor(t: ContactType): string {
   switch (t) {
     case 'email': return 'Email';
-    case 'phone': return 'Телефон';
-    case 'address': return 'Адрес';
+    case 'phone': return i18nT('ui.contactSheet.phoneLabel');
+    case 'address': return i18nT('ui.contactSheet.addressLabel');
     case 'tg': return 'Telegram';
-    case 'web': return 'Сайт';
+    case 'web': return i18nT('ui.contactSheet.websiteLabel');
   }
 }
 
@@ -77,9 +78,9 @@ async function onCopy(c: ContactItem): Promise<void> {
   try {
     await copyToClipboard(c.value);
     emit('copy', c);
-    Notify.create({ type: 'positive', message: 'Скопировано', timeout: 1200, position: 'top' });
+    Notify.create({ type: 'positive', message: i18nT('ui.contactSheet.copiedText'), timeout: 1200, position: 'top' });
   } catch {
-    Notify.create({ type: 'negative', message: 'Не удалось скопировать', timeout: 2000, position: 'top' });
+    Notify.create({ type: 'negative', message: i18nT('ui.contactSheet.copyErrorText'), timeout: 2000, position: 'top' });
   }
 }
 </script>

@@ -9,7 +9,7 @@
     button.data-row__copy(
       v-if='copyable && canCopy',
       type='button',
-      aria-label='Скопировать значение',
+      :aria-label='$t("ui.dataRow.copyValueAriaLabel")',
       @click.stop.prevent='onCopy'
     )
       q-icon(name='content_copy' size='14px')
@@ -20,6 +20,7 @@
 import { computed } from 'vue';
 import { copyToClipboard, Notify } from 'quasar';
 import type { DataRowProps } from './DataRow.types';
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<DataRowProps>(), {
   copyable: false,
@@ -48,9 +49,9 @@ async function onCopy(): Promise<void> {
   try {
     await copyToClipboard(text);
     emit('copy', text);
-    Notify.create({ type: 'positive', message: 'Скопировано', timeout: 1200, position: 'top' });
+    Notify.create({ type: 'positive', message: t('ui.dataRow.copiedText'), timeout: 1200, position: 'top' });
   } catch {
-    Notify.create({ type: 'negative', message: 'Не удалось скопировать', timeout: 2000, position: 'top' });
+    Notify.create({ type: 'negative', message: t('ui.dataRow.copyErrorText'), timeout: 2000, position: 'top' });
   }
 }
 </script>

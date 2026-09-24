@@ -8,30 +8,30 @@ q-btn(
   :size='micro ? "sm" : undefined'
 )
   q-icon(:name='micro ? "fa-solid fa-arrow-up" : "fa-solid fa-chevron-up"')
-  span(v-if='!micro').q-ml-sm Совершить взнос
-  q-tooltip(v-if='micro') Внести
+  span(v-if='!micro').q-ml-sm {{ $t('wallet.depositButton.buttonLabel') }}
+  q-tooltip(v-if='micro') {{ $t('wallet.depositButton.submitLabel') }}
 
   BaseDialog(
     v-if='!paymentOrder',
     v-model='showDialog',
-    title='Паевой взнос',
+    :title='$t("wallet.depositButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     Form(
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Продолжить"',
+      :button-cancel-txt='$t("wallet.depositButton.cancel")',
+      :button-submit-txt='$t("wallet.depositButton.confirm")',
       @cancel='clear'
     )
       q-input(
         v-model='quantity',
         standout='bg-teal text-white',
-        placeholder='Введите сумму',
+        :placeholder='$t("wallet.depositButton.amountPlaceholder")',
         type='number',
         :min='0',
-        :rules='[(val) => val > 0 || "Сумма взноса должна быть положительной"]'
+        :rules='[(val) => val > 0 || $t("wallet.depositButton.amountPositiveError")]'
       )
         template(#append)
           span.text-overline {{ currency }}
@@ -39,15 +39,15 @@ q-btn(
   BaseDialog(
     v-else,
     v-model='showDialog',
-    title='Совершите взнос',
+    :title='$t("wallet.depositButton.paymentDialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
-    p Пожалуйста, совершите оплату паевого взноса {{ paymentOrder?.payment_details?.amount_without_fee }}. Комиссия провайдера {{ paymentOrder?.payment_details?.fact_fee_percent }}%, всего к оплате: {{ paymentOrder?.payment_details?.amount_plus_fee }}.
+    p {{ $t('wallet.depositButton.paymentInstructions', { amount: paymentOrder?.payment_details?.amount_without_fee, feePercent: paymentOrder?.payment_details?.fact_fee_percent, totalAmount: paymentOrder?.payment_details?.amount_plus_fee }) }}
 
     p
-      span.text-bold Внимание!
-      span.q-ml-xs Оплату необходимо произвести с банковского счета, который принадлежит именно Вам. При поступлении средств с другого счета, оплата будет аннулирована.
+      span.text-bold {{ $t('wallet.depositButton.warningTitle') }}
+      span.q-ml-xs {{ $t('wallet.depositButton.warningText') }}
 
     PayWithProvider.q-mb-md(
       :payment-order='paymentOrder',
@@ -56,7 +56,8 @@ q-btn(
     )
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts">import { t } from 'src/shared/i18n';
+
 interface Props {
   micro?: boolean;
 }
@@ -124,7 +125,7 @@ const currency = computed(() => env.CURRENCY);
 
 const paymentFail = (): void => {
   clear();
-  FailAlert('Произошла ошибка при приёме платежа');
+  FailAlert(t('wallet.depositButton.acceptError'));
 };
 
 const paymentSuccess = (): void => {
@@ -133,7 +134,7 @@ const paymentSuccess = (): void => {
     username: session.username as string,
   } as ILoadUserWallet);
   clear();
-  SuccessAlert('Платеж успешно принят');
+  SuccessAlert(t('wallet.depositButton.acceptSuccess'));
 };
 </script>
 <style scoped></style>

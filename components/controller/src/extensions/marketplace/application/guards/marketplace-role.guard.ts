@@ -1,4 +1,4 @@
-import { hasServerSecret } from '@coopenomics/extension-kit';
+import { hasServerSecret, DomainError } from '@coopenomics/extension-kit';
 import { Inject, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
@@ -70,9 +70,7 @@ export class MarketplaceRoleGuard implements CanActivate {
       (request?.currentMember as IMarketplaceCurrentMember | undefined);
 
     if (!currentMember) {
-      throw new ForbiddenException(
-        'Marketplace-контекст не инициализирован — поставьте MarketplaceMembershipGuard в @UseGuards раньше MarketplaceRoleGuard'
-      );
+      throw DomainError.forbidden('MARKETPLACE_ROLE_GUARD_CONTEXT_MISSING');
     }
 
     const handlerName = context.getHandler()?.name ?? 'unknown_handler';

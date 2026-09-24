@@ -1,10 +1,6 @@
 import { createHash } from 'crypto';
-import {
-  chainTextDigest,
-  chainTextMismatches,
-  isChainTextDigest,
-  resolveChainText,
-} from '../../../src/extensions/capital/domain/utils/chain-text-digest';
+import { chainTextDigest, isChainTextDigest, resolveChainText } from '@coopenomics/extension-kit';
+import { chainTextMismatches } from '../../../src/extensions/capital/domain/utils/chain-text-digest';
 import { ProjectDomainEntity } from '../../../src/extensions/capital/domain/entities/project.entity';
 
 const sha = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');

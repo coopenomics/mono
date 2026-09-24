@@ -6,8 +6,8 @@
     :coop-name='coopShortName',
     :coop-meta='coopMeta',
     :show-cmdk='true',
-    cmdk-label='Найти',
-    cmdk-hint='Поиск (⌘K)',
+    :cmdk-label='$t("desktop.leftDrawerMenu.searchLabel")',
+    :cmdk-hint='$t("desktop.leftDrawerMenu.searchHint")',
     @select='onSelect',
     @cmdk='onCmdk'
   )
@@ -26,15 +26,15 @@
         :balance='walletBalance',
         :symbol='walletSymbol',
         :locked-balance='walletLocked',
-        balance-label='Главный паевой кошелёк',
+        :balance-label='$t("desktop.leftDrawerMenu.walletBalanceLabel")',
         :balance-route='{ name: "wallet", params: { coopname: info.coopname } }',
-        primary-action-label='Пополнить',
+        :primary-action-label='$t("desktop.leftDrawerMenu.depositAction")',
         show-signout,
-        signout-label='Выйти из кабинета',
+        :signout-label='$t("desktop.leftDrawerMenu.signOutLabel")',
         @primary-action='onDeposit',
         @signout='onLogout'
       )
-      .left-drawer-menu__version(:title='`Версия ${updateWatch.currentVersion}`')
+      .left-drawer-menu__version(:title='$t(`desktop.leftDrawerMenu.versionTitle`, { version: updateWatch.currentVersion })')
         NodeSyncIndicator
         span v{{ updateWatch.currentVersion }}
 
@@ -72,6 +72,7 @@ import { WorkspaceSwitcher } from 'src/widgets/Desktop/WorkspaceSwitcher';
 import { useUpdateWatch } from 'src/entities/AppVersion/model';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { hasMenuBadge, menuBadgeOf, refreshMenuBadges } from 'src/shared/lib/menuBadges';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const updateWatch = useUpdateWatch();
@@ -269,7 +270,7 @@ function onCmdk(): void {
 // --- Шапка рейла (бренд) ---------------------------------------------------
 
 const coopShortName = computed<string>(
-  () => info.vars?.short_abbr || info.coopname || 'Кооператив',
+  () => info.vars?.short_abbr || info.coopname || t('desktop.leftDrawerMenu.defaultCoopName'),
 );
 const coopMeta = computed<string | undefined>(() =>
   info.vars?.name && info.vars.name !== coopShortName.value
@@ -307,10 +308,10 @@ const walletLocked = computed<string | undefined>(() => {
 
 const userName = computed<string>(() => {
   const acc = session.currentUserAccount?.private_account;
-  if (!acc) return 'Пайщик';
+  if (!acc) return t('desktop.leftDrawerMenu.defaultUserName');
   if (acc.type === Zeus.AccountType.organization) {
     const od = acc.organization_data as { short_name?: string; name?: string } | undefined;
-    return od?.short_name || od?.name || 'Организация';
+    return od?.short_name || od?.name || t('desktop.leftDrawerMenu.defaultOrgName');
   }
   const id = acc.individual_data as
     | { first_name?: string; last_name?: string; middle_name?: string }
@@ -318,10 +319,10 @@ const userName = computed<string>(() => {
   if (id?.first_name || id?.last_name) {
     return [id?.last_name, id?.first_name, id?.middle_name].filter(Boolean).join(' ').trim();
   }
-  return session.username || 'Пайщик';
+  return session.username || t('desktop.leftDrawerMenu.defaultUserName');
 });
 const userRoleLabel = computed<string>(() =>
-  session.isChairman ? 'Председатель' : session.isMember ? 'Член совета' : 'Пайщик',
+  session.isChairman ? t('desktop.leftDrawerMenu.roleChairman') : session.isMember ? t('desktop.leftDrawerMenu.roleMember') : t('desktop.leftDrawerMenu.roleShareholder'),
 );
 
 // --- Свёртка кошелька: замок или стрелка ----------------------------------
@@ -379,7 +380,7 @@ async function onLogout(): Promise<void> {
     void router.push({ name: 'signin' });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Ошибка при выходе: ' + msg);
+    FailAlert(t('desktop.leftDrawerMenu.signOutError') + msg);
   }
 }
 </script>

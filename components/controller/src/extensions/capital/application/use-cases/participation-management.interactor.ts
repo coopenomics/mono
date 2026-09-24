@@ -38,13 +38,10 @@ import { DOCUMENT_PORT, type IDocumentPort, ACCOUNT_PORT, type IAccountPort,
   type ICandidatePort,
 } from '@coopenomics/innercoop';
 import type { CompleteCapitalRegistrationDomainInput } from '../../domain/actions/complete-capital-registration-domain-input.interface';
-import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, PaginationInputDTO, PaginationResult, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
 import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { EMPTY_HASH, getAppliedBlockNum } from '@coopenomics/extension-kit';
-import { HttpApiError } from '@coopenomics/extension-kit';
 import { generateRandomHash, generateUniqueHash } from '@coopenomics/extension-kit';
 
 /**
@@ -80,10 +77,7 @@ export class ParticipationManagementInteractor {
     const hash = (extension?.config as IConfig | undefined)?.capital_program_doc_data_hash?.trim();
 
     if (!hash) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        'Параметры документов ЦПП не заполнены: отсутствует capital_program_doc_data_hash в конфигурации capital'
-      );
+      throw DomainError.badRequest('CAPITAL_PROGRAM_DOC_DATA_HASH_MISSING');
     }
 
     return hash;
@@ -106,10 +100,7 @@ export class ParticipationManagementInteractor {
     const existingContributor = await this.contributorRepository.findByUsername(data.username);
 
     if (existingContributor) {
-      throw new HttpApiError(
-        httpStatus.CONFLICT,
-        `Участник с именем пользователя ${data.username} уже зарегистрирован в программе`
-      );
+      throw DomainError.conflict('CAPITAL_CONTRIBUTOR_ALREADY_REGISTERED', { username: data.username });
     }
 
     // Генерируем уникальный contributor_hash автоматически
@@ -185,26 +176,17 @@ export class ParticipationManagementInteractor {
     );
 
     if (!document) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Документ с хэшем ${data.contract.doc_hash} не найден`
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_NOT_FOUND', { hash: data.contract.doc_hash });
     }
 
     // Проверяем, что username в документе совпадает с переданным
     if (document.meta.username !== data.username) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Username в документе (${document.meta.username}) не совпадает с переданным (${data.username})`
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_USERNAME_MISMATCH', { documentUsername: document.meta.username, providedUsername: data.username });
     }
 
     // Проверяем, что contributor_hash в документе совпадает с переданным
     if (document.meta.contributor_hash !== data.contributor_hash) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Contributor hash в документе (${document.meta.contributor_hash}) не совпадает с переданным (${data.contributor_hash})`
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_CONTRIBUTOR_HASH_MISMATCH', { documentHash: document.meta.contributor_hash, providedHash: data.contributor_hash });
     }
 
     // Получаем отображаемое имя из аккаунта
@@ -286,10 +268,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!blockchainData) {
-      throw new HttpApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        `Не удалось получить данные участника ${databaseData.contributor_hash} из блокчейна после регистрации`
-      );
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_DATA_AFTER_REGISTRATION_MISSING', { hash: databaseData.contributor_hash });
     }
 
     // Создаем полный объект участника, объединяя данные базы и блокчейна
@@ -316,10 +295,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!document) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Документ с хэшем ${data.document.doc_hash.toUpperCase()} не найден`
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_NOT_FOUND', { hash: data.document.doc_hash.toUpperCase() });
     }
 
     // Извлекаем appendix_hash из метаданных документа
@@ -328,10 +304,7 @@ export class ParticipationManagementInteractor {
 
     //TODO: адаптировать или документ или код ниже к parent_appendix_hash
     if (!appendix_hash) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        'В документе отсутствует appendix_hash'
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_APPENDIX_HASH_MISSING');
     }
 
     // Уже подтверждённый допуск — повторный отклик не нужен
@@ -341,10 +314,7 @@ export class ParticipationManagementInteractor {
         data.project_hash
       );
     if (confirmedAppendix) {
-      throw new HttpApiError(
-        httpStatus.CONFLICT,
-        'Вы уже являетесь участником этого проекта'
-      );
+      throw DomainError.conflict('CAPITAL_ALREADY_PROJECT_PARTICIPANT');
     }
 
     // Есть незакрытый запрос на рассмотрении
@@ -355,18 +325,12 @@ export class ParticipationManagementInteractor {
       );
 
     if (existingAppendix) {
-      throw new HttpApiError(
-        httpStatus.CONFLICT,
-        'Подождите, ваш запрос на рассмотрении'
-      );
+      throw DomainError.conflict('CAPITAL_REQUEST_PENDING_REVIEW');
     }
 
     // Проверяем, что username в документе совпадает с переданным
     if (document.meta.username !== data.username) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Username в документе (${document.meta.username}) не совпадает с переданным (${data.username})`
-      );
+      throw DomainError.badRequest('CAPITAL_DOCUMENT_USERNAME_MISMATCH', { documentUsername: document.meta.username, providedUsername: data.username });
     }
 
     // Формируем доменный input с полными данными
@@ -424,10 +388,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!blockchainData) {
-      throw new HttpApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        `Не удалось получить данные appendix ${partialAppendix.appendix_hash} из блокчейна после makeClearance`
-      );
+      throw DomainError.internal('CAPITAL_APPENDIX_DATA_AFTER_CLEARANCE_MISSING', { hash: partialAppendix.appendix_hash });
     }
     // ШАГ 4: Обновляем существующую запись полными данными
     savedAppendix.updateFromBlockchain(
@@ -452,10 +413,7 @@ export class ParticipationManagementInteractor {
     });
 
     if (!contributor) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Участник ${data.username} не найден в кооперативе ${data.coopname}`
-      );
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOPERATIVE', { username: data.username, coopname: data.coopname });
     }
 
     // Обновляем поле about в базе данных, если оно передано
@@ -495,10 +453,7 @@ export class ParticipationManagementInteractor {
     });
 
     if (!contributor) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Участник ${data.username} не найден`
-      );
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND', { username: data.username });
     }
 
     // 2. Получаем данные проекта
@@ -507,10 +462,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!project) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Проект с хэшем ${data.project_hash} не найден`
-      );
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
 
     // 3. Проверяем, что проект не является компонентом
@@ -519,10 +471,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (isComponent) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Проект ${data.project_hash} является компонентом. Используйте generateComponentGenerationContract`
-      );
+      throw DomainError.badRequest('CAPITAL_PROJECT_IS_COMPONENT', { hash: data.project_hash });
     }
 
     // 4. Генерируем уникальный хэш для приложения
@@ -563,10 +512,7 @@ export class ParticipationManagementInteractor {
     });
 
     if (!contributor) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Участник ${data.username} не найден`
-      );
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND', { username: data.username });
     }
 
     // 2. Получаем данные компонента
@@ -575,10 +521,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!component) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Компонент с хэшем ${data.component_hash} не найден`
-      );
+      throw DomainError.notFound('CAPITAL_COMPONENT_BY_HASH_NOT_FOUND', { hash: data.component_hash });
     }
 
     // 3. Проверяем, что это действительно компонент
@@ -587,10 +530,7 @@ export class ParticipationManagementInteractor {
     );
 
     if (!isComponent) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Проект ${data.component_hash} не является компонентом. Используйте generateProjectGenerationContract`
-      );
+      throw DomainError.badRequest('CAPITAL_PROJECT_IS_NOT_COMPONENT', { hash: data.component_hash });
     }
 
     // 4. Получаем родительский проект
@@ -599,18 +539,12 @@ export class ParticipationManagementInteractor {
     );
 
     if (!parentProject) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Родительский проект с хэшем ${data.parent_project_hash} не найден`
-      );
+      throw DomainError.notFound('CAPITAL_PARENT_PROJECT_NOT_FOUND', { hash: data.parent_project_hash });
     }
 
     // 5. Проверяем, что component действительно дочерний для parent_project
     if (component.parent_hash !== parentProject.project_hash) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        `Компонент ${data.component_hash} не является дочерним для проекта ${data.parent_project_hash}`
-      );
+      throw DomainError.badRequest('CAPITAL_COMPONENT_NOT_CHILD_OF_PROJECT', { componentHash: data.component_hash, projectHash: data.parent_project_hash });
     }
 
     // 6. Допуск к родительскому проекту: confirmed (уже участник)
@@ -626,10 +560,7 @@ export class ParticipationManagementInteractor {
       ));
 
     if (!parentAppendix) {
-      throw new HttpApiError(
-        httpStatus.NOT_FOUND,
-        `Не найдено приложение к родительскому проекту ${parentProject.project_hash} для пользователя ${data.username}`
-      );
+      throw DomainError.notFound('CAPITAL_PARENT_PROJECT_APPENDIX_NOT_FOUND', { projectHash: parentProject.project_hash, username: data.username });
     }
 
     // 7. Генерируем уникальный хэш для дополнения к приложению
@@ -929,17 +860,11 @@ export class ParticipationManagementInteractor {
     for (const doc of documentsToValidate) {
       const document = await this.documentPort.getByHash(doc.hash);
       if (!document) {
-        throw new HttpApiError(
-          httpStatus.BAD_REQUEST,
-          `Документ ${doc.name} с хэшем ${doc.hash} не найден в базе данных`
-        );
+        throw DomainError.badRequest('CAPITAL_NAMED_DOCUMENT_NOT_FOUND', { name: doc.name, hash: doc.hash });
       }
 
       if (document.meta.username !== data.username) {
-        throw new HttpApiError(
-          httpStatus.BAD_REQUEST,
-          `Username в документе ${doc.name} не совпадает с переданным`
-        );
+        throw DomainError.badRequest('CAPITAL_NAMED_DOCUMENT_USERNAME_MISMATCH', { name: doc.name });
       }
     }
 

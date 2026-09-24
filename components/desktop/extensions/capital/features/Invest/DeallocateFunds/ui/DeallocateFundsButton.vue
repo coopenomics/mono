@@ -3,13 +3,13 @@ span(@click.stop)
   BaseButton(
     variant='ghost',
     size='sm',
-    aria-label='Вернуть средства в программу',
+    :aria-label='$t("capital.deallocateFundsButton.ariaLabel")',
     @click='open = true'
   )
     template(#icon-left)
       q-icon(name='undo', size='16px')
-    | Вернуть
-  q-tooltip Вернуть средства компонента в программу
+    | {{ $t('capital.deallocateFundsButton.label') }}
+  q-tooltip {{ $t('capital.deallocateFundsButton.description') }}
 
   DeallocateFundsDialog(
     v-model='open',

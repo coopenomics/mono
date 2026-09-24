@@ -4,7 +4,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для payment-cancelled воркфлоу
 export const paymentCancelledPayloadSchema = z.object({
@@ -20,31 +20,34 @@ export type IPayload = z.infer<typeof paymentCancelledPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Платеж отменен';
-export const id = slugify(name);
+export const name = nt('paymentCancelled.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'platezh-otmenen';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление об отмене платежа')
+  .i18nKey('paymentCancelled')
+  .description(nt('paymentCancelled.description'))
   .payloadSchema(paymentCancelledPayloadSchema)
   .tags(['user']) // Для всех пользователей
   .addSteps([
     createEmailStep(
       'payment-cancelled-email',
-      'Платеж отменен',
-      'Уважаемый {{payload.userName}}!<br><br>Ваш платеж был отменен.<br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br>Номер платежа: {{payload.paymentId}}<br>Дата: {{payload.paymentDate}}<br><br>Подробная информация доступна по ссылке: {{payload.paymentUrl}}'
+      nt('paymentCancelled.email.subject'),
+      nt('paymentCancelled.email.body')
     ),
     createInAppStep(
       'payment-cancelled-notification',
-      'Платеж отменен',
-      'Платеж на сумму {{payload.paymentAmount}} {{payload.paymentCurrency}} отменен'
+      nt('paymentCancelled.inApp.subject'),
+      nt('paymentCancelled.inApp.body')
     ),
     createPushStep(
       'payment-cancelled-push',
-      'Платеж отменен',
-      'Платеж {{payload.paymentAmount}} {{payload.paymentCurrency}} отменен'
+      nt('paymentCancelled.push.subject'),
+      nt('paymentCancelled.push.body')
     ),
   ])
   .build();

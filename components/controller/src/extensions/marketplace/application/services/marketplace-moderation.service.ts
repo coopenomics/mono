@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -25,6 +19,8 @@ import {
   MARKETPLACE_OFFER_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_MODERATION_SERVICE = Symbol('MARKETPLACE_MODERATION_SERVICE');
 
@@ -67,7 +63,7 @@ export class MarketplaceModerationService {
     warranty_days: number
   ): Promise<MarketplaceOfferDomainEntity> {
     if (!Number.isInteger(warranty_days) || warranty_days < 0) {
-      throw new BadRequestException('Гарантийный срок возврата должен быть целым неотрицательным числом дней.');
+      throw DomainError.badRequest('MARKETPLACE_WARRANTY_DAYS_INVALID');
     }
     const offer = await this.requirePending(offer_id);
     // Гарантийный срок возврата задаёт модератор именно на одобрении: питает
@@ -106,12 +102,10 @@ export class MarketplaceModerationService {
   ): Promise<MarketplaceOfferDomainEntity> {
     const trimmed = reason?.trim();
     if (!trimmed) {
-      throw new BadRequestException('Укажите причину отклонения предложения.');
+      throw DomainError.badRequest('MARKETPLACE_REJECT_REASON_REQUIRED');
     }
     if (trimmed.length > MarketplaceModerationService.MAX_REJECT_REASON_LEN) {
-      throw new BadRequestException(
-        `Причина отклонения слишком длинная (максимум ${MarketplaceModerationService.MAX_REJECT_REASON_LEN} символов).`
-      );
+      throw DomainError.badRequest('MARKETPLACE_REJECT_REASON_TOO_LONG', { maxLength: MarketplaceModerationService.MAX_REJECT_REASON_LEN });
     }
     const offer = await this.requirePending(offer_id);
     const now = new Date();
@@ -150,18 +144,18 @@ export class MarketplaceModerationService {
     warranty_days: number
   ): Promise<MarketplaceOfferDomainEntity> {
     if (!Number.isInteger(warranty_days) || warranty_days < 0) {
-      throw new BadRequestException('Гарантийный срок возврата должен быть целым неотрицательным числом дней.');
+      throw DomainError.badRequest('MARKETPLACE_WARRANTY_DAYS_INVALID');
     }
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     const updated = await this.offerRepo.applyUpdate(offer.id, { warranty_days });
     await this.logRepo.append({
       offer_id: offer.id,
       action: 'set_warranty',
       by_account: admin_account,
-      reason: `Гарантийный срок возврата: ${warranty_days} дн.`,
+      reason: t('marketplace.moderation.warrantyDaysLabel', { warrantyDays: warranty_days }),
     });
     return updated;
   }
@@ -173,13 +167,11 @@ export class MarketplaceModerationService {
   private async requirePending(offer_id: string): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     if (offer.status !== MarketplaceOfferStatuses.PENDING_MODERATION) {
       const statusLabel = MarketplaceModerationService.translateStatus(offer.status);
-      throw new ConflictException(
-        `Это предложение уже ${statusLabel} — модерация недоступна.`
-      );
+      throw DomainError.conflict('MARKETPLACE_OFFER_MODERATION_ALREADY_DONE', { statusLabel });
     }
     return offer;
   }
@@ -187,13 +179,13 @@ export class MarketplaceModerationService {
   private static translateStatus(status: MarketplaceOfferStatus): string {
     switch (status) {
       case MarketplaceOfferStatuses.ACTIVE:
-        return 'одобрено';
+        return t('marketplace.moderation.approvedStatusLabel');
       case MarketplaceOfferStatuses.REJECTED:
-        return 'отклонено';
+        return t('marketplace.moderation.rejectedStatusLabel');
       case MarketplaceOfferStatuses.WITHDRAWN:
-        return 'снято с публикации';
+        return t('marketplace.moderation.unpublishedStatusLabel');
       default:
-        return `в статусе «${status}»`;
+        return t('marketplace.moderation.genericStatusLabel', { status });
     }
   }
 }

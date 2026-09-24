@@ -9,6 +9,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { BaseButton } from 'src/shared/ui/base';
 import { OrderRegistryDetail } from 'src/widgets/Marketplace/OrderRegistryDetail';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -22,8 +23,8 @@ const orderId = computed(() => String(route.params.orderId ?? ''));
  * кнопка «К заказам участка» уводила туда, где человек не был.
  */
 const BACK_TARGETS: Record<string, { label: string; name: string }> = {
-  orders: { label: 'К заказам участка', name: 'marketplace-pvz-orders' },
-  economy: { label: 'К экономике участка', name: 'marketplace-pvz-economy' },
+  orders: { label: t('marketplace.operatorBranchOrderDetail.backToOrders'), name: 'marketplace-pvz-orders' },
+  economy: { label: t('marketplace.operatorBranchOrderDetail.backToEconomy'), name: 'marketplace-pvz-economy' },
 };
 
 const backTarget = computed<{ label: string; name: string }>(() => {
@@ -31,7 +32,7 @@ const backTarget = computed<{ label: string; name: string }>(() => {
   if (from) return from;
   // Без пометки страницу открывает реестр заказов участка — он и остаётся
   // запасным маршрутом при заходе по прямой ссылке.
-  return { label: 'К заказам участка', name: 'marketplace-pvz-orders' };
+  return { label: t('marketplace.operatorBranchOrderDetail.backToOrders'), name: 'marketplace-pvz-orders' };
 });
 
 // Реальный переход — router.back(): история совпадает с тем, откуда пришли, и

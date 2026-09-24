@@ -78,6 +78,7 @@ div
 
 <script lang="ts" setup>
 import { computed, ref, watch, type Ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import type { IApproval } from 'app/extensions/chairman/entities/Approval/model/types';
 
 /** Элемент реестра: в выдаче SDK тип допускает пустоту, в списке её нет. */
@@ -90,6 +91,7 @@ import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseButton, BaseDialog, BaseInput, BaseTable, EmptyState, TablePager, type BaseTableColumn } from 'src/shared/ui/base';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { DataRow, DetailsDrawer, IdentityCell } from 'src/shared/ui/domain';
+import { t } from '../../../i18n';
 
 /**
  * Запросы предварительных одобрений председателя. Пайщик показан человеческим

@@ -1,13 +1,18 @@
 import { Field, Int, ObjectType, InputType } from '@nestjs/graphql';
 import { IsOptional, Matches } from 'class-validator';
+import { DomainError, validationMessage } from '../errors/domain-error';
 
 /**
- * Допустимое имя поля сортировки: латиница, цифры и подчёркивание. Поле уходит
+ * Допустимое поле сортировки: имя из латиницы, цифр и подчёркивания и, по
+ * желанию, направление через двоеточие (`created_at:desc` — так сортирует
+ * реестр пайщиков, репозиторий пользователей разбирает пару сам). Поле уходит
  * в `ORDER BY` строкой, и любой другой символ открывал бы подстановку SQL.
- * Какая именно колонка разрешена, решает репозиторий по метаданным сущности
- * (`resolveSortColumn`); здесь отсекается всё, что именем колонки быть не может.
+ * Какая именно колонка разрешена, решает репозиторий по своему списку или
+ * метаданным сущности (`resolveSortColumn`); здесь отсекается всё, что именем
+ * колонки быть не может. Пустая строка — «без сортировки»: её отдаёт таблица
+ * со снятой сортировкой, и репозитории берут порядок по умолчанию.
  */
-export const SORT_FIELD_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const SORT_FIELD_PATTERN = /^([A-Za-z_][A-Za-z0-9_]*(:(asc|desc))?)?$/i;
 
 /**
  * Входные параметры для пагинации и сортировки
@@ -22,7 +27,7 @@ export class PaginationInputDTO {
 
   @Field(() => String, { nullable: true, description: 'Ключ сортировки (например, "name")' })
   @IsOptional()
-  @Matches(SORT_FIELD_PATTERN, { message: 'Недопустимое поле сортировки' })
+  @Matches(SORT_FIELD_PATTERN, { message: validationMessage('kit.pagination.invalidSortField') })
   sortBy?: string;
 
   @Field(() => String, {
@@ -134,19 +139,19 @@ export class PaginationUtils {
     const { page = 1, limit = 10, sortBy, sortOrder = 'ASC' } = options;
 
     if (page < 1) {
-      throw new Error('Номер страницы должен быть больше 0');
+      throw DomainError.internal('KIT_PAGE_NUMBER_INVALID');
     }
 
     if (limit < 1 || limit > 1000) {
-      throw new Error('Количество элементов на странице должно быть от 1 до 1000');
+      throw DomainError.internal('KIT_PAGE_LIMIT_INVALID');
     }
 
     if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
-      throw new Error('Направление сортировки должно быть ASC или DESC');
+      throw DomainError.internal('KIT_SORT_ORDER_INVALID');
     }
 
     if (sortBy !== undefined && sortBy !== null && !SORT_FIELD_PATTERN.test(sortBy)) {
-      throw new Error('Недопустимое поле сортировки');
+      throw DomainError.internal('KIT_SORT_FIELD_INVALID');
     }
 
     return {

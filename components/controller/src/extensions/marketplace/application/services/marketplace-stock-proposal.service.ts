@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import type { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/marketplace-share-return-statement-document.dto';
@@ -13,7 +6,7 @@ import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto
 import { MARKETPLACE_CONVERT_SERVICE, MarketplaceConvertService } from './marketplace-convert.service';
 import type { MarketplaceConvertPayload } from './marketplace-checkout.service';
 import { computeConvertAnchorHash } from '../shared/order-hash.util';
-import { rethrowChainError } from '@coopenomics/extension-kit';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -65,6 +58,7 @@ import {
   type MarketplaceStockProposalCreatedEvent,
   type MarketplaceStockProposalResolvedEvent,
 } from '../events/marketplace-notification.events';
+import { t as i18nT } from '../../i18n';
 
 /** Строка корзины докладки на этапе формирования бандла оператором. */
 export interface MarketplaceStockProposalCreateLine {
@@ -254,12 +248,12 @@ export class MarketplaceStockProposalService {
   ): Promise<MarketplaceStockAcceptPayload> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
-      throw new ForbiddenException('Подписать заявления может только адресат предложения.');
+      throw DomainError.forbidden('MARKETPLACE_STOCK_PROPOSAL_NOT_ADDRESSEE');
     }
     this.assertProposed(proposal);
     for (const item of proposal.items) {
       if (!item.order_hash) {
-        throw new ConflictException('Бандл в устаревшем формате (без order_hash) — переформируйте его у стойки.');
+        throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_BUNDLE_LEGACY_FORMAT');
       }
     }
     const order_lines: MarketplaceStockAcceptOrderLine[] = [];
@@ -316,26 +310,22 @@ export class MarketplaceStockProposalService {
     package_id: string | null | undefined
   ): Promise<{ offer: MarketplaceOfferDomainEntity; resolved: ResolvedSaleUnit }> {
     if (!(quantity > 0)) {
-      throw new BadRequestException('Количество в строке должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_LINE_QUANTITY_MUST_BE_POSITIVE');
     }
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer || offer.coopname !== coopname) {
-      throw new NotFoundException('Предложение остатка не найдено.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_PROPOSAL_NOT_FOUND');
     }
     if (offer.stock_braname !== braname) {
-      throw new BadRequestException(
-        `«${offer.product_name}» — остаток другого КУ, со стойки ${braname} не докладывается.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_WRONG_KU_STOCK', { productName: offer.product_name, braname });
     }
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-      throw new BadRequestException(`«${offer.product_name}» снят с публикации.`);
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_OFFER_UNPUBLISHED', { productName: offer.product_name });
     }
     const resolved = resolveSaleUnit(offer, quantity, package_id);
     const shortfall = saleUnitShortfall(offer, resolved);
     if (shortfall) {
-      throw new BadRequestException(
-        `«${offer.product_name}»: на складе свободно ${shortfall.available} ${shortfall.unitLabel}, нельзя предложить ${shortfall.requested}.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_INSUFFICIENT_STOCK', { productName: offer.product_name, available: shortfall.available, unitLabel: shortfall.unitLabel, requested: shortfall.requested });
     }
     return { offer, resolved };
   }
@@ -376,27 +366,27 @@ export class MarketplaceStockProposalService {
     line: MarketplaceOrderProposalCreateLine
   ): Promise<MarketplaceStockProposalItem> {
     if (!(line.actual_quantity > 0)) {
-      throw new BadRequestException('Количество в строке заказа должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_ORDER_LINE_QUANTITY_MUST_BE_POSITIVE');
     }
     if (Number.parseFloat(line.actual_unit_price) <= 0) {
-      throw new BadRequestException('Цена в строке заказа должна быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_ORDER_LINE_PRICE_MUST_BE_POSITIVE');
     }
     const order = await this.orderRepo.findById(line.order_id);
     if (!order || order.coopname !== coopname) {
-      throw new NotFoundException(`Заказ ${line.order_id} не найден.`);
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: line.order_id });
     }
     if (order.orderer_account !== member_account) {
-      throw new BadRequestException('Заказ принадлежит другому пайщику — нельзя включить его в бандл этого получателя.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_ORDER_WRONG_OWNER');
     }
     if (order.delivery_braname !== braname) {
-      throw new BadRequestException(`Заказ выдаётся на другом КУ (${order.delivery_braname}), со стойки ${braname} не выдаётся.`);
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_ORDER_WRONG_KU', { orderBraname: order.delivery_braname, braname });
     }
     if (order.status !== 'ACCEPTED_TO_COOP' && order.status !== 'READY_TO_RECEIVE') {
-      throw new ConflictException(`Заказ ${order.id} (статус «${order.status}») не готов к выдаче.`);
+      throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ORDER_NOT_READY', { orderId: order.id, orderStatus: order.status });
     }
     const active = await this.sagaRepo.findActiveByOrderId(coopname, order.id);
     if (active && active.stage !== MarketplaceIssuanceSagaStages.FACT_FIXED) {
-      throw new ConflictException(`По заказу ${order.id} выдача уже начата (этап «${active.stage}»).`);
+      throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ORDER_ISSUE_ALREADY_STARTED', { orderId: order.id, stage: active.stage });
     }
     assertValidQuantity(line.actual_quantity, order.unit_of_measure);
     const offer = await this.offerRepo.findById(order.offer_id);
@@ -405,7 +395,7 @@ export class MarketplaceStockProposalService {
       offer_id: order.offer_id,
       quantity: line.actual_quantity,
       unit_price: line.actual_unit_price,
-      product_name: offer?.product_name ?? 'Товар по предложению',
+      product_name: offer?.product_name ?? i18nT('marketplace.stockProposal.defaultProductTitle'),
       unit_of_measure: offer?.unit_of_measure ?? null,
       package_size: order.package_size,
       order_hash: order.order_hash,
@@ -425,7 +415,7 @@ export class MarketplaceStockProposalService {
     items: Array<{ offer_id: string; quantity: number; package_id?: string | null }>;
   }): Promise<MarketplaceStockIssuanceOperatorLine[]> {
     if (input.items.length === 0) {
-      throw new BadRequestException('Корзина докладки пуста — добавьте позиции из остатка.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_TOPUP_CART_EMPTY');
     }
     const lines: MarketplaceStockIssuanceOperatorLine[] = [];
     for (const item of input.items) {
@@ -451,13 +441,13 @@ export class MarketplaceStockProposalService {
   async createProposal(input: MarketplaceStockProposalCreateInput): Promise<MarketplaceStockProposalDomainEntity> {
     const orderLines = input.order_items ?? [];
     if (input.items.length === 0 && orderLines.length === 0) {
-      throw new BadRequestException('Бандл пуст — добавьте позиции заказа или докладку со склада.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_BUNDLE_EMPTY');
     }
     const items: MarketplaceStockProposalItem[] = [];
     for (const line of input.items) {
       const { offer, resolved } = await this.validateStockLine(input.coopname, input.braname, line.offer_id, line.quantity, line.package_id);
       if (!line.order_hash) {
-        throw new BadRequestException('Строка без order_hash — переформируйте докладку.');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_LINE_MISSING_ORDER_HASH');
       }
       items.push({
         offer_id: offer.id,
@@ -523,14 +513,14 @@ export class MarketplaceStockProposalService {
   ): Promise<MarketplaceStockProposalAcceptResult> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
-      throw new ForbiddenException('Подписать заявления может только адресат предложения.');
+      throw DomainError.forbidden('MARKETPLACE_STOCK_PROPOSAL_NOT_ADDRESSEE');
     }
     this.assertProposed(proposal);
     const signedByHash = new Map((input.order_lines ?? []).map((l) => [l.order_hash, l.signed_statement]));
     for (const item of proposal.items) {
-      if (!item.order_hash) throw new ConflictException('Бандл в устаревшем формате — переформируйте его у стойки.');
+      if (!item.order_hash) throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_BUNDLE_LEGACY_FORMAT_SIGN');
       if (!signedByHash.get(item.order_hash)) {
-        throw new BadRequestException('Состав подписания не совпадает с бандлом — обновите подписание.');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PROPOSAL_SIGNING_MISMATCH');
       }
     }
     // План по свежему балансу членского кошелька: недостающая сумма обязана
@@ -582,7 +572,7 @@ export class MarketplaceStockProposalService {
     } catch (error) {
       for (const order_id of createdStock) {
         try {
-          await this.stockService.cancelStockOrder(coopname, order_id, member_account, 'Подписание бандла не завершилось — строка отменена');
+          await this.stockService.cancelStockOrder(coopname, order_id, member_account, i18nT('marketplace.stockProposal.signingCancelledLine'));
         } catch (compErr: any) {
           this.logger.error(`finalizeStockIssuance: компенсирующая отмена stock-order ${order_id} упала: ${compErr.message}. РУЧНАЯ СВЕРКА!`);
         }
@@ -632,9 +622,7 @@ export class MarketplaceStockProposalService {
     if (failed.length === 1) throw failed[0].result.reason;
     if (failed.length > 1) {
       const details = failed.map((f) => `«${f.item.product_name}»: ${this.reasonMessage(f.result.reason)}`).join('; ');
-      throw new ConflictException(
-        `Заявления не поданы по ${failed.length} позициям из ${issuables.length} — ${details}. Остальные позиции поданы и ждут решения совета.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_PARTIAL_SUBMIT_FAILURE', { failedLength: failed.length, issuablesLength: issuables.length, details });
     }
     // Порядок — как в бандле, а не в порядке завершения.
     const sagas = settled.map((r) => (r as PromiseFulfilledResult<MarketplaceIssuanceSagaDomainEntity>).value);
@@ -661,11 +649,11 @@ export class MarketplaceStockProposalService {
   async declineProposal(coopname: string, proposal_id: string, member_account: string): Promise<MarketplaceStockProposalDomainEntity> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     if (proposal.member_account !== member_account) {
-      throw new ForbiddenException('Отказаться от предложения может только его адресат.');
+      throw DomainError.forbidden('MARKETPLACE_STOCK_PROPOSAL_DECLINE_NOT_ADDRESSEE');
     }
     this.assertProposed(proposal);
     const resolved = await this.proposalRepo.applyResolution(proposal.id, MarketplaceStockProposalStatuses.PROPOSED, MarketplaceStockProposalStatuses.DECLINED);
-    if (!resolved) throw new ConflictException('Предложение уже разрешено.');
+    if (!resolved) throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ALREADY_RESOLVED');
     await this.cancelFactFixedSagas(proposal);
     this.emitResolved(resolved);
     return resolved;
@@ -676,7 +664,7 @@ export class MarketplaceStockProposalService {
     const proposal = await this.loadProposal(coopname, proposal_id);
     this.assertProposed(proposal);
     const resolved = await this.proposalRepo.applyResolution(proposal.id, MarketplaceStockProposalStatuses.PROPOSED, MarketplaceStockProposalStatuses.CANCELLED);
-    if (!resolved) throw new ConflictException('Предложение уже разрешено.');
+    if (!resolved) throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ALREADY_RESOLVED');
     await this.cancelFactFixedSagas(proposal);
     this.emitResolved(resolved);
     this.logger.log(`Бандл ${proposal.id} отозван оператором ${operator_account}.`);
@@ -744,14 +732,14 @@ export class MarketplaceStockProposalService {
   private async loadProposal(coopname: string, proposal_id: string): Promise<MarketplaceStockProposalDomainEntity> {
     const proposal = await this.proposalRepo.findById(proposal_id);
     if (!proposal || proposal.coopname !== coopname) {
-      throw new NotFoundException('Предложение докладки не найдено.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_PROPOSAL_TOPUP_NOT_FOUND');
     }
     return proposal;
   }
 
   private assertProposed(proposal: MarketplaceStockProposalDomainEntity): void {
     if (proposal.status !== MarketplaceStockProposalStatuses.PROPOSED) {
-      throw new ConflictException(`Предложение уже разрешено (статус «${proposal.status}»).`);
+      throw DomainError.conflict('MARKETPLACE_STOCK_PROPOSAL_ALREADY_RESOLVED_WITH_STATUS', { status: proposal.status });
     }
   }
 

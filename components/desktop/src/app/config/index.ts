@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 const coreHost = 'voskhod' //urtrzvfscntv
 
 export default {
@@ -10,7 +11,7 @@ export default {
   botName: 'dacom',
   header: { title: 'DACom' },
   siteTitle: 'DACom | DEXCOOP',
-  siteDescription: 'Токенизация бизнеса',
+  siteDescription: t('app.config.siteDescription'),
   siteImage: '/assets/preview.png',
   allowedNftCreatingAccounts: ['nfttest'],
   tiledeskProject: '6460c2ab3e07dc00195ccbf6',
@@ -134,7 +135,7 @@ export default {
     {
       path: '/marketplace',
       name: 'marketplace',
-      pageName: 'Маркет',
+      pageName: t('app.config.pageMarket'),
       icon: 'fa-solid fa-barcode',
       isMobile: true,
     },
@@ -148,14 +149,14 @@ export default {
     {
       path: '/drafter',
       name: 'drafter',
-      pageName: 'Шаблонизатор',
+      pageName: t('app.config.pageDrafter'),
       icon: 'fa-solid fa-barcode',
       isMobile: true,
     },
     {
       path: 'explorer',
       name: 'explorer',
-      pageName: 'Обозреватель',
+      pageName: t('app.config.pageExplorer'),
       icon: 'fa-solid fa-cube',
     },
     // {
@@ -175,13 +176,13 @@ export default {
     {
       path: '/admin/withdrawer',
       name: 'admin-withdrawer',
-      pageName: 'Управление выводом',
+      pageName: t('app.config.pageAdminWithdrawer'),
       icon: 'fa-solid fa-money-bill-transfer',
     },
     {
       path: '/admin/partners',
       name: 'admin-partners',
-      pageName: 'Управление сетью',
+      pageName: t('app.config.pageAdminPartners'),
       icon: 'fa-solid fa-people-group',
     },
   ],
