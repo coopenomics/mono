@@ -68,6 +68,7 @@
 
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
+| `CHAIRMAN_APPROVALS_PORT` | `IChairmanApprovalsPort` (1)<br><sub>cross-plugin-ports/chairman-approvals.port.ts</sub> | `ChairmanInnercoopApprovalsAdapter` | — | Одобрения председателя — документы, которые ждут его второй подписи (договор УХД преподавателя, приложение к нему, коммит РИД и т. |
 | `CHATCOOP_CALENDAR_PORT` | `IChatCoopCalendarPort` (1)<br><sub>cross-plugin-ports/chatcoop-calendar.port.ts</sub> | `ChatcoopInnercoopChatCoopCalendarAdapter` | — | Read-модель события календаря ChatCoop для межмодульного контракта (Capital и др.). |
 | `COOP_CALENDAR_EVENT_NOTIFICATION_PORT` | `ICoopCalendarEventNotificationPort` (2)<br><sub>cross-plugin-ports/coop-calendar-event-notification.port.ts</sub> | — | chatcoop | Оповещения пайщиков о событиях кооперативного календаря (Novu / стол связи). |
 | `EXPENSE_CHASSIS_PORT` | `IExpenseChassisPort` (11)<br><sub>cross-plugin-ports/expense-chassis.port.ts</sub> | `ExpensesInnercoopExpenseChassisAdapter` | capital, marketplace | Шасси расходов (контракт `expense`): read-side для приложений-потребителей (capital, marketplace, EMP). |
@@ -85,4 +86,4 @@
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 53.
+Всего портов: 54.
