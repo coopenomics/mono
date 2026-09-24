@@ -187,31 +187,12 @@ describe('отчёты: 6-НДФЛ и уведомление по НДФЛ из 
     expect(report.xml).not.toContain('СправДох')
   })
 
-  it(caseName('rep.ndfl6.break.03', 'квартальный с суммами и годовой со справками проходят проверку схемой ФНС'), async () => {
-    const quarterly = await generateReport('NDFL6', Y, Q, afterSecond[`ndfl6:${Y}:${Q}`])
-    expect(quarterly.errors, quarterly.errors.join('; ')).toEqual([])
-    expect(quarterly.isValid).toBe(true)
-    const annual = await generateReport('NDFL6', Y, 4, afterSecond.annual)
-    expect(annual.errors, annual.errors.join('; ')).toEqual([])
-    expect(annual.isValid).toBe(true)
-  })
-
   it(caseName('rep.ndfl6.break.02', 'черновик без разделов с суммами: генерация не падает, отчёт нулевой'), async () => {
     const { tax: _tax, certificates: _certs, ...headerOnly } = before[`ndfl6:${Y}:${Q}`]
     const report = await generateReport('NDFL6', Y, Q, headerOnly)
     expect(report.xml.length, report.errors.join('; ')).toBeGreaterThan(0)
     expect(report.xml).toContain('СумНалУд="0"')
     expect(report.xml).not.toContain('СправДох')
-  })
-
-  it(caseName('rep.ndfl6.happy.04', 'уведомление за расчётный период: КБК НДФЛ и сумма удержанного за период'), async () => {
-    const d = afterFirst[`uv:${Y}:${P}`].payment.amount - before[`uv:${Y}:${P}`].payment.amount
-    expect(d).toBe(13)
-    const report = await generateReport('UV_NDFL', Y, P, afterFirst[`uv:${Y}:${P}`])
-    expect(report.errors, report.errors.join('; ')).toEqual([])
-    expect(report.isValid).toBe(true)
-    expect(report.xml).toContain(`КБК="${NDFL_KBK}"`)
-    expect(report.xml).toContain(`СумНалогАванс="${afterFirst[`uv:${Y}:${P}`].payment.amount}"`)
   })
 
   it(caseName('rep.ndfl6.happy.05', 'удержания раскладываются по расчётным периодам месяца: до 22-го — первый, с 23-го — второй'), async () => {

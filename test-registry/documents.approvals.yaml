@@ -120,6 +120,7 @@ cases:
     scenario: Ядро при старте объявляет базовый набор документов; расширение объявляет свои документы при запуске
     expect: реестр шаблонов кооператива содержит ядро и документы установленных приложений, ядро первым
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.04
@@ -152,6 +153,7 @@ cases:
     scenario: Совет запрашивает реестр шаблонов кооператива
     expect: по каждому документу видны редакция в сети, утверждённая редакция с номером и датой решения, состояние not_required / not_approved / pending / approved / outdated
     test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.06
@@ -160,6 +162,7 @@ cases:
     scenario: Запрос шаблонов соглашений для рабочего стола
     expect: версия шаблона — утверждённая кооперативом, без утверждения текущая; переподписание запрашивается только после решения совета
     test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.07
@@ -168,6 +171,7 @@ cases:
     scenario: Все переходы состояния документа, включая проект в повестке при устаревшей редакции и отсутствие шаблона в цепи
     expect: pending побеждает outdated и not_approved; отсутствие шаблона при наличии утверждения — approved
     test: components/controller/tests/unit/document-approval/compute-document-state.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.08
@@ -184,6 +188,7 @@ cases:
     scenario: Председатель выносит редакцию документа на совет
     expect: бланк утверждаемой редакции собран из цепи без субъекта, в проекте решения текст и хэш текста, правило отслеживания хранит документы, редакции, хэши и номер решения
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.08
@@ -192,6 +197,7 @@ cases:
     scenario: Пакет документов выносится одним решением
     expect: одна публикация повестки, одно правило на все документы; без общего поля vars реквизиты протокола не пишутся
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.09
@@ -200,6 +206,7 @@ cases:
     scenario: Совет принял решение об утверждении
     expect: для каждого документа правила в цепь записано утверждение с редакцией, номером и датой решения, хэшем текста
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.09
@@ -208,6 +215,7 @@ cases:
     scenario: Повторное вынесение документа, который уже в повестке
     expect: новый проект решения не создаётся, возвращается текущее состояние
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.10
@@ -216,6 +224,7 @@ cases:
     scenario: Вынесение уже утверждённой редакции, служебного документа, документов разных приложений одним решением или чужого кооператива
     expect: отказ с понятным сообщением
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.11
@@ -224,6 +233,7 @@ cases:
     scenario: Совет отклонил решение или оно снято как просроченное
     expect: правило отслеживания снято, документ возвращается в прежнее состояние, публикуется событие для уведомления председателя; чужие решения не трогаются
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.break.01
@@ -240,6 +250,7 @@ cases:
     scenario: Генератор собирает документ для кооператива, у которого утверждённая редакция ниже редакции в сети
     expect: текст и переводы берутся на последнем блоке утверждённой редакции; правки без смены номера в ней доезжают, смысловые изменения новой редакции — нет
     test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.12
@@ -248,6 +259,7 @@ cases:
     scenario: Утверждения нет, утверждённая редакция равна сетевой или истории редакции в реестре узла нет
     expect: читается текущее состояние сети, генерация не падает
     test: components/controller/tests/unit/document-approval/effective-template-block.resolver.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.13
@@ -256,6 +268,7 @@ cases:
     scenario: Бланк для проекта решения совета собирается при утверждённой старой редакции
     expect: совету показывают утверждаемую (текущую) редакцию, а не утверждённую — генерация идёт на текущем блоке
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.14
@@ -344,6 +357,7 @@ cases:
     scenario: Документы шага утверждены с вкладки «Шаблоны документов», минуя карточку
     expect: карточка подключения показывает шаг пройденным без нового решения
     test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.18
@@ -368,6 +382,7 @@ cases:
     scenario: На совет выносится форма, которую без данных события своя фабрика не собирает (заявление на возврат, заявление на выход, формы Стола заказов)
     expect: в решение уходит сама форма — бланк того же шаблона из цепи с реквизитами кооператива и прочерками на месте данных события (для физлица); хэш решения и строки утверждения — от текста бланка; хэш вместо текста в решение не попадает
     test: components/controller/tests/unit/document-approval/document-approval-proposal.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.19
@@ -392,6 +407,7 @@ cases:
     scenario: Шаблоны-двойники «для утверждения» (995, 997, 999, 1101) выведены из реестра
     expect: генератор их не знает, синхронизатор шаблонов записи в сети не трогает и сообщает о них как «в сети, но не в реестре»; рабочие документы 996, 1000, 1001, 1102 собираются как прежде
     test: components/factory/test/documents-1000-plus.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
   - id: doc.appr.side.21
     level: backend
