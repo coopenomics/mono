@@ -24,8 +24,16 @@ import { Ledger2, Ledger2Contract, WalletContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
+import { signedDocument } from './shared/fakeDocument'
+import { capitalDraftId, capitalProgramId } from './capital/consts'
 
 const COOP = 'voskhod'
+
+/** Черновик соглашения программы: signagree обязан ссылаться на него (wallet/signagree.cpp). */
+function draftIdOf(program_id: number): number {
+  if (program_id === capitalProgramId) return capitalDraftId
+  throw new Error(`черновик соглашения программы ${program_id} тесту неизвестен`)
+}
 const CHAIRMAN = 'ant'
 
 describe('cooptypes L3 sanity (Эпик 2 / Эпик 3)', () => {
@@ -82,15 +90,11 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       coopname: COOP,
       username: TEST_USERNAME,
       program_id: TEST_PROGRAM_ID_BLAGO,
-      document: {
-        version: '0',
-        hash: generateRandomSHA256(),
-        doc_hash: generateRandomSHA256(),
-        meta_hash: '0000000000000000000000000000000000000000000000000000000000000000',
-        meta: '',
-        signatures: [],
-      },
-      draft_id: 0,
+      // С 17.09.2026 контракт сверяет подпись документа с ключом пайщика, а
+      // черновик соглашения — с черновиком программы; пустой документ и
+      // draft_id=0 отклоняются.
+      document: signedDocument(generateRandomSHA256()),
+      draft_id: draftIdOf(TEST_PROGRAM_ID_BLAGO),
     }
 
     await bc.api.transact({
@@ -151,7 +155,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
@@ -176,7 +180,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
@@ -201,7 +205,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
         actions: [{
           account: Ledger2Contract.contractName.production,
           name: Ledger2Contract.Actions.Migrate3.actionName,
-          authorization: [{ actor: COOP, permission: 'active' }],
+          authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
           data,
         }],
       }, { blocksBehind: 3, expireSeconds: 30 })
@@ -274,15 +278,8 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       coopname: COOP,
       username: TEST_USERNAME,
       program_id,
-      document: {
-        version: '0',
-        hash: doc_hash,
-        doc_hash,
-        meta_hash: '0000000000000000000000000000000000000000000000000000000000000000',
-        meta: '',
-        signatures: [],
-      },
-      draft_id: 0,
+      document: signedDocument(doc_hash),
+      draft_id: draftIdOf(program_id),
     }
     await bc.api.transact({
       actions: [{
@@ -357,7 +354,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data: {
           coopname: COOP,
           wallet_name,
@@ -383,7 +380,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
@@ -391,10 +388,13 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
-    }, { blocksBehind: 3, expireSeconds: 30 })
+    }, { blocksBehind: 3, expireSeconds: 31 })
+    // Второй вызов с другим сроком действия: иначе у одинаковой транзакции тот же
+    // id, и цепь отвергла бы её как duplicate transaction, а не проверила бы
+    // идемпотентность самого migrate3.
 
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const matches = (rows as Array<{ wallet_name: string; username: string; available: string }>)
@@ -419,7 +419,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
@@ -448,7 +448,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
       actions: [{
         account: Ledger2Contract.contractName.production,
         name: Ledger2Contract.Actions.Migrate3.actionName,
-        authorization: [{ actor: COOP, permission: 'active' }],
+        authorization: [{ actor: Ledger2Contract.contractName.production, permission: 'active' }],
         data,
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })

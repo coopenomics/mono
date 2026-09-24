@@ -19,9 +19,9 @@ on:
     branches: [ci/blackbox]
   workflow_dispatch:
 
-concurrency:
-  group: blackbox-${{ github.ref }}
-  cancel-in-progress: true
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 permissions:
   contents: read
@@ -128,6 +128,8 @@ jobs:
         with:
           name: blackbox-${{ github.run_id }}
           path: .blackbox
+          # Каталог скрытый, а upload-artifact@v4 скрытое по умолчанию пропускает.
+          include-hidden-files: true
           retention-days: 14
 
       - name: Сводка

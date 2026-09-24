@@ -34,9 +34,15 @@ async function generateKey(): Promise<{ wif: string, pub: string }> {
   return { wif, pub: ecc.privateToPublic(wif) }
 }
 
+// Одно и то же действие набор шлёт не раз (включить «joincoop» → сменить режим
+// → вернуть «joincoop»). При той же ссылке на блок и том же сроке действия у
+// повтора получался тот же id, и цепь отвергала его как duplicate transaction —
+// состояние не возвращалось. Свой срок у каждой транзакции делает id уникальным.
+let txSeq = 0
 async function transact(actions: any[]) {
   await bc.update_pass_instance()
-  return bc.api.transact({ actions }, { blocksBehind: 3, expireSeconds: 30 })
+  txSeq = (txSeq + 1) % 600
+  return bc.api.transact({ actions }, { blocksBehind: 3, expireSeconds: 30 + txSeq })
 }
 
 /** Разрешение робота на аккаунте члена совета + привязка к голосованию. */

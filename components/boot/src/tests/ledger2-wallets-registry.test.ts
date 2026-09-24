@@ -4,12 +4,19 @@
  *
  * Часть 1 — pure sanity (без блокчейна): cooptypes-зеркало контрактного реестра
  *   соответствует архитектуре (ADR-002 / ADR-003 / ADR-009 / ADR-010):
- *     • Финальный набор кошельков (5 USER_SHARED + 6 COOPERATIVE = 11)
- *     • WalletOp без WALLET_ONLY/REVOKE, с BURN
+ *     • Реестр кошельков согласован сам с собой и с getWalletKind; опорные
+ *       кошельки архитектуры на месте с правильным kind. Полный список не
+ *       зашивается: реестр генерируется из контракта (wallets.generated.ts) и
+ *       растёт с каждым приложением — копия в тесте устаревала бы с каждым.
+ *     • WalletOp ∈ {ISSUE, TRANSFER, BURN, NONE}: WALLET_ONLY/REVOKE удалены,
+ *       BLOCK/UNBLOCK/BURN_BLOCKED упразднены вместе с субсчётом blocked
+ *       (2026-05-24, 0969505); NONE — операция только с бухпроводкой
  *     • TRANSFER без бухпроводок маркируется (debit==null && credit==null) —
  *       НЕ через специальный op-code (o.cap.invest)
  *     • Capital операции используют только унифицированные кошельки
- *       w.cap.{blago,gen,loan} — никаких старых bginv/gncom/bgrid
+ *       w.cap.{blago,gen,loan} и появившиеся позже w.cap.preimp (учёт РИД до
+ *       электронного учёта) и w.cap.pgexp (пул программных расходов) —
+ *       никаких старых bginv/gncom/bgrid
  *     • Все wallet_from/wallet_to стандартных операций ⊆ реестр кошельков
  *
  * Часть 2 — integration: blockchain ledger2::wallets после migrate содержит
@@ -25,25 +32,25 @@ import config from '../configs'
 const COOP = 'voskhod'
 const LEDGER2 = 'ledger2'
 
-// ── Финальный реестр (ADR-002, ADR-009): эталонные имена ──────────────────────
-const EXPECTED_USER_SHARED = [
-  'w.reg.minshr',
-  'w.wal.share',
-  'w.wal.member',
-  'w.cap.blago',
-  'w.cap.gen',
-] as const
+// ── Опорные кошельки архитектуры (ADR-002, ADR-009) и их kind ─────────────────
+// Не полный список — только то, на чём стоят процессы ядра. w.cap.gen переведён
+// в COOPERATIVE намеренно (f023d3a): ЦПП «Генератор» — кошелёк программы, а не
+// доля пайщика. w.wal.wpend — резерв паевого под заявку на возврат (0969505).
+const CORE_WALLETS: Record<string, 'USER_SHARED' | 'COOPERATIVE'> = {
+  'w.reg.minshr': 'USER_SHARED',
+  'w.wal.share': 'USER_SHARED',
+  'w.wal.member': 'USER_SHARED',
+  'w.cap.blago': 'USER_SHARED',
+  'w.cap.gen': 'COOPERATIVE',
+  'w.reg.entry': 'COOPERATIVE',
+  'w.wal.wpend': 'COOPERATIVE',
+  'w.sov.infra': 'COOPERATIVE',
+  'w.sov.delgte': 'COOPERATIVE',
+  'w.cap.loan': 'COOPERATIVE',
+  'w.mkt.payout': 'COOPERATIVE',
+}
 
-const EXPECTED_COOPERATIVE = [
-  'w.reg.entry',
-  'w.wal.wthdrw',
-  'w.sov.infra',
-  'w.sov.delgte',
-  'w.cap.loan',
-  'w.mkt.payout',
-] as const
-
-const ALL_VALID_NAMES = new Set<string>([...EXPECTED_USER_SHARED, ...EXPECTED_COOPERATIVE])
+const ALL_VALID_NAMES = new Set<string>(Ledger2.LEDGER2_WALLET_REGISTRY.map((w) => w.name))
 
 // Имена, которые мы умышленно удалили — не должны встречаться нигде в реестре
 // или в blockchain wallets table.
@@ -55,17 +62,21 @@ const FORBIDDEN_LEGACY_NAMES = [
   'w.wal.cash',
 ] as const
 
-const EXPECTED_WALLET_OPS = ['ISSUE', 'TRANSFER', 'BLOCK', 'UNBLOCK', 'BURN'] as const
+const EXPECTED_WALLET_OPS = ['ISSUE', 'TRANSFER', 'BURN', 'NONE'] as const
+const REMOVED_WALLET_OPS = ['BLOCK', 'UNBLOCK', 'BURN_BLOCKED', 'WALLET_ONLY', 'REVOKE'] as const
 
 describe('ledger2 wallet registry — sanity (cooptypes ↔ архитектура)', () => {
-  it('LEDGER2_WALLET_REGISTRY содержит ровно 11 кошельков (5 USER_SHARED + 6 COOPERATIVE)', () => {
-    expect(Ledger2.LEDGER2_WALLET_REGISTRY).toHaveLength(11)
-
-    const userShared = Ledger2.LEDGER2_WALLET_REGISTRY.filter((w) => w.kind === 'USER_SHARED').map((w) => w.name)
-    const cooperative = Ledger2.LEDGER2_WALLET_REGISTRY.filter((w) => w.kind === 'COOPERATIVE').map((w) => w.name)
-
-    expect(userShared.sort()).toEqual([...EXPECTED_USER_SHARED].sort())
-    expect(cooperative.sort()).toEqual([...EXPECTED_COOPERATIVE].sort())
+  it('реестр кошельков: имена уникальны, kind из двух видов, опорные кошельки на месте', () => {
+    const names = Ledger2.LEDGER2_WALLET_REGISTRY.map((w) => w.name)
+    expect(new Set(names).size, 'имя кошелька встречается в реестре дважды').toBe(names.length)
+    for (const w of Ledger2.LEDGER2_WALLET_REGISTRY) {
+      expect(['USER_SHARED', 'COOPERATIVE'], `${w.name}: неизвестный kind ${w.kind}`).toContain(w.kind)
+    }
+    for (const [name, kind] of Object.entries(CORE_WALLETS)) {
+      const w = Ledger2.LEDGER2_WALLET_REGISTRY.find((x) => x.name === name)
+      expect(w, `опорный кошелёк ${name} пропал из реестра`).toBeDefined()
+      expect(w!.kind, `${name}: kind`).toBe(kind)
+    }
   })
 
   it('никаких удалённых stale-имён (sharid/bginv/gncom/bgrid/wal.cash) в реестре', () => {
@@ -76,11 +87,8 @@ describe('ledger2 wallet registry — sanity (cooptypes ↔ архитектур
   })
 
   it('getWalletKind возвращает корректный kind для каждого имени', () => {
-    for (const name of EXPECTED_USER_SHARED) {
-      expect(Ledger2.getWalletKind(name)).toBe('USER_SHARED')
-    }
-    for (const name of EXPECTED_COOPERATIVE) {
-      expect(Ledger2.getWalletKind(name)).toBe('COOPERATIVE')
+    for (const w of Ledger2.LEDGER2_WALLET_REGISTRY) {
+      expect(Ledger2.getWalletKind(w.name), w.name).toBe(w.kind)
     }
     expect(Ledger2.getWalletKind('w.wal.sharid')).toBeUndefined()
     expect(Ledger2.getWalletKind(null)).toBeUndefined()
@@ -96,7 +104,7 @@ describe('ledger2 wallet registry — sanity (cooptypes ↔ архитектур
 })
 
 describe('ledger2 OPERATION_REGISTRY — sanity (WalletOp cleanup, ADR-003 / ADR-009)', () => {
-  it('WalletOp в каждой записи ∈ {ISSUE, TRANSFER, BLOCK, UNBLOCK, BURN} ∪ null (adjustment)', () => {
+  it('WalletOp в каждой записи ∈ {ISSUE, TRANSFER, BURN, NONE} ∪ null (adjustment)', () => {
     for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
       if (op.kind === 'adjustment') {
         expect(op.wallet_op, `adjustment ${op.code} должна иметь wallet_op == null`).toBeNull()
@@ -106,10 +114,9 @@ describe('ledger2 OPERATION_REGISTRY — sanity (WalletOp cleanup, ADR-003 / ADR
     }
   })
 
-  it('никаких упоминаний устаревших WALLET_ONLY/REVOKE в реестре операций', () => {
+  it('никаких упразднённых WalletOp (WALLET_ONLY/REVOKE/BLOCK/UNBLOCK/BURN_BLOCKED) в реестре операций', () => {
     for (const op of Ledger2.LEDGER2_OPERATION_REGISTRY) {
-      expect(op.wallet_op as unknown, `${op.code}: WALLET_ONLY должен быть удалён`).not.toBe('WALLET_ONLY')
-      expect(op.wallet_op as unknown, `${op.code}: REVOKE должен быть удалён, заменён BURN`).not.toBe('REVOKE')
+      expect(REMOVED_WALLET_OPS as readonly unknown[], `${op.code}: WalletOp ${op.wallet_op} упразднён`).not.toContain(op.wallet_op)
     }
   })
 
@@ -145,7 +152,7 @@ describe('ledger2 OPERATION_REGISTRY — sanity (WalletOp cleanup, ADR-003 / ADR
   })
 
   it('capital операции используют только унифицированные w.cap.{blago,gen,loan} (ADR-009)', () => {
-    const allowedCapitalWallets = new Set(['w.cap.blago', 'w.cap.gen', 'w.cap.loan', 'w.wal.share'])
+    const allowedCapitalWallets = new Set(['w.cap.blago', 'w.cap.gen', 'w.cap.loan', 'w.cap.preimp', 'w.cap.pgexp', 'w.wal.share'])
     const capitalOps = Ledger2.LEDGER2_OPERATION_REGISTRY.filter((o) => o.contract === 'capital')
     expect(capitalOps.length, 'capital должен иметь ≥5 операций после ADR-009').toBeGreaterThanOrEqual(5)
 
