@@ -1,4 +1,5 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
 import {
@@ -30,10 +31,23 @@ interface AssignmentRow {
  * DataSource (как `PostgresAccessRulesRepository`). Сами правила наборов лежат в
  * `access_rules` (subject_type='capability_set') — читаются access-rules-репо.
  */
+/** Назначения персонала в ленте изменений — объявлены в `chain-changes.service.ts`. */
+const PARTICIPANT_CAPABILITY_SETS_TABLE = 'participant_capability_sets';
+
 @Injectable()
 export class PostgresCapabilitySetsRepository implements ICapabilitySetsRepository, OnModuleDestroy {
   private ds: DataSource | null = null;
   private initializing: Promise<DataSource> | null = null;
+
+  constructor(
+    // Назначения живут в отдельной базе на сыром SQL — подписчик базы узла их
+    // не видит, поэтому сигнал ленты изменений публикуется здесь, после записи.
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null,
+  ) {}
+
+  private signal(username: string, setKey: string): void {
+    void this.feed?.publishLocal(PARTICIPANT_CAPABILITY_SETS_TABLE, `${username}:${setKey}`, { username });
+  }
 
   private getDataSource(): Promise<DataSource> {
     if (this.ds?.isInitialized) {
@@ -119,6 +133,7 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
                      expires_at = EXCLUDED.expires_at, revoked_at = NULL`,
       [input.username, input.setKey, input.grantedBy, input.expiresAt ?? null],
     );
+    this.signal(input.username, input.setKey);
   }
 
   async revoke(username: string, setKey: string): Promise<boolean> {
@@ -130,6 +145,7 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
        RETURNING username`,
       [username, setKey],
     );
+    if (rows.length > 0) this.signal(username, setKey);
     return rows.length > 0;
   }
 

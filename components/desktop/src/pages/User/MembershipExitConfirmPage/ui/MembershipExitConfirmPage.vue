@@ -61,6 +61,7 @@ const goToCabinet = (): void => {
   }
 };
 
+// realtime: нет источника — разовое подтверждение выхода по ссылке из письма; дальше статус выхода живёт по ленте (watch-exit-overlay).
 onMounted(async () => {
   const token = String(route.query.token || '');
   if (!token) {

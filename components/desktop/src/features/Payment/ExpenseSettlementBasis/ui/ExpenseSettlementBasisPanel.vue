@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
@@ -163,6 +164,10 @@ async function load(): Promise<void> {
 }
 
 onMounted(load);
+
+// Основание расчёта живёт по ленте: отчёт по авансу, файлы и платёж
+// перечитываются сами.
+useLiveReload([{ code: 'expenses', table: 'expense_proposals' }, { code: 'expenses', table: 'expense_files' }, { code: 'core', table: 'payments' }], load);
 </script>
 
 <style lang="scss" scoped>

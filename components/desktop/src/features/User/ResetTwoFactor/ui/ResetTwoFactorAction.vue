@@ -60,6 +60,7 @@ const canManage = computed(() => session.isChairman);
 
 const fullName = computed(() => getName(props.participant));
 
+// realtime: нет источника — состояние второго фактора хранит провайдер входа, в ленте его нет; сброс делает только это действие и перечитывает сам.
 onMounted(() => {
   if (canManage.value) void load(props.participant.username);
 });

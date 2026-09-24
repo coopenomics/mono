@@ -87,6 +87,7 @@ const reason = ref('');
 
 const reviewId = computed(() => props.review?.id ?? '');
 
+// realtime: нет источника — снимки сверки после записи не меняются; сама запись приходит свойством от журнала, он живёт по ленте.
 watch(
   [() => props.modelValue, reviewId],
   async ([open, id]) => {

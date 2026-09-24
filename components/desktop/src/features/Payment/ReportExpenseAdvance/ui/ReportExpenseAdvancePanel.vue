@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -295,6 +296,10 @@ watch(pending, async (file) => {
 });
 
 onMounted(refresh);
+
+// Отчёт по авансу живёт по ленте: статус служебной записки и приложенные
+// файлы обновляются сами.
+useLiveReload([{ code: 'expenses', table: 'expense_proposals' }, { code: 'expenses', table: 'expense_files' }], refresh);
 </script>
 
 <style lang="scss" scoped>

@@ -46,6 +46,7 @@ const attachStartHandler = () => {
 }
 
 const initCanvas = () => {
+  // timing: animation — холст берёт размер контейнера, ждём окончания раскрытия диалога
   setTimeout(() => {
     if (around.value) {
       canvasInst = new Classes.Canvas(around.value, {
@@ -60,6 +61,7 @@ const initCanvas = () => {
   }, 200)
 }
 
+// realtime: нет источника — холст рукописной подписи, данных с сервера не читает.
 onMounted(() => {
   void nextTick(() => initCanvas())
 })

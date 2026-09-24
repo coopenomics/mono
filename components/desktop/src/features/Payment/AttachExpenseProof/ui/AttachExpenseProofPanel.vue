@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { readFileForUpload } from 'src/shared/lib/utils';
 import { Zeus } from '@coopenomics/sdk';
@@ -118,6 +119,10 @@ onMounted(async () => {
     mechanics.value = null;
   }
 });
+
+// Подтверждения расхода живут по ленте: файл, приложенный с другого
+// устройства, и смена статуса служебной записки видны сразу.
+useLiveReload([{ code: 'expenses', table: 'expense_proposals' }, { code: 'expenses', table: 'expense_files' }], refresh);
 </script>
 
 <style lang="scss" scoped>

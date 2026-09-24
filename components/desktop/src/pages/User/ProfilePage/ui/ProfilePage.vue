@@ -235,6 +235,7 @@ const certificate = ref<ParticipantCertificate | null>(null);
 // «удостоверения нет».
 const certLoading = ref(true);
 
+// realtime: нет источника — удостоверение пайщика это короткоживущий подписанный код, его выдают по запросу; перевыпуск по истечении делает счётчик ниже, данные профиля живут по ленте (userContextLive).
 onMounted(async () => {
   // Best-effort: отсутствие удостоверения (старый контур входа / сбой) не должно
   // ломать страницу профиля — карточка просто покажет EmptyState.
@@ -361,6 +362,7 @@ function openQr(): void {
 function startTicking(): void {
   if (tick) return;
   now.value = Date.now();
+  // timing: ui — секундный счётчик годности показанного кода, идёт только пока код на экране
   tick = setInterval(() => {
     now.value = Date.now();
     if (secondsLeft.value <= 0) void renewCertificate();

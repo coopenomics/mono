@@ -112,6 +112,8 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   // пайщика (столы, меню, гранты), поэтому сигнал открыт всем: данных строки,
   // в том числе настроек расширения, в нём нет.
   { code: 'core', table: 'extensions' },
+  // Журнал работы расширений — совету.
+  { code: 'core', table: 'extensions_logs', staff_only: true },
   // Собрание до созыва в цепи и итог обработки закрытого — узел ведёт их сам.
   { code: 'core', table: 'meet_pre' },
   { code: 'core', table: 'meet_processed' },
@@ -124,6 +126,9 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'candidates', owner_field: 'username' },
   // Журнал сверок пишется в другой базе сырым SQL — сигнал шлёт его репозиторий.
   { code: 'core', table: 'verification_reviews', owner_field: 'username' },
+  // Назначения персонала (наборы прав) — назначенному и совету. Пишутся в
+  // другой базе сырым SQL — сигнал шлёт их репозиторий.
+  { code: 'core', table: 'participant_capability_sets', owner_field: 'username' },
   // Реестр подписанных документов: пайщику — его, совету — все.
   { code: 'core', table: 'signed_documents', owner_field: 'username' },
   // Вопросы повестки, которые узел отслеживает (утверждение редакций и т. п.) — совету.

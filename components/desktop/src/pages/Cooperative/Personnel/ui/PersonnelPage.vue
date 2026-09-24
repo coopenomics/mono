@@ -86,6 +86,8 @@ q-page.personnel-page
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useWindowSize } from 'src/shared/hooks';
 import { getName } from 'src/shared/lib/utils';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -184,6 +186,17 @@ const load = async (): Promise<void> => {
   }
 };
 load();
+
+// Персонал живёт по ленте: новые пайщики, смена роли и назначения наборов прав
+// (кем бы они ни были сделаны) перечитывают список.
+useLiveReload(
+  [
+    { code: 'core', table: 'users' },
+    { code: 'core', table: 'participant_capability_sets' },
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+  ],
+  load,
+);
 </script>
 
 <style lang="scss" scoped>

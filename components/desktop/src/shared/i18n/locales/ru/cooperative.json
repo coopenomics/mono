@@ -160,26 +160,6 @@
       "allIncomingOption": "Все входящие",
       "onlyApprovedOption": "Только утверждённые"
     },
-    "listOfOrdersWidget": {
-      "column": {
-        "amount": "Сумма",
-        "status": "Статус",
-        "type": "Тип платежа",
-        "username": "От кого"
-      },
-      "errorReasonLabel": "Причина ошибки: {message}",
-      "noActionsLabel": "нет доступных действий",
-      "noAdditionalInfo": "нет дополнительной информации",
-      "noDataLabel": "платежи не найдены",
-      "statusCompleted": "обработан",
-      "statusExpired": "истёк",
-      "statusFailed": "ошибка",
-      "statusPaid": "оплачен",
-      "statusPending": "ожидание оплаты",
-      "statusRefunded": "отменён",
-      "typeDeposit": "паевой",
-      "typeRegistration": "регистрационный"
-    },
     "listOfParticipantsPage": {
       "filterAll": "Все",
       "filterNoPassport": "Без базовой — нужен паспорт",
@@ -283,24 +263,6 @@
       "statusPending": "В очереди",
       "statusSending": "Отправляется",
       "statusSent": "Доставлено"
-    },
-    "orderCard": {
-      "actionsLabel": "действия",
-      "amountLabel": "Сумма: {quantity}",
-      "collapseLabel": "Скрыть",
-      "errorReasonLabel": "Причина ошибки: {message}",
-      "expandLabel": "Подробнее",
-      "fromLabel": "От кого:",
-      "statusCompleted": "обработан",
-      "statusExpired": "истёк",
-      "statusFailed": "ошибка",
-      "statusLabel": "Статус:",
-      "statusPaid": "оплачен",
-      "statusPending": "ожидание оплаты",
-      "statusRefunded": "отменён",
-      "typeDeposit": "паевой",
-      "typeLabel": "Тип платежа:",
-      "typeRegistration": "регистрационный"
     },
     "personnelPage": {
       "addRoleLabel": "Добавить роль",

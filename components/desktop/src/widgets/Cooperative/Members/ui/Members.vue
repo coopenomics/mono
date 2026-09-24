@@ -67,6 +67,7 @@ const loadMembers = async () => {
 
 const loadingMembers = ref<Record<string, boolean>>({});
 
+// realtime: нет источника в виджете — состав совета приходит в сведениях о кооперативе, они живут по ленте для всего приложения (registerSystemInfoLive, soviet::boards).
 loadMembers();
 
 const removeMember = async (username: string) => {

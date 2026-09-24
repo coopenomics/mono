@@ -72,6 +72,7 @@ const wallet = useWalletStore();
 
 const username = computed(() => props.username);
 
+// realtime: нет источника в виджете — кошелёк со способами оплаты живёт по ленте для всего приложения (registerWalletLive), здесь только первая загрузка.
 wallet.loadUserWallet({ coopname: info.coopname, username: username.value });
 
 function isSBPData(data: ISBPData | IBankTransferData): data is ISBPData {

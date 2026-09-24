@@ -1,6 +1,6 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "a8c10bc19ee69ebf846177a2e03339073890174e",
+  "_commit": "02abfafdb98a5958b33257da5ec3a7cb01661633",
   "files": {
     "components/controller/src/domain/document-approval/services/document-approval-seed.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/component-matrix-announcement.service.ts": 1,
@@ -44,7 +44,6 @@
     "components/desktop/src/entities/System/model/useLiveBlockNumber.ts": 1,
     "components/desktop/src/features/CoopidFlow/ui/FlowEmail.vue": 1,
     "components/desktop/src/features/DocumentSearch/ui/DocumentSearchDialog.vue": 1,
-    "components/desktop/src/features/DocumentSigning/ui/DocumentsSignCanvas.vue": 1,
     "components/desktop/src/features/Provider/model/index.ts": 1,
     "components/desktop/src/features/User/ImportParticipants/model/useParticipantsBatchImport.ts": 1,
     "components/desktop/src/features/User/LoginUser/ui/LoginForm/LoginForm.vue": 3,
@@ -55,7 +54,6 @@
     "components/desktop/src/pages/Registrator/SignUp/SignStatement.vue": 1,
     "components/desktop/src/pages/Registrator/SignUp/SignUp.vue": 2,
     "components/desktop/src/pages/Registrator/SignUp/WaitingRegistration.vue": 1,
-    "components/desktop/src/pages/User/ProfilePage/ui/ProfilePage.vue": 1,
     "components/desktop/src/pages/Verify/VerifyCertificatePage.vue": 1,
     "components/desktop/src/processes/init-wallet/index.ts": 1,
     "components/desktop/src/processes/watch-desktop-health/index.ts": 1,
@@ -65,8 +63,6 @@
     "components/desktop/src/shared/lib/realtime/realtime-channel.ts": 2,
     "components/desktop/src/shared/ui/domain/FilterBar/FilterBar.vue": 1,
     "components/desktop/src/shared/ui/Fab/Fab.vue": 1,
-    "components/desktop/src/widgets/AccountActions/AccountActionsPage.vue": 1,
-    "components/desktop/src/widgets/Cooperative/Orders/ListOfOrders/ui/ListOfOrdersWidget.vue": 1,
     "components/desktop/src/widgets/Marketplace/CodeScanner/CodeScanner.vue": 1,
     "components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/useOnsiteSignatureGate.ts": 1,
     "components/desktop/src/widgets/Marketplace/TTNPrintPreview/TTNPrintPreview.vue": 1

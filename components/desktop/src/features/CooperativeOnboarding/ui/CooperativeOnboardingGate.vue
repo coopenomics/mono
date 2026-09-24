@@ -42,6 +42,7 @@ const {
   load,
 } = useExtensionCooperativeOnboarding(() => props.extension)
 
+// realtime: живёт по ленте внутри useExtensionCooperativeOnboarding — шаги подключения перечитываются по конфигурации расширений (extensions).
 onMounted(() => {
   void load()
 })

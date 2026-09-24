@@ -134,6 +134,7 @@ async function reload(): Promise<void> {
   }
 }
 
+// realtime: нет источника — факторы входа (пароль, код, приложение-аутентификатор) хранит провайдер входа, в ленте их нет; меняет их только этот экран, и после действия он перечитывает сам.
 onMounted(reload);
 
 function openCodeDialog(action: CodeAction, totpTarget = false): void {
