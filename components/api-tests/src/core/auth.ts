@@ -16,7 +16,10 @@ export interface Who {
 
 const tokens = new Map<string, string>()
 
-/** Новый вход — всегда свежий токен (для тестов самого входа и выхода). */
+/**
+ * Новый вход — всегда свежий токен, в общий кеш не попадает: тест, который
+ * потом выходит из этой сессии, не ломает токены остальным файлам.
+ */
 export async function login(who: Who): Promise<string> {
   const info: any = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
   const now = info.head_block_time as string
@@ -26,14 +29,17 @@ export async function login(who: Who): Promise<string> {
     'mutation($d:LoginInput!){ login(data:$d){ tokens{ access{ token } } account{ username } } }',
     { d: { email: who.email, now, signature } },
   )
-  const token = d.login.tokens.access.token as string
-  tokens.set(who.account, token)
-  return token
+  return d.login.tokens.access.token as string
 }
 
 /** Токен из кеша прогона, при первом обращении — вход. */
 export async function tokenOf(who: Who): Promise<string> {
-  return tokens.get(who.account) ?? login(who)
+  const cached = tokens.get(who.account)
+  if (cached)
+    return cached
+  const token = await login(who)
+  tokens.set(who.account, token)
+  return token
 }
 
 /** Забыть токен (после выхода или смены ключа). */
