@@ -24,8 +24,11 @@ import { ApiError, gql, gqlRaw } from '../core/client'
 import { CHAIN_URL, COOP, DEFAULT_WIF, REPO_ROOT } from '../core/env'
 import { freshMember } from '../core/participants'
 import { CHAIRMAN } from '../core/roles'
+import { signDocument } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, rub } from '../core/wallet'
+
+export const GENERATED = 'full_title html hash meta binary'
 
 export const CAPITAL = 'capital'
 export const ZERO_HASH = '0'.repeat(64)
@@ -151,29 +154,41 @@ export async function signCapitalAgreement(who: Who): Promise<void> {
   await coop('signagree', { username: who.account, program_id: CAPITAL_PROGRAM_ID, document: chainDoc([who]), draft_id: CAPITAL_DRAFT_ID }, 'wallet')
 }
 
+const REG_DOCS = ['generation_contract', 'storage_agreement', 'blagorost_agreement', 'generator_offer'] as const
+
 /**
- * Свежий участник Благороста: соглашение программы, договор УХД и его
- * одобрение председателем. Возвращается, когда контроллер видит договор
- * действующим.
+ * Свежий участник Благороста — тем же путём, что рабочий стол
+ * (CapitalRegistrationPage): пакет документов регистрации из генератора,
+ * подпись ключом пайщика, отправка договора УХД через API и одобрение
+ * председателем. Возвращается, когда контроллер видит договор действующим.
+ *
+ * Договор, отправленный в цепь мимо контроллера, в зеркало не попадает:
+ * строку участника без имени синхронизатор не записывает (display_name
+ * обязателен), а имя знает только контроллер.
  */
 export async function capitalMember(prefix = 'cap'): Promise<Who> {
   const who = freshMember({ prefix })
   await signCapitalAgreement(who)
-  const contributorHash = randomHash()
-  const doc = chainDoc([who])
-  await coop('regcontrib', {
-    username: who.account,
-    contributor_hash: contributorHash,
-    rate_per_hour: RATE_PER_HOUR,
-    hours_per_day: 8,
-    is_external_contract: false,
-    storage_agreement: doc,
-    contract: doc,
-    blagorost_agreement: doc,
-    generator_agreement: doc,
+  const token = await tokenOf(who)
+  const gen = await gqlPaced<any>(token, `mutation($d:GenerateCapitalRegistrationDocumentsInputDTO!){
+    capitalGenerateRegistrationDocuments(data:$d){
+      ${REG_DOCS.map(k => `${k}{ ${GENERATED} }`).join(' ')}
+    }
+  }`, { d: { coopname: COOP, username: who.account, lang: 'ru' } })
+  const bundle = gen.capitalGenerateRegistrationDocuments
+  const signed: Record<string, unknown> = {}
+  for (const key of REG_DOCS) {
+    if (bundle[key])
+      signed[key] = await signDocument(who.wif, bundle[key], who.account)
+  }
+  await gqlPaced(token, `mutation($d:CompleteCapitalRegistrationInputDTO!){ capitalCompleteRegistration(data:$d){ transaction } }`, {
+    d: { coopname: COOP, username: who.account, ...signed, about: 'Участник внешнего слоя тестов', rate_per_hour: '1000', hours_per_day: 8 },
   })
-  await chairmanApprove(contributorHash)
   const chairToken = await tokenOf(CHAIRMAN)
+  const pending = await contributorOf(chairToken, who.account)
+  if (!pending?.contributor_hash)
+    throw new Error(`после регистрации у ${who.account} нет договора УХД в зеркале`)
+  await chairmanApprove(pending.contributor_hash)
   await waitFor(async () => ((await contributorOf(chairToken, who.account))?.status === 'ACTIVE' ? true : null),
     { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} действует в зеркале` })
   return who
@@ -376,8 +391,6 @@ export async function refreshSegment(who: Who, project: string): Promise<any> {
     { d: { coopname: COOP, project_hash: project, username: who.account } })
   return d.capitalRefreshSegment
 }
-
-export const GENERATED = 'full_title html hash meta binary'
 
 export const GEN_STATEMENT = `mutation($d:ResultContributionStatementGenerateInput!){ capitalGenerateResultContributionStatement(data:$d){ ${GENERATED} } }`
 export const GEN_DECISION = `mutation($d:ResultContributionDecisionGenerateInput!){ capitalGenerateResultContributionDecision(data:$d){ ${GENERATED} } }`
