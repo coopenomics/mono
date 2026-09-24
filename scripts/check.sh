@@ -27,6 +27,15 @@
 #     при любой правке, и такой гейт обходят. Для нового файла база пуста,
 #     поэтому правило работает в полную силу. См. scripts/lib/lint-ratchet.mjs.
 #
+#   Ярус F «ответ по факту из цепи» — снимок долга, режим «тронул — перевёл»
+#     (решение владельца 23.09.2026, scripts/lib/fact-gates.mjs). Три гейта:
+#     «пауза вместо факта» — таймер без пометки `// timing: <вид>`;
+#     «транзакция мимо факта» — отправка в цепь мимо BlockchainService.transact
+#     (жёстко) и паузы после транзакции (долг); «экран без зеркала» — экран
+#     грузит данные при открытии без useLiveReload. Файл, изменённый после
+#     коммита снимка, обязан быть чист; нетронутые ждут в снимке, их долг не
+#     растёт. Снимок только опускается: `node scripts/check-<гейт>.mjs --update`.
+#
 #   Ярус C «реестр тестов» — на изменённые файлы.
 #     Тронул код уже зарегистрированной фичи — обнови её файл в test-registry/.
 #     Области, ещё не заведённые в реестр, показываются как долг и вердикт не
@@ -44,6 +53,7 @@
 #   pnpm check                      всё
 #   pnpm check:boundaries           только ярус A
 #   pnpm check:ledger2              только реестры процессов ledger2
+#   pnpm check:fact                 только ярус F (ответ по факту из цепи)
 #   pnpm check:i18n                 только текст в словарях i18n
 #   pnpm check:changed              ярусы B и C
 #   pnpm check:registry             только ярус C
@@ -132,6 +142,18 @@ gate_ram_payer() {
   node "$REPO_ROOT/scripts/check-ram-payer.mjs"
 }
 
+gate_timing() {
+  node "$REPO_ROOT/scripts/check-timing.mjs"
+}
+
+gate_transact_fact() {
+  node "$REPO_ROOT/scripts/check-transact-fact.mjs"
+}
+
+gate_live_mirror() {
+  node "$REPO_ROOT/scripts/check-live-mirror.mjs"
+}
+
 gate_schema_migrations() {
   node "$REPO_ROOT/scripts/check-schema-migrations.mjs"
 }
@@ -160,6 +182,11 @@ case "$MODE" in
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     ;;
+  fact)
+    run_gate "факт: пауза вместо факта" gate_timing
+    run_gate "факт: транзакция мимо факта" gate_transact_fact
+    run_gate "факт: экран без зеркала" gate_live_mirror
+    ;;
   i18n)
     run_gate "текст в словарях i18n" gate_i18n
     ;;
@@ -180,6 +207,9 @@ case "$MODE" in
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "плательщик памяти в контрактах" gate_ram_payer
     run_gate "схема базы — только миграциями" gate_schema_migrations
+    run_gate "факт: пауза вместо факта" gate_timing
+    run_gate "факт: транзакция мимо факта" gate_transact_fact
+    run_gate "факт: экран без зеркала" gate_live_mirror
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
@@ -191,7 +221,7 @@ case "$MODE" in
     fi
     ;;
   *)
-    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2 | i18n)" >&2
+    echo "неизвестный режим: $MODE (ожидается all | boundaries | changed | registry | ledger2 | fact | i18n)" >&2
     exit 2
     ;;
 esac
