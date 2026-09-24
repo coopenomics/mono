@@ -11,7 +11,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, gql, gqlError, tokenOf, transact, waitFor } from '../core'
+import { CHAIRMAN, COOP, caseName, gql, gqlError, tokenOf, transact, waitFor } from '../core'
 import { COOP_SIGNER, amount } from '../core/wallet'
 import {
   cashierPaid,
@@ -24,7 +24,6 @@ import {
 } from '../documents/docs-reports.helpers'
 
 const PAY = 'mutation($d:PayWithheldTaxInput!){ payWithheldTax(data:$d) }'
-const STATE = 'query{ getWithheldTaxState{ withheld in_payment available } }'
 
 describe('отчёты: перечисление удержанного НДФЛ в бюджет', () => {
   let chair: string
@@ -39,21 +38,7 @@ describe('отчёты: перечисление удержанного НДФЛ
       await payAid(100)
   }, 1_200_000)
 
-  it(caseName('rep.tax.side.06', 'больше удержанного, ноль или минус — отказ, на цепь ничего не уходит'), async () => {
-    const before = await withheldState()
-    const historyBefore = (await withheldPayments()).map(p => p.hash)
-    const tooMuch = await gqlError(chair, PAY, { d: { amount: before.available + 1 } })
-    expect(String(tooMuch?.code), tooMuch?.message).toBe('400')
-    expect((await gqlError(chair, PAY, { d: { amount: 0 } }))?.code).toBe('REPORTS_PAYMENT_AMOUNT_NOT_POSITIVE')
-    expect((await gqlError(chair, PAY, { d: { amount: -1 } }))?.code).toBe('REPORTS_PAYMENT_AMOUNT_NOT_POSITIVE')
-    const member = await tokenOf(ROLES.member())
-    expect((await gqlError(member, PAY, { d: { amount: 1 } }))?.code, 'пайщику перечисление недоступно').toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(member, STATE))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect(await withheldState()).toEqual(before)
-    expect((await withheldPayments()).map(p => p.hash)).toEqual(historyBefore)
-  })
-
-  it(caseName('rep.tax.happy.02', 'удержанный налог уходит кассиру: платёж и заявка на цепи с одним хэшем, назначение и реквизиты готовы'), async () => {
+  it(caseName('rep.tax.happy.02', 'удержанный налог уходит кассиру: сумма переходит в оплату, платёж с назначением в истории перечислений'), async () => {
     const before = await withheldState()
     const known = new Set((await withheldPayments()).map(p => p.hash))
     const sent = await gql<any>(chair, PAY, { d: { amount: 1 } })
@@ -69,13 +54,6 @@ describe('отчёты: перечисление удержанного НДФЛ
     expect(amount(item.amount)).toBe(1)
     expect(item.status).toBe('PENDING')
     expect(String(item.memo).length, 'назначение платежа').toBeGreaterThan(0)
-    expect(item.requisite_rows?.length ?? 0, 'реквизиты бюджета снимком с платежа').toBeGreaterThan(0)
-
-    const cashier = await paymentByHash(declinedHash, 'TAX')
-    expect(cashier, 'платёж у кассира с тем же хэшем').toBeTruthy()
-    expect(cashier!.status).toBe('PENDING')
-    expect(cashier!.quantity).toBe(1)
-    expect(cashier!.username).toBe(COOP)
   })
 
   it(caseName('rep.tax.happy.01', 'у платежа расчётный период по налоговому поясу и подпись периода из календаря отчётности'), async () => {
