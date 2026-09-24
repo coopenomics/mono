@@ -34,8 +34,17 @@ title: Заказ пайщика — оформление, приём и отк�
 # перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
 # Серверные сценарии и их случаи не менялись.
 
+# Правка 2026-09-24 (C28-82): дельта создания заказа приходит раньше записи
+# create-flow (транзакция ждёт свой блок, 7DD-22) и прежде терялась — заказ
+# жил без членского взноса и привязки к цепи до следующего действия. Теперь
+# она откладывается и применяется при записи. Заодно в базу начали писаться
+# зеркала цепи accepted_cost / payout_status / markdown_cost, которых не было
+# в патче репозитория. Слайс расширен синхронизацией и репозиторием заказа.
 sources:
   backend:
+    - components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-order-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/domain/repositories/marketplace-order.repository.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.ts
     - components/controller/src/extensions/marketplace/application/services/marketplace-convert.service.ts
@@ -481,3 +490,29 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  - id: mkt.order.side.40
+    level: backend
+    kind: break
+    scenario: >
+      Дельта создания заказа приходит раньше, чем контроллер записал заказ:
+      транзакция возвращается после разбора своего блока, а запись идёт следом.
+    expect: >
+      заказ сразу после оформления несёт членский взнос и привязку к строке
+      цепи; ошибки «заказ создан мимо контроллера» нет
+    test: components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.spec.ts
+    api: components/boot/src/tests/marketplace-money.test.ts
+    status: written
+
+  - id: mkt.order.side.41
+    level: backend
+    kind: side
+    scenario: >
+      Закрывающая подпись приёмки и выплата поставщику меняют в строке заказа
+      на цепи принятую стоимость и состояние выплаты.
+    expect: >
+      зеркало заказа хранит принятую стоимость, состояние выплаты и уценку;
+      крон довоза не повторяет выплату, уже ушедшую в цепь
+    test: components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.spec.ts
+    api: components/boot/src/tests/marketplace-money.test.ts
+    status: written

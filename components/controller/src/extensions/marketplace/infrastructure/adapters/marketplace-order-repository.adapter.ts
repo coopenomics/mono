@@ -13,6 +13,7 @@ import {
 import type {
   MarketplaceOrderCreateInput,
   MarketplaceOrderDomainRepository,
+  MarketplaceOrderEarlyChainState,
   MarketplaceOrderListFilter,
 } from '../../domain/repositories/marketplace-order.repository';
 import {
@@ -58,6 +59,44 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     this.eventEmitter.emit(MARKETPLACE_ORDER_STATUS_CHANGED_EVENT, event);
   }
 
+  /**
+   * Состояние цепи заказов, чья дельта создания опередила запись create-flow.
+   * `transact` возвращается после того, как слушатели дельт блока отработали
+   * (7DD-22), а `persistAfterBlock` пишет строку уже после — поэтому дельта
+   * своего же заказа почти всегда приходит первой. Ключ — хэш заказа в нижнем
+   * регистре; живёт в процессе, который отправил транзакцию и сам же её
+   * разобрал. Срок нужен только внештатным заказам (созданным мимо
+   * контроллера): их дельта записи так и не встретит.
+   */
+  private static readonly EARLY_STATE_TTL_MS = 10 * 60 * 1000;
+  private readonly earlyChainState = new Map<string, MarketplaceOrderEarlyChainState & { at: number }>();
+
+  deferEarlyChainState(blockchainData: MarketplaceOrderBlockchainData, blockNum: number, present: boolean): string[] {
+    const now = Date.now();
+    const evicted: string[] = [];
+    for (const [hash, state] of this.earlyChainState) {
+      if (now - state.at > MarketplaceOrderRepositoryAdapter.EARLY_STATE_TTL_MS) {
+        this.earlyChainState.delete(hash);
+        evicted.push(hash);
+      }
+    }
+    const key = blockchainData.order_hash.toLowerCase();
+    const known = this.earlyChainState.get(key);
+    // Более поздний блок того же заказа вытесняет ранний, не наоборот.
+    if (!known || known.blockNum <= blockNum) {
+      this.earlyChainState.set(key, { blockchainData, blockNum, present, at: now });
+    }
+    return evicted;
+  }
+
+  takeEarlyChainState(order_hash: string): MarketplaceOrderEarlyChainState | null {
+    const key = order_hash.toLowerCase();
+    const state = this.earlyChainState.get(key);
+    if (!state) return null;
+    this.earlyChainState.delete(key);
+    return { blockchainData: state.blockchainData, blockNum: state.blockNum, present: state.present };
+  }
+
   async persistAfterBlock(input: MarketplaceOrderCreateInput): Promise<MarketplaceOrderDomainEntity> {
     const row = this.repo.create({
       coopname: input.coopname,
@@ -88,7 +127,16 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       on_chain_present: false,
     });
     const saved = await this.repo.save(row);
-    const created = this.mapper.toDomain(saved);
+    let created = this.mapper.toDomain(saved);
+    // Дельта создания уже разобрана (обычный случай после 7DD-22) — строка
+    // сразу получает состояние цепи тем же путём, что и любая дельта:
+    // членский взнос, id и блок строки. Иначе заказ жил без взноса до
+    // следующего действия по нему.
+    const early = this.takeEarlyChainState(created.order_hash);
+    if (early) {
+      created.updateFromBlockchain(early.blockchainData, early.blockNum, early.present);
+      created = await this.persistDomain(created);
+    }
     // Появление заказа — тоже событие для столов: поставщик видит пополнение
     // накопителя сразу. previous == status маркирует «создан», не «перешёл».
     this.emitStatusChanged(created, created.status);
@@ -235,9 +283,10 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
    * Остальные поля заполнятся при попытке backend create-flow
    * (idempotency через unique `(coopname, order_hash)`).
    *
-   * НО: в нашем create-flow Story 4.1 backend ВСЕГДА создаёт PG row до
-   * submit (transactional intent), так что этот путь — фолбэк для
-   * out-of-band on-chain транзакций. По умолчанию — no-op с warn-логом.
+   * Create-flow пишет строку ПОСЛЕ блока (`persistAfterBlock`), а дельта
+   * своего заказа приходит раньше — её откладывает MarketplaceOrderSyncService
+   * (`deferEarlyChainState`), сюда она не доходит. Сюда попадает только
+   * удаление строки, которой в базе нет, — внештатный случай.
    */
   async createIfNotExists(
     // Типизировано полным MarketplaceOrderBlockchainData (не ad-hoc inline-типом) —
@@ -612,12 +661,10 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
 
   /**
    * Поля, которые может изменить `entity.updateFromBlockchain(...)` (sync-flow)
-   * или ручная мутация в `createIfNotExists`. Именованный Pick-тип — не просто
-   * документация: если `updateFromBlockchain` начнёт писать новое on-chain
-   * поле, а сюда его забудут добавить, объект `patch` ниже не покроет тип и
-   * TS не даст скомпилироваться. Раньше (до фикса membership_fee)
-   * `repo.update()` принимал произвольный `QueryDeepPartialEntity` без такой
-   * проверки — поле молча терялось при sync.
+   * или ручная мутация в `createIfNotExists`. Pick-тип проверяет только то,
+   * что в нём перечислено: новое on-chain поле `updateFromBlockchain` сюда
+   * само не попадёт — добавлять руками. Так терялись membership_fee, а позже
+   * accepted_cost / payout_status / markdown_cost.
    */
   private async persistDomain(
     entity: MarketplaceOrderDomainEntity
@@ -633,6 +680,9 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       | 'on_chain_block_num'
       | 'on_chain_present'
       | 'membership_fee'
+      | 'accepted_cost'
+      | 'payout_status'
+      | 'markdown_cost'
     > = {
       status: entity.status,
       last_status_reason: entity.last_status_reason,
@@ -643,6 +693,12 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       on_chain_block_num: entity.on_chain_block_num,
       on_chain_present: entity.on_chain_present,
       membership_fee: entity.membership_fee,
+      // Зеркала цепи из updateFromBlockchain (99D-14). Их не было в патче, и в
+      // базе они оставались пустыми навсегда: крон довоза выплат считал, что
+      // выплата в цепь не ушла, и повторял её на каждом проходе.
+      accepted_cost: entity.accepted_cost,
+      payout_status: entity.payout_status,
+      markdown_cost: entity.markdown_cost,
     };
     await this.repo.update({ id: entity.id }, patch);
     const row = await this.repo.findOneOrFail({ where: { id: entity.id } });

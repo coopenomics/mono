@@ -29,14 +29,14 @@ export class MarketplaceOrderSyncService
 
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
-    repo: MarketplaceOrderDomainRepository,
+    private readonly orderRepo: MarketplaceOrderDomainRepository,
     deltaMapper: MarketplaceOrderDeltaMapper,
     @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     @Inject(MARKETPLACE_OFFER_COUNTERS_SERVICE)
     private readonly offerCounters: MarketplaceOfferCountersService
   ) {
-    super(repo, deltaMapper, logger);
+    super(orderRepo, deltaMapper, logger);
   }
 
   async onModuleInit() {
@@ -76,6 +76,25 @@ export class MarketplaceOrderSyncService
   ): Promise<ISyncResult> {
     const before = await this.repository.findBySyncKey(syncKey, syncValue);
     const previousStatus = before?.status ?? null;
+
+    // Дельта создания опередила строку: `transact` ждёт слушателей своего
+    // блока (7DD-22), а create-flow пишет строку после него (persistAfterBlock).
+    // Состояние цепи откладывается — запись применит его сама. Строка могла
+    // появиться, пока откладывали: тогда забираем отложенное и применяем здесь
+    // (забирает ровно одна сторона).
+    if (!before && present) {
+      const evicted = this.orderRepo.deferEarlyChainState(blockchainData, blockNum, present);
+      for (const hash of evicted) {
+        this.logger.warn(`MarketplaceOrderSyncService: дельта заказа ${hash} так и не встретила запись create-flow — заказ создан мимо контроллера`);
+      }
+      const now = await this.repository.findBySyncKey(syncKey, syncValue);
+      const early = now ? this.orderRepo.takeEarlyChainState(syncValue) : null;
+      if (!early) {
+        this.logger.debug(`MarketplaceOrderSyncService: дельта заказа ${syncValue} (блок ${blockNum}) опередила запись — применится при записи`);
+        return { created: false, updated: false, blockchainId: syncValue, blockNum };
+      }
+      return super.handleSyncDelta(syncKey, syncValue, early.blockchainData, early.blockNum, early.present);
+    }
 
     const result = await super.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
 

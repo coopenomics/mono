@@ -1,4 +1,4 @@
-import type { MarketplaceOrderDomainEntity } from '../entities/marketplace-order.entity';
+import type { MarketplaceOrderBlockchainData, MarketplaceOrderDomainEntity } from '../entities/marketplace-order.entity';
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderIssuanceFactSnapshot,
@@ -49,6 +49,13 @@ export interface MarketplaceOrderListFilter {
   delivery_braname?: string;
 }
 
+/** Состояние цепи заказа, пришедшее раньше строки create-flow. */
+export interface MarketplaceOrderEarlyChainState {
+  blockchainData: MarketplaceOrderBlockchainData;
+  blockNum: number;
+  present: boolean;
+}
+
 /**
  * Story 4.1: репозиторий Order'а Стола заказов. Расширяет
  * `IBlockchainSyncRepository` для интеграции с `AbstractEntitySyncService`
@@ -65,6 +72,17 @@ export interface MarketplaceOrderDomainRepository
    * это backend-инициируемый create (не от syncer'а), потому отдельное имя.
    */
   persistAfterBlock(input: MarketplaceOrderCreateInput): Promise<MarketplaceOrderDomainEntity>;
+  /**
+   * Дельта создания заказа пришла раньше строки: `transact` возвращается,
+   * когда узел разобрал блок и слушатели дельт отработали (7DD-22), а строку
+   * create-flow пишет уже после — `persistAfterBlock`. Состояние цепи
+   * (взнос, id и блок строки) откладывается и применяется при записи; без
+   * этого заказ жил без членского взноса до следующей дельты. Возвращает
+   * хэши вытесненных по сроку — дельт, так и не встретивших запись.
+   */
+  deferEarlyChainState(blockchainData: MarketplaceOrderBlockchainData, blockNum: number, present: boolean): string[];
+  /** Забрать отложенное состояние цепи заказа (атомарно: применяет ровно один). */
+  takeEarlyChainState(order_hash: string): MarketplaceOrderEarlyChainState | null;
   findById(id: string): Promise<MarketplaceOrderDomainEntity | null>;
   /** Батч-выборка заказов по идентификаторам (для обогащения позиций приёмки). */
   findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]>;
