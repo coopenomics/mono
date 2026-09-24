@@ -123,27 +123,20 @@ action: dedup → saveAction → dedup.mark → в очередь ActionReleaseG
 - Упавший или зависший слушатель событие не держит — ошибка в журнал, событие подтверждается.
 - Проекции, которые нужны для ответа мутации, строятся **из дельт** (`delta::`), а не из действий: действия приходят с задержкой.
 
-### Write-mutation pattern (ADR-009) — СТРОГО для нового кода, переезд постепенный
+### Write-mutation pattern (ADR-009) — ожидание встроено в отправку
 
-Мутация отвечает **после факта из цепи**, а не после выдуманной паузы. Одна строка после транзакции:
+Мутация отвечает **после факта из цепи**, а не после выдуманной паузы. Писать для этого ничего не нужно: `BlockchainService.transact` — единственная отправка в цепь — возвращается, когда узел разобрал блок транзакции целиком (дельты сохранены, их слушатели отработали, проекции в базе свежие). Факт «блок разобран» — тот же, что выпускает действия в шину (`ActionReleaseGate`): событие следующего блока либо простой потока.
 
 ```typescript
-@Optional() @Inject(CHAIN_DELTA_WAIT_PORT) private readonly chainWait: IChainDeltaWaitPort | null = null
-
-const tx = await this.chain.createProgramInvest(data);            // транзакция
-await this.chainWait?.afterTransact(tx, [                          // её изменения легли в базу
-  { code: Ledger2Contract.contractName.production, table: 'userwallets', scope: coopname, match: byUser },
-  { code: CapitalContract.contractName.production, table: 'contributors', scope: coopname, match: byUser },
-]);
-return tx;                                                         // стол перечитывает сразу
+const tx = await this.chain.createProgramInvest(data);   // вернулся — изменения уже в базе
+return tx;                                                // стол перечитывает сразу
 ```
 
-- Порт `CHAIN_DELTA_WAIT_PORT` (innercoop) → `ChainDeltaWaiterService` (ядро). Расширение объявляет его в `optional` своих портов.
-- Ждать те таблицы, которые **читает стол** после действия; блок берётся из результата `transact`; `match` — своя строка (хэш, пайщик).
-- Не пришло за `BLOCKCHAIN_WRITE_WAIT_DELTA_MS` (3000) — `afterTransact` вернёт `false`, ответ уходит как есть, стол догонит при следующем чтении.
-- На столе после такой мутации — **сразу перечитать**, без `setTimeout`, без «оптимистичных» патчей и без циклов ожидания.
-- Канон: `capital` `createProgramInvest`, `chairman` `confirmApprove` / `declineApprove` (одобрение + контракт-адресат).
-- **Переезд постепенный.** Новые мутации — сразу по паттерну. Старые места с паузами (`POST_CHAIN_REFETCH_MS`, `waitForStage`, циклы `*_WAIT_ATTEMPTS`, `recentlySigned`) переводятся по одному, при касании.
+- Предел — `BLOCKCHAIN_WRITE_WAIT_DELTA_MS` (3000). Не дождались — ответ уходит как есть с предупреждением в журнал, стол догонит по ленте изменений.
+- **Изнутри разбора цепи транзакция не ждёт** (`chain-dispatch-context.ts`): обработчик дельты, ждущий свой же блок, держал бы потребителя. Такие транзакции отправляет автоматика, отвечать ей некому.
+- `transact(..., broadcast=false)` и мигратор (сервис без гейта) не ждут.
+- `afterTransact` (порт `CHAIN_DELTA_WAIT_PORT`) нужен, только когда ждётся изменение **из другой, более поздней транзакции**. Для блока своей транзакции он отвечает сразу — блок уже разобран.
+- На столе после мутации — **сразу перечитать**, без `setTimeout`, без «оптимистичных» патчей и без циклов ожидания. Старые паузы (`POST_CHAIN_REFETCH_MS`, `waitForStage`, `*_WAIT_ATTEMPTS`, `recentlySigned`, `waitAfterTransactBeforeChainTableRead`) удаляются при касании — это ловит гейт «пауза вместо факта».
 - Следующий шаг (ADR-012, не сделано): пул транзакций с placeholder/`sync_key` и повторной отправкой после форка.
 
 **Никогда**: `setTimeout`/`sleep` перед чтением после мутации — ни на сервере, ни на столе.

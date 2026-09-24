@@ -12,6 +12,7 @@ import { ForkRegistryService } from '~/shared/sync/fork';
 import { computeActionEventId, computeDeltaEventId, computeForkEventId } from './event-id.util';
 import { mapParserActionToIAction, mapParserDeltaToIDelta } from './parser2-event.mapper';
 import { isDeltaOwnedByCoop } from './delta-ownership';
+import { runInChainDispatch } from './chain-dispatch-context';
 import { config } from '~/config';
 
 // Выносим исключения в конфиг или отдельный файл
@@ -63,6 +64,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   async onModuleInit() {
     this.logger.log('Инициализация потребителя событий parser2');
     this.running = true;
+    this.actionGate.setActive(true);
     // Не await: цикл живёт всё время работы приложения.
     void this.runConsumeLoop();
   }
@@ -70,6 +72,7 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
   async onModuleDestroy() {
     this.logger.log('Остановка потребителя событий parser2');
     this.running = false;
+    this.actionGate.setActive(false);
     if (this.client) {
       await this.client.close().catch((e) => this.logger.error(`Ошибка close ParserClient: ${e?.message}`, e?.stack));
     }
@@ -134,7 +137,9 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
     let result = await iterator.next();
     while (!result.done && this.running) {
       try {
-        await this.handleEvent(result.value);
+        // Транзакции из обработчиков не ждут разбора блока — см. chain-dispatch-context.ts.
+        const event = result.value;
+        await runInChainDispatch(() => this.handleEvent(event));
         result = await iterator.next(); // успех → XACK внутри ParserClient
       } catch (err: any) {
         this.logger.error(`Ошибка обработки события parser2: ${err?.message}`, err?.stack);
@@ -358,6 +363,8 @@ export class BlockchainConsumerService implements OnModuleInit, OnModuleDestroy 
    */
   private async processFork(block_num: number, forkEventId?: string | null): Promise<void> {
     this.logger.log(`Обработка форка на блоке ${block_num} (eventId=${forkEventId ?? 'n/a'}): запуск ForkRegistry rollback`);
+    // Отменённые блоки больше не разобраны — транзакции в них ждут заново.
+    this.actionGate.onFork(block_num);
 
     // 1. Sequential rollback всех зарегистрированных syncer'ов.
     //    Story 4.4: forkEventId пробрасывается syncer'ам — они кладут его в архив

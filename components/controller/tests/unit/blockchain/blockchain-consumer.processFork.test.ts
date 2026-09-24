@@ -65,7 +65,7 @@ function makeService(overrides: {
   const parser = overrides.parserInteractor ?? makeParserInteractorStub();
   const fork = overrides.forkRegistry ?? makeForkRegistryStub();
   const deltaWaiter = overrides.deltaWaiter ?? { wake: jest.fn() };
-  const actionGate = overrides.actionGate ?? { enqueue: jest.fn(), onBlockSeen: jest.fn() };
+  const actionGate = overrides.actionGate ?? { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
   const service = new BlockchainConsumerService(logger, events, parser, fork, deltaWaiter, actionGate);
   return { service, logger, events, parser, fork, deltaWaiter, actionGate };
 }
@@ -104,11 +104,12 @@ describe('BlockchainConsumerService.processFork (Stories 4.1 + 4.2)', () => {
     const parser = makeParserInteractorStub();
     const fork = makeForkRegistryStub();
     const events = makeEventsServiceStub();
-    const { service } = makeService({ events, parserInteractor: parser, forkRegistry: fork });
-
+    const { service, actionGate } = makeService({ events, parserInteractor: parser, forkRegistry: fork });
     await (service as any).processFork(12345);
 
     expect(fork.runAll).toHaveBeenCalledWith(12345, undefined);
+    // Отменённые блоки больше не разобраны — транзакции в них ждут заново.
+    expect(actionGate.onFork).toHaveBeenCalledWith(12345);
     expect(parser.deleteDedupAfterBlock).toHaveBeenCalledWith(12345);
     expect(parser.saveFork).toHaveBeenCalledWith(expect.objectContaining({ block_num: 12345 }));
     // Story 4.2: никакого broadcast'а `fork::*` через EventEmitter.
@@ -313,7 +314,7 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
   });
 
   it('processAction: действие уходит в очередь выпуска со своим блоком, а не по таймеру', async () => {
-    const actionGate = { enqueue: jest.fn(), onBlockSeen: jest.fn() };
+    const actionGate = { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
     const events = makeEventsServiceStub();
     const { service } = makeService({ actionGate, events });
     const { config } = await import('~/config');
