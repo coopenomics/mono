@@ -393,6 +393,9 @@ describe('стол заказов — денежные места поставк
       'o.mkt.refund',
       'o.brn.common',
     ])
+    // Перевод по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
+    // проверка оформления выше) — он запланирован, если заявление было.
+    if (expectedConvert > 0) expected.add('o.mkt.conv')
     const unexpected = [...codes].filter(c => !expected.has(c))
     expect(unexpected, `в нитке заказа появились незапланированные проводки: ${unexpected.join(', ')}`).toEqual([])
     // Оплата поставщику — отдельное ленивое действие кассира (payout), в
