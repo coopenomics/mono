@@ -59,7 +59,7 @@ cases:
     scenario: реестр пайщиков шлёт поле вместе с направлением — created_at:desc
     expect: запрос принимается; после двоеточия допустимо только asc или desc
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
 
   - id: platform.sort.side.02
     level: backend
@@ -67,4 +67,4 @@ cases:
     scenario: таблица со снятой сортировкой присылает пустое поле
     expect: запрос принимается, порядок по умолчанию
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
-    status: written
+    status: passing
