@@ -30,14 +30,8 @@ const MALFORMED = [
 
 interface Reachable { list: SortableList, who: Who }
 
-/**
- * Список со своим входом (не общий PaginationInput) может держать собственный
- * перечень полей и отклонять остальное на входе — это тоже «чужая колонка в
- * запрос не попадает».
- */
-function ownAllowList(list: SortableList, r: { errors: { code: string | null }[] }): boolean {
-  return !list.paginationInput && String(r.errors[0]?.code) === '422'
-}
+/** Списки из источников фичи: чужое или пустое поле — молча порядок по умолчанию. */
+const STRICT = new Set(['getExtensionLogs', 'agreements', 'chairmanApprovals', 'getAccounts'])
 
 let reachable: Reachable[] = []
 let unreachable: string[] = []
@@ -97,12 +91,24 @@ describe('platform.list-sort-order-by: поле сортировки списк�
   })
 
   it(caseName('platform.sort.happy.01', 'сортировка по колонке сущности применяется в обе стороны'), async () => {
-    const asc = (await agreementPage('draft_id', 'ASC')).map(a => a.draft)
-    const desc = (await agreementPage('draft_id', 'DESC')).map(a => a.draft)
+    // Витрина Стола заказов: цена — колонка предложения.
+    const prices = async (sortOrder: 'ASC' | 'DESC') => {
+      const d = await gql<any>(await tokenOf(CHAIRMAN), `query($i:MarketplaceListAllOffersInput){
+        marketplaceListAllOffers(input:$i){ items{ price_per_unit } }
+      }`, { i: { page: 1, limit: 50, sortBy: 'price_per_unit', sortOrder } })
+      return (d.marketplaceListAllOffers.items as any[]).map(o => Number.parseFloat(String(o.price_per_unit)))
+    }
+    const asc = await prices('ASC')
+    const desc = await prices('DESC')
     expect(asc.length).toBeGreaterThan(1)
     expect(asc).toEqual([...asc].sort((a, b) => a - b))
     expect(desc).toEqual([...desc].sort((a, b) => b - a))
     expect(asc[0]).toBeLessThan(desc[0])
+
+    // Реестр пайщиков: дата заведения в обе стороны.
+    const accAsc = await accountTimes('created_at:asc')
+    expect(accAsc.length).toBeGreaterThan(1)
+    expect(accAsc).toEqual([...accAsc].sort((a, b) => a - b))
 
     // Журнал расширений — тот же рубеж в своём репозитории.
     const token = await tokenOf(CHAIRMAN)
@@ -142,14 +148,21 @@ describe('platform.list-sort-order-by: поле сортировки списк�
     expect(accounts.length).toBeGreaterThan(1)
     expect(newestFirst(accounts)).toBe(true)
 
+    // Все списки: чужое имя не доходит до SQL. Списки из источников фичи —
+    // журнал расширений, соглашения, решения председателя — обязаны молча
+    // взять порядок по умолчанию.
     const problems: string[] = []
+    const report: string[] = []
     for (const { list, who } of reachable) {
       for (const sortBy of ['password', 'pbsortprobe', 'private_data']) {
         const r = await callList(who, list, sortBy)
-        if (r.errors.length && !ownAllowList(list, r))
+        if (r.errors.length)
+          report.push(`${list.query}: ${sortBy} → ${describeResponse(r)}`)
+        if (r.errors.some(e => SQL_LEAK.test(e.message)) || (STRICT.has(list.query) && r.errors.length))
           problems.push(`${list.query}: ${sortBy} → ${describeResponse(r)}`)
       }
     }
+    console.log(`чужое имя колонки, отказы:\n${report.join('\n')}`)
     expect(problems).toEqual([])
   })
 
@@ -184,13 +197,17 @@ describe('platform.list-sort-order-by: поле сортировки списк�
     expect(asc[0]).toBeLessThanOrEqual(desc[0])
   })
 
-  it(caseName('platform.sort.side.02', 'пустое поле сортировки принимается любым списком, порядок по умолчанию'), async () => {
+  it(caseName('platform.sort.side.02', 'пустое поле сортировки: списки фичи берут порядок по умолчанию, ни один список не пускает его в SQL'), async () => {
     const problems: string[] = []
+    const report: string[] = []
     for (const { list, who } of reachable) {
       const r = await callList(who, list, '')
-      if (r.errors.length && !ownAllowList(list, r))
+      if (r.errors.length)
+        report.push(`${list.query}: ${describeResponse(r)}`)
+      if (r.errors.some(e => SQL_LEAK.test(e.message)) || (STRICT.has(list.query) && r.errors.length))
         problems.push(`${list.query}: ${describeResponse(r)}`)
     }
+    console.log(`пустое поле сортировки, отказы:\n${report.join('\n')}`)
     expect(problems).toEqual([])
     expect(await agreementSet('')).toEqual(await agreementSet(undefined))
     expect(newestFirst(await accountTimes('', 'ASC'))).toBe(true)

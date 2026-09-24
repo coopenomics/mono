@@ -11,8 +11,8 @@
  *    документ не тяжелеет на его размер;
  *  - http:// на немаршрутизируемый адрес не вызывается — иначе сборка ждала
  *    бы соединения на каждой ссылке, и документ собирался бы десятки секунд;
- *  - data:-картинка (так приезжает собственноручная подпись) рисуется — PDF
- *    тяжелеет на её размер.
+ *  - data:-картинка (так приезжает собственноручная подпись) рисуется — в
+ *    PDF появляется ещё одно изображение.
  */
 import zlib from 'node:zlib'
 import { describe, expect, it } from 'vitest'
@@ -34,7 +34,17 @@ async function agenda(title: string) {
     },
   })
   const doc = d.generateAnnualGeneralMeetAgendaDocument
-  return { html: doc.html as string, pdfBytes: Buffer.from(doc.binary, 'base64').length, ms: Date.now() - started }
+  const pdf = Buffer.from(doc.binary, 'base64')
+  // Картинки и вложения в PDF — всегда отдельные потоки со словарём в открытом
+  // виде (в сжатый поток объектов потоки не кладутся), поэтому их видно по тексту.
+  const raw = pdf.toString('latin1')
+  return {
+    html: doc.html as string,
+    pdfBytes: pdf.length,
+    images: (raw.match(/\/Subtype\s*\/Image/g) ?? []).length,
+    attachments: (raw.match(/\/EmbeddedFile/g) ?? []).length,
+    ms: Date.now() - started,
+  }
 }
 
 /** PNG из шума: не сжимается, поэтому его размер виден в размере PDF. */
@@ -99,6 +109,7 @@ describe('factory.document-external-resources: сборка PDF без обра�
     // каждое; сборка без них укладывается в время обычного документа.
     expect(evil.ms).toBeLessThan(base.ms + 8_000)
     expect(Math.abs(evil.pdfBytes - base.pdfBytes)).toBeLessThan(20_000)
+    expect(evil.images).toBe(base.images)
   })
 
   it(caseName('factory.docext.break.02', 'file:// на файл контейнера в PDF не попадает — вес документа не растёт'), async () => {
@@ -113,13 +124,16 @@ describe('factory.document-external-resources: сборка PDF без обра�
     expect(evil.html).toContain(node)
     // Исполняемый файл node весит десятки мегабайт; вложенный, он раздул бы PDF.
     expect(evil.pdfBytes - base.pdfBytes).toBeLessThan(50_000)
+    expect(evil.images).toBe(base.images)
+    expect(evil.attachments).toBe(0)
   })
 
   it(caseName('factory.docext.happy.01', 'data:-картинка (собственноручная подпись) рисуется внутри документа'), async () => {
     const base = await agenda('Об утверждении отчёта')
     const signature = noisePng(160)
     const withImage = await agenda(`Об утверждении отчёта <img src="${signature}" style="width:40mm">`)
-    // 160×160 RGB шума — около 75 КБ, которые не сжимаются: картинка в PDF.
-    expect(withImage.pdfBytes - base.pdfBytes).toBeGreaterThan(50_000)
+    // Картинка легла в PDF отдельным изображением и прибавила ему веса.
+    expect(withImage.images).toBe(base.images + 1)
+    expect(withImage.pdfBytes - base.pdfBytes).toBeGreaterThan(10_000)
   })
 })
