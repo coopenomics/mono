@@ -128,6 +128,8 @@ jobs:
         with:
           name: blackbox-${{ github.run_id }}
           path: .blackbox
+          # Каталог скрытый, а upload-artifact@v4 скрытое по умолчанию пропускает.
+          include-hidden-files: true
           retention-days: 14
 
       - name: Сводка
