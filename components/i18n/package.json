@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/i18n",
   "type": "module",
-  "version": "2026.9.22",
+  "version": "2026.9.24",
   "description": "Словари интерфейса, каталог кодов ошибок и форматирование: один формат сообщений для desktop, controller и уведомлений",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",
   "license": "MIT",
@@ -42,9 +42,9 @@
     "@intlify/core-base": "^11.4.12"
   },
   "devDependencies": {
+    "@types/node": "^20.11.26",
     "typescript": "^5.4.5",
     "unbuild": "^2.0.0",
-    "vitest": "^2.1.9",
-    "@types/node": "^20.11.26"
+    "vitest": "^2.1.9"
   }
 }
