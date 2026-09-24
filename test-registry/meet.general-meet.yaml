@@ -1,0 +1,62 @@
+feature: meet.general-meet
+title: Общее собрание пайщиков — созыв по подписанной повестке и чтение собрания
+
+# Данные собрания до цепи (meet_pre) и итоги (meet_processed) живут в базе
+# узла через TypeORM-репозитории; формулировки вопросов — в chain_texts
+# (фича meet.chain-texts). Внешний тест созывает собрание председателем и
+# читает его пайщиком: это страхует оба репозитория при переводе на Kysely.
+
+sources:
+  backend:
+    - components/controller/src/application/meet/**
+    - components/controller/src/domain/meet/**
+    - components/controller/src/infrastructure/database/typeorm/entities/meet-pre.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/meet-processed.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-meet.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-meet-processed.repository.ts
+
+cases:
+  - id: meet.gm.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель генерирует предложение повестки, подписывает и созывает собрание с дополнительной информацией
+    expect: ответ несёт данные до цепи (инициатор, председатель и секретарь собрания, повестка текстом, даты, дополнительная информация) и состояние цепи — статус created, вопросы текстами по порядку; итогов нет
+    test: components/api-tests/src/meet/general-meet.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing
+
+  - id: meet.gm.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик читает собрание по хешу и список собраний кооператива
+    expect: повестка и дополнительная информация из базы узла, вопросы текстами, отметки «голосовал» нет; созванное собрание есть в списке со статусом created
+    test: components/api-tests/src/meet/general-meet.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing
+
+  - id: meet.gm.side.01
+    level: backend
+    kind: side
+    scenario: Собрание созывает пайщик; гость читает собрание или список
+    expect: пайщику KIT_INSUFFICIENT_RIGHTS на созыв и на генерацию повестки за председателя; гостю отказ входа
+    test: components/api-tests/src/meet/general-meet.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing
+
+  - id: meet.gm.side.02
+    level: backend
+    kind: side
+    scenario: Собрание проходит полный путь — решение совета, голосование, подписи секретаря и председателя
+    expect: итоги собрания (meet_processed) сохранены и отдаются в processed
+    # Полный путь собрания во внешнем слое не заведён — как meet.texts.side.06.
+    status: missing
+
+  - id: meet.gm.side.03
+    level: backend
+    kind: side
+    scenario: Созыв отвергнут цепью (подпись предложения не инициатора, дата открытия раньше срока)
+    expect: следа в базе не остаётся
+    # Сейчас строка meet_pre пишется ДО транзакции (MeetInteractor.createAnnualGeneralMeet)
+    # и остаётся сиротой при отказе цепи. Нужен ответ: откатывать или так задумано.
+    status: missing
+    decision_needed: true

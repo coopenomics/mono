@@ -71,6 +71,7 @@ cases:
     expect: >
       расширение доступно к установке
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
     status: passing
 
   - id: ext.avail.side.03
@@ -81,6 +82,7 @@ cases:
     expect: >
       расширение остаётся недоступным — тестовый контур не является послаблением
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
     status: passing
 
   - id: ext.avail.break.01
@@ -92,6 +94,7 @@ cases:
     expect: >
       сервер отказывает в установке; скрытая карточка не является защитой
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
     status: passing
 
   - id: ext.avail.break.02
@@ -102,6 +105,7 @@ cases:
     expect: >
       сервер отказывает с сообщением о ненайденном приложении
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
     status: passing
 
   # Открытые вопросы, требующие решения человека:
