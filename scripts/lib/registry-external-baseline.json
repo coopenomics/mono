@@ -1,5 +1,5 @@
 {
-  "auth.ws-connection": 7,
+  "auth.ws-connection": 2,
   "capital.artifact-access": 23,
   "capital.content-revisions": 7,
   "capital.contributor-import": 1,
@@ -33,7 +33,7 @@
   "documents.approvals": 29,
   "extensions.availability": 8,
   "factory.document-external-resources": 3,
-  "ledger2.process-naming": 12,
+  "ledger2.process-naming": 10,
   "marketplace.categories": 3,
   "marketplace.economy": 13,
   "marketplace.issuance": 8,
@@ -50,12 +50,12 @@
   "platform.list-sort-order-by": 6,
   "platform.schema-migrations": 8,
   "platform.user-input-markup": 5,
-  "realtime.chain-changes": 13,
+  "realtime.chain-changes": 7,
   "registration.intake-forms": 13,
   "reports.ndfl6": 19,
   "reports.withheld-tax": 9,
   "soviet.robot": 15,
-  "sync.write-wait-delta": 12,
-  "system.node-sync-indication": 14,
-  "wallet.realtime": 7
+  "sync.write-wait-delta": 11,
+  "system.node-sync-indication": 13,
+  "wallet.realtime": 3
 }

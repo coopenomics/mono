@@ -114,7 +114,6 @@ cases:
     scenario: Дельта необъявленной таблицы или чужого кооператива.
     expect: сигнала нет
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
-    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.side.03
@@ -197,7 +196,6 @@ cases:
       сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
       откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
     test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
-    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.happy.05
@@ -254,5 +252,4 @@ cases:
       оплаты и пользовательские данные — сигнал по своей таблице владельцу и совету,
       переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
     test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
-    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: written   # прогон — CI на полигоне ci/tests
