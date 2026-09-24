@@ -29,17 +29,20 @@ export async function availableShare(username: string): Promise<number> {
   return amount(row?.available)
 }
 
-/** Паевой взнос деньгами: заявка на приход и его исполнение шлюзом. */
+/**
+ * Паевой взнос деньгами: заявка на приход (wallet::createdpst) и его
+ * исполнение шлюзом (gateway::incomplete) — имена из cooptypes.
+ */
 export async function deposit(username: string, sum: number): Promise<void> {
   const hash = crypto.randomBytes(32).toString('hex')
   await transact(COOP_SIGNER, [{
     account: 'wallet',
-    name: 'createdeposit',
+    name: 'createdpst',
     data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) },
   }])
   await transact(COOP_SIGNER, [{
     account: 'gateway',
-    name: 'completeincome',
+    name: 'incomplete',
     data: { coopname: COOP, income_hash: hash },
   }])
 }

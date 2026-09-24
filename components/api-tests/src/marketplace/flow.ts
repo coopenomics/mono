@@ -67,15 +67,20 @@ export interface OfferLike {
   unit_of_measure: string
 }
 
-/** Активное предложение поставщика с доставкой на нужный КУ (сид стенда). */
-export async function pickOffer(token: string, supplierAccount: string, braname = KRG, preferName?: string): Promise<OfferLike> {
+/**
+ * Активное предложение поставщика с доставкой на нужный КУ (сид стенда).
+ * Ленту всех предложений читает председатель: пайщику нужен Offer:read:all,
+ * которого у заказчика нет.
+ */
+export async function pickOffer(supplierAccount: string, braname = KRG, preferName?: string): Promise<OfferLike> {
+  const token = await tokenOf(CHAIRMAN)
   return waitFor(async () => {
     const d = await gql<any>(token, `query($i:MarketplaceListAllOffersInput){
       marketplaceListAllOffers(input:$i){ items {
         id product_name status supplier_account price_per_unit unit_of_measure warranty_days
         delivery_points { braname min_supply_volume }
       } }
-    }`, { i: {} })
+    }`, { i: { limit: 100, supplier_account: supplierAccount, statuses: ['ACTIVE'] } })
     const candidates = (d.marketplaceListAllOffers.items as any[]).filter(
       o => o.status === 'ACTIVE'
         && o.supplier_account === supplierAccount
