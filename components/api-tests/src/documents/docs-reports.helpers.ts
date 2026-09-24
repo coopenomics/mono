@@ -199,9 +199,12 @@ export async function authorizeFreeDecision(decision: AgendaRow): Promise<void> 
   }
   if (!projectId)
     throw new Error(`у решения ${decision.id} нет project_id ни в заявлении, ни в meta`)
-  const gen = await gql<any>(token, `mutation($d:FreeDecisionGenerateDocumentInput!,$o:GenerateDocumentOptionsInput){
+  // Протокол собирается по голосам из журнала действий узла, а голоса ушли в
+  // цепь мимо контроллера — ждём, пока узел их разберёт.
+  const gen = await waitFor(() => gql<any>(token, `mutation($d:FreeDecisionGenerateDocumentInput!,$o:GenerateDocumentOptionsInput){
     generateFreeDecision(data:$d, options:$o){ full_title html hash meta binary }
-  }`, { d: { coopname: COOP, username: CHAIRMAN.account, decision_id: decision.id, project_id: projectId }, o: { lang: 'ru' } })
+  }`, { d: { coopname: COOP, username: CHAIRMAN.account, decision_id: decision.id, project_id: projectId }, o: { lang: 'ru' } }),
+  { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения ${decision.id} по голосам совета` })
   const signed = await signDocument(CHAIRMAN.wif, gen.generateFreeDecision, CHAIRMAN.account, 1)
   await gql(token, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
     d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decision.id, document: signed },
@@ -421,7 +424,8 @@ export async function payAid(gross: number): Promise<AidPayout> {
   const chairman = await tokenOf(CHAIRMAN)
   const decision = await waitFor(() => agendaByHash(chairman, aidHash), { timeoutMs: 60_000, label: `решение о матпомощи ${aidHash}` })
   await vote(decision, 'for')
-  const protocol = await gql<any>(chairman, 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ full_title html hash meta binary } }', {
+  // Протокол собирается по голосам из журнала действий узла — ждём их разбора.
+  const protocol = await waitFor(() => gql<any>(chairman, 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ full_title html hash meta binary } }', {
     i: {
       data: {
         registry_id: 1112,
@@ -436,7 +440,7 @@ export async function payAid(gross: number): Promise<AidPayout> {
       },
       options: { lang: 'ru' },
     },
-  })
+  }), { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения о матпомощи ${decision.id}` })
   const signedProtocol = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
   await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
     d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decision.id, document: signedProtocol },
