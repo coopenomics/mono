@@ -50,6 +50,10 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   // Собрание до созыва в цепи и итог обработки закрытого — узел ведёт их сам.
   { code: 'core', table: 'meet_pre' },
   { code: 'core', table: 'meet_processed' },
+  // Платежи: пайщику — его платежи, совету — все.
+  { code: 'core', table: 'payments', owner_field: 'username' },
+  // Подтверждения к платежу — загрузившему и совету.
+  { code: 'core', table: 'payment_files', owner_field: 'uploaded_by_username' },
 ];
 
 /** Роли совета: персонал любого расширения. */

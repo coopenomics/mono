@@ -244,6 +244,7 @@ import {
 import { paymentStatusVariant } from 'src/shared/lib/payment';
 import { Zeus } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const props = defineProps({
   username: {
@@ -445,19 +446,20 @@ const onSort = (col: string): void => {
   loadPayments(1);
 };
 
+const PAGE_SIZE = 25;
+
+const paymentsFilter = () => (props.username ? { username: props.username } : undefined);
+const sortOptions = () => ({
+  sortBy: sortState.sortBy || undefined,
+  sortOrder: sortState.sortDir
+    ? (sortState.sortDir.toUpperCase() as 'ASC' | 'DESC')
+    : ('ASC' as const),
+});
+
 const loadPayments = async (page = 1): Promise<void> => {
   try {
     onLoading.value = true;
-    const data = props.username ? { username: props.username } : undefined;
-    const options = {
-      page,
-      limit: 25,
-      sortBy: sortState.sortBy || undefined,
-      sortOrder: sortState.sortDir
-        ? (sortState.sortDir.toUpperCase() as 'ASC' | 'DESC')
-        : 'ASC',
-    };
-    await paymentStore.loadPayments(data, options);
+    await paymentStore.loadPayments(paymentsFilter(), { page, limit: PAGE_SIZE, ...sortOptions() });
 
     // Платежи с ошибкой разворачиваем сразу — пользователю важна причина.
     items.value.forEach((p) => {
@@ -469,6 +471,23 @@ const loadPayments = async (page = 1): Promise<void> => {
     onLoading.value = false;
   }
 };
+
+// Живой список: новый платёж, смена статуса, зачисление и отмена приходят по
+// ленте изменений (таблица payments; пайщику — его строки, совету — все).
+// Перечитываются все показанные страницы одним запросом, без скелетона.
+useLiveReload(
+  [
+    { code: 'core', table: 'payments' },
+    { code: 'core', table: 'payment_files' },
+  ],
+  async () => {
+    try {
+      await paymentStore.reloadLoaded(paymentsFilter(), sortOptions(), PAGE_SIZE);
+    } catch (e) {
+      console.warn('[payments] фоновое перечитывание не удалось', e);
+    }
+  },
+);
 
 const hasMore = computed(
   () => (payments.value?.currentPage ?? 1) < (payments.value?.totalPages ?? 1),

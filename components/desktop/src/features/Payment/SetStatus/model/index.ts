@@ -5,81 +5,28 @@ import { Zeus } from '@coopenomics/sdk';
 export const useSetStatus = () => {
   const paymentStore = usePaymentStore();
 
-  const setPaidStatus = async (id: string) => {
-    const result = await api.setPaymentStatus({
-      id,
-      status: Zeus.PaymentStatus.PAID,
-    });
-
-    // Загружаем обновленный платеж по хэшу через некоторое время
-    setTimeout(async () => {
-      try {
-        await paymentStore.loadPayments({ hash: result.hash });
-      } catch (e) {
-        console.error('Ошибка при обновлении платежа:', e);
-      }
-    }, 1000);
-
+  // Мутация отвечает, когда смена статуса уже записана, — платёж перечитываем
+  // сразу и сливаем в список. Дальнейшие переходы (зачисление в цепи и т. п.)
+  // приходят по ленте изменений: список платежей подписан на таблицу payments.
+  const setStatus = async (id: string, status: Zeus.PaymentStatus, message?: string) => {
+    const result = await api.setPaymentStatus({ id, status, message });
+    try {
+      await paymentStore.updatePayments({ hash: result.hash });
+    } catch (e) {
+      console.error('Ошибка при обновлении платежа:', e);
+    }
     return result;
   };
 
-  const setRefundedStatus = async (id: string) => {
-    const result = await api.setPaymentStatus({
-      id,
-      status: Zeus.PaymentStatus.REFUNDED,
-    });
-
-    // Загружаем обновленный платеж по хэшу через некоторое время
-    setTimeout(async () => {
-      try {
-        await paymentStore.loadPayments({ hash: result.hash });
-      } catch (e) {
-        console.error('Ошибка при обновлении платежа:', e);
-      }
-    }, 1000);
-
-    return result;
-  };
-
-  const setCompletedStatus = async (id: string) => {
-    const result = await api.setPaymentStatus({
-      id,
-      status: Zeus.PaymentStatus.COMPLETED,
-    });
-
-    // Загружаем обновленный платеж по хэшу через некоторое время
-    setTimeout(async () => {
-      try {
-        await paymentStore.loadPayments({ hash: result.hash });
-      } catch (e) {
-        console.error('Ошибка при обновлении платежа:', e);
-      }
-    }, 1000);
-
-    return result;
-  };
+  const setPaidStatus = (id: string) => setStatus(id, Zeus.PaymentStatus.PAID);
+  const setRefundedStatus = (id: string) => setStatus(id, Zeus.PaymentStatus.REFUNDED);
+  const setCompletedStatus = (id: string) => setStatus(id, Zeus.PaymentStatus.COMPLETED);
 
   // Отклонение платежа без движения средств (например, входящий взнос не поступил
   // или поступил с чужого счёта). Причина сохраняется и показывается пайщику,
   // а статус CANCELLED триггерит уведомление об отклонении.
-  const setCancelledStatus = async (id: string, message?: string) => {
-    const result = await api.setPaymentStatus({
-      id,
-      status: Zeus.PaymentStatus.CANCELLED,
-      message,
-    });
-
-    // Загружаем обновленный платеж по хэшу через некоторое время
-    setTimeout(async () => {
-      try {
-        await paymentStore.loadPayments({ hash: result.hash });
-      } catch (e) {
-        console.error('Ошибка при обновлении платежа:', e);
-      }
-    }, 1000);
-
-    return result;
-  };
+  const setCancelledStatus = (id: string, message?: string) =>
+    setStatus(id, Zeus.PaymentStatus.CANCELLED, message);
 
   return { setPaidStatus, setRefundedStatus, setCompletedStatus, setCancelledStatus };
 };
