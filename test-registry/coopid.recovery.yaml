@@ -32,6 +32,7 @@ cases:
       токен выпущен на 5 минут, письмо поставлено в очередь Центра уведомлений,
       в audit — success со strategy=email_magic_link и email_verified=true
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.side.01
@@ -42,6 +43,7 @@ cases:
       письмо всё равно уходит (решение 03.09.2026), в audit success с
       email_verified=false — по нему видно, скольким ушло на неподтверждённый адрес
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.01
@@ -52,6 +54,7 @@ cases:
       письма нет, наружу тот же 202, в audit — failure с reason=user_not_found,
       в логе — маска адреса (домен виден, опечатка опознаётся)
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.02
@@ -62,6 +65,7 @@ cases:
       письма нет (адрес Центра уведомлений не настроен), в audit — failure с
       reason=no_subscriber_id и subject_id пайщика
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.03
@@ -70,6 +74,7 @@ cases:
     scenario: пайщик выбрал стратегию восстановления без email-канала (Story 3.5)
     expect: письма нет, в audit — failure с reason=email_channel_disabled
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.04
@@ -88,6 +93,7 @@ cases:
     scenario: адрес введён с пробелами и в другом регистре
     expect: нормализуется до trim+lowercase перед поиском — lookup-ключ детерминирован
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   # ── Подтверждение по ссылке (второй фактор) ───────────────────────────────
@@ -135,6 +141,7 @@ cases:
     scenario: контекст запрошен по протухшему токену либо пайщика уже нет
     expect: invalid_recovery_token в обоих случаях — расклады снаружи неразличимы
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.side.03

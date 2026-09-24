@@ -38,6 +38,7 @@ cases:
       письмо с шестизначным кодом поставлено в очередь на нормализованный адрес,
       в ответе окно повторной отправки (60 с) и срок жизни кода (900 с)
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.happy.02
@@ -46,6 +47,7 @@ cases:
     scenario: верный код от существующего пайщика
     expect: у пайщика проставлен is_email_verified, код сожжён, отметка адреса поставлена
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.happy.03
@@ -56,6 +58,7 @@ cases:
       подтверждение принято, обновлять некого — кладётся только отметка адреса,
       которую позже прочитает создание учётной записи
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.side.01
@@ -64,6 +67,7 @@ cases:
     scenario: код спрашивают повторно, не дождавшись окна троттла
     expect: второе письмо НЕ уходит, в ответе остаток окна для обратного отсчёта
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.side.02
@@ -72,6 +76,7 @@ cases:
     scenario: неверный код
     expect: отказ, счётчик попыток растёт, флаг подтверждения НЕ ставится
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.break.01
@@ -80,6 +85,7 @@ cases:
     scenario: перебор кода — пятая неверная попытка
     expect: код сжигается целиком, пайщику предлагается запросить новый
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.break.02
@@ -88,6 +94,7 @@ cases:
     scenario: один IP запрашивает коды на множество адресов
     expect: после 20 запросов за час отказ ДО отправки письма
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.break.03
@@ -106,6 +113,7 @@ cases:
     scenario: повторное использование уже принятого кода
     expect: отказ «код не запрашивался или недействителен» — код одноразовый
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.side.03
@@ -114,6 +122,7 @@ cases:
     scenario: код запрашивают на строку без @
     expect: отказ до обращения к почте
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    api: components/api-tests/src/coopid/email-verification.test.ts
     status: passing
 
   - id: cid.ev.side.04
