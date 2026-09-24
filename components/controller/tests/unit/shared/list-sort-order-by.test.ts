@@ -67,6 +67,12 @@ describe('Поле сортировки на входе', () => {
     ).toBe('joined_at:asc');
   });
 
+  it('пустое поле — «без сортировки», как отдаёт таблица со снятой сортировкой', async () => {
+    const dto = plainToInstance(PaginationInputDTO, { page: 1, limit: 10, sortBy: '', sortOrder: 'DESC' });
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortBy: '', sortOrder: 'ASC' }).sortBy).toBe('');
+  });
+
   it('после двоеточия — только направление, не SQL', () => {
     expect(() =>
       PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortBy: 'created_at:desc, 1', sortOrder: 'ASC' })
