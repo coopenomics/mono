@@ -28,17 +28,13 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { QuestionsTable } from 'src/widgets/Questions';
 import { useHeaderActions } from 'src/shared/hooks';
 import { t } from 'src/shared/i18n';
+import { SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 
 const route = useRoute();
 const session = useSessionStore();
 
 const processingDecisions = ref<Record<number, boolean>>({});
-
-// После голоса бэкенду нужно несколько секунд, чтобы учесть голос из блокчейна.
-// Если нажать «Утвердить» сразу — утверждение упадёт с ошибкой «голос ещё не
-// учтён». Поэтому после успешного голоса держим кнопки строки (в т.ч.
-// «Утвердить») в состоянии загрузки ещё столько миллисекунд.
-const VOTE_SETTLE_MS = 3000;
 
 // Реактивно проставляет/снимает состояние загрузки по пункту повестки
 // (замена ручному мутированию + setTimeout-хаку для триггера реактивности).
@@ -80,21 +76,9 @@ const {
   formatDecisionTitle,
 } = decisionProcessor;
 
-// Пункты, которые председатель только что УТВЕРДИЛ. Повестка показывает все
-// неутверждённые вопросы, поэтому скрывать пункт нужно только после утверждения
-// (не после голосования — там пункт остаётся, лишь помечается голос). После
-// утверждения пункт исполняется и уходит из повестки, но данные из блокчейна
-// доходят с задержкой — обновление успевало на мгновение вернуть уже
-// утверждённый пункт («исчез → вернулся → исчез»). Держим его скрытым; в пределах
-// сессии страницы обратно не показываем — намеренно просто.
-const actedDecisionIds = ref<Set<number>>(new Set());
-
-// Данные
-const decisions = computed(() =>
-  decisionProcessor.decisions.value.filter(
-    (row) => !actedDecisionIds.value.has(Number(row.table?.id)),
-  ),
-);
+// Данные. Ответ мутации приходит, когда узел разобрал её блок, поэтому
+// перечитанная после действия повестка уже без утверждённого пункта.
+const decisions = computed(() => decisionProcessor.decisions.value);
 
 // Дозагрузка повестки после действия пайщика. Guard от наложения и проглатывание
 // ошибки — внутри store.refresh: то же самое делает кнопка «Обновить» в шапке,
@@ -104,6 +88,17 @@ const decisions = computed(() =>
 const agendaStore = useAgendaStore();
 const refreshAgendaQuietly = () =>
   agendaStore.refresh({ coopname: route.params.coopname as string });
+
+// Живая повестка: голос любого члена совета, новый вопрос, утверждение или
+// отклонение меняют soviet::decisions, смена состава совета — soviet::boards.
+// Узел сообщает об этом по ленте изменений, и список перечитывается сам.
+const live = useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+    liveTable(SovietContract, SovietContract.Tables.Boards),
+  ],
+  refreshAgendaQuietly,
+);
 
 // Обработчики событий
 const onAuthorizeDecision = async (row) => {
@@ -118,11 +113,9 @@ const onAuthorizeDecision = async (row) => {
     return;
   }
 
-  // Оптимистично прячем пункт и обновляем список тихо (без скелетонов).
-  actedDecisionIds.value.add(decision_id);
   SuccessAlert(t('cooperative.listOfAgendaQuestions.approvedSuccess'));
   setProcessing(decision_id, false);
-  await refreshAgendaQuietly();
+  await live.refresh();
 };
 
 const onDeclineDecision = async (row) => {
@@ -137,11 +130,10 @@ const onDeclineDecision = async (row) => {
     return;
   }
 
-  // Отклонённое решение стирается контрактом — прячем пункт и тихо обновляем.
-  actedDecisionIds.value.add(decision_id);
+  // Отклонённое решение стирается контрактом — тихо перечитываем.
   SuccessAlert(t('cooperative.listOfAgendaQuestions.rejectedSuccess'));
   setProcessing(decision_id, false);
-  await refreshAgendaQuietly();
+  await live.refresh();
 };
 
 // Голос «за»/«против» отличается только вызовом фичи — остальное общее.
@@ -160,12 +152,10 @@ const submitVote = async (row, cast: typeof voteForDecision) => {
 
   // Голос НЕ убирает пункт из повестки — он остаётся неутверждённым, лишь
   // помечается отметкой голоса. Обновляем список тихо (без скелетонов).
+  // Голос уже в цепи — «Утвердить» доступно сразу после ответа.
   SuccessAlert(t('cooperative.listOfAgendaQuestions.voteAcceptedSuccess'));
-  await refreshAgendaQuietly();
-
-  // Держим загрузку ещё VOTE_SETTLE_MS, чтобы «Утвердить» нельзя было нажать
-  // до того, как бэкенд учтёт голос (иначе утверждение упадёт с ошибкой).
-  setTimeout(() => setProcessing(decision_id, false), VOTE_SETTLE_MS);
+  await live.refresh();
+  setProcessing(decision_id, false);
 };
 
 const onVoteFor = (row) => submitVote(row, voteForDecision);
@@ -174,15 +164,10 @@ const onVoteAgainst = (row) => submitVote(row, voteAgainstDecision);
 // Инициализация
 loadDecisions(route.params.coopname as string);
 
-// Периодического обновления здесь НЕТ намеренно. Один ответ повестки — это
-// пакет документов по каждому решению (заявление вместе с положением ЦПП,
-// правилами электронной подписи и прочими: 4–5 документов по ~50 КБ, за 200 КБ
-// суммарно), и перечитывать его таймером раз в 10 секунд в открытой вкладке
-// незачем. Список обновляется тремя способами: при заходе на страницу, сам
-// после действия пайщика и по кнопке «Обновить» в шапке.
-//
-// Плата за это: голоса других членов совета, поданные прямо сейчас, появятся не
-// сами — нужно нажать «Обновить». Осознанный размен (C28-41).
+// Опроса по таймеру здесь нет: один ответ повестки — пакет документов по
+// каждому решению (около 200 КБ), и перечитывать его раз в 10 секунд незачем
+// (C28-41). Список перечитывается только по факту изменения — ленте выше, —
+// после своего действия и по кнопке «Обновить» в шапке (C28-83).
 </script>
 
 <style lang="scss" scoped>

@@ -253,7 +253,9 @@ export async function phase01(): Promise<void> {
           // кооператива), см. soviet/src/decision/authorize.cpp: require_auth(coopname).
           // Согласие председателя подтверждается его подписью на протоколе.
           authorization: [{ actor: COOPNAME, permission: 'active' }],
-          data: { coopname: COOPNAME, chairman: CHAIRMAN, decision_id: decision.id, document: signed },
+          // permission — разрешение председателя, чьим ключом подписан протокол:
+          // soviet::authorize сверяет подпись с ключом именно этого разрешения.
+          data: { coopname: COOPNAME, chairman: CHAIRMAN, decision_id: decision.id, document: signed, permission: 'active' },
         },
         {
           account: SovietContract.contractName.production,

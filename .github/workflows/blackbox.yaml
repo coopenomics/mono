@@ -114,8 +114,11 @@ jobs:
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
 
+      # Засев нужен только наборам Стола заказов: если он упал, остальные наборы
+      # всё равно должны пройти, а маркетплейс покажет понятное «нет фикстуры».
       - name: Стенд — засев Стола заказов
         timeout-minutes: 20
+        continue-on-error: true
         run: bash scripts/blackbox/stack.sh seed
 
       - name: Внешние тесты

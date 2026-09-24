@@ -305,6 +305,8 @@ export async function phase02b(): Promise<void> {
               chairman: CHAIRMAN,
               decision_id: decision.id,
               document: signedProtocol,
+              // разрешение председателя, чьим ключом подписан протокол
+              permission: 'active',
             },
           },
           {
