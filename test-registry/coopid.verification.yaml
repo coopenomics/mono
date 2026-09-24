@@ -196,7 +196,6 @@ cases:
       отдаются ФИО, дата рождения и паспорт целиком с адресом регистрации;
       выдача пишется в аудит
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
-    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.12

@@ -30,7 +30,6 @@ cases:
       секрет удалён без проверки кода, настройка «код при входе» погашена,
       пайщик уведомлён
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
-    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.happy.02
@@ -60,10 +59,13 @@ cases:
     kind: break
     scenario: сброс запрашивает пайщик без роли председателя
     expect: отказ на гейте роли (chairman), фактор не тронут
-    test: null
-    status: missing
+    test: components/api-tests/src/coopid/two-factor-reset.test.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
+    status: passing
     # Гейт декларативный (@AuthRoles(['chairman']) + RolesGuard) — проверяется
-    # сквозным прогоном авторизации, а не unit-тестом резолвера.
+    # сквозным прогоном авторизации, а не unit-тестом резолвера: пайщик, член
+    # совета, председатель участка и сам пайщик для себя получают
+    # KIT_INSUFFICIENT_RIGHTS, гость — 401 (внешний слой, 24.09.2026).
 
   - id: cid.2fr.side.02
     level: backend
