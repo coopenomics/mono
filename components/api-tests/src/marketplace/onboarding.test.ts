@@ -24,7 +24,6 @@ import {
   randomAccount,
   signDocument,
   tokenOf,
-  waitFor,
 } from '../core'
 
 /** Шаблон инстанса оферты ЦПП «Стол заказов» (cooptypes 1102.MarketplaceOffer). */
@@ -140,14 +139,12 @@ describe('Стол заказов: онбординг кооператива и 
 
     const offer = await generateOffer(token, who.account)
     const signed = await signDocument(who.wif, offer, who.account, 1)
-    await gql(token, SIGN_OFFER, { i: { document: signed } })
+    // Транзакция отвечает после своего блока: ответ мутации уже несёт подпись.
+    const answered = (await gql<any>(token, SIGN_OFFER, { i: { document: signed } })).marketplaceSignOnboardingOffer
+    expect(answered.source).toBe('AGREEMENT_SIGNED')
 
-    // Подпись программы попадает в зеркало из wallet::users; ответ мутации
-    // сам предупреждает, что синхронизация может отстать на блок.
-    const state = await waitFor(async () => {
-      const s = (await gql<any>(token, ONBOARDING_STATE)).marketplaceOnboardingState
-      return s.source === 'AGREEMENT_SIGNED' ? s : null
-    }, { timeoutMs: 60_000, intervalMs: 1_000, label: `подпись оферты ${who.account} в состоянии онбординга` })
+    const state = (await gql<any>(token, ONBOARDING_STATE)).marketplaceOnboardingState
+    expect(state.source).toBe('AGREEMENT_SIGNED')
     expect(state.requires_gate).toBe(false)
     expect(state.completed_at, 'дата подписи проставлена').toBeTruthy()
   })
