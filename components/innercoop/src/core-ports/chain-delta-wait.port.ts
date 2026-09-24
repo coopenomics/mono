@@ -34,7 +34,25 @@ export interface InnerChainDeltaWaitQuery {
   timeoutMs?: number;
 }
 
+/** Ожидание одной таблицы после транзакции — блок берётся из самой транзакции. */
+export type InnerChainTxWait = Omit<InnerChainDeltaWaitQuery, 'minBlockNum'>;
+
+/**
+ * Паттерн записи (ADR-009): отправили транзакцию — дождались, пока её
+ * изменения придут из цепи и лягут в базу, — ответили из базы.
+ *
+ *   const tx = await this.chain.createProgramInvest(data);
+ *   await this.chainWait.afterTransact(tx, [
+ *     { code: 'ledger2', table: 'userwallets', scope: coopname, match: byUser(username) },
+ *   ]);
+ */
 export interface IChainDeltaWaitPort {
+  /**
+   * Дождаться изменений транзакции в перечисленных таблицах. `true` — все
+   * пришли и записаны; `false` — хоть одно не пришло в срок (ответ всё равно
+   * можно отдавать: интерфейс догонит при следующем чтении).
+   */
+  afterTransact(transactResult: unknown, waits: InnerChainTxWait[]): Promise<boolean>;
   /** Номер блока транзакции из результата transact; 0 — не определить. */
   blockOf(transactResult: unknown): number;
   /**

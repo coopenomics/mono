@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
-import type { IChainDeltaWaitPort, InnerChainDelta, InnerChainDeltaWaitQuery } from '@coopenomics/innercoop';
+import type { IChainDeltaWaitPort, InnerChainDelta, InnerChainDeltaWaitQuery, InnerChainTxWait } from '@coopenomics/innercoop';
 import { config } from '~/config';
 
 interface Waiter {
@@ -25,6 +25,14 @@ export class ChainDeltaWaiterService implements IChainDeltaWaitPort {
   blockOf(transactResult: unknown): number {
     const t = transactResult as { response?: { processed?: { block_num?: number } }; processed?: { block_num?: number } };
     return Number(t?.response?.processed?.block_num ?? t?.processed?.block_num ?? 0);
+  }
+
+  async afterTransact(transactResult: unknown, waits: InnerChainTxWait[]): Promise<boolean> {
+    const minBlockNum = this.blockOf(transactResult);
+    // Блок не определить (ответ узла без processed) — ждать нечего, отвечаем сразу.
+    if (!minBlockNum || !waits.length) return false;
+    const applied = await Promise.all(waits.map((w) => this.waitForDelta({ ...w, minBlockNum })));
+    return applied.every((d) => d !== null);
   }
 
   waitForDelta(query: InnerChainDeltaWaitQuery): Promise<InnerChainDelta | null> {

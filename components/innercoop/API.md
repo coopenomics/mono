@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 288.
+Всего экспортов: 289.
 
 ## ACCOUNT_PORT
 
@@ -270,6 +270,7 @@
 
 `interface` · core-ports
 
+- `afterTransact(transactResult: unknown, waits: InnerChainTxWait[]): Promise<boolean>`
 - `blockOf(transactResult: unknown): number`
 - `waitForDelta(query: InnerChainDeltaWaitQuery): Promise<InnerChainDelta | null>`
 
@@ -760,6 +761,12 @@
 - `minBlockNum: number`
 - `match?: (delta: InnerChainDelta) => boolean`
 - `timeoutMs?: number`
+
+## InnerChainTxWait
+
+`type` · core-ports
+
+- `Omit<InnerChainDeltaWaitQuery, 'minBlockNum'>`
 
 ## InnerChairmanApproval
 

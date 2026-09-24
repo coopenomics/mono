@@ -42,4 +42,28 @@ describe('ChainDeltaWaiterService', () => {
     expect(waiter.blockOf({ processed: { block_num: 7 } })).toBe(7);
     expect(waiter.blockOf(undefined)).toBe(0);
   });
+
+  it('afterTransact ждёт все таблицы транзакции из её блока: пришли все — true, не пришла одна — false', async () => {
+    const waiter = new ChainDeltaWaiterService();
+    const tx = { response: { processed: { block_num: 100 } } };
+    const both = waiter.afterTransact(tx, [
+      { code: 'ledger2', table: 'userwallets', timeoutMs: 1000 },
+      { code: 'capital', table: 'contributors', timeoutMs: 1000 },
+    ]);
+    waiter.wake(delta({ code: 'ledger2', table: 'userwallets' }));
+    waiter.wake(delta({ code: 'capital', table: 'contributors' }));
+    await expect(both).resolves.toBe(true);
+
+    const one = waiter.afterTransact(tx, [
+      { code: 'ledger2', table: 'userwallets', timeoutMs: 1000 },
+      { code: 'capital', table: 'contributors', timeoutMs: 40 },
+    ]);
+    waiter.wake(delta({ code: 'ledger2', table: 'userwallets' }));
+    await expect(one).resolves.toBe(false);
+  });
+
+  it('afterTransact без номера блока в ответе узла — не ждёт', async () => {
+    await expect(new ChainDeltaWaiterService().afterTransact({}, [{ code: 'ledger2' }])).resolves.toBe(false);
+  });
 });
+
