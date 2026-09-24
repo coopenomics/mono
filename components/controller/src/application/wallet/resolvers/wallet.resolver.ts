@@ -17,6 +17,9 @@ import { walletEventsTopic } from '../services/wallet-events.service';
 import type { PubSub } from 'graphql-subscriptions';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import config from '~/config/config';
+import { USER_REPOSITORY, UserRepository } from '~/domain/user/repositories/user.repository';
+import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
+import { resolveUserBySub } from '~/application/auth/utils/resolve-user-by-sub';
 // Пагинированные результаты для программных кошельков
 const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, 'ProgramWallets');
 
@@ -28,7 +31,9 @@ const paginatedProgramWalletsResult = createPaginationResult(ProgramWalletDTO, '
 export class WalletResolver {
   constructor(
     private readonly walletService: WalletService,
-    @Inject(PUB_SUB) private readonly pubSub: PubSub
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
+    @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService
   ) {}
 
   /**
@@ -42,18 +47,34 @@ export class WalletResolver {
     description: 'Изменения кошельков пайщика: сигнал к дочитке остатка.',
     resolve: (payload: { walletEvents: WalletChangedEventDTO }) => payload.walletEvents,
   })
-  walletEvents(
-    @CurrentUser() user: { username?: string },
+  async walletEvents(
+    @CurrentUser() user: { sub?: string; username?: string },
     @Args('input') input: WalletEventsInputDTO
-  ): AsyncIterator<{ walletEvents: WalletChangedEventDTO }> {
+  ): Promise<AsyncIterator<{ walletEvents: WalletChangedEventDTO }>> {
     if (input.coopname !== config.coopname) {
       throw DomainError.forbidden('WALLET_SUBSCRIPTION_OWN_COOPERATIVE_ONLY');
     }
-    const username = user?.username;
+    const username = user?.username ?? (await this.resolveUsername(user?.sub));
     if (!username) {
       throw DomainError.forbidden('WALLET_SUBSCRIPTION_MEMBER_ONLY');
     }
     return this.pubSub.asyncIterator(walletEventsTopic(config.coopname, username));
+  }
+
+  /**
+   * Имя пайщика по `sub` токена. graphql-ws кладёт в контекст соединения только
+   * `sub`, а `username` есть лишь у HTTP-запросов после passport-стратегии.
+   * Без этого подписка отклонялась на каждом соединении, и пополнение кошелька
+   * доходило до карточки только дочиткой по таймеру.
+   */
+  private async resolveUsername(sub: string | undefined): Promise<string | undefined> {
+    if (!sub) return undefined;
+    try {
+      const account = await resolveUserBySub(sub, this.userRepository, this.userDomainService);
+      return account?.username;
+    } catch {
+      return undefined;
+    }
   }
 
   /**
