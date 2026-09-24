@@ -98,7 +98,7 @@ describe('стол заказов — денежные места поставк
     // Без дозаправки тест повторяем лишь пока не иссякнет остаток из сида, а
     // потом падает на «Недостаточно средств» — и это выглядит как регресс,
     // хотя это исчерпание фикстуры. Запас — двукратный от тела заказа.
-    await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2)
+    await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2, ekaterinaToken)
   }, 180_000)
 
   it('оформление заказа: перевод по заявлению (o.mkt.conv), взнос с членского кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock) — одной ниткой заказа', async () => {

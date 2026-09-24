@@ -132,7 +132,7 @@ function toChainDocument(signed: any) {
 
 /** Свежий заказ пайщицы, принятый кооперативом целиком по цене предложения. */
 async function acceptedOrder(): Promise<{ orderId: string, orderHash: string, acceptedCost: number }> {
-  await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2)
+  await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2, ekaterinaToken)
   const { orderId, orderHash } = await placeOrder({
     token: ekaterinaToken,
     who: ekaterina,

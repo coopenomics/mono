@@ -310,10 +310,24 @@ export async function availableShare(username: string): Promise<number> {
  * Довести паевой остаток пайщика до нужного минимума. Возвращает итоговый
  * остаток. Если средств хватает — ничего не делает.
  */
-export async function ensureShareFunds(username: string, minimumRub: number): Promise<number> {
+export async function ensureShareFunds(username: string, minimumRub: number, memberToken?: string): Promise<number> {
   const have = await availableShare(username)
   if (have >= minimumRub) return have
   const { depositToWallet } = await import('../wallet/depositToWallet')
   await depositToWallet(await chain(), COOP, username, Math.ceil(minimumRub - have) + 10_000)
+  // Пополнение идёт прямо в цепь, а оформление заказа проверяет остаток по
+  // зеркалу контроллера — оно догоняет цепь через индексер. С токеном пайщика
+  // ждём, пока зеркало увидит деньги, иначе checkout отвечает «доступно 0».
+  if (memberToken) {
+    const deadline = Date.now() + 120_000
+    for (;;) {
+      const d: any = await gqlAs(memberToken, 'query{ marketplaceMemberWallet{ wallets{ name available } } }').catch(() => null)
+      const row = d?.marketplaceMemberWallet?.wallets?.find((w: any) => w.name === 'w.wal.share')
+      if (row && amount(row.available) >= minimumRub) break
+      if (Date.now() > deadline) throw new Error(`зеркало контроллера не увидело пополнение ${username} до ${minimumRub} RUB за 120 с`)
+      // timing: backoff — опрос зеркала кошельков, пока индексер не донёс пополнение
+      await new Promise(r => setTimeout(r, 2_000))
+    }
+  }
   return availableShare(username)
 }

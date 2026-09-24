@@ -76,7 +76,7 @@ describe('Стол заказов: заявление 1110 и внутренни
     // (Offer:read:all); покупатель видит только витрину.
     offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
-    await ensureShareFunds(ekaterina.account, unitPrice * 6)
+    await ensureShareFunds(ekaterina.account, unitPrice * 6, ekaterinaToken)
   }, 180_000)
 
   it('mkt.order.side.33: createorder без покрытого членским кошельком взноса отвергается — контракт велит сначала подать заявление', async () => {

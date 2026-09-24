@@ -95,7 +95,7 @@ describe('стол заказов — денежные места гаранти
 
     // См. комментарий в marketplace-money: фикстуру дозаправляем сами, иначе
     // повторяемость теста упирается в остаток из сида.
-    await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2)
+    await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2, ekaterinaToken)
 
     const placed = await placeOrder({
       token: ekaterinaToken,
