@@ -44,26 +44,15 @@ describe('cardcoop.join: карта кандидата ждёт решения �
     await network?.restore()
   })
 
-  it(caseName('cc.join.happy.01', 'кандидат связал карту до приёма: связь запомнена, свидетельства нет'), async () => {
+  it(caseName('cc.join.happy.02', 'цепь записала приём: по ожидавшей связи выпущено свидетельство с датой приёма'), async () => {
+    // Кандидат связал карту до приёма. Свой стол до приёма он не видит
+    // (cardcoopMyCard отвечает кандидату KIT_MEMBERS_ONLY), поэтому связь
+    // проверяется тем, что по ней выпускается свидетельство после приёма.
     candidate = await registerCandidate()
-
     const res = await sendAsNetwork(linkCreated(card, candidate.subject))
     expect(res.status, JSON.stringify(res.body)).toBeLessThan(300)
     expect(res.body?.accepted).toBe(true)
 
-    // Уведомление принимается сразу, связь записывается своим ходом.
-    const shown = await waitFor(async () => {
-      const c = await myCard(candidate.token)
-      return c.issued ? c : null
-    }, { label: 'карта кандидата появилась в столе' })
-
-    expect(shown.cardNumber).toBe(card.cardNumber)
-    // Совет ещё не решал: даты приёма нет, свидетельство не выпущено.
-    expect(shown.memberSince).toBeNull()
-    expect(shown.state).toBe('Pending')
-  })
-
-  it(caseName('cc.join.happy.02', 'цепь записала приём: по ожидавшей связи выпущено свидетельство с датой приёма'), async () => {
     await admitByChain(candidate.username, ADMITTED_AT)
 
     // Приём записан в цепь мимо контроллера — ждём, пока событие дойдёт до расширения.
