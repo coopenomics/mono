@@ -117,6 +117,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { Zeus } from '@coopenomics/sdk';
 import { Workflows } from '@coopenomics/notifications';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -278,6 +279,16 @@ async function onResend(id: string): Promise<void> {
 onMounted(() => {
   void store.load(1).catch((e: unknown) => FailAlert(e));
 });
+
+// Журнал живёт по ленте изменений: новое уведомление и смена статуса доставки
+// приходят сигналом (таблицы узла notification_outbox и notification_deliveries).
+useLiveReload(
+  [
+    { code: 'core', table: 'notification_outbox' },
+    { code: 'core', table: 'notification_deliveries' },
+  ],
+  () => store.reloadLoaded(),
+);
 </script>
 
 <style lang="scss" scoped>
