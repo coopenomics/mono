@@ -44,13 +44,13 @@ export async function getOffer(token: string, id: string): Promise<any> {
  * пайщик подписывает заявления (и 1110, если членского кошелька не хватает).
  * На подписи рождается заказ из остатка — с резервом позиций склада.
  */
-export async function orderFromStock(args: { operator: Who, member: Who, offerId: string, quantity: number, braname?: string }): Promise<{ proposalId: string, orderId: string, orderHash: string }> {
-  const { operator, member, offerId, quantity, braname = KRG } = args
+export async function orderFromStock(args: { operator: Who, member: Who, offerId: string, quantity: number, packageId?: string | null, braname?: string }): Promise<{ proposalId: string, orderId: string, orderHash: string }> {
+  const { operator, member, offerId, quantity, packageId = null, braname = KRG } = args
   const operatorToken = await tokenOf(operator)
   const memberToken = await tokenOf(member)
   await ensureIdentityVerified(member.account)
   const pl = await gql<any>(operatorToken, STOCK_ISSUANCE_PAYLOADS, {
-    d: { braname, member_account: member.account, items: [{ offer_id: offerId, quantity }] },
+    d: { braname, member_account: member.account, items: [{ offer_id: offerId, quantity, package_id: packageId }] },
   })
   const line = pl.marketplaceStockIssuancePayloads[0]
   const prop = await gql<any>(operatorToken, `mutation($d:MarketplaceCreateStockProposalInput!){
@@ -102,6 +102,65 @@ export async function completeIssuance(args: { operator: Who, member: Who, order
   const agg = closePl.marketplaceIssuanceClosePayload.act_aggregate
   await gql(operatorToken, `mutation($d:MarketplaceSignIssuanceActInput!){ marketplaceCloseIssuance(data:$d){ ${SAGA_FIELDS} } }`,
     { d: { order_id: orderId, signed_act: await signDocument(operator.wif, agg.rawDocument, operator.account, 2, [agg.document]) } })
+}
+
+// ── Отпуск упаковкой ───────────────────────────────────────────────────────
+
+/**
+ * Предложение поставщика с отпуском упаковкой, одобренное председателем.
+ * Сид стенда заводит только товары по мере, поэтому тест упаковок заводит
+ * своё предложение с уникальным названием.
+ */
+export async function createPackagedOffer(args: { supplier: Who, chairman: Who, productName: string, packageSize: number, packagePrice: number, braname?: string }): Promise<{ offerId: string, packageId: string }> {
+  const { supplier, chairman, productName, packageSize, packagePrice, braname = KRG } = args
+  const created = await gql<any>(await tokenOf(supplier), `mutation($i:MarketplaceCreateOfferInput!){
+    marketplaceCreateOffer(input:$i){ id status packages{ id size price } }
+  }`, {
+    i: {
+      product_name: productName,
+      description: 'Внешний тест: товар с отпуском упаковкой.',
+      category_id: 9,
+      price_per_unit: (packagePrice / packageSize).toFixed(4),
+      unit_of_measure: 'PIECE',
+      sale_form: 'PACKAGED',
+      packages: [{ package_type: 'коробка', size: packageSize, price: packagePrice.toFixed(4), label: `Коробка ${packageSize} шт`, is_default: true }],
+      unlimited_flag: true,
+      delivery_points: [{ braname, min_supply_volume: 1 }],
+      shelf_life_days: 30,
+    },
+  })
+  const offer = created.marketplaceCreateOffer
+  if (offer.status !== 'ACTIVE') {
+    await gql(await tokenOf(chairman), `mutation($i:MarketplaceApproveOfferInput!){ marketplaceApproveOffer(input:$i){ id status } }`,
+      { i: { offer_id: offer.id, warranty_days: 0 } })
+  }
+  return { offerId: offer.id as string, packageId: offer.packages[0].id as string }
+}
+
+/** Оформление заказа упаковками: корзина → превью → оформление (как placeOrder, но с упаковкой). */
+export async function placePackagedOrder(args: { who: Who, offerId: string, packageId: string, packages: number, braname?: string }): Promise<{ orderId: string }> {
+  const { who, offerId, packageId, packages, braname = KRG } = args
+  const token = await tokenOf(who)
+  await gql(token, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
+  await gql(token, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
+    i: { offer_id: offerId, quantity: packages, package_id: packageId, delivery_braname: braname },
+  })
+  const sp = await gql<any>(token, `query{
+    marketplaceCheckoutSignablePayloads{
+      lines{ offer_id package_id order_hash }
+      convert{ amount membership_fee document{ full_title html hash meta binary } }
+    }
+  }`)
+  const preview = sp.marketplaceCheckoutSignablePayloads
+  const lines = preview.lines.map((p: any) => ({ offer_id: p.offer_id, package_id: p.package_id, order_hash: p.order_hash }))
+  const signed_convert = preview.convert ? await signDocument(who.wif, preview.convert.document, who.account, 1) : null
+  const co = await gql<any>(token, `mutation($i:MarketplaceCheckoutCartInput){
+    marketplaceCheckoutCart(input:$i){ fully_completed created_orders{ id } failed_lines{ reason } }
+  }`, { i: { lines, signed_convert } })
+  const result = co.marketplaceCheckoutCart
+  if (!result.fully_completed)
+    throw new Error(`оформление упаковками не прошло: ${JSON.stringify(result.failed_lines)}`)
+  return { orderId: result.created_orders[0].id as string }
 }
 
 /** Минимальный валидный PNG 1×1: фото обязательны по форме заявления и осмотра. */
