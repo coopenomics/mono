@@ -12,7 +12,8 @@
  *                     ISSUE на членский «Стола заказов» заказчицы);
  *   • o.brn.retfee  — общий кошелёк участка → пул взносов «Стола заказов»
  *                     (инверсия зачисления, без бухпроводки);
- *   • o.mkt.refund  — пул взносов → свободный паевой «Стола заказов» заказчицы.
+ *   • o.mkt.refund  — пул взносов → членский кошелёк «Стола заказов» заказчицы
+ *     (членский остаётся членским, p.mkt.return после 99D-15/16).
  *
  * Двухходовка через пул нужна из-за инварианта walletop «один username на обе
  * стороны»: прямой перевод с кошелька участка на кошелёк пайщика невозможен.
@@ -214,9 +215,17 @@ describe('стол заказов — денежные места гаранти
       },
     })
     const accepted = acc.marketplaceAcceptReturnAtVisit.claim
-    expect(accepted.status, 'после приёма имущества заявление ждёт решение совета').toBe('PENDING_COUNCIL')
-    // Робота на стенде нет — решение принимают люди: до него движений по средствам нет.
-    expect(opsCodes(await applyOpsOfProcess(chairmanToken, requestHash)).includes('o.mkt.return'), 'до решения совета паевой взнос не восстанавливается').toBe(false)
+    // После приёма контроллер просит робота решений совета решить сразу (стенд
+    // включает ему mktretrn в boot:extra). Режим заявление сообщает само:
+    // ROBOT — совет уже «за», MANUAL — решение за людьми, и до него движений
+    // по средствам нет.
+    if (accepted.council_decision_mode === 'ROBOT') {
+      expect(accepted.status, 'робот совета принял возврат сразу').toBe('ACCEPTED_BY_COUNCIL')
+    }
+    else {
+      expect(accepted.status, 'после приёма имущества заявление ждёт решение совета').toBe('PENDING_COUNCIL')
+      expect(opsCodes(await applyOpsOfProcess(chairmanToken, requestHash)).includes('o.mkt.return'), 'до решения совета паевой взнос не восстанавливается').toBe(false)
+    }
 
     // Номер решения дочитывается из цепи (мутация или сторож) — ждём его.
     let decisionId = Number(accepted.council_decision_id || 0)
@@ -239,7 +248,7 @@ describe('стол заказов — денежные места гаранти
 
     // Ноги 2 и 3 — взнос идёт обратно тем же путём, что уходил: участок → пул → пайщица.
     expect(sumOf(ops, 'o.brn.retfee'), 'участок обязан вернуть в пул взносов приходящуюся на возврат долю').toBeCloseTo(feeRefund, 2)
-    expect(sumOf(ops, 'o.mkt.refund'), 'из пула взносов доля обязана дойти до свободного паевого заказчицы').toBeCloseTo(feeRefund, 2)
+    expect(sumOf(ops, 'o.mkt.refund'), 'из пула взносов доля обязана дойти до членского кошелька заказчицы').toBeCloseTo(feeRefund, 2)
 
     const fromBranch = ops.find(r => r.operationCode === 'o.brn.retfee')!
     expect(fromBranch.username, 'разрез ноги возврата взноса — имя участка').toBe(BRANAME)
@@ -248,22 +257,22 @@ describe('стол заказов — денежные места гаранти
     expect(sumOf(ops, 'o.mkt.return') + sumOf(ops, 'o.mkt.refund'), 'заказчице обязана вернуться полная уплаченная сумма').toBeCloseTo(totalRefund, 2)
   }, 300_000)
 
-  it('возврат ложится Дт 10 / Кт 80, а транзит взноса возвращает членский взнос в паевой', async () => {
+  it('возврат ложится Дт 10 / Кт 80, а транзит взноса возвращает членский взнос на членский кошелёк без проводок', async () => {
     const rows = await historyOfProcess(chairmanToken, requestHash)
 
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, factCost).length, 'возвращённое имущество обязано лечь Дт 10 — оно снова на складе').toBeGreaterThan(0)
     expect(postingsFor(rows, 'credit', ACC.SHARE, factCost).length, 'паевой взнос пайщицы обязан восстановиться Кт 80').toBeGreaterThan(0)
 
-    // Транзит взноса: участок → пул без проводок (внутри 86), пул → свободный
-    // паевой пайщицы с проводкой Дт 86 / Кт 80 — членский взнос возвращается в паевой.
+    // Транзит взноса по стандарту p.mkt.return: участок → пул → членский
+    // кошелёк заказчицы, обе ноги без проводок — все три кошелька на счёте 86,
+    // членский взнос остаётся членским и зачитывается в следующий заказ.
     const feeMoves = rows.filter(r => r.action === 'walletop'
       && ((r.walletFrom === 'w.brn.common' && r.walletTo === 'w.mkt.fee')
-        || (r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.mkt.share')))
+        || (r.walletFrom === 'w.mkt.fee' && r.walletTo === 'w.mkt.member')))
     expect(feeMoves.length, 'взнос обязан пройти двумя кошельковыми ходами: участок → пул → пайщица').toBe(2)
     for (const m of feeMoves) expect(amount(m.quantity)).toBeCloseTo(feeRefund, 2)
 
-    expect(postingsFor(rows, 'debit', ACC.TARGET, feeRefund).length, 'возврат членского взноса обязан лечь Дт 86').toBeGreaterThan(0)
-    expect(postingsFor(rows, 'credit', ACC.SHARE, feeRefund).length, 'возврат членского взноса обязан лечь Кт 80').toBeGreaterThan(0)
+    expect(postingsFor(rows, 'debit', ACC.TARGET, feeRefund).length, 'возврат членского взноса идёт без проводки: членский не становится паевым').toBe(0)
   }, 300_000)
 
   it('l2.pnam.side.02: обе ноги возврата взноса идут ниткой ГАРАНТИЙНОГО ВОЗВРАТА по хэшу заявки', async () => {
