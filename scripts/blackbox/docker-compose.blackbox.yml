@@ -11,8 +11,13 @@ services:
     command: pnpm --filter @coopenomics/controller run start
   parser2:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
-  # MinIO больше не публикует образы на Docker Hub: dev-машины берут этот тег из
-  # локального кеша, а чистый раннер получает «pull access denied». Тот же тег
-  # лежит в quay.io.
+  # MinIO больше не отдаёт образы ни на Docker Hub, ни (с 24.09.2026) на
+  # quay.io: dev-машины берут тег из локального кеша, чистый раннер получает
+  # «unauthorized». Публично остался образ Chainguard (только latest). Он без
+  # оболочки и curl и работает не от root: проверка здоровья compose снята,
+  # готовность проверяет scripts/blackbox/stack.sh с хоста по порту.
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    image: cgr.dev/chainguard/minio:latest
+    user: "0:0"
+    healthcheck:
+      disable: true
