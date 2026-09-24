@@ -83,6 +83,36 @@ export async function loginAs(who: Who): Promise<string> {
   return d.login.tokens.access.token
 }
 
+/**
+ * Личность получателя подтверждена — без этого выдача заказа отклоняется
+ * (верификация по паспорту, 105-28). Подтверждает председатель кооператива без
+ * указания участка: так сверяет совет, и снимки паспорта не нужны (на участке
+ * они обязательны). Повтор контракт отвергает словами «уже проведена» — это и
+ * есть нужное состояние, поэтому такой ответ принимается.
+ */
+let chairmanToken: string | null = null
+export async function ensureIdentityVerified(username: string): Promise<void> {
+  // Токен председателя переиспользуется: два входа одного пользователя в одну
+  // секунду дают одинаковый токен, и контроллер отвечает 500 на дубле ключа.
+  chairmanToken ??= await loginAs(CHAIRMAN)
+  try {
+    await gqlAs(chairmanToken,
+      'mutation($d:VerifyParticipantOnsiteInput!){ verifyParticipantOnsite(data:$d){ type status } }',
+      { d: { username } })
+  }
+  catch (e: any) {
+    if (!/уже/i.test(String(e?.message))) throw e
+  }
+}
+
+/**
+ * Мета подписываемого документа. GraphQL отдаёт её скаляром JSON — объектом;
+ * прежде это была строка, и наборы разбирали её JSON.parse.
+ */
+export function docMeta(meta: unknown): Record<string, any> {
+  return typeof meta === 'string' ? JSON.parse(meta) : (meta as Record<string, any>)
+}
+
 /** Председатель кооператива стенда (ant) — те же реквизиты, что у shared/apiClient. */
 export const CHAIRMAN: Who = {
   email: process.env.TEST_EMAIL || 'ivanov@example.com',

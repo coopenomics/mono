@@ -18,7 +18,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { pickOffer, placeOrder } from './marketplace/orderFlow'
-import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps, docMeta } from './marketplace/chainHelpers'
 
 const BRANAME = 'krg'
 const COOPNAME = 'voskhod'
@@ -72,7 +72,9 @@ describe('Стол заказов: заявление 1110 и внутренни
     await bc.update_pass_instance()
     ekaterinaToken = await loginAs(ekaterina)
     chairmanToken = await loginAs(chairman)
-    offer = await pickOffer(ekaterinaToken, sidorov.account, BRANAME, 'Мёд цветочный')
+    // Весь список предложений — право администратора Стола заказов
+    // (Offer:read:all); покупатель видит только витрину.
+    offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
     await ensureShareFunds(ekaterina.account, unitPrice * 6)
   }, 180_000)
@@ -111,7 +113,7 @@ describe('Стол заказов: заявление 1110 и внутренни
     expect(amount(preview.convert.amount), 'заявление — только на то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
     expect(amount(preview.convert.membership_fee), 'членская часть — взнос за вычетом остатка кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
     expect(amount(preview.convert.membership_fee), 'кошелька на взнос не хватало — членская часть больше нуля').toBeGreaterThan(0)
-    const meta = JSON.parse(preview.convert.document.meta)
+    const meta = docMeta(preview.convert.document.meta)
     expect(meta.registry_id).toBe(1110)
     expect(preview.convert.document.html, 'текст заявления — слова владельца').toMatch(/Прошу перевести с баланса моего Цифрового кошелька/)
     expect(preview.convert.document.html).not.toMatch(/ставк|зачит/i)

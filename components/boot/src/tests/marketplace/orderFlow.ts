@@ -18,7 +18,7 @@
  */
 import type Blockchain from '../../blockchain'
 import { processDecision } from '../soviet/processDecision'
-import { type Who, gqlAs, signAs } from './chainHelpers'
+import { type Who, ensureIdentityVerified, gqlAs, signAs } from './chainHelpers'
 
 export interface OfferLike {
   id: string
@@ -218,6 +218,8 @@ export async function issueOrder(args: {
 }): Promise<{ proposalId: string, decisionId: number, orderIds: string[] }> {
   const { blockchain, operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice } = args
 
+  // Выдача требует подтверждённой личности получателя (105-28).
+  await ensureIdentityVerified(member.account)
   await labelInventory(operatorToken, orderId)
 
   // 1) Бандл с фактом — подписей оператора нет.

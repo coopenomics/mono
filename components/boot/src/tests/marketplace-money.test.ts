@@ -41,25 +41,7 @@ import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { issueOrder } from './marketplace/orderFlow'
-import {
-  ACC,
-  CHAIRMAN,
-  COOP,
-  type LedgerRow,
-  amount,
-  applyOpsOfProcess,
-  ensureShareFunds,
-  fromState,
-  gqlAs,
-  historyOfProcess,
-  loginAs,
-  opsCodes,
-  processTypeByOperation,
-  signAs,
-  sumOf,
-  waitForOps,
-  waitForOrderMirror,
-} from './marketplace/chainHelpers'
+import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror, docMeta } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -97,6 +79,9 @@ function postingsFor(rows: LedgerRow[], action: 'debit' | 'credit', accountId: n
 
 describe('стол заказов — денежные места поставки и выдачи (contract, живая цепь)', () => {
   beforeAll(async () => {
+    // Клиент подписи создаёт update_pass_instance: без него bc.api пуст, и
+    // подтверждение выплаты кассиром падало на undefined.transact.
+    await bc.update_pass_instance()
     chairmanToken = await loginAs(CHAIRMAN)
     sidorovToken = await loginAs(sidorov)
     ekaterinaToken = await loginAs(ekaterina)
@@ -152,7 +137,7 @@ describe('стол заказов — денежные места поставк
     expect(!!preview.convert, 'заявление приходит только на недостающее').toBe(amount(line.from_wallet) > 0.005)
     expectedConvert = preview.convert ? amount(preview.convert.membership_fee) : 0
     if (preview.convert) {
-      const stmtMeta = JSON.parse(preview.convert.document.meta)
+      const stmtMeta = docMeta(preview.convert.document.meta)
       expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
       expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
       expect(Object.keys(stmtMeta).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
