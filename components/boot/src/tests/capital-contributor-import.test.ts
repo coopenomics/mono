@@ -37,7 +37,9 @@ const IMPORT_AMOUNT = 12_000 // рублей — сумма взноса по б
 
 /** Программное соглашение пайщика из `wallet::users.programs[]`. */
 async function getProgramAgreement(username: string, programId: number) {
-  const rows = await bc.getTableRows('wallet', COOP, 'users', 1, username, username, 2, 'i64') as any[]
+  // У wallet::users один индекс — первичный, по имени пайщика; вторичного нет,
+  // и запрос по индексу 2 падал в пустоту, будто соглашения нет вовсе.
+  const rows = await bc.getTableRows('wallet', COOP, 'users', 1, username, username) as any[]
   return rows[0]?.programs?.find((p: any) => Number(p.program_id) === programId)
 }
 

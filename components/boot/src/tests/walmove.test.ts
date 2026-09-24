@@ -32,7 +32,7 @@ const WALLET_ENTRANCE_FEES = 'w.reg.entry'
 const ACCOUNT_SHARE_FUND = 80_000
 
 const WALLETS_QUERY = `query($c:String!){
-  getLedger2Wallets(coopname:$c){ id name available blocked }
+  getLedger2Wallets(coopname:$c){ id name available }
 }`
 
 const HISTORY_QUERY = `query($i:GetLedger2HistoryInput!){
@@ -88,8 +88,12 @@ describe('walmove (operation o.adj.walmove) — корректировка ме�
 
     // 3. Перевод w.reg.minshr → w.wal.share (оба кошелька на счёте 80)
     const memo = `walmove test: ${username}`
+    // Оба кошелька — пайщиковые (USER_SHARED): перевод идёт по доле конкретного
+    // пайщика, и контракт требует у него программного соглашения на кошелёк.
+    // Переносим минимальный взнос того, кто только что зарегистрировался, —
+    // от имени самого кооператива L3-доли нет, и walletop отказывает.
     const { processHash } = await walmove(
-      login, COOP, COOP,
+      login, COOP, username,
       WALLET_MIN_SHARE_FUND, WALLET_SHARE_FUND_PAY,
       `${moveAmount.toFixed(4)} RUB`, memo,
     )
