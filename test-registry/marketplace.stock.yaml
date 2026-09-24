@@ -106,6 +106,7 @@ cases:
     expect: >
       возврат находит исходную позицию по `reserved_order_id` (у заказов из остатка `order_id` на позицию не переносится) и зачисляет имущество в ту же партию поставки
     test: components/controller/tests/unit/marketplace/marketplace-return-restock.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
     # Второй путь разбора (`reserved_order_id`) существует именно ради заказов
     # из остатка: без него возврат по такому заказу не нашёл бы партию и не
@@ -119,6 +120,7 @@ cases:
     expect: >
       разница выбывает прочим расходом (o.mkt.loss) вместе со списанием себестоимости — на складе не зависает непокрытая стоимость; сбой отправки расхода не роняет выдачу, но виден в логе с суммой
     test: components/controller/tests/unit/marketplace/marketplace-stock-markdown.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.03
@@ -129,6 +131,7 @@ cases:
     expect: >
       отказ — зарезервировать больше свободного остатка нельзя; оптимистический счётчик предложения при отказе не двигается
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.04
@@ -139,6 +142,7 @@ cases:
     expect: >
       отказ — допускается только уценка: продажа дороже потребовала бы доходной проводки, которой в модели нет
     test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.05
@@ -148,6 +152,7 @@ cases:
       К публикации выбрана позиция, которую публиковать нельзя: адресная под заказ пайщика, уже зарезервированная, чужого кооператива, ушедшая со склада либо уже опубликованная
     expect: отказ по каждой из причин; предложение кооператива не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.06
@@ -157,6 +162,7 @@ cases:
       Предложение поставщика заказывают путём заказа из остатка, либо предложение остатка неактивно
     expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   # 2026-08-18: в файлах фичи изменилась только строка импорта — чистка отказа
@@ -223,6 +229,7 @@ cases:
       поставщика на витрину кооператива не переезжают; повторная публикация прибавляет коробки к уже
       выставленным, не сбрасывая заблокированное
     test: components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.spec.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.10

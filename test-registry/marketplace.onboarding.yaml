@@ -84,6 +84,7 @@ cases:
     expect: >
       статус ЦПП становится «принята», в конфигурации расширения сохраняются решение совета и дата принятия
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   # Самоинициализация программы ЦПП в цепи. Механика общая с Благоростом —
@@ -96,6 +97,7 @@ cases:
     expect: >
       программа открывается автоматически ключом кооператива; шаблон оферты назначает контракт, а не вызывающая сторона
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.13
@@ -154,6 +156,7 @@ cases:
     expect: >
       не отказ: ЦПП остаётся принятой, реквизиты нового решения совета перезаписывают прежние, дубликата записи не появляется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
     # Решение заказчика (2026-08-08): текущее поведение (перезапись) устраивает.
     # Из кода не выводится: повторный accept не отбивается явной проверкой.
@@ -177,6 +180,7 @@ cases:
     scenario: Пайщик уже подписал программную оферту ЦПП
     expect: гейт не требуется, источник «подписано», проставлена дата подписи
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.06
@@ -220,6 +224,7 @@ cases:
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.break.01
