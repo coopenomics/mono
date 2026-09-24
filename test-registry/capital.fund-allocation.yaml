@@ -322,6 +322,7 @@ cases:
     scenario: направление средств с суммой в валюте кооператива
     expect: запрос доходит до доменного слоя без изменений по существу
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.01
@@ -332,6 +333,7 @@ cases:
       проект ищется и уходит в цепь в нижнем регистре. Иначе проект не нашёлся
       бы в базе и председатель получил бы «проект не найден» на существующем
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.02
@@ -340,6 +342,7 @@ cases:
     scenario: направление средств в персональный проект пайщика
     expect: отказ до обращения к цепи — деньги кооператива идут только в его проекты
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.03
@@ -348,6 +351,7 @@ cases:
     scenario: направление средств в проект, которого нет в базе
     expect: отказ «Проект не найден» до обращения к цепи
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.04
@@ -356,6 +360,7 @@ cases:
     scenario: сумма указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.12
@@ -505,6 +510,7 @@ cases:
       возвращается максимальная сумма и её составляющие — направлено в компонент,
       не израсходовано, удерживается под ссуды — в валюте кооператива
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.09
@@ -523,6 +529,7 @@ cases:
     scenario: возврат средств из персонального проекта пайщика
     expect: отказ до обращения к цепи — операция только для кооперативных проектов
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.11
@@ -531,6 +538,7 @@ cases:
     scenario: сумма возврата указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.12
@@ -631,6 +639,7 @@ cases:
       регистрации учётной записи, до приёма советом. Правило общее для роли
       `user` в RolesGuard (extension-kit)
     test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.ui.90

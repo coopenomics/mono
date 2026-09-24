@@ -37,6 +37,7 @@ cases:
     scenario: две правки в разных местах markdown относительно одной базы
     expect: сливаются без конфликта, merged=true, обе правки в результате
     test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.01
@@ -45,6 +46,7 @@ cases:
     scenario: одна строка изменена по-разному с двух сторон
     expect: конфликт с маркерами ours/base/theirs, ничего не потеряно
     test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.02
@@ -53,6 +55,7 @@ cases:
     scenario: заголовок изменён по-разному двумя авторами
     expect: title_conflict=true
     test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.03
@@ -61,6 +64,7 @@ cases:
     scenario: BPMN/DRAWIO правлены параллельно
     expect: построчное слияние не применяется — конфликт; правил один — берётся его версия
     test: components/controller/tests/unit/capital/content-merge.util.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.04
@@ -69,6 +73,7 @@ cases:
     scenario: клиент прислал текст, равный текущему серверному (повторное сохранение)
     expect: редакция не создаётся, content_rev не растёт
     test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.05
@@ -77,6 +82,7 @@ cases:
     scenario: сущность с content_rev=0 (создана до фичи) получает первую запись через API
     expect: лениво сеется rev=1 из текущего текста, запись становится rev=2
     test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.break.01
@@ -85,6 +91,7 @@ cases:
     scenario: блокчейн-проект — транзакция editproj упала после подготовки редакции
     expect: rollbackWrite возвращает текст и content_rev к предыдущей редакции, снимок удалён
     test: components/controller/tests/unit/capital/content-revision.service.test.ts
+    api: components/api-tests/src/capital/content-revisions.test.ts
     status: written
 
   - id: cap.rev.side.06
