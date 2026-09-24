@@ -9,6 +9,8 @@ import expressApp from './app';
 import { WinstonLoggerService } from './application/logger/logger-app.service';
 import { GraphQLExceptionFilter } from './infrastructure/graphql/filters/graphql-exceptions.filter';
 import { migrateData } from './migrator/migrate';
+import { runDatabaseMigrations } from './migrator/database-migrations';
+import { formatSchemaReport, reportSchema } from './migrator/schema-report';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
@@ -64,6 +66,38 @@ async function bootstrap() {
 
   // Проверяем, был ли запущен режим миграций
   const args = process.argv.slice(2);
+
+  // Только миграции схемы — шаг blue-green выкатки до старта новой версии
+  // (C28-79): таблицы меняются раньше, чем новая версия начнёт их читать.
+  // Код выхода явный по той же причине, что у --migrate ниже: Sentry
+  // перехватывает необработанный отказ и не роняет процесс.
+  if (args.includes('--migrate-schema')) {
+    try {
+      await runDatabaseMigrations();
+      process.exit(0);
+    } catch (error) {
+      logger.error('Миграции схемы не прошли, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
+
+  // Отчёт о схеме базы относительно этой версии — сверка перед релизом.
+  // `--database <имя>` — другая база; `--apply` — сначала применить миграции
+  // (только к копии, боевую базу отчёт не трогает).
+  if (args.includes('--schema-report')) {
+    try {
+      const databaseIndex = args.indexOf('--database');
+      const report = await reportSchema({
+        database: databaseIndex > -1 ? args[databaseIndex + 1] : undefined,
+        apply: args.includes('--apply'),
+      });
+      process.stdout.write(`${formatSchemaReport(report)}\n`);
+      process.exit(0);
+    } catch (error) {
+      logger.error('Отчёт о схеме не собран, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
   if (args.includes('--migrate')) {
     try {
       await migrateData();

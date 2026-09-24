@@ -6,12 +6,15 @@
  *                                          отличия от сущностей. Иначе код 1.
  *   pnpm schema:check --database <база>  — только чтение: чем существующая база
  *                                          отличается от сущностей и какие
- *                                          миграции в ней ещё не применены.
+ *                                          миграции в ней ещё не применены
+ *                                          (тот же отчёт, что --schema-report
+ *                                          собранного контроллера на узле).
  *
  * Гейт ловит правку сущности без миграции: колонка добавлена в класс, а в
  * истории миграций её нет — значит, на узлах кооперативов её не будет.
  */
 import { pendingSchemaSql, withDataSource, withScratchDatabase } from './schema-tools';
+import { formatSchemaReport, reportSchema } from '~/migrator/schema-report';
 
 function report(title: string, statements: string[]): void {
   process.stdout.write(`${title}: ${statements.length}\n`);
@@ -41,16 +44,8 @@ async function checkFresh(): Promise<number> {
 }
 
 async function checkDatabase(database: string): Promise<number> {
-  return withDataSource(database, async (dataSource) => {
-    const pending = await dataSource.showMigrations();
-    const executed: Array<{ name: string }> = (await dataSource
-      .query(`SELECT name FROM "schema_migrations" ORDER BY id`)
-      .catch(() => [])) as Array<{ name: string }>;
-    process.stdout.write(`База ${database}: применено миграций схемы ${executed.length}, ждут применения: ${pending ? 'да' : 'нет'}\n`);
-    const { up } = await pendingSchemaSql(dataSource);
-    report('Отличия базы от сущностей (SQL, которым TypeORM привёл бы её к коду)', up);
-    return 0;
-  });
+  process.stdout.write(`${formatSchemaReport(await reportSchema({ database }))}\n`);
+  return 0;
 }
 
 async function main() {

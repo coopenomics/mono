@@ -42,6 +42,8 @@
     "schema:migrate": "ts-node -r tsconfig-paths/register scripts/schema-migrate.ts",
     "schema:baseline": "ts-node -r tsconfig-paths/register scripts/schema-baseline.ts",
     "migrate": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate",
+    "migrate:schema": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate-schema",
+    "schema:report": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --schema-report",
     "prettier:fix": "prettier --write **/*.js",
     "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up",
     "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
