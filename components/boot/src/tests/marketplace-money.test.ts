@@ -129,7 +129,11 @@ describe('стол заказов — денежные места поставк
       const stmtMeta = docMeta(preview.convert.document.meta)
       expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
       expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
-      expect(Object.keys(stmtMeta).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
+      // Общие поля меты любого документа фабрики (версия шаблона, генератор,
+      // блок, часовой пояс и пр.) — не данные заявления; «лишним» считается
+      // только доменное поле сверх перечня.
+      const BASE_META = new Set(['block_num', 'generator', 'links', 'timezone', 'title', 'version'])
+      expect(Object.keys(stmtMeta).filter(k => !BASE_META.has(k)).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
       convertHash = preview.convert.document.hash
     }
 

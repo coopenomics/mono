@@ -113,6 +113,23 @@ export function docMeta(meta: unknown): Record<string, any> {
   return typeof meta === 'string' ? JSON.parse(meta) : (meta as Record<string, any>)
 }
 
+/**
+ * Количество в единице предложения, как его принимает контракт
+ * (lib/core/marketplace/marketplace.hpp): KG и LTR — три знака (0.500 KG =
+ * 500 г), штука PCS неделима — ноль знаков. Прямые действия заказа с чужой
+ * единицей или точностью контракт отвергает «Недопустимая единица измерения».
+ */
+const UNIT_ASSET: Record<string, { symbol: string, precision: number }> = {
+  KG: { symbol: 'KG', precision: 3 },
+  LITER: { symbol: 'LTR', precision: 3 },
+  PIECE: { symbol: 'PCS', precision: 0 },
+}
+export function unitAsset(unitOfMeasure: string, quantity: number): string {
+  const u = UNIT_ASSET[unitOfMeasure]
+  if (!u) throw new Error(`единица предложения ${unitOfMeasure} тесту неизвестна`)
+  return `${quantity.toFixed(u.precision)} ${u.symbol}`
+}
+
 /** Председатель кооператива стенда (ant) — те же реквизиты, что у shared/apiClient. */
 export const CHAIRMAN: Who = {
   email: process.env.TEST_EMAIL || 'ivanov@example.com',

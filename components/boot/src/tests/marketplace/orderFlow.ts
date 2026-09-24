@@ -25,6 +25,7 @@ export interface OfferLike {
   product_name: string
   price_per_unit: string
   supplier_account: string
+  unit_of_measure: string
 }
 
 /** Активное предложение поставщика с доставкой на нужный КУ. */

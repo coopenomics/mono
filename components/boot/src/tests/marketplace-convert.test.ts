@@ -18,7 +18,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { pickOffer, placeOrder } from './marketplace/orderFlow'
-import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps, docMeta } from './marketplace/chainHelpers'
+import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps, docMeta, unitAsset } from './marketplace/chainHelpers'
 
 const BRANAME = 'krg'
 const COOPNAME = 'voskhod'
@@ -58,9 +58,9 @@ async function createOrderDirect(orderHash: string, quantity: number): Promise<a
       offer_hash: sha256Hex(`offer:${offer.id}`),
       offerer: sidorov.account,
       delivery_braname: BRANAME,
-      quantity: `${quantity.toFixed(3)} PCS`,
+      quantity: unitAsset(offer.unit_of_measure, quantity),
       unit_price: `${unitPrice.toFixed(4)} RUB`,
-      package_size: '0.000 PCS',
+      package_size: unitAsset(offer.unit_of_measure, 0),
       warranty_period_secs: 0,
       batch_hash: '0'.repeat(64),
     },
@@ -136,8 +136,9 @@ describe('Стол заказов: заявление 1110 и внутренни
   it('mkt.stock.side.08: заказ из остатка без покрытого взноса отвергается так же, как обычный', async () => {
     // Пайщица только что выбрала членский кошелёк до нуля; свободный паевой
     // Стола заказов у неё может быть — но взнос идёт только с членского.
-    const stock: any = await gqlAs(ekaterinaToken, `query($i:MarketplaceListAllOffersInput){
-      marketplaceListAllOffers(input:$i){ items { id status supplier_account stock_braname price_per_unit } }
+    // Весь список предложений — право администратора Стола заказов (Offer:read:all).
+    const stock: any = await gqlAs(chairmanToken, `query($i:MarketplaceListAllOffersInput){
+      marketplaceListAllOffers(input:$i){ items { id status supplier_account stock_braname price_per_unit unit_of_measure } }
     }`, { i: {} })
     const stockOffer = (stock.marketplaceListAllOffers.items as any[]).find(o => o.status === 'ACTIVE' && o.stock_braname === BRANAME)
     if (!stockOffer) {
@@ -155,9 +156,9 @@ describe('Стол заказов: заявление 1110 и внутренни
         order_hash: orderHash,
         offer_hash: sha256Hex(`offer:${stockOffer.id}`),
         delivery_braname: BRANAME,
-        quantity: '1.000 PCS',
+        quantity: unitAsset(stockOffer.unit_of_measure, 1),
         unit_price: `${amount(stockOffer.price_per_unit).toFixed(4)} RUB`,
-        package_size: '0.000 PCS',
+        package_size: unitAsset(stockOffer.unit_of_measure, 0),
         warranty_period_secs: 0,
         batch_hash: '0'.repeat(64),
       },
