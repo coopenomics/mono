@@ -8,19 +8,19 @@
  * контроллера (тик в несколько секунд), поэтому появление строки в инбоксе
  * и смена статуса в журнале ожидаются опросом: это запись мимо мутации.
  *
- * Получатель уведомлений — участник совета с идентификатором подписчика
- * (председатель, заведённый установкой кооператива): у свежих пайщиков стенда нет
- * идентификатора подписчика (их заводит скрипт мимо регистрации контроллера,
- * а догоняет его фоновая задача раз в полчаса). Её инбокс могут пополнять и
- * другие события прогона, поэтому свои строки ищутся по decision_id, а счётчик
- * непрочитанных сверяется с лентой в тот же момент, а не с числом «до».
+ * Получатель уведомлений — пайщик, зарегистрированный через контроллер
+ * (center.helpers.ts): только регистрация заводит идентификатор подписчика, у
+ * участников стенда его нет. Свои строки ищутся по decision_id, счётчик
+ * непрочитанных сверяется с лентой в тот же момент.
  * Роль «пайщик» и веб-пуш подписки проверяются на свежем пайщике.
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, COUNCIL_2, ROLES, caseName, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
 import type { GqlError } from '../core'
+import type { Candidate } from './center.helpers'
+import { registerCandidate } from './center.helpers'
 
 /** Тип уведомления с шагами email + in_app + push (каталог @coopenomics/notifications). */
 const WORKFLOW = 'reshenie-soveta-prinyato'
@@ -76,8 +76,8 @@ async function journal(token: string, filter: Record<string, unknown>): Promise<
   return d.getNotifications.items
 }
 
-/** Получатель уведомлений — первый участник совета, у которого есть идентификатор подписчика. */
-let recipient: Who
+/** Получатель уведомлений — пайщик, прошедший регистрацию через контроллер. */
+let recipient: Candidate
 let recipientToken: string
 let subscriberId: string
 /** Свежий пайщик (роль user): отказы по роли и веб-пуш подписки. */
@@ -103,19 +103,11 @@ beforeAll(async () => {
   chairToken = await tokenOf(CHAIRMAN)
   councilToken = await tokenOf(COUNCIL)
   otherToken = await tokenOf(ROLES.otherMember())
-  const seen: Record<string, string> = {}
-  for (const who of [COUNCIL_2, COUNCIL, CHAIRMAN]) {
-    const token = await tokenOf(who)
-    const acc = await gql<any>(token, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: who.account } })
-    seen[who.account] = acc.getAccount.provider_account?.subscriber_id ?? ''
-    if (seen[who.account]) {
-      recipient = who
-      recipientToken = token
-      subscriberId = seen[who.account]
-      break
-    }
-  }
-  expect(subscriberId, `у кого-то из совета есть идентификатор подписчика: ${JSON.stringify(seen)}`).toBeTruthy()
+  recipient = await registerCandidate('ntf')
+  recipientToken = recipient.token
+  const acc = await gql<any>(recipientToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: recipient.account } })
+  subscriberId = acc.getAccount.provider_account.subscriber_id
+  expect(subscriberId, 'регистрация завела идентификатор подписчика').toBeTruthy()
 })
 
 describe('центр уведомлений: очередь, журнал, инбокс', () => {
