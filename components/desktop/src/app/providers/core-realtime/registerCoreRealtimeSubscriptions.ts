@@ -1,6 +1,6 @@
 import { registerRealtimeSubscription } from 'src/shared/lib/realtime';
 import { createNodeSyncSubscription } from 'src/entities/System/model/nodeSyncSubscription';
-import { createWalletEventsSubscription } from 'src/entities/Wallet/model/walletEventsSubscription';
+import { registerWalletLive } from 'src/entities/Wallet/model/walletLive';
 import { createChainChangesSubscription } from 'src/entities/System/model/chainChangesSubscription';
 import { registerSystemInfoLive } from 'src/entities/System/model/systemInfoLive';
 
@@ -16,7 +16,7 @@ export function registerCoreRealtimeSubscriptions(): void {
   if (registered) return;
   registered = true;
   registerRealtimeSubscription(createNodeSyncSubscription());
-  registerRealtimeSubscription(createWalletEventsSubscription());
   registerRealtimeSubscription(createChainChangesSubscription());
   registerSystemInfoLive();
+  registerWalletLive();
 }

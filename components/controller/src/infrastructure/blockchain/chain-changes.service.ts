@@ -2,7 +2,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainChangesPort, InnerChainChangesTable } from '@coopenomics/innercoop';
-import { BranchContract, DraftContract, Ledger2Contract, MeetContract, RegistratorContract, SovietContract } from 'cooptypes';
+import {
+  BranchContract,
+  DraftContract,
+  GatewayContract,
+  Ledger2Contract,
+  MeetContract,
+  RegistratorContract,
+  SovietContract,
+  WalletContract,
+} from 'cooptypes';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -25,6 +34,16 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: Ledger2Contract.Tables.UserWallets.tableName,
     owner_field: 'username',
   },
+  // Кошелёк пайщика: пополнения и выводы, подписи соглашений, участие в
+  // программах и программные кошельки — ему и совету.
+  { code: GatewayContract.contractName.production, table: GatewayContract.Tables.Incomes.tableName, owner_field: 'username' },
+  { code: GatewayContract.contractName.production, table: GatewayContract.Tables.Outcomes.tableName, owner_field: 'username' },
+  { code: SovietContract.contractName.production, table: SovietContract.Tables.Agreements.tableName, owner_field: 'username' },
+  { code: SovietContract.contractName.production, table: SovietContract.Tables.ProgramWallets.tableName, owner_field: 'username' },
+  { code: WalletContract.contractName.production, table: WalletContract.Tables.Users.tableName, owner_field: 'username' },
+  // Программы кооператива и обязательные соглашения — всем пайщикам.
+  { code: SovietContract.contractName.production, table: SovietContract.Tables.Programs.tableName },
+  { code: SovietContract.contractName.production, table: SovietContract.Tables.CoopAgreements.tableName },
   // Общекооперативные кошельки (пулы программ и расходов) — совету.
   {
     code: Ledger2Contract.contractName.production,

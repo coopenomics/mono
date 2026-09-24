@@ -24,13 +24,21 @@ title: Кошелёк пайщика — событийное обновлени
 # на уровне соединения: ws-контекст несёт ту же учётную запись, что HTTP
 # (фича auth.ws-connection), резолвер читает её как любой другой.
 
+# Правка 24.09.2026 (C28-83): стол больше не открывает отдельную подписку
+# walletEvents — кошелёк перечитывается по общей ленте изменений (chainChanges)
+# с таблицами ledger2::userwallets, gateway::incomes/outcomes, soviet::agreements3,
+# soviet::progwallets, soviet::programs, wallet::users (walletLive.ts). Серверный
+# резолвер walletEvents и его случаи не менялись. Сняты оптимистичные патчи
+# кошелька (не использовались) и отметка «недавно подписано»: подпись отвечает
+# после разбора своего блока, перечитанный кошелёк уже её содержит.
+
 sources:
   backend:
     - components/controller/src/application/wallet/services/wallet-events.service.ts
     - components/controller/src/application/wallet/dto/wallet-event.dto.ts
     - components/controller/src/application/wallet/resolvers/wallet.resolver.ts
   ui:
-    - components/desktop/src/entities/Wallet/model/walletEventsSubscription.ts
+    - components/desktop/src/entities/Wallet/model/walletLive.ts
     - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
     - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/marketplaceEventsSubscription.ts
     - components/sdk/src/utils/wsSubscription.ts

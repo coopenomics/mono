@@ -14,6 +14,8 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { AgreementReader } from 'src/features/Agreementer/GenerateAgreement';
 import { useWalletStore } from 'src/entities/Wallet';
+import { DraftContract, SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session';
 
 const route = useRoute()
@@ -78,15 +80,6 @@ const required_agreements = computed(() => {
         return false;
       }
 
-      // Подпись, поставленная в этой сессии, ещё может не доехать с сервера:
-      // она уходит в блокчейн, а список читается из базы узла, куда запись
-      // попадает после разбора блока индексатором. Секунду спустя сервер
-      // ответит правильно, но диалог закрывается раньше — без этой проверки
-      // пайщику снова показали бы документ, который он только что подписал.
-      if (wallet.recentlySignedTypes.includes(agreement.type)) {
-        return false;
-      }
-
       // Найти, если пользователь уже подписал это соглашение
       const userAgreement = userAgreements.value.find(ua => ua.type === agreement.type);
 
@@ -121,6 +114,21 @@ watch(() => session.isAuth, (newValue) => {
   if(newValue)
     init()
 })
+
+// Обязательные соглашения кооператива и их утверждённые редакции живут по
+// ленте изменений: новое соглашение или новая редакция приходят сигналом, и
+// пайщика просят подписать без перезагрузки. Подписи пайщика приходят через
+// кошелёк (registerWalletLive).
+useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.CoopAgreements),
+    liveTable(DraftContract, DraftContract.Tables.Drafts),
+    liveTable(DraftContract, DraftContract.Tables.Approvals),
+  ],
+  () => {
+    if (session.isAuth && info.coopname) init()
+  },
+)
 
 // Без этого watch'а init() в setup стартует пока system.loadSystemInfo() ещё не завершён,
 // info.coopname=undefined → GraphQL валится на required $coopname.
