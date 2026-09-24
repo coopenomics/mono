@@ -135,9 +135,22 @@ async function coop(name: string, data: Record<string, unknown>, account = CAPIT
   return transact(COOP_SIGNER, [{ account, name, data: { coopname: COOP, ...data } }])
 }
 
-/** Одобрение председателем (soviet::confirmapprv) — договор УХД, приложение, результат. */
-export async function chairmanApprove(approvalHash: string): Promise<void> {
-  await coop('confirmapprv', { username: CHAIRMAN.account, approval_hash: approvalHash, approved_document: chainDoc([CHAIRMAN]) }, 'soviet')
+/**
+ * Одобрение председателем (soviet::confirmapprv) — договор УХД, приложение,
+ * результат. Документ одобрения заменяет в цепи исходный: для заявления о
+ * результате это то же заявление со второй подписью (`approveStatement`).
+ */
+export async function chairmanApprove(approvalHash: string, approvedDocument: unknown = chainDoc([CHAIRMAN])): Promise<void> {
+  await coop('confirmapprv', { username: CHAIRMAN.account, approval_hash: approvalHash, approved_document: approvedDocument }, 'soviet')
+}
+
+/**
+ * Председатель одобряет заявление о результате так, как это делает рабочий
+ * стол: ставит вторую подпись на тот же документ, поверх подписи пайщика.
+ */
+export async function approveStatement(resultHash: string, generated: any, signedByMember: any): Promise<void> {
+  const approved = await signDocument(DEFAULT_WIF, generated, CHAIRMAN.account, 2, [signedByMember])
+  await chairmanApprove(resultHash, toChainDoc(approved))
 }
 
 // ── Участник программы ─────────────────────────────────────────────────────
@@ -304,12 +317,8 @@ async function votingBoardMembers(): Promise<string[]> {
   return members.length ? members : [CHAIRMAN.account]
 }
 
-/**
- * Решение совета по повестке: голоса «за» всех голосующих членов совета, ещё
- * не голосовавших, утверждение председателем с приложенным протоколом и
- * исполнение. У членов совета стенда общий ключ boot.
- */
-export async function decide(decisionId: number, protocol: any): Promise<void> {
+/** Голоса «за» всех голосующих членов совета, ещё не голосовавших (у совета стенда общий ключ boot). */
+export async function voteForDecision(decisionId: number): Promise<void> {
   const { Classes } = await import('@coopenomics/sdk')
   const decision = (await tableRows<any>('soviet', COOP, 'decisions')).find(d => Number(d.id) === decisionId)
   const voted = new Set<string>([...(decision?.votes_for ?? []), ...(decision?.votes_against ?? [])])
@@ -320,13 +329,36 @@ export async function decide(decisionId: number, protocol: any): Promise<void> {
     const vote = await new (Classes as any).Vote(DEFAULT_WIF).voteFor(COOP, member, decisionId, 'active')
     actions.push({ account: 'soviet', name: 'votefor', authorization: [{ actor: member, permission: 'active' }], data: vote })
   }
-  actions.push({
-    account: 'soviet',
-    name: 'authorize',
-    data: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decisionId, document: toChainDoc(protocol), permission: 'active' },
-  })
-  actions.push({ account: 'soviet', name: 'exec', data: { executer: CHAIRMAN.account, coopname: COOP, decision_id: decisionId } })
-  await transact(COOP_SIGNER, actions)
+  if (actions.length)
+    await transact(COOP_SIGNER, actions)
+}
+
+/** Утверждение решения председателем с приложенным протоколом и исполнение. */
+export async function authorizeDecision(decisionId: number, protocol: any): Promise<void> {
+  await transact(COOP_SIGNER, [
+    {
+      account: 'soviet',
+      name: 'authorize',
+      data: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decisionId, document: toChainDoc(protocol), permission: 'active' },
+    },
+    { account: 'soviet', name: 'exec', data: { executer: CHAIRMAN.account, coopname: COOP, decision_id: decisionId } },
+  ])
+}
+
+/**
+ * Решение совета о приёме РИД из генератора. Генератор собирает протокол по
+ * голосам совета, а голоса отданы в цепь мимо контроллера — до того, как их
+ * увидит индекс действий, генерация отвечает отказом генератора.
+ */
+export async function generateResultDecision(token: string, decisionId: number, resultHash: string): Promise<any> {
+  return waitFor(async () => {
+    const r = await gqlRawPaced<any>(token, GEN_DECISION, { d: { decision_id: decisionId, result_hash: resultHash, username: CHAIRMAN.account } })
+    if (!r.errors.length)
+      return r.data.capitalGenerateResultContributionDecision
+    if (r.errors[0].code === 'GENERATOR_DOCUMENT_GENERATION_FAILED')
+      return null
+    throw new ApiError(r.errors, r.status)
+  }, { timeoutMs: 180_000, intervalMs: 3_000, label: `протокол решения ${decisionId} по голосам совета` })
 }
 
 /**

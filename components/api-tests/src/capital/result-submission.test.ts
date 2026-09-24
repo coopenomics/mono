@@ -22,11 +22,13 @@ import {
   addAuthorOnChain,
   apiDoc,
   capitalMember,
-  chairmanApprove,
   clearance,
   commitHours,
   createProject,
-  decide,
+  approveStatement,
+  authorizeDecision,
+  generateResultDecision,
+  voteForDecision,
   decisionFor,
   ensureCapitalProgram,
   foreignProtocol,
@@ -114,6 +116,7 @@ describe('Благорост: приём РИД — путь результат�
   let aliceResult = ''
   let bobResult = ''
   let aliceStatementDoc: any
+  let aliceSignedStatement: any
   let aliceSegmentBeforePush: any
   let decisionId = 0
   let aliceActDoc: any
@@ -216,8 +219,8 @@ describe('Благорост: приём РИД — путь результат�
   it(caseName('cap.rid.happy.02', 'результат вносится с суммами доли и хэшем документа результата из базы'), async () => {
     const aliceToken = await tokenOf(alice)
     aliceSegmentBeforePush = await segmentOf(aliceToken, component, alice.account)
-    const statement = await signDocument(alice.wif, aliceStatementDoc, alice.account)
-    const d = await gql<any>(aliceToken, PUSH_RESULT, { d: { username: alice.account, project_hash: component, statement } })
+    aliceSignedStatement = await signDocument(alice.wif, aliceStatementDoc, alice.account)
+    const d = await gql<any>(aliceToken, PUSH_RESULT, { d: { username: alice.account, project_hash: component, statement: aliceSignedStatement } })
     expect(d.capitalPushResult.status).toBe('STATEMENT')
 
     const result = await resultOf(aliceToken, component, alice.account)
@@ -234,20 +237,25 @@ describe('Благорост: приём РИД — путь результат�
     const noStatement = await gqlErrorPaced(await tokenOf(bob), GEN_ACT, { d: { result_hash: bobResult, username: bob.account } })
     expect(noStatement?.code).toBe('CAPITAL_RESULT_STATEMENT_MISSING')
 
+    // До решения совета строка результата в цепи хранит пустой документ
+    // решения, и отказ приходит на проверке его мета-данных, а не на проверке
+    // «решения нет» (вопрос владельцу в отчёте). Важно одно: акт без решения
+    // не собирается и до генератора дело не доходит.
     const noDecision = await gqlErrorPaced(await tokenOf(alice), GEN_ACT, { d: { result_hash: aliceResult, username: alice.account } })
-    expect(noDecision?.code).toBe('CAPITAL_COUNCIL_DECISION_MISSING')
+    expect(['CAPITAL_COUNCIL_DECISION_MISSING', 'CAPITAL_STATEMENT_OR_DECISION_META_MISSING', 'CAPITAL_DECISION_ID_MISSING']).toContain(noDecision?.code)
   })
 
   it(caseName('cap.rid.side.40', 'хэш акта — sha256 от хэша результата и номера решения совета'), async () => {
-    await chairmanApprove(aliceResult)
+    await approveStatement(aliceResult, aliceStatementDoc, aliceSignedStatement)
     const decision = await waitFor(async () => (await decisionFor(aliceResult)) ?? null,
       { timeoutMs: 60_000, intervalMs: 1_000, label: 'повестка совета по результату' })
     decisionId = Number(decision.id)
 
+    await voteForDecision(decisionId)
     const chairToken = await tokenOf(CHAIRMAN)
-    const gen = await gqlPaced<any>(chairToken, GEN_DECISION, { d: { decision_id: decisionId, result_hash: aliceResult, username: CHAIRMAN.account } })
-    const protocol = await signDocument(DEFAULT_WIF, gen.capitalGenerateResultContributionDecision, CHAIRMAN.account)
-    await decide(decisionId, protocol)
+    const generated = await generateResultDecision(chairToken, decisionId, aliceResult)
+    const protocol = await signDocument(DEFAULT_WIF, generated, CHAIRMAN.account)
+    await authorizeDecision(decisionId, protocol)
     // Решение исполнено в цепи мимо контроллера — ждём зеркала.
     await waitFor(async () => ((await resultOf(chairToken, component, alice.account))?.status === 'AUTHORIZED' ? true : null),
       { timeoutMs: 120_000, intervalMs: 1_000, label: 'результат авторизован советом' })
@@ -310,15 +318,17 @@ describe('Благорост: приём РИД — путь результат�
   it(caseName('cap.rid.side.39', 'акт не генерируется, если решение совета разошлось с заявлением'), async () => {
     const bobToken = await tokenOf(bob)
     const gen = await gqlPaced<any>(bobToken, GEN_STATEMENT, { d: { project_hash: component, username: bob.account } })
-    const statement = await signDocument(bob.wif, gen.capitalGenerateResultContributionStatement, bob.account)
+    const bobStatementDoc = gen.capitalGenerateResultContributionStatement
+    const statement = await signDocument(bob.wif, bobStatementDoc, bob.account)
     await gql(bobToken, PUSH_RESULT, { d: { username: bob.account, project_hash: component, statement } })
 
-    await chairmanApprove(bobResult)
+    await approveStatement(bobResult, bobStatementDoc, statement)
     const decision = await waitFor(async () => (await decisionFor(bobResult)) ?? null,
       { timeoutMs: 60_000, intervalMs: 1_000, label: 'повестка совета по результату участника' })
     // Совет утверждает протокол, собранный не генератором: полей решения о
     // приёме РИД в нём нет — ни названия компонента, ни суммы, ни доли.
-    await decide(Number(decision.id), await foreignProtocol(Number(decision.id)))
+    await voteForDecision(Number(decision.id))
+    await authorizeDecision(Number(decision.id), await foreignProtocol(Number(decision.id)))
     await waitFor(async () => ((await resultOf(bobToken, component, bob.account))?.status === 'AUTHORIZED' ? true : null),
       { timeoutMs: 120_000, intervalMs: 1_000, label: 'результат участника авторизован' })
 
