@@ -53,6 +53,7 @@ cases:
       сигнал уходит в персональный топик пайщика и несёт только адресные поля
       (кооператив, пайщик, имя кошелька)
     test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    api: components/api-tests/src/platform/wallet.realtime.test.ts
     status: passing
 
   - id: wallet.realtime.side.01
@@ -63,6 +64,7 @@ cases:
       payload не содержит остатка и блокировки — клиент дочитывает
       авторитетное состояние запросом, иначе две дороги к одному числу разойдутся
     test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    api: components/api-tests/src/platform/wallet.realtime.test.ts
     status: passing
 
   - id: wallet.realtime.side.02
@@ -102,6 +104,7 @@ cases:
       не может
     decision_needed: false
     test: components/controller/tests/unit/wallet/wallet-events.resolver.test.ts
+    api: components/api-tests/src/platform/wallet.realtime.test.ts
     status: passing
 
   - id: wallet.realtime.happy.02
@@ -111,6 +114,7 @@ cases:
       Подписку открывает пайщик: в контексте ws-соединения его учётная запись.
     expect: подписка открывается на его персональный топик
     test: components/controller/tests/unit/wallet/wallet-events.resolver.test.ts
+    api: components/api-tests/src/platform/wallet.realtime.test.ts
     status: passing
 
   - id: wallet.realtime.side.05

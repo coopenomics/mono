@@ -89,6 +89,7 @@ cases:
     scenario: "Любая мутация отправляет транзакцию через BlockchainService.transact."
     expect: "Ответ уходит, когда узел разобрал блок транзакции (событие следующего блока или простой потока), не дольше BLOCKCHAIN_WRITE_WAIT_DELTA_MS; уже разобранный блок — сразу."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/platform/sync.write-wait-delta.test.ts
     status: passing
   - id: sync.wwd.side.04
     level: backend
