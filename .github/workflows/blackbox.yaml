@@ -2,7 +2,8 @@ name: Blackbox
 
 # Внешний слой тестов (C28-80): поднимает стенд целиком — цепь, индексер,
 # контроллер, базы, файловое хранилище, CoopID — и гоняет тесты, которые
-# разговаривают с платформой только через API (components/boot/src/tests).
+# разговаривают с платформой только через API (components/boot/src/tests и
+# components/api-tests).
 # Он дополняет юнит-тесты, а не заменяет их: юнит-тесты проверяют правила
 # изнутри, этот слой — что правила доходят до клиента и что сценарии проходят
 # целиком. От языка сервера он не зависит, поэтому переживёт и уход с TypeORM,
@@ -122,6 +123,7 @@ jobs:
         run: bash scripts/blackbox/stack.sh boot
 
       - name: Стенд — индексер и контроллер
+        id: app
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
 
@@ -133,9 +135,49 @@ jobs:
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh seed
 
+      # Журнал запросов к базе снимается по фазам тестов: после прогона видно,
+      # какие таблицы внешний слой читал и писал (карта готовности к уходу с
+      # TypeORM, C28-81). Сбой журнала тесты не останавливает.
+      - name: База — журнал запросов
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov start
+
       - name: Внешние тесты
+        id: tests
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh tests
+
+      # Следующие наборы идут и после красного предыдущего: падение одного
+      # набора не должно прятать состояние другого. Условие — живой стенд.
+      - name: База — снимок после boot
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap boot
+
+      - name: API-тесты (components/api-tests)
+        id: apitests
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 60
+        run: bash scripts/blackbox/stack.sh apitests
+
+      - name: База — снимок после API-тестов
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap api
+
+      # Матрица прав — пока отчётом: снимок ожидаемых отказов утверждает
+      # владелец, до этого расхождения прогон не роняют.
+      - name: Матрица прав
+        id: rights
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh rights
+
+      - name: База — снимок после матрицы прав
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap rights
 
       - name: Логи стенда
         if: always()

@@ -38,7 +38,9 @@ export const SIGNIFICANT_ROOTS = [
 // От языка сервера и от ORM они не зависят — поэтому именно они страхуют
 // уход с TypeORM и возможную смену бэкенда. Юнит-тесты при этом остаются:
 // они проверяют правила изнутри, внешний слой — что правила доходят до клиента.
-export const EXTERNAL_TEST_ROOTS = ['components/boot/src/tests/'];
+// Новое пишется в components/api-tests (общий каркас: роли, вход, свежие
+// пайщики, цепь); components/boot/src/tests — прежние наборы.
+export const EXTERNAL_TEST_ROOTS = ['components/boot/src/tests/', 'components/api-tests/src/'];
 
 export function isExternalTest(path) {
   return !!path && EXTERNAL_TEST_ROOTS.some((root) => path.startsWith(root));

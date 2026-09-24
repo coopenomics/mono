@@ -93,6 +93,24 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
 
+  components/api-tests:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.12.12
+        version: 20.19.37
+      eosjs:
+        specifier: ^22.1.0
+        version: 22.1.0
+      eosjs-ecc:
+        specifier: ^4.0.7
+        version: 4.0.7
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.37)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1)
+
   components/auth:
     dependencies:
       '@coopenomics/i18n':

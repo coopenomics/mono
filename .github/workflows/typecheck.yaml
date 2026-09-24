@@ -135,6 +135,9 @@ jobs:
       - name: tsc --noEmit (boot)
         run: pnpm --filter @coopenomics/boot run typecheck
 
+      - name: tsc --noEmit (api-tests)
+        run: pnpm --filter @coopenomics/api-tests run typecheck
+
       - name: tsc --noEmit (i18n)
         run: pnpm --filter @coopenomics/i18n run typecheck
 
