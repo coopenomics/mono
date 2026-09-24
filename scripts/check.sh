@@ -212,10 +212,10 @@ case "$MODE" in
     run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "плательщик памяти в контрактах" gate_ram_payer
+    run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "факт: пауза вместо факта" gate_timing
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
-    run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
