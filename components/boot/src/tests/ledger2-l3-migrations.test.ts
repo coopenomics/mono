@@ -24,6 +24,8 @@ import { Ledger2, Ledger2Contract, WalletContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
+import { generateRandomUsername } from '../utils/randomUsername'
+import { addUser } from '../init/participant'
 import { signedDocument } from './shared/fakeDocument'
 import { capitalDraftId, capitalProgramId } from './capital/consts'
 
@@ -89,11 +91,16 @@ describe('cooptypes L3 sanity (Эпик 2 / Эпик 3)', () => {
 describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
   const bc = new Blockchain(config.network, config.private_keys)
   const TEST_PROGRAM_ID_BLAGO = 4 // Благорост — есть в boot:extra
-  const TEST_USERNAME = 'ant'
+  // Свой пайщик на каждый блок: случаи создают и удаляют L3-кошелёк Благороста и
+  // отзывают соглашения — на председателе ant это ломало бы соседние наборы на
+  // общем стенде (решение владельца 24.09.2026).
+  let TEST_USERNAME = ''
 
   beforeAll(async () => {
     await bc.update_pass_instance()
-  }, 60_000)
+    TEST_USERNAME = generateRandomUsername()
+    await addUser(TEST_USERNAME)
+  }, 120_000)
 
   it('wallet::signagree → users[username].programs[] обновляется', async () => {
     const data: WalletContract.Actions.SignAgreement.ISignAgreement = {
@@ -173,7 +180,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const entry = (rows as Array<{ wallet_name: string; username: string; available: string }>)
       .find((r) => r.wallet_name === 'w.cap.blago' && r.username === TEST_USERNAME)
-    expect(entry, 'userwallets[w.cap.blago, ant] должен быть создан').toBeDefined()
+    expect(entry, 'userwallets[w.cap.blago, пайщик] должен быть создан').toBeDefined()
     expect(entry!.available).toBe('1000.0000 RUB')
   }, 60_000)
 
@@ -198,7 +205,7 @@ describe('ledger2 L3 + wallet::users — integration (live blockchain)', () => {
     const rows = await bc.getTableRows('ledger2', COOP, 'userwallets', 100)
     const entry = (rows as Array<{ wallet_name: string; username: string }>)
       .find((r) => r.wallet_name === 'w.cap.blago' && r.username === TEST_USERNAME)
-    expect(entry, 'userwallets[w.cap.blago, ant] должен быть удалён при (0,0)').toBeUndefined()
+    expect(entry, 'userwallets[w.cap.blago, пайщик] должен быть удалён при (0,0)').toBeUndefined()
   }, 60_000)
 
   it('ledger2::migrate3 на COOPERATIVE-кошельке падает (assert kind == USER_SHARED)', async () => {
@@ -259,11 +266,16 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
   const bc = new Blockchain(config.network, config.private_keys)
   const TEST_PROGRAM_ID_BLAGO = 4
   const TEST_PROGRAM_ID_GEN = 3 // Программа существует в boot:extra (Генератор)
-  const TEST_USERNAME = 'ant'
+  // Свой пайщик на каждый блок: случаи создают и удаляют L3-кошелёк Благороста и
+  // отзывают соглашения — на председателе ant это ломало бы соседние наборы на
+  // общем стенде (решение владельца 24.09.2026).
+  let TEST_USERNAME = ''
 
   beforeAll(async () => {
     await bc.update_pass_instance()
-  }, 60_000)
+    TEST_USERNAME = generateRandomUsername()
+    await addUser(TEST_USERNAME)
+  }, 120_000)
 
   /** Гарантирует отсутствие program_id у пайщика (revokeagree если есть, иначе no-op). */
   async function ensureNoProgram(program_id: number): Promise<void> {
