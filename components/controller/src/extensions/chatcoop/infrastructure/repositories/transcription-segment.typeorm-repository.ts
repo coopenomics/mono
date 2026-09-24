@@ -1,17 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TranscriptionSegmentRepository } from '../../domain/repositories/transcription-segment.repository';
 import { TranscriptionSegmentDomainEntity } from '../../domain/entities/transcription-segment.entity';
 import { TranscriptionSegmentTypeormEntity } from '../entities/transcription-segment.typeorm-entity';
 import { TranscriptionSegmentMapper } from '../mappers/transcription-segment.mapper';
+import { ChatcoopLiveFeedService } from '../realtime/chatcoop-live-feed.service';
 
 // TypeORM адаптер репозитория сегментов транскрипции
 @Injectable()
 export class TranscriptionSegmentTypeormRepository implements TranscriptionSegmentRepository {
   constructor(
     @InjectRepository(TranscriptionSegmentTypeormEntity)
-    private readonly repository: Repository<TranscriptionSegmentTypeormEntity>
+    private readonly repository: Repository<TranscriptionSegmentTypeormEntity>,
+    // Новый фрагмент — изменение транскрипции: сигнал её участникам.
+    @Optional() @Inject(ChatcoopLiveFeedService) private readonly live: ChatcoopLiveFeedService | null = null
   ) {}
 
   async create(
@@ -19,6 +22,7 @@ export class TranscriptionSegmentTypeormRepository implements TranscriptionSegme
   ): Promise<TranscriptionSegmentDomainEntity> {
     const entity = this.repository.create(TranscriptionSegmentMapper.toEntity(data));
     const savedEntity = await this.repository.save(entity);
+    void this.live?.publishTranscription(savedEntity.transcriptionId);
     return TranscriptionSegmentMapper.toDomain(savedEntity);
   }
 
@@ -40,6 +44,7 @@ export class TranscriptionSegmentTypeormRepository implements TranscriptionSegme
   ): Promise<TranscriptionSegmentDomainEntity[]> {
     const entities = data.map((d) => this.repository.create(TranscriptionSegmentMapper.toEntity(d)));
     const savedEntities = await this.repository.save(entities);
+    for (const id of new Set(savedEntities.map((e) => e.transcriptionId))) void this.live?.publishTranscription(id);
     return savedEntities.map(TranscriptionSegmentMapper.toDomain);
   }
 }

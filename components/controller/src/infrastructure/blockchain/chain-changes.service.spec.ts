@@ -135,6 +135,19 @@ describe('ChainChangesService', () => {
     });
   });
 
+  it('несколько владельцев строки (участники звонка): сигнал каждому и персоналу, повторы и пустые — отброшены', async () => {
+    const { service, pubSub } = build();
+    service.declareLocalTables([{ code: 'chatcoop', table: 'chatcoop_call_transcriptions', owner_field: 'participant_usernames' }]);
+
+    await service.publishLocal('chatcoop_call_transcriptions', 't1', { participant_usernames: ['ann', 'bob', 'ann', ''] });
+
+    expect(pubSub.publish.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+      chainChangesOwnerTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions', 'ann'),
+      chainChangesOwnerTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions', 'bob'),
+      chainChangesStaffTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions'),
+    ]);
+  });
+
   it('служебная таблица — только персоналу; необъявленная таблица базы — тишина', async () => {
     const { service, pubSub } = build();
     service.declareLocalTables([{ code: 'edubridge', table: 'edubridge_access_tasks', staff_only: true }]);

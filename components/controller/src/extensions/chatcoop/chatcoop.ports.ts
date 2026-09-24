@@ -12,6 +12,7 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   COOPERATIVE_VARS_PORT,
   COOP_CALENDAR_EVENT_NOTIFICATION_PORT,
   INTEGRATION_SETTINGS_PORT,
@@ -35,6 +36,8 @@ export const chatcoopPorts = {
     USER_DIRECTORY_PORT,
   ],
   optional: [
+    // Лента изменений: экраны чата живут без перезагрузки.
+    CHAIN_CHANGES_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
     PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   ],

@@ -1,6 +1,6 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "b68a52a57fcd8c52df714bf50809c70c07d1aecb",
+  "_commit": "333de8ec3818048e120f4e921849545bbbb7340b",
   "files": {
     "components/controller/src/domain/document-approval/services/document-approval-seed.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/component-matrix-announcement.service.ts": 1,
@@ -14,7 +14,6 @@
     "components/controller/src/extensions/chatcoop/application/services/matrix-api.service.ts": 2,
     "components/controller/src/extensions/chatcoop/application/services/secretary-agent.service.ts": 3,
     "components/controller/src/extensions/chatcoop/application/services/whisper-stt.service.ts": 1,
-    "components/controller/src/extensions/chatcoop/chatcoop-extension.module.ts": 2,
     "components/controller/src/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter.ts": 2,
     "components/controller/src/extensions/participant/notification-sender.service.ts": 6,
     "components/controller/src/infrastructure/blockchain/action-release-gate.service.ts": 2,
@@ -29,7 +28,6 @@
     "components/desktop/extensions/capital/shared/lib/composables/useBatchImport.ts": 1,
     "components/desktop/extensions/capital/widgets/ComponentsListWidget/ui/ComponentsListWidget.vue": 3,
     "components/desktop/extensions/chairman/features/Onboarding/ui/OnboardingCompletionCelebration.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/ChatCoopPage/ui/ChatCoopPage.vue": 1,
     "components/desktop/src/app/App.vue": 2,
     "components/desktop/src/app/layouts/widget.vue": 1,
     "components/desktop/src/app/providers/router.ts": 1,

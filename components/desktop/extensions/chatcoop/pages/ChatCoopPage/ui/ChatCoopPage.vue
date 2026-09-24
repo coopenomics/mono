@@ -47,6 +47,8 @@ div
 
 <script lang="ts" setup>
 import { computed, ref, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_ACCOUNT_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useRoute, useRouter } from 'vue-router';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { useChatCoopChatStore } from '../../../entities/ChatCoopChat/model';
@@ -83,7 +85,7 @@ function startIframeLoading() {
     clearTimeout(iframeLoadTimeout);
   }
 
-  // Устанавливаем таймаут на 5 секунд как fallback
+  // timing: timeout — запасной срок: iframe Matrix не всегда шлёт load, спиннер снимаем через 5 с
   iframeLoadTimeout = window.setTimeout(() => {
     isIframeLoading.value = false;
   }, 5000);
@@ -122,6 +124,10 @@ onMounted(async () => {
   // Инициализируем загрузку iframe после получения статуса аккаунта
   startIframeLoading();
 });
+
+// Учётная запись в Matrix живёт по ленте: созданная или пересозданная запись
+// сразу меняет состояние экрана (iframe перезагружается только при смене адреса).
+useLiveReload(CHAT_ACCOUNT_LIVE_TABLES, () => chatcoopStore.loadAccountStatus());
 </script>
 
 <style scoped>

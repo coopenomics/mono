@@ -95,6 +95,7 @@ import { MatrixUserTypeormRepository } from './infrastructure/repositories/matri
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
+import { ChatcoopLiveFeedService } from './infrastructure/realtime/chatcoop-live-feed.service';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 @Injectable()
 export class ChatCoopExtension extends BaseExtensionModule {
@@ -156,6 +157,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
       });
 
       // Отложенная инициализация (MongoDB/Generator могут быть ещё не готовы)
+      // timing: schedule — настройка пространства Matrix после старта узла; сигнала готовности генератора нет, заменить на него — отдельная задача
       setTimeout(async () => {
         try {
           const st = await this.chatcoopState.getSingleton();
@@ -200,6 +202,7 @@ export class ChatCoopExtension extends BaseExtensionModule {
    * Выполняется только если расширение установлено (this.extension задаётся в initialize()).
    */
   async onModuleInit(): Promise<void> {
+    // timing: schedule — отложенная настройка секретаря после старта узла; сигнала готовности генератора нет, заменить на него — отдельная задача
     setTimeout(async () => {
       try {
         // Расширение не установлено — initialize() не вызывался, пропускаем
@@ -552,6 +555,9 @@ export class ChatCoopExtension extends BaseExtensionModule {
     },
 
     // Repositories
+
+    // Лента изменений чата (C28-83)
+    ChatcoopLiveFeedService,
 
     // Domain Services
     MatrixUserManagementService,

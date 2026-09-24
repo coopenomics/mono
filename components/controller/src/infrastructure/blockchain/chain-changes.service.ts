@@ -267,7 +267,9 @@ export class ChainChangesService implements IChainChangesPort {
     if (declared.staff_only) {
       topics.push(chainChangesStaffTopic(coopname, signal.code, signal.table));
     } else if (declared.owner_field) {
-      if (owner) topics.push(chainChangesOwnerTopic(coopname, signal.code, signal.table, String(owner)));
+      // Владельцев у строки может быть несколько (участники звонка) — сигнал
+      // каждому.
+      for (const name of ownersOf(owner)) topics.push(chainChangesOwnerTopic(coopname, signal.code, signal.table, name));
       topics.push(chainChangesStaffTopic(coopname, signal.code, signal.table));
     } else {
       topics.push(chainChangesTopic(coopname, signal.code, signal.table));
@@ -279,6 +281,12 @@ export class ChainChangesService implements IChainChangesPort {
       this.logger.warn(`Лента изменений: сигнал ${signal.code}::${signal.table} не опубликован — ${error?.message ?? error}`);
     }
   }
+}
+
+/** Владельцы строки: одно имя либо список имён; пустые значения отбрасываются. */
+function ownersOf(owner: unknown): string[] {
+  const list = Array.isArray(owner) ? owner : [owner];
+  return [...new Set(list.filter((name) => typeof name === 'string' && name.length > 0) as string[])];
 }
 
 function key(code: string, table: string): string {

@@ -42,6 +42,13 @@ title: Лента изменений цепи — живое обновлени�
 # (desktopLive). В ленте ядра — план счетов ledger2::accounts (совету);
 # стол бухгалтера объявляет свои таблицы и soviet::taxes (служебные).
 
+# Правка 24.09.2026 (C28-83, четвёртый проход): у строки может быть несколько
+# владельцев — поле владельца со списком имён, сигнал каждому. Так живёт чат
+# кооператива: транскрипцию получают участники звонка (идентификаторы Matrix
+# переводятся в имена пайщиков в ChatcoopLiveFeedService), календарь — все,
+# комнаты секретаря — совет, учётную запись Matrix — владелец. В ленте ядра —
+# назначения наборов прав (participant_capability_sets) и журнал расширений.
+
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
@@ -53,6 +60,7 @@ sources:
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
     - components/controller/src/extensions/expenses/application/services/expenses-live-feed.service.ts
     - components/controller/src/extensions/reports/application/services/reports-live-feed.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/realtime/chatcoop-live-feed.service.ts
   ui:
     - components/desktop/src/shared/lib/realtime/live-reload.ts
     - components/desktop/src/entities/System/model/chainChangesSubscription.ts
@@ -181,9 +189,11 @@ cases:
     scenario: Личная и служебная таблица базы узла расширения.
     expect: >
       личная — владельцу строки и персоналу; служебная — только персоналу;
-      персонал — совет всегда и назначенные расширением только в своём расширении
+      персонал — совет всегда и назначенные расширением только в своём расширении;
+      несколько владельцев строки (участники звонка) — сигнал каждому, повторы и
+      пустые имена отброшены
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
-    status: passing
+    status: written   # прогон — CI на полигоне ci/tests
 
   - id: rt.cc.side.05
     level: backend

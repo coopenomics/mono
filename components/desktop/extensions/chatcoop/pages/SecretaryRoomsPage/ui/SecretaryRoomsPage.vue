@@ -112,6 +112,8 @@ q-page.secretary-rooms-page(padding)
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_ROOMS_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useQuasar } from 'quasar';
 import { useSecretaryRoomStore } from '../../../entities/SecretaryRoom';
 import type { ISecretaryRoom } from '../../../entities/SecretaryRoom';
@@ -221,6 +223,10 @@ async function handleRefresh(): Promise<void> {
 onMounted(async () => {
   await store.loadRooms();
 });
+
+// Комнаты секретаря живут по ленте: добавленная или снятая комната видна
+// всему совету сразу.
+useLiveReload(CHAT_ROOMS_LIVE_TABLES, () => store.loadRooms());
 </script>
 
 <style scoped>

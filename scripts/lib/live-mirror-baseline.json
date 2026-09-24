@@ -1,12 +1,5 @@
 {
   "_комментарий": "Экраны (pages/, widgets/), которые загружают данные при открытии или опрашивают по таймеру без живого обновления (scripts/check-live-mirror.mjs). Тронул файл — добавь useLiveReload; долг только снижается.",
-  "_commit": "b68a52a57fcd8c52df714bf50809c70c07d1aecb",
-  "files": {
-    "components/desktop/extensions/chatcoop/pages/CalendarPage/ui/CalendarPage.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/ChatCoopPage/ui/ChatCoopPage.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/MobileClientPage/ui/MobileClientPage.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/SecretaryRoomsPage/ui/SecretaryRoomsPage.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/TranscriptionDetailPage/ui/TranscriptionDetailPage.vue": 1,
-    "components/desktop/extensions/chatcoop/pages/TranscriptionsPage/ui/TranscriptionsPage.vue": 1
-  }
+  "_commit": "333de8ec3818048e120f4e921849545bbbb7340b",
+  "files": {}
 }

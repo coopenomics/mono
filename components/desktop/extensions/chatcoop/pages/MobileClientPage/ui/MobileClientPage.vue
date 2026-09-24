@@ -93,6 +93,8 @@ div.mobile-client-page
 
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_ACCOUNT_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { SuccessAlert } from 'src/shared/api';
@@ -131,6 +133,10 @@ function goToRegistration() {
 onMounted(async () => {
   await chatcoopStore.loadAccountStatus();
 });
+
+// Учётная запись в Matrix живёт по ленте: данные для входа с телефона
+// обновляются сами.
+useLiveReload(CHAT_ACCOUNT_LIVE_TABLES, () => chatcoopStore.loadAccountStatus());
 </script>
 
 <style scoped>
