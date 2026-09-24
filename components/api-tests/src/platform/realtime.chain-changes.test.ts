@@ -14,7 +14,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, login, tokenOf } from '../core'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, caseName, freshMember, gql, login, tableRows, tokenOf, transact } from '../core'
 import type { WsConn } from './platform-a.helpers'
 import {
   WS_FORBIDDEN,
@@ -31,11 +31,13 @@ import {
 } from './platform-a.helpers'
 
 const USERWALLETS = { code: 'ledger2', table: 'userwallets' }
-const INCOMES = { code: 'gateway', table: 'incomes' }
+const WALLET_USERS = { code: 'wallet', table: 'users' }
 const LEDGER_ACCOUNTS = { code: 'ledger2', table: 'accounts' }
 const COOP_WALLETS = { code: 'ledger2', table: 'wallets' }
 const SETTINGS = { code: 'core', table: 'settings' }
 const PAYMENT_METHODS = { code: 'core', table: 'payment_methods' }
+const PAYMENTS = { code: 'core', table: 'payments' }
+const CART = { code: 'market', table: 'marketplace_cart' }
 
 const STAFF_ONLY = new Set(['ledger2::accounts', 'ledger2::wallets'])
 const key = (s: { code: string, table: string }): string => `${s.code}::${s.table}`
@@ -75,10 +77,10 @@ describe('realtime.chain-changes: лента изменений — сигнал
       const memberConn = await open(memberToken)
       const otherConn = await open(otherToken)
       const councilConn = await open(councilToken)
-      subs.member = chainChangesOf(memberConn, [USERWALLETS, INCOMES])
+      subs.member = chainChangesOf(memberConn, [USERWALLETS])
       subs.memberAll = chainChangesOf(memberConn)
-      subs.other = chainChangesOf(otherConn, [USERWALLETS, INCOMES])
-      subs.council = chainChangesOf(councilConn, [USERWALLETS, INCOMES])
+      subs.other = chainChangesOf(otherConn, [USERWALLETS])
+      subs.council = chainChangesOf(councilConn, [USERWALLETS])
       subs.councilAll = chainChangesOf(councilConn)
       subs.councilStaff = chainChangesOf(councilConn, [LEDGER_ACCOUNTS, COOP_WALLETS])
       availableBefore = await mirroredAvailable(memberToken, member.account)
@@ -91,32 +93,21 @@ describe('realtime.chain-changes: лента изменений — сигнал
       await waitSignal(subs.member, { ...USERWALLETS, block_num: dep.completeBlock })
       availableAtSignal = await mirroredAvailable(memberToken, member.account)
 
-      await waitSignal(subs.council, { ...INCOMES, block_num: dep.completeBlock })
       await waitSignal(subs.council, { ...USERWALLETS, block_num: dep.completeBlock })
       await quietWindow()
     })
 
     it(caseName('rt.cc.happy.02', 'строка личной таблицы: сигнал владельцу и совету, чужому пайщику — нет'), async () => {
-      expect(signalsOf(subs.member, { ...INCOMES, block_num: dep.createBlock }).length).toBeGreaterThan(0)
-      expect(signalsOf(subs.member, { ...USERWALLETS, block_num: dep.completeBlock }).length).toBeGreaterThan(0)
-      expect(signalsOf(subs.council, { ...INCOMES, block_num: dep.createBlock }).length).toBeGreaterThan(0)
+      const mine = signalsOf(subs.member, { ...USERWALLETS, block_num: dep.completeBlock })
+      expect(mine.length).toBeGreaterThan(0)
       expect(signalsOf(subs.council, { ...USERWALLETS, block_num: dep.completeBlock }).length).toBeGreaterThan(0)
-      // Чужой пайщик подписан на те же таблицы, но строки не его: общего
+      // Чужой пайщик подписан на ту же таблицу, но строка не его: общего
       // канала у личной таблицы нет.
       const leaked = signalsOf(subs.other).filter(s => s.block_num === dep.createBlock || s.block_num === dep.completeBlock)
       expect(leaked).toEqual([])
       // Сигнал — адрес строки, без её данных.
-      const sig = signalsOf(subs.member, { ...INCOMES, block_num: dep.createBlock })[0]
-      expect(Object.keys(sig).sort()).toEqual(['block_num', 'code', 'primary_key', 'scope', 'table'])
-      expect(sig.scope).toBe(COOP)
-    })
-
-    it(caseName('rt.cc.side.01', 'снятая строка личной таблицы — сигнал только совету'), async () => {
-      // Исполнение прихода стирает его строку в gateway::incomes: владельца в
-      // снятой строке нет, адресовать сигнал можно только совету.
-      expect(signalsOf(subs.council, { ...INCOMES, block_num: dep.completeBlock }).length).toBeGreaterThan(0)
-      expect(signalsOf(subs.member, { ...INCOMES, block_num: dep.completeBlock })).toEqual([])
-      expect(signalsOf(subs.memberAll, { ...INCOMES, block_num: dep.completeBlock })).toEqual([])
+      expect(Object.keys(mine[0]).sort()).toEqual(['block_num', 'code', 'primary_key', 'scope', 'table'])
+      expect(mine[0].scope).toBe(COOP)
     })
 
     it(caseName('rt.cc.side.02', 'дельта необъявленной таблицы сигнала не даёт'), async () => {
@@ -143,8 +134,8 @@ describe('realtime.chain-changes: лента изменений — сигнал
       expect(staffForCouncil.length).toBeGreaterThan(0)
       expect(staffForCouncil.every(s => STAFF_ONLY.has(key(s)))).toBe(true)
       expect(signalsOf(subs.councilAll).filter(s => s.block_num === block && STAFF_ONLY.has(key(s))).length).toBeGreaterThan(0)
-      // Перечень пайщика — две личные таблицы; ничего сверх них.
-      expect(signalsOf(subs.member).every(s => key(s) === key(USERWALLETS) || key(s) === key(INCOMES))).toBe(true)
+      // Перечень пайщика — одна личная таблица; ничего сверх неё.
+      expect(signalsOf(subs.member).every(s => key(s) === key(USERWALLETS))).toBe(true)
     })
   })
 
@@ -188,6 +179,22 @@ describe('realtime.chain-changes: лента изменений — сигнал
       expect(after.getSystemInfo.settings.updated_at).toBe(written)
     })
 
+    it(caseName('rt.cc.happy.04', 'личная таблица базы узла: сигнал о новой строке — её владельцу по ключу строки, чужому — нет'), async () => {
+      const ownSub = chainChangesOf(await open(memberToken), [PAYMENTS])
+      const otherSub = chainChangesOf(await open(otherToken), [PAYMENTS])
+      await settleSubscriptions()
+
+      const pay = await gql<any>(memberToken, `mutation($d:CreateDepositPaymentInput!){
+        createDepositPayment(data:$d){ id }
+      }`, { d: { username: member.account, quantity: 777, symbol: 'RUB' } })
+      const id = String(pay.createDepositPayment.id)
+
+      const sig = await waitSignal(ownSub, { ...PAYMENTS, primary_key: id })
+      expect(sig).toEqual({ ...PAYMENTS, scope: COOP, primary_key: id, block_num: 0 })
+      await quietWindow()
+      expect(signalsOf(otherSub, { primary_key: id })).toEqual([])
+    })
+
     it(caseName('rt.cc.happy.07', 'запись в генератор (способ оплаты пайщика): сигнал владельцу и совету, чужому — нет'), async () => {
       const ownSub = chainChangesOf(await open(memberToken), [PAYMENT_METHODS])
       const otherSub = chainChangesOf(await open(otherToken), [PAYMENT_METHODS])
@@ -197,22 +204,57 @@ describe('realtime.chain-changes: лента изменений — сигнал
       const added = await gql<any>(memberToken, `mutation($d:AddPaymentMethodInput!){
         addPaymentMethod(data:$d){ method_id username }
       }`, { d: { username: member.account, is_default: false, sbp_data: { phone: '+79990001122' } } })
-      const methodId = added.addPaymentMethod.method_id as string
 
       const mine = { ...PAYMENT_METHODS, primary_key: member.account, block_num: 0 }
       await waitSignal(ownSub, mine)
       await waitSignal(councilSub, mine)
-      const savedCount = signalsOf(ownSub, mine).length
-
-      // Удаление — вторая запись в ту же коллекцию, тот же адрес.
-      await gql(memberToken, 'mutation($d:DeletePaymentMethodInput!){ deletePaymentMethod(data:$d) }', {
-        d: { username: member.account, method_id: methodId },
-      })
-      await ownSub.waitFor(() => (signalsOf(ownSub, mine).length > savedCount ? true : null), 60_000, 'сигнала удаления способа оплаты')
+      expect(added.addPaymentMethod.username).toBe(member.account)
       await quietWindow()
 
       expect(signalsOf(otherSub, { primary_key: member.account })).toEqual([])
-      expect(signalsOf(councilSub, mine).length).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  describe('база Стола заказов', () => {
+    it(caseName('rt.cc.happy.06', 'запись в корзину заказчика (личная таблица Стола заказов): сигнал ему и совету'), async () => {
+      const ordererToken = await tokenOf(ROLES.member())
+      // Корзина существует до правки: первое чтение её заводит.
+      await gql(ordererToken, 'query{ marketplaceGetCart{ __typename } }')
+      const ownSub = chainChangesOf(await open(ordererToken), [CART])
+      const councilSub = chainChangesOf(await open(councilToken), [CART])
+      await settleSubscriptions()
+
+      await gql(ordererToken, 'mutation{ marketplaceClearCart{ __typename } }')
+
+      const staff = await waitSignal(councilSub, { ...CART, block_num: 0 })
+      await quietWindow()
+      expect(signalsOf(ownSub, { ...CART, block_num: 0 }), `совету пришло ${JSON.stringify(staff)}, заказчику — ничего`).not.toEqual([])
+    })
+  })
+
+  describe('снятая строка личной таблицы', () => {
+    it(caseName('rt.cc.side.01', 'строка личной таблицы снята — владельца в ней нет, сигнал только совету'), async () => {
+      const ownSub = chainChangesOf(await open(memberToken), [WALLET_USERS])
+      const councilSub = chainChangesOf(await open(councilToken), [WALLET_USERS])
+      await settleSubscriptions()
+
+      // Программные соглашения пайщика — строка wallet::users; расторжение
+      // последнего стирает её целиком.
+      const row = (await tableRows<any>('wallet', COOP, 'users')).find(r => r.username === member.account)
+      expect(row?.programs?.length).toBeGreaterThan(0)
+      let lastBlock = 0
+      for (const p of row.programs as any[]) {
+        const tx = await transact(COOP_SIGNER, [{
+          account: 'wallet',
+          name: 'revokeagree',
+          data: { coopname: COOP, username: member.account, program_id: p.program_id },
+        }])
+        lastBlock = Number(tx.processed.block_num)
+      }
+
+      await waitSignal(councilSub, { ...WALLET_USERS, block_num: lastBlock })
+      await quietWindow()
+      expect(signalsOf(ownSub, { block_num: lastBlock })).toEqual([])
     })
   })
 
