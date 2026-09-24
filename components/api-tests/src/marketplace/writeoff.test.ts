@@ -8,10 +8,10 @@
  * черновик тест снимает за собой.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
 import { KRG, issueOrder, pickOffer } from './flow'
-import { fundShare, inventoryOfOrder, prepareReceivedOrder } from './issuance.helpers'
+import { inventoryOfOrder, prepareReceivedOrder } from './issuance.helpers'
 import { CANDIDATES, warrantyReturn } from './writeoff.helpers'
 
 const PROPOSAL_FIELDS = 'id status total_amount items{ braname asset_title quantity amount reason executed }'
@@ -133,9 +133,9 @@ describe('кандидаты на списание: партии по проис
   beforeAll(async () => {
     const member = ROLES.member()
     const supplier = ROLES.supplier()
-    const offer = await pickOffer(chairmanToken, supplier.account, KRG, OFFER_NAME)
+    const offer = await pickOffer(supplier.account, KRG, OFFER_NAME)
     const price = amount(offer.price_per_unit)
-    await fundShare(member.account, price * 6 * 2, await tokenOf(member))
+    await ensureShareFunds(member.account, price * 6 * 2, await tokenOf(member))
 
     // Две партии приёмки одного наименования лежат на складе участка.
     for (let i = 0; i < 2; i++) {

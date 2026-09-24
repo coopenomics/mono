@@ -4,15 +4,11 @@
  * остановиться на каждом этапе и вмешаться — чужой пайщик, подменённая
  * подпись, цена выше потолка. Здесь только действия и чтение, ассертов нет.
  */
-import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
-import { transact } from '../core/chain'
 import { gql } from '../core/client'
 import { docMeta, signDocument } from '../core/documents'
-import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
-import { COOP } from '../core/env'
+import { amount } from '../core/wallet'
 import { KRG, SAGA_FIELDS, acceptToCoop, ensureIdentityVerified, labelInventory, placeOrder } from './flow'
 
 export interface PreparedOrder {
@@ -133,12 +129,14 @@ export interface OfferCounters {
   available: number
   blocked: number
   consumed: number
+  /** Безлимитное предложение: свободное не считается. */
+  unlimited: boolean
 }
 
 export async function offerCounters(token: string, offerId: string): Promise<OfferCounters> {
-  const d = await gql<any>(token, 'query($id:String!){ marketplaceGetOffer(id:$id){ quantity_available quantity_blocked quantity_consumed } }', { id: offerId })
+  const d = await gql<any>(token, 'query($id:String!){ marketplaceGetOffer(id:$id){ quantity_available quantity_blocked quantity_consumed unlimited_flag } }', { id: offerId })
   const o = d.marketplaceGetOffer
-  return { available: Number(o.quantity_available), blocked: Number(o.quantity_blocked), consumed: Number(o.quantity_consumed) }
+  return { available: Number(o.quantity_available), blocked: Number(o.quantity_blocked), consumed: Number(o.quantity_consumed), unlimited: !!o.unlimited_flag }
 }
 
 export interface InventoryRow {
@@ -176,27 +174,3 @@ export function money(n: number): string {
 
 export { amount }
 
-/**
- * Паевой взнос деньгами до нужного остатка. Повторяет `ensureShareFunds` из
- * ядра с верными именами действий: в ядре стоят `wallet::createdeposit` и
- * `gateway::completeincome`, которых в контрактах нет (`createdpst`,
- * `incomplete`), и пополнение падает «Unknown action».
- */
-export async function fundShare(username: string, minimumRub: number, memberToken: string): Promise<void> {
-  const have = await availableShare(username)
-  if (have < minimumRub) {
-    const hash = crypto.randomBytes(32).toString('hex')
-    await transact(COOP_SIGNER, [{
-      account: 'wallet',
-      name: 'createdpst',
-      data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(Math.ceil(minimumRub - have) + 10_000) },
-    }])
-    await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
-  }
-  // Пополнение шло мимо контроллера — оформление проверяет остаток по зеркалу.
-  await waitFor(async () => {
-    const d = await gql<any>(memberToken, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
-    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
-    return row && amount(row.available) >= minimumRub ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${username} ≥ ${minimumRub} RUB` })
-}

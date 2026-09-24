@@ -17,7 +17,7 @@
  * поэтому акт к подписи приходит в ответе на подпись заявления.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
 import { KRG, SAGA_FIELDS, getOrder, historyOfProcess, pickOffer, sagaOf } from './flow'
 import {
@@ -32,7 +32,6 @@ import {
   closeAggregate,
   createBundle,
   finalizeInput,
-  fundShare,
   inventoryOfOrder,
   money,
   offerCounters,
@@ -83,10 +82,10 @@ beforeAll(async () => {
   strangerToken = await tokenOf(stranger)
   operatorToken = await tokenOf(operator)
   chairmanToken = await tokenOf(CHAIRMAN)
-  offer = await pickOffer(chairmanToken, supplier.account, undefined, OFFER_NAME)
+  offer = await pickOffer(supplier.account, undefined, OFFER_NAME)
   orderPrice = amount(offer.price_per_unit)
   // Заказы файла (4 + 2 + 2 единицы и докладка из остатка) с запасом на взнос.
-  await fundShare(member.account, orderPrice * 10 * 2, memberToken)
+  await ensureShareFunds(member.account, orderPrice * 10 * 2, memberToken)
 }, 300_000)
 
 describe('выдача одного заказа по этапам: заказано 4, привезли 3, выдано 1', () => {
@@ -100,7 +99,6 @@ describe('выдача одного заказа по этапам: заказа
   let sagaId = ''
   let countersBefore: OfferCounters
   let countersAfter: OfferCounters
-  let closingAct: any
 
   beforeAll(async () => {
     arrival = price2(orderPrice * 0.9)
@@ -255,7 +253,7 @@ describe('выдача одного заказа по этапам: заказа
   it(caseName('mkt.iss.side.04', 'заказчик забрал не всё — невыданное уходит в остаток кооператива, к оплате только выданное'), async () => {
     countersBefore = await offerCounters(chairmanToken, offer.id)
     const agg = await closeAggregate(operatorToken, order.orderId)
-    closingAct = await signDocument(operator.wif, agg.rawDocument, operator.account, 2, [agg.document])
+    const closingAct = await signDocument(operator.wif, agg.rawDocument, operator.account, 2, [agg.document])
     const d = await gql<any>(operatorToken, CLOSE_WITH_FACT, { d: { order_id: order.orderId, signed_act: closingAct } })
     countersAfter = await offerCounters(chairmanToken, offer.id)
     const closed = d.marketplaceCloseIssuance
@@ -272,8 +270,13 @@ describe('выдача одного заказа по этапам: заказа
   it(caseName('mkt.iss.side.45', 'заказ поставщика: выбывает принятое кооперативом, недопоставка возвращается в свободное'), async () => {
     expect(countersAfter, 'закрытие выдачи прошло').toBeTruthy()
     expect(countersAfter.consumed - countersBefore.consumed, 'из предложения выбывает принятое кооперативом').toBeCloseTo(RECEIVED, 6)
-    expect(countersAfter.available - countersBefore.available, 'непривезённое возвращается поставщику в свободное').toBeCloseTo(ORDERED - RECEIVED, 6)
     expect(countersBefore.blocked - countersAfter.blocked, 'заблокированное заказом снято целиком').toBeCloseTo(ORDERED, 6)
+    // Снятое с блокировки сверх принятого — недопоставка — не выбывает, а
+    // возвращается поставщику в свободное; у безлимитного предложения
+    // свободное не считается, и возврат виден только по снятой блокировке.
+    const back = (countersBefore.blocked - countersAfter.blocked) - (countersAfter.consumed - countersBefore.consumed)
+    expect(back, 'непривезённое возвращается поставщику, а не выбывает').toBeCloseTo(ORDERED - RECEIVED, 6)
+    expect(countersAfter.available - countersBefore.available, 'свободное предложения').toBeCloseTo(countersBefore.unlimited ? 0 : ORDERED - RECEIVED, 6)
   })
 
   it(caseName('mkt.iss.side.49', 'выдано дешевле цены прибытия — разница по выданному уходит уценкой'), async () => {
@@ -281,17 +284,6 @@ describe('выдача одного заказа по этапам: заказа
     const loss = rows.filter(r => r.action === 'apply' && r.operationCode === 'o.mkt.loss')
     const total = loss.reduce((s, r) => s + amount(r.quantity), 0)
     expect(total, 'уценка — стоимость прибытия выданного минус сумма выдачи').toBeCloseTo(ISSUED * (arrival - issuePrice), 2)
-  })
-
-  it('DIAG повтор закрытия и чтение хода выдачи после закрытия', async () => {
-    const agg = { order_id: order.orderId }
-    const again = await gqlError(operatorToken, CLOSE, { d: { ...agg, signed_act: closingAct } })
-    console.log('DIAG close-again', JSON.stringify(again))
-    const saga = await gqlError(memberToken, `query($d:MarketplaceIssuanceOrderInput!){ marketplaceIssuanceSaga(data:$d){ id stage } }`, { d: agg })
-    const read = await gql<any>(memberToken, `query($d:MarketplaceIssuanceOrderInput!){ marketplaceIssuanceSaga(data:$d){ id stage } }`, { d: agg }).catch(e => String(e))
-    console.log('DIAG saga-after-close', JSON.stringify(saga), JSON.stringify(read))
-    const list = await gql<any>(memberToken, `query($d:MarketplaceListIssuanceSagasInput){ marketplaceListIssuanceSagas(data:$d){ id order_id stage } }`, { d: { active_only: false } })
-    console.log('DIAG list', JSON.stringify(list.marketplaceListIssuanceSagas.filter((s: any) => s.order_id === order.orderId)))
   })
 })
 
