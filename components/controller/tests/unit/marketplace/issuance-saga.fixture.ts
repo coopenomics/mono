@@ -4,6 +4,7 @@
  * моков. Криптопроверка подписей и разбор ответа цепи глушатся отдельно
  * (`stubSignatureChecks`) — тесты проверяют бизнес-правила, а не крипту.
  */
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MarketplaceIssuanceService } from '~/extensions/marketplace/application/services/marketplace-issuance.service';
 import { MarketplaceIssuanceSagaDomainEntity } from '~/extensions/marketplace/domain/entities/marketplace-issuance-saga.entity';
 import {
@@ -258,7 +259,13 @@ export function buildMocks(opts: {
     economyService,
     verificationPort,
     robotPort: opts.robotPort ?? null,
-    eventBus: { emit: jest.fn() },
+    // Настоящая шина со шпионом: ожидание решения робота у стойки слушает
+    // событие саги (waitForEvent), проверки вызовов emit остаются.
+    eventBus: (() => {
+      const bus = new EventEmitter2();
+      jest.spyOn(bus, 'emit');
+      return bus;
+    })(),
     logger,
   };
 }

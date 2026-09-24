@@ -277,6 +277,8 @@
 `interface` · core-ports
 
 - `declareTables(tables: InnerChainChangesTable[]): void`
+- `declareLocalTables(tables: InnerChainChangesTable[]): void`
+- `setStaff(code: string, usernames: string[]): void`
 
 ## IChainDeltaWaitPort
 
@@ -758,6 +760,7 @@
 - `code: string`
 - `table: string`
 - `owner_field?: string`
+- `staff_only?: boolean`
 
 ## InnerChainDelta
 

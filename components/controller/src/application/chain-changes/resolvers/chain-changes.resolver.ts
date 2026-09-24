@@ -5,15 +5,12 @@ import { CurrentUser } from '@coopenomics/extension-kit';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import {
   ChainChangesService,
-  chainChangesCouncilTopic,
   chainChangesOwnerTopic,
+  chainChangesStaffTopic,
   chainChangesTopic,
 } from '~/infrastructure/blockchain/chain-changes.service';
 import config from '~/config/config';
 import { ChainChangeDTO, ChainChangesInputDTO } from '../dto/chain-change.dto';
-
-/** Роли совета: видят все строки личных таблиц. */
-const COUNCIL_ROLES = ['chairman', 'member'];
 
 @Resolver()
 export class ChainChangesResolver {
@@ -25,7 +22,8 @@ export class ChainChangesResolver {
   /**
    * Лента изменений цепи: сигнал «данные изменились, перечитай» для столов.
    * Каналы выбирает сервер по праву пайщика: таблица, открытая всем, — общий
-   * канал; личная — строки самого пайщика, а совету все строки. Необъявленную
+   * канал; личная — строки самого пайщика, а персоналу (совет и назначенные
+   * расширением) все строки; служебная — только персоналу. Необъявленную
    * таблицу слушать нельзя.
    */
   @Subscription(() => ChainChangeDTO, {
@@ -44,7 +42,6 @@ export class ChainChangesResolver {
     if (!username) {
       throw new ForbiddenException('Подписка доступна только пайщику своего кооператива.');
     }
-    const council = COUNCIL_ROLES.includes(String(user.role));
     const requested = input.tables?.length ? input.tables : this.feed.declared();
 
     const topics = new Set<string>();
@@ -53,12 +50,18 @@ export class ChainChangesResolver {
       if (!declared) {
         throw new ForbiddenException(`Таблица ${ref.code}::${ref.table} не входит в ленту изменений.`);
       }
-      if (!declared.owner_field) {
-        topics.add(chainChangesTopic(config.coopname, ref.code, ref.table));
-      } else if (council) {
-        topics.add(chainChangesCouncilTopic(config.coopname, ref.code, ref.table));
+      const staff = this.feed.isStaff(ref.code, user);
+      if (declared.staff_only) {
+        // Служебная таблица: пайщику вне персонала её сигналы не нужны.
+        if (staff) topics.add(chainChangesStaffTopic(config.coopname, ref.code, ref.table));
+      } else if (declared.owner_field) {
+        topics.add(
+          staff
+            ? chainChangesStaffTopic(config.coopname, ref.code, ref.table)
+            : chainChangesOwnerTopic(config.coopname, ref.code, ref.table, username)
+        );
       } else {
-        topics.add(chainChangesOwnerTopic(config.coopname, ref.code, ref.table, username));
+        topics.add(chainChangesTopic(config.coopname, ref.code, ref.table));
       }
     }
     return this.pubSub.asyncIterator([...topics]);
