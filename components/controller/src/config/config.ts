@@ -214,13 +214,21 @@ const envVarsSchema = z.object({
     .default('1000')
     .transform((val) => parseInt(val, 10)),
   /**
-   * Задержка (мс) перед emit'ом action-события во внутреннюю шину. Даёт
-   * дельтам того же блока сохраниться в БД раньше, чем обработчики action
-   * полезут читать состояние (DEC-007, ранее хардкод-константа 3000).
+   * Действие уходит в шину, когда его блок разобран целиком (следующий блок
+   * или простой потока, ActionReleaseGate). Пока в очереди есть действия, на
+   * простое каждые столько мс проверяется прогресс parser2 и группы в Redis.
    */
-  BLOCKCHAIN_ACTION_EMIT_DELAY_MS: z
+  BLOCKCHAIN_ACTION_RELEASE_POLL_MS: z
     .string()
-    .default('3000')
+    .default('100')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Страховка: действие без подтверждения разбора блока (Redis не ответил)
+   * уходит в шину не позже этого срока — с предупреждением в журнал.
+   */
+  BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS: z
+    .string()
+    .default('5000')
     .transform((val) => parseInt(val, 10)),
   /**
    * Сколько мутация ждёт изменение своей транзакции из цепи, прежде чем
@@ -592,7 +600,8 @@ export default {
     root_precision: envVars.data.ROOT_PRECISION,
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
-    action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    action_release_poll_ms: envVars.data.BLOCKCHAIN_ACTION_RELEASE_POLL_MS,
+    action_release_max_wait_ms: envVars.data.BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS,
     write_wait_delta_ms: envVars.data.BLOCKCHAIN_WRITE_WAIT_DELTA_MS,
     delta_listeners_barrier_ms: envVars.data.BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS,
     archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,

@@ -112,8 +112,11 @@ delta:  принадлежность кооперативу → dedup (event_id)
         → emit `delta::<code>::<table>` С ОЖИДАНИЕМ слушателей (проекции в базе),
           не дольше BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS
         → ChainDeltaWaiterService.wake(delta) — будим мутации, ждущие эту дельту
-action: dedup → saveAction → dedup.mark → emit `action::<code>::<action>`
-        через BLOCKCHAIN_ACTION_EMIT_DELAY_MS (дельты того же блока успевают лечь)
+action: dedup → saveAction → dedup.mark → в очередь ActionReleaseGate; emit
+        `action::<code>::<action>`, когда блок разобран целиком — пришло событие
+        следующего блока ИЛИ поток простаивает (parser2 дочитал дальше, у группы
+        lag = 0 и pending = 0). Таймеров нет; страховка
+        BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS — только если Redis не ответил
 ```
 
 - Ожидающие будятся **после** слушателей дельты, не одновременно с ними: иначе ответ мутации прочитал бы проекцию до записи.
