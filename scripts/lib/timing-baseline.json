@@ -1,11 +1,7 @@
 {
   "_комментарий": "Таймеры без пометки `// timing: <вид>` по файлам (scripts/check-timing.mjs). Тронул файл — пометь таймер или убери паузу; долг только снижается.",
-  "_commit": "fb8a31c0686be03f3583b33dd0185de8341ed451",
+  "_commit": "74c16ac0452a12c92bc65157039754db5e1b1d44",
   "files": {
-    "components/controller/src/application/free-decision/services/free-decision.service.ts": 1,
-    "components/controller/src/application/meet/interactors/meet.interactor.ts": 1,
-    "components/controller/src/application/system/interactors/install.interactor.ts": 1,
-    "components/controller/src/domain/document-approval/services/document-approval-proposal.service.ts": 2,
     "components/controller/src/domain/document-approval/services/document-approval-seed.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/component-matrix-announcement.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/program-share-registration.service.ts": 2,
@@ -20,12 +16,8 @@
     "components/controller/src/extensions/chatcoop/application/services/whisper-stt.service.ts": 1,
     "components/controller/src/extensions/chatcoop/chatcoop-extension.module.ts": 2,
     "components/controller/src/extensions/edubridge/infrastructure/connectors/http-carrier.base.ts": 1,
-    "components/controller/src/extensions/marketplace/application/services/marketplace-issuance.service.ts": 3,
-    "components/controller/src/extensions/marketplace/application/services/marketplace-return-claim.service.ts": 3,
     "components/controller/src/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter.ts": 2,
     "components/controller/src/extensions/participant/notification-sender.service.ts": 6,
-    "components/controller/src/extensions/soviet-robot/application/services/robot-decision.service.ts": 1,
-    "components/controller/src/extensions/soviet-robot/application/services/robot-key.service.ts": 1,
     "components/controller/src/infrastructure/blockchain/action-release-gate.service.ts": 2,
     "components/controller/src/infrastructure/blockchain/chain-retry.ts": 1,
     "components/controller/src/infrastructure/blockchain/rpc-pool.service.ts": 2,
@@ -114,7 +106,6 @@
     "components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/marketplaceEventsSubscription.ts": 1,
     "components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/useOnsiteSignatureGate.ts": 1,
     "components/desktop/src/widgets/Marketplace/TTNPrintPreview/TTNPrintPreview.vue": 1,
-    "components/desktop/src/widgets/NotificationCenter/model/index.ts": 1,
-    "components/extension-kit/src/utils/post-transact-chain-read-delay.ts": 1
+    "components/desktop/src/widgets/NotificationCenter/model/index.ts": 1
   }
 }

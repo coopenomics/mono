@@ -193,6 +193,8 @@ export class RobotDecisionService {
         return await this.documents.generate(request);
       } catch (e) {
         if (attempt >= limits.index_lag_attempts || !RobotDecisionService.isVotesNotIndexedYet(e)) throw e;
+        // timing: backoff — повтор сборки протокола только на отказе «голосов ещё
+        // нет в индексе»: робот голосует изнутри разбора цепи и блок не ждёт.
         await new Promise((resolve) => setTimeout(resolve, limits.index_lag_pause_ms));
       }
     }
