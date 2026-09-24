@@ -59,6 +59,23 @@ describe('Поле сортировки на входе', () => {
     ).toThrow('Недопустимое поле сортировки');
   });
 
+  it('поле с направлением через двоеточие проходит — так сортирует реестр пайщиков', async () => {
+    const dto = plainToInstance(PaginationInputDTO, { page: 1, limit: 10, sortBy: 'created_at:desc', sortOrder: 'DESC' });
+    await expect(validate(dto)).resolves.toHaveLength(0);
+    expect(
+      PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortBy: 'joined_at:asc', sortOrder: 'ASC' }).sortBy
+    ).toBe('joined_at:asc');
+  });
+
+  it('после двоеточия — только направление, не SQL', () => {
+    expect(() =>
+      PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortBy: 'created_at:desc, 1', sortOrder: 'ASC' })
+    ).toThrow('Недопустимое поле сортировки');
+    expect(() =>
+      PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortBy: 'created_at:(select 1)', sortOrder: 'ASC' })
+    ).toThrow('Недопустимое поле сортировки');
+  });
+
   it('PaginationUtils пропускает список без сортировки и с обычным полем', () => {
     expect(PaginationUtils.validatePaginationOptions({ page: 1, limit: 10, sortOrder: 'ASC' }).sortBy).toBeUndefined();
     expect(
