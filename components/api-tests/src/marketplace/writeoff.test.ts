@@ -8,9 +8,11 @@
  * черновик тест снимает за собой.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, gql, gqlError, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
-import { KRG } from './flow'
+import { KRG, issueOrder, pickOffer } from './flow'
+import { fundShare, inventoryOfOrder, prepareReceivedOrder } from './issuance.helpers'
+import { CANDIDATES, warrantyReturn } from './writeoff.helpers'
 
 const PROPOSAL_FIELDS = 'id status total_amount items{ braname asset_title quantity amount reason executed }'
 const OPEN_DRAFT = `query{ marketplaceOpenWriteoffDraft{ ${PROPOSAL_FIELDS} } }`
@@ -119,5 +121,62 @@ describe('списание скоропорта: состав проекта и 
       const after = (await gql<any>(chairmanToken, PROPOSAL, { id: draft.id })).marketplaceWriteoffProposal
       expect(after.items.every((i: any) => !i.executed), 'ни одна позиция не списана').toBe(true)
     })
+  })
+})
+
+describe('кандидаты на списание: партии по происхождению', () => {
+  const OFFER_NAME = 'Мёд цветочный'
+  let returnedIds: string[] = []
+  let receptionIds: string[] = []
+  let claimStatus = ''
+
+  beforeAll(async () => {
+    const member = ROLES.member()
+    const supplier = ROLES.supplier()
+    const offer = await pickOffer(chairmanToken, supplier.account, KRG, OFFER_NAME)
+    const price = amount(offer.price_per_unit)
+    await fundShare(member.account, price * 6 * 2, await tokenOf(member))
+
+    // Две партии приёмки одного наименования лежат на складе участка.
+    for (let i = 0; i < 2; i++) {
+      const o = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 2, receivedQuantity: 2, arrivalPrice: price })
+      const rows = await inventoryOfOrder(krgToken, o.orderId)
+      receptionIds.push(...rows.filter(r => r.status !== 'ISSUED').map(r => r.id))
+    }
+
+    // Третий заказ выдан пайщику и возвращён им по гарантии.
+    const w = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 2, receivedQuantity: 2, arrivalPrice: price })
+    await issueOrder({ operator: krgChairman, member, orderId: w.orderId, actualQuantity: 2, actualUnitPrice: price })
+    claimStatus = (await warrantyReturn({ member, operator: krgChairman, orderId: w.orderId, quantity: 2 })).status
+    const rows = await inventoryOfOrder(krgToken, w.orderId)
+    returnedIds = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED').map(r => r.id)
+  }, 900_000)
+
+  it(caseName('mkt.wof.side.33', 'возврат по гарантии — отдельной строкой; партии одного происхождения складываются'), async () => {
+    expect(claimStatus, 'совет принял возврат (на стенде — робот)').toBe('ACCEPTED_BY_COUNCIL')
+    expect(returnedIds.length, 'возвращённое имущество легло на склад участка').toBeGreaterThan(0)
+    expect(receptionIds.length, 'партии приёмки на складе').toBeGreaterThanOrEqual(2)
+
+    const list = (await gql<any>(chairmanToken, CANDIDATES)).marketplaceListWriteoffCandidates as any[]
+    const returned = list.find(c => c.inventory_ids.includes(returnedIds[0]))
+    const received = list.find(c => c.inventory_ids.includes(receptionIds[0]))
+    expect(returned, 'гарантийный возврат среди кандидатов').toBeTruthy()
+    expect(received, 'партии приёмки среди кандидатов').toBeTruthy()
+
+    // Одно наименование, один участок, одно состояние — разница только в происхождении.
+    expect(returned.braname).toBe(received.braname)
+    expect(returned.asset_title).toBe(received.asset_title)
+    expect(returned.is_expired).toBe(received.is_expired)
+    expect(returned.expiry_date === null).toBe(received.expiry_date === null)
+
+    expect(returned.origin, 'строка возврата помечена происхождением').toBe('WARRANTY_RETURN')
+    expect(received.origin).toBe('RECEPTION')
+    expect(returned.key, 'возврат не слит с приёмкой').not.toBe(received.key)
+    expect(returned.inventory_ids.some((id: string) => receptionIds.includes(id)), 'в строке возврата нет партий приёмки').toBe(false)
+    for (const id of returnedIds) expect(returned.inventory_ids, 'все возвращённые партии — в строке возврата').toContain(id)
+
+    for (const id of receptionIds) expect(received.inventory_ids, 'партии одного происхождения — одной строкой').toContain(id)
+    expect(received.lots_count).toBeGreaterThanOrEqual(receptionIds.length)
+    expect(Number(received.quantity), 'количество строки — сумма партий').toBeGreaterThanOrEqual(4)
   })
 })
