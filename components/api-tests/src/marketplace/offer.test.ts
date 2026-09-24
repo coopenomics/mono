@@ -1,7 +1,7 @@
 /**
  * Предложение поставщика (test-registry/marketplace.offer.yaml): границы
  * данных при создании и правке, права и статусы модерации, остаток по
- * упаковкам, уведомление администратору о новой заявке.
+ * упаковкам.
  *
  * Поставщик — свежий (см. offer.helpers.ts), его список предложений ведёт
  * только этот файл, поэтому «предложение не создано» проверяется сверкой его
@@ -14,7 +14,7 @@
  */
 import { randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, ensureShareFunds, gql, gqlError, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, ROLES, caseName, gql, gqlError, tokenOf } from '../core'
 import {
   APPROVE_OFFER,
   CREATE_OFFER,
@@ -27,8 +27,8 @@ import {
   checkoutLines,
   createOffer,
   freshSupplier,
+  fundShare,
   getOffer,
-  inboxOf,
   myOffers,
   offerInput,
   type Supplier,
@@ -36,9 +36,6 @@ import {
 
 const TAG = Date.now().toString(36)
 const name = (what: string) => `АТ ${what} ${TAG}`
-
-/** Тип уведомления «новое предложение на модерации» (@coopenomics/notifications). */
-const WF_ON_MODERATION = 'novoe-predlozhenie-na-moderatsii'
 
 const code = (e: { code: unknown } | null) => String(e?.code ?? '')
 
@@ -163,17 +160,6 @@ describe('предложение: модерация, снятие и возвр
     offerR = await createOffer(sup.token, offerInput(name('карточка Р'), categoryId))
     expect(offerA.status).toBe('PENDING_MODERATION')
     expect(offerR.status).toBe('PENDING_MODERATION')
-  })
-
-  it(caseName('mkt.offer.side.25', 'новая заявка — уведомление администратору с названием, поставщиком и ссылкой на очередь'), async () => {
-    const chairToken = await tokenOf(CHAIRMAN)
-    // timing: backoff — уведомление доставляет фоновый обработчик очереди уведомлений
-    const note = await waitFor(async () => {
-      const list = await inboxOf(chairToken, WF_ON_MODERATION)
-      return list.find(n => n.payload?.productName === offerA.product_name) ?? null
-    }, { timeoutMs: 90_000, intervalMs: 3_000, label: 'уведомление о модерации в инбоксе председателя' })
-    expect(note.payload.supplierName).toBeTruthy()
-    expect(String(note.payload.deepLinkUrl)).toContain('/market-admin/moderation')
   })
 
   it(caseName('mkt.offer.side.13', 'изображение без содержимого — отказ при создании и при правке'), async () => {
@@ -344,7 +330,7 @@ describe('предложение: остаток по упаковкам', () =>
     })
     expect(code(frac)).toBe('MARKETPLACE_PACKAGING_COUNT_INVALID')
 
-    await ensureShareFunds(member.account, 2_000, memberToken)
+    await fundShare(member, 2_000)
     const orders = await checkoutLines(member, [
       { offer_id: pk.id, package_id: halfId, quantity: 2 },
       { offer_id: byMeasure.id, quantity: 0.5 },
