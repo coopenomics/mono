@@ -124,6 +124,10 @@ gate_registry() {
   node "$REPO_ROOT/scripts/check-registry.mjs"
 }
 
+gate_registry_external() {
+  node "$REPO_ROOT/scripts/check-registry-external.mjs"
+}
+
 gate_ledger2_processes() {
   node "$REPO_ROOT/scripts/check-ledger2-processes.mjs"
 }
@@ -166,9 +170,11 @@ case "$MODE" in
   changed)
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     ;;
   registry)
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     ;;
   all)
     run_gate "границы: controller" gate_boundaries_controller
@@ -183,6 +189,7 @@ case "$MODE" in
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
     # полный набор локально — живой dev-стек в docker вешает CPU/RAM.
     # В CI и вручную — CHECK_WITH_TESTS=1 pnpm check.
