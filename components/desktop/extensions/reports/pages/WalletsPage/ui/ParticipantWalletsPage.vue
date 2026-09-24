@@ -82,6 +82,8 @@ div.participant-wallets-page
 
 <script setup lang="ts">
 import { computed, h, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { PARTICIPANT_WALLETS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { QIcon, QTooltip } from 'quasar'
 import { FailAlert } from 'src/shared/api'
@@ -238,6 +240,10 @@ async function reload(): Promise<void> {
 defineExpose({ reload })
 
 onMounted(() => void reload())
+
+// Кошельки пайщиков живут по ленте: участие в программах, остатки и
+// статус пайщика.
+useLiveReload(PARTICIPANT_WALLETS_LIVE_TABLES, reload)
 </script>
 
 <style scoped lang="scss">

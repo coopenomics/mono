@@ -124,6 +124,8 @@ div.coop-wallets-page
 
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { copyToClipboard } from 'quasar'
@@ -181,15 +183,19 @@ function openTransferFor(walletName: string): void {
   transferDialog.open = true
 }
 
-async function onTransferSuccess(): Promise<void> {
-  // Перезагружаем кошельки и сбрасываем кэш развёрнутых движений.
-  childOps.value.clear()
-  expanded.value.clear()
+async function reloadWallets(): Promise<void> {
   try {
     wallets.value = await ledger2Store.loadWallets(info.coopname)
   } catch (e) {
     FailAlert(e)
   }
+}
+
+async function onTransferSuccess(): Promise<void> {
+  // Перезагружаем кошельки и сбрасываем кэш развёрнутых движений.
+  childOps.value.clear()
+  expanded.value.clear()
+  await reloadWallets()
 }
 
 function formatDate(d: string | Date): string {
@@ -291,6 +297,10 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   unregisterAction(HEADER_ACTION_ID)
 })
+
+// Кошельки кооператива живут по ленте: остатки обновляются на месте,
+// раскрытые строки остаются раскрытыми.
+useLiveReload(LEDGER_LIVE_TABLES, reloadWallets)
 </script>
 
 <style scoped lang="scss">

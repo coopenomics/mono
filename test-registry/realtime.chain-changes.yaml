@@ -36,6 +36,12 @@ title: Лента изменений цепи — живое обновлени�
 # таблицам шагов процесса (useLiveProcessSnapshot): у журнала действий своего
 # сигнала нет.
 
+# Правка 24.09.2026 (C28-83, третий проход): таблица extensions открыта всем
+# пайщикам — установка и подключение расширения меняют рабочий стол каждого
+# (сигнал данных строки не несёт); рабочий стол, столы и гранты живут по ленте
+# (desktopLive). В ленте ядра — план счетов ledger2::accounts (совету);
+# стол бухгалтера объявляет свои таблицы и soviet::taxes (служебные).
+
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
@@ -46,6 +52,7 @@ sources:
     - components/extension-kit/src/utils/local-changes-collector.ts
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
     - components/controller/src/extensions/expenses/application/services/expenses-live-feed.service.ts
+    - components/controller/src/extensions/reports/application/services/reports-live-feed.service.ts
   ui:
     - components/desktop/src/shared/lib/realtime/live-reload.ts
     - components/desktop/src/entities/System/model/chainChangesSubscription.ts
@@ -53,6 +60,8 @@ sources:
     - components/desktop/extensions/edubridge/shared/lib/live.ts
     - components/desktop/src/shared/lib/marketplace/marketplace-live.ts
     - components/desktop/src/entities/Process/model/useLiveProcessSnapshot.ts
+    - components/desktop/src/processes/init-installed-extensions/desktopLive.ts
+    - components/desktop/extensions/reports/shared/lib/live.ts
 
 cases:
   - id: rt.cc.happy.01

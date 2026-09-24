@@ -38,6 +38,11 @@ title: Перечисление удержанного налога — разд
 # прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
 # отдельно — test-registry/contracts.ram-payer.yaml.
 
+# Правка 24.09.2026 (C28-83): стол удержанного НДФЛ живёт по ленте изменений —
+# заявки на перечисление (soviet::taxes), общекооперативный кошелёк
+# (ledger2::wallets) и оплата кассиром (payments) перечитывают остаток и список
+# без перезагрузки. Серверные сценарии и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/reports/application/services/withheld-tax.service.ts

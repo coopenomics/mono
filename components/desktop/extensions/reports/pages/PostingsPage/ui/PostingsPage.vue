@@ -215,6 +215,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
@@ -599,6 +601,10 @@ onMounted(async () => {
     FailAlert(e)
   }
 })
+
+// Проводки живут по ленте: новая операция учёта перечитывает показанную
+// страницу с теми же фильтрами.
+useLiveReload(LEDGER_LIVE_TABLES, load)
 </script>
 
 <style scoped>

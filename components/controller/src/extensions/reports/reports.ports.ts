@@ -12,6 +12,7 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   INDIVIDUAL_PORT,
   LEDGER2_HISTORY_PORT,
@@ -38,5 +39,7 @@ export const reportsPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Лента изменений: стол живёт по своим таблицам без перезагрузки.
+    CHAIN_CHANGES_PORT,
   ],
 };

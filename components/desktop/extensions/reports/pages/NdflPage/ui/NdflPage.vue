@@ -130,6 +130,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { NDFL_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
@@ -302,6 +304,10 @@ onMounted(() => {
   void loadState();
   void loadPayments(1);
 });
+
+// Удержанный НДФЛ живёт по ленте: заявка на перечисление, остаток кошелька и
+// оплата кассиром; новые заявки встают сверху первой страницы.
+useLiveReload(NDFL_LIVE_TABLES, () => Promise.all([loadState(), loadPayments(1)]));
 </script>
 
 <style lang="scss" scoped>

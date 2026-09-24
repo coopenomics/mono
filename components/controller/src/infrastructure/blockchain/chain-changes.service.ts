@@ -50,6 +50,13 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: Ledger2Contract.Tables.Wallets.tableName,
     staff_only: true,
   },
+  // План счетов кооператива: каждая операция учёта меняет остатки счетов, по
+  // ним живут стол бухгалтера (счета, операции, проводки, процессы) — совету.
+  {
+    code: Ledger2Contract.contractName.production,
+    table: Ledger2Contract.Tables.Accounts.tableName,
+    staff_only: true,
+  },
   // Стол совета (C28-83). Решение — вопрос пайщика: сигнал ему и совету.
   {
     code: SovietContract.contractName.production,
@@ -101,7 +108,10 @@ const CORE_TABLES: InnerChainChangesTable[] = [
  * состояние подключения ЦПП советом — экран подключения живёт по ней.
  */
 const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
-  { code: 'core', table: 'extensions', staff_only: true },
+  // Установка, включение и подключение расширения меняют рабочий стол каждого
+  // пайщика (столы, меню, гранты), поэтому сигнал открыт всем: данных строки,
+  // в том числе настроек расширения, в нём нет.
+  { code: 'core', table: 'extensions' },
   // Собрание до созыва в цепи и итог обработки закрытого — узел ведёт их сам.
   { code: 'core', table: 'meet_pre' },
   { code: 'core', table: 'meet_processed' },

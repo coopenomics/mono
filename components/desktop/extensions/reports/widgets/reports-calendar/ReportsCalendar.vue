@@ -59,6 +59,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { REPORT_DOCS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { FailAlert } from 'src/shared/api'
 import {
   useReportStore,
@@ -138,6 +140,10 @@ function onEntryClick(row: IReportCalendarRow, entry: IReportCalendarPeriodEntry
 // mark'а нужно обновить rows, иначе статус ячейки обновится только при
 // ре-маунте страницы (переход между табами и обратно).
 defineExpose({ reload })
+
+// Календарь сдачи живёт по ленте: отметка о сдаче и сформированный отчёт
+// сразу меняют статус срока.
+useLiveReload(REPORT_DOCS_LIVE_TABLES, reload)
 </script>
 
 <style scoped lang="scss">

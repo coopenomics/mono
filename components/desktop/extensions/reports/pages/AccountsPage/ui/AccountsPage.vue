@@ -127,6 +127,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
@@ -223,7 +225,7 @@ async function toggleExpand(id: number) {
   }
 }
 
-onMounted(async () => {
+async function loadAccounts(): Promise<void> {
   try {
     loading.value = true
     accounts.value = await ledger2Store.loadAccounts(info.coopname)
@@ -232,7 +234,12 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(loadAccounts)
+
+// План счетов живёт по ленте: любая операция учёта меняет остатки.
+useLiveReload(LEDGER_LIVE_TABLES, loadAccounts)
 </script>
 
 <style scoped lang="scss">

@@ -290,6 +290,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, nextTick, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
@@ -866,6 +868,10 @@ onMounted(async () => {
     FailAlert(e)
   }
 })
+
+// Журнал операций живёт по ленте: новая операция учёта перечитывает
+// показанную страницу с теми же фильтрами.
+useLiveReload(LEDGER_LIVE_TABLES, load)
 </script>
 
 <style scoped>

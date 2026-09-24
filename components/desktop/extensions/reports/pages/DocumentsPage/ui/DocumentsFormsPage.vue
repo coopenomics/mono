@@ -68,6 +68,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { REPORT_DOCS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { storeToRefs } from 'pinia'
 import { FailAlert } from 'src/shared/api'
 import {
@@ -151,4 +153,7 @@ function onMarked() {
 }
 
 onMounted(() => loadReports())
+
+// Формы отчётности живут по ленте: черновики и сформированные отчёты.
+useLiveReload(REPORT_DOCS_LIVE_TABLES, loadReports)
 </script>

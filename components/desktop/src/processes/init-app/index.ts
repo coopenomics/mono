@@ -8,6 +8,7 @@ import { useBranchOverlayProcess } from '../watch-branch-overlay';
 import { useExitOverlayProcess } from '../watch-exit-overlay';
 import { setupNavigationGuard } from '../navigation-guard-setup';
 import { useInitExtensionsProcess } from 'src/processes/init-installed-extensions';
+import { registerDesktopLive } from 'src/processes/init-installed-extensions/desktopLive';
 import { applyThemeFromStorage } from 'src/shared/lib/utils';
 import { useSessionStore } from 'src/entities/Session';
 import { ensureSessionCookie } from 'src/entities/Session/lib/ensureSessionCookie';
@@ -219,6 +220,10 @@ export async function useInitAppProcess(router: Router, ssrContext?: unknown) {
 
   await useInitExtensionsProcess(router);
   bootrace(`initExtensions done (routes=${router.getRoutes().length})`);
+
+  // Столы, меню и гранты дальше живут по ленте изменений (подключение
+  // расширения, смена роли, подписи, участие в программах).
+  if (!isServer) registerDesktopLive(router);
 
   // Досинхронизация активного стола с текущим маршрутом ПОСЛЕ установки расширений.
   // afterEach начального перехода мог сработать раньше, чем install прикрепил

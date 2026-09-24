@@ -631,6 +631,7 @@ function formatTime(d: Date): string {
   return d.toLocaleTimeString(uiLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
+// realtime: нет источника — редактор черновика отчёта: живое перечитывание затёрло бы правку; список отчётов и календарь живут по ленте.
 // Загрузка при открытии + реквизиты для paper-view.
 // immediate: true — DocumentsPage монтирует этот диалог через v-if, поэтому
 // на момент create() props.modelValue уже true и классический watcher
