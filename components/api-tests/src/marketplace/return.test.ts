@@ -23,7 +23,7 @@ import {
   waitFor,
 } from '../core'
 import { KRG, getOrder, pickOffer, placeOrder, acceptToCoop, issueOrder } from './flow'
-import { PHOTO, type IssuedOrder, issuedOrder, refusal } from './mkt-flows.helpers'
+import { PHOTO, type IssuedOrder, fundShare, issuedOrder, refusal } from './mkt-flows.helpers'
 
 const ekaterina = ROLES.member()
 const ivanpetrov = ROLES.otherMember()
@@ -285,6 +285,7 @@ describe('гарантийный возврат: заявление, решен�
     const offerId = created.marketplaceCreateOffer.id as string
     await gql(chairmanToken, 'mutation($i:MarketplaceApproveOfferInput!){ marketplaceApproveOffer(input:$i){ id status } }', { i: { offer_id: offerId, warranty_days: 0 } })
 
+    await fundShare(ekaterina, 500)
     let placed!: { orderId: string, orderHash: string }
     try {
       placed = await placeOrder({ who: ekaterina, offerId, quantity: 2 })
