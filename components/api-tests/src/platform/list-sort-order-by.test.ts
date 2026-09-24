@@ -30,6 +30,15 @@ const MALFORMED = [
 
 interface Reachable { list: SortableList, who: Who }
 
+/**
+ * Список со своим входом (не общий PaginationInput) может держать собственный
+ * перечень полей и отклонять остальное на входе — это тоже «чужая колонка в
+ * запрос не попадает».
+ */
+function ownAllowList(list: SortableList, r: { errors: { code: string | null }[] }): boolean {
+  return !list.paginationInput && String(r.errors[0]?.code) === '422'
+}
+
 let reachable: Reachable[] = []
 let unreachable: string[] = []
 
@@ -38,25 +47,31 @@ function describeResponse(r: { errors: { code: string | null, message: string }[
 }
 
 const AGREEMENTS = `query($f:AgreementFilter,$o:PaginationInput){
-  agreements(filter:$f, options:$o){ items{ id _created_at } totalCount }
+  agreements(filter:$f, options:$o){ items{ _id draft_id _created_at } totalCount }
 }`
 
-async function agreementPage(sortBy: string | undefined, sortOrder: 'ASC' | 'DESC'): Promise<{ id: number, at: number }[]> {
+async function agreementPage(sortBy: string | undefined, sortOrder: 'ASC' | 'DESC', limit = 20): Promise<{ id: string, draft: number }[]> {
   const d = await gql<any>(await tokenOf(CHAIRMAN), AGREEMENTS, {
     f: { coopname: COOP },
-    o: { page: 1, limit: 20, sortOrder, ...(sortBy !== undefined && { sortBy }) },
+    o: { page: 1, limit, sortOrder, ...(sortBy !== undefined && { sortBy }) },
   })
-  return (d.agreements.items as any[]).map(a => ({ id: a.id, at: Date.parse(a._created_at) }))
+  return (d.agreements.items as any[]).map(a => ({ id: a._id, draft: a.draft_id }))
 }
 
-async function agreementIds(sortBy: string | undefined, sortOrder: 'ASC' | 'DESC'): Promise<number[]> {
-  return (await agreementPage(sortBy, sortOrder)).map(a => a.id).filter((id): id is number => typeof id === 'number')
+/** Все соглашения кооператива одним списком — состав, без порядка. */
+async function agreementSet(sortBy: string | undefined): Promise<string[]> {
+  return (await agreementPage(sortBy, 'DESC', 1000)).map(a => a.id).sort()
 }
 
-/** Порядок по умолчанию — свежие сверху; равные метки времени идут в любом порядке. */
-function newestFirst(page: { at: number }[]): boolean {
-  return page.every((a, i) => i === 0 || page[i - 1].at >= a.at)
+const ACCOUNTS = `query($o:PaginationInput){ getAccounts(options:$o){ items{ provider_account{ created_at } } } }`
+
+/** Метки заведения пайщиков на первой странице реестра. */
+async function accountTimes(sortBy: string | undefined, sortOrder: 'ASC' | 'DESC' = 'DESC'): Promise<number[]> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), ACCOUNTS, { o: { page: 1, limit: 20, sortOrder, ...(sortBy !== undefined && { sortBy }) } })
+  return (d.getAccounts.items as any[]).map(a => a.provider_account?.created_at).filter(Boolean).map((s: string) => Date.parse(s))
 }
+
+const newestFirst = (times: number[]) => times.every((t, i) => i === 0 || times[i - 1] >= t)
 
 describe('platform.list-sort-order-by: поле сортировки списков', () => {
   beforeAll(async () => {
@@ -82,8 +97,8 @@ describe('platform.list-sort-order-by: поле сортировки списк�
   })
 
   it(caseName('platform.sort.happy.01', 'сортировка по колонке сущности применяется в обе стороны'), async () => {
-    const asc = await agreementIds('id', 'ASC')
-    const desc = await agreementIds('id', 'DESC')
+    const asc = (await agreementPage('draft_id', 'ASC')).map(a => a.draft)
+    const desc = (await agreementPage('draft_id', 'DESC')).map(a => a.draft)
     expect(asc.length).toBeGreaterThan(1)
     expect(asc).toEqual([...asc].sort((a, b) => a - b))
     expect(desc).toEqual([...desc].sort((a, b) => b - a))
@@ -109,7 +124,7 @@ describe('platform.list-sort-order-by: поле сортировки списк�
         report.push(`${list.query} ${JSON.stringify(sortBy)} → ${outcome}`)
         if (r.errors.some(e => SQL_LEAK.test(e.message)))
           problems.push(`${list.query}: ${JSON.stringify(sortBy)} дошло до SQL — ${outcome}`)
-        else if (list.paginationInput && !INPUT_REFUSALS.has(codeOf(r) ?? ''))
+        else if (list.paginationInput && !list.where.includes('.pagination.') && !INPUT_REFUSALS.has(codeOf(r) ?? ''))
           problems.push(`${list.query}: ${JSON.stringify(sortBy)} не отклонено на входе — ${outcome}`)
       }
     }
@@ -118,15 +133,20 @@ describe('platform.list-sort-order-by: поле сортировки списк�
   })
 
   it(caseName('platform.sort.break.02', 'допустимое по символам имя не колонки — порядок по умолчанию, чужая колонка в запрос не попадает'), async () => {
-    const byForeign = await agreementPage('password', 'DESC')
+    // Состав тот же, что без сортировки: чужое поле не сломало выборку.
+    const byForeign = await agreementSet('password')
     expect(byForeign.length).toBeGreaterThan(1)
-    expect(newestFirst(byForeign)).toBe(true)
+    expect(byForeign).toEqual(await agreementSet(undefined))
+    // Реестр пайщиков: чужое поле — порядок по умолчанию, свежие сверху.
+    const accounts = await accountTimes('password:asc', 'ASC')
+    expect(accounts.length).toBeGreaterThan(1)
+    expect(newestFirst(accounts)).toBe(true)
 
     const problems: string[] = []
     for (const { list, who } of reachable) {
       for (const sortBy of ['password', 'pbsortprobe', 'private_data']) {
         const r = await callList(who, list, sortBy)
-        if (r.errors.length)
+        if (r.errors.length && !ownAllowList(list, r))
           problems.push(`${list.query}: ${sortBy} → ${describeResponse(r)}`)
       }
     }
@@ -156,17 +176,8 @@ describe('platform.list-sort-order-by: поле сортировки списк�
   })
 
   it(caseName('platform.sort.side.01', 'реестр пайщиков принимает поле с направлением created_at:desc и created_at:asc'), async () => {
-    const token = await tokenOf(CHAIRMAN)
-    const Q = `query($o:PaginationInput){ getAccounts(options:$o){ items{ username provider_account{ created_at } } } }`
-    const times = async (sortBy: string) => {
-      const d = await gql<any>(token, Q, { o: { page: 1, limit: 20, sortOrder: 'DESC', sortBy } })
-      return (d.getAccounts.items as any[])
-        .map(a => a.provider_account?.created_at)
-        .filter(Boolean)
-        .map((s: string) => Date.parse(s))
-    }
-    const desc = await times('created_at:desc')
-    const asc = await times('created_at:asc')
+    const desc = await accountTimes('created_at:desc')
+    const asc = await accountTimes('created_at:asc')
     expect(desc.length).toBeGreaterThan(1)
     expect(desc).toEqual([...desc].sort((a, b) => b - a))
     expect(asc).toEqual([...asc].sort((a, b) => a - b))
@@ -177,12 +188,11 @@ describe('platform.list-sort-order-by: поле сортировки списк�
     const problems: string[] = []
     for (const { list, who } of reachable) {
       const r = await callList(who, list, '')
-      if (r.errors.length)
+      if (r.errors.length && !ownAllowList(list, r))
         problems.push(`${list.query}: ${describeResponse(r)}`)
     }
     expect(problems).toEqual([])
-    const empty = await agreementPage('', 'DESC')
-    expect(empty.length).toBeGreaterThan(1)
-    expect(newestFirst(empty)).toBe(true)
+    expect(await agreementSet('')).toEqual(await agreementSet(undefined))
+    expect(newestFirst(await accountTimes('', 'ASC'))).toBe(true)
   })
 })
