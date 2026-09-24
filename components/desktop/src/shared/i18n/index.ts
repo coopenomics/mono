@@ -89,8 +89,10 @@ export function registerMessages(source: string, tree: MessageTree, locale: stri
   const id = `${locale}:${source}`;
   if (registered.has(id)) return;
   // Проверка на пересечение — на копии текущего словаря, чтобы ошибка
-  // не оставила словарь наполовину слитым.
-  mergeMessages(structuredClone(i18n.global.getLocaleMessage(locale) as MessageTree), tree, source);
+  // не оставила словарь наполовину слитым. Копия через JSON: в браузере
+  // vue-i18n держит словари в reactive-Proxy, structuredClone его не берёт.
+  const current = JSON.parse(JSON.stringify(i18n.global.getLocaleMessage(locale))) as MessageTree;
+  mergeMessages(current, tree, source);
   i18n.global.mergeLocaleMessage(locale, tree);
   if (pseudo && locale === DEFAULT_LOCALE) i18n.global.mergeLocaleMessage(PSEUDO_LOCALE, pseudoLocalize(tree));
   registered.add(id);
