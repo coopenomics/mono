@@ -41,10 +41,9 @@ on:
   workflow_call:
   workflow_dispatch:
 
-# Новый push в PR-ветку отменяет ещё бегущий прогон по той же ветке.
-concurrency:
-  group: check-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+# Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
+# нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
+# проверку. Каждый пуш доводится до исхода.
 
 jobs:
   gates:
