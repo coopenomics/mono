@@ -37,6 +37,7 @@
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/vue-fontawesome": "^3.1.2",
     "@headlessui/vue": "^1.7.22",
+    "@intlify/message-compiler": "^11.4.12",
     "@milkdown/crepe": "^7.18.0",
     "@openreplay/tracker": "^17.1.0",
     "@openreplay/tracker-assist": "^9.0.1",

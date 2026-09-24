@@ -1,7 +1,9 @@
 import { boot } from 'quasar/wrappers';
 import { Lang } from 'quasar';
 import axios from 'axios';
-import quasarRu from 'quasar/lang/ru';
+// С расширением: у quasar нет карты exports, и серверная сборка SSR (Node ESM)
+// без `.js` пакет не находит — boot i18n падал на каждом запросе.
+import quasarRu from 'quasar/lang/ru.js';
 import { setLibraryTranslator } from '@coopenomics/i18n';
 import { i18n, currentLocale, t } from 'src/shared/i18n';
 

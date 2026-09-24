@@ -942,6 +942,9 @@ importers:
       '@headlessui/vue':
         specifier: ^1.7.22
         version: 1.7.23(vue@3.5.31(typescript@5.9.3))
+      '@intlify/message-compiler':
+        specifier: ^11.4.12
+        version: 11.4.12
       '@milkdown/crepe':
         specifier: ^7.18.0
         version: 7.20.0(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.7)(typescript@5.9.3)
