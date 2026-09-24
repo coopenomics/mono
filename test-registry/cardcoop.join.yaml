@@ -38,7 +38,6 @@ cases:
       связь запоминается, а не теряется; свидетельство не выпускается — совет
       ещё не принял решения
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
-    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.happy.02
