@@ -51,6 +51,7 @@ cases:
       мера появляется в коллекции кооператива с автором-создателем, цель
       привязана к ней
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.01
@@ -59,6 +60,7 @@ cases:
     scenario: та же пара «название + единица» вписана во вторую цель
     expect: дубля в коллекции нет, обе цели смотрят на одну меру
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.02
@@ -67,6 +69,7 @@ cases:
     scenario: мера вписана с лишними пробелами по краям
     expect: название и единица сохраняются обрезанными, дубля не возникает
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.03
@@ -75,6 +78,7 @@ cases:
     scenario: цель заводится с мерой, которую раньше выключили (архив)
     expect: мера включается обратно, новая не заводится
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.13
@@ -85,6 +89,7 @@ cases:
       откатываются (вес, настроение), а не копятся.
     expect: мера заводится с режимом ряда «уровень»
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.14
@@ -93,6 +98,7 @@ cases:
     scenario: тип явно переключён у меры, которая уже заведена
     expect: режим ряда меры меняется, новая мера не заводится
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.break.04
@@ -105,6 +111,7 @@ cases:
       режим меры сохраняется. Прежний defaultValue в схеме подставлял бы
       «скорость» и молча ломал ряд метрик-уровней во всех целях с этой мерой
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.04
@@ -115,6 +122,7 @@ cases:
       заводится новая мера, старая остаётся нетронутой — иначе переименование
       в одной цели поехало бы по всем целям с той же мерой
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.break.01
@@ -123,6 +131,7 @@ cases:
     scenario: меру переименовывают в пару, которая у кооператива уже есть
     expect: отказ — иначе две меры слились бы в одну, а в списке появился дубль
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.break.02
@@ -131,6 +140,7 @@ cases:
     scenario: цель заводят без названия меры или без единицы измерения
     expect: отказ с понятным текстом, мера не создаётся
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.break.03
@@ -149,6 +159,7 @@ cases:
       возвращаются только заведённые этим кооперативом; общий справочник не
       подсеивается
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   # ── Дневной ряд и волна ───────────────────────────────────────────────────
@@ -159,6 +170,7 @@ cases:
     scenario: ряд метрики строится за окно по умолчанию
     expect: 30 дневных баров, последний — текущие (незавершённые) сутки
     test: components/controller/src/extensions/capital/domain/utils/build-metric-series.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.06
@@ -169,6 +181,7 @@ cases:
       пустой «будущий» бар не добавляется — иначе волна получила бы ложную
       коррекцию на пустом дне
     test: components/controller/src/extensions/capital/domain/utils/build-metric-series.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.07
@@ -197,6 +210,7 @@ cases:
       кадры идут по дням, последний упирается в текущий момент, а не в конец
       незавершённых суток
     test: components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   - id: cap.mm.side.10
@@ -205,6 +219,7 @@ cases:
     scenario: вклад в метрику датирован позже запрошенного кадра истории
     expect: в факт и фазоры кадра он не входит
     test: components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.spec.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
 
   # ── Интерфейс ─────────────────────────────────────────────────────────────

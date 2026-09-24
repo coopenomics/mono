@@ -142,6 +142,7 @@ cases:
     expect: >
       действие цепи вызывается только для участников с активным договором УХД
     test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    api: components/api-tests/src/capital/gamification.test.ts
     status: passing
 
   - id: cap.gam.break.02
