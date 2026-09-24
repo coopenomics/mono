@@ -1,0 +1,127 @@
+feature: chatcoop.calendar
+title: Календарь кооператива в «Чате кооператива» и персональная лента ICS
+
+# Событие календаря привязано к незашифрованной комнате Matrix из реестра
+# комнат чата; создают и правят события председатель и члены совета, читают
+# все пайщики. Лента ICS отдаётся по персональной подписке: секрет в адресе,
+# без токена — её опрашивают календарные клиенты. Повторная выдача меняет
+# секрет, прежний адрес перестаёт работать.
+#
+# Заведено 24.09.2026 (C28-80). На стенде внешнего слоя сервера Matrix нет,
+# реестр комнат пуст, поэтому создание, правка и удаление событий снаружи не
+# проверяются — только подписка ICS, чтение и отказы.
+
+sources:
+  backend:
+    - components/controller/src/extensions/chatcoop/application/resolvers/chatcoop-calendar.resolver.ts
+    - components/controller/src/extensions/chatcoop/application/services/chatcoop-calendar-application.service.ts
+    - components/controller/src/extensions/chatcoop/application/controllers/chatcoop-calendar-feed.controller.ts
+    - components/controller/src/extensions/chatcoop/application/dto/calendar.dto.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/calendar-*.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/entities/calendar-*.ts
+    - components/controller/src/extensions/chatcoop/domain/repositories/calendar-*.ts
+
+cases:
+  - id: chat.cal.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик получает адрес персональной ленты ICS и открывает его без токена
+    expect: >
+      200, text/calendar, VCALENDAR версии 2.0; число событий ленты равно
+      числу событий в списке календаря
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик повторно запрашивает адрес ленты
+    expect: >
+      подписка та же (id), секрет новый; прежний адрес — 404, новый — 200
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.happy.03
+    level: backend
+    kind: happy
+    scenario: Пайщик и член совета читают список событий календаря
+    expect: оба получают один и тот же список
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.side.01
+    level: backend
+    kind: side
+    scenario: Лента без секрета, без id, с чужим секретом, с несуществующим id
+    expect: 400, 400, 404, 404
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.side.02
+    level: backend
+    kind: side
+    scenario: Секрет одного пайщика подставлен в подписку другого
+    expect: подписки разные, лента не открывается (404)
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.side.03
+    level: backend
+    kind: side
+    scenario: Гость запрашивает адрес ленты и список событий
+    expect: отказ 401
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Обычный пайщик создаёт, правит, удаляет событие и запрашивает комнаты календаря
+    expect: отказ KIT_INSUFFICIENT_RIGHTS на каждое действие
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.side.05
+    level: backend
+    kind: side
+    scenario: Член совета создаёт и правит событие в комнате не из реестра
+    expect: >
+      отказ CHATCOOP_CALENDAR_ROOM_UNAVAILABLE, событие не появляется в списке
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing
+
+  - id: chat.cal.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Член совета создаёт событие в незашифрованной комнате реестра, правит
+      его и удаляет; пайщики получают уведомления, лента ICS показывает
+      событие с растущей SEQUENCE
+    expect: >
+      событие в списке и в ленте, правка поднимает icsSequence, удалённое
+      пропадает; снаружи не проверить — комнаты реестра заводит сервер Matrix,
+      на стенде его нет
+    test: ~
+    status: missing
+
+  - id: chat.cal.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Событие в зашифрованной комнате реестра либо удаление несуществующего события
+    expect: >
+      отказ по зашифрованной комнате; удаление несуществующего — не определено
+      (сейчас молча true) — нужен реестр комнат Matrix
+    test: ~
+    status: missing
+    decision_needed: true
