@@ -4,6 +4,7 @@ import { RpcPool } from './rpc-pool.service';
 import { BlockchainConsumerService } from './blockchain-consumer.service';
 import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { ActionReleaseGate } from './action-release-gate.service';
+import { ChainChangesService } from './chain-changes.service';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -48,6 +49,8 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     ChainDeltaWaiterService,
     // Выпуск действий в шину по факту разбора блока, а не по таймеру.
     ActionReleaseGate,
+    // Лента изменений цепи для столов — сигнал «перечитай» после разбора дельты.
+    ChainChangesService,
     DraftRegistrySyncService,
     BlockchainRepeatService,
     {
@@ -107,6 +110,7 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
   ],
   exports: [
     ChainDeltaWaiterService,
+    ChainChangesService,
     RpcPool,
     BlockchainService,
     BlockchainConsumerService,

@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 289.
+Всего экспортов: 292.
 
 ## ACCOUNT_PORT
 
@@ -44,6 +44,12 @@
 
 `const` · cross-plugin-ports
 
+
+## CHAIN_CHANGES_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.ChainChanges')`
 
 ## CHAIN_DELTA_WAIT_PORT
 
@@ -265,6 +271,12 @@
 
 - `project_hash: string`
 - `matrix_room_id: string`
+
+## IChainChangesPort
+
+`interface` · core-ports
+
+- `declareTables(tables: InnerChainChangesTable[]): void`
 
 ## IChainDeltaWaitPort
 
@@ -738,6 +750,14 @@
 - `elapsed: number`
 - `repeat?: boolean`
 - `created_at?: Date`
+
+## InnerChainChangesTable
+
+`interface` · core-ports
+
+- `code: string`
+- `table: string`
+- `owner_field?: string`
 
 ## InnerChainDelta
 

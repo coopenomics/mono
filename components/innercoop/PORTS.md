@@ -21,6 +21,7 @@
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
+| `CHAIN_CHANGES_PORT` | `IChainChangesPort` (1)<br><sub>core-ports/chain-changes.port.ts</sub> | `ChainChangesService` | capital* | Лента изменений цепи — сигнал столу «эти данные изменились, перечитай». |
 | `CHAIN_DELTA_WAIT_PORT` | `IChainDeltaWaitPort` (3)<br><sub>core-ports/chain-delta-wait.port.ts</sub> | `ChainDeltaWaiterService` | capital*, chairman* | Ответ после факта из цепи. |
 | `CHAIN_RESOURCES_PORT` | `IChainResourcesPort` (2)<br><sub>core-ports/chain-resources.port.ts</sub> | `ChainResourcesInnercoopAdapter` | powerup | Ресурсы аккаунта в цепи: оперативная память, полоса, процессорное время. |
 | `CHAIN_PORT` | `IChainPort` (4)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, cardcoop, chairman, expenses, ku, marketplace, reports, soviet-robot | Проводка действий в цепь и чтение её таблиц. |
@@ -87,4 +88,4 @@
 | `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | marketplace, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 55.
+Всего портов: 56.

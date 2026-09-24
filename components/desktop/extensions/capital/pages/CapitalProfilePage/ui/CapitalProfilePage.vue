@@ -35,11 +35,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { computed, onMounted } from 'vue';
 import { ContributorGamificationWidget } from 'app/extensions/capital/widgets/ContributorGamificationWidget';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { CapitalContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session/model/store';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks/useHeaderActions';
@@ -141,31 +141,29 @@ const roleContributions = computed(() => {
   ];
 });
 
-/**
- * Функция для перезагрузки данных профиля
- * Используется для poll обновлений
- */
+/** Перезагрузка данных профиля — при открытии и по ленте изменений цепи. */
 const reloadProfileData = async () => {
   try {
     // self — то, что рисует страница; loadContributor пишет в другой ref
     await contributorStore.loadSelf({ username });
   } catch (error) {
-    console.warn('Ошибка при перезагрузке данных профиля в poll:', error);
+    console.warn('Ошибка при перезагрузке данных профиля:', error);
   }
 };
 
 // Обработчик обновления любого поля профиля
 const handleFieldUpdated = () => {
-  // Поле профиля обновлено, данные перезагрузятся автоматически через poll
+  // Поле профиля обновлено — строка пайщика программы изменится в цепи, и
+  // профиль перечитается по ленте изменений.
 };
 
-// Настраиваем poll обновление данных
-const { start: startProfilePoll, stop: stopProfilePoll } = useDataPoller(
+// Профиль — строка пайщика программы в цепи: взнос, правка ставки и часов
+// меняют её, и страница перечитывается по факту, а не опросом раз в N секунд.
+useLiveReload(
+  [liveTable(CapitalContract, CapitalContract.Tables.Contributors)],
   reloadProfileData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false }
 );
 
-// Проверяем при монтировании
 onMounted(async () => {
   // Главное действие страницы — в правом верхнем углу топбара
   registerAction({
@@ -176,16 +174,8 @@ onMounted(async () => {
 
   // Загружаем данные текущего участника аналогично CapitalBase. Отказ не роняем
   // из onMounted — он уходил в обработчик ошибок приложения безымянным
-  // «Object captured as exception»; опрос ниже повторит загрузку сам.
+  // «Object captured as exception».
   await reloadProfileData();
-
-  // Запускаем poll обновление данных
-  startProfilePoll();
-});
-
-// Останавливаем poll при уходе со страницы
-onBeforeUnmount(() => {
-  stopProfilePoll();
 });
 </script>
 
