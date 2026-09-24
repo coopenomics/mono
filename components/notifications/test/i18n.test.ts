@@ -11,6 +11,7 @@ import { Workflows, nt, notificationTemplates, templateFor } from '../src';
 const FROZEN_IDS = [
   'akt-priyomki-ekspeditorom-ozhidaet-podpisi-postavschika',
   'dobro-pozhalovat',
+  'dostup-k-kursu-otkryt',
   'garantiynaya-pretenziya-postavschiku',
   'garantiyniy-vozvrat-zavershyon',
   'golosovanie-sobraniya-uchastka-nachalos',
@@ -55,6 +56,7 @@ const FROZEN_IDS = [
   'sovet-reshil-po-garantiynomu-vozvratu',
   'sovet-reshil-po-vydache-imuschestva',
   'spisanie-skoroporta-ispolneno',
+  'srok-dostupa-k-kursu-zakanchivaetsya',
   'tsifrovoy-kooperativ-razvernut',
   'utverzhdenie-redaktsii-dokumenta-ne-prinyato-sovetom',
   'uvedomlenie-o-novom-obschem-sobranii',
@@ -64,6 +66,7 @@ const FROZEN_IDS = [
   'vkhods-novogo-ustroystva',
   'vkhodyaschiy-perevod',
   'vosstanovlenie-dostupa',
+  'vydacha-dostupa-trebuet-vmeshatelstva',
   'vyplata-postavschiku-podtverzhdena-kassirom',
   'vyshla-novaya-redaktsiya-dokumenta-kooperativa',
   'zakaz-gotov-k-polucheniyu',

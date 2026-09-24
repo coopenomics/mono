@@ -20,14 +20,23 @@ import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } 
 import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
 
 import { capitalEntities } from './capital/capital.entities';
+import { capitalDatabaseMigrations } from './capital/capital.database-migrations';
 import { cardcoopEntities } from './cardcoop/cardcoop.entities';
+import { cardcoopDatabaseMigrations } from './cardcoop/cardcoop.database-migrations';
 import { chairmanEntities } from './chairman/chairman.entities';
+import { chairmanDatabaseMigrations } from './chairman/chairman.database-migrations';
 import { chatcoopEntities } from './chatcoop/chatcoop.entities';
+import { chatcoopDatabaseMigrations } from './chatcoop/chatcoop.database-migrations';
 import { expensesEntities } from './expenses/expenses.entities';
+import { expensesDatabaseMigrations } from './expenses/expenses.database-migrations';
 import { kuEntities } from './ku/ku.entities';
+import { kuDatabaseMigrations } from './ku/ku.database-migrations';
 import { marketplaceEntities } from './marketplace/marketplace.entities';
+import { marketplaceDatabaseMigrations } from './marketplace/marketplace.database-migrations';
 import { sovietRobotEntities } from './soviet-robot/soviet-robot.entities';
+import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.database-migrations';
 import { reportsEntities } from './reports/reports.entities';
+import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
@@ -43,6 +52,7 @@ import { marketplacePorts } from './marketplace/marketplace.ports';
 import { EdubridgeExtensionModule, EdubridgeExtension } from './edubridge/edubridge-extension.module';
 import { Schema as EdubridgeSchema } from './edubridge/types';
 import { edubridgeEntities } from './edubridge/edubridge.entities';
+import { edubridgeDatabaseMigrations } from './edubridge/edubridge.database-migrations';
 import { edubridgePorts } from './edubridge/edubridge.ports';
 import { sovietRobotPorts } from './soviet-robot/soviet-robot.ports';
 import { participantPorts } from './participant/participant.ports';
@@ -65,6 +75,7 @@ import {
   ExtensionConfigSuppliedBy,
   isExtensionAvailable,
   registerExtensionEntities,
+  registerExtensionDatabaseMigrations,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
 import { t, t as i18nT } from '~/i18n';
@@ -107,6 +118,7 @@ export const AppRegistry: INamedExtension = {
     class: SovietRobotExtensionModule,
     extensionClass: SovietRobotExtension,
     entities: sovietRobotEntities,
+    databaseMigrations: sovietRobotDatabaseMigrations,
     ports: sovietRobotPorts,
     schema: SovietRobotSchema,
     // `defaults` намеренно нет: расширение ставит председатель из каталога, как
@@ -161,6 +173,7 @@ export const AppRegistry: INamedExtension = {
     class: CapitalExtensionModule,
     extensionClass: CapitalExtension,
     entities: capitalEntities,
+    databaseMigrations: capitalDatabaseMigrations,
     ports: capitalPorts,
     schema: CapitalSchema,
     tags: [t('app.extensionsRegistry.capital.tagDesk'), t('app.extensionsRegistry.capital.tagManagement')],
@@ -186,6 +199,7 @@ export const AppRegistry: INamedExtension = {
     class: ChairmanExtensionModule,
     extensionClass: ChairmanExtension,
     entities: chairmanEntities,
+    databaseMigrations: chairmanDatabaseMigrations,
     defaults: { enabled: true, config: chairmanDefaultConfig },
     ports: chairmanPorts,
     schema: ChairmanSchema,
@@ -212,6 +226,7 @@ export const AppRegistry: INamedExtension = {
     class: KuExtensionModule,
     extensionClass: KuExtension,
     entities: kuEntities,
+    databaseMigrations: kuDatabaseMigrations,
     ports: kuPorts,
     schema: KuSchema,
     tags: [t('app.extensionsRegistry.trustee.tagDesk'), t('app.extensionsRegistry.trustee.tagManagement')],
@@ -315,6 +330,7 @@ export const AppRegistry: INamedExtension = {
     // расширения не получали вовсе — раздел в кабинете был, а записи установки не было.
     defaults: { enabled: true, config: cardcoopDefaultConfig },
     entities: cardcoopEntities,
+    databaseMigrations: cardcoopDatabaseMigrations,
     ports: cardcoopPorts,
     schema: CardcoopSchema,
     tags: [t('app.extensionsRegistry.cardcoop.tagMembership')],
@@ -378,6 +394,7 @@ export const AppRegistry: INamedExtension = {
     class: ChatCoopExtensionModule,
     extensionClass: ChatCoopExtension,
     entities: chatcoopEntities,
+    databaseMigrations: chatcoopDatabaseMigrations,
     migrations: chatcoopMigrations,
     ports: chatcoopPorts,
     schema: ChatCoopSchema,
@@ -404,6 +421,7 @@ export const AppRegistry: INamedExtension = {
     class: ReportsExtensionModule,
     extensionClass: BuiltinExtension,
     entities: reportsEntities,
+    databaseMigrations: reportsDatabaseMigrations,
     ports: reportsPorts,
     defaults: { enabled: true, config: builtinDefaultConfig },
     schema: BuiltinSchema,
@@ -457,6 +475,7 @@ export const AppRegistry: INamedExtension = {
     class: MarketplaceExtensionModule,
     extensionClass: MarketplaceExtension,
     entities: marketplaceEntities,
+    databaseMigrations: marketplaceDatabaseMigrations,
     migrations: marketplaceMigrations,
     ports: marketplacePorts,
     schema: MarketplaceSchema,
@@ -489,6 +508,7 @@ export const AppRegistry: INamedExtension = {
     class: EdubridgeExtensionModule,
     extensionClass: EdubridgeExtension,
     entities: edubridgeEntities,
+    databaseMigrations: edubridgeDatabaseMigrations,
     ports: edubridgePorts,
     schema: EdubridgeSchema,
     configPolicy: {
@@ -519,4 +539,15 @@ export const AppRegistry: INamedExtension = {
  */
 registerExtensionEntities([
   ...new Set([...Object.values(AppRegistry).flatMap((extension) => extension.entities ?? []), ...expensesEntities]),
+]);
+
+/**
+ * Миграции таблиц установленных расширений — той же лентой, что и сущности:
+ * по записям реестра плюс шасси расходов, у которого записи нет.
+ */
+registerExtensionDatabaseMigrations([
+  ...new Set([
+    ...Object.values(AppRegistry).flatMap((extension) => extension.databaseMigrations ?? []),
+    ...expensesDatabaseMigrations,
+  ]),
 ]);

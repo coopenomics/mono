@@ -25,6 +25,7 @@ stack_wipe_all
 stack_up_infra
 stack_up_authentik
 
+stack_migrate_schema || exit 1
 echo "▸ Запускаем boot: поднимаем цепь и деплоим контракты..."
 pnpm run boot
 

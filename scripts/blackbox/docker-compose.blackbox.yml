@@ -11,3 +11,8 @@ services:
     command: pnpm --filter @coopenomics/controller run start
   parser2:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  # MinIO больше не публикует образы на Docker Hub: dev-машины берут этот тег из
+  # локального кеша, а чистый раннер получает «pull access denied». Тот же тег
+  # лежит в quay.io.
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z

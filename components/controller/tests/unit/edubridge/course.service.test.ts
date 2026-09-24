@@ -1,4 +1,5 @@
 /** Конструктор курса: носитель по направлению, идентификатор площадки, преподаватели только с договором. */
+import { DomainError } from '@coopenomics/extension-kit';
 import { EdubridgeCourseService } from '~/extensions/edubridge/application/services/edubridge-course.service';
 import { EduAccessCarrier, EduContractStatus, EduCourseDirection, EduCourseStatus } from '~/extensions/edubridge/domain/enums';
 
@@ -233,9 +234,21 @@ describe('EdubridgeCourseService — обложка курса', () => {
     expect(images.putImage).not.toHaveBeenCalled();
   });
 
-  it('отказ bucket\'а (не тот MIME) превращается в 400 с его текстом', async () => {
+  it('отказ bucket\'а (не тот MIME) доходит до пайщика своим кодом и текстом', async () => {
     const { service, images } = make();
-    images.putImage = jest.fn(async () => { throw new Error('Поддерживаются только изображения JPEG, PNG и WEBP; получен image/gif.'); });
-    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/gif' } })).rejects.toThrow(/JPEG, PNG и WEBP/);
+    images.putImage = jest.fn(async () => {
+      throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED', { contentType: 'image/gif' });
+    });
+    const create = service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/gif' } });
+    await expect(create).rejects.toThrow(/JPEG, PNG и WEBP/);
+    await expect(create).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED', status: 400 });
+  });
+
+  it('прочий сбой bucket\'а — общий отказ без подробностей хранилища', async () => {
+    const { service, images } = make();
+    images.putImage = jest.fn(async () => { throw new Error('S3: connection reset'); });
+    await expect(service.create('voskhod', 'ant', { ...base, image: { base64: png, mime_type: 'image/png' } })).rejects.toMatchObject({
+      code: 'EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED',
+    });
   });
 });

@@ -1,3 +1,4 @@
+import type { MigrationInterface } from 'typeorm';
 import type { ExtensionConfigPolicy } from '../config/config-policy';
 import type { IExtensionSchemaMigration } from '../migrations/schema-migration.contract';
 
@@ -73,6 +74,15 @@ export interface IRegistryExtension {
    * расширения, которое своих таблиц не держит, — нормальное состояние.
    */
   entities?: ReadonlyArray<new (...args: any[]) => any>;
+  /**
+   * Миграции таблиц расширения — классы миграций TypeORM.
+   *
+   * Схему базы меняют только миграции: добавил или поменял колонку в сущности
+   * из `entities` — положи рядом миграцию (`pnpm schema:generate`). Порядок
+   * задаёт метка времени в имени класса, общая лента с миграциями ядра.
+   * Не путать с `migrations` ниже — те переводят конфиг расширения.
+   */
+  databaseMigrations?: ReadonlyArray<new () => MigrationInterface>;
   /**
    * Миграции схемы конфига расширения — в порядке применения.
    *

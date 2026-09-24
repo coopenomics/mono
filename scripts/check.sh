@@ -134,6 +134,10 @@ gate_registry() {
   node "$REPO_ROOT/scripts/check-registry.mjs"
 }
 
+gate_registry_external() {
+  node "$REPO_ROOT/scripts/check-registry-external.mjs"
+}
+
 gate_ledger2_processes() {
   node "$REPO_ROOT/scripts/check-ledger2-processes.mjs"
 }
@@ -154,6 +158,10 @@ gate_live_mirror() {
   node "$REPO_ROOT/scripts/check-live-mirror.mjs"
 }
 
+gate_schema_migrations() {
+  node "$REPO_ROOT/scripts/check-schema-migrations.mjs"
+}
+
 gate_i18n() {
   node "$REPO_ROOT/scripts/check-i18n.mjs"
 }
@@ -172,6 +180,7 @@ case "$MODE" in
     run_gate "порты переживут вынос" gate_ports_async
     run_gate "реестры процессов ledger2" gate_ledger2_processes
     run_gate "плательщик памяти в контрактах" gate_ram_payer
+    run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "текст в словарях i18n" gate_i18n
     ;;
   ledger2)
@@ -188,9 +197,11 @@ case "$MODE" in
   changed)
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     ;;
   registry)
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     ;;
   all)
     run_gate "границы: controller" gate_boundaries_controller
@@ -204,9 +215,11 @@ case "$MODE" in
     run_gate "факт: пауза вместо факта" gate_timing
     run_gate "факт: транзакция мимо факта" gate_transact_fact
     run_gate "факт: экран без зеркала" gate_live_mirror
+    run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
+    run_gate "реестр тестов: внешний слой" gate_registry_external
     # Тесты по умолчанию ВЫКЛЮЧЕНЫ намеренно: CLAUDE.md запрещает гонять
     # полный набор локально — живой dev-стек в docker вешает CPU/RAM.
     # В CI и вручную — CHECK_WITH_TESTS=1 pnpm check.

@@ -74,7 +74,9 @@ _Критичные правила и паттерны для AI-агентов 
 - Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
 **TypeORM:**
-- Миграции `migrations/{timestamp-ms}-{name}.ts`. `synchronize: true` **запрещено** в prod.
+- **Схема — только миграциями, `synchronize: true` запрещён везде** (C28-79, гейт `pnpm check`). Правка сущности → `pnpm schema:generate <имя>` → проверить SQL (переименование колонки TypeORM пишет как DROP+ADD — переписать на `RENAME COLUMN`) → `pnpm schema:check`. Миграции ядра — `src/infrastructure/database/migrations/` (список в `index.ts`), расширения — `src/extensions/<имя>/migrations/database/` + `<имя>.database-migrations.ts` в записи реестра. Учёт — `schema_migrations`; применяются при подключении (`migrationsRun`), первым шагом `pnpm migrate` и `pnpm schema:migrate`. Стартовые `*-baseline.ts` идемпотентны, не править руками. Подробно — `migrations/README.md`. Правка схемы сущности без новой миграции того же владельца роняет `pnpm check` (гейт сверяет дифф ветки от dev); правка без влияния на таблицу помечается `// schema-unchanged: причина`. Новое расширение с таблицами приходит сразу со стартовой миграцией: SQL из `schema:generate`, переведённый в идемпотентную форму (`toIdempotent`) — на стендах таблицы мог завести прежний `synchronize`.
+- **Миграции данных и цепи** — самописный мигратор, каталог `migrations/`, новые файлы `ГГГГММДДччмм__описание.ts` (`pnpm migration:generate`); прежние `V*` заморожены.
+- **TypeORM запатчен** (`patches/typeorm@0.3.20.patch`, `pnpm-workspace.yaml`): наследник, переопределявший колонку базового класса со своим умолчанием, портил опции родителя — умолчание утекало в соседние таблицы и зависело от порядка загрузки сущностей. При обновлении TypeORM проверить, исправлено ли в upstream (в 0.3.31 — нет).
 - `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
 - Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
@@ -222,6 +224,7 @@ node scripts/analyze-cycles.mjs        # ожидаемый вывод: обёр
 | Поле записи | Файл-декларация | Что сломается без него |
 |---|---|---|
 | `entities` | `<name>/<name>.entities.ts` | таблицы не создадутся, репозитории не поднимутся |
+| `databaseMigrations` | `<name>/<name>.database-migrations.ts` | таблицы не появятся на новом узле (гейт `check-schema-migrations`) |
 | `migrations` | `<name>/<name>.migrations.ts` | конфиг останется старой версии |
 | `ports` | `<name>/<name>.ports.ts` | расширение не пройдёт гейт capability |
 | `defaults` | — | расширение не поставится в новом кооперативе |

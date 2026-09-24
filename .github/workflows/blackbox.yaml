@@ -56,11 +56,13 @@ jobs:
       - name: Install workspace
         run: pnpm install --frozen-lockfile
 
-      # Компиляция контрактов — около десяти минут. Кеш по содержимому
+      # Компиляция контрактов — около одиннадцати минут. Кеш по содержимому
       # исходников: пока контракты не менялись, берём готовые wasm/abi.
+      # restore и save раздельно: actions/cache сохраняет только при зелёном
+      # job, а стенд на полигоне падает часто — собранное терялось бы.
       - name: Контракты — кеш
         id: contracts
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: components/contracts/build/contracts
           key: blackbox-contracts-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
@@ -84,6 +86,13 @@ jobs:
         if: steps.contracts.outputs.cache-hit != 'true'
         working-directory: components/contracts
         run: ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+
+      - name: Контракты — сохранить в кеш
+        if: steps.contracts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: components/contracts/build/contracts
+          key: ${{ steps.contracts.outputs.cache-primary-key }}
 
       - name: Build all workspace packages
         run: pnpm lerna run build
@@ -119,6 +128,8 @@ jobs:
         with:
           name: blackbox-${{ github.run_id }}
           path: .blackbox
+          # Каталог скрытый, а upload-artifact@v4 скрытое по умолчанию пропускает.
+          include-hidden-files: true
           retention-days: 14
 
       - name: Сводка

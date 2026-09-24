@@ -54,7 +54,7 @@ export class ReportDraftEntity {
   @Column({ type: 'jsonb' })
   edits_json!: unknown;
 
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   edited_fields!: string[];
 
   @CreateDateColumn({ type: 'timestamp with time zone' })

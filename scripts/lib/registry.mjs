@@ -33,6 +33,22 @@ export const SIGNIFICANT_ROOTS = [
   'components/desktop/src/entities/Marketplace',
 ];
 
+// Внешний слой тестов (C28-80): тесты, которые разговаривают с платформой
+// только через API поднятого стенда, как интерфейс или посторонний клиент.
+// От языка сервера и от ORM они не зависят — поэтому именно они страхуют
+// уход с TypeORM и возможную смену бэкенда. Юнит-тесты при этом остаются:
+// они проверяют правила изнутри, внешний слой — что правила доходят до клиента.
+export const EXTERNAL_TEST_ROOTS = ['components/boot/src/tests/'];
+
+export function isExternalTest(path) {
+  return !!path && EXTERNAL_TEST_ROOTS.some((root) => path.startsWith(root));
+}
+
+/** Случай закрыт внешним тестом: поле `api` или сам `test` лежит во внешнем слое. */
+export function hasExternalTest(c) {
+  return isExternalTest(c?.api) || isExternalTest(c?.test);
+}
+
 const FEATURE_RE = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;
 
 /** glob → RegExp. Поддерживаются `**` (любая глубина) и `*` (в пределах сегмента). */
@@ -121,6 +137,13 @@ export function loadRegistry(repoRoot) {
       if (c?.status !== 'missing') {
         if (!hasTest) errors.push(`${where}: status=${c?.status} требует ссылки на тест в поле test`);
         else if (!existsSync(join(repoRoot, c.test))) errors.push(`${where}: тест '${c.test}' не существует`);
+      }
+      if (c?.api) {
+        if (!isExternalTest(c.api)) {
+          errors.push(`${where}: api='${c.api}' — внешний тест живёт в ${EXTERNAL_TEST_ROOTS.join(' | ')}`);
+        } else if (!existsSync(join(repoRoot, c.api))) {
+          errors.push(`${where}: внешний тест '${c.api}' не существует`);
+        }
       }
       list.push({ ...c, __file: rel });
     }
