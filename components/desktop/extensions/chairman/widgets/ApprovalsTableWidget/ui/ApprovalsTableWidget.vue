@@ -113,6 +113,7 @@ const {
 } = useExpandableState(APPROVALS_EXPANDED_KEY);
 
 // Загружаем состояние при монтировании
+// realtime: нет источника — раскрытые строки таблицы хранятся в браузере, данные ведёт страница.
 onMounted(() => {
   loadExpandedState();
 });

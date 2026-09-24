@@ -35,6 +35,7 @@ import { useApprovalStore } from 'app/extensions/chairman/entities/Approval/mode
 
 import { Zeus } from '@coopenomics/sdk';
 import { t } from '../../../i18n';
+import { useLiveReload, type ChainTableRef } from 'src/shared/lib/realtime';
 
 const approvalStore = useApprovalStore();
 const route = useRoute();
@@ -63,10 +64,11 @@ const pagination = ref({
   rowsNumber: 0,
 });
 
-// Загрузка одобрений
-const loadApprovals = async () => {
+// Загрузка одобрений. Тихая — без оверлея загрузки: так перечитывает лента,
+// чтобы таблица не мигала на каждом решении председателя.
+const loadApprovals = async (silent = false) => {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
 
     const coopname = route.params.coopname as string;
 
@@ -89,7 +91,8 @@ const loadApprovals = async () => {
     pagination.value.rowsNumber = approvalStore.approvals?.totalCount || 0;
   } catch (error) {
     console.error('Ошибка загрузки одобрений:', error);
-    FailAlert(t('chairman.approvalsPage.loadError'));
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(t('chairman.approvalsPage.loadError'));
   } finally {
     loading.value = false;
   }
@@ -111,6 +114,11 @@ const onRequest = (props: { pagination: any }) => {
 onMounted(() => {
   loadApprovals();
 });
+
+// Одобрения — таблица базы узла расширения председателя: новое одобрение,
+// подпись и отказ приходят по ленте изменений, список перечитывается сам.
+const APPROVALS_TABLE: ChainTableRef = { code: 'chairman', table: 'chairman_approvals' };
+useLiveReload([APPROVALS_TABLE], () => loadApprovals(true));
 
 // Следим за изменением параметров маршрута
 watch(() => route.params.coopname, () => {
