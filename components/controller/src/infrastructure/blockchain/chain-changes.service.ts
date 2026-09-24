@@ -73,6 +73,18 @@ const CORE_TABLES: InnerChainChangesTable[] = [
   },
   // Кооперативные участки: создание, правка, смена председателя участка.
   { code: BranchContract.contractName.production, table: BranchContract.Tables.Branches.tableName },
+  // Собрания и хозяйство кооперативного участка — всем пайщикам кооператива:
+  // решения и их вопросы, веса голосов, помощь и траты участка.
+  ...[
+    BranchContract.Tables.Decisions,
+    BranchContract.Tables.DecisionQuestions,
+    BranchContract.Tables.Weights,
+    BranchContract.Tables.WeightTotals,
+    BranchContract.Tables.Aids,
+    BranchContract.Tables.Spends,
+  ].map((t) => ({ code: BranchContract.contractName.production, table: t.tableName })),
+  // Заявка на доверенность председателя участка — заявителю и совету.
+  { code: BranchContract.contractName.production, table: BranchContract.Tables.TrustReqs.tableName, owner_field: 'username' },
   // Пайщики кооператива в цепи: вступление, блокировка, выход.
   {
     code: SovietContract.contractName.production,

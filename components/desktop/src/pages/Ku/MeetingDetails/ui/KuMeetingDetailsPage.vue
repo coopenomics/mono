@@ -209,8 +209,8 @@ CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { useKuStore } from 'src/entities/Ku/model';
-import type { IKuDecision } from 'src/entities/Ku/model';
+import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import type { KuVote } from 'src/features/Ku/DecisionFlow/model';
@@ -384,9 +384,13 @@ const canStart = computed(() => isLive.value && status.value === Zeus.KuDecision
 // тикающее «сейчас» — чтобы кнопка протокола ожила по истечении окна голосования без перезагрузки
 const nowTick = ref(Date.now());
 let nowTimer: ReturnType<typeof setInterval> | undefined;
-// фоновое обновление состояния собрания (пока нет websocket): старт голосования,
-// смена статуса и новые бюллетени подтягиваются без перезагрузки страницы
-let refreshTimer: ReturnType<typeof setInterval> | undefined;
+// Живое собрание: старт голосования, смена статуса и новые бюллетени приходят
+// по ленте изменений (прежде — опрос раз в 15 секунд). Во время своего
+// действия не перечитываем — withReload сделает это по ответу.
+useLiveReload(KU_LIVE_TABLES, () => {
+  if (busy.value) return;
+  return refreshDecision();
+});
 
 // регламент closedec: протокол утверждается после голосования всех участников либо по истечении окна
 const canCloseNow = computed(() => {
@@ -456,32 +460,23 @@ function formatDate(value?: string | null): string {
 }
 
 /**
- * Проекция собрания наполняется из блокчейна асинхронно (parser → PG),
- * поэтому после транзакции опрашиваем её до выполнения предиката,
- * а при первом открытии — до появления записи.
+ * Перечитать собрание. Действие отвечает, когда узел разобрал его блок и
+ * проекция в базе уже новая, — поэтому одно чтение, без циклов ожидания; всё,
+ * что придёт позже (голоса других участников), принесёт лента изменений.
  */
-async function pollDecision(predicate?: (d: IKuDecision) => boolean, attempts = 10): Promise<boolean> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    try {
-      const loaded = await kuStore.loadDecision(hash.value);
-      if (!predicate || predicate(loaded)) return true;
-    } catch {
-      // записи ещё нет в проекции — ждём следующую попытку
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+async function refreshDecision(): Promise<void> {
+  try {
+    await kuStore.loadDecision(hash.value);
+  } catch {
+    // записи ещё нет в проекции — её принесёт сигнал ленты
   }
-  return false;
 }
 
-async function withReload(
-  action: () => Promise<void>,
-  successMessage: string,
-  predicate?: (d: IKuDecision) => boolean,
-) {
+async function withReload(action: () => Promise<void>, successMessage: string) {
   busy.value = true;
   try {
     await action();
-    await pollDecision(predicate);
+    await refreshDecision();
     SuccessAlert(successMessage);
   } catch (e: unknown) {
     FailAlert(e);
@@ -494,13 +489,11 @@ const onJoin = () =>
   withReload(
     () => flow.joinDecision(decision.value!),
     t('ku.kuMeetingDetailsPage.successJoined'),
-    (d) => (d.participants ?? []).includes(session.username),
   );
 const onClose = () =>
   withReload(
     () => flow.closeDecision(decision.value!),
     t('ku.kuMeetingDetailsPage.status.approved'),
-    (d) => d.status === Zeus.KuDecisionStatus.APPROVED,
   );
 // перед направлением в совет: собираем паспорт (если в реестре его ещё нет) →
 // генерируем пакет документов с подставленными данными → показываем на прочтение.
@@ -524,16 +517,13 @@ async function confirmExec(): Promise<void> {
   await withReload(
     () => flow.execDecision(decision.value!, execPreparedDocs.value!),
     t('ku.kuMeetingDetailsPage.successSentToCouncil'),
-    (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
   );
   execPreparedDocs.value = null;
 }
 const onVote = () => {
-  const ballotsBefore = decision.value?.signed_ballots ?? 0;
   return withReload(
     () => flow.voteOnDecision(decision.value!, votes.value),
     t('ku.kuMeetingDetailsPage.successBallotSubmitted'),
-    (d) => (d.signed_ballots ?? 0) > ballotsBefore,
   );
 };
 
@@ -592,7 +582,6 @@ async function onStart() {
         agenda,
       }),
     t('ku.kuMeetingDetailsPage.successVotingOpened'),
-    (d) => d.status === Zeus.KuDecisionStatus.VOTING,
   );
   extraAgenda.value = [];
 }
@@ -602,7 +591,6 @@ async function onCancel() {
   await withReload(
     () => flow.cancelDecision(decision.value!, cancelReason.value),
     t('ku.kuMeetingDetailsPage.successMeetingCancelled'),
-    (d) => d.status === Zeus.KuDecisionStatus.COMPLETED,
   );
 }
 
@@ -629,18 +617,13 @@ watchEffect(() => {
 
 onMounted(async () => {
   registerAction({ id: 'ku-meeting-actions', component: KuMeetingHeaderActions, order: 1 });
+  // timing: ui — часы для кнопки протокола: окно голосования закрывается по времени, событий нет.
   nowTimer = setInterval(() => (nowTick.value = Date.now()), 10000);
-  // не мешаем активной транзакции — withReload поллит проекцию сам
-  refreshTimer = setInterval(() => {
-    if (busy.value) return;
-    void kuStore.loadDecision(hash.value).catch(() => undefined);
-  }, 15000);
   loading.value = true;
   try {
-    // после объявления собрания запись появляется сразу (placeholder с местом/временем),
-    // но участники приходят из блокчейна асинхронно — ждём полной материализации,
-    // иначе организатор увидит пустую страницу без себя в участниках
-    await pollDecision((d) => (d.participants ?? []).length > 0, 15);
+    // Объявление собрания отвечает после разбора своего блока — участники уже в
+    // проекции; всё, что догонит позже, принесёт лента изменений.
+    await refreshDecision();
     const loaded = decision.value;
     if (loaded) {
       startForm.value.address = loaded.address || '';
@@ -660,7 +643,6 @@ onBeforeUnmount(() => {
   desktop.clearPageTitleOverride();
   kuMeetingHeaderActions.value = null;
   if (nowTimer) clearInterval(nowTimer);
-  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 // Возврат к списку собраний (back-link под шапкой, канон meet-back)

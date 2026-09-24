@@ -98,10 +98,11 @@ BaseDialog(v-model='isCreateOpen', :title='$t("ku.kuMeetingsPage.createDialogTit
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
-import { useKuStore } from 'src/entities/Ku/model';
+import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IKuDecision } from 'src/entities/Ku/model';
 import { useKuDecisionFlow } from 'src/features/Ku/DecisionFlow/model';
 import { useSystemStore } from 'src/entities/System/model';
@@ -276,9 +277,9 @@ async function load(silent = false) {
   }
 }
 
-// фоновое обновление списка (пока нет websocket): новые собрания и смена
-// статусов подтягиваются без перезагрузки страницы
-let refreshTimer: ReturnType<typeof setInterval> | undefined;
+// Живой список: новые собрания участков и смена их статусов приходят по ленте
+// изменений (прежде — опрос раз в 15 секунд).
+useLiveReload(KU_LIVE_TABLES, () => load(true));
 
 onMounted(() => {
   registerAction({
@@ -288,11 +289,6 @@ onMounted(() => {
     order: 1,
   });
   load();
-  refreshTimer = setInterval(() => load(true), 15000);
-});
-
-onBeforeUnmount(() => {
-  if (refreshTimer) clearInterval(refreshTimer);
 });
 </script>
 
