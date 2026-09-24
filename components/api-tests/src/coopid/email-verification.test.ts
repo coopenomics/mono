@@ -144,9 +144,9 @@ describe('coopid.email-verification: код подтверждения почт�
     const raw = `${uniqueEmail('evx').replace('@', '-')}`
     const r = await requestEmailCode(uniqueIp(), raw)
     expect(r.data?.requestEmailVerification ?? null).toBeNull()
-    // Отказ даёт проверка входа (class-validator, 400) раньше сервиса с его
+    // Отказ даёт проверка входа (class-validator, 422) раньше сервиса с его
     // AUTH_EMAIL_INVALID — оба ответа означают «до почты не дошли».
-    expect(['AUTH_EMAIL_INVALID', 400, '400']).toContain(r.errors[0]?.code)
+    expect(['AUTH_EMAIL_INVALID', 422]).toContain(r.errors[0]?.code)
     expect((await lettersTo(raw)).totalCount).toBe(0)
   })
 })

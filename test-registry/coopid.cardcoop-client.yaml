@@ -28,6 +28,7 @@ cases:
       member=true, дата приёма равна моменту подтверждения начального уровня
       (запись участника в цепи), уровни верификации те же, что в удостоверении
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.happy.02
@@ -38,6 +39,7 @@ cases:
       email и email_verified=true — card.coop по ним не шлёт собственного письма
       подтверждения (FR-A2а)
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.side.01
@@ -46,6 +48,7 @@ cases:
     scenario: запрошен аккаунт, не принятый в кооператив (кандидат или посторонний)
     expect: member=false, дата приёма пуста, уровней нет — отказа запроса при этом нет
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.side.02
@@ -62,6 +65,7 @@ cases:
     scenario: учётной записи пайщика в кооперативе нет, а аккаунт в цепи есть
     expect: claims без почты (email=null, email_verified=false), запрос не падает
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.side.04
@@ -70,6 +74,7 @@ cases:
     scenario: почта в кооперативе есть, но не подтверждена
     expect: почта отдаётся с email_verified=false, а не скрывается — решение о письме за card.coop
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.break.01
@@ -78,6 +83,7 @@ cases:
     scenario: запрос claims без токена внутреннего контура
     expect: отказ 401, резолверы не вызываются
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.break.02
@@ -86,6 +92,7 @@ cases:
     scenario: токен той же длины, но другой
     expect: отказ — сверка постоянного времени, а не по префиксу
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.break.03
@@ -102,6 +109,7 @@ cases:
     scenario: запрос claims без имени аккаунта
     expect: отказ 400, а не пустые claims неизвестно про кого
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    api: components/api-tests/src/coopid/cardcoop-client.test.ts
     status: passing
 
   - id: cid.cc.break.05
