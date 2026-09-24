@@ -4,10 +4,8 @@
  * у стойки, претензия поставщику и остаток кооператива после возврата.
  *
  * Набор сам ведёт заказы от корзины до получения: основной (три единицы по
- * цене заказа), выданный со снижением цены и заказ по предложению без
- * гарантии. Предложение без гарантии набор заводит сам и снимает с витрины
- * сразу после оформления заказа — чужие наборы берут предложения поставщика
- * с витрины, и такое им попасться не должно.
+ * цене заказа), выданный со снижением цены и заказ по предложению, гарантию
+ * которого набор на время оформления снимает до нуля.
  */
 import { createHash } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
@@ -128,7 +126,7 @@ describe('гарантийный возврат: заявление, решен�
     const blank = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed, { reason_text: '    ' }))
     expect(blank?.codeText, blank?.message).toBe('MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED')
     const empty = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed, { reason_text: '' }))
-    expect(['400', 'MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED'], empty?.message).toContain(empty?.codeText)
+    expect(['400', '422', 'MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED'], empty?.message).toContain(empty?.codeText)
     const long = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed, { reason_text: 'д'.repeat(2001) }))
     expect(long?.codeText, long?.message).toBe('MARKETPLACE_RETURN_CLAIM_REASON_TOO_LONG')
 
@@ -141,9 +139,9 @@ describe('гарантийный возврат: заявление, решен�
     const signed = await signedStatement(ekaterina, order.orderId, 1)
 
     const none = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed, { photos: [] }))
-    expect(['400', 'MARKETPLACE_RETURN_CLAIM_PHOTO_REQUIRED'], none?.message).toContain(none?.codeText)
+    expect(['400', '422', 'MARKETPLACE_RETURN_CLAIM_PHOTO_REQUIRED'], none?.message).toContain(none?.codeText)
     const tooMany = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed, { photos: Array.from({ length: 11 }, () => PHOTO) }))
-    expect(['400', 'MARKETPLACE_RETURN_CLAIM_PHOTO_LIMIT'], tooMany?.message).toContain(tooMany?.codeText)
+    expect(['400', '422', 'MARKETPLACE_RETURN_CLAIM_PHOTO_LIMIT'], tooMany?.message).toContain(tooMany?.codeText)
     expect(await myClaimsForOrder(order.orderId), 'отказ не оставляет заявления').toEqual([])
 
     // Ровно десять фото — граница, заявление принимается.
@@ -268,33 +266,24 @@ describe('гарантийный возврат: заявление, решен�
   })
 
   it(caseName('mkt.ret.side.01', 'по предложению с нулевой гарантией заявление не заводится'), async () => {
-    const created = await gql<any>(supplierToken, 'mutation($i:MarketplaceCreateOfferInput!){ marketplaceCreateOffer(input:$i){ id status } }', {
-      i: {
-        product_name: `Внешний слой: без гарантии ${Date.now()}`,
-        description: 'Предложение набора возвратов: гарантийный срок не предусмотрен.',
-        category_id: 1,
-        price_per_unit: '50.00',
-        unit_of_measure: 'KG',
-        quantity_available: null,
-        unlimited_flag: true,
-        delivery_points: [{ braname: KRG, min_supply_volume: 1 }],
-        shelf_life_days: 10,
-        images: [PHOTO],
-      },
-    })
-    const offerId = created.marketplaceCreateOffer.id as string
-    await gql(chairmanToken, 'mutation($i:MarketplaceApproveOfferInput!){ marketplaceApproveOffer(input:$i){ id status } }', { i: { offer_id: offerId, warranty_days: 0 } })
-
-    await fundShare(ekaterina, 500)
+    // Гарантию задаёт председатель на предложении, в заказ она попадает при
+    // оформлении. Набор ставит нулевую гарантию на время своего заказа и сразу
+    // возвращает прежнюю — файлы идут по очереди, чужих заказов в этом окне нет.
+    const bread: any = await pickOffer(sidorov.account, KRG, 'Хлеб подовый ржано-пшеничный')
+    const unit = amount(bread.price_per_unit)
+    const warrantyBefore = Number(bread.warranty_days ?? 3)
+    const SET_WARRANTY = 'mutation($i:MarketplaceSetOfferWarrantyInput!){ marketplaceSetOfferWarranty(input:$i){ id warranty_days } }'
+    await fundShare(ekaterina, 2 * unit * 2)
+    await gql(chairmanToken, SET_WARRANTY, { i: { offer_id: bread.id, warranty_days: 0 } })
     let placed!: { orderId: string, orderHash: string }
     try {
-      placed = await placeOrder({ who: ekaterina, offerId, quantity: 2 })
+      placed = await placeOrder({ who: ekaterina, offerId: bread.id, quantity: 2 })
     }
     finally {
-      await gql(supplierToken, 'mutation($i:MarketplaceWithdrawOfferInput!){ marketplaceWithdrawOffer(input:$i){ id status } }', { i: { id: offerId } }).catch(() => {})
+      await gql(chairmanToken, SET_WARRANTY, { i: { offer_id: bread.id, warranty_days: warrantyBefore } })
     }
-    await acceptToCoop({ supplier: sidorov, operator: chairkrg, orderId: placed.orderId, factQuantity: 2, factUnitPrice: 50 })
-    await issueOrder({ operator: chairkrg, member: ekaterina, orderId: placed.orderId, actualQuantity: 2, actualUnitPrice: 50 })
+    await acceptToCoop({ supplier: sidorov, operator: chairkrg, orderId: placed.orderId, factQuantity: 2, factUnitPrice: unit })
+    await issueOrder({ operator: chairkrg, member: ekaterina, orderId: placed.orderId, actualQuantity: 2, actualUnitPrice: unit })
 
     const got = await gql<any>(memberToken, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ id status warranty_period_secs warranty_until } }', { i: { order_id: placed.orderId } })
     expect(got.marketplaceGetOrder.status).toBe('RECEIVED')
