@@ -109,7 +109,7 @@ watch(
   () => props.refreshTrigger,
   async (newValue, oldValue) => {
     if (newValue !== oldValue && newValue !== undefined) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Изменение задачи отвечает, когда запись уже в базе, — журнал читаем сразу.
       currentPage.value = 1;
       hasMorePages.value = true;
       await loadLogs(1, false);
@@ -117,6 +117,7 @@ watch(
   },
 );
 
+// realtime: нет источника — журнал мутаций пишется на каждое действие в системе, в ленту его не отдаём; перечитывается по refreshTrigger карточки задачи.
 onMounted(async () => {
   await loadLogs(1, false);
 });
