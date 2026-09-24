@@ -38,6 +38,7 @@ cases:
       связь запоминается, а не теряется; свидетельство не выпускается — совет
       ещё не принял решения
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.happy.02
@@ -49,6 +50,7 @@ cases:
       по ожидавшей связи выпускается свидетельство с датой приёма из самого
       действия — именно её потом проверяет третья сторона
     test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.side.01
@@ -60,6 +62,7 @@ cases:
       ничего не происходит и в журнал не пишется: так вступает большинство, и шум
       на каждом приёме мешал бы разбирать настоящие сбои
     test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.side.02
@@ -81,6 +84,7 @@ cases:
       обработка события не падает, ошибка уходит в журнал; связь остаётся
       ожидающей и не теряется
     test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.ui.01
@@ -107,6 +111,7 @@ cases:
       читается как UTC, а не как местное время сервера: поздним вечером ошибка
       зоны сдвинула бы дату приёма в свидетельстве на сутки
     test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
   - id: cc.join.ui.02

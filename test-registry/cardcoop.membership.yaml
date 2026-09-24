@@ -85,6 +85,7 @@ cases:
       недоставка остаётся ожиданием и будет повторена, отказ по существу —
       отдельное состояние с причиной для разбора оператором
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/membership.test.ts
     status: passing
 
   - id: cc.mbr.break.01
@@ -179,6 +180,7 @@ cases:
       записи о карте стираются целиком — свидетельства и ожидающая связь;
       членство человека в кооперативе не трогается, он остаётся пайщиком без карты
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/membership.test.ts
     status: passing
 
   - id: cc.mbr.break.06
