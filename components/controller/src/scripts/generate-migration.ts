@@ -1,56 +1,29 @@
 import fs from 'fs';
 import path from 'path';
+import { migrationTimestamp, parseMigrationFilename } from '../migrator/migration-filename';
 
 // Получаем аргументы командной строки
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error('Использование: npm run migration:generate <migration_name>');
-  console.error('Пример: npm run migration:generate create_user_table');
+  console.error('Использование: pnpm migration:generate <migration_name>');
+  console.error('Пример: pnpm migration:generate backfill_member_since');
+  console.error('Схему (таблицы, колонки, индексы) меняет pnpm schema:generate, а не эта команда.');
   process.exit(1);
 }
 
 const migrationName = args[0];
 
-// Получаем список существующих миграций
+// Имя файла — метка времени создания (UTC, до минуты): номер не вычисляется от
+// предыдущего файла, и параллельные ветки не получают один и тот же ключ.
+// См. src/migrator/migration-filename.ts.
 const migrationsDir = path.join(__dirname, '../../migrations');
-const files = fs.readdirSync(migrationsDir).filter((f) => f.startsWith('V') && f.endsWith('.ts'));
-
-// Находим последнюю версию
-let lastVersion = '1.0.0';
-if (files.length > 0) {
-  const versions = files.map((f) => {
-    const match = f.match(/^V(\d+(?:\.\d+)*)/);
-    return match ? match[1] : '1.0.0';
-  });
-
-  // Сортируем версии
-  versions.sort((a, b) => {
-    const aParts = a.split('.').map(Number);
-    const bParts = b.split('.').map(Number);
-
-    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-      const aVal = i < aParts.length ? aParts[i] : 0;
-      const bVal = i < bParts.length ? bParts[i] : 0;
-
-      if (aVal !== bVal) {
-        return aVal - bVal;
-      }
-    }
-
-    return 0;
-  });
-
-  lastVersion = versions[versions.length - 1];
-}
-
-// Увеличиваем версию (последний номер)
-const versionParts = lastVersion.split('.').map(Number);
-versionParts[versionParts.length - 1] += 1;
-const newVersion = versionParts.join('.');
-
-// Создаем имя файла
-const fileName = `V${newVersion}__${migrationName}.ts`;
+const fileName = `${migrationTimestamp()}__${migrationName}.ts`;
 const filePath = path.join(migrationsDir, fileName);
+if (fs.existsSync(filePath)) {
+  console.error(`Файл ${fileName} уже есть — подождите минуту или дайте другое имя`);
+  process.exit(1);
+}
+parseMigrationFilename(fileName);
 
 // Шаблон миграции
 // i18n-ignore: шаблон генерируемого файла миграции — исходный код, не текст интерфейса
@@ -59,7 +32,6 @@ import config from '../src/config/config';
 
 export default {
   name: '${migrationName.replace(/_/g, ' ')}',
-  validUntil: new Date('2025-12-31'), // Действует до конца года
 
   async up({ dataSource, blockchain, logger }: { dataSource: any; blockchain: any; logger: any }): Promise<boolean> {
     console.log('Выполнение миграции: ${migrationName.replace(/_/g, ' ')}');

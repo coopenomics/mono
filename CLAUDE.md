@@ -239,6 +239,10 @@ useLiveReload([liveTable(CapitalContract, CapitalContract.Tables.Contributors)],
 Снимки — `scripts/lib/{timing,transact-fact,live-mirror}-baseline.json`, только вниз:
 `node scripts/check-<гейт>.mjs --update` отказывается, если долг вырос.
 
+## Схема базы контроллера — только миграциями (C28-79)
+
+`synchronize` выключен. Добавил или поменял колонку в сущности — `pnpm -F @coopenomics/controller schema:generate <имя>`, проверить SQL, `schema:check`. Без миграции колонки не будет ни на одном узле, и CI-шаг «Схема базы — только миграциями» упадёт. Подробно — `components/controller/migrations/README.md`.
+
 ## DRY — любое 2-кратное повторение выносится в общее (ОБЯЗАТЕЛЬНО)
 
 Любой кусок кода (валидация, маппинг, guard, построение payload, helper-логика), повторённый **второй раз**, обязан быть вынесен в общее: `shared/`-helper / util / базовый класс (controller) или соответствующий FSD-слой `shared/` (desktop). Это **обязательное правило**, не рекомендация — не «то тут то там стряпать одно и то же».

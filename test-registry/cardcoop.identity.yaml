@@ -38,6 +38,10 @@ title: Реквизиты пайщика в подтверждении член�
 # `@UseGuards(ThrottlerGuard)` в контроллере раскрытия убран, объявленный предел
 # и набор случаев прежние.
 
+# Правка 2026-09-23 (C28-79): таблицы расширения создаёт стартовая миграция
+# (`migrations/database/*-baseline.ts`, объявлена в `cardcoop.database-
+# migrations.ts`) вместо `synchronize`. Поведение и случаи не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/cardcoop/**

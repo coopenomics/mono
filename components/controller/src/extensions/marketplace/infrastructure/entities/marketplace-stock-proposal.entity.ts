@@ -38,14 +38,14 @@ export class MarketplaceStockProposalEntity {
   public operator_account!: string;
 
   // Строки предложения: jsonb-массив { offer_id, quantity, unit_price, product_name }.
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public items!: MarketplaceStockProposalItem[];
 
   @Column({ type: 'varchar', length: 16 })
   public status!: MarketplaceStockProposalStatus;
 
   // Заказы из остатка, созданные на акцепте (по одному на строку).
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public created_order_ids!: string[];
 
   @Column({ type: 'timestamptz', nullable: true })

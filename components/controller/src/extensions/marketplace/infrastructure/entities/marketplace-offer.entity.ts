@@ -65,7 +65,7 @@ export class MarketplaceOfferEntity {
    * упаковках; счётчики движет одна SQL-команда вместе со счётчиками
    * предложения (см. адаптер репозитория). Пустой при отпуске по мере.
    */
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public packages!: Array<{
     id: string;
     size: number;
@@ -106,7 +106,7 @@ export class MarketplaceOfferEntity {
    * `target_volume`: тип поставки — производная от `min_supply_volume`
    * (1 → по одному; >1 → накопление партии), порога нет.
    */
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public delivery_points!: Array<{ braname: string; min_supply_volume: number }>;
 
   /**
@@ -149,7 +149,7 @@ export class MarketplaceOfferEntity {
    * лениво в `@ResolveField images` (HMAC-signed URL), в БД не хранится.
    * `synchronize:true` создаёт колонку ADD COLUMN с default '[]'.
    */
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'[]'" })
   public images!: Array<{ bucket_key: string; content_hash: string; mime_type: string }>;
 
   /**

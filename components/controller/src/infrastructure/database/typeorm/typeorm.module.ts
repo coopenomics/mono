@@ -1,9 +1,8 @@
 // infrastructure/database/typeorm/typeorm.module.ts
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
-import path from 'path';
-import config from '~/config/config';
-import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY, extensionEntities } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
+import { mainDataSourceOptions } from './data-source.options';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
@@ -104,7 +103,6 @@ import { USER_WALLET_REPOSITORY } from '~/domain/wallet/repositories/user-wallet
 import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-repository';
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
-import { UserWalletIndexInitializer } from './blockchain/services/user-wallet-index-initializer.service';
 import { SignedDocumentEntity } from './entities/signed-document.entity';
 import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
@@ -120,39 +118,9 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     // базе. Фабрика вычисляется при инициализации модуля — к этому моменту
     // граф уже собран и каждое расширение свой состав объявило.
     NestTypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres' as const,
-        host: config.postgres.host,
-        port: Number(config.postgres.port),
-        username: config.postgres.username,
-        password: config.postgres.password,
-        database: config.postgres.database,
-        entities: [
-          // Глоб от каталога самого модуля, а не от места запуска: в контейнере
-          // выполняется сборка (`dist/src/...`), и путь «src/...» не нашёл бы
-          // ни одной таблицы
-          path.join(__dirname, '../../..', 'infrastructure/**/entities/*entity.{ts,js}'),
-          path.join(__dirname, '../../..', 'shared/**/entities/*entity.{ts,js}'),
-          // Таблица версий приехала из `src/shared/sync/entities/` в
-          // @coopenomics/extension-kit/sync вместе с каркасом синхронизации, и
-          // глоб по `src/` её больше не находит. Классом — находит; DataSource
-          // принимает и пути, и классы. Базовые классы каркаса (BaseTypeormEntity)
-          // перечислять не нужно: они не @Entity, их колонки TypeORM берёт из
-          // глобального хранилища метаданных по цепочке прототипов наследника.
-          EntityVersionTypeormEntity,
-          // Архив снесённых форком записей — из того же пакета и по той же
-          // причине: глоб по `src/` его не находит.
-          InvalidatedEntityTypeormEntity,
-          InvalidatedEntityVersionTypeormEntity,
-          // Таблицы расширений — по декларации самого расширения, а не по его
-          // положению на диске: установленное пакетом расширение ни под какой
-          // глоб по `src/` не попадёт и своих таблиц не получит.
-          ...extensionEntities(),
-        ],
-        //      synchronize: config.env === 'development', // Используем миграции для production
-        synchronize: true, // Временно всегда синхронизируем
-        logging: false,
-      }),
+      // Схема — только миграциями: новые применяются при подключении, до того
+      // как поднимутся модули, читающие таблицы. См. data-source.options.ts.
+      useFactory: () => ({ ...mainDataSourceOptions(), migrationsRun: true }),
     }),
     NestTypeOrmModule.forFeature([
       ExtensionEntity,
@@ -320,7 +288,6 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     UserWalletTypeormRepository,
     UserWalletDeltaMapper,
     UserWalletSyncService,
-    UserWalletIndexInitializer,
     // Реестр подписанных документов (Postgres-проекция, C28-21)
     {
       provide: SIGNED_DOCUMENT_REPOSITORY,

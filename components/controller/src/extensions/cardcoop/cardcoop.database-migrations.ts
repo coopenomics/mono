@@ -1,0 +1,9 @@
+import { CardcoopBaseline1790197276753 } from './migrations/database/1790197276753-baseline';
+
+/**
+ * Миграции таблиц расширения — в порядке появления (метка времени в имени
+ * класса). Объявляются в записи реестра (`databaseMigrations`) рядом с
+ * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
+ * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
+ */
+export const cardcoopDatabaseMigrations = [CardcoopBaseline1790197276753];

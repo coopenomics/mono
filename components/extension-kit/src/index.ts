@@ -31,6 +31,7 @@ export * from './lifecycle/events';
 export * from './registry/registry.contract';
 export * from './registry/extension-field-description';
 export * from './registry/installed-entities';
+export * from './registry/installed-database-migrations';
 export * from './dto/pagination.dto';
 export * from './dto/require-fields';
 export * from './dto/transaction-result-response.dto';
