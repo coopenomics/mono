@@ -1,6 +1,7 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import type {
   IVerificationReviewRepository,
   VerificationReviewDraft,
@@ -66,10 +67,23 @@ function toReview(row: ReviewRow): VerificationReview {
  * Журнал верификаций в coop_domain_db (таблица `verification_reviews`,
  * миграция V2.5.4). Свой DataSource, как `PostgresVerificationRuleRepository`.
  */
+/** Имя журнала в ленте изменений — объявлен в `chain-changes.service.ts`. */
+const VERIFICATION_REVIEWS_TABLE = 'verification_reviews';
+
 @Injectable()
 export class PostgresVerificationReviewRepository implements IVerificationReviewRepository, OnModuleDestroy {
   private ds: DataSource | null = null;
   private initializing: Promise<DataSource> | null = null;
+
+  constructor(
+    // Журнал живёт в отдельной базе на сыром SQL — подписчик базы узла его не
+    // видит, поэтому сигнал ленты изменений публикуется здесь, после записи.
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null,
+  ) {}
+
+  private signal(row: ReviewRow | undefined): void {
+    if (row) void this.feed?.publishLocal(VERIFICATION_REVIEWS_TABLE, String(row.id), row as unknown as Record<string, unknown>);
+  }
 
   private getDataSource(): Promise<DataSource> {
     if (this.ds?.isInitialized) return Promise.resolve(this.ds);
@@ -110,6 +124,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
         JSON.stringify(draft.photos ?? []),
       ],
     );
+    this.signal(rows[0]);
     return toReview(rows[0]);
   }
 
@@ -184,6 +199,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
       [params.id, params.status, params.decided_by, params.decision_reason ?? null, params.clear_photos],
     );
     const rows = rowsOf(raw);
+    this.signal(rows[0]);
     return rows.length ? toReview(rows[0]) : null;
   }
 

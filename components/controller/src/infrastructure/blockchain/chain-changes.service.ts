@@ -39,6 +39,12 @@ const CORE_TABLES: InnerChainChangesTable[] = [
   // Общие собрания видят все пайщики: созыв, вопросы, ход голосования.
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Meets.tableName },
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Questions.tableName },
+  // Пайщики кооператива в цепи: вступление, блокировка, выход.
+  {
+    code: SovietContract.contractName.production,
+    table: SovietContract.Tables.Participants.tableName,
+    owner_field: 'username',
+  },
 ];
 
 /**
@@ -54,6 +60,11 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'payments', owner_field: 'username' },
   // Подтверждения к платежу — загрузившему и совету.
   { code: 'core', table: 'payment_files', owner_field: 'uploaded_by_username' },
+  // Реестр пайщиков стола совета: учётные записи, кандидаты и сверки личности.
+  { code: 'core', table: 'users', owner_field: 'username' },
+  { code: 'core', table: 'candidates', owner_field: 'username' },
+  // Журнал сверок пишется в другой базе сырым SQL — сигнал шлёт его репозиторий.
+  { code: 'core', table: 'verification_reviews', owner_field: 'username' },
 ];
 
 /** Роли совета: персонал любого расширения. */

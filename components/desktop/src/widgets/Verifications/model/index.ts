@@ -36,12 +36,14 @@ export function useVerificationReviews() {
     reviews.value.filter((review) => review.status === Zeus.VerificationReviewStatus.Pending),
   );
 
-  const load = async (): Promise<void> => {
+  // `silent` — перечитывание по ленте изменений: без индикатора и без
+  // всплывающей ошибки, следующий сигнал повторит.
+  const load = async (silent = false): Promise<void> => {
     try {
-      loading.value = true;
+      if (!silent) loading.value = true;
       reviews.value = await api.listVerificationReviews();
     } catch (error: any) {
-      FailAlert(error);
+      if (!silent) FailAlert(error);
     } finally {
       loading.value = false;
     }

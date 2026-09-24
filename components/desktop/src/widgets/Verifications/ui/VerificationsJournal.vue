@@ -76,6 +76,7 @@ import type { IVerificationReview } from '../api';
 import { useVerificationReviews, verificationReviewStatusView } from '../model';
 import VerificationReviewDialog from './VerificationReviewDialog.vue';
 import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const PENDING = Zeus.VerificationReviewStatus.Pending;
 
@@ -138,9 +139,13 @@ const onReject = async (reviewId: string, reason: string) => {
   }
 };
 
-onMounted(load);
+onMounted(() => load());
 
-defineExpose({ reload: load, pending });
+// Журнал сверок живёт по ленте изменений: заявка на сверку и решение по ней
+// появляются сами, у любого, кто держит журнал открытым.
+useLiveReload([{ code: 'core', table: 'verification_reviews' }], () => load(true));
+
+defineExpose({ reload: () => load(), pending });
 </script>
 
 <style scoped lang="scss">

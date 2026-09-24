@@ -58,6 +58,8 @@ import {
   type IGetAccounts,
 } from 'src/entities/Account/types';
 import { t } from 'src/shared/i18n';
+import { SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 
 const accountStore = useAccountStore();
 const session = useSessionStore();
@@ -181,9 +183,9 @@ onMounted(() => {
   });
 });
 
-const loadParticipants = async () => {
+const loadParticipants = async (silent = false) => {
   try {
-    onLoading.value = true;
+    if (!silent) onLoading.value = true;
     const selected = filterValues.value.verification as keyof typeof VERIFICATION_FILTER | undefined;
     const verification = selected ? VERIFICATION_FILTER[selected] : undefined;
     await accountStore.getAccounts({
@@ -201,11 +203,25 @@ const loadParticipants = async () => {
       await branchStore.loadPublicBranches({ coopname: systemStore.info.coopname }).catch(() => undefined);
     }
   } catch (e: any) {
-    FailAlert(e);
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(e);
   } finally {
     onLoading.value = false;
   }
 };
+
+// Живой реестр: вступление, регистрационный взнос, блокировка, выход и сверка
+// личности меняют эти таблицы — страница перечитывается сама, без скелетона.
+useLiveReload(
+  [
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+    { code: 'core', table: 'users' },
+    { code: 'core', table: 'candidates' },
+    { code: 'core', table: 'payments' },
+    { code: 'core', table: 'verification_reviews' },
+  ],
+  () => loadParticipants(true),
+);
 
 const changeSort = (sort: { sortBy: string; descending: boolean }) => {
   sortBy.value = SORT_FIELDS[sort.sortBy] ? sort.sortBy : 'created_at';
