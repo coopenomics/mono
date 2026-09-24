@@ -240,32 +240,28 @@ export async function addAuthor(projectHash: string, author: Who): Promise<void>
 }
 
 /**
- * Пайщик с договором УХД и допуском к перечисленным проектам.
- *
- * Порядок важен. Контроллер заводит заявку на допуск в базе по дельте таблицы
- * приложений, а одобрение находит её там по хэшу; если одобрение разобрано
- * раньше дельты, допуск в базе не появится никогда. Поэтому заявки подаются
- * до одобрения договора, а одобряются после того, как договор виден
- * контроллеру активным: дельты идут по порядку блоков, и к этому моменту
- * заявки уже в базе.
+ * Заявка на одобрение председателя видна контроллеру. Заявка на допуск и
+ * запись приложения рождаются одной транзакцией, поэтому видимая заявка
+ * значит, что и приложение уже в базе: одобрение, разобранное раньше
+ * приложения, не нашло бы его там, и допуск не появился бы никогда.
  */
-export async function admitted(who: Who, projectHashes: string[]): Promise<Who> {
-  const contributorHash = await submitContributor(who)
-  const appendixHashes: string[] = []
-  for (const hash of projectHashes)
-    appendixHashes.push(await requestClearance(who, hash))
-  await approveAsChairman(contributorHash)
-  const chairmanToken = await tokenOf(CHAIRMAN)
+export async function waitApprovalVisible(approvalHash: string): Promise<void> {
+  const token = await tokenOf(CHAIRMAN)
   await waitFor(async () => {
-    const d = await gql<any>(chairmanToken,
-      'query($d:GetContributorInput!){ capitalContributor(data:$d){ status } }',
-      { d: { username: who.account } })
-    const status = d.capitalContributor?.status
-    return status === 'ACTIVE' || status === 'APPROVED' ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} активен в зеркале` })
-  for (const appendixHash of appendixHashes)
-    await approveAsChairman(appendixHash)
+    const d = await gql<any>(token,
+      'query($f:ApprovalFilter){ chairmanApprovals(filter:$f){ items{ approval_hash } } }',
+      { f: { approval_hash: approvalHash } })
+    return d.chairmanApprovals.items.length > 0 ? true : null
+  }, { timeoutMs: 120_000, intervalMs: 1_000, label: `заявка ${approvalHash.slice(0, 8)} видна председателю` })
+}
+
+/** Пайщик с договором УХД и допуском к перечисленным проектам. */
+export async function admitted(who: Who, projectHashes: string[]): Promise<Who> {
+  await approveAsChairman(await submitContributor(who))
   for (const hash of projectHashes) {
+    const appendixHash = await requestClearance(who, hash)
+    await waitApprovalVisible(appendixHash)
+    await approveAsChairman(appendixHash)
     await waitFor(async () => {
       const p = await projectAs(who, hash)
       return p?.permissions?.has_clearance ? true : null
