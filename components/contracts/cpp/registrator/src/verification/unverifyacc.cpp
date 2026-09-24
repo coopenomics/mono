@@ -36,7 +36,7 @@
       break;
     }
   }
-  eosio::check(found, "Верификация по этой процедуре, проведённая вашим кооперативом, не найдена");
+  eosio::check(found, "REGISTRATOR_VERIFICATION_NOT_OURS: Верификация по этой процедуре, проведённая вашим кооперативом, не найдена");
 
   accounts.modify(account, RamPayer::of(accounts, coopname), [&](auto &a)
   {

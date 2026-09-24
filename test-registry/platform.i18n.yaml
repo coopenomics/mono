@@ -123,3 +123,14 @@ cases:
     expect: текстом становится ключ errors.<КОД> — пропуск виден сразу, гейт каталога ловит его до слияния
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
     status: written
+
+  - id: plt.i18n.side.07
+    level: backend
+    kind: side
+    scenario: Отказ контракта с кодом («КОД — текст»)
+    expect: >
+      отказ уходит с кодом контракта, текст — из словаря, а если кода в словаре
+      нет — текст контракта; код читается и из сырой ошибки цепи, отказ без кода
+      остаётся CHAIN_ASSERT; сервер различает отказы контракта по коду, а не по фразе
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written

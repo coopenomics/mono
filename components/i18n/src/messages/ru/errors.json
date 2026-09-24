@@ -7,6 +7,8 @@
     "COMMON_FORBIDDEN": "Доступ запрещен",
     "COMMON_INTERNAL": "Внутренняя ошибка сервера",
     "COMMON_NOT_FOUND": "Ресурс не найден",
-    "COMMON_UNAUTHORIZED": "Не авторизован"
+    "COMMON_UNAUTHORIZED": "Не авторизован",
+    "GATEWAY_OUTCOME_NOT_FOUND": "Объект возврата не существует с указанным хэшем",
+    "REGISTRATOR_VERIFICATION_NOT_OURS": "Верификация по этой процедуре, проведённая вашим кооперативом, не найдена"
   }
 }

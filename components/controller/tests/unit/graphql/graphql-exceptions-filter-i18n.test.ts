@@ -8,7 +8,7 @@
  */
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
-import { DomainError, HttpApiError, rethrowChainError, validationMessage } from '@coopenomics/extension-kit';
+import { DomainError, HttpApiError, chainErrorCode, rethrowChainError, validationMessage } from '@coopenomics/extension-kit';
 
 jest.mock('@sentry/nestjs', () => ({
   withScope: (callback: (scope: unknown) => void) =>
@@ -113,6 +113,38 @@ describe('отказ цепи и сообщения валидации', () => {
     expect(thrown).toBeInstanceOf(DomainError);
     expect((thrown as DomainError).code).toBe('CHAIN_ASSERT');
     expect((thrown as DomainError).message).toBe('Голосование еще не завершено');
+  });
+
+  it('отказ контракта с кодом уходит с этим кодом, текст — из словаря', () => {
+    let thrown: unknown;
+    try {
+      rethrowChainError(
+        new Error('assertion failure with message: GATEWAY_OUTCOME_NOT_FOUND: Объект возврата не существует с указанным хэшем'),
+      );
+    } catch (e) {
+      thrown = e;
+    }
+    expect((thrown as DomainError).code).toBe('GATEWAY_OUTCOME_NOT_FOUND');
+    expect((thrown as DomainError).message).toBe('Объект возврата не существует с указанным хэшем');
+    expect(chainErrorCode(thrown)).toBe('GATEWAY_OUTCOME_NOT_FOUND');
+  });
+
+  it('код контракта без записи в словаре — показывается текст контракта, а не ключ', () => {
+    let thrown: unknown;
+    try {
+      rethrowChainError(new Error('assertion failure with message: SOME_NEW_CONTRACT_CODE: Новый отказ контракта'));
+    } catch (e) {
+      thrown = e;
+    }
+    expect((thrown as DomainError).code).toBe('SOME_NEW_CONTRACT_CODE');
+    expect((thrown as DomainError).message).toBe('Новый отказ контракта');
+  });
+
+  it('код читается и из сырой ошибки цепи; отказ без кода — undefined', () => {
+    expect(chainErrorCode(new Error('assertion failure with message: REGISTRATOR_VERIFICATION_NOT_OURS: текст'))).toBe(
+      'REGISTRATOR_VERIFICATION_NOT_OURS',
+    );
+    expect(chainErrorCode(new Error('assertion failure with message: Голосование еще не завершено'))).toBeUndefined();
   });
 
   it('прочий сбой цепи — CHAIN_ERROR с исходным текстом', () => {

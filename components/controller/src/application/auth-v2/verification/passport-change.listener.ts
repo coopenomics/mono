@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { chainErrorCode } from '@coopenomics/extension-kit';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   ACCOUNT_PASSPORT_CHANGED_EVENT,
@@ -39,9 +40,7 @@ export class PassportChangeListener {
     } catch (error) {
       // Сверку провёл другой кооператив: снять её мы не вправе, и нашей
       // записи о ней нет — менять данные это не мешает.
-      const message = error instanceof Error ? error.message : String(error);
-      // i18n-ignore: сверка с текстом отказа контракта — у контракта пока нет кодов
-    if (message.includes('проведённая вашим кооперативом, не найдена')) return;
+      if (chainErrorCode(error) === 'REGISTRATOR_VERIFICATION_NOT_OURS') return;
       throw error;
     }
   }

@@ -49,10 +49,8 @@ function isMissingAccount(e: unknown): boolean {
   const err = e as { error?: { name?: string; code?: number }; message?: string };
   if (err?.error?.name === 'account_query_exception' || err?.error?.code === 3060002) return true;
   const message = String(err?.message ?? '');
-  return message.includes('account_query_exception')
-    || message.includes('Account Query Exception')
-    // i18n-ignore: сверка с текстом ответа узла цепи
-    || message.includes('ABI контракта');
+  if (e instanceof DomainError && e.code === 'BLOCKCHAIN_ABI_NOT_FOUND') return true;
+  return message.includes('account_query_exception') || message.includes('Account Query Exception');
 }
 
 export type IndexPosition =

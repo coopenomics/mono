@@ -36,6 +36,10 @@ export const sanitizeBlockchainError = (message: string): string => {
     /^(?:[a-z][a-z0-9_]*(?:[.:]{1,2}[a-z0-9_]+)+|[a-z][a-z0-9_]*\s[A-Z][A-Z0-9_]+):\s*/,
     '',
   );
+  //    C) код отказа контракта — `GATEWAY_OUTCOME_NOT_FOUND: …`: пайщику текст,
+  //       код различает сервер. ЗАГЛАВНЫЕ с подчёркиванием — русский текст
+  //       под шаблон не попадает.
+  out = out.replace(/^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+:\s*/, '');
 
   // 2. Убрать служебные имена ledger2-кошельков (`w.wal.share`,
   //    `w.mkt.payout`, `w.sov.infra`, `w.cap.gen`…) вместе с предшествующим

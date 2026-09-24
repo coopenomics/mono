@@ -34,7 +34,7 @@ import { PaymentMethodRepository, PAYMENT_METHOD_REPOSITORY } from '~/domain/com
 import type { PaymentDetailsDomainInterface } from '~/domain/gateway/interfaces/payment-domain.interface';
 import { AccountDomainPort, ACCOUNT_DOMAIN_PORT } from '~/domain/account/ports/account-domain.port';
 import { EXPENSE_CHASSIS_PORT, type IExpenseChassisPort } from '@coopenomics/innercoop';
-import { QuantityUtils, DomainError } from '@coopenomics/extension-kit';
+import { QuantityUtils, DomainError, chainErrorCode } from '@coopenomics/extension-kit';
 import { t } from '~/i18n';
 
 /**
@@ -260,8 +260,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
       } catch (e: any) {
         const message = e?.message ?? String(e);
         // переходный период до 30.07.2026: on-chain объекта нет — старый путь
-        // i18n-ignore: сверка с текстом отказа контракта — у контракта пока нет кодов
-    if (message.includes('Объект возврата не существует')) {
+        if (chainErrorCode(e) === 'GATEWAY_OUTCOME_NOT_FOUND') {
           if (payment.id) {
             await this.paymentRepository.update(payment.id, { status: PaymentStatusEnum.COMPLETED });
           }

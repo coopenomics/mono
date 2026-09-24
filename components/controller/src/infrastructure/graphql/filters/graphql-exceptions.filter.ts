@@ -6,7 +6,7 @@ import { RpcError } from 'eosjs';
 import * as Sentry from '@sentry/nestjs';
 import logger from '../../../config/logger';
 import { config } from '~/config';
-import { DomainError, HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError, HttpApiError, domainErrorMessage, parseChainAssert } from '@coopenomics/extension-kit';
 import { runWithLocale, t, type DomainErrorParamsLike } from '~/i18n';
 import { resolveRequestLocale } from '~/i18n/request-locale';
 
@@ -75,7 +75,7 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       statusCode = exception.getStatus();
       errorCode = exception.code;
       errorParams = exception.params;
-      message = tr(exception.messageKey, exception.params);
+      message = runWithLocale(locale, () => domainErrorMessage(exception.code, exception.params));
       originalMessage = `${exception.code}: ${message}`;
     } else if (exception instanceof HttpException) {
       const response = exception.getResponse();
@@ -146,10 +146,11 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
     }
     // Обработка конкретных типов исключений
     else if (exception instanceof RpcError) {
-      message = exception.json.error.details[0].message.replace('assertion failure with message: ', '');
+      const parsed = parseChainAssert(exception.json.error.details[0].message);
       statusCode = exception.json.code;
-      errorCode = 'CHAIN_ASSERT';
-      errorParams = { message };
+      errorCode = parsed.code ?? 'CHAIN_ASSERT';
+      errorParams = { message: parsed.text };
+      message = runWithLocale(locale, () => domainErrorMessage(errorCode as string, errorParams));
     } else if (exception instanceof mongoose.Error) {
       statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;

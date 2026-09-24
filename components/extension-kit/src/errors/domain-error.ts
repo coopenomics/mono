@@ -11,7 +11,7 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { t } from '@coopenomics/i18n/server';
+import { t, te } from '@coopenomics/i18n/server';
 
 export type DomainErrorParams = Record<string, string | number | boolean | null | undefined>;
 
@@ -26,8 +26,19 @@ interface Branded {
   params: DomainErrorParams;
 }
 
+/**
+ * Текст отказа на языке текущего запроса. Кода нет в словаре, но есть
+ * исходный текст (`params.message` — так приходит отказ контракта с кодом,
+ * ещё не заведённым в словарь) — показывается он, а не ключ.
+ */
+export function domainErrorMessage(code: string, params: DomainErrorParams = {}): string {
+  const key = `errors.${code}`;
+  if (!te(key) && typeof params.message === 'string') return params.message;
+  return t(key, params as Record<string, unknown>);
+}
+
 function body(code: string, params: DomainErrorParams, status: number) {
-  return { statusCode: status, code, params, message: t(`errors.${code}`, params as Record<string, unknown>) };
+  return { statusCode: status, code, params, message: domainErrorMessage(code, params) };
 }
 
 function brand(target: HttpException & Branded, code: string, params: DomainErrorParams): void {
