@@ -104,11 +104,11 @@ export async function rest(method: 'GET' | 'POST', route: string, opts: { ip?: s
 
 // ── Подтверждение почты ────────────────────────────────────────────────────
 
-export const REQUEST_EMAIL_CODE = `mutation($d:RequestEmailVerificationInput!){
+export const REQUEST_EMAIL_CODE = `mutation($d:RequestEmailVerificationInputDTO!){
   requestEmailVerification(data:$d){ cooldown_seconds expires_seconds }
 }`
 
-export const CONFIRM_EMAIL_CODE = `mutation($d:ConfirmEmailVerificationInput!){
+export const CONFIRM_EMAIL_CODE = `mutation($d:ConfirmEmailVerificationInputDTO!){
   confirmEmailVerification(data:$d)
 }`
 
