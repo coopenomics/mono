@@ -23,6 +23,8 @@ import { walmove } from './adjust/walmove'
 import { getLedgerAccountById } from './wallet/walletUtils'
 import { generateRandomUsername } from '../utils/randomUsername'
 
+import { signWalletAgreement } from './wallet/signWalletAgreement'
+import { fakeDocument } from './shared/fakeDocument'
 const COOP = 'voskhod'
 
 const WALLET_MIN_SHARE_FUND = 'w.reg.minshr'
@@ -73,6 +75,9 @@ describe('walmove (operation o.adj.walmove) — корректировка ме�
     const username = generateRandomUsername()
     const participant = await registerUser(bc, COOP, username)
     expect(participant).toBeDefined()
+    // w.wal.share — кошелёк программы «Цифровой кошелёк» (program_id=1): перевод
+    // на него требует подписанного соглашения, регистрация его не подписывает.
+    await signWalletAgreement(bc, COOP, username, fakeDocument)
 
     // 2. Снимаем балансы ДО (с чейна, не из parser-снимка).
     const fromBefore = await getWalletAvailable(WALLET_MIN_SHARE_FUND)

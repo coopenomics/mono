@@ -1093,9 +1093,9 @@ describe('тест контракта CAPITAL', () => {
     // Проверяем точное приращение: кошелёк программы +10000.0000 RUB.
     // Имущественный взнос — o.cap.actprp (ISSUE на w.cap.blago), сумма ложится
     // в available; субсчёт blocked упразднён 2026-05-24 (0969505).
-    const prevAvailable = parseFloat(res.programWalletBefore.available.split(' ')[0])
-    const afterAvailable = parseFloat(res.programWalletAfter.available.split(' ')[0])
-    expect(afterAvailable).toBeCloseTo(prevAvailable + 10000, 4)
+    const programBefore = parseFloat(res.programWalletBefore.available.split(' ')[0])
+    const programAfter = parseFloat(res.programWalletAfter.available.split(' ')[0])
+    expect(programAfter).toBeCloseTo(programBefore + 10000, 4)
 
     // Проверяем точное приращение: паевой фонд в бухгалтерии +10000.0000 RUB
     const prevAvailable = parseFloat(res.ledgerShareBefore.available.split(' ')[0])
