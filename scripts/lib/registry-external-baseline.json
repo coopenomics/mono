@@ -1,6 +1,8 @@
 {
+  "auth.ws-connection": 7,
   "capital.artifact-access": 23,
   "capital.content-revisions": 7,
+  "capital.contributor-import": 1,
   "capital.favorites": 11,
   "capital.fund-allocation": 11,
   "capital.gamification": 4,
@@ -8,8 +10,9 @@
   "capital.list-filters-sort": 5,
   "capital.metrics-measures": 18,
   "capital.priorities": 6,
+  "capital.program-invest": 1,
   "capital.project-chain-texts": 3,
-  "capital.project-contributors": 4,
+  "capital.project-contributors": 5,
   "capital.result-submission": 29,
   "capital.results-desk": 4,
   "cardcoop.attestations": 15,
@@ -38,7 +41,7 @@
   "marketplace.onboarding": 20,
   "marketplace.order": 30,
   "marketplace.payouts": 6,
-  "marketplace.return": 12,
+  "marketplace.return": 13,
   "marketplace.stock": 7,
   "marketplace.supply": 13,
   "marketplace.writeoff": 4,
@@ -48,10 +51,12 @@
   "platform.list-sort-order-by": 6,
   "platform.schema-migrations": 8,
   "platform.user-input-markup": 5,
+  "realtime.chain-changes": 11,
   "registration.intake-forms": 13,
   "reports.ndfl6": 19,
   "reports.withheld-tax": 9,
-  "soviet.robot": 14,
+  "soviet.robot": 15,
+  "sync.write-wait-delta": 12,
   "system.node-sync-indication": 14,
-  "wallet.realtime": 5
+  "wallet.realtime": 7
 }

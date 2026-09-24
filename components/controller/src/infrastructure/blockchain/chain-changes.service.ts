@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainChangesPort, InnerChainChangesTable } from '@coopenomics/innercoop';
-import { Ledger2Contract } from 'cooptypes';
+import { Ledger2Contract, SovietContract } from 'cooptypes';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -23,6 +23,18 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     code: Ledger2Contract.contractName.production,
     table: Ledger2Contract.Tables.UserWallets.tableName,
     owner_field: 'username',
+  },
+  // Стол совета (C28-83). Решение — вопрос пайщика: сигнал ему и совету.
+  {
+    code: SovietContract.contractName.production,
+    table: SovietContract.Tables.Decisions.tableName,
+    owner_field: 'username',
+  },
+  // Состав совета: порог повестки и список членов — только совету.
+  {
+    code: SovietContract.contractName.production,
+    table: SovietContract.Tables.Boards.tableName,
+    staff_only: true,
   },
 ];
 
