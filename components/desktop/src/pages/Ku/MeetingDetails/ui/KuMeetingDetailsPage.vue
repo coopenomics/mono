@@ -3,53 +3,53 @@
   //- Канон back-link под шапкой — возврат к списку собраний
   button.ku-back(type='button', @click='goBack')
     q-icon(name='arrow_back', size='18px')
-    span К списку собраний
+    span {{ $t('ku.kuMeetingDetailsPage.backLink') }}
 
   TableSkeleton(v-if='loading && !decision', :columns='skeletonColumns', :rows='6')
   template(v-else-if='decision')
     .row.q-col-gutter-md
       .col-12.col-md-6
-        BaseCard(title='Собрание')
+        BaseCard(:title='$t("ku.kuMeetingDetailsPage.meetingCardTitle")')
           template(#actions)
             BaseBadge(:variant='statusMeta.variant') {{ statusMeta.label }}
-          DataRow(label='Место собрания', :value='decision.meet_place || "—"')
-          DataRow(:label='`Время собрания (${timezoneLabel})`', :value='formatDate(decision.meet_at)')
+          DataRow(:label='$t("ku.kuMeetingDetailsPage.meetingPlaceLabel")', :value='decision.meet_place || "—"')
+          DataRow(:label='$t(`ku.kuMeetingDetailsPage.meetingTimeLabel`, { timezone: timezoneLabel })', :value='formatDate(decision.meet_at)')
           //- организатор собрания автоматически является его председателем
-          DataRow(label='Председатель собрания', :value='organizerName')
+          DataRow(:label='$t("ku.kuMeetingDetailsPage.meetingOrganizerLabel")', :value='organizerName')
           DataRow(
             v-if='isVotingStarted',
-            label='Наименование участка',
+            :label='$t("ku.kuMeetingDetailsPage.meetingBranchNameLabel")',
             :value='decision.branch_name || "—"'
           )
-          DataRow(v-if='isVotingStarted', label='Адрес участка', :value='decision.address || "—"')
+          DataRow(v-if='isVotingStarted', :label='$t("ku.kuMeetingDetailsPage.meetingAddressLabel")', :value='decision.address || "—"')
           DataRow(
             v-if='isVotingStarted && decision.branch_email',
-            label='Email участка',
+            :label='$t("ku.kuMeetingDetailsPage.meetingEmailLabel")',
             :value='decision.branch_email'
           )
           DataRow(
             v-if='isVotingStarted && decision.branch_phone',
-            label='Телефон участка',
+            :label='$t("ku.kuMeetingDetailsPage.meetingPhoneLabel")',
             :value='decision.branch_phone'
           )
-          DataRow(v-if='isVotingStarted', label='Председатель участка', :value='chairmanName')
+          DataRow(v-if='isVotingStarted', :label='$t("ku.kuMeetingDetailsPage.meetingChairmanLabel")', :value='chairmanName')
           DataRow(
             v-if='isVotingWindow',
-            :label='`Голосование открыто до (${timezoneLabel})`',
+            :label='$t(`ku.kuMeetingDetailsPage.votingUntilLabel`, { timezone: timezoneLabel })',
             :value='formatDate(decision.close_at)'
           )
-          DataRow(v-if='isVotingStarted', label='Бюллетеней подано', :value='String(decision.signed_ballots ?? 0)')
+          DataRow(v-if='isVotingStarted', :label='$t("ku.kuMeetingDetailsPage.ballotsCountLabel")', :value='String(decision.signed_ballots ?? 0)')
 
       .col-12.col-md-6
-        BaseCard(title='Участники собрания')
+        BaseCard(:title='$t("ku.kuMeetingDetailsPage.participantsTitle")')
           template(v-if='participantsInfo.length')
             .row.q-gutter-xs.q-pa-sm
               BaseBadge(
                 v-for='participant in participantsInfo',
                 :key='participant.username',
                 :variant='participant.username === decision.chairman ? "pos" : "neutral"'
-              ) {{ participant.display_name }}{{ participant.username === decision.chairman ? ' (председатель участка)' : '' }}
-          EmptyState(v-else, title='Пока никто не присоединился')
+              ) {{ participant.display_name }}{{ participant.username === decision.chairman ? $t('ku.kuMeetingDetailsPage.participantChairmanSuffix') : '' }}
+          EmptyState(v-else, :title='$t("ku.kuMeetingDetailsPage.participantsEmpty")')
 
     //- Повестка и голосование (канон meet-agenda-card);
     //- по завершении собрания вопросы стираются контрактом — повестка живёт в протоколе
@@ -58,39 +58,39 @@
         .agenda-head
           q-icon.agenda-head__icon(name='list_alt', size='20px')
           div
-            .agenda-head__title Повестка собрания
-            .agenda-head__sub Вопросы и проекты решений, вынесенные на голосование
+            .agenda-head__title {{ $t('ku.kuMeetingDetailsPage.agendaTitle') }}
+            .agenda-head__sub {{ $t('ku.kuMeetingDetailsPage.agendaSubtitle') }}
       .agenda-items
         .agenda-card(v-for='question in questions', :key='question.id')
           .agenda-card__head
             AgendaNumberAvatar(:number='question.number ?? ""')
             span.agenda-card__title {{ question.title }}
           .agenda-card__decision
-            span.agenda-card__label Проект решения
+            span.agenda-card__label {{ $t('ku.kuMeetingDetailsPage.agendaDecisionLabel') }}
             span.agenda-card__value {{ question.decision }}
           .agenda-card__field(v-if='question.context')
-            span.agenda-card__label Контекст
+            span.agenda-card__label {{ $t('ku.kuMeetingDetailsPage.agendaContextLabel') }}
             span.agenda-card__value {{ question.context }}
           .agenda-card__vote(v-if='canVote')
-            span.agenda-card__label Ваш голос
+            span.agenda-card__label {{ $t('ku.kuMeetingDetailsPage.agendaYourVoteLabel') }}
             .row.items-center.q-gutter-md
-              q-radio(v-model='votes[question.id]', val='for', label='За', dense)
-              q-radio(v-model='votes[question.id]', val='against', label='Против', dense)
-              q-radio(v-model='votes[question.id]', val='abstained', label='Воздержался', dense)
+              q-radio(v-model='votes[question.id]', val='for', :label='$t("ku.kuMeetingDetailsPage.agendaVoteFor")', dense)
+              q-radio(v-model='votes[question.id]', val='against', :label='$t("ku.kuMeetingDetailsPage.agendaVoteAgainst")', dense)
+              q-radio(v-model='votes[question.id]', val='abstained', :label='$t("ku.kuMeetingDetailsPage.agendaVoteAbstain")', dense)
           //- итоги показываем только после открытия голосования — до него нули не информативны
           .agenda-card__results(v-else-if='isVotingStarted')
-            span.agenda-card__label Итоги голосования
+            span.agenda-card__label {{ $t('ku.kuMeetingDetailsPage.agendaResultsTitle') }}
             .row.items-center.q-gutter-sm.q-mt-xs
-              BaseBadge(variant='pos') За: {{ question.counter_votes_for ?? 0 }}
-              BaseBadge(variant='neg') Против: {{ question.counter_votes_against ?? 0 }}
-              BaseBadge(variant='neutral') Воздержались: {{ question.counter_votes_abstained ?? 0 }}
+              BaseBadge(variant='pos') {{ $t('ku.kuMeetingDetailsPage.agendaResultsFor', { votesFor: question.counter_votes_for ?? 0 }) }}
+              BaseBadge(variant='neg') {{ $t('ku.kuMeetingDetailsPage.agendaResultsAgainst', { votesAgainst: question.counter_votes_against ?? 0 }) }}
+              BaseBadge(variant='neutral') {{ $t('ku.kuMeetingDetailsPage.agendaResultsAbstained', { votesAbstained: question.counter_votes_abstained ?? 0 }) }}
       .row.justify-end.q-mt-md(v-if='canVote')
         BaseButton(
           variant='primary',
           :disabled='!allVoted',
           :loading='busy',
           @click='onVote'
-        ) Подписать бюллетень
+        ) {{ $t('ku.kuMeetingDetailsPage.agendaVoteSubmit') }}
 
     //- Публикуемые документы собрания: протокол собрания пайщиков и решение совета.
     //- Договор матответственности и доверенность здесь не публикуются (паспортные данные).
@@ -99,107 +99,107 @@
         .agenda-head
           q-icon.agenda-head__icon(name='description', size='20px')
           div
-            .agenda-head__title Документы собрания
-            .agenda-head__sub Протокол собрания пайщиков и решение совета об организации участка
+            .agenda-head__title {{ $t('ku.kuMeetingDetailsPage.documentsTitle') }}
+            .agenda-head__sub {{ $t('ku.kuMeetingDetailsPage.documentsSubtitle') }}
       .column.q-gutter-sm
         DocumentRow(
           v-if='protocolDoc',
-          :document='{ type: "html", title: "Протокол собрания пайщиков" }',
-          @open='openMeetingDoc(protocolDoc, "Протокол собрания пайщиков")'
+          :document='{ type: "html", title: $t("ku.kuMeetingDetailsPage.protocolDocTitle") }',
+          @open='openMeetingDoc(protocolDoc, $t("ku.kuMeetingDetailsPage.protocolDocTitle"))'
         )
         DocumentRow(
           v-if='authorizationDoc',
-          :document='{ type: "html", title: "Решение совета об организации кооперативного участка" }',
-          @open='openMeetingDoc(authorizationDoc, "Решение совета об организации кооперативного участка")'
+          :document='{ type: "html", title: $t("ku.kuMeetingDetailsPage.authorizationDocTitle") }',
+          @open='openMeetingDoc(authorizationDoc, $t("ku.kuMeetingDetailsPage.authorizationDocTitle"))'
         )
 
-  EmptyState(v-else, title='Собрание не найдено')
+  EmptyState(v-else, :title='$t("ku.kuMeetingDetailsPage.meetingNotFound")')
 
 //- Открытие голосования: организатор фиксирует решения собрания —
 //- наименование/адрес участка и председателя из числа участников
-BaseDialog(v-model='isStartOpen', title='Открыть голосование', size='md')
+BaseDialog(v-model='isStartOpen', :title='$t("ku.kuMeetingDetailsPage.startDialogTitle")', size='md')
   BaseForm(@submit='onStart')
     .t-sm.t-muted.q-mb-md
-      | Голосование продлится 15 минут. Участники собрания получат уведомление.
+      | {{ $t('ku.kuMeetingDetailsPage.startDialogNotice') }}
     template(v-if='isCreateBranchType')
       BaseInput(
         v-model='startForm.branchName',
-        label='Наименование кооперативного участка',
-        placeholder='например: РОМАШКА',
+        :label='$t("ku.kuMeetingDetailsPage.startBranchNameLabel")',
+        :placeholder='$t("ku.kuMeetingDetailsPage.startBranchNamePlaceholder")',
         required
       )
       BaseInput(
         v-model='startForm.address',
-        label='Адрес кооперативного участка',
-        placeholder='город, улица, дом',
+        :label='$t("ku.kuMeetingDetailsPage.startAddressLabel")',
+        :placeholder='$t("ku.kuMeetingDetailsPage.startAddressPlaceholder")',
         required
       )
       //- контакты нужны для добавления участка как подразделения после решения совета
       BaseInput(
         v-model='startForm.branchEmail',
-        label='Email кооперативного участка',
+        :label='$t("ku.kuMeetingDetailsPage.startEmailLabel")',
         type='email',
         placeholder='uchastok@example.ru',
         required
       )
       BaseInput(
         v-model='startForm.branchPhone',
-        label='Телефон кооперативного участка',
+        :label='$t("ku.kuMeetingDetailsPage.startPhoneLabel")',
         placeholder='+7 900 000-00-00',
         required
       )
       BaseSelect(
         v-model='startForm.chairman',
-        label='Председатель кооперативного участка',
+        :label='$t("ku.kuMeetingDetailsPage.startChairmanLabel")',
         :options='participantOptions',
-        hint='Избирается собранием из числа присоединившихся участников — только физические лица',
+        :hint='$t("ku.kuMeetingDetailsPage.startChairmanHint")',
         required
       )
 
     //- Повестку можно расширить вопросами, внесёнными прямо на собрании
-    .t-sm.t-muted.q-mt-md(v-if='extraAgenda.length') Дополнительные вопросы повестки
+    .t-sm.t-muted.q-mt-md(v-if='extraAgenda.length') {{ $t('ku.kuMeetingDetailsPage.extraAgendaTitle') }}
     .q-mt-sm(v-for='(point, index) in extraAgenda', :key='index')
       .row.items-start.q-gutter-sm
         .col
-          BaseInput(v-model='point.title', :label='`Вопрос ${index + 1}`', required)
-          BaseInput(v-model='point.decision', label='Проект решения', required)
-        button.icon-btn.q-mt-sm(type='button', aria-label='Убрать вопрос', @click='removeAgendaPoint(index)')
+          BaseInput(v-model='point.title', :label='$t(`ku.kuMeetingDetailsPage.extraQuestionLabel`, { questionNumber: index + 1 })', required)
+          BaseInput(v-model='point.decision', :label='$t("ku.kuMeetingDetailsPage.agendaDecisionLabel")', required)
+        button.icon-btn.q-mt-sm(type='button', :aria-label='$t("ku.kuMeetingDetailsPage.removeQuestionAria")', @click='removeAgendaPoint(index)')
           q-icon(name='close')
-    BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addAgendaPoint') Добавить вопрос в повестку
+    BaseButton.q-mt-sm(variant='secondary', size='sm', type='button', @click='addAgendaPoint') {{ $t('ku.kuMeetingDetailsPage.addQuestionButton') }}
 
     .row.justify-end.q-gutter-sm.q-mt-md
-      BaseButton(variant='secondary', type='button', @click='isStartOpen = false') Отменить
+      BaseButton(variant='secondary', type='button', @click='isStartOpen = false') {{ $t('ku.kuMeetingDetailsPage.startCancelButton') }}
       BaseButton(
         variant='primary',
         type='submit',
         :disabled='isCreateBranchType && !startForm.chairman',
         :loading='busy'
-      ) Открыть
+      ) {{ $t('common.action.open') }}
 
 //- Отмена собрания
-BaseDialog(v-model='isCancelOpen', title='Отменить собрание', size='sm')
+BaseDialog(v-model='isCancelOpen', :title='$t("ku.kuMeetingDetailsPage.cancelDialogTitle")', size='sm')
   BaseForm(@submit='onCancel')
-    BaseInput(v-model='cancelReason', label='Причина отмены', required)
+    BaseInput(v-model='cancelReason', :label='$t("ku.kuMeetingDetailsPage.cancelReasonLabel")', required)
     .row.justify-end.q-gutter-sm.q-mt-md
-      BaseButton(variant='secondary', type='button', @click='isCancelOpen = false') Назад
-      BaseButton(variant='primary', type='submit', :loading='busy') Отменить собрание
+      BaseButton(variant='secondary', type='button', @click='isCancelOpen = false') {{ $t('common.action.back') }}
+      BaseButton(variant='primary', type='submit', :loading='busy') {{ $t('ku.kuMeetingDetailsPage.cancelDialogTitle') }}
 
 //- Просмотр публикуемого документа собрания (протокол собрания / решение совета)
 BaseDialog(v-model='isDocOpen', :title='docTitle', size='lg')
   BaseDocument(v-if='docTarget', :document-aggregate='docTarget')
 
 //- Предпросмотр пакета документов с данными пайщика перед подписанием и отправкой в совет
-BaseDialog(v-model='execPreviewOpen', title='Проверьте документы перед подписанием', size='lg')
+BaseDialog(v-model='execPreviewOpen', :title='$t("ku.kuMeetingDetailsPage.execPreviewTitle")', size='lg')
   .t-sm.t-muted.q-mb-md
-    | Ознакомьтесь с документами — в них уже подставлены ваши данные. После подписания
-    | заявление, договор и доверенность будут направлены в совет.
+    | {{ $t('ku.kuMeetingDetailsPage.execPreviewNoticeLine1') }}
+    | {{ $t('ku.kuMeetingDetailsPage.execPreviewNoticeLine2') }}
   .column.q-gutter-md
     .ku-preview-doc(v-for='item in execPreviewDocs', :key='item.title')
       .ku-preview-doc__title {{ item.title }}
       BaseDocument(:document-aggregate='item.aggregate')
   .row.justify-end.q-gutter-sm.q-mt-md
-    BaseButton(variant='secondary', type='button', @click='execPreviewOpen = false') Назад
-    BaseButton(variant='primary', :loading='busy', @click='confirmExec') Подписать и направить в совет
+    BaseButton(variant='secondary', type='button', @click='execPreviewOpen = false') {{ $t('common.action.back') }}
+    BaseButton(variant='primary', :loading='busy', @click='confirmExec') {{ $t('ku.kuMeetingDetailsPage.execPreviewSubmit') }}
 
 //- Сбор паспорта председателя участка перед направлением договора в совет (если паспорта ещё нет)
 CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
@@ -238,6 +238,7 @@ import { useHeaderActions } from 'src/shared/hooks';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates/timezone';
 import { kuMeetingHeaderActions } from '../model/header-actions-store';
 import KuMeetingHeaderActions from './KuMeetingHeaderActions.vue';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -278,7 +279,7 @@ function removeAgendaPoint(index: number) {
 const hash = computed(() => String(route.params.hash));
 const decision = computed(() => kuStore.currentDecision);
 
-const skeletonColumns: TableSkeletonColumn[] = [{ label: 'Параметр' }, { label: 'Значение' }];
+const skeletonColumns: TableSkeletonColumn[] = [{ label: t('ku.kuMeetingDetailsPage.skeletonParamColumn') }, { label: t('ku.kuMeetingDetailsPage.skeletonValueColumn') }];
 
 const participants = computed(() => decision.value?.participants ?? []);
 
@@ -327,9 +328,9 @@ const execPreviewDocs = computed(() => {
     aggregate: { rawDocument: gen, document: { doc_hash: '', signatures: [] } } as unknown as IDocumentAggregate,
   });
   return [
-    wrap(d.petition, 'Заявление об учреждении кооперативного участка'),
-    wrap(d.liability, 'Договор о полной материальной ответственности'),
-    wrap(d.authority, 'Доверенность председателю кооперативного участка'),
+    wrap(d.petition, t('ku.kuMeetingDetailsPage.docPetitionTitle')),
+    wrap(d.liability, t('ku.kuMeetingDetailsPage.docLiabilityTitle')),
+    wrap(d.authority, t('ku.kuMeetingDetailsPage.docAuthorityTitle')),
   ];
 });
 
@@ -349,12 +350,12 @@ watchEffect(() => {
 });
 
 const statusMap: Record<Zeus.KuDecisionStatus, { label: string; variant: 'neutral' | 'pos' | 'neg' | 'warn' | 'info' }> = {
-  [Zeus.KuDecisionStatus.OPENED]: { label: 'Сбор участников', variant: 'info' },
-  [Zeus.KuDecisionStatus.VOTING]: { label: 'Голосование', variant: 'warn' },
-  [Zeus.KuDecisionStatus.APPROVED]: { label: 'Протокол утверждён', variant: 'pos' },
-  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: 'На утверждении советом', variant: 'info' },
-  [Zeus.KuDecisionStatus.COMPLETED]: { label: 'Завершено', variant: 'neutral' },
-  [Zeus.KuDecisionStatus.CANCELLED]: { label: 'Отменено', variant: 'neg' },
+  [Zeus.KuDecisionStatus.OPENED]: { label: t('ku.kuMeetingDetailsPage.status.opened'), variant: 'info' },
+  [Zeus.KuDecisionStatus.VOTING]: { label: t('ku.kuMeetingDetailsPage.status.voting'), variant: 'warn' },
+  [Zeus.KuDecisionStatus.APPROVED]: { label: t('ku.kuMeetingDetailsPage.status.approved'), variant: 'pos' },
+  [Zeus.KuDecisionStatus.ONAPPROVAL]: { label: t('ku.kuMeetingDetailsPage.status.onApproval'), variant: 'info' },
+  [Zeus.KuDecisionStatus.COMPLETED]: { label: t('ku.kuMeetingDetailsPage.status.completed'), variant: 'neutral' },
+  [Zeus.KuDecisionStatus.CANCELLED]: { label: t('ku.kuMeetingDetailsPage.status.cancelled'), variant: 'neg' },
 };
 
 const status = computed(() => decision.value?.status ?? null);
@@ -492,13 +493,13 @@ async function withReload(
 const onJoin = () =>
   withReload(
     () => flow.joinDecision(decision.value!),
-    'Вы присоединились к собранию',
+    t('ku.kuMeetingDetailsPage.successJoined'),
     (d) => (d.participants ?? []).includes(session.username),
   );
 const onClose = () =>
   withReload(
     () => flow.closeDecision(decision.value!),
-    'Протокол утверждён',
+    t('ku.kuMeetingDetailsPage.status.approved'),
     (d) => d.status === Zeus.KuDecisionStatus.APPROVED,
   );
 // перед направлением в совет: собираем паспорт (если в реестре его ещё нет) →
@@ -522,7 +523,7 @@ async function confirmExec(): Promise<void> {
   execPreviewOpen.value = false;
   await withReload(
     () => flow.execDecision(decision.value!, execPreparedDocs.value!),
-    'Заявление направлено в совет',
+    t('ku.kuMeetingDetailsPage.successSentToCouncil'),
     (d) => d.status === Zeus.KuDecisionStatus.ONAPPROVAL,
   );
   execPreparedDocs.value = null;
@@ -531,7 +532,7 @@ const onVote = () => {
   const ballotsBefore = decision.value?.signed_ballots ?? 0;
   return withReload(
     () => flow.voteOnDecision(decision.value!, votes.value),
-    'Бюллетень подан',
+    t('ku.kuMeetingDetailsPage.successBallotSubmitted'),
     (d) => (d.signed_ballots ?? 0) > ballotsBefore,
   );
 };
@@ -548,19 +549,19 @@ async function onStart() {
     // принадлежность участка кооперативу указывается в каждом вопросе (требование методолога):
     // «...кооперативного участка «Петрушка» потребительского кооператива «Восход»»
     const coopName = system.info?.vars?.name ?? '';
-    const coopGenitive = system.info?.vars?.full_abbr_genitive ?? 'потребительского кооператива';
+    const coopGenitive = system.info?.vars?.full_abbr_genitive ?? t('ku.kuMeetingDetailsPage.defaultCoopGenitive');
     const coopSuffix = coopName ? ` ${coopGenitive} «${coopName}»` : '';
-    const councilTarget = coopName ? `Совет ${coopGenitive} «${coopName}»` : 'Совет кооператива';
+    const councilTarget = coopName ? t('ku.kuMeetingDetailsPage.councilNameTemplate', { coopGenitive, coopName }) : t('ku.kuMeetingDetailsPage.defaultCouncilName');
     agenda = [
       {
-        title: `Об организации кооперативного участка «${branchName}»${coopSuffix}`,
-        decision: `Организовать кооперативный участок «${branchName}»${coopSuffix} по адресу: ${startForm.value.address.trim()}`,
+        title: t('ku.kuMeetingDetailsPage.agendaQuestion1Title', { branchName, coopSuffix }),
+        decision: t('ku.kuMeetingDetailsPage.agendaQuestion1Decision', { branchName, coopSuffix, address: startForm.value.address.trim() }),
         context: '',
       },
       {
         // полномочие обратиться в совет входит во второй вопрос — отдельного третьего вопроса нет
-        title: `Об избрании председателя кооперативного участка «${branchName}»${coopSuffix} и уполномочивании его обратиться в совет`,
-        decision: `Избрать председателем кооперативного участка «${branchName}»${coopSuffix} ${chairmanFullName} и уполномочить ${chairmanFullName} обратиться в ${councilTarget} по организации кооперативного участка`,
+        title: t('ku.kuMeetingDetailsPage.agendaQuestion2Title', { branchName, coopSuffix }),
+        decision: t('ku.kuMeetingDetailsPage.agendaQuestion2Decision', { branchName, coopSuffix, chairmanName: chairmanFullName, chairmanNameRepeat: chairmanFullName, councilTarget }),
         context: '',
       },
       ...extra,
@@ -590,7 +591,7 @@ async function onStart() {
         branchPhone: isCreateBranchType.value ? startForm.value.branchPhone.trim() : '',
         agenda,
       }),
-    'Голосование открыто',
+    t('ku.kuMeetingDetailsPage.successVotingOpened'),
     (d) => d.status === Zeus.KuDecisionStatus.VOTING,
   );
   extraAgenda.value = [];
@@ -600,7 +601,7 @@ async function onCancel() {
   isCancelOpen.value = false;
   await withReload(
     () => flow.cancelDecision(decision.value!, cancelReason.value),
-    'Собрание отменено',
+    t('ku.kuMeetingDetailsPage.successMeetingCancelled'),
     (d) => d.status === Zeus.KuDecisionStatus.COMPLETED,
   );
 }
@@ -647,7 +648,7 @@ onMounted(async () => {
       startForm.value.branchEmail = loaded.branch_email || '';
       startForm.value.branchPhone = loaded.branch_phone || '';
       desktop.setPageTitleOverride(
-        `Собрание: ${loaded.branch_name || loaded.meet_place || loaded.hash.slice(0, 8)}`,
+        t('ku.kuMeetingDetailsPage.pageTitle', { meetingLabel: loaded.branch_name || loaded.meet_place || loaded.hash.slice(0, 8) }),
       );
     }
   } finally {

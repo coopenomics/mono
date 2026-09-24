@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import type { MarketplaceOfferImage } from '../../domain/entities/marketplace-offer.types';
-import { InjectBucket, UseBucket } from '@coopenomics/extension-kit';
+import { InjectBucket, UseBucket, DomainError } from '@coopenomics/extension-kit';
 
 const MB = 1024 * 1024;
 
@@ -50,9 +50,7 @@ export class MarketplaceOfferImagesService {
    */
   async putImage(input: MarketplaceOfferImageUploadInput): Promise<MarketplaceOfferImage> {
     if (!ALLOWED_MIME.includes(input.contentType as (typeof ALLOWED_MIME)[number])) {
-      throw new Error(
-        `Поддерживаются только изображения JPEG/PNG/WEBP; получен ${input.contentType}.`
-      );
+      throw DomainError.internal('MARKETPLACE_OFFER_IMAGE_TYPE_UNSUPPORTED', { contentType: input.contentType });
     }
 
     // Пустой файл проходил проверку типа и уезжал в bucket: sha256 от нуля
@@ -60,7 +58,7 @@ export class MarketplaceOfferImagesService {
     // товара такая позиция получала битую картинку, а заменить её нечем —
     // повторная загрузка того же пустого файла даёт тот же ключ.
     if (!input.bytes || input.bytes.length === 0) {
-      throw new Error('Пустой файл изображения — загружать нечего.');
+      throw DomainError.internal('MARKETPLACE_OFFER_IMAGE_EMPTY');
     }
 
     const contentHashHex = createHash('sha256').update(input.bytes).digest('hex');

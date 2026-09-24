@@ -18,6 +18,7 @@ export class WorkflowBuilder<T extends BaseWorkflowPayload> {
   private _payloadZodSchema?: z.ZodSchema<T>;
   private _origin?: NovuOrigin;
   private _tags?: string[];
+  private _i18nKey?: string;
 
   static create<T extends BaseWorkflowPayload>(): WorkflowBuilder<T> {
     return new WorkflowBuilder<T>();
@@ -30,6 +31,12 @@ export class WorkflowBuilder<T extends BaseWorkflowPayload> {
 
   workflowId(id: string): this {
     this._workflowId = id;
+    return this;
+  }
+
+  /** Ключ сценария в словаре текстов (src/i18n) — для шаблона на языке получателя. */
+  i18nKey(key: string): this {
+    this._i18nKey = key;
     return this;
   }
 
@@ -91,6 +98,10 @@ export class WorkflowBuilder<T extends BaseWorkflowPayload> {
     // Добавляем origin только если он указан
     if (this._origin) {
       workflow.origin = this._origin;
+    }
+
+    if (this._i18nKey) {
+      workflow.i18nKey = this._i18nKey;
     }
 
     // Добавляем tags только если они указаны

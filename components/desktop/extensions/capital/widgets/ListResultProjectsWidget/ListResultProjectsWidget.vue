@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    title='Нет проектов для результатов',
-    body='Когда компоненты перейдут к приёмке результатов, они появятся в этом списке.'
+    :title='$t("capital.listResultProjectsWidget.emptyTitle")',
+    :body='$t("capital.listResultProjectsWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='assignment_turned_in')
@@ -32,7 +32,7 @@
           span.t-sm.t-muted {{ project.parent_title }}
 
       .results-projects__amount
-        span.results-projects__amount-label.t-eyebrow ОАП
+        span.results-projects__amount-label.t-eyebrow {{ $t('capital.listResultProjectsWidget.oapLabel') }}
         span.results-projects__amount-value.t-mono {{ formatMoney(project.fact?.total) }}
 
       .results-projects__go
@@ -41,6 +41,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { api as ProjectApi } from '../../entities/Project/api';
 import type { IProject } from '../../entities/Project/model';
 import { Zeus } from '@coopenomics/sdk';
@@ -81,7 +82,7 @@ const items = ref<IProject[]>([]);
 /** Порядок задаётся явно: сервер отдаёт строки в порядке, который меняется между запросами */
 const rows = computed(() =>
   [...items.value].sort((left, right) => {
-    const byTitle = (left.title || '').localeCompare(right.title || '', 'ru');
+    const byTitle = (left.title || '').localeCompare(right.title || '', uiLocale());
     if (byTitle !== 0) return byTitle;
     return left.project_hash.localeCompare(right.project_hash);
   }),

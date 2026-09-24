@@ -8,12 +8,12 @@ q-btn(
   :size='micro ? "sm" : undefined'
 )
   q-icon(:name='micro ? "fa-solid fa-arrow-down" : "fa-solid fa-chevron-down"')
-  span(v-if='!micro').q-ml-sm Получить возврат
-  q-tooltip(v-if='micro') Вернуть
+  span(v-if='!micro').q-ml-sm {{ $t('wallet.withdrawButton.buttonLabel') }}
+  q-tooltip(v-if='micro') {{ $t('wallet.withdrawButton.submitLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Заявление на возврат паевого взноса',
+    :title='$t("wallet.withdrawButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
@@ -21,12 +21,12 @@ q-btn(
       :disabled='!isFormValid',
       :handler-submit='handlerSubmit',
       :is-submitting='isSubmitting',
-      :button-cancel-txt='"Отменить"',
-      :button-submit-txt='"Создать заявление"',
+      :button-cancel-txt='$t("wallet.withdrawButton.cancel")',
+      :button-submit-txt='$t("wallet.withdrawButton.confirm")',
       @cancel='clear'
     )
       InfoCard(
-        :text='"Заявление будет отправлено в совет кооператива на рассмотрение, после одобрения средства поступят на счёт указанным способом."'
+        :text='$t("wallet.withdrawButton.description")'
       )
 
       div
@@ -35,7 +35,7 @@ q-btn(
           standout='bg-teal text-white',
           type='number',
           :min='1',
-          label='Сумма возврата',
+          :label='$t("wallet.withdrawButton.amountLabel")',
           :hint='availableHint',
           :rules='quantityRules'
         )
@@ -47,17 +47,18 @@ q-btn(
           v-model='selectedMethod',
           :options='methodOptions',
           standout='bg-teal text-white',
-          label='Способ получения',
+          :label='$t("wallet.withdrawButton.methodLabel")',
           option-label='label',
           option-value='value',
-          :rules='[(val) => !!val || "Выберите способ получения"]',
+          :rules='[(val) => !!val || $t("wallet.withdrawButton.methodPlaceholder")]',
           :loading='loadingMethods'
         )
           template(v-slot:no-option)
             q-item
-              q-item-section.text-grey Методы получения не найдены
+              q-item-section.text-grey {{ $t('wallet.withdrawButton.methodsEmpty') }}
 </template>
-<script setup lang="ts">
+<script setup lang="ts">import { t } from 'src/shared/i18n';
+
 interface Props {
   micro?: boolean;
 }
@@ -107,16 +108,16 @@ const availableToReturn = computed<number | null>(() => {
 const availableHint = computed(() =>
   availableToReturn.value === null
     ? undefined
-    : `Доступно к возврату: ${availableToReturn.value} ${currency.value}`,
+    : t('wallet.withdrawButton.availableAmountLabel', { amount: availableToReturn.value, currency: currency.value }),
 );
 
 // Правила валидации для суммы
 const quantityRules = [
-  (val: number) => val > 0 || 'Сумма должна быть положительной',
+  (val: number) => val > 0 || t('wallet.withdrawButton.amountPositiveError'),
   (val: number) =>
     availableToReturn.value === null ||
     val <= availableToReturn.value ||
-    'Сумма больше доступного остатка паевого взноса',
+    t('wallet.withdrawButton.amountExceedsBalanceError'),
 ];
 
 // Опции методов платежа
@@ -149,7 +150,7 @@ function getMethodLabel(method: IPaymentMethodData): string {
     } else if (phone.length > 2) {
       formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
     }
-    return `СБП (${formatted})`;
+    return t('wallet.withdrawButton.sbpMethodLabel', { phone: formatted });
   } else if (
     method.method_type === 'bank_transfer' &&
     isBankTransferData(method.data)
@@ -157,7 +158,7 @@ function getMethodLabel(method: IPaymentMethodData): string {
     const acc = method.data.account_number;
     const last4 = acc.slice(-4);
     const bank = method.data.bank_name || '';
-    return `Банковский перевод — ${bank} (***${last4})`;
+    return t('wallet.withdrawButton.bankTransferMethodLabel', { bank, last4 });
   }
   return method.method_type;
 }
@@ -165,12 +166,12 @@ function getMethodLabel(method: IPaymentMethodData): string {
 // Функция для получения описания метода
 function getMethodDescription(method: IPaymentMethodData): string {
   if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    return `Система Быстрых Платежей на номер ${method.data.phone}`;
+    return t('wallet.withdrawButton.sbpFullMethodLabel', { phone: method.data.phone });
   } else if (
     method.method_type === 'bank_transfer' &&
     isBankTransferData(method.data)
   ) {
-    return `Банковский счет ${method.data.account_number} в ${method.data.bank_name}`;
+    return t('wallet.withdrawButton.bankAccountMethodLabel', { accountNumber: method.data.account_number, bankName: method.data.bank_name });
   }
   return '';
 }
@@ -197,7 +198,7 @@ watch(showDialog, async (newValue) => {
       });
     } catch (error) {
       console.error('Ошибка загрузки методов платежа:', error);
-      FailAlert('Ошибка загрузки методов платежа');
+      FailAlert(t('wallet.withdrawButton.methodsLoadError'));
     } finally {
       loadingMethods.value = false;
     }
@@ -213,7 +214,7 @@ const clear = (): void => {
 
 const handlerSubmit = async (): Promise<void> => {
   if (!selectedMethod.value) {
-    FailAlert('Выберите способ получения средств');
+    FailAlert(t('wallet.withdrawButton.methodRequiredError'));
     return;
   }
 
@@ -224,7 +225,7 @@ const handlerSubmit = async (): Promise<void> => {
       symbol: env.CURRENCY as string,
       method_id: selectedMethod.value.value,
     });
-    SuccessAlert('Заявление на возврат паевого взноса успешно подано');
+    SuccessAlert(t('wallet.withdrawButton.submitSuccess'));
     clear();
   } catch (e: any) {
     FailAlert(e);

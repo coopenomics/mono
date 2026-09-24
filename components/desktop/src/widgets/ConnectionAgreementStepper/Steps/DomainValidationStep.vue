@@ -1,7 +1,7 @@
 <template lang="pug">
   q-step(
     :name="4"
-    title="Настройка домена"
+    :title="$t('connectionAgreementStepper.domainValidationStep.title')"
     icon="domain"
     :done="isDone"
   )
@@ -10,23 +10,23 @@
       //- Основная инструкция
       .dns-instruction-card.q-mb-xl
         .instruction-header
-          .text-subtitle2.instruction-title Добавьте DNS-запись
+          .text-subtitle2.instruction-title {{ $t('connectionAgreementStepper.domainValidationStep.dnsInstructionTitle') }}
 
         //- Краткая инструкция
         .instruction-intro.q-mb-lg
           .text-body1.text-grey-8
-            | Перейдите в панель управления вашим доменом и добавьте A-запись со следующими параметрами:
+            | {{ $t('connectionAgreementStepper.domainValidationStep.dnsInstructionIntro') }}
 
 
         .row.q-mb-md.justify-center
           .col-md-6.col-xs-12.q-pa-sm
               .dns-record-item
-                .record-label Домен
+                .record-label {{ $t('connectionAgreementStepper.domainValidationStep.domainLabel') }}
                 .record-value {{ coop?.announce }}
 
           .col-md-6.col-xs-12.q-pa-sm
             .dns-record-item
-              .record-label Адрес
+              .record-label {{ $t('connectionAgreementStepper.domainValidationStep.addressLabel') }}
               .record-value.record-highlight
                 | {{ SERVER_IP }}
 
@@ -38,7 +38,7 @@
                   icon="content_copy"
                   @click="copyIpAddress"
                 )
-                  q-tooltip Копировать IP
+                  q-tooltip {{ $t('connectionAgreementStepper.domainValidationStep.copyIpTooltip') }}
 
         .instruction-separator
 
@@ -52,17 +52,17 @@
               @click="handleReload"
             )
               q-spinner(size="16px" color="white")
-              span.q-ml-xs {{ instance?.is_delegated ? 'Делегирован' : 'Ожидаем делегирования' }}
+              span.q-ml-xs {{ instance?.is_delegated ? $t('connectionAgreementStepper.domainValidationStep.delegatedStatus') : $t('connectionAgreementStepper.domainValidationStep.pendingDelegationStatus') }}
 
         .instruction-footer
-          | Мы автоматически проверим домен и активируем установку вашего Цифрового Кооператива
+          | {{ $t('connectionAgreementStepper.domainValidationStep.footerNote') }}
 
     //- Навигация
     q-stepper-navigation.q-gutter-sm
       q-btn(
         color="grey-6"
         flat
-        label="Назад"
+        :label="$t('common.action.back')"
         @click="handleBack"
       )
 </template>
@@ -74,6 +74,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import type { IStepProps } from '../model/types'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<IStepProps>(), {})
 
@@ -118,10 +119,10 @@ const handleReload = async () => {
 const copyIpAddress = async () => {
   try {
     await copyToClipboard(SERVER_IP)
-    SuccessAlert('IP адрес скопирован в буфер обмена')
+    SuccessAlert(t('connectionAgreementStepper.domainValidationStep.ipCopiedSuccess'))
   } catch (error) {
     console.error('Ошибка копирования:', error)
-    FailAlert('Не удалось скопировать IP адрес')
+    FailAlert(t('connectionAgreementStepper.domainValidationStep.ipCopyError'))
   }
 }
 </script>

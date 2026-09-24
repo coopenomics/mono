@@ -5,7 +5,7 @@
 
     .fields-grid
       q-input(
-        label='Отчётный год'
+        :label='$t("reports.zeroReportEditor.reportYearLabel")'
         type='number'
         :model-value='editsValue.header.reportYear'
         @update:model-value='v => updateField("header.reportYear", clampInt(v, 2000, 2100))'
@@ -24,7 +24,7 @@
         dense filled
       )
       q-input(
-        label='Номер корректировки'
+        :label='$t("reports.zeroReportEditor.correctionNumberLabel")'
         type='number'
         :model-value='editsValue.header.correctionNumber'
         @update:model-value='v => updateField("header.correctionNumber", clampInt(v, 0, 999))'
@@ -35,11 +35,11 @@
       )
 
   .editor-section
-    h3.section-title Организация
-    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
+    h3.section-title {{ $t('reports.zeroReportEditor.organizationTitle') }}
+    .text-caption.t-muted.q-mb-sm {{ $t('reports.zeroReportEditor.readonlyHint') }}
 
     q-input.org-name(
-      label='Наименование организации'
+      :label='$t("reports.zeroReportEditor.orgNameLabel")'
       :model-value='editsValue.organization.orgName'
       readonly disable
       dense filled
@@ -47,20 +47,20 @@
 
     .fields-grid
       q-input(
-        label='ИНН'
+        :label='$t("reports.zeroReportEditor.innLabel")'
         :model-value='editsValue.organization.inn'
         readonly disable
         dense filled
       )
       q-input(
-        label='КПП'
+        :label='$t("reports.zeroReportEditor.kppLabel")'
         :model-value='editsValue.organization.kpp'
         readonly disable
         dense filled
       )
       q-input(
         v-if='needs.oktmo'
-        label='ОКТМО'
+        :label='$t("reports.zeroReportEditor.oktmoLabel")'
         :model-value='editsValue.organization.oktmo || ""'
         readonly disable
         dense filled
@@ -68,21 +68,21 @@
 
     .fields-grid(v-if='needs.sfrExtras')
       q-input(
-        label='ОКВЭД'
+        :label='$t("reports.zeroReportEditor.okvedLabel")'
         :model-value='editsValue.organization.okved || ""'
         readonly disable
         dense filled
       )
       q-input(
-        label='ОГРН'
+        :label='$t("reports.zeroReportEditor.ogrnLabel")'
         :model-value='editsValue.organization.ogrn || ""'
         readonly disable
         dense filled
       )
 
   .editor-section
-    h3.section-title Подписант
-    .text-caption.t-muted.q-mb-sm Данные берутся из Реквизитов — правка доступна только там
+    h3.section-title {{ $t('reports.zeroReportEditor.signerTitle') }}
+    .text-caption.t-muted.q-mb-sm {{ $t('reports.zeroReportEditor.readonlyHint') }}
 
     q-option-group(
       :model-value='editsValue.signer.type'
@@ -93,19 +93,19 @@
 
     .fields-grid
       q-input(
-        label='Фамилия'
+        :label='$t("reports.zeroReportEditor.lastNameLabel")'
         :model-value='editsValue.signer.lastName'
         readonly disable
         dense filled
       )
       q-input(
-        label='Имя'
+        :label='$t("reports.zeroReportEditor.firstNameLabel")'
         :model-value='editsValue.signer.firstName'
         readonly disable
         dense filled
       )
       q-input(
-        label='Отчество'
+        :label='$t("reports.zeroReportEditor.middleNameLabel")'
         :model-value='editsValue.signer.middleName || ""'
         readonly disable
         dense filled
@@ -113,7 +113,7 @@
 
     q-input(
       v-if='editsValue.signer.type === "representative"'
-      label='Документ, подтверждающий полномочия'
+      :label='$t("reports.zeroReportEditor.repDocLabel")'
       :model-value='editsValue.signer.repDoc || ""'
       readonly disable
       dense filled
@@ -121,7 +121,7 @@
 
     q-input(
       v-if='needs.snils'
-      label='СНИЛС председателя'
+      :label='$t("reports.zeroReportEditor.chairmanSnilsLabel")'
       :model-value='editsValue.signer.snils || ""'
       readonly disable
       dense filled
@@ -129,7 +129,7 @@
 
     q-input(
       v-if='needs.snils'
-      label='ИНН председателя'
+      :label='$t("reports.zeroReportEditor.chairmanInnLabel")'
       :model-value='editsValue.signer.inn || ""'
       readonly disable
       dense filled
@@ -137,7 +137,7 @@
 
     q-input(
       v-if='needs.sfrExtras'
-      label='Регистрационный номер ПФР'
+      :label='$t("reports.zeroReportEditor.pfrRegNumberLabel")'
       :model-value='editsValue.signer.pfrRegNumber || ""'
       readonly disable
       dense filled
@@ -145,7 +145,7 @@
 
     q-input(
       v-if='needs.sfrExtras'
-      label='Должность подписанта'
+      :label='$t("reports.zeroReportEditor.signerPositionLabel")'
       :model-value='editsValue.signer.chairmanPosition || ""'
       readonly disable
       dense filled
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IReportType } from 'src/entities/Report'
+import { t } from '../../i18n';
 
 type SignerType = 'chairman' | 'representative'
 
@@ -215,20 +216,20 @@ const emit = defineEmits<{
 const editsValue = computed(() => editsModel.value)
 
 const signerTypeOptions = [
-  { label: '1 — руководитель', value: 'chairman' },
-  { label: '2 — уполномоченный представитель', value: 'representative' },
+  { label: t('reports.zeroReportEditor.signerType.chairman'), value: 'chairman' },
+  { label: t('reports.zeroReportEditor.signerType.representative'), value: 'representative' },
 ]
 
 const headerTitle = computed(() => {
   const titles: Record<string, string> = {
-    NDFL6: 'Расчёт 6-НДФЛ (КНД 1151100)',
-    RSV: 'РСВ — Расчёт по страховым взносам (КНД 1151111)',
-    PSV: 'ПСВ — Персонифицированные сведения (КНД 1151162)',
-    FSS4: 'ЕФС-1 — СФР (приказ №1462)',
-    DUSN: 'Декларация УСН (КНД 1152017)',
-    UUSN: 'Уведомление об исчисленных суммах УСН (КНД 1110355)',
-    UV_VZNOSY: 'Уведомление об исчисленных взносах (КНД 1110355)',
-    UV_NDFL: 'Уведомление об исчисленном НДФЛ (КНД 1110355)',
+    NDFL6: t('reports.zeroReportEditor.reportTitle.ndfl6'),
+    RSV: t('reports.zeroReportEditor.reportTitle.rsv'),
+    PSV: t('reports.zeroReportEditor.reportTitle.psv'),
+    FSS4: t('reports.zeroReportEditor.reportTitle.fss4'),
+    DUSN: t('reports.zeroReportEditor.reportTitle.dusn'),
+    UUSN: t('reports.zeroReportEditor.reportTitle.uusn'),
+    UV_VZNOSY: t('reports.zeroReportEditor.reportTitle.uvVznosy'),
+    UV_NDFL: t('reports.zeroReportEditor.reportTitle.uvNdfl'),
   }
   return titles[props.reportType] ?? props.reportType
 })
@@ -254,9 +255,9 @@ const periodKind = computed<'quarter' | 'month' | 'semi-month' | 'none'>(() => {
 })
 
 const periodLabel = computed(() => {
-  if (periodKind.value === 'quarter') return 'Квартал (1-4)'
-  if (periodKind.value === 'semi-month') return 'Расчётный период (1-24)'
-  return 'Месяц (1-12)'
+  if (periodKind.value === 'quarter') return t('reports.zeroReportEditor.periodLabel.quarter')
+  if (periodKind.value === 'semi-month') return t('reports.zeroReportEditor.periodLabel.semiMonth')
+  return t('reports.zeroReportEditor.periodLabel.month')
 })
 
 const periodMax = computed(() => {

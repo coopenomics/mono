@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, Ref } from 'vue';
 import { api } from '../api';
 import type { IChatCoopAccountStatus } from './types';
+import { t } from '../../../i18n';
 
 const namespace = 'chatcoopChatStore';
 
@@ -31,7 +32,7 @@ export const useChatCoopChatStore = defineStore(
         return status;
       } catch (err) {
         console.error('Failed to load ChatCoop account status:', err);
-        error.value = 'Не удалось получить статус аккаунта. Попробуйте обновить страницу.';
+        error.value = t('chatcoop.chatStore.statusError');
         return null;
       } finally {
         isLoading.value = false;

@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 /**
  * Форма правок уведомления об исчисленных суммах НДФЛ — зеркало
  * `UvNdflEditsShape` бэкенда. Шапка, реквизиты и подписант общие с прочими
@@ -45,8 +46,8 @@ export interface UvNdflEdits {
 }
 
 const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  t('reports.uvNdflEdits.month.january'), t('reports.uvNdflEdits.month.february'), t('reports.uvNdflEdits.month.march'), t('reports.uvNdflEdits.month.april'), t('reports.uvNdflEdits.month.may'), t('reports.uvNdflEdits.month.june'),
+  t('reports.uvNdflEdits.month.july'), t('reports.uvNdflEdits.month.august'), t('reports.uvNdflEdits.month.september'), t('reports.uvNdflEdits.month.october'), t('reports.uvNdflEdits.month.november'), t('reports.uvNdflEdits.month.december'),
 ]
 
 /**
@@ -57,6 +58,6 @@ const MONTHS = [
 export function uvNdflPeriodTitle(period: number | null | undefined): string {
   if (!period || period < 1 || period > 24) return '—'
   const month = MONTHS[Math.floor((period - 1) / 2)] ?? ''
-  const half = period % 2 === 0 ? 'с 23 по последнее число' : 'с 1 по 22 число'
+  const half = period % 2 === 0 ? t('reports.uvNdflEdits.periodHalf.second') : t('reports.uvNdflEdits.periodHalf.first')
   return `${month}, ${half}`
 }

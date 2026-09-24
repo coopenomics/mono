@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
@@ -56,14 +57,14 @@ function formatContractDate(value: string | null | undefined): string {
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (iso) return `${iso[3]}.${iso[2]}.${iso[1]}`;
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString('ru-RU');
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString(uiLocale());
 }
 
 const contractLabel = computed((): string => {
   const number = state.value?.contract_number?.trim();
   if (!number) return '';
   const date = formatContractDate(state.value?.contract_date);
-  return date ? `№ ${number} от ${date}` : `№ ${number}`;
+  return date ? t('marketplace.supplierOnboardingPage.contractNumberText', { number, date }) : `№ ${number}`;
 });
 
 async function load(): Promise<void> {
@@ -113,7 +114,7 @@ onMounted(load);
 </script>
 
 <template lang="pug">
-q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подключение к Столу поставщика")
+q-page.mp-role-offerer.supplier-onboarding(role="region", :aria-label="$t('marketplace.supplierOnboardingPage.pageAriaLabel')")
   q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 
@@ -124,14 +125,14 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
         .supplier-onboarding__status-icon.supplier-onboarding__status-icon--wait
           q-icon(name="hourglass_top", size="24px")
         .supplier-onboarding__status-text
-          .text-h6 Заявка на рассмотрении
+          .text-h6 {{ $t('marketplace.supplierOnboardingPage.applicationPendingTitle') }}
           .text-body2.text-grey-7
-            | Заявку рассмотрит председатель кооператива. После одобрения
-            | откроется стол поставщика — там можно будет публиковать
-            | предложения, принимать заказы и отгружать партии.
+            | {{ $t('marketplace.supplierOnboardingPage.applicationPendingText1') }}
+            | {{ $t('marketplace.supplierOnboardingPage.applicationPendingText2') }}
+            | {{ $t('marketplace.supplierOnboardingPage.applicationPendingText3') }}
           .supplier-onboarding__contract(v-if="contractLabel")
             DataRow(
-              label="Договор",
+              :label="$t('marketplace.supplierOnboardingPage.contractLabel')",
               :value="contractLabel",
               align="horizontal",
               mono
@@ -144,12 +145,12 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
           .supplier-onboarding__head-icon
             q-icon(name="storefront", size="22px")
           .supplier-onboarding__head-text
-            .text-subtitle1.text-weight-medium Стать поставщиком
-            .text-body2.text-grey-7 Выберите модель работы с кооперативом и заключите договор.
+            .text-subtitle1.text-weight-medium {{ $t('marketplace.supplierOnboardingPage.becomeSupplierTitle') }}
+            .text-body2.text-grey-7 {{ $t('marketplace.supplierOnboardingPage.becomeSupplierHint') }}
 
         .supplier-onboarding__rejected(v-if="isRejected")
           q-icon(name="info", size="16px")
-          span Предыдущая заявка отклонена. Уточните реквизиты договора и подайте повторно.
+          span {{ $t('marketplace.supplierOnboardingPage.rejectedNotice') }}
 
         //- Рубильник модели: членская активна, паевая — заглушка «скоро».
         .supplier-onboarding__models
@@ -162,26 +163,26 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
           )
             .supplier-onboarding__model-head
               q-icon(name="card_membership", size="20px")
-              .text-weight-medium Членская модель
+              .text-weight-medium {{ $t('marketplace.supplierOnboardingPage.membershipModelTitle') }}
               q-icon.supplier-onboarding__model-check(
                 v-if="model === 'MEMBERSHIP'",
                 name="check_circle",
                 size="18px"
               )
-            .text-body2.text-grey-7 Кооператив закупает имущество по договору поставщика.
+            .text-body2.text-grey-7 {{ $t('marketplace.supplierOnboardingPage.membershipModelHint') }}
           .supplier-onboarding__model.supplier-onboarding__model--disabled(aria-disabled="true")
             .supplier-onboarding__model-head
               q-icon(name="workspace_premium", size="20px")
-              .text-weight-medium Паевая модель
-              BaseChip.supplier-onboarding__soon(variant="neutral", size="sm") Скоро
-            .text-body2.text-grey-7 Поставщик вносит паевой взнос имуществом по договору кооператива.
+              .text-weight-medium {{ $t('marketplace.supplierOnboardingPage.shareModelTitle') }}
+              BaseChip.supplier-onboarding__soon(variant="neutral", size="sm") {{ $t('marketplace.supplierOnboardingPage.shareModelBadge') }}
+            .text-body2.text-grey-7 {{ $t('marketplace.supplierOnboardingPage.shareModelHint') }}
 
         //- Реквизиты договора по членской модели.
         .supplier-onboarding__form(v-if="model === 'MEMBERSHIP'")
           BaseBanner.q-mb-sm(variant="info")
-            p.q-mb-xs Заключите договор с кооперативом и введите его параметры ниже.
+            p.q-mb-xs {{ $t('marketplace.supplierOnboardingPage.contractFormHint') }}
             .q-mb-none(v-if="contacts?.email || contacts?.phone")
-              p.q-mb-xs По вопросу заключения договора обратитесь по контактам:
+              p.q-mb-xs {{ $t('marketplace.supplierOnboardingPage.contactHint') }}
               .supplier-onboarding__contacts
                 a.supplier-onboarding__contact-link(
                   v-if="contacts?.email",
@@ -197,26 +198,26 @@ q-page.mp-role-offerer.supplier-onboarding(role="region", aria-label="Подкл
                   span {{ contacts.phone }}
           BaseInput(
             v-model="contractNumber",
-            label="Номер договора",
-            placeholder="например, 17/2026",
+            :label="$t('marketplace.supplierOnboardingPage.contractNumberLabel')",
+            :placeholder="$t('marketplace.supplierOnboardingPage.contractNumberPlaceholder')",
             :disabled="submitting"
           )
           BaseInput(
             v-model="contractDate",
             type="date",
-            label="Дата заключения договора",
+            :label="$t('marketplace.supplierOnboardingPage.contractDateLabel')",
             :disabled="submitting"
           )
 
       .supplier-onboarding__bar
         .supplier-onboarding__bar-note.text-body2.text-grey-7
-          | После подачи заявку рассмотрит председатель кооператива — затем стол поставщика откроется.
+          | {{ $t('marketplace.supplierOnboardingPage.submitHint') }}
         BaseButton(
           variant="primary",
           :loading="submitting",
           :disabled="!canSubmit",
           @click="onSubmit"
-        ) Отправить заявку
+        ) {{ $t('marketplace.supplierOnboardingPage.submitButton') }}
 </template>
 
 <style scoped lang="scss">

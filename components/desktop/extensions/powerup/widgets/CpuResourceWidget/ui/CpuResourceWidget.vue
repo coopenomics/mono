@@ -3,7 +3,7 @@
   .resource-card__head
     .resource-card__icon
       i.fas.fa-microchip
-    .resource-card__title Время процессора (CPU)
+    .resource-card__title {{ $t('powerup.cpuResourceWidget.title') }}
 
   .resource-card__gauge
     q-circular-progress(
@@ -17,33 +17,34 @@
     )
       .gauge-inner
         .gauge-value {{ usagePercent.toFixed(2) }}%
-        .gauge-label Использовано
+        .gauge-label {{ $t('powerup.cpuResourceWidget.usedLabel') }}
 
-  .resource-card__note CPU расходуется для вычислений при обработке пакетов документов.
+  .resource-card__note {{ $t('powerup.cpuResourceWidget.note') }}
 
   button.resource-card__toggle(type="button", @click="showDetails = !showDetails")
-    span {{ showDetails ? 'Скрыть детали' : 'Подробнее' }}
+    span {{ showDetails ? $t('powerup.cpuResourceWidget.hideDetails') : $t('powerup.cpuResourceWidget.showDetails') }}
     q-icon(:name="showDetails ? 'expand_less' : 'expand_more'", size="18px")
 
   q-slide-transition
     .resource-card__details(v-show="showDetails")
       .detail-row
-        span.detail-label Используется
+        span.detail-label {{ $t('powerup.cpuResourceWidget.usedDetailLabel') }}
         span.detail-value {{ formatValue(currentUsed) }} μs
       .detail-row
-        span.detail-label Доступно
+        span.detail-label {{ $t('powerup.cpuResourceWidget.availableLabel') }}
         span.detail-value {{ formatValue(available) }} μs ({{ availablePercent.toFixed(1) }}%)
       .detail-row
-        span.detail-label Максимум
+        span.detail-label {{ $t('powerup.cpuResourceWidget.maxLabel') }}
         span.detail-value {{ formatValue(max) }} μs
       .detail-row
-        span.detail-label Восстановление
+        span.detail-label {{ $t('powerup.cpuResourceWidget.recoveryLabel') }}
         span.detail-value ~{{ formatTime(estimatedRecovery) }}
 </template>
 
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
 import { useSystemStore } from 'src/entities/System/model'
+import { t } from '../../../i18n';
 
 const showDetails = ref(false)
 
@@ -117,11 +118,11 @@ const formatTime = (seconds: number): string => {
 
   if (hours > 24) {
     const days = Math.floor(hours / 24)
-    return `${days}д ${hours % 24}ч`
+    return t('powerup.cpuResourceWidget.daysHours', { days, hours: hours % 24 })
   } else if (hours > 0) {
-    return `${hours}ч ${minutes}м`
+    return t('powerup.cpuResourceWidget.hoursMinutes', { hours, minutes })
   } else {
-    return `${minutes}м`
+    return t('powerup.cpuResourceWidget.minutes', { minutes })
   }
 }
 </script>

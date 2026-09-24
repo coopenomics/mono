@@ -16,6 +16,7 @@
  * завышало бы сумму ровно в размер упаковки.
  */
 import { marketplaceLineCost } from './line-cost';
+import { t as i18nT } from 'src/shared/i18n';
 
 /** Позиция склада, нужная обороту. Структурный тип — вью SDK подходит как есть. */
 export interface TurnoverInventoryItem {
@@ -189,7 +190,7 @@ function addOrders(
     if (order.status !== ORDER_RECEIVED) continue;
     if (!withinPeriod(timeOf(order.received_at), sinceMs)) continue;
 
-    const title = order.product_name || 'Товар по предложению';
+    const title = order.product_name || i18nT('marketplace.turnover.productByOfferLabel');
     const key = turnoverKey(order.delivery_braname, order.offer_id, title);
     const row = map.get(key) ?? emptyRow(key);
     fillMeta(row, {
@@ -238,10 +239,10 @@ export function buildTurnover(
 
 /** Периоды, за которые смотрят оборот. `0` — за всё время. */
 export const TURNOVER_PERIODS = [
-  { label: 'За 7 дней', value: 7 },
-  { label: 'За 30 дней', value: 30 },
-  { label: 'За 90 дней', value: 90 },
-  { label: 'За всё время', value: 0 },
+  { label: i18nT('marketplace.turnover.period7d'), value: 7 },
+  { label: i18nT('marketplace.turnover.period30d'), value: 30 },
+  { label: i18nT('marketplace.turnover.period90d'), value: 90 },
+  { label: i18nT('marketplace.turnover.periodAll'), value: 0 },
 ];
 
 /** Начало периода в миллисекундах; `null` — за всё время. */

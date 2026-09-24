@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { Cooperative } from 'cooptypes'
@@ -26,16 +26,13 @@ import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { QuantityUtils,
-  generateHashFromString,
-  generateUniqueHash,
-  ExpenseProposalStatementGenerateDocumentInputDTO,
-} from '@coopenomics/extension-kit';
+import { QuantityUtils, generateHashFromString, generateUniqueHash, ExpenseProposalStatementGenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection,
   type InnerTransactResult,
   DOCUMENT_PORT,
   type IDocumentPort,
 } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /** Зеркало ExpenseDomain::Mechanics::ADVANCE контракта expense. */
 const MECHANICS_ADVANCE = 0
@@ -202,7 +199,7 @@ export class ExpensesMutationsService {
     // report_state в зеркале платежа выдачи аванса.
     const reportState = await this.getAdvanceReportState(input.item_hash)
     if (reportState === ExpenseReportState.SETTLEMENT_PENDING || reportState === ExpenseReportState.CLOSED) {
-      throw new BadRequestException('Отчёт по этой позиции уже подан — повторный отчёт недоступен')
+      throw DomainError.badRequest('EXPENSES_REPORT_ALREADY_SUBMITTED')
     }
 
     if (!input.actual_amount) {
@@ -220,10 +217,10 @@ export class ExpensesMutationsService {
       (i) => i.item_hash?.toLowerCase() === input.item_hash.toLowerCase()
     )
     if (!proposal || !item) {
-      throw new NotFoundException('Строка расхода не найдена')
+      throw DomainError.notFound('EXPENSES_ITEM_NOT_FOUND')
     }
     if (item.mechanics !== MECHANICS_ADVANCE) {
-      throw new BadRequestException('Отчёт о фактической сумме применим только к авансу под отчёт')
+      throw DomainError.badRequest('EXPENSES_REPORT_ONLY_FOR_ADVANCE')
     }
 
     // База расчёта — фактически ВЫДАННЫЙ аванс (item.actual_amount после payexp),
@@ -231,7 +228,7 @@ export class ExpensesMutationsService {
     const advance = parseAssetToMinor(item.actual_amount)
     const factual = parseAssetToMinor(input.actual_amount)
     if (advance.symbol !== factual.symbol) {
-      throw new BadRequestException('Символ фактической суммы не совпадает с символом аванса')
+      throw DomainError.badRequest('EXPENSES_SYMBOL_MISMATCH')
     }
 
     const deltaMinor = factual.minor - advance.minor
@@ -343,8 +340,8 @@ export class ExpensesMutationsService {
       // Назначение фиксированное (суть расхода — в описании позиции, поле
       // blockchain_data.description показывается отдельно как «Что оплачиваем»).
       memo: isUnderspend
-        ? 'Возврат неиспользованных средств, выданных авансом под отчёт'
-        : 'Доплата по перерасходу аванса под отчёт',
+        ? t('expenses.expensesMutations.underspendMemo')
+        : t('expenses.expensesMutations.overspendMemo'),
       secret: generateUniqueHash(),
       payment_method_id: undefined,
       payment_details: {

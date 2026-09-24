@@ -1,8 +1,6 @@
 <template>
   <BaseChip variant="warn" size="sm">
-    <q-icon name="schedule" size="14px" class="q-mr-xs" />
-    Запрос на рассмотрении
-  </BaseChip>
+    <q-icon name="schedule" size="14px" class="q-mr-xs" /> {{ $t('capital.pendingClearanceButton.label') }} </BaseChip>
 </template>
 
 <script setup lang="ts">

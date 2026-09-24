@@ -1,46 +1,46 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  title='Создание служебной записки',
+  :title='$t("expenses.expenseProposalCreateDialog.dialogTitle")',
   size='lg',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   .create-form
     .field-group
-      .t-section.q-mb-sm Цель и параметры
+      .t-section.q-mb-sm {{ $t('expenses.expenseProposalCreateDialog.sectionPurposeTitle') }}
       BaseInput(
         v-model='form.description',
-        label='Цель расходов',
-        placeholder='Например: «Закупка хостинга и канцелярии на июнь»',
+        :label='$t("expenses.expenseProposalCreateDialog.purposeLabel")',
+        :placeholder='$t("expenses.expenseProposalCreateDialog.purposePlaceholder")',
         required
       )
       BaseInput(
         v-model='form.source_wallet',
-        label='Источник средств (кошелёк)',
+        :label='$t("expenses.expenseProposalCreateDialog.walletLabel")',
         placeholder='w.cap.blago / w.cap.gen / …',
         required
       )
       BaseInput(
         v-model='form.deadline',
         type='date',
-        label='Срок исполнения (в срок до)',
+        :label='$t("expenses.expenseProposalCreateDialog.deadlineLabel")',
         required
       )
 
     .field-group
       .field-group__head
-        .t-section Строки расходов
+        .t-section {{ $t('expenses.expenseProposalCreateDialog.linesTitle') }}
         BaseButton(
           variant='ghost',
           size='sm',
           icon='add',
           @click='addItem'
-        ) Добавить позицию
+        ) {{ $t('expenses.expenseProposalCreateDialog.addLineLabel') }}
 
       .empty-items(v-if='!form.items.length')
         EmptyState(
-          title='Нет позиций',
-          body='Добавьте хотя бы одну строку расхода: получатель + способ + сумма.'
+          :title='$t("expenses.expenseProposalCreateDialog.noLinesTitle")',
+          :body='$t("expenses.expenseProposalCreateDialog.noLinesHint")'
         )
           template(#icon)
             q-icon(name='playlist_add', size='40px')
@@ -48,7 +48,7 @@ BaseDialog(
       .items
         .item-card(v-for='(item, idx) in form.items', :key='idx')
           .item-card__head
-            .t-section-sm Позиция №{{ idx + 1 }}
+            .t-section-sm {{ $t('expenses.expenseProposalCreateDialog.linePositionLabel', { index: idx + 1 }) }}
             BaseButton(
               variant='ghost',
               size='sm',
@@ -60,7 +60,7 @@ BaseDialog(
               q-select(
                 v-model='item.recipient_type',
                 :options='recipientTypeOptions',
-                label='Тип получателя',
+                :label='$t("expenses.expenseProposalCreateDialog.recipientTypeLabel")',
                 outlined,
                 dense,
                 emit-value,
@@ -71,7 +71,7 @@ BaseDialog(
               q-select(
                 v-model='item.mechanics',
                 :options='mechanicsOptions',
-                label='Способ',
+                :label='$t("expenses.expenseProposalCreateDialog.methodLabel")',
                 outlined,
                 dense,
                 emit-value,
@@ -81,50 +81,50 @@ BaseDialog(
             .col-12.col-md-6
               BaseInput(
                 v-model='item.recipient_name',
-                label='Получатель (имя/название)',
-                placeholder='ФИО или название организации'
+                :label='$t("expenses.expenseProposalCreateDialog.recipientNameLabel")',
+                :placeholder='$t("expenses.expenseProposalCreateDialog.recipientNamePlaceholder")'
               )
             .col-12.col-md-6
               BaseInput(
                 v-model='item.recipient_account',
-                label='Аккаунт получателя в кооперативе',
+                :label='$t("expenses.expenseProposalCreateDialog.recipientAccountLabel")',
                 placeholder='username / eosio::name'
               )
             .col-12.col-md-6
               BaseInput(
                 v-model='item.amount',
-                label='Сумма (план)',
+                :label='$t("expenses.expenseProposalCreateDialog.amountPlanLabel")',
                 placeholder='1000.0000 RUB',
                 required
               )
             .col-12
               BaseInput(
                 v-model='item.description',
-                label='Что оплачиваем',
-                placeholder='Своими словами: что это за расход и зачем'
+                :label='$t("expenses.expenseProposalCreateDialog.purposeDetailLabel")',
+                :placeholder='$t("expenses.expenseProposalCreateDialog.purposeDetailPlaceholder")'
               )
             .col-12(v-if='item.recipient_type === "ORG"')
               BaseInput(
                 v-model='item.requisites',
-                label='Реквизиты получателя',
-                placeholder='ИНН, р/с, БИК'
+                :label='$t("expenses.expenseProposalCreateDialog.recipientDetailsLabel")',
+                :placeholder='$t("expenses.expenseProposalCreateDialog.recipientDetailsPlaceholder")'
               )
             .col-12(v-if='item.recipient_type === "ORG"')
               BaseInput(
                 v-model='item.payment_purpose',
-                label='Назначение платежа',
-                placeholder='Например: «Оплата по счёту № 814 от 01.06.2026 за аренду серверов»'
+                :label='$t("expenses.expenseProposalCreateDialog.paymentPurposeLabel")',
+                :placeholder='$t("expenses.expenseProposalCreateDialog.paymentPurposePlaceholder")'
               )
 
   template(#footer)
     .footer-bar
-      BaseButton(variant='ghost', @click='close') Отмена
+      BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='submitting',
         :disabled='!canSubmit',
         @click='submit'
-      ) Подать на одобрение
+      ) {{ $t('expenses.expenseProposalCreateDialog.submitLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -135,6 +135,7 @@ import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { useExpenseProposalActions, type ICreateProposalDraftItem } from '../model';
+import { t } from '../i18n';
 
 defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
@@ -154,14 +155,14 @@ const form = reactive({
 const submitting = ref(false);
 
 const recipientTypeOptions = [
-  { label: 'Я сам', value: 'SELF' as const },
-  { label: 'Пайщик', value: 'MEMBER' as const },
-  { label: 'Организация/ИП', value: 'ORG' as const },
+  { label: t('expenses.expenseProposalCreateDialog.recipientTypeSelfOption'), value: 'SELF' as const },
+  { label: t('expenses.expenseProposalCreateDialog.recipientTypeMemberOption'), value: 'MEMBER' as const },
+  { label: t('expenses.expenseProposalCreateDialog.recipientTypeOrgOption'), value: 'ORG' as const },
 ];
 
 const mechanicsOptions = [
-  { label: 'Аванс под отчёт', value: 'ADVANCE' as const },
-  { label: 'Оплата по счету', value: 'DIRECT' as const },
+  { label: t('expenses.expenseProposalCreateDialog.methodAdvanceOption'), value: 'ADVANCE' as const },
+  { label: t('expenses.expenseProposalCreateDialog.methodInvoiceOption'), value: 'DIRECT' as const },
 ];
 
 // Пайщик получает только аванс под отчёт; организация — только прямую оплату.
@@ -209,7 +210,7 @@ async function submit(): Promise<void> {
       deadline: form.deadline,
       items: form.items,
     });
-    SuccessAlert('Служебная записка подана — заявление подписано и передано в совет');
+    SuccessAlert(t('expenses.expenseProposalCreateDialog.submittedMessage'));
     emit('created');
     close();
   } catch (e) {

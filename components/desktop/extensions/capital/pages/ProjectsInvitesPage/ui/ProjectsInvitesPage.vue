@@ -26,7 +26,7 @@
 
     // Текст при отсутствии приглашений
     div(v-else)
-      div.text-body2.text-grey-7 В данный момент нет проектов с активными приглашениями
+      div.text-body2.text-grey-7 {{ $t('capital.projectsInvitesPage.emptyText') }}
 </template>
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
@@ -38,6 +38,7 @@
   import type { IProject } from 'app/extensions/capital/entities/Project/model';
   import { ShortInviteWidget } from 'app/extensions/capital/widgets';
   import { ProjectPathWidget } from 'app/extensions/capital/widgets/ProjectPathWidget';
+import { t } from '../../../i18n';
 
   const router = useRouter();
   const { info } = useSystemStore();
@@ -64,7 +65,7 @@
       projects.value = result.items || [];
     } catch (error) {
       console.error('Ошибка при загрузке проектов с инвайтами:', error);
-      FailAlert('Не удалось загрузить проекты с инвайтами');
+      FailAlert(t('capital.projectsInvitesPage.loadError'));
     } finally {
       loading.value = false;
     }

@@ -28,21 +28,27 @@ export class ExpenseRequisiteSnapshotTypeormEntity {
   @Column({ type: 'varchar' })
   item_hash!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'varchar', comment: 'Получатель платежа (username пайщика или имя организации)' })
   recipient!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'varchar', nullable: true, comment: 'Идентификатор платёжного метода получателя (для пайщиков)' })
   method_id!: string | null;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'varchar', nullable: true, comment: 'Тип метода (sbp / bank_transfer)' })
   method_type!: string | null;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'jsonb', nullable: true, comment: 'Снимок данных платёжного метода на момент создания СЗ' })
   data!: Record<string, unknown> | null;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'text', comment: 'Реквизиты строкой — как в документе СЗ' })
   requisites!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ type: 'text', nullable: true, comment: 'Назначение платежа (оплата по счёту) — для поручения кассиру' })
   payment_purpose!: string | null;
 

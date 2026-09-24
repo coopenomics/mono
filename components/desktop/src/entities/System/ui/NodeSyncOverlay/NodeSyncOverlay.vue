@@ -10,13 +10,13 @@ transition(name='node-sync-fade')
       q-spinner-gears.text-white(size='50px')
       //- Подпись дословно та же, что у планового обслуживания: два экрана об
       //- одном и том же не должны говорить разными словами.
-      p.node-sync__maintenance.text-white Техническое обслуживание..
+      p.node-sync__maintenance.text-white {{ $t('system.nodeSyncOverlay.maintenanceText') }}
 
     //- Узел догоняет цепь: показываем ход, чтобы ожидание было понятным.
     div.node-sync__box(v-else)
       q-icon.node-sync__icon.text-white(name='sync', size='40px')
-      h2.node-sync__title.text-white Синхронизация с блокчейном
-      p.node-sync__text.text-grey-5 Обновляем данные кооператива. Рабочий стол откроется, как только синхронизация завершится.
+      h2.node-sync__title.text-white {{ $t('system.nodeSyncOverlay.syncTitle') }}
+      p.node-sync__text.text-grey-5 {{ $t('system.nodeSyncOverlay.syncDescription') }}
 
       q-linear-progress.node-sync__bar(
         :value='progressValue',
@@ -36,6 +36,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from '../../model/store';
+import { t } from 'src/shared/i18n';
 
 /**
  * Экран синхронизации: пока узел не получил свежие данные, рабочий стол закрыт.
@@ -96,17 +97,17 @@ const isIndeterminate = computed(() => isDisconnected.value || !initialLag.value
 
 /** «около 2 ч 15 мин» читается, «через 8100 с» — нет. */
 function formatRemaining(seconds: number): string {
-  if (seconds < 60) return 'меньше минуты';
+  if (seconds < 60) return t('system.nodeSyncOverlay.lessThanMinute');
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `около ${minutes} мин`;
+  if (minutes < 60) return t('system.nodeSyncOverlay.aboutMinutes', { minutes });
   const hours = Math.floor(minutes / 60);
   const restMinutes = minutes % 60;
-  return restMinutes > 0 ? `около ${hours} ч ${restMinutes} мин` : `около ${hours} ч`;
+  return restMinutes > 0 ? t('system.nodeSyncOverlay.aboutHoursMinutes', { hours, restMinutes }) : t('system.nodeSyncOverlay.aboutHours', { hours });
 }
 
 const remainingLabel = computed(() => {
   const eta = state.value?.estimated_seconds_remaining;
-  return eta ? `Осталось ${formatRemaining(eta)}` : 'Идёт обновление данных';
+  return eta ? t('system.nodeSyncOverlay.remainingLabel', { remaining: formatRemaining(eta) }) : t('system.nodeSyncOverlay.updatingLabel');
 });
 </script>
 

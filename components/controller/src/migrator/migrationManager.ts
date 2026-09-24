@@ -137,6 +137,7 @@ export class MigrationManager {
       };
     } catch (error) {
       logger.error(`Ошибка при загрузке миграции ${filename}:`, error);
+      // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
       throw new Error(`Не удалось загрузить миграцию ${filename} из-за ошибок компиляции TypeScript`);
     }
   }
@@ -192,8 +193,10 @@ export class MigrationManager {
 
     try {
       if (isTest) {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`[ТЕСТОВАЯ МИГРАЦИЯ] Запуск миграции ${version} (${description}): ${migration.name}`);
       } else {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`Запуск миграции ${version} (${description}): ${migration.name}`);
       }
 
@@ -212,9 +215,11 @@ export class MigrationManager {
 
       if (isTest) {
         migrationLogger.info(
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           `[ТЕСТОВАЯ МИГРАЦИЯ] Миграция ${version} (${description}) выполнена ${result ? 'успешно' : 'с ошибками'}`
         );
       } else {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.info(`Миграция ${version} (${description}) выполнена ${result ? 'успешно' : 'с ошибками'}`);
       }
 
@@ -223,11 +228,13 @@ export class MigrationManager {
 
       return result;
     } catch (error) {
+      // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
       migrationLogger.error(`Ошибка при выполнении миграции ${version} (${description}): ${error}`);
 
       // Пытаемся откатить миграцию, если у нее есть метод down
       if (!isTest && migration.down) {
         try {
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           migrationLogger.info(`Выполнение отката миграции ${version}...`);
           const rollbackResult = await migration.down({
             blockchain: this.blockchainService,
@@ -236,14 +243,18 @@ export class MigrationManager {
             dataSource: this.dataSource,
           });
           if (rollbackResult) {
+            // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
             migrationLogger.info(`Откат миграции ${version} выполнен успешно`);
           } else {
+            // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
             migrationLogger.error(`Откат миграции ${version} завершился с ошибкой`);
           }
         } catch (rollbackError) {
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           migrationLogger.error(`Критическая ошибка при откате миграции ${version}: ${rollbackError}`);
         }
       } else if (!isTest && !migration.down) {
+        // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
         migrationLogger.warn(`Миграция ${version} не имеет метода down для автоматического отката`);
       }
 
@@ -327,6 +338,7 @@ export class MigrationManager {
         // Останавливаем процесс только при ошибке в НЕ тестовых миграциях
         if (!success && !isTest) {
           logger.error(`Миграция ${version} (${description}) завершена с ошибкой, останавливаем процесс`);
+          // i18n-ignore: сообщение лога выполнения миграции для разработчика/оператора, инвариант миграции, до пайщика не доходит
           throw new Error(`Миграция ${version} (${description}) завершилась с ошибкой`);
         }
       }

@@ -1,3 +1,4 @@
+import { lt } from '@coopenomics/i18n'
 /**
  * Цепочка доверия: офлайн-проверка participant_certificate walk'ом
  * `ano → voskhod → vostok → participant` от embedded trust anchor.
@@ -18,7 +19,7 @@ export async function readCertPublicKey(rpcUrl: string, account: string): Promis
   const acc = await client.v1.chain.get_account(account).catch((e: unknown) => {
     throw new AuthV2Error(
       AuthV2ErrorCode.NetworkError,
-      `COOPOS недоступен или аккаунт ${account} не найден: ${e instanceof Error ? e.message : String(e)}`,
+      lt('authClient.chain.accountNotFound', { account, error: e instanceof Error ? e.message : String(e) }),
     )
   })
   const cert = acc.permissions.find(p => String(p.perm_name) === 'cert')
@@ -26,7 +27,7 @@ export async function readCertPublicKey(rpcUrl: string, account: string): Promis
   if (!cert || !key) {
     throw new AuthV2Error(
       AuthV2ErrorCode.ChainVerificationFailed,
-      `На аккаунте ${account} нет permission cert с ключом — цепочка доверия не настроена (Story 1.3).`,
+      lt('authClient.chain.noPermissionCert', { account }),
     )
   }
   // MVP-инвариант: cert — строго single-key (multi-sig для ano — Growth).
@@ -36,7 +37,7 @@ export async function readCertPublicKey(rpcUrl: string, account: string): Promis
   if (Number(auth.threshold) !== 1 || auth.keys.length !== 1 || auth.accounts.length > 0 || auth.waits.length > 0) {
     throw new AuthV2Error(
       AuthV2ErrorCode.ChainVerificationFailed,
-      `Permission cert на ${account} не является single-key (threshold=${auth.threshold}, keys=${auth.keys.length}) — не поддерживается MVP-верификацией.`,
+      lt('authClient.chain.notSingleKey', { account, threshold: auth.threshold, keysCount: auth.keys.length }),
     )
   }
   return key.toString()

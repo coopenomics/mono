@@ -57,6 +57,7 @@ import {
   type IEntrepreneurData,
   type IGetAccounts,
 } from 'src/entities/Account/types';
+import { t } from 'src/shared/i18n';
 
 const accountStore = useAccountStore();
 const session = useSessionStore();
@@ -111,13 +112,13 @@ const verificationNaming = computed((): VerificationNaming => {
 const verificationFilterDefs: FilterDefinition[] = [
   {
     key: 'verification',
-    label: 'Верификация',
+    label: t('cooperative.listOfParticipantsPage.verificationFilterLabel'),
     type: 'select',
     options: [
-      { label: 'Все', value: '' },
-      { label: 'Без базовой — нужен паспорт', value: 'no_passport' },
-      { label: 'С базовой — паспорт проверен', value: 'passport' },
-      { label: 'Не верифицированные', value: 'none' },
+      { label: t('cooperative.listOfParticipantsPage.filterAll'), value: '' },
+      { label: t('cooperative.listOfParticipantsPage.filterNoPassport'), value: 'no_passport' },
+      { label: t('cooperative.listOfParticipantsPage.filterPassportVerified'), value: 'passport' },
+      { label: t('cooperative.listOfParticipantsPage.filterNotVerified'), value: 'none' },
     ],
   },
 ];
@@ -153,8 +154,8 @@ const journalRef = ref<InstanceType<typeof VerificationsJournal> | null>(null);
 // Журнал верификаций читает и решает только председатель совета — остальным
 // сервер откажет, и вкладка была бы кнопкой в никуда.
 const tabs = computed((): PageTab[] => [
-  { key: 'participants', label: 'Пайщики', count: accountStore.accounts.totalCount },
-  ...(session.isChairman ? [{ key: 'verifications', label: 'Верификации' }] : []),
+  { key: 'participants', label: t('cooperative.listOfParticipantsPage.participantsTab'), count: accountStore.accounts.totalCount },
+  ...(session.isChairman ? [{ key: 'verifications', label: t('cooperative.listOfParticipantsPage.verificationsTab') }] : []),
 ]);
 
 // Сверка из реестра сразу попадает в журнал — перечитываем оба списка, чтобы

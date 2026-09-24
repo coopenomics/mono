@@ -1,3 +1,4 @@
+import { t } from '@coopenomics/i18n/server';
 export function getAmountPlusFee(amount: number, fee: number): number {
   if (fee < 0 || fee >= 100) {
     throw new Error('Fee must be between 0 and 100.');
@@ -17,7 +18,7 @@ export function checkPaymentAmount(incomeAmount: number, expectedAmount: number,
   if (incomeAmount < expectedAmount - tolerance) {
     return {
       status: 'error',
-      message: `Недостаточно средств, поступило: ${incomeAmount}, ожидается: ${expectedAmount}`,
+      message: t('kit.payments.insufficientFunds', { income: incomeAmount, expected: expectedAmount }),
     };
   }
 

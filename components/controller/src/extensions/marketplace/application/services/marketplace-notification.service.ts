@@ -52,6 +52,7 @@ import {
   type MarketplaceOfferApprovedEvent,
   type MarketplaceOfferRejectedEvent,
 } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 /**
  * Story 5.4 / 5.6 / 5.7 — push-уведомления marketplace flow.
@@ -307,7 +308,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         );
         if (!check.passed) {
           passportReminder =
-            ' Возьмите с собой паспорт: при первом получении оператор подтвердит вашу личность — это делается один раз.';
+            t('marketplace.notification.bringPassportHint');
         }
       } catch {
         /* напоминание — best-effort, уведомление важнее */
@@ -406,7 +407,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
       } catch {
         /* оставляем braname */
       }
-      const decisionHuman = `Председатель пригласил вас на очный осмотр на КУ ${kuName}`;
+      const decisionHuman = t('marketplace.notification.inspectionInviteTitle', { kuName });
       const payload: Workflows.MarketplaceReturnClaimDecided.IPayload = {
         ordererName,
         decisionHuman,
@@ -440,22 +441,22 @@ export class MarketplaceNotificationService implements OnModuleInit {
       let returnedAmount: string | undefined;
       switch (event.decision) {
         case 'council_authorized':
-          outcomeHuman = 'Совет принял имущество — паевой взнос восстановлен на Столе заказов';
+          outcomeHuman = t('marketplace.notification.councilAcceptedRestoredTitle');
           returnedAmount = event.ledger_snapshot?.amount
             ? AmountFormatterUtils.formatAmountSafe(event.ledger_snapshot.amount)
             : undefined;
           break;
         case 'hand_back':
-          outcomeHuman = 'Имущество выдано вам обратно на участке';
+          outcomeHuman = t('marketplace.notification.propertyReturnedTitle');
           break;
         case 'reject_remote':
-          outcomeHuman = 'Возврат отклонён удалённо председателем';
+          outcomeHuman = t('marketplace.notification.returnRejectedRemoteTitle');
           break;
         case 'reject_at_visit':
-          outcomeHuman = 'Возврат отклонён по результатам очного осмотра';
+          outcomeHuman = t('marketplace.notification.returnRejectedInspectionTitle');
           break;
         default:
-          outcomeHuman = 'Возврат завершён';
+          outcomeHuman = t('marketplace.notification.returnCompletedTitle');
       }
       const payload: Workflows.MarketplaceReturnClaimFinalized.IPayload = {
         ordererName,
@@ -466,7 +467,7 @@ export class MarketplaceNotificationService implements OnModuleInit {
         returnedAmount,
         // Готовый суффикс для in-app/push — {% if %} в теле шага Центром
         // уведомлений не вычисляется (см. комментарий в схеме воркфлоу).
-        returnedAmountSuffix: returnedAmount ? ` — ${returnedAmount} ₽ восстановлены` : '',
+        returnedAmountSuffix: returnedAmount ? t('marketplace.notification.returnedAmountNote', { returnedAmount }) : '',
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
       await this.notificationSenderService.notifyUser(
@@ -506,11 +507,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         order_id: event.order_id,
         outcomeText: event.authorized
-          ? 'Совет принял имущество как паевой взнос: стоимость имущества и членский взнос за него восстановлены на Столе заказов.'
-          : 'Совет не принял имущество как паевой взнос: средства не восстанавливаются.',
+          ? t('marketplace.notification.councilAcceptedBody')
+          : t('marketplace.notification.councilRejectedBody'),
         nextStepText: event.authorized
-          ? 'Делать ничего не нужно — средства уже доступны для новых заказов.'
-          : `Имущество ждёт вас на участке ${kuName} — заберите его при следующем визите.`,
+          ? t('marketplace.notification.noActionNeededAvailableNote')
+          : t('marketplace.notification.propertyAwaitingPickupBody', { kuName }),
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/returns/${event.claim_id}`,
       };
       await this.notificationSenderService.notifyUser(
@@ -545,11 +546,11 @@ export class MarketplaceNotificationService implements OnModuleInit {
         coopname: event.coopname,
         order_id: event.order_id,
         outcomeText: event.authorized
-          ? 'Совет согласовал возврат паевого взноса имуществом по вашему заказу.'
-          : 'Совет не согласовал выдачу по вашему заказу: паевой взнос остаётся на Столе заказов.',
+          ? t('marketplace.notification.councilApprovedReturnBody')
+          : t('marketplace.notification.councilRejectedIssuanceBody'),
         nextStepText: event.authorized
-          ? `Подпишите акт приёма-передачи в приложении — имущество ждёт вас на участке ${kuName}.`
-          : 'Делать ничего не нужно — средства доступны для новых заказов.',
+          ? t('marketplace.notification.signActPromptBody', { kuName })
+          : t('marketplace.notification.noActionNeededAvailableNoteAlt'),
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/my-orders`,
       };
       await this.notificationSenderService.notifyUser(
@@ -596,14 +597,14 @@ export class MarketplaceNotificationService implements OnModuleInit {
     try {
       const memberName = await this.accountPort.getDisplayName(event.member_account);
       const outcomeHuman = event.approved
-        ? 'Совет одобрил выплату — заявка передана кассиру, ожидайте перевод на указанные реквизиты.'
-        : 'Совет отказал в выплате — средства остались на вашем кошельке, заявление можно подать заново.';
+        ? t('marketplace.notification.aidApprovedBody')
+        : t('marketplace.notification.aidRejectedBody');
       const payload: Workflows.MarketplaceAidCouncilDecided.IPayload = {
         memberName,
         amount: AmountFormatterUtils.formatAmountSafe(event.amount),
         outcomeHuman,
         // Готовый суффикс: ветвление в теле шага Центром уведомлений не вычисляется.
-        reasonSuffix: !event.approved && event.reason ? ` Причина: ${event.reason}.` : '',
+        reasonSuffix: !event.approved && event.reason ? t('marketplace.notification.reasonNote', { reason: event.reason }) : '',
         coopname: event.coopname,
         deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market-pvz/economy`,
       };

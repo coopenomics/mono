@@ -1,0 +1,9 @@
+{
+  "errors": {
+    "USER_EMAIL_ALREADY_REGISTERED": "Пользователь с указанным EMAIL уже зарегистрирован",
+    "USER_EMAIL_TAKEN": "Email уже занят",
+    "USER_NOT_FOUND": "Пользователь не найден",
+    "USER_SUBSCRIBER_ID_GENERATION_FAILED": "Не удалось сгенерировать уникальный subscriber_id после {maxRetries} попыток",
+    "USER_USERNAME_ALREADY_REGISTERED": "Пользователь с указанным именем уже зарегистрирован"
+  }
+}

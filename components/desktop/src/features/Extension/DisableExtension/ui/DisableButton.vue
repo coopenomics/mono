@@ -8,7 +8,7 @@ q-btn.full-width(
   :loading='isDisabling'
 )
   q-icon(name='fa-solid fa-toggle-on')
-  span.q-ml-xs включено
+  span.q-ml-xs {{ $t('extension.disableButton.stateLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -22,6 +22,7 @@ import {
 } from 'src/shared/api';
 
 import type { IExtension } from 'src/entities/Extension/model';
+import { t } from 'src/shared/i18n';
 
 interface Props {
   extension: IExtension;
@@ -41,10 +42,10 @@ const disable = async () => {
     await disableExtension(props.extension.name, props.extension.config);
     // Если расширение отключено, удаляем его workspace
     desktop.removeWorkspace(props.extension.name);
-    SuccessAlert('Расширение обновлено');
+    SuccessAlert(t('extension.disableButton.updatedSuccess'));
   } catch (e: unknown) {
     FailAlert(
-      `Ошибка отключения расширения: ${extractGraphQLErrorMessages(e)}`,
+      t('extension.disableButton.disableError', { errorMessage: extractGraphQLErrorMessages(e) }),
     );
   } finally {
     isDisabling.value = false;

@@ -70,6 +70,7 @@ export function buildTtnData(
       const saleUnit = marketplaceOrderSaleUnit(o.quantity, o.unit_of_measure, o.package_size);
       return {
         sku: o.offer_id ? String(o.offer_id).slice(0, 8) : '—',
+        // i18n-ignore: часть печатной ТТН — официальный документ по законодательству РФ, остаётся русским
         title: o.product_name || 'Товар по предложению',
         qty: saleUnit.units,
         unit: saleUnit.unitLabel,

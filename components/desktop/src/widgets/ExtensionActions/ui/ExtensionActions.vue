@@ -18,7 +18,7 @@
       unelevated,
       no-caps,
       @click='router.push({ name: "extension-install" })'
-    ) Установить
+    ) {{ $t('extensionActions.extensionActions.installButton') }}
     DesktopsList(:desktops='extension.desktops')
 
   //- Шаг установки.

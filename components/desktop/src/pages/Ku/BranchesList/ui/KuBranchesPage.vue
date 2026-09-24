@@ -3,20 +3,20 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Кооперативные участки объединяют пайщиков по месту. Откройте участок,
-      | чтобы увидеть его председателя, адрес, контакты и доверенных лиц.
-      | Новый участок учреждается собранием пайщиков на вкладке «Собрания».
-    button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
+      | {{ $t('ku.kuBranchesPage.introLine1') }}
+      | {{ $t('ku.kuBranchesPage.introLine2') }}
+      | {{ $t('ku.kuBranchesPage.introLine3') }}
+    button.icon-btn(type='button', :aria-label='$t("ku.kuBranchesPage.dismissBanner")', @click='dismiss')
       q-icon(name='close')
 
   //- Состояние системы управления кооперативом (флаг is_branched из контракта branch):
   //- при 3+ кооперативных участках общее собрание проходит через участки (мажоритарная модель).
   //- Индикатор только для информации — флаг выставляется контрактом автоматически.
-  BaseCard.q-mb-md(title='Мажоритарная система управления')
+  BaseCard.q-mb-md(:title='$t("ku.kuBranchesPage.majoritySystemTitle")')
     template(#actions)
       BaseChip(:variant="isBranched ? 'pos' : 'neutral'")
         q-icon(:name="isBranched ? 'check_circle' : 'do_not_disturb_on'", size='14px')
-        span.q-ml-xs {{ isBranched ? 'Включена' : 'Не включена' }}
+        span.q-ml-xs {{ isBranched ? $t('ku.kuBranchesPage.enabledLabel') : $t('ku.kuBranchesPage.disabledLabel') }}
     .t-sm.t-muted {{ branchModeText }}
 
   TableSkeleton(v-if='loading && !branches.length', :columns='skeletonColumns', :rows='4')
@@ -25,10 +25,10 @@
       table.table
         thead
           tr
-            th Участок
-            th Председатель
-            th Доверенные
-            th.col-count Пайщики
+            th {{ $t('ku.kuBranchesPage.column.branch') }}
+            th {{ $t('ku.kuBranchesPage.column.chairman') }}
+            th {{ $t('ku.kuBranchesPage.column.trustees') }}
+            th.col-count {{ $t('ku.kuBranchesPage.column.members') }}
             th.col-action
         tbody
           tr.data-row(
@@ -48,14 +48,14 @@
             td.col-action
               button.icon-btn(
                 type='button',
-                aria-label='Открыть участок',
+                :aria-label='$t("ku.kuBranchesPage.openBranchAction")',
                 @click.stop='openDetails(branch.braname)'
               )
                 q-icon(name='chevron_right')
   EmptyState(
     v-else,
-    title='Кооперативных участков пока нет',
-    body='Учредите участок собранием пайщиков на вкладке «Собрания».'
+    :title='$t("ku.kuBranchesPage.emptyTitle")',
+    :body='$t("ku.kuBranchesPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='home_work', size='48px')
@@ -70,12 +70,13 @@ import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert } from 'src/shared/api';
 import { BaseCard, BaseChip, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок' },
-  { label: 'Председатель' },
-  { label: 'Доверенные' },
-  { label: 'Пайщики', class: 'col-count' },
+  { label: t('ku.kuBranchesPage.column.branch') },
+  { label: t('ku.kuBranchesPage.column.chairman') },
+  { label: t('ku.kuBranchesPage.column.trustees') },
+  { label: t('ku.kuBranchesPage.column.members'), class: 'col-count' },
   { label: '', class: 'col-action', cell: 'icon' },
 ];
 
@@ -94,8 +95,8 @@ const branches = computed(() => branchStore.publicBranches);
 const isBranched = computed(() => !!system.info?.cooperator_account?.is_branched);
 const branchModeText = computed(() =>
   isBranched.value
-    ? 'В кооперативе три и более кооперативных участков, поэтому общие собрания проходят через них: пайщики участвуют в собраниях своего участка, а участки представляют их на общем собрании пайщиков кооператива.'
-    : 'Пока в кооперативе меньше трёх кооперативных участков — все пайщики участвуют в общем собрании напрямую. Когда участков станет три и более, система управления автоматически переключится на мажоритарную: собрания будут проходить через кооперативные участки.',
+    ? t('ku.kuBranchesPage.branchModeTextBranched')
+    : t('ku.kuBranchesPage.branchModeTextUnbranched'),
 );
 
 function branchTitle(branch: any): string {

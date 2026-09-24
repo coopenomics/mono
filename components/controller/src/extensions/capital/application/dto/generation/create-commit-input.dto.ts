@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import JSON from 'graphql-type-json';
 import { IsNotEmpty, IsString, IsNumber, Min, IsOptional } from 'class-validator';
 import type { CreateCommitDomainInput } from '../../../domain/actions/create-commit-domain-input.interface';
@@ -11,33 +12,33 @@ import type { CommitData } from '../../../domain/entities/commit.entity';
 @InputType('CreateCommitInput')
 export class CreateCommitInputDTO implements CreateCommitDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createCommitInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.createCommitInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя пользователя' })
-  @IsNotEmpty({ message: 'Имя пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createCommitInput.username.required') })
+  @IsString({ message: validationMessage('capital.createCommitInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createCommitInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.createCommitInput.projectHash.string') })
   project_hash!: string;
 
 
   @Field(() => Number, { description: 'Количество часов для коммита' })
-  @IsNumber({}, { message: 'Количество часов должно быть числом' })
-  @Min(0.1, { message: 'Количество часов должно быть больше 0' })
+  @IsNumber({}, { message: validationMessage('capital.createCommitInput.commitHours.number') })
+  @Min(0.1, { message: validationMessage('capital.createCommitInput.commitHours.min') })
   commit_hours!: number;
 
   @Field(() => String, { description: 'Описание коммита' })
-  @IsString({ message: 'Описание коммита должно быть строкой' })
+  @IsString({ message: validationMessage('capital.createCommitInput.description.string') })
   description!: string;
 
   @Field(() => String, { description: 'Мета-данные коммита' })
-  @IsNotEmpty({ message: 'Мета-данные коммита не должны быть пустыми' })
-  @IsString({ message: 'Мета-данные коммита должны быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.createCommitInput.meta.required') })
+  @IsString({ message: validationMessage('capital.createCommitInput.meta.string') })
   meta!: string;
 
   @Field(() => JSON, {

@@ -1,5 +1,6 @@
 import { Mutations, Queries, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { t } from 'src/shared/i18n';
 
 /**
  * Снапшот фактической выдачи (соответствует MarketplaceOrderIssuanceFactSnapshot
@@ -282,24 +283,24 @@ export function issuanceStageDisplay(saga: { stage: string; decision_mode: strin
 } {
   switch (saga.stage) {
     case 'FACT_FIXED':
-      return { label: 'Ждём подпись заявления пайщиком', variant: 'warn' };
+      return { label: t('marketplace.issuance.status.factFixed'), variant: 'warn' };
     case 'STATEMENT_SIGNED':
-      return { label: 'Заявление подано в совет', variant: 'info' };
+      return { label: t('marketplace.issuance.status.statementSigned'), variant: 'info' };
     case 'DECISION_PENDING':
       return {
-        label: saga.decision_mode === 'MANUAL' ? 'На рассмотрении совета' : 'Ждём решение совета',
+        label: saga.decision_mode === 'MANUAL' ? t('marketplace.issuance.status.decisionPendingManual') : t('marketplace.issuance.status.decisionPendingAuto'),
         variant: 'info',
       };
     case 'DECISION_AUTHORIZED':
-      return { label: 'Совет согласовал — ждём подпись акта пайщиком', variant: 'warn' };
+      return { label: t('marketplace.issuance.status.decisionAuthorized'), variant: 'warn' };
     case 'ACT1_SIGNED':
-      return { label: 'Акт подписан — закрываем выдачу', variant: 'pos' };
+      return { label: t('marketplace.issuance.status.act1Signed'), variant: 'pos' };
     case 'CLOSED':
-      return { label: 'Выдано', variant: 'pos' };
+      return { label: t('marketplace.issuance.status.closed'), variant: 'pos' };
     case 'DECLINED':
-      return { label: 'Совет отказал', variant: 'neg' };
+      return { label: t('marketplace.issuance.status.declined'), variant: 'neg' };
     case 'CANCELLED':
-      return { label: 'Выдача снята', variant: 'neutral' };
+      return { label: t('marketplace.issuance.status.cancelled'), variant: 'neutral' };
     default:
       return { label: saga.stage, variant: 'neutral' };
   }

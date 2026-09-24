@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Определение интерфейса для хранения данных об обрабатываемых собраниях
 export interface TrackedMeet {
@@ -61,14 +62,15 @@ export const Schema = z.object({
     .default(defaultConfig.checkIntervalMinutes)
     .describe(
       describeField({
-        label: 'Интервал проверки наличия новых собраний (в минутах)',
-        note: 'Минимум: 1 минута',
+        label: t('participant.settings.meetCheckIntervalLabel'),
+        note: t('participant.settings.meetCheckIntervalNote'),
         rules: ['val >= 1'],
       })
     ),
   lastCheckTimestamp: z
     .string()
     .default(defaultConfig.lastCheckTimestamp)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Временная метка последней проверки', visible: false })),
   trackedMeets: z
     .array(
@@ -91,14 +93,15 @@ export const Schema = z.object({
       })
     )
     .default(defaultConfig.trackedMeets)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Отслеживаемые собрания', visible: false })),
   minutesBeforeStartNotification: z
     .number()
     .default(defaultConfig.minutesBeforeStartNotification)
     .describe(
       describeField({
-        label: 'За сколько минут до начала собрания отправлять уведомление',
-        note: 'По умолчанию: 4320 минут (3 дня). Для тестирования можно установить 5-10 минут',
+        label: t('participant.settings.beforeStartMinutesLabel'),
+        note: t('participant.settings.beforeStartMinutesNote'),
         rules: ['val >= 1'],
       })
     ),
@@ -107,14 +110,15 @@ export const Schema = z.object({
     .default(defaultConfig.minutesBeforeEndNotification)
     .describe(
       describeField({
-        label: 'За сколько минут до конца собрания отправлять уведомление',
-        note: 'По умолчанию: 1440 минут (1 день). Для тестирования можно установить 5-10 минут',
+        label: t('participant.settings.beforeEndMinutesLabel'),
+        note: t('participant.settings.beforeEndMinutesNote'),
         rules: ['val >= 1'],
       })
     ),
   closedMeetIds: z
     .array(z.number())
     .default(defaultConfig.closedMeetIds)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'ID закрытых собраний', visible: false })),
 });
 

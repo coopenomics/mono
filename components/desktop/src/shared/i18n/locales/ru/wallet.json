@@ -1,0 +1,52 @@
+{
+  "wallet": {
+    "depositButton": {
+      "acceptError": "Произошла ошибка при приёме платежа",
+      "acceptSuccess": "Платеж успешно принят",
+      "amountPlaceholder": "Введите сумму",
+      "amountPositiveError": "Сумма взноса должна быть положительной",
+      "buttonLabel": "Совершить взнос",
+      "cancel": "Отменить",
+      "confirm": "Продолжить",
+      "dialogTitle": "Паевой взнос",
+      "paymentDialogTitle": "Совершите взнос",
+      "paymentInstructions": "Пожалуйста, совершите оплату паевого взноса {amount}. Комиссия провайдера {feePercent}%, всего к оплате: {totalAmount}.",
+      "submitLabel": "Внести",
+      "warningText": "Оплату необходимо произвести с банковского счета, который принадлежит именно Вам. При поступлении средств с другого счета, оплата будет аннулирована.",
+      "warningTitle": "Внимание!"
+    },
+    "walletProgramWidget": {
+      "emptyBody": "У вас пока нет кошельков на столе пайщика.",
+      "emptyTitle": "Нет кошельков",
+      "minBalanceSubtitle": "Возвращается при выходе из кооператива",
+      "minBalanceTitle": "Минимальный неснижаемый остаток",
+      "reservedLabel": "Зарезервировано"
+    },
+    "walletWidget": {
+      "availableLabel": "Доступно",
+      "minBalanceLabel": "Минимальный неснижаемый остаток"
+    },
+    "withdrawButton": {
+      "amountExceedsBalanceError": "Сумма больше доступного остатка паевого взноса",
+      "amountLabel": "Сумма возврата",
+      "amountPositiveError": "Сумма должна быть положительной",
+      "availableAmountLabel": "Доступно к возврату: {amount} {currency}",
+      "bankAccountMethodLabel": "Банковский счет {accountNumber} в {bankName}",
+      "bankTransferMethodLabel": "Банковский перевод — {bank} (***{last4})",
+      "buttonLabel": "Получить возврат",
+      "cancel": "Отменить",
+      "confirm": "Создать заявление",
+      "description": "Заявление будет отправлено в совет кооператива на рассмотрение, после одобрения средства поступят на счёт указанным способом.",
+      "dialogTitle": "Заявление на возврат паевого взноса",
+      "methodLabel": "Способ получения",
+      "methodPlaceholder": "Выберите способ получения",
+      "methodRequiredError": "Выберите способ получения средств",
+      "methodsEmpty": "Методы получения не найдены",
+      "methodsLoadError": "Ошибка загрузки методов платежа",
+      "sbpFullMethodLabel": "Система Быстрых Платежей на номер {phone}",
+      "sbpMethodLabel": "СБП ({phone})",
+      "submitLabel": "Вернуть",
+      "submitSuccess": "Заявление на возврат паевого взноса успешно подано"
+    }
+  }
+}

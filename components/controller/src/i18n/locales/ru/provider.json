@@ -1,0 +1,7 @@
+{
+  "errors": {
+    "PROVIDER_DOCUMENT_HASH_MISMATCH": "Хэш документа не совпадает с хранимым",
+    "PROVIDER_DOCUMENT_NOT_FOUND": "Документ не найден в реестре",
+    "PROVIDER_NOT_CONFIGURED": "Провайдер не настроен"
+  }
+}

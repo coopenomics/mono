@@ -1,0 +1,136 @@
+feature: platform.i18n
+title: Интернационализация — словари, формат сообщений, язык запроса, коды ошибок
+
+# Текст, который видит пользователь, живёт в словарях, код ссылается на него
+# ключами. Язык пока один — русский, поэтому любая поломка здесь видна сразу:
+# на экране вместо фразы появляется ключ, в сообщении об ошибке — код,
+# в форме «2 дней» вместо «2 дня».
+#
+# Что легко сломать и потому проверяется отдельно:
+#  - формы по числу: 11–14 берут форму «дней», 21 — «день», дробь — «дня»;
+#  - служебные символы в тексте: «@» в адресе почты без экранирования ломает
+#    компиляцию сообщения, и вместо текста выводится ключ;
+#  - два словаря с одним ключом: второй молча затёр бы первый, и текст зависел
+#    бы от порядка загрузки расширений — поэтому слияние отказывает;
+#  - язык запроса на сервере: он обязан пережить await внутри запроса и не
+#    протечь в соседний запрос.
+
+sources:
+  backend:
+    - components/i18n/src/**
+    - components/extension-kit/src/errors/domain-error.ts
+    - components/extension-kit/src/errors/chain-error.ts
+    - components/controller/src/i18n/**
+    - components/controller/src/infrastructure/graphql/filters/graphql-exceptions.filter.ts
+
+cases:
+  - id: plt.i18n.happy.01
+    level: backend
+    kind: happy
+    scenario: Сообщение с именованными и позиционными параметрами и формами по числу
+    expect: >
+      «Привет, Мир!», «1 из 2»; 1 день, 3 дня, 25 дней, для нуля — отдельная
+      форма, если она объявлена
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.side.01
+    level: backend
+    kind: side
+    scenario: Числа на границах правил русского языка
+    expect: >
+      11, 12, 14, 111 — форма «дней»; 21, 101 — «день»; 22 — «дня»; 1,5 — «дня»
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.side.02
+    level: backend
+    kind: side
+    scenario: Служебный символ и ссылка на другое сообщение
+    expect: литерал {'@'} даёт «@», ссылка @:key подставляет текст другого сообщения
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.break.01
+    level: backend
+    kind: break
+    scenario: Ключа нет в словаре
+    expect: возвращается сам ключ, пропуск записывается для отчёта
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.break.02
+    level: backend
+    kind: break
+    scenario: Два словаря объявляют одно сообщение
+    expect: слияние отказывает с именем ключа, повторная регистрация того же источника игнорируется
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.side.03
+    level: backend
+    kind: side
+    scenario: Язык запроса в асинхронном коде и неизвестный язык
+    expect: >
+      после await язык тот же; неподдерживаемый язык заменяется русским;
+      Accept-Language «en-US,en;q=0.9,ru;q=0.5» выбирает русский
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.side.04
+    level: backend
+    kind: side
+    scenario: Псевдолокаль
+    expect: каждая форма обрамлена «[!! … !!]», плейсхолдеры и ссылки нетронуты, сообщение компилируется
+    test: components/i18n/src/index.test.ts
+    status: written
+
+  - id: plt.i18n.happy.02
+    level: backend
+    kind: happy
+    scenario: Отказ DomainError доходит до клиента кодом и переведённым текстом
+    expect: >
+      message — текст из словаря с подставленными параметрами, extensions.code —
+      код отказа, extensions.status — HTTP-статус, extensions.params — параметры;
+      в REST-ответе code и params рядом с message
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written
+
+  - id: plt.i18n.side.05
+    level: backend
+    kind: side
+    scenario: Прежнее исключение со свободным текстом во время переноса
+    expect: >
+      ответ не меняется — текст как был, extensions.code — HTTP-статус числом;
+      неоперационная HttpApiError отдаёт общее сообщение из словаря и общий код
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written
+
+  - id: plt.i18n.side.06
+    level: backend
+    kind: side
+    scenario: Отказ контракта и прочий сбой цепи
+    expect: >
+      отказ контракта — код CHAIN_ASSERT и текст контракта без обёртки виртуальной
+      машины; сбой без отказа — CHAIN_ERROR с исходным текстом
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written
+
+  - id: plt.i18n.break.03
+    level: backend
+    kind: break
+    scenario: Код отказа без сообщения в словаре
+    expect: текстом становится ключ errors.<КОД> — пропуск виден сразу, гейт каталога ловит его до слияния
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written
+
+  - id: plt.i18n.side.07
+    level: backend
+    kind: side
+    scenario: Отказ контракта с кодом («КОД — текст»)
+    expect: >
+      отказ уходит с кодом контракта, текст — из словаря, а если кода в словаре
+      нет — текст контракта; код читается и из сырой ошибки цепи, отказ без кода
+      остаётся CHAIN_ASSERT; сервер различает отказы контракта по коду, а не по фразе
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    status: written

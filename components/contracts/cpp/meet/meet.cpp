@@ -80,7 +80,8 @@ void meet::cleanup() {
 
     Meet::meets_index meets(_meet, coopname.value);
     Cleanup::erase_where(meets, budget, [&](const auto &meet) {
-      return meet.status == "closed"_n;
+      // Второй шаг выноса (см. TextDigest::PHASE2).
+      return TextDigest::PHASE2 && meet.status == "closed"_n;
     });
 
     Meet::questions_index questions(_meet, coopname.value);

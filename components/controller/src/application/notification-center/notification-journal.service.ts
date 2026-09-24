@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import config from '~/config/config';
@@ -13,6 +13,7 @@ import type {
   NotificationDetailDTO,
   NotificationAttemptDTO,
 } from './graphql/notification.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Журнал уведомлений Центра (стол председателя, эпик 6).
@@ -64,7 +65,7 @@ export class NotificationJournalService {
 
   async getNotification(id: string): Promise<NotificationDetailDTO> {
     const row = await this.outboxRepository.findOne({ where: { id } });
-    if (!row) throw new NotFoundException(`Уведомление '${id}' не найдено`);
+    if (!row) throw DomainError.notFound('NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND', { id });
     this.assertOwnCoop(row.coopname);
 
     const deliveries = await this.deliveryRepository.find({
@@ -85,7 +86,7 @@ export class NotificationJournalService {
    */
   async resendNotification(id: string): Promise<NotificationDTO> {
     const source = await this.outboxRepository.findOne({ where: { id } });
-    if (!source) throw new NotFoundException(`Уведомление '${id}' не найдено`);
+    if (!source) throw DomainError.notFound('NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND', { id });
     this.assertOwnCoop(source.coopname);
 
     const resend = this.outboxRepository.create({
@@ -110,7 +111,7 @@ export class NotificationJournalService {
   /** Доступ только к журналу собственного кооператива контроллера. */
   private assertOwnCoop(coopname: string): void {
     if (coopname !== config.coopname) {
-      throw new ForbiddenException('Журнал уведомлений чужого кооператива недоступен');
+      throw DomainError.forbidden('NOTIFICATION_CENTER_JOURNAL_FOREIGN_COOP');
     }
   }
 

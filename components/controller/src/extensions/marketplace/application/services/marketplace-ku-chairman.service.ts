@@ -2,6 +2,7 @@ import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 
 import type { BranchContract } from 'cooptypes';
 import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 
 export const MARKETPLACE_KU_CHAIRMAN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMAN_SERVICE');
@@ -74,7 +75,7 @@ export class MarketplaceKuChairmanService {
     coopname: string,
     braname: string,
     member_account: string,
-    message = 'Доступно председателю и доверенным этого кооперативного участка'
+    message = t('marketplace.kuChairman.accessHint')
   ): Promise<void> {
     const isMember = await this.isMemberOfBranch(coopname, braname, member_account);
     if (!isMember) {

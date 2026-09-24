@@ -8,6 +8,7 @@
  * ведёт переход «Открыть предложение» из реестра заказов.
  */
 import { onMounted, ref } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { MarketplaceSaleForm, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
@@ -37,10 +38,10 @@ const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 });
 const feePercent = ref(0);
 
 const OFFER_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
-  ACTIVE: { label: 'Опубликовано', variant: 'pos' },
-  REJECTED: { label: 'Отклонено', variant: 'neg' },
-  WITHDRAWN: { label: 'Снято с публикации', variant: 'neutral' },
+  PENDING_MODERATION: { label: t('marketplace.offer.status.pending'), variant: 'warn' },
+  ACTIVE: { label: t('marketplace.offer.status.published'), variant: 'pos' },
+  REJECTED: { label: t('marketplace.offer.status.rejected'), variant: 'neg' },
+  WITHDRAWN: { label: t('marketplace.offer.status.unpublished'), variant: 'neutral' },
 };
 /** Пункты меню фильтра — в порядке жизненного цикла предложения. */
 const STATUS_FILTERS = (Object.keys(OFFER_STATUS) as AdminOfferStatusView[]).map((s) => ({
@@ -61,15 +62,15 @@ function statusVariant(s: string): BaseBadgeVariant {
 // сортировкой всего реестра. «Гарантийный срок возврата» ужат до «Гарантии» —
 // полным именем он раздувал колонку вдвое против своего содержимого.
 const columns: BaseTableColumn<AdminOfferView>[] = [
-  { key: 'status', label: 'Статус', width: '170px' },
-  { key: 'offer', label: 'Предложение', width: '130px' },
-  { key: 'product', label: 'Товар', width: '220px' },
-  { key: 'supplier', label: 'Поставщик', width: '190px' },
-  { key: 'price', label: 'Цена', width: '120px', numeric: true },
-  { key: 'available', label: 'Доступно', width: '150px', numeric: true },
-  { key: 'shelf_life', label: 'Срок годности', width: '130px', numeric: true },
-  { key: 'warranty', label: 'Гарантии', width: '130px', numeric: true },
-  { key: 'created', label: 'Создано', width: '150px', nowrap: true },
+  { key: 'status', label: t('marketplace.offers.column.status'), width: '170px' },
+  { key: 'offer', label: t('marketplace.offers.column.offer'), width: '130px' },
+  { key: 'product', label: t('marketplace.offers.column.product'), width: '220px' },
+  { key: 'supplier', label: t('marketplace.offers.column.supplier'), width: '190px' },
+  { key: 'price', label: t('marketplace.offers.column.price'), width: '120px', numeric: true },
+  { key: 'available', label: t('marketplace.offers.column.available'), width: '150px', numeric: true },
+  { key: 'shelf_life', label: t('marketplace.offers.column.shelfLife'), width: '130px', numeric: true },
+  { key: 'warranty', label: t('marketplace.offers.column.warranty'), width: '130px', numeric: true },
+  { key: 'created', label: t('marketplace.offers.column.createdAt'), width: '150px', nowrap: true },
 ];
 
 function onStatusFilterUpdate(value: string[]): void {
@@ -88,7 +89,7 @@ function formatPrice(v: string | null | undefined): string {
   return formatAsset2Digits(String(withFee));
 }
 function availableLabel(o: AdminOfferView): string {
-  if (o.unlimited_flag) return 'Без ограничений';
+  if (o.unlimited_flag) return t('marketplace.offers.noLimitLabel');
   // Остаток при отпуске упаковкой — по упаковкам.
   if (o.sale_form === MarketplaceSaleForm.PACKAGED && o.packages.length) {
     return marketplacePackageStockLabel(o.packages, o.unit_of_measure);
@@ -96,10 +97,10 @@ function availableLabel(o: AdminOfferView): string {
   return marketplaceQuantityLabel(o.quantity_available, o.unit_of_measure);
 }
 function formatWarranty(days: number | null | undefined): string {
-  return days && days > 0 ? `${days} дн.` : 'Без гарантийного срока возврата';
+  return days && days > 0 ? t('marketplace.offers.daysSuffix', { days }) : t('marketplace.offers.noWarrantyLabel');
 }
 function formatShelfLife(days: number | null | undefined): string {
-  return days && days > 0 ? `${days} дн.` : 'Без срока годности';
+  return days && days > 0 ? t('marketplace.offers.daysSuffix', { days }) : t('marketplace.offers.noShelfLifeLabel');
 }
 function supplierTitle(o: AdminOfferView): string {
   return fioCache.value.get(o.supplier_account) || o.supplier_account || '—';
@@ -109,7 +110,7 @@ function formatDate(d: unknown): string {
   const parsed = new Date(String(d));
   return Number.isNaN(parsed.getTime())
     ? String(d)
-    : parsed.toLocaleString('ru-RU', {
+    : parsed.toLocaleString(uiLocale(), {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
       });
 }
@@ -143,7 +144,7 @@ async function load(): Promise<void> {
     pagination.value.rowsNumber = resp.totalCount ?? 0;
     void enrichFio(items.value.map((o) => o.supplier_account));
   } catch (e) {
-    if (myId === lastRequestId) FailAlert(e, 'Не удалось загрузить реестр предложений');
+    if (myId === lastRequestId) FailAlert(e, t('marketplace.offers.loadFailedError'));
   } finally {
     if (myId === lastRequestId) loading.value = false;
   }
@@ -176,9 +177,9 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.admin-offers(role="region", aria-label="Реестр предложений кооператива")
+q-page.admin-offers(role="region", :aria-label="$t('marketplace.offers.pageAriaLabel')")
   PageHint(storage-key="mp:admin-offers:banner-dismissed")
-    | Все предложения поставщиков кооператива любого статуса — опубликованные, снятые, отклонённые и ждущие модерации. Нажмите на предложение, чтобы открыть его карточку. Модерация ждущих решения — на отдельной странице.
+    | {{ $t('marketplace.offers.pageHint') }}
 
   BaseTable(
     v-if="loading || items.length",
@@ -198,7 +199,7 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
       span(@click.stop)
         EntityIdBadge(:rawId="shortId(row.id)", copy-on-click)
     template(#cell-product="{ row }")
-      | {{ row.product_name || 'Товар по предложению' }}
+      | {{ row.product_name || $t('marketplace.offers.productByOfferAriaLabel') }}
     template(#cell-supplier="{ row }")
       | {{ supplierTitle(row) }}
     template(#cell-price="{ row }")
@@ -213,7 +214,7 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
       | {{ formatDate(row.created_at) }}
     template(#footer)
       TablePager(
-        label="Предложения",
+        :label="$t('marketplace.offers.tableLabel')",
         :page="pagination.page",
         :rows-per-page="pagination.rowsPerPage",
         :rows-number="pagination.rowsNumber",
@@ -222,8 +223,8 @@ q-page.admin-offers(role="region", aria-label="Реестр предложени
 
   EmptyState(
     v-else,
-    title="Предложений нет",
-    body="Предложений по выбранным фильтрам не найдено."
+    :title="$t('marketplace.offers.emptyTitle')",
+    :body="$t('marketplace.offers.emptyBody')"
   )
     template(#icon)
       q-icon(name="storefront", size="48px")

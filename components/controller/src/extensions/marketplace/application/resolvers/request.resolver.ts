@@ -258,6 +258,7 @@ export class RequestResolver {
       case RequestTypeInput.ORDER:
         return RequestType.ORDER;
       default:
+        // i18n-ignore: тип заявки уже провалидирован GraphQL-энумом на входе, ветка недостижима
         throw new Error(`Неизвестный тип заявки: ${type}`);
     }
   }
@@ -276,6 +277,7 @@ export class RequestResolver {
       case RequestImageTypeInput.IMAGE_360:
         return RequestImageType.IMAGE_360;
       default:
+        // i18n-ignore: тип изображения уже провалидирован GraphQL-энумом на входе, ветка недостижима
         throw new Error(`Неизвестный тип изображения: ${type}`);
     }
   }

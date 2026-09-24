@@ -13,6 +13,7 @@ import type { IUserCertificateUnion } from 'src/shared/lib/types/certificate';
 import { getNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { registerBaseDecisionHandlers } from './handlers';
+import { t } from 'src/shared/i18n';
 
 /**
  * Процесс обработки решений
@@ -34,11 +35,11 @@ export function useDecisionProcessor() {
    * Форматирует заголовок вопроса
    */
   function formatDecisionTitle(title: string, cert?: IUserCertificateUnion) {
-    const baseTitle = title || 'Вопрос на голосование';
+    const baseTitle = title || t('processDecisions.processDecisions.voteTitle');
     const name = getNameFromCertificate(cert);
 
     if (name) {
-      return `${baseTitle} от ${name}`;
+      return t('processDecisions.processDecisions.titleWithAuthor', { baseTitle, name });
     }
 
     return baseTitle;
@@ -85,7 +86,7 @@ export function useDecisionProcessor() {
       }
     }
 
-    return 'Вопрос без заголовка';
+    return t('processDecisions.processDecisions.untitledQuestion');
   }
 
   /**
@@ -126,16 +127,16 @@ export function useDecisionProcessor() {
    */
   async function generateDecisionDocument(row: IAgenda) {
     if (!row.table) {
-      throw new Error('Отсутствует таблица решения');
+      throw new Error(t('decision.error.tableMissing'));
     }
 
     if (!row.table.id || !row.table.username || !row.table.type) {
-      throw new Error('Некорректные данные решения: отсутствуют id, username или type');
+      throw new Error(t('decision.error.dataInvalid'));
     }
 
     const decision_id = Number(row.table.id);
     if (isNaN(decision_id)) {
-      throw new Error('Некорректный ID решения');
+      throw new Error(t('decision.error.idInvalid'));
     }
 
     const username = row.table.username;
@@ -149,7 +150,7 @@ export function useDecisionProcessor() {
     });
 
     if (!document) {
-      throw new Error('Ошибка при генерации документа решения');
+      throw new Error(t('decision.error.generateError'));
     }
 
     return document;
@@ -160,16 +161,16 @@ export function useDecisionProcessor() {
    */
   async function authorizeAndExecuteDecision(row: IAgenda) {
     if (!row.table) {
-      throw new Error('Отсутствует таблица решения');
+      throw new Error(t('decision.error.tableMissing'));
     }
 
     if (!row.table.id) {
-      throw new Error('Отсутствует ID решения');
+      throw new Error(t('decision.error.idMissing'));
     }
 
     const decision_id = Number(row.table.id);
     if (isNaN(decision_id)) {
-      throw new Error('Некорректный ID решения');
+      throw new Error(t('decision.error.idInvalid'));
     }
 
     // Генерируем документ решения
@@ -200,16 +201,16 @@ export function useDecisionProcessor() {
    */
   async function declineDecision(row: IAgenda) {
     if (!row.table) {
-      throw new Error('Отсутствует таблица решения');
+      throw new Error(t('decision.error.tableMissing'));
     }
 
     if (!row.table.id) {
-      throw new Error('Отсутствует ID решения');
+      throw new Error(t('decision.error.idMissing'));
     }
 
     const decision_id = Number(row.table.id);
     if (isNaN(decision_id)) {
-      throw new Error('Некорректный ID решения');
+      throw new Error(t('decision.error.idInvalid'));
     }
 
     await declineDecisionApi.declineDecision({
@@ -225,16 +226,16 @@ export function useDecisionProcessor() {
    */
   async function voteForDecision(row: IAgenda) {
     if (!row.table) {
-      throw new Error('Отсутствует таблица решения');
+      throw new Error(t('decision.error.tableMissing'));
     }
 
     if (!row.table.id) {
-      throw new Error('Не удалось получить ID решения');
+      throw new Error(t('decision.error.idFetchFailed'));
     }
 
     const decision_id = Number(row.table.id);
     if (isNaN(decision_id)) {
-      throw new Error('Некорректный ID решения');
+      throw new Error(t('decision.error.idInvalid'));
     }
 
     const { voteForDecision: vote } = useVoteForDecision();
@@ -247,16 +248,16 @@ export function useDecisionProcessor() {
    */
   async function voteAgainstDecision(row: IAgenda) {
     if (!row.table) {
-      throw new Error('Отсутствует таблица решения');
+      throw new Error(t('decision.error.tableMissing'));
     }
 
     if (!row.table.id) {
-      throw new Error('Не удалось получить ID решения');
+      throw new Error(t('decision.error.idFetchFailed'));
     }
 
     const decision_id = Number(row.table.id);
     if (isNaN(decision_id)) {
-      throw new Error('Некорректный ID решения');
+      throw new Error(t('decision.error.idInvalid'));
     }
 
     const { voteAgainstDecision } = useVoteAgainstDecision();

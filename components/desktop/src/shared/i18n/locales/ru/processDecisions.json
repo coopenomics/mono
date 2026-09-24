@@ -1,0 +1,22 @@
+{
+  "processDecisions": {
+    "error": {
+      "branchdecMetaMissing": "Отсутствуют метаданные заявления для решения branchdec",
+      "brnaidMetaInvalid": "Некорректные метаданные заявления для решения brnaid",
+      "brnaidMetaMissing": "Отсутствуют метаданные заявления для решения brnaid",
+      "creategmHashMissing": "Отсутствует hash для решения creategm",
+      "creategmMetaMissing": "Отсутствуют метаданные заявления для решения creategm",
+      "createwthdMetaInvalid": "Некорректные метаданные заявления для решения createwthd",
+      "createwthdMetaMissing": "Отсутствуют метаданные заявления для решения createwthd",
+      "freedecisionMetaMissing": "Отсутствуют метаданные заявления для решения freedecision",
+      "mktwroffMetaInvalid": "Некорректные метаданные заявления для решения mktwroff",
+      "mktwroffMetaMissing": "Отсутствуют метаданные заявления для решения mktwroff",
+      "projectIdMissing": "Отсутствует project_id в метаданных заявления"
+    },
+    "processDecisions": {
+      "titleWithAuthor": "{baseTitle} от {name}",
+      "untitledQuestion": "Вопрос без заголовка",
+      "voteTitle": "Вопрос на голосование"
+    }
+  }
+}

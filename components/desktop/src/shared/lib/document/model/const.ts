@@ -14,6 +14,7 @@ export const fakeDocument: IDocument = {
     links: [],
     registry_id: 1,
     timezone: 'Europe/Moscow',
+    // i18n-ignore: тестовые данные-заглушка (фикстура), не текст интерфейса
     title: 'Фейковый документ',
     username: 'tester',
     version: '1.0.0',

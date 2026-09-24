@@ -37,6 +37,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useWidgetBridge } from 'src/shared/lib/widget/use-widget-bridge';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 
 // Подключаем widget bridge
 const {
@@ -81,7 +82,7 @@ const footerClass = computed(() => ({
 }));
 
 const pageTitle = computed(() => {
-  return route.meta?.title || info.coopname || 'Виджет';
+  return route.meta?.title || info.coopname || t('app.widget.defaultTitle');
 });
 
 const canGoBack = computed(() => {
@@ -94,7 +95,7 @@ const canGoBack = computed(() => {
 });
 
 const footerText = computed(() => {
-  return info.coopname || 'Цифровой Кооператив';
+  return info.coopname || t('app.widget.defaultFooter');
 });
 
 // Методы

@@ -3,9 +3,9 @@ import { SegmentsService } from '../services/segments.service';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { RefreshSegmentInputDTO } from '../dto/segments/refresh-segment-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
-import { ForbiddenException, UseGuards } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 // Пагинированные результаты
 const paginatedSegmentsResult = createPaginationResult(SegmentOutputDTO, 'PaginatedCapitalSegments');
 
@@ -44,9 +44,7 @@ export class SegmentsResolver {
     const isBoardMember = currentUser?.role === 'chairman' || currentUser?.role === 'member';
     const isOwnShares = Boolean(filter?.username) && filter?.username === currentUser?.username;
     if (!filter?.project_hash && !isBoardMember && !isOwnShares) {
-      throw new ForbiddenException(
-        'Сводный список долей кооператива доступен только совету. Укажите проект в фильтре.'
-      );
+      throw DomainError.forbidden('CAPITAL_SEGMENTS_SUMMARY_FORBIDDEN');
     }
 
     return await this.segmentsService.getSegments(filter, options);

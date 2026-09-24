@@ -5,6 +5,7 @@ import { WebPushSubscriptionDto } from '../dto/web-push-subscription.dto';
 import { CreateSubscriptionResponse } from '../dto/create-subscription-response.dto';
 import { SubscriptionStatsDto } from '../dto/subscription-stats.dto';
 import { CreateSubscriptionInput } from '../dto/create-subscription-input.dto';
+import { t } from '~/i18n';
 
 @Injectable()
 export class SubscriptionService {
@@ -27,7 +28,7 @@ export class SubscriptionService {
 
     return new CreateSubscriptionResponse({
       success: true,
-      message: 'Подписка успешно создана',
+      message: t('notification.subscriptionService.subscriptionCreatedSuccess'),
       subscription: subscriptionDto,
     });
   }

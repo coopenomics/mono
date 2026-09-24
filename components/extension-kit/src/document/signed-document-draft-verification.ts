@@ -2,6 +2,8 @@ import { HttpStatus } from '@nestjs/common';
 import { Classes } from '@coopenomics/sdk';
 import { HttpApiError } from '../errors/http-api-error';
 import { CurrencyValidationUtil } from '../utils/currency-validation.utils';
+import { t } from '@coopenomics/i18n/server';
+import { DomainError } from '../errors/domain-error';
 
 /**
  * Сверка подписанного документа с черновиком, который ему предшествовал.
@@ -57,21 +59,15 @@ export async function verifySignedDocumentAgainstStoredDraft(
 ): Promise<void> {
   const generated = await loadGeneratedByDocHash(signed.doc_hash);
   if (!generated) {
-    throw new HttpApiError(
-      HttpStatus.BAD_REQUEST,
-      `Сгенерированный документ с хешем ${signed.doc_hash} не найден. Сначала сгенерируйте документ.`
-    );
+    throw DomainError.badRequest('KIT_GENERATED_DOCUMENT_NOT_FOUND', { docHash: signed.doc_hash });
   }
 
   const comparison = await Classes.Document.compareDocuments(signed as any, generated as any);
   if (!comparison.isValid) {
     const differences = Object.entries(comparison.differences)
-      .map(([field, values]) => `${field}: ожидалось "${values.expected}", получено "${values.actual}"`)
+      .map(([field, values]) => t('kit.documentVerification.fieldDifference', { field, expected: values.expected, actual: values.actual }))
       .join('; ');
-    throw new HttpApiError(
-      HttpStatus.BAD_REQUEST,
-      `Сверка подписанного документа с черновиком не прошла: ${differences}. Возможна подмена документа.`
-    );
+    throw DomainError.badRequest('KIT_DOCUMENT_DRAFT_MISMATCH', { differences });
   }
 
   if (!metaVerifications || metaVerifications.length === 0) {
@@ -86,10 +82,7 @@ export async function verifySignedDocumentAgainstStoredDraft(
       typeof raw === 'string' ? raw.trim() : raw !== undefined && raw !== null ? String(raw).trim() : '';
 
     if (!actualStr) {
-      throw new HttpApiError(
-        HttpStatus.BAD_REQUEST,
-        `В метаданных документа отсутствует поле «${field}», требуемое для сверки.`
-      );
+      throw DomainError.badRequest('KIT_DOCUMENT_META_FIELD_MISSING', { field });
     }
 
     const expectedTrimmed = expected.trim();
@@ -99,39 +92,27 @@ export async function verifySignedDocumentAgainstStoredDraft(
         const parsedExpected = CurrencyValidationUtil.extractAmountValue(expectedTrimmed);
         const parsedActual = CurrencyValidationUtil.extractAmountValue(actualStr);
         if (Number.isNaN(parsedExpected) || Number.isNaN(parsedActual)) {
-          throw new HttpApiError(
-            HttpStatus.BAD_REQUEST,
-            `Некорректный формат суммы в поле «${field}» или в ожидаемом значении.`
-          );
+          throw DomainError.badRequest('KIT_DOCUMENT_AMOUNT_FORMAT_INVALID', { field });
         }
         if (CurrencyValidationUtil.formatAmount(parsedExpected) !== CurrencyValidationUtil.formatAmount(parsedActual)) {
-          throw new HttpApiError(
-            HttpStatus.BAD_REQUEST,
-            `Значение поля «${field}» в документе (${actualStr}) не совпадает с ожидаемым (${expectedTrimmed}). Возможна подмена документа.`
-          );
+          throw DomainError.badRequest('KIT_DOCUMENT_FIELD_MISMATCH', { field, actual: actualStr, expected: expectedTrimmed });
         }
         break;
       }
       case 'string_trim': {
         if (actualStr !== expectedTrimmed) {
-          throw new HttpApiError(
-            HttpStatus.BAD_REQUEST,
-            `Значение поля «${field}» в документе (${actualStr}) не совпадает с ожидаемым (${expectedTrimmed}). Возможна подмена документа.`
-          );
+          throw DomainError.badRequest('KIT_DOCUMENT_FIELD_MISMATCH', { field, actual: actualStr, expected: expectedTrimmed });
         }
         break;
       }
       case 'hex_case_insensitive': {
         if (actualStr.toLowerCase() !== expectedTrimmed.toLowerCase()) {
-          throw new HttpApiError(
-            HttpStatus.BAD_REQUEST,
-            `Значение поля «${field}» в документе (${actualStr}) не совпадает с ожидаемым (${expectedTrimmed}). Возможна подмена документа.`
-          );
+          throw DomainError.badRequest('KIT_DOCUMENT_FIELD_MISMATCH', { field, actual: actualStr, expected: expectedTrimmed });
         }
         break;
       }
       default:
-        throw new HttpApiError(HttpStatus.INTERNAL_SERVER_ERROR, `Неизвестный режим сравнения meta: ${String(mode)}`);
+        throw DomainError.internal('KIT_DOCUMENT_COMPARE_MODE_UNKNOWN', { mode: String(mode) });
     }
   }
 }

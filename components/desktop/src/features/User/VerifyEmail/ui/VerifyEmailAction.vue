@@ -3,16 +3,16 @@
   //- Статус рядом с самим адресом (профиль): пайщик должен видеть, подтверждён
   //- он или нет, а не догадываться по наличию кнопки.
   BaseChip(v-if='showStatus', :variant='isVerified ? "pos" : "warn"', size='sm')
-    | {{ isVerified ? 'Подтверждена' : 'Не подтверждена' }}
+    | {{ isVerified ? $t('user.verifyEmailAction.verified') : $t('user.verifyEmailAction.notVerified') }}
 
   BaseButton(
     v-if='!isVerified && email',
     variant='secondary',
     size='sm',
     @click='dialogOpen = true'
-  ) Подтвердить
+  ) {{ $t('common.action.confirm') }}
 
-  BaseDialog(v-model='dialogOpen', title='Подтверждение почты', size='sm')
+  BaseDialog(v-model='dialogOpen', :title='$t("user.verifyEmailAction.dialogTitle")', size='sm')
     EmailCodeForm(v-if='dialogOpen', :email='email', @verified='onVerified')
 </template>
 
@@ -23,6 +23,7 @@ import { SuccessAlert } from 'src/shared/api';
 import { loadUserContext } from 'src/processes/init-wallet/loadUserContext';
 import { useAccountEmail } from '../model';
 import EmailCodeForm from './EmailCodeForm.vue';
+import { t } from 'src/shared/i18n';
 
 withDefaults(
   defineProps<{
@@ -37,7 +38,7 @@ const dialogOpen = ref(false);
 
 async function onVerified(): Promise<void> {
   dialogOpen.value = false;
-  SuccessAlert('Электронная почта подтверждена');
+  SuccessAlert(t('user.verifyEmailAction.success'));
   // Признак живёт на сервере — перечитываем аккаунт, иначе чип остался бы
   // «Не подтверждена» до перезагрузки страницы.
   try {

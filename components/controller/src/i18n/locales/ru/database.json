@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "DATABASE_CANDIDATE_NOT_FOUND": "Кандидат с username {username} не найден",
+    "DATABASE_ENTREPRENEUR_NOT_FOUND": "Предприниматель {username} не найден",
+    "DATABASE_EXTENSION_NAME_REQUIRED": "Имя расширения для обновления обязательный параметр",
+    "DATABASE_EXTENSION_NOT_INSTALLED": "Расширение не найдено в установленных",
+    "DATABASE_FREE_DECISION_PROJECT_NOT_FOUND": "Проект решения с идентификатором {id} не найден",
+    "DATABASE_INDIVIDUAL_NOT_FOUND": "Пользователь {username} не найден",
+    "DATABASE_ORGANIZATION_NOT_FOUND": "Организация {coopname} не найдена",
+    "DATABASE_WEB_PUSH_SUBSCRIPTION_NOT_FOUND": "Подписка не найдена"
+  }
+}

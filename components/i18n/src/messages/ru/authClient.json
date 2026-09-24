@@ -1,0 +1,151 @@
+{
+  "authClient": {
+    "certificate": {
+      "invalidClaims": "Некорректный participant_certificate: не удалось прочитать claims",
+      "missingClaims": "participant_certificate без обязательных claims (jti/exp/sub)"
+    },
+    "chain": {
+      "accountNotFound": "COOPOS недоступен или аккаунт {account} не найден: {error}",
+      "noPermissionCert": "На аккаунте {account} нет permission cert с ключом — цепочка доверия не настроена (Story 1.3).",
+      "notSingleKey": "Permission cert на {account} не является single-key (threshold={threshold}, keys={keysCount}) — не поддерживается MVP-верификацией."
+    },
+    "client": {
+      "coopIdNotConfigured": "CoopID не сконфигурирован: вызовите configureCoopId({'{'} apiUrl {'}'}) на старте приложения",
+      "noSessionAfterPassword": "authentik не вернул сессию после ввода пароля",
+      "oidcNotConfigured": "OIDC не сконфигурирован: вызовите configureOidc({'{'} clientId, redirectUri {'}'}) на старте приложения"
+    },
+    "encrypt": {
+      "decryptFailed": "Не удалось расшифровать: неверный пароль или повреждённые данные"
+    },
+    "error": {
+      "authentikNoAuthCode": "authentik не вернул код авторизации (ответ {status} на {url})"
+    },
+    "errors": {
+      "certificateExpired": "Срок действия удостоверения истёк. Войдите заново, чтобы обновить его.",
+      "certificateRevoked": "Удостоверение отозвано. Обратитесь в кооператив.",
+      "chainVerificationFailed": "Не удалось подтвердить подпись. Обратитесь в поддержку кооператива.",
+      "clientWalletMismatch": "Ключ в этом браузере не соответствует аккаунту. Войдите заново.",
+      "consentRequired": "Для экспорта удостоверения нужно подтверждение.",
+      "cooposDegraded": "Кооператив временно недоступен. Повторите попытку позже.",
+      "generic": "Не удалось выполнить операцию. Попробуйте ещё раз.",
+      "insufficientVerification": "Недостаточный уровень верификации для этого действия. Обратитесь в кооператив.",
+      "invalidCredentials": "Неверный email или пароль.",
+      "invalidOfflineCode": "Код восстановления неверен или уже использован.",
+      "invalidRecoveryToken": "Ссылка восстановления недействительна или истекла. Запросите восстановление заново.",
+      "invalidTwoFactorCode": "Неверный код из приложения-аутентификатора. Проверьте код и попробуйте снова.",
+      "loginChallengeExpired": "Время на подтверждение входа истекло. Войдите заново.",
+      "networkError": "Нет связи с кооперативом. Проверьте интернет.",
+      "notImplemented": "Функция пока недоступна.",
+      "notImplementedDetail": "Метод {method}() ещё не реализован: скелет SDK (Story 1.2), реализация приходит историями Эпиков 1–2.",
+      "recoveryDoneLoginFailed": "Пароль изменён, но войти автоматически не получилось. Войдите новым паролём.",
+      "rotationUnavailable": "Смена ключа доступна после завершения регистрации.",
+      "secondFactorRequired": "Требуется подтверждение входа: введите код второго фактора.",
+      "sessionBindingExpired": "Время на подтверждение входа истекло. Войдите заново.",
+      "sessionBindingReused": "Сессия входа уже использована. Войдите заново.",
+      "timestampTooOld": "Истекло время на подтверждение входа. Повторите попытку.",
+      "tooManyAttempts": "Слишком много попыток. Подождите немного и попробуйте снова.",
+      "tooManyRecoveryAttempts": "Слишком много запросов на восстановление. Подождите и попробуйте позже.",
+      "twoFactorNotEnrolled": "Второй фактор не подключён.",
+      "vaultDecryptionFailed": "Не удалось расшифровать кошелёк. Попробуйте восстановить доступ.",
+      "walletLocked": "Кошелёк заблокирован. Введите пароль для доступа к ключу.",
+      "weakPassword": "Пароль слишком простой. Нужно минимум 8 символов, хотя бы одна цифра и один спецсимвол."
+    },
+    "export": {
+      "consentRequired": "Экспорт удостоверения с персональными данными требует явного подтверждения",
+      "walletLocked": "Экспорт удостоверения возможен только при разблокированном кошельке"
+    },
+    "flowExecutor": {
+      "accessDenied": "Доступ запрещён: проверьте email и пароль",
+      "authentikAccessDenied": "Вход отклонён. Обратитесь в поддержку кооператива",
+      "authentikFieldRequired": "Заполните поле",
+      "authentikInvalidCode": "Неверный код подтверждения",
+      "authentikInvalidCredentials": "Неверная почта или пароль",
+      "invalidCredentialsFallback": "Неверный email или пароль",
+      "loginFailedFallback": "Не удалось войти. Проверьте почту и пароль",
+      "networkErrorStart": "Сеть недоступна на старте входа: {error}",
+      "networkErrorSubmit": "Сеть недоступна при отправке формы входа: {error}",
+      "originMismatchHint": "куки и ответ входа он не отдаст. Откройте {configuredOrigin} — вход возможен только с того же адреса.",
+      "originMismatchIntro": "Вход настроен на {configuredOrigin}, а страница открыта по {currentOrigin}. Для браузера это разные адреса: ",
+      "startHttpError": "flow-executor (старт) вернул HTTP {status}",
+      "submitHttpError": "flow-executor вернул HTTP {status}",
+      "tooManySteps": "Вход не завершён: превышено число шагов flow authentik",
+      "unsupportedStage": "Стадия входа «{stage}» не поддерживается встроенной формой",
+      "unknownStage": "неизвестно"
+    },
+    "handshake": {
+      "bindHttpError": "bind вернул HTTP {status}",
+      "bindNetworkError": "Сеть недоступна на этапе bind: {error}",
+      "bindNoToken": "bind не вернул session_binding_token",
+      "secondFactorRequired": "Требуется подтверждение входа вторым фактором",
+      "sessionNotConfirmed": "Сессия authentik не подтверждена: пройдите первый этап входа (password)",
+      "verifyHttpError": "verify вернул HTTP {status}",
+      "verifyNetworkError": "Сеть недоступна на этапе verify: {error}"
+    },
+    "migration": {
+      "invalidPrivateKey": "Некорректный приватный ключ",
+      "networkError": "Сеть недоступна при миграции: {error}",
+      "noUsername": "Миграция не вернула username",
+      "rejected": "Миграция отклонена (HTTP {status})",
+      "rotationNotConfirmed": "Сервер не подтвердил ротацию ключа — обновите платформу кооператива"
+    },
+    "oidc": {
+      "autoLoginFailedWithReason": "Пароль изменён, но войти автоматически не получилось ({reason}). Войдите новым паролём.",
+      "certificateRequestFailed": "Не удалось получить удостоверение (HTTP {status})",
+      "certificateRequestNetworkError": "Сеть недоступна при запросе удостоверения: {error}",
+      "confirmRecoveryNetworkError": "Сеть недоступна при подтверждении восстановления: {error}",
+      "confirmRecoveryNoAccount": "Подтверждение восстановления не вернуло аккаунт",
+      "confirmRecoveryRejected": "Подтверждение восстановления отклонено (HTTP {status})",
+      "confirmRecoveryTooManyAttempts": "Слишком много попыток подтверждения, попробуйте позже",
+      "noUsernameFromAuthentik": "authentik не вернул имя пайщика — без него нельзя забрать зашифрованный ключ",
+      "openRecoveryLinkNetworkError": "Сеть недоступна при открытии ссылки восстановления: {error}",
+      "openRecoveryLinkTooManyAttempts": "Слишком много попыток, попробуйте позже",
+      "recoveryLinkInvalid": "Ссылка восстановления недействительна или истекла",
+      "requestRecoveryNetworkError": "Сеть недоступна при запросе восстановления: {error}",
+      "requestRecoveryRejected": "Запрос восстановления отклонён (HTTP {status})",
+      "requestRecoveryTooManyAttempts": "Слишком много попыток восстановления, попробуйте позже"
+    },
+    "passwordPolicy": {
+      "hint": "Минимум {minLength} символов, хотя бы одна цифра и один спецсимвол",
+      "minLength": "Минимум {minLength} символов",
+      "requireDigit": "Хотя бы одна цифра",
+      "requireSpecialChar": "Хотя бы один спецсимвол (например !, ?, - или _)"
+    },
+    "signing": {
+      "invalidSessionToken": "Некорректный session_binding_token: не удалось прочитать claims",
+      "sessionTokenMissingClaims": "session_binding_token без обязательных claims sub/jti",
+      "unsupportedAlgorithm": "Неподдерживаемый алгоритм подписи: {algorithm}",
+      "walletSubjectMismatch": "Разблокированный кошелёк ({walletAccount}) не совпадает с субъектом токена ({tokenSubject})"
+    },
+    "storage": {
+      "walletLockedCurrentView": "Кошелёк заперт: сначала вызовите unlockWallet()",
+      "walletLockedSigning": "Кошелёк заперт: подпись невозможна без unlockWallet()"
+    },
+    "tokens": {
+      "noActiveSession": "Нет активной сессии: сначала выполните вход",
+      "refreshFailed": "Не удалось обновить токен (HTTP {status})",
+      "refreshNetworkError": "Сеть недоступна при обновлении токена: {error}",
+      "sessionExpired": "Сессия истекла: требуется повторный вход"
+    },
+    "twoFactor": {
+      "confirmNetworkError": "Сеть недоступна при подтверждении входа: {error}",
+      "confirmRejected": "Подтверждение входа отклонено (HTTP {status})",
+      "resendNetworkError": "Сеть недоступна при повторной отправке кода: {error}",
+      "resendRejected": "Повторная отправка кода отклонена (HTTP {status})"
+    },
+    "verificationType": {
+      "status": {
+        "coopBaseline": "Начальный: подтверждён платежом",
+        "passportOnsite": "Базовый: личность сверена с паспортом"
+      },
+      "statusShort": {
+        "coopBaseline": "Начальный",
+        "passportOnsite": "Базовый"
+      }
+    },
+    "wallet": {
+      "invalidPrivateKey": "Расшифрованное значение не является валидным приватным ключом",
+      "vaultNetworkError": "Сеть недоступна при запросе vault: {error}",
+      "vaultRequestFailed": "Не удалось получить vault (HTTP {status})"
+    }
+  }
+}

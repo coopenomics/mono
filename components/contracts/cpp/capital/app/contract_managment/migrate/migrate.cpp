@@ -131,7 +131,9 @@ static void digest_project_texts(eosio::name coopname) {
 void capital::migrate() {
   require_auth(_capital);
 
-  digest_project_texts("voskhod"_n);
+  // Перевод старых текстов в хеши — второй шаг выноса (см. TextDigest::PHASE2):
+  // прежний контроллер записал бы хеш в базу вместо текста.
+  if (TextDigest::PHASE2) digest_project_texts("voskhod"_n);
 
   // Уровни пересчитываются у всех участников кооператива: сломанная формула
   // начисления действовала на всех, кто вносил вклады.

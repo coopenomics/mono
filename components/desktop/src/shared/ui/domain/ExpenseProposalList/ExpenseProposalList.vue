@@ -9,8 +9,8 @@
 
   EmptyState(
     v-else-if='!loading && !sortedRows.length',
-    :title='emptyTitle || "Расходов пока нет"',
-    :body='emptyBody || "Создайте первый расход через кнопку «Создать расход» в шапке."'
+    :title='emptyTitle || $t("ui.expenseProposalList.emptyTitle")',
+    :body='emptyBody || $t("ui.expenseProposalList.emptyBody")'
   )
     template(#icon)
       q-icon(name='receipt_long', size='48px')
@@ -27,7 +27,7 @@
     )
       .expense-list__main
         .expense-list__title-row
-          span.expense-list__title {{ row.title || '— без описания —' }}
+          span.expense-list__title {{ row.title || $t('ui.expenseProposalList.noDescriptionText') }}
           BaseBadge(:variant='proposalStatusVariant(row.status)')
             | {{ proposalStatusLabel(row.status) }}
 
@@ -38,10 +38,10 @@
 
       .expense-list__meta
         .expense-list__meta-item(v-if='row.created_at')
-          span.expense-list__meta-label.t-eyebrow Создан
+          span.expense-list__meta-label.t-eyebrow {{ $t('ui.expenseProposalList.createdLabel') }}
           span.expense-list__meta-value {{ formatDate(row.created_at) }}
         .expense-list__meta-item
-          span.expense-list__meta-label.t-eyebrow Сумма
+          span.expense-list__meta-label.t-eyebrow {{ $t('ui.expenseProposalList.amountLabel') }}
           span.expense-list__meta-value.t-mono {{ row.total_planned }}
 
       .expense-list__go
@@ -50,6 +50,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import {
   proposalStatusLabel,
@@ -75,7 +76,7 @@ const sortedRows = computed<ExpenseProposalListRow[]>(() => {
 function formatDate(iso: string): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString('ru-RU', {
+    return new Date(iso).toLocaleString(uiLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',

@@ -165,6 +165,7 @@ function mapToStrings(source: Record<string, unknown>): Record<string, string> {
  */
 function sanitizeKey(key: string): string {
   if (!/^[A-Za-z0-9_]+$/.test(key)) {
+    // i18n-ignore: внутренняя защита построителя запроса (недопустимое имя поля условия) — разработческая, до пайщика не доходит
     throw new Error(`Недопустимое имя поля в условии выборки: ${key}`);
   }
   return key;

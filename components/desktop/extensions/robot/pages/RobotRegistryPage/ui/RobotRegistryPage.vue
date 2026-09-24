@@ -3,19 +3,19 @@
   .banner.banner--info.q-mb-md(v-if='!dismissed')
     q-icon.banner__icon(name='info', size='20px')
     .banner__body
-      | Робот принимает типовые решения совета за секунды по правилам, которые совет задал заранее.
-      | По каждому решению выберите, как голосует робот за вас: «Сразу» — как только появилась повестка,
-      | «Как ‹член совета›» — тем же голосом, что и он, и только после него. Председатель отдельно отмечает,
-      | какие протоколы робот подписывает за него. Каждый голос и протокол остаются вашей подписью:
-      | их ставит ключ отдельного разрешения вашего аккаунта, выпущенного только для робота.
-      | Здесь же видно, как настроились остальные, и хватит ли этого для кворума по каждому типу.
-    button.icon-btn(type='button', aria-label='Скрыть', @click='dismiss')
+      | {{ $t('robot.robotRegistryPage.bannerLine1') }}
+      | {{ $t('robot.robotRegistryPage.bannerLine2') }}
+      | {{ $t('robot.robotRegistryPage.bannerLine3') }}
+      | {{ $t('robot.robotRegistryPage.bannerLine4') }}
+      | {{ $t('robot.robotRegistryPage.bannerLine5') }}
+      | {{ $t('robot.robotRegistryPage.bannerLine6') }}
+    button.icon-btn(type='button', :aria-label='$t("robot.robotRegistryPage.hideAriaLabel")', @click='dismiss')
       q-icon(name='close')
 
   .banner.banner--warn.q-mb-md(v-if='keyProblem')
     q-icon.banner__icon(name='warning', size='20px')
     .banner__body {{ keyProblem.text }}
-    BaseButton(v-if='keyProblem.action', variant='primary', size='sm', :loading='busy', @click='resendKey') Передать ключ роботу
+    BaseButton(v-if='keyProblem.action', variant='primary', size='sm', :loading='busy', @click='resendKey') {{ $t('robot.robotRegistryPage.resendKeyButton') }}
 
   BaseTable(
     :columns='columns',
@@ -61,12 +61,12 @@
       BaseBadge(:variant='protocolVariant(row)') {{ protocolLabel(row) }}
 
   .row.items-center.justify-between.q-mt-md(v-if='keyReady')
-    .t-sm.t-muted Робот подписывает голоса ключом, выпущенным только для него. Отзыв удаляет этот ключ и снимает все ваши настройки.
-    BaseButton(variant='ghost', size='sm', :loading='busy', @click='revokeAll') Отозвать доступ робота
+    .t-sm.t-muted {{ $t('robot.robotRegistryPage.revokeNoteText') }}
+    BaseButton(variant='ghost', size='sm', :loading='busy', @click='revokeAll') {{ $t('robot.robotRegistryPage.revokeButton') }}
 
   .save-bar(v-if='dirty')
-    BaseButton(variant='ghost', :disabled='busy', @click='resetDraft') Отменить
-    BaseButton(variant='primary', :loading='busy', @click='save') Сохранить настройки
+    BaseButton(variant='ghost', :disabled='busy', @click='resetDraft') {{ $t('robot.robotRegistryPage.resetButton') }}
+    BaseButton(variant='primary', :loading='busy', @click='save') {{ $t('robot.robotRegistryPage.saveButton') }}
 </template>
 
 <script setup lang="ts">
@@ -79,6 +79,7 @@ import type { BaseTableColumn } from 'src/shared/ui/base';
 import { useRobotStore } from '../../../entities/robot';
 import type { IRobotDecisionType } from '../../../entities/robot';
 import { useRobotDelegation, type RobotAutomationDraft } from '../../../features/robot/model/useRobotDelegation';
+import { t } from '../../../i18n';
 
 type Row = IRobotDecisionType;
 
@@ -96,11 +97,11 @@ const boardId = computed(() => robotStore.council?.board_id ?? 0);
 const columns = computed<BaseTableColumn<Row>[]>(() => [
   // Ширины подобраны так, чтобы на обычном экране обходиться без прокрутки вбок:
   // первой колонке достаётся весь остаток, а длинное описание переносится.
-  { key: 'title', label: 'Решение', field: 'title' },
-  { key: 'my_vote', label: 'Мой голос', align: 'center', width: '150px' },
-  ...(isChairman.value ? [{ key: 'my_authorize', label: 'Мой протокол', align: 'center' as const, width: '110px' }] : []),
-  { key: 'quorum', label: 'Кворум робота', align: 'center', width: '180px' },
-  { key: 'protocol', label: 'Кто подписывает', align: 'center', width: '150px' },
+  { key: 'title', label: t('robot.robotRegistryPage.decisionColumn'), field: 'title' },
+  { key: 'my_vote', label: t('robot.robotRegistryPage.myVoteColumn'), align: 'center', width: '150px' },
+  ...(isChairman.value ? [{ key: 'my_authorize', label: t('robot.robotRegistryPage.myProtocolColumn'), align: 'center' as const, width: '110px' }] : []),
+  { key: 'quorum', label: t('robot.robotRegistryPage.quorumColumn'), align: 'center', width: '180px' },
+  { key: 'protocol', label: t('robot.robotRegistryPage.protocolSignerColumn'), align: 'center', width: '150px' },
 ]);
 
 // Режим по типу в черновике: «manual», «auto» или «follow:‹имя›».
@@ -145,14 +146,14 @@ function setAuthorize(type: string, value: boolean) {
 const modeOptions = computed(() => {
   const others = (robotStore.council?.members ?? []).filter((m) => m.is_voting && m.username !== session.username);
   return [
-    { value: MODE_MANUAL, label: 'Вручную' },
-    { value: MODE_AUTO, label: 'Сразу' },
-    ...others.map((m) => ({ value: FOLLOW_PREFIX + m.username, label: `Как ${robotStore.shortMemberName(m.username)}` })),
+    { value: MODE_MANUAL, label: t('robot.robotRegistryPage.modeManualLabel') },
+    { value: MODE_AUTO, label: t('robot.robotRegistryPage.modeImmediateLabel') },
+    ...others.map((m) => ({ value: FOLLOW_PREFIX + m.username, label: t('robot.robotRegistryPage.followModeText', { memberName: robotStore.shortMemberName(m.username) }) })),
   ];
 });
 
 function modeLabel(value: string | undefined): string {
-  return modeOptions.value.find((o) => o.value === value)?.label ?? 'Вручную';
+  return modeOptions.value.find((o) => o.value === value)?.label ?? t('robot.robotRegistryPage.modeManualLabel');
 }
 
 const dirty = computed(() =>
@@ -170,12 +171,12 @@ const keyReady = computed(() => !!keyStatus.value?.has_key && !!keyStatus.value?
 const keyProblem = computed<{ text: string; action: boolean } | null>(() => {
   if (pendingWif.value)
     return {
-      text: 'Ключ выпущен, но не дошёл до робота — голосовать за вас он пока не может. Передайте ключ повторно.',
+      text: t('robot.robotRegistryPage.keyPendingWarning'),
       action: true,
     };
   if (hasRecord.value && !keyReady.value)
     return {
-      text: 'У робота нет вашего ключа, поэтому голоса за вас он не подаёт. Нажмите «Сохранить настройки» — ключ будет выпущен заново.',
+      text: t('robot.robotRegistryPage.keyMissingWarning'),
       action: false,
     };
   return null;
@@ -188,12 +189,12 @@ function quorumVariant(row: Row): 'pos' | 'warn' | 'neutral' {
 
 /** «5 из 3» — голоса, которые робот подаёт без людей, против порога совета. */
 function quorumLabel(row: Row): string {
-  return `${row.vote_quorum.delegated_count} из ${row.vote_quorum.required_count}`;
+  return t('robot.robotRegistryPage.quorumRatioText', { delegated: row.vote_quorum.delegated_count, required: row.vote_quorum.required_count });
 }
 
 /** Голоса, которые придут вслед за другими: «+2 после голоса ant». */
 function followLabel(row: Row): string {
-  return row.vote_quorum.follow_groups.map((g) => `+${g.count} после голоса ${robotStore.shortMemberName(g.follow)}`).join(', ');
+  return row.vote_quorum.follow_groups.map((g) => t('robot.robotRegistryPage.followGroupText', { count: g.count, memberName: robotStore.shortMemberName(g.follow) })).join(', ');
 }
 
 function protocolVariant(row: Row): 'pos' | 'warn' | 'neutral' {
@@ -202,15 +203,15 @@ function protocolVariant(row: Row): 'pos' | 'warn' | 'neutral' {
 }
 
 function protocolLabel(row: Row): string {
-  if (row.chairman.delegated && row.chairman.has_key) return 'Подписывает робот';
-  if (row.chairman.delegated) return 'Нет ключа председателя';
-  return 'Вручную';
+  if (row.chairman.delegated && row.chairman.has_key) return t('robot.robotRegistryPage.protocolRobotLabel');
+  if (row.chairman.delegated) return t('robot.robotRegistryPage.protocolNoKeyLabel');
+  return t('robot.robotRegistryPage.protocolManualLabel');
 }
 
 function voterLabel(voter: Row['voters'][number]): string {
-  const how = voter.follow ? `как ${robotStore.shortMemberName(voter.follow)}` : 'сразу';
+  const how = voter.follow ? t('robot.robotRegistryPage.followVoterText', { memberName: robotStore.shortMemberName(voter.follow) }) : t('robot.robotRegistryPage.immediateVoterText');
   const name = robotStore.memberName(voter.member);
-  return voter.has_key ? `${name} — ${how}` : `${name} — ${how}, ключ не передан`;
+  return voter.has_key ? `${name} — ${how}` : t('robot.robotRegistryPage.voterNoKeyText', { name, how });
 }
 
 function draftLists(): RobotAutomationDraft {
@@ -227,10 +228,10 @@ async function save() {
     const lists = draftLists();
     if (!keyReady.value) {
       await issueAndDelegate(boardId.value, lists);
-      SuccessAlert('Ключ выпущен и передан роботу, настройки сохранены');
+      SuccessAlert(t('robot.robotRegistryPage.keyIssuedSuccess'));
     } else {
       await saveAutomation(boardId.value, lists, hasRecord.value);
-      SuccessAlert('Настройки автоматизации сохранены');
+      SuccessAlert(t('robot.robotRegistryPage.automationSavedSuccess'));
     }
     syncDraft();
   } catch (e: unknown) {
@@ -242,7 +243,7 @@ async function resendKey() {
   try {
     await handOverPendingKey();
     await robotStore.loadKeyStatus();
-    SuccessAlert('Ключ передан роботу');
+    SuccessAlert(t('robot.robotRegistryPage.keyHandedOverSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   }
@@ -252,7 +253,7 @@ async function revokeAll() {
   try {
     await revoke(boardId.value, hasRecord.value, !!keyStatus.value?.chain_has_permission);
     syncDraft();
-    SuccessAlert('Делегирование отозвано: разрешение снято, ключ удалён у робота');
+    SuccessAlert(t('robot.robotRegistryPage.revokedSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   }

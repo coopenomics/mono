@@ -5,20 +5,20 @@ div
   //   AccountLink(:account-name="actionData.to") {{ ' ' }} {{ actionData.quantity }}
   // div(v-else)
   div
-    q-btn(color="primary" @click="dialog=true") подробнее
+    q-btn(color="primary" @click="dialog=true") {{ $t('accountActions.dataCell.detailsLabel') }}
 
   q-dialog(v-model="dialog" persistent :maximized="true" )
     q-card
       div()
         q-bar
-          span Действие
+          span {{ $t('accountActions.dataCell.dialogTitle') }}
           q-space
           q-btn(v-close-popup dense flat icon="close")
             q-tooltip Close
         div(v-if="isDocExist").q-pa-sm
           p HERE DOCUMENT READER
 
-        q-btn(size="lg" color="primary" @click="dialog=false").full-width закрыть
+        q-btn(size="lg" color="primary" @click="dialog=false").full-width {{ $t('accountActions.dataCell.closeLabel') }}
 
         div.q-pa-sm
           ul

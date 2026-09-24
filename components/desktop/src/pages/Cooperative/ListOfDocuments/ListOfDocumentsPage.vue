@@ -28,6 +28,7 @@ import { useHeaderActions } from 'src/shared/hooks';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
 import { documentTemplatesApi } from 'src/pages/Cooperative/DocumentTemplates';
 import type { DocumentType } from 'src/entities/Document/model/types';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const system = useSystemStore();
@@ -50,8 +51,8 @@ const loadAttention = async () => {
 };
 
 const tabs = computed((): PageTab[] => [
-  { key: 'documents', label: 'Документы', routeName: 'documents' },
-  { key: 'templates', label: 'Шаблоны документов', routeName: 'document-templates', count: attention.value || undefined },
+  { key: 'documents', label: t('cooperative.listOfDocumentsPage.documentsTab'), routeName: 'documents' },
+  { key: 'templates', label: t('cooperative.listOfDocumentsPage.templatesTab'), routeName: 'document-templates', count: attention.value || undefined },
 ]);
 // «Все входящие» (newsubmitted) → status не ограничивается → совет видит ВСЕ документы кооператива
 // (submitted + resolved), как и пайщик в своём реестре. Переключатель скрыт (showFilter=false),

@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
@@ -14,7 +14,7 @@ import {
   MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID,
 } from '../../constants/marketplace-agreement-ids';
 import { MarketplaceOnboardingSource, MarketplaceOnboardingStateDTO } from '../dto/marketplace-onboarding-state.dto';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Story 1.4: L3 fallback gate marketplace.
@@ -127,9 +127,7 @@ export class MarketplaceOnboardingService {
     document: ISignedDocument;
   }): Promise<InnerTransactResult> {
     if (MARKETPLACE_OFFER_INSTANCE_REGISTRY_ID <= 0) {
-      throw new BadRequestException(
-        'ЦПП «Стол заказов» ещё не активирована (Story 1.7 не выполнена): подписание оферты невозможно'
-      );
+      throw DomainError.badRequest('MARKETPLACE_CPP_NOT_ACTIVATED');
     }
 
     const coagreement = await this.sovietBlockchainPort.getCoagreement(
@@ -137,15 +135,11 @@ export class MarketplaceOnboardingService {
       MARKETPLACE_AGREEMENT_TYPE
     );
     if (!coagreement) {
-      throw new BadRequestException(
-        `В кооперативе '${input.coopname}' не настроено соглашение типа '${MARKETPLACE_AGREEMENT_TYPE}' (выполните Story 1.9 / marketplaceAcceptCpp)`
-      );
+      throw DomainError.badRequest('MARKETPLACE_AGREEMENT_TYPE_NOT_CONFIGURED', { coopname: input.coopname, agreementType: MARKETPLACE_AGREEMENT_TYPE });
     }
     const programId = Number(coagreement.program_id);
     if (programId <= 0) {
-      throw new BadRequestException(
-        `Соглашение '${MARKETPLACE_AGREEMENT_TYPE}' в кооперативе '${input.coopname}' не имеет программного wallet'а (program_id=${programId}): подписание через wallet::signagree невозможно`
-      );
+      throw DomainError.badRequest('MARKETPLACE_AGREEMENT_WALLET_MISSING', { agreementType: MARKETPLACE_AGREEMENT_TYPE, coopname: input.coopname, programId });
     }
 
     // Шаблон подписи берём из самой программы, а не из `coagreements`:
@@ -157,9 +151,7 @@ export class MarketplaceOnboardingService {
     const programs = await this.sovietBlockchainPort.getPrograms(input.coopname);
     const program = programs.find((p) => Number(p.id) === programId);
     if (!program) {
-      throw new BadRequestException(
-        `Программа ЦПП «Стол заказов» (program_id=${programId}) не найдена в кооперативе '${input.coopname}': кооператив не завершил подключение ЦПП`
-      );
+      throw DomainError.badRequest('MARKETPLACE_PROGRAM_NOT_FOUND', { programId, coopname: input.coopname });
     }
     const draftId = Number(program.draft_id);
 

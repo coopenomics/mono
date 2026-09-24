@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExtensionDomainService } from './extension-domain.service';
-import {
-  ExtensionDomainEntity,
-  isExtensionAvailable,
-  mergeSecretConfig,
-  type IResolvedRegistryExtension,
-} from '@coopenomics/extension-kit';
+import { ExtensionDomainEntity, isExtensionAvailable, mergeSecretConfig, type IResolvedRegistryExtension, DomainError } from '@coopenomics/extension-kit';
 import { ExtensionDTO } from '~/application/appstore/dto/extension-graphql.dto';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import zodToJsonSchema from 'zod-to-json-schema';
@@ -81,9 +76,9 @@ export class ExtensionDomainListingService<TConfig = any> {
    */
   assertInstallable(name: string): void {
     const ext = AppRegistry[name];
-    if (!ext) throw new Error(`Приложение ${name} не найдено в реестре`);
+    if (!ext) throw DomainError.internal('EXTENSION_NOT_FOUND', { name });
     if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet)) {
-      throw new Error(`Приложение ${name} недоступно для установки`);
+      throw DomainError.internal('EXTENSION_NOT_AVAILABLE_FOR_INSTALL', { name });
     }
   }
 
@@ -108,11 +103,11 @@ export class ExtensionDomainListingService<TConfig = any> {
    */
   validateConfig(name: string, config: any): void {
     const ext = AppRegistry[name];
-    if (!ext) throw new Error(`Приложение ${name} не найдено в реестре`);
+    if (!ext) throw DomainError.internal('EXTENSION_NOT_FOUND', { name });
     const result = ext.schema.safeParse(config);
     if (!result.success) {
       const errors = result.error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join('; ');
-      throw new Error(`Ошибка валидации конфигурации: ${errors}`);
+      throw DomainError.internal('EXTENSION_CONFIG_VALIDATION_FAILED', { errors });
     }
   }
 

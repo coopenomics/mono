@@ -5,6 +5,7 @@ import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatToAsset } from 'src/shared/lib/utils/formatToAsset';
 import { useResultStore } from 'app/extensions/capital/entities/Result/model';
+import { t } from '../../../../i18n';
 
 export type IConvertSegmentInput =
   Mutations.Capital.ConvertSegment.IInput['data'];
@@ -53,7 +54,7 @@ export function useConvertSegment() {
     // Контракт convertsegm проверит, что result существует и в статусе ACT2.
     const result = await resultStore.loadResultByFilters(segmentData.username, segmentData.project_hash);
     if (!result) {
-      throw new Error('Объект результата не найден — внесение РИД не завершено (нужен signact2 от председателя).');
+      throw new Error(t('capital.error.segmentResultNotFound'));
     }
 
     const convertData: IConvertSegmentInput = {

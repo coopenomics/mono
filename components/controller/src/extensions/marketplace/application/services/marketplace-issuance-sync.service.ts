@@ -5,6 +5,7 @@ import { MarketContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord, type ISignedDocument } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { MARKETPLACE_ISSUANCE_SERVICE, MarketplaceIssuanceService } from './marketplace-issuance.service';
+import { t } from '../../i18n';
 
 /**
  * Слушатель обратных вызовов совета по выдаче имущества (паевая модель) и
@@ -54,7 +55,7 @@ export class MarketplaceIssuanceSyncService {
       await this.issuanceService.onCouncilDeclined({
         coopname: data.coopname,
         order_hash: String(data.hash).toLowerCase(),
-        reason: data.reason ?? 'причина не указана',
+        reason: data.reason ?? t('marketplace.issuanceSync.reasonNotSpecified'),
       });
     } catch (err: any) {
       this.logger.error(`onmktisdecl listener упал: ${err.message}`, err.stack);

@@ -44,6 +44,7 @@
     "update:comments": "esno scripts/generate-index-comments.ts"
   },
   "dependencies": {
+    "@coopenomics/i18n": "workspace:*",
     "@wharfkit/antelope": "^1.1.1",
     "@wharfkit/contract": "^1.1.5",
     "@wharfkit/session": "^1.4.0",

@@ -4,13 +4,13 @@
     h2.extension-info__title {{ extension.title }}
     span.badge.badge--pos(v-if='extension.is_installed && extension.enabled')
       q-icon(name='fa-solid fa-check' size='11px')
-      | Установлено
+      | {{ $t('extensionInfo.extensionInfo.installedBadge') }}
     span.badge.badge--warn(v-else-if='extension.is_installed && !extension.enabled')
       q-icon(name='fa-solid fa-pause' size='11px')
-      | Отключено
+      | {{ $t('extensionInfo.extensionInfo.disabledBadge') }}
     span.badge.badge--warn(v-else-if='!extension.is_available')
       q-icon(name='fa-solid fa-screwdriver-wrench' size='11px')
-      | В разработке
+      | {{ $t('extensionInfo.extensionInfo.inDevelopmentBadge') }}
 
   ClientOnly
     template(#default)

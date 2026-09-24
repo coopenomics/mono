@@ -50,6 +50,7 @@ export class BranchDomainEntity implements BranchDomainInterface {
     isAvailable = true
   ) {
     if (branchBlockchainData.braname != organizationDatabaseData.username)
+      // i18n-ignore: внутренний инвариант согласованности агрегата участка (username/braname), до пайщика не доходит
       throw new Error(`Неверные данные для агрегата: username и braname кооперативного участка должны совпадать`);
 
     this.coopname = coopname;

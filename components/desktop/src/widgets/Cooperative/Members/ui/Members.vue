@@ -25,8 +25,8 @@ div
         template(#body='props')
           q-tr(:key='`m_${props.row.username}`', :props='props')
             q-td
-              q-badge(v-if='props.row.is_chairman') Председатель совета
-              q-badge(v-else) Член совета
+              q-badge(v-if='props.row.is_chairman') {{ $t('cooperative.members.chairmanBadge') }}
+              q-badge(v-else) {{ $t('cooperative.members.memberBadge') }}
 
             q-td {{ props.row.username }}
             q-td {{ props.row.last_name }}
@@ -41,7 +41,7 @@ div
                 dense,
                 @click='removeMember(props.row.username)',
                 :loading='loadingMembers[props.row.username]'
-              ) удалить
+              ) {{ $t('cooperative.members.removeLabel') }}
 
 </template>
 
@@ -53,6 +53,7 @@ import {
   useUpdateBoard,
 } from 'src/features/Cooperative/UpdateBoard';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore();
 
 
@@ -76,7 +77,7 @@ const removeMember = async (username: string) => {
     }) => {
       return {
         username: el.username,
-        position_title: el.is_chairman ? 'Председатель совета' : 'Член совета',
+        position_title: el.is_chairman ? t('cooperative.members.chairmanBadge') : t('cooperative.members.memberBadge'),
         position: el.is_chairman ? 'chairman' : 'member',
         is_voting: true,
       };
@@ -103,8 +104,8 @@ const updateBoard = async (new_members: any, removedUsername: string) => {
       username: useSessionStore().username,
       board_id: 0,
       members: new_members,
-      name: 'Совет',
-      description: 'Совет кооператива',
+      name: t('cooperative.members.boardName'),
+      description: t('cooperative.members.boardDescription'),
     });
 
     // Удаляем участника из стора сразу после успешного обновления
@@ -114,7 +115,7 @@ const updateBoard = async (new_members: any, removedUsername: string) => {
       );
     }
 
-    SuccessAlert('Участник успешно удален из совета');
+    SuccessAlert(t('cooperative.members.removeSuccess'));
   } catch (e: any) {
     FailAlert(e);
     // При ошибке перезагружаем данные
@@ -126,35 +127,35 @@ const columns = [
   {
     name: 'position',
     align: 'left',
-    label: 'Позиция',
+    label: t('cooperative.members.column.position'),
     field: 'is_chairman',
     sortable: true,
   },
   {
     name: 'username',
     align: 'left',
-    label: 'Аккаунт',
+    label: t('cooperative.members.column.username'),
     field: 'username',
     sortable: true,
   },
   {
     name: 'last_name',
     align: 'left',
-    label: 'Фамилия',
+    label: t('cooperative.members.column.lastName'),
     field: 'last_name',
     sortable: true,
   },
   {
     name: 'first_name',
     align: 'left',
-    label: 'Имя',
+    label: t('cooperative.members.column.firstName'),
     field: 'first_name',
     sortable: true,
   },
   {
     name: 'middle_name',
     align: 'left',
-    label: 'Отчество',
+    label: t('cooperative.members.column.middleName'),
     field: 'middle_name',
     sortable: true,
   }

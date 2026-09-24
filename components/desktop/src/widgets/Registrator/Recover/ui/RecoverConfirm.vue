@@ -1,12 +1,12 @@
 <template>
   <AuthSplit
     :eyebrow="coopTitle"
-    title="Восстановление доступа"
-    lead="Задайте новый пароль — ключ доступа перевыпустится, и вы сразу войдёте в кабинет."
-    quote="Старый пароль и ключ перестанут действовать после подтверждения."
-    step-eyebrow="Восстановление"
-    heading="Новый пароль"
-    text="Подтвердите смену ключа и задайте пароль для входа."
+    :title="$t('registrator.recoverConfirm.title')"
+    :lead="$t('registrator.recoverConfirm.lead')"
+    :quote="$t('registrator.recoverConfirm.quote')"
+    :step-eyebrow="$t('registrator.recoverConfirm.stepEyebrow')"
+    :heading="$t('registrator.recoverConfirm.heading')"
+    :text="$t('registrator.recoverConfirm.text')"
   >
     <template v-if="$slots.actions" #actions>
       <slot name="actions" />
@@ -16,22 +16,21 @@
     </template>
     <div v-if="finishing" class="recover-confirm__finishing">
       <q-spinner size="2em" color="primary" />
-      <span class="recover-confirm__label">Входим…</span>
+      <span class="recover-confirm__label">{{ $t('registrator.recoverConfirm.finishingLabel') }}</span>
     </div>
 
     <BaseForm v-else :loading="loading" :error="errorMessage" @submit="submit">
-      <BaseBanner v-if="email" variant="neutral">
-        Восстанавливаем доступ для {{ email }}
+      <BaseBanner v-if="email" variant="neutral"> {{ $t('registrator.recoverConfirm.recoveringForLabel') }} {{ email }}
       </BaseBanner>
 
       <div v-if="twoFactorRequired" class="recover-confirm__field">
-        <span class="recover-confirm__label">Код из приложения-аутентификатора</span>
+        <span class="recover-confirm__label">{{ $t('registrator.recoverConfirm.totpLabel') }}</span>
         <OtpInput v-model="totp" :length="6" :error="totpError" />
       </div>
 
       <BaseInput
         v-model="newPassword"
-        label="Новый пароль"
+        :label="$t('registrator.recoverConfirm.newPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :hint="PASSWORD_POLICY_HINT"
@@ -40,7 +39,7 @@
       />
       <BaseInput
         v-model="repeatPassword"
-        label="Повторите пароль"
+        :label="$t('registrator.recoverConfirm.repeatPasswordLabel')"
         type="password"
         autocomplete="new-password"
         :error="repeatError"
@@ -53,9 +52,7 @@
         block
         :loading="loading"
         :disabled="!isValid"
-      >
-        Восстановить доступ
-      </BaseButton>
+      > {{ $t('registrator.recoverConfirm.submit') }} </BaseButton>
     </BaseForm>
     <template v-if="$slots.footer" #foot>
       <slot name="footer" />
@@ -76,6 +73,7 @@ import { AuthSplit } from 'src/shared/ui/layout/AuthSplit';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { OtpInput } from 'src/shared/ui/domain/OtpInput';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   /** Одноразовый токен восстановления из ссылки письма. */
@@ -113,13 +111,13 @@ const passwordsMatch = computed(
 );
 
 const totpError = computed(() =>
-  totp.value && totp.value.length !== 6 ? 'Код состоит из 6 цифр' : '',
+  totp.value && totp.value.length !== 6 ? t('registrator.recoverConfirm.totpLengthError') : '',
 );
 const passwordError = computed(() =>
   newPassword.value ? passwordPolicyErrors(newPassword.value).join(', ') : '',
 );
 const repeatError = computed(() =>
-  repeatPassword.value && !passwordsMatch.value ? 'Пароли не совпадают' : '',
+  repeatPassword.value && !passwordsMatch.value ? t('registrator.recoverConfirm.passwordMismatchError') : '',
 );
 
 const isValid = computed(
@@ -140,7 +138,7 @@ onMounted(async () => {
     if (finishing.value) return;
     // Протухшая или чужая ссылка: форму показывать не на чем — говорим прямо.
     errorMessage.value =
-      e?.message || 'Ссылка восстановления недействительна или истекла. Запросите восстановление заново.';
+      e?.message || t('registrator.recoverConfirm.linkExpiredError');
   }
 });
 
@@ -178,7 +176,7 @@ async function enterDesktop(): Promise<void> {
   } catch (e) {
     console.warn('[BOOTRACE] не удалось поднять контекст пайщика после восстановления:', e);
     errorMessage.value =
-      'Пароль сохранён, но кабинет не открылся: не удалось получить ваши данные. Войдите заново.';
+      t('registrator.recoverConfirm.contextFailError');
     await router.push({ name: 'signin', params: { coopname: props.coopname } });
     return;
   }
@@ -228,21 +226,21 @@ const submit = async (): Promise<void> => {
       totp: twoFactorRequired.value ? totp.value : undefined,
       newPassword: newPassword.value,
     });
-    SuccessAlert('Доступ восстановлен. Входим…');
+    SuccessAlert(t('registrator.recoverConfirm.successMessage'));
     await enterDesktop();
   } catch (e: any) {
     // Ключ уже сменён, а войти следом не удалось: ссылка одноразовая и сожжена,
     // повторять здесь нечего. Оставлять пайщика на этой форме — тупик, уводим на
     // обычный вход новым паролём (владелец 03.09.2026).
     if (e?.code === AuthV2ErrorCode.RecoveryDoneLoginFailed) {
-      SuccessAlert('Пароль изменён. Войдите новым паролём.');
+      SuccessAlert(t('registrator.recoverConfirm.passwordChangedMessage'));
       await router.push({ name: 'signin', params: { coopname: props.coopname } });
       return;
     }
     // Ссылка цела, ключ не тронут — возвращаем форму с сообщением.
     finishing.value = false;
     errorMessage.value =
-      e?.message || 'Не удалось восстановить доступ. Проверьте код и попробуйте снова.';
+      e?.message || t('registrator.recoverConfirm.genericError');
     FailAlert(e);
   } finally {
     loading.value = false;

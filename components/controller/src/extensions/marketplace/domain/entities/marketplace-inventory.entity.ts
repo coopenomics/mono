@@ -53,10 +53,12 @@ export class MarketplaceInventoryDomainEntity {
   constructor(props: MarketplaceInventoryProps) {
     if (props.barcode_value && props.barcode_format === 'EAN13' && !isValidEan13(props.barcode_value)) {
       throw new Error(
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         `MarketplaceInventoryDomainEntity: EAN-13 должен быть 13-значным числом (получено: "${props.barcode_value}")`
       );
     }
     if (props.quantity_per_label <= 0) {
+      // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
       throw new Error('MarketplaceInventoryDomainEntity: quantity_per_label должен быть положительным.');
     }
     this.id = props.id;

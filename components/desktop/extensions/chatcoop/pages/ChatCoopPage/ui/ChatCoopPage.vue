@@ -1,12 +1,12 @@
 <template lang="pug">
 div
   // Лоадер пока получаем статус аккаунта
-  WindowLoader(v-if="chatcoopStore.isLoading", text="Проверка статуса аккаунта...")
+  WindowLoader(v-if="chatcoopStore.isLoading", :text="$t('chatcoop.chatCoopPage.checkingStatusText')")
 
   // Сообщение об ошибке
   div(v-else-if="chatcoopStore.error", class="error-message")
     p {{ chatcoopStore.error }}
-    button(@click="retryLoadStatus", class="retry-button") Повторить попытку
+    button(@click="retryLoadStatus", class="retry-button") {{ $t('chatcoop.chatCoopPage.retryLabel') }}
 
   // Виджет регистрации Matrix аккаунта
   MatrixRegistration(
@@ -17,7 +17,7 @@ div
   // Лоадер пока загружается iframe Matrix клиента
   WindowLoader(
     v-else-if="iframeSrc && isIframeLoading",
-    text="Загрузка клиента..."
+    :text="$t('chatcoop.chatCoopPage.loadingClientText')"
   )
 
   // Заглушка для мобильных устройств
@@ -25,11 +25,11 @@ div
     div.mobile-stub-content
       div.mobile-icon
         i.fas.fa-mobile-alt
-      h2 Мобильный клиент доступен
-      p На мобильных устройствах кооперативный мессенджер работает только через мобильное приложение Element X.
-      p Перейдите на страницу с инструкциями по подключению.
+      h2 {{ $t('chatcoop.chatCoopPage.mobileAvailableTitle') }}
+      p {{ $t('chatcoop.chatCoopPage.mobileAvailableHint') }}
+      p {{ $t('chatcoop.chatCoopPage.mobileInstructionsHint') }}
       q-btn(@click="goToMobileClient", class="mobile-button", color="primary", icon="fa-mobile-alt")
-        | Перейти к мобильному клиенту
+        | {{ $t('chatcoop.chatCoopPage.goToMobileClientLabel') }}
 
   // Iframe с Matrix клиентом после полной загрузки
   iframe(

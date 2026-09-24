@@ -8,23 +8,23 @@ div
     :disable="loading"
   )
 
-    span.q-ml-xs Удалить участок
+    span.q-ml-xs {{ $t('branch.deleteBranchButton.triggerLabel') }}
 
   BaseDialog(
     v-model='showDialog',
-    title='Удаление кооперативного участка',
+    :title='$t("branch.deleteBranchButton.dialogTitle")',
     size='md',
     @update:model-value='(v) => !v && clear()'
   )
     Form(
       :handler-submit="handleDeleteBranch"
       :is-submitting="loading"
-      :button-cancel-txt="'Отменить'"
-      :button-submit-txt="'Удалить'"
+      :button-cancel-txt="$t('branch.deleteBranchButton.cancel')"
+      :button-submit-txt="$t('common.action.delete')"
       @cancel="clear"
     )
-      p.text-weight-bold Вы уверены, что хотите удалить кооперативный участок {{ branch?.short_name }}?
-      p Это действие необратимо. Все пайщики будут отключены от участка и увидят приглашение выбрать новый участок.
+      p.text-weight-bold {{ $t('branch.deleteBranchButton.confirmText', { shortName: branch?.short_name }) }}
+      p {{ $t('branch.deleteBranchButton.confirmDetail') }}
 </template>
 
 <script lang="ts" setup>

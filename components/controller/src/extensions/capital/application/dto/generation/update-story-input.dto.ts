@@ -1,4 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsOptional, IsEnum, Min, IsInt } from 'class-validator';
 import { ContentRevisionOrigin } from '../../../domain/enums/content-revision-origin.enum';
 import { StoryStatus } from '../../../domain/enums/story-status.enum';
@@ -12,8 +13,8 @@ export class UpdateStoryInputDTO {
   @Field(() => String, {
     description: 'Хэш истории для обновления',
   })
-  @IsNotEmpty({ message: 'Хэш истории не должен быть пустым' })
-  @IsString({ message: 'Хэш истории должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.updateStoryInput.storyHash.required') })
+  @IsString({ message: validationMessage('capital.updateStoryInput.storyHash.string') })
   story_hash!: string;
 
   @Field(() => String, {
@@ -21,7 +22,7 @@ export class UpdateStoryInputDTO {
     description: 'Название истории',
   })
   @IsOptional()
-  @IsString({ message: 'Название истории должно быть строкой' })
+  @IsString({ message: validationMessage('capital.updateStoryInput.title.string') })
   title?: string;
 
   @Field(() => String, {
@@ -29,7 +30,7 @@ export class UpdateStoryInputDTO {
     description: 'Описание истории',
   })
   @IsOptional()
-  @IsString({ message: 'Описание истории должно быть строкой' })
+  @IsString({ message: validationMessage('capital.updateStoryInput.description.string') })
   description?: string;
 
   @Field(() => StoryStatus, {
@@ -37,7 +38,7 @@ export class UpdateStoryInputDTO {
     description: 'Статус истории',
   })
   @IsOptional()
-  @IsEnum(StoryStatus, { message: 'Неверный статус истории' })
+  @IsEnum(StoryStatus, { message: validationMessage('capital.updateStoryInput.status.invalid') })
   status?: StoryStatus;
 
   @Field(() => StoryContentFormat, {
@@ -45,7 +46,7 @@ export class UpdateStoryInputDTO {
     description: 'Формат тела требования (MARKDOWN, BPMN, DRAWIO, MERMAID)',
   })
   @IsOptional()
-  @IsEnum(StoryContentFormat, { message: 'Неверный формат содержимого истории' })
+  @IsEnum(StoryContentFormat, { message: validationMessage('capital.updateStoryInput.contentFormat.invalid') })
   content_format?: StoryContentFormat;
 
   @Field(() => String, {
@@ -53,7 +54,7 @@ export class UpdateStoryInputDTO {
     description: 'Хеш проекта (если история привязана к проекту)',
   })
   @IsOptional()
-  @IsString({ message: 'Хеш проекта должен быть строкой' })
+  @IsString({ message: validationMessage('capital.updateStoryInput.projectHash.string') })
   project_hash?: string;
 
   @Field(() => String, {
@@ -61,7 +62,7 @@ export class UpdateStoryInputDTO {
     description: 'Хеш задачи (если история привязана к задаче)',
   })
   @IsOptional()
-  @IsString({ message: 'Хеш задачи должен быть строкой' })
+  @IsString({ message: validationMessage('capital.updateStoryInput.issueHash.string') })
   issue_hash?: string;
 
   @Field(() => Int, {
@@ -69,7 +70,7 @@ export class UpdateStoryInputDTO {
     description: 'Порядок сортировки',
   })
   @IsOptional()
-  @Min(0, { message: 'Порядок сортировки не может быть отрицательным' })
+  @Min(0, { message: validationMessage('capital.updateStoryInput.sortOrder.min') })
   sort_order?: number;
 
   @Field(() => Int, {
@@ -78,8 +79,8 @@ export class UpdateStoryInputDTO {
       'Редакция содержимого (content_rev), с которой автор начал правку. Сервер сливает правку с параллельными изменениями; без поля — запись без проверки версии',
   })
   @IsOptional()
-  @IsInt({ message: 'base_rev должен быть целым числом' })
-  @Min(0, { message: 'base_rev не может быть отрицательным' })
+  @IsInt({ message: validationMessage('capital.updateStoryInput.baseRev.int') })
+  @Min(0, { message: validationMessage('capital.updateStoryInput.baseRev.min') })
   base_rev?: number;
 
   @Field(() => ContentRevisionOrigin, {
@@ -87,6 +88,6 @@ export class UpdateStoryInputDTO {
     description: 'Источник правки для истории редакций (WEB по умолчанию, CLI для blago)',
   })
   @IsOptional()
-  @IsEnum(ContentRevisionOrigin, { message: 'Неверный источник правки' })
+  @IsEnum(ContentRevisionOrigin, { message: validationMessage('capital.updateStoryInput.origin.invalid') })
   origin?: ContentRevisionOrigin;
 }

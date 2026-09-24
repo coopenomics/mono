@@ -9,14 +9,14 @@ div
     :loading='loading'
     placeholder=''
     class='master-selector'
-    label='Мастер'
+    :label='$t("capital.setMasterButton.label")'
     :readonly="!project?.permissions?.can_set_master"
   )
   q-tooltip(
     v-if="!project?.permissions?.can_set_master"
     anchor="top middle"
     self="bottom middle"
-  ) У вас нет прав доступа на изменение мастера
+  ) {{ $t('capital.setMasterButton.noAccessText') }}
 </template>
 
 <script setup lang="ts">
@@ -28,6 +28,7 @@ import { ContributorSelector } from '../../../../entities/Contributor';
 import type { IProject } from '../../../../entities/Project/model';
 import type { IContributor } from '../../../../entities/Contributor/model';
 import { useRoute } from 'vue-router';
+import { t } from '../../../../i18n';
 const currentRoute = useRoute();
 
 interface Props {
@@ -87,7 +88,7 @@ const loadMaster = async (masterUsername: string) => {
     }
   } catch (error) {
     console.error('Error loading master contributor:', error);
-    FailAlert('Не удалось загрузить информацию о мастере проекта');
+    FailAlert(t('capital.setMasterButton.loadError'));
     currentMaster.value = null;
     isProgrammaticChange.value = true;
     selectedContributor.value = null;
@@ -120,14 +121,14 @@ watch(selectedContributor, async (newContributor) => {
 
   // Проверяем права доступа
   if (!props.project?.permissions?.can_set_master) {
-    FailAlert('У вас нет прав на изменение мастера проекта');
+    FailAlert(t('capital.setMasterButton.permissionError'));
     selectedContributor.value = currentMaster.value;
     return;
   }
 
   if (newContributor && !newContributor.username) {
     console.error('SetMasterButton: invalid contributor', newContributor);
-    FailAlert('У выбранного участника отсутствует имя пользователя');
+    FailAlert(t('capital.setMasterButton.missingUsernameError'));
     selectedContributor.value = null;
     return;
   }

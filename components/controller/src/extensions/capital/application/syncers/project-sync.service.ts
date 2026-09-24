@@ -63,6 +63,7 @@ export class ProjectSyncService
     const existingEntity = await this.repository.findBySyncKey(syncKey, syncValue);
     const previousTitle = existingEntity?.title;
     if (existingEntity && present) {
+      // i18n-ignore: метка для лога несовпадения текста (logger.error), до пайщика не доходит
       this.reportTextMismatch(syncValue, blockchainData, existingEntity, 'дельта');
     }
     const matrixRefsBeforeSync = existingEntity?.matrix_component_announcement_events ?? [];
@@ -162,6 +163,7 @@ export class ProjectSyncService
       getAppliedBlockNum(transactResult),
       true
     );
+    // i18n-ignore: метка для лога несовпадения текста (logger.error), до пайщика не доходит
     this.reportTextMismatch(hashLower, blockchainProject, projectEntity, 'после транзакции');
 
     // Текст пришёл из цепи мимо ContentRevisionService (правка не через API) — фиксируем редакцию CHAIN.

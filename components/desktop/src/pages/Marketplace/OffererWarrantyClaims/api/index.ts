@@ -1,6 +1,7 @@
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 /**
  * Раздел «Гарантийные возвраты» стола поставщика (99D-13): претензии по
@@ -19,8 +20,8 @@ export type MarketplaceSupplierClaimResultView =
   Mutations.Marketplace.AdmitSupplierClaim.IOutput['marketplaceAdmitSupplierClaim'];
 
 const CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceSupplierClaimStatus, string> = {
-  [Zeus.MarketplaceSupplierClaimStatus.PENDING]: 'Не признана',
-  [Zeus.MarketplaceSupplierClaimStatus.ADMITTED]: 'Признана — удерживается из выплат',
+  [Zeus.MarketplaceSupplierClaimStatus.PENDING]: t('marketplace.warrantyClaimStatus.notAgreed'),
+  [Zeus.MarketplaceSupplierClaimStatus.ADMITTED]: t('marketplace.warrantyClaimStatus.agreedWithheld'),
 };
 
 export function supplierClaimStatusLabel(status: MarketplaceSupplierClaimView['status']): string {

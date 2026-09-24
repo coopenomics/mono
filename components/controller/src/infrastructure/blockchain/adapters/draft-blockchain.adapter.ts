@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DraftContract } from 'cooptypes';
 import type { TransactResult } from '@wharfkit/session';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { BlockchainService } from '../blockchain.service';
 import { VAULT_DOMAIN_SERVICE, VaultDomainService } from '~/domain/vault/services/vault-domain.service';
 import type { DraftBlockchainPort } from '~/domain/common/ports/draft-blockchain.port';
@@ -16,7 +16,7 @@ export class DraftBlockchainAdapter implements DraftBlockchainPort {
 
   async approveDraft(data: DraftContract.Actions.Approve.IApprove): Promise<TransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
-    if (!wif) throw new HttpApiError(httpStatus.BAD_GATEWAY, 'Не найден приватный ключ для совершения операции');
+    if (!wif) throw new DomainError('BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
     this.blockchainService.initialize(data.coopname, wif);
 

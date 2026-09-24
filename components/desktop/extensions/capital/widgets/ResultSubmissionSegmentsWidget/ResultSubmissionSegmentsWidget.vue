@@ -5,8 +5,8 @@
 
   EmptyState(
     v-else-if='!loading && !rows.length',
-    title='Нет участников',
-    body='Сегменты появятся после формирования результатов по проекту.'
+    :title='$t("capital.resultSubmissionSegmentsWidget.emptyTitle")',
+    :body='$t("capital.resultSubmissionSegmentsWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='group')
@@ -28,24 +28,24 @@
         .result-segments__main
           .result-segments__name {{ segment.display_name }}
           .result-segments__roles
-            BaseBadge(v-if='segment.is_author', variant='info') Соавтор
-            BaseBadge(v-if='segment.is_creator', variant='neutral') Исполнитель
-            BaseBadge(v-if='segment.is_coordinator', variant='info') Координатор
-            BaseBadge(v-if='segment.is_contributor', variant='pos') Участник
+            BaseBadge(v-if='segment.is_author', variant='info') {{ $t('capital.resultSubmissionSegmentsWidget.coauthorRole') }}
+            BaseBadge(v-if='segment.is_creator', variant='neutral') {{ $t('capital.resultSubmissionSegmentsWidget.performerRole') }}
+            BaseBadge(v-if='segment.is_coordinator', variant='info') {{ $t('capital.resultSubmissionSegmentsWidget.coordinatorRole') }}
+            BaseBadge(v-if='segment.is_contributor', variant='pos') {{ $t('capital.resultSubmissionSegmentsWidget.memberRole') }}
 
           .result-segments__metrics(
             v-if='segment.status !== Zeus.SegmentStatus.GENERATION'
           )
             .result-segments__metric
-              span.t-sm.t-muted Генерация
+              span.t-sm.t-muted {{ $t('capital.resultSubmissionSegmentsWidget.generationLabel') }}
               span.t-mono {{ formatMetric(calculateGeneration(segment).amount) }}
               span.t-sm.t-muted {{ calculateGeneration(segment).share }}%
             .result-segments__metric
-              span.t-sm.t-muted Благорост
+              span.t-sm.t-muted {{ $t('capital.resultSubmissionSegmentsWidget.blagorostLabel') }}
               span.t-mono {{ formatMetric(calculateBlagorost(segment).amount) }}
               span.t-sm.t-muted {{ calculateBlagorost(segment).share }}%
             .result-segments__metric
-              span.t-sm.t-muted Всего
+              span.t-sm.t-muted {{ $t('capital.resultSubmissionSegmentsWidget.totalLabel') }}
               span.t-mono {{ formatMetric(segment.intellectual_cost) }}
               span.t-sm.t-muted {{ Number(segment.share_percent || 0).toFixed(2) }}%
 
@@ -75,6 +75,7 @@ import {
   getSegmentShortStatus,
   getSegmentStatusVariant,
 } from 'app/extensions/capital/shared/lib/segmentStatus';
+import { t } from '../../i18n';
 
 interface Props {
   projectHash: string;
@@ -162,7 +163,7 @@ const loadProjectSegments = async () => {
     emit('data-loaded', usernames);
   } catch (error) {
     console.error('Ошибка при загрузке сегментов проекта:', error);
-    FailAlert('Не удалось загрузить сегменты проекта');
+    FailAlert(t('capital.resultSubmissionSegmentsWidget.loadError'));
   } finally {
     loading.value = false;
   }

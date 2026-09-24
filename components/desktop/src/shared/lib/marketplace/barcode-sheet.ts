@@ -1,4 +1,5 @@
 import { printLabelSheet } from './print-sheet'
+import { t } from 'src/shared/i18n';
 
 /**
  * Лист штрих-кодов на печать: нарезать и наклеить на имущество, а потом
@@ -46,7 +47,7 @@ export function barcodeSvg(code: string): string {
   const bars = rects
     .map((b) => `<rect x="${b.x}" y="0" width="${b.w}" height="64" fill="#111"/>`)
     .join('')
-  return `<svg viewBox="0 0 ${total} 64" width="${total}" height="64" role="img" aria-label="Штрих-код ${code}">${bars}</svg>`
+  return t('marketplace.barcodeSheet.svgLabel', { viewboxWidth: total, svgWidth: total, code, barsMarkup: bars })
 }
 
 /** Напечатать лист из `count` этикеток со случайными номерами. */
@@ -57,5 +58,5 @@ export function printBarcodeSheet(count: number): void {
     const code = randomEAN13()
     return `${barcodeSvg(code)}<div class="code">${code}</div>`
   })
-  printLabelSheet({ title: 'Этикетки', labels })
+  printLabelSheet({ title: t('marketplace.barcodeSheet.labelsSheetTitle'), labels })
 }

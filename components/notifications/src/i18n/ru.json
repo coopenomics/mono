@@ -1,0 +1,946 @@
+{
+  "approvalRequest": {
+    "description": "Уведомление председателю совета о новом запросе на одобрение",
+    "email": {
+      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Поступил новый запрос на одобрение:<br><br><strong>{{payload.requestTitle}}</strong><br><br>{{payload.requestDescription}}<br><br>Автор запроса: {{payload.authorName}}<br><br>Ссылка для одобрения или отклонения запроса: {{payload.approvalUrl}}",
+      "subject": "Новый запрос на одобрение действия: {{payload.requestTitle}}"
+    },
+    "inApp": {
+      "body": "Запрос: {{payload.requestTitle}}\nАвтор: {{payload.authorName}}",
+      "subject": "Новый запрос на одобрение действия"
+    },
+    "name": "Запрос на одобрение председателя",
+    "push": {
+      "body": "Запрос: {{payload.requestTitle}} от {{payload.authorName}}",
+      "subject": "Новый запрос на одобрение действия"
+    }
+  },
+  "approvalResponse": {
+    "description": "Уведомление пользователю об одобрении или отклонении его запроса председателем",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!\n\nВаш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}.\n\nПредмет запроса: {{payload.requestTitle}}\n\nПодробнее по ссылке: {{payload.approvalUrl}}",
+      "subject": "Ваш запрос {{payload.approvalStatusText}} председателем совета"
+    },
+    "inApp": {
+      "body": "{{payload.requestTitle}}\nВаш запрос {{payload.approvalStatusText}} председателем совета {{payload.coopShortName}}",
+      "subject": "Ответ на запрос одобрения"
+    },
+    "name": "Ответ на запрос одобрения",
+    "push": {
+      "body": "Запрос {{payload.approvalStatusText}}: {{payload.requestTitle}}",
+      "subject": "Ответ на запрос одобрения"
+    }
+  },
+  "branchMeetingReminder": {
+    "description": "Напоминание участникам собрания пайщиков кооперативного участка за час до начала",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Напоминаем, что через час, в {{payload.meetAtTime}}, состоится собрание пайщиков кооперативного участка.<br>Место проведения: {{payload.meetPlace}}.<br><br>Страница собрания:<br><a href=\"{{payload.meetingUrl}}\">{{payload.meetingUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Через час собрание пайщиков участка в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Собрание начнётся в {{payload.meetAtTime}} ({{payload.meetPlace}})",
+      "subject": "Через час собрание участка"
+    },
+    "name": "Напоминание о собрании участка",
+    "push": {
+      "body": "Собрание начнётся в {{payload.meetAtTime}}",
+      "subject": "Через час собрание участка"
+    }
+  },
+  "branchTrustedRequested": {
+    "description": "Уведомление председателю кооперативного участка о новой заявке пайщика на приём доверенным лицом",
+    "email": {
+      "body": "Уважаемый председатель кооперативного участка!<br><br>Пайщик {{payload.applicantName}} подал заявку на приём доверенным лицом вашего кооперативного участка.<br><br>Рассмотреть заявку можно на странице участка:<br><a href=\"{{payload.branchUrl}}\">{{payload.branchUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Новая заявка доверенного лица участка в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "{{payload.applicantName}} подал заявку на приём доверенным лицом участка",
+      "subject": "Новая заявка доверенного лица"
+    },
+    "name": "Новая заявка доверенного лица участка",
+    "push": {
+      "body": "{{payload.applicantName}} подал заявку доверенного",
+      "subject": "Новая заявка доверенного лица"
+    }
+  },
+  "branchTrustedResolved": {
+    "description": "Уведомление заявителю о решении председателя кооперативного участка по заявке доверенного лица",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Ваша заявка на приём доверенным лицом кооперативного участка {{payload.resolution}} председателем участка.<br><br>Подробности на странице участка:<br><a href=\"{{payload.branchUrl}}\">{{payload.branchUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Ваша заявка доверенного лица {{payload.resolution}} в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Председатель участка рассмотрел вашу заявку: она {{payload.resolution}}",
+      "subject": "Заявка доверенного лица {{payload.resolution}}"
+    },
+    "name": "Заявка доверенного лица рассмотрена",
+    "push": {
+      "body": "Председатель участка рассмотрел вашу заявку",
+      "subject": "Заявка доверенного {{payload.resolution}}"
+    }
+  },
+  "branchVotingStarted": {
+    "description": "Уведомление участникам собрания пайщиков кооперативного участка о начале голосования",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>На собрании пайщиков кооперативного участка ({{payload.meetPlace}}) открыто голосование по вопросам повестки дня.<br>Голосование завершится в {{payload.closeAtTime}}.<br><br>Для подачи бюллетеня перейдите по ссылке:<br><a href=\"{{payload.meetingUrl}}\">{{payload.meetingUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Голосование собрания пайщиков участка в {{payload.coopShortName}} началось"
+    },
+    "inApp": {
+      "body": "Подайте бюллетень до {{payload.closeAtTime}}",
+      "subject": "Голосование собрания участка началось"
+    },
+    "name": "Голосование собрания участка началось",
+    "push": {
+      "body": "Подайте бюллетень до {{payload.closeAtTime}}",
+      "subject": "Голосование собрания участка началось"
+    }
+  },
+  "chatcoopCalendarEventCreated": {
+    "description": "Создание события в календаре кооператива (стол связи): рассылка пайщикам",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>В календаре кооператива создано новое событие.<br><br><strong>{{payload.title}}</strong><br><br>Начало: {{payload.startDate}} в {{payload.startTime}} ({{payload.timezone}})<br>Окончание: {{payload.endDate}} в {{payload.endTime}} ({{payload.timezone}})<br>Комната: {{payload.roomLabel}}<br>Автор: {{payload.actorUsername}}{% if payload.description %}<br><br>Описание:<div style=\"white-space:pre-wrap;\">{{payload.description}}</div>{% endif %}<br><br>Открыть комнату на столе связи:<br><a href=\"{{payload.eventUrl}}\">{{payload.eventUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Новое событие в календаре {{payload.coopShortName}}: {{payload.title}}"
+    },
+    "inApp": {
+      "body": "{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}}), {{payload.roomLabel}}{% if payload.description %}. {{payload.description}}{% endif %}",
+      "subject": "Новое событие: {{payload.title}}"
+    },
+    "name": "Уведомление о новом событии календаря кооператива",
+    "push": {
+      "body": "{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}})",
+      "subject": "Календарь: {{payload.title}}"
+    }
+  },
+  "chatcoopCalendarEventUpdated": {
+    "description": "Изменение события в календаре кооператива: рассылка пайщикам с актуальным расписанием",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Событие в календаре кооператива обновлено. Актуальные данные:<br><br><strong>{{payload.title}}</strong><br><br>Начало: {{payload.startDate}} в {{payload.startTime}} ({{payload.timezone}})<br>Окончание: {{payload.endDate}} в {{payload.endTime}} ({{payload.timezone}})<br>Комната: {{payload.roomLabel}}<br>Изменил(а): {{payload.actorUsername}}{% if payload.description %}<br><br>Описание:<div style=\"white-space:pre-wrap;\">{{payload.description}}</div>{% endif %}<br><br>Открыть на столе связи:<br><a href=\"{{payload.eventUrl}}\">{{payload.eventUrl}}</a><br><br>С уважением, {{payload.coopShortName}}.",
+      "subject": "Изменено событие календаря {{payload.coopShortName}}: {{payload.title}}"
+    },
+    "inApp": {
+      "body": "{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}}), {{payload.roomLabel}}{% if payload.description %}. {{payload.description}}{% endif %}",
+      "subject": "Событие обновлено: {{payload.title}}"
+    },
+    "name": "Уведомление об изменении события календаря кооператива",
+    "push": {
+      "body": "{{payload.startDate}} {{payload.startTime}} ({{payload.timezone}})",
+      "subject": "Календарь обновлён: {{payload.title}}"
+    }
+  },
+  "decisionApproved": {
+    "description": "Уведомление пользователю о принятии решения совета по его вопросу",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Совет кооператива принял решение по вашему вопросу:<br><br><strong>{{payload.decisionTitle}}</strong><br><br>Ссылка для просмотра подробной информации: {{payload.decisionUrl}}",
+      "subject": "Решение совета принято по вашему вопросу"
+    },
+    "inApp": {
+      "body": "По вашему вопросу принято решение: {{payload.decisionTitle}}",
+      "subject": "Решение совета принято"
+    },
+    "name": "Решение совета принято",
+    "push": {
+      "body": "Принято решение: {{payload.decisionTitle}}",
+      "subject": "Решение совета принято"
+    }
+  },
+  "decisionExpired": {
+    "description": "Уведомление пользователю об отмене решения совета по истечению срока действия",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Решение совета по вопросу №{{payload.decision_id}} в {{payload.short_abbr}} {{payload.name}} не принято.<br><br>Вопрос: <strong>{{payload.decisionTitle}}</strong>",
+      "subject": "Решение совета по вопросу №{{payload.decision_id}} в {{payload.short_abbr}} {{payload.name}} не принято"
+    },
+    "inApp": {
+      "body": "Решение совета по вопросу №{{payload.decision_id}} в {{payload.short_abbr}} {{payload.name}} не принято",
+      "subject": "Решение совета не принято"
+    },
+    "name": "Решение совета не принято по истечению срока",
+    "push": {
+      "body": "Решение по вопросу №{{payload.decision_id}} в {{payload.short_abbr}} {{payload.name}} не принято",
+      "subject": "Решение совета не принято"
+    }
+  },
+  "documentApprovalDeclined": {
+    "description": "Уведомление председателю: совет отклонил утверждение редакции документа или решение снято как просроченное",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Решение № {{payload.decision_id}} об утверждении редакции документов <strong>{{payload.documentTitles}}</strong> {{payload.reasonText}}.<br><br>Кооператив продолжает работать по прежней редакции. Вынести документ на совет повторно можно во вкладке «Шаблоны документов»: <a href=\"{{payload.templatesUrl}}\">{{payload.templatesUrl}}</a>",
+      "subject": "Утверждение редакции документа не принято советом {{payload.short_abbr}} {{payload.name}}"
+    },
+    "inApp": {
+      "body": "Решение № {{payload.decision_id}} по документам {{payload.documentTitles}} {{payload.reasonText}}",
+      "subject": "Утверждение редакции не принято"
+    },
+    "name": "Утверждение редакции документа не принято советом",
+    "push": {
+      "body": "Решение № {{payload.decision_id}} {{payload.reasonText}}",
+      "subject": "Утверждение редакции не принято"
+    }
+  },
+  "documentEditionAvailable": {
+    "description": "Уведомление председателю: оператор выпустил новую редакцию документа, её нужно вынести на утверждение совета",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Оператор платформы выпустил редакцию № {{payload.version}} документа <strong>«{{payload.documentTitle}}»</strong>.<br><br>Пайщикам {{payload.short_abbr}} {{payload.name}} она предъявляется только после утверждения советом. Вынесите редакцию на совет во вкладке «Шаблоны документов»: <a href=\"{{payload.templatesUrl}}\">{{payload.templatesUrl}}</a>",
+      "subject": "Новая редакция документа «{{payload.documentTitle}}» ждёт утверждения совета {{payload.short_abbr}} {{payload.name}}"
+    },
+    "inApp": {
+      "body": "Редакция № {{payload.version}} документа «{{payload.documentTitle}}» ждёт утверждения совета",
+      "subject": "Новая редакция документа"
+    },
+    "name": "Вышла новая редакция документа кооператива",
+    "push": {
+      "body": "«{{payload.documentTitle}}», редакция № {{payload.version}} — требуется решение совета",
+      "subject": "Новая редакция документа"
+    }
+  },
+  "documentEditionReminder": {
+    "description": "Напоминание председателю о документах, редакции которых ещё не утверждены советом",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>В кооперативе {{payload.short_abbr}} {{payload.name}} редакции документов ждут решения совета: <strong>{{payload.documentTitles}}</strong>.<br><br>Пока решения нет, пайщикам предъявляются прежние редакции. Вынести документы на совет: <a href=\"{{payload.templatesUrl}}\">{{payload.templatesUrl}}</a>",
+      "subject": "Документы {{payload.short_abbr}} {{payload.name}} ждут утверждения совета: {{payload.count}}"
+    },
+    "inApp": {
+      "body": "Редакции документов ждут решения совета: {{payload.documentTitles}}",
+      "subject": "Документы ждут утверждения совета"
+    },
+    "name": "Редакции документов ждут утверждения совета"
+  },
+  "emailVerification": {
+    "description": "Верификация email адреса пользователя",
+    "email": {
+      "body": "Подтвердите, что этот адрес принадлежит вам.<br><br>Код подтверждения: <b style=\"font-size:20px;letter-spacing:3px\">{{payload.code}}</b><br><br>Введите его на странице, где запрашивалось подтверждение. Время действия кода - {{payload.ttl}}.<br><br>Подтверждённая почта нужна, чтобы вы могли вернуть доступ к личному кабинету и получать уведомления кооператива.<br><br>Если вы не запрашивали подтверждение - проигнорируйте это сообщение.",
+      "subject": "Код подтверждения почты"
+    },
+    "name": "Верификация Email"
+  },
+  "endorsementExpiring": {
+    "description": "Предупреждение председателю о том, что признание кооператива в цепочке доверия скоро закончится и удостоверения пайщиков перестанут подтверждаться",
+    "email": {
+      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Признание {{payload.short_abbr}} {{payload.name}} в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.<br><br>Пока оно действует, удостоверения пайщиков проходят проверку. После истечения удостоверения продолжат выпускаться, но проверяющий увидит, что принадлежность кооператива к цепочке не подтверждена.<br><br>Продлить заверение может только тот, кто его выдал.",
+      "subject": "Заверение {{payload.short_abbr}} {{payload.name}} истекает через {{payload.daysLeft}} дн."
+    },
+    "inApp": {
+      "body": "Признание {{payload.short_abbr}} {{payload.name}} в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.",
+      "subject": "Заверение истекает"
+    },
+    "name": "Заверение кооператива в цепочке доверия истекает",
+    "push": {
+      "body": "Признание в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.",
+      "subject": "Заверение истекает"
+    }
+  },
+  "expenseAdvanceReportReminder": {
+    "description": "Еженедельное напоминание пайщику предоставить отчёт по выданному авансу под отчёт",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>По {% if payload.count > 1 %}следующим авансам под отчёт{% else %}авансу под отчёт{% endif %}, полученным в кооперативе «{{payload.coopName}}», ещё не предоставлен отчёт:<br><br>{% for advance in payload.advances %}• {{advance.description}} — {{advance.amount}} — <a href=\"{{advance.url}}\">открыть расход</a><br>{% endfor %}<br>Пожалуйста, приложите подтверждающие документы (чек, акт) на странице расхода в личном кабинете — после этого отчёт будет подан автоматически.<br><br><a href=\"{{payload.link}}\">Перейти к моим авансам</a>",
+      "subject": "Ожидается отчёт по авансу под отчёт — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "По вашим авансам под отчёт ещё не предоставлен отчёт. Приложите подтверждающие документы в личном кабинете.",
+      "subject": "Ожидается отчёт по авансу под отчёт"
+    },
+    "name": "Напоминание об отчёте по авансу"
+  },
+  "incomingTransfer": {
+    "description": "Уведомление о получении входящего перевода",
+    "email": {
+      "body": "Уведомляем вас о получении входящего перевода.<br><br><strong>Сумма перевода: {{payload.quantity}}</strong><br><br>Перевод успешно зачислен на ваш счет.",
+      "subject": "Получен входящий перевод на сумму {{payload.quantity}}"
+    },
+    "inApp": {
+      "body": "Получен входящий перевод на сумму {{payload.quantity}}",
+      "subject": "Входящий перевод"
+    },
+    "name": "Входящий перевод",
+    "push": {
+      "body": "Получен перевод на сумму {{payload.quantity}}",
+      "subject": "Входящий перевод"
+    }
+  },
+  "invite": {
+    "description": "Приглашение на подключение к цифровому кооперативу",
+    "email": {
+      "body": "Вам отправлено приглашение на подключение к Цифровому Кооперативу в качестве действующего пайщика.<br><br>Для того, чтобы воспользоваться приглашением и получить ключ доступа, пожалуйста, перейдите по ссылке: <a href=\"{{payload.inviteUrl}}\">{{payload.inviteUrl}}</a>",
+      "subject": "Приглашение в Цифровой Кооператив"
+    },
+    "name": "Приглашение в кооператив"
+  },
+  "loginEmailCode": {
+    "description": "Одноразовый код на почту для подтверждения входа (двухфакторная аутентификация)",
+    "email": {
+      "body": "Вы входите в свой аккаунт. Код подтверждения:<br><br><strong style=\"font-size:24px;letter-spacing:4px\">{{payload.code}}</strong><br><br>Код действует {{payload.ttl}} и работает только для этой попытки входа.<br>Если вход выполняете не вы — не сообщайте код никому и смените пароль.",
+      "subject": "Код подтверждения входа: {{payload.code}}"
+    },
+    "name": "Код подтверждения входа"
+  },
+  "marketplaceAidCouncilDecided": {
+    "description": "Уведомление пайщику о решении совета по его заявлению на выплату материальной помощи — одобрено с передачей кассиру либо отклонено.",
+    "email": {
+      "body": "Уважаемый {{payload.memberName}}!<br><br>Совет рассмотрел ваше заявление на выплату материальной помощи в размере <strong>{{payload.amount}}</strong>.<br><br>{{payload.outcomeHuman}}{{payload.reasonSuffix}}<br><br>Мои средства: {{payload.deepLinkUrl}}",
+      "subject": "Решение совета по заявлению на материальную помощь"
+    },
+    "inApp": {
+      "body": "{{payload.outcomeHuman}} Сумма: {{payload.amount}}.{{payload.reasonSuffix}}",
+      "subject": "Решение совета по материальной помощи"
+    },
+    "name": "Решение совета по материальной помощи",
+    "push": {
+      "body": "{{payload.outcomeHuman}} {{payload.amount}}.",
+      "subject": "Решение совета"
+    }
+  },
+  "marketplaceAidPayoutConfirmed": {
+    "description": "Уведомление пайщику о том, что кассир подтвердил выплату материальной помощи — банковский перевод выполнен.",
+    "email": {
+      "body": "Уважаемый {{payload.memberName}}!<br><br>Кассир подтвердил выплату материальной помощи на сумму <strong>{{payload.amount}}</strong>.<br><br>Реквизиты получения: {{payload.paymentDestination}}.<br><br>Мои средства: {{payload.deepLinkUrl}}",
+      "subject": "Материальная помощь выплачена"
+    },
+    "inApp": {
+      "body": "Кассир подтвердил выплату {{payload.amount}} на реквизиты {{payload.paymentDestination}}.",
+      "subject": "Материальная помощь выплачена"
+    },
+    "name": "Материальная помощь выплачена",
+    "push": {
+      "body": "{{payload.amount}} перечислены на ваши реквизиты.",
+      "subject": "Материальная помощь выплачена"
+    }
+  },
+  "marketplaceAplReceptionCancelledBySupplier": {
+    "description": "Уведомление оператору ПВЗ, который сформировал акт приёмки: поставщик у стойки отказался подписывать и отменил черновик. Нужно повторить приёмку или оформить отказ в приёмке по партии.",
+    "inApp": {
+      "body": "{{payload.supplierName}} не подтвердил приёмку на КУ {{payload.kuName}}. Повторите приёмку или оформите отказ в приёмке по партии.",
+      "subject": "Поставщик отменил приёмку"
+    },
+    "name": "Поставщик отменил приёмку на ПВЗ",
+    "push": {
+      "body": "{{payload.supplierName}} на КУ {{payload.kuName}}: повторите приёмку или оформите отказ.",
+      "subject": "Поставщик отменил приёмку"
+    }
+  },
+  "marketplaceAplSupplierSignRequest": {
+    "description": "Уведомление поставщику о новом акте приёмки экспедитором (вариант Б) — требуется первая подпись поставщика, чтобы оператор смог провести закрывающую подпись.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Экспедитор <strong>{{payload.expeditorName}}</strong> сдал партию по ТТН <strong>{{payload.ttnNumber}}</strong> на КУ <strong>{{payload.kuName}}</strong>.<br><br>Чтобы оператор мог завершить приёмку и обеспечить выплату по партии, нужна ваша первая подпись акта приёмки.<br><br>Открыть акт: {{payload.deepLinkUrl}}",
+      "subject": "Требуется ваша подпись акта приёмки на КУ {{payload.kuName}}"
+    },
+    "inApp": {
+      "body": "Партия по ТТН {{payload.ttnNumber}} принята на КУ {{payload.kuName}}. Подпишите акт, чтобы оператор завершил приёмку.",
+      "subject": "Акт приёмки ожидает вашей подписи"
+    },
+    "name": "Акт приёмки экспедитором ожидает подписи поставщика",
+    "push": {
+      "body": "ТТН {{payload.ttnNumber}} на КУ {{payload.kuName}}: требуется ваша подпись.",
+      "subject": "Акт приёмки ждёт подписи"
+    }
+  },
+  "marketplaceCashierNewPayment": {
+    "description": "Уведомление кассиру о новой задаче на исходящий платёж поставщику — после закрывающей подписи председателя по акту приёмки.",
+    "email": {
+      "body": "Уважаемый {{payload.cashierName}}!<br><br>По акту приёмки {{payload.apl_reception_id}} требуется выплата поставщику <strong>{{payload.supplierName}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Откройте стол кассира, чтобы подтвердить факт банковского перевода: {{payload.deepLinkUrl}}",
+      "subject": "Новая задача: выплата {{payload.amount}} поставщику {{payload.supplierName}}"
+    },
+    "inApp": {
+      "body": "Поставщик {{payload.supplierName}} ожидает выплату {{payload.amount}}.",
+      "subject": "Новая выплата на подтверждение"
+    },
+    "name": "Новая задача кассиру — выплата поставщику",
+    "push": {
+      "body": "{{payload.supplierName}}: {{payload.amount}}.",
+      "subject": "Новая выплата на подтверждение"
+    }
+  },
+  "marketplaceIssuanceDecided": {
+    "description": "Уведомление пайщику-заказчику о решении совета по выдаче имущества, принятом после его ухода с пункта выдачи.",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>{{payload.outcomeText}}<br><br>{{payload.nextStepText}}<br><br>Заказ: <strong>{{payload.order_id}}</strong>, участок <strong>{{payload.kuName}}</strong>.<br><br>Открыть заказ: {{payload.deepLinkUrl}}",
+      "subject": "Решение совета по вашему заказу на КУ {{payload.kuName}}"
+    },
+    "inApp": {
+      "body": "{{payload.outcomeText}} {{payload.nextStepText}}",
+      "subject": "Решение совета по выдаче"
+    },
+    "name": "Совет решил по выдаче имущества",
+    "push": {
+      "body": "{{payload.outcomeText}} {{payload.nextStepText}}",
+      "subject": "Решение совета по выдаче"
+    }
+  },
+  "marketplaceNewOrderForSupplier": {
+    "description": "Уведомление поставщику о том, что по его предложению поступил новый заказ — повод зайти на стол и принять его.",
+    "inApp": {
+      "body": "Поступил новый заказ на {{payload.quantity}} ед. на сумму {{payload.totalCost}} — зайдите на стол поставщика, чтобы принять его.",
+      "subject": "Новый заказ"
+    },
+    "name": "Новый заказ поставщику",
+    "push": {
+      "body": "Поступил новый заказ на {{payload.quantity}} ед. — примите его на столе поставщика.",
+      "subject": "Новый заказ"
+    }
+  },
+  "marketplaceNewSupplierRequest": {
+    "description": "Уведомление председателю о новой заявке пайщика на допуск поставщика — нужно рассмотреть и одобрить либо отклонить в реестре поставщиков.",
+    "email": {
+      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Пайщик <strong>{{payload.supplierName}}</strong> подал заявку на допуск поставщика по договору № {{payload.contractNumber}}.<br><br>Откройте реестр поставщиков, чтобы рассмотреть заявку — одобрить или отклонить: {{payload.deepLinkUrl}}",
+      "subject": "Новая заявка поставщика: {{payload.supplierName}}"
+    },
+    "inApp": {
+      "body": "{{payload.supplierName}} ожидает рассмотрения (договор № {{payload.contractNumber}}).",
+      "subject": "Новая заявка поставщика"
+    },
+    "name": "Новая заявка поставщика на допуск",
+    "push": {
+      "body": "{{payload.supplierName}}: договор № {{payload.contractNumber}}.",
+      "subject": "Новая заявка поставщика"
+    }
+  },
+  "marketplaceOfferApproved": {
+    "description": "Уведомление поставщику о том, что его предложение прошло модерацию и опубликовано в каталоге — по нему можно принимать заказы.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Ваше предложение <strong>{{payload.productName}}</strong> прошло модерацию и опубликовано в каталоге — заказчики уже могут его заказать.<br><br>Открыть предложение: {{payload.deepLinkUrl}}",
+      "subject": "Предложение прошло модерацию: {{payload.productName}}"
+    },
+    "inApp": {
+      "body": "{{payload.productName}} прошло модерацию и появилось в каталоге.",
+      "subject": "Предложение опубликовано"
+    },
+    "name": "Предложение прошло модерацию",
+    "push": {
+      "body": "{{payload.productName}} прошло модерацию — предложение в каталоге.",
+      "subject": "Предложение опубликовано"
+    }
+  },
+  "marketplaceOfferOnModeration": {
+    "description": "Уведомление администратору Стола заказов о предложении, поступившем на модерацию — нужно проверить карточку имущества и допустить её в каталог либо отклонить с причиной.",
+    "email": {
+      "body": "Уважаемый {{payload.recipientName}}!<br><br>Поставщик <strong>{{payload.supplierName}}</strong> отправил на модерацию предложение <strong>{{payload.productName}}</strong>.<br><br>До вашего решения предложение не показывается в каталоге. Проверьте карточку имущества и допустите её в каталог либо отклоните с указанием причины: {{payload.deepLinkUrl}}",
+      "subject": "Новое предложение на модерации: {{payload.productName}}"
+    },
+    "inApp": {
+      "body": "{{payload.supplierName}}: {{payload.productName}} — ждёт проверки.",
+      "subject": "Новое предложение на модерации"
+    },
+    "name": "Новое предложение на модерации",
+    "push": {
+      "body": "{{payload.productName}} от {{payload.supplierName}} ждёт проверки.",
+      "subject": "Новое предложение на модерации"
+    }
+  },
+  "marketplaceOfferRejected": {
+    "description": "Уведомление поставщику о том, что его предложение не прошло модерацию, с причиной отказа — карточку нужно поправить и отправить на повторную проверку.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Ваше предложение <strong>{{payload.productName}}</strong> не прошло модерацию и в каталоге не показывается.<br><br>Причина: {{payload.reason}}<br><br>Поправьте карточку имущества и отправьте её на повторную проверку: {{payload.deepLinkUrl}}",
+      "subject": "Предложение не прошло модерацию: {{payload.productName}}"
+    },
+    "inApp": {
+      "body": "{{payload.productName}}: {{payload.reason}}",
+      "subject": "Предложение не прошло модерацию"
+    },
+    "name": "Предложение отклонено модерацией",
+    "push": {
+      "body": "{{payload.productName}}: {{payload.reason}}",
+      "subject": "Предложение не прошло модерацию"
+    }
+  },
+  "marketplaceOrderDeclinedBySupplier": {
+    "description": "Уведомление пайщику-заказчику о том, что поставщик отклонил его заказ до приёма к поставке. Указывается причина отказа — заблокированные средства возвращаются заказчику.",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Поставщик отклонил ваш заказ <strong>«{{payload.productName}}»</strong> на кооперативном участке <strong>{{payload.kuName}}</strong> до приёма к поставке.<br><br>Причина отказа: <em>{{payload.reasonExcerpt}}</em><br><br>Заблокированные по заказу средства возвращены вам. Вы можете оформить заказ заново у другого поставщика.<br><br>Подробности: {{payload.deepLinkUrl}}",
+      "subject": "Поставщик отклонил ваш заказ «{{payload.productName}}»"
+    },
+    "inApp": {
+      "body": "КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}. Средства возвращены.",
+      "subject": "Поставщик отклонил заказ «{{payload.productName}}»"
+    },
+    "name": "Заказ отклонён поставщиком",
+    "push": {
+      "body": "Поставщик отклонил заказ на КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}",
+      "subject": "Заказ «{{payload.productName}}» отклонён"
+    }
+  },
+  "marketplaceOrderReady": {
+    "description": "Уведомление пайщику-заказчику о том, что его заказ принят кооперативом и готов к получению на кооперативном участке.",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}",
+      "subject": "Ваш заказ готов к получению на КУ {{payload.kuName}}"
+    },
+    "inApp": {
+      "body": "Ваш заказ на КУ {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.passportReminder}}",
+      "subject": "Заказ готов к получению"
+    },
+    "name": "Заказ готов к получению",
+    "push": {
+      "body": "Ваш заказ на КУ {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.passportReminder}}",
+      "subject": "Заказ готов к получению"
+    }
+  },
+  "marketplaceReturnClaimDecided": {
+    "description": "Уведомление пайщику-заказчику о решении, принятом на пункте выдачи по его заявлению на гарантийный возврат (одобрение очного визита / отказ удалённо). Решение принимает оператор пункта выдачи — председатель участка либо его доверенное лицо.",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>На пункте выдачи <strong>{{payload.brananame}}</strong> принято решение по вашему заявлению на гарантийный возврат по заказу <strong>{{payload.order_id}}</strong>: <strong>{{payload.decisionHuman}}</strong>.<br><br>Комментарий: {{payload.comment}}<br><br>Подробности заявления: {{payload.deepLinkUrl}}",
+      "subject": "Решение по вашему заявлению на возврат: {{payload.decisionHuman}}"
+    },
+    "inApp": {
+      "body": "По вашему заявлению: {{payload.decisionHuman}} — {{payload.comment}}",
+      "subject": "Решение по заявлению на возврат"
+    },
+    "name": "Решение по заявлению на гарантийный возврат",
+    "push": {
+      "body": "{{payload.decisionHuman}}: {{payload.comment}}",
+      "subject": "Решение по заявлению на возврат"
+    }
+  },
+  "marketplaceReturnClaimFinalized": {
+    "description": "Финальное уведомление заказчику о результате гарантийного возврата (принят с восстановлением средств / отказ).",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>Ваш гарантийный возврат по заказу <strong>{{payload.order_id}}</strong> завершён: <strong>{{payload.outcomeHuman}}</strong>.{% if payload.returnedAmount %}<br><br>На программный кошелёк восстановлено: <strong>{{payload.returnedAmount}} ₽</strong> — вы можете направить их на следующий заказ либо вывести в общий членский кошелёк.{% endif %}<br><br>Детали возврата: {{payload.deepLinkUrl}}",
+      "subject": "Гарантийный возврат завершён: {{payload.outcomeHuman}}"
+    },
+    "inApp": {
+      "body": "{{payload.outcomeHuman}}{{payload.returnedAmountSuffix}}.",
+      "subject": "Гарантийный возврат завершён"
+    },
+    "name": "Гарантийный возврат завершён",
+    "push": {
+      "body": "{{payload.outcomeHuman}}{{payload.returnedAmountSuffix}}.",
+      "subject": "Гарантийный возврат завершён"
+    }
+  },
+  "marketplaceReturnClaimSubmitted": {
+    "description": "Уведомление операторам пункта выдачи — председателю кооперативного участка и его доверенным лицам — о поступившем заявлении на гарантийный возврат имущества пайщиком.",
+    "email": {
+      "body": "Уважаемый {{payload.recipientName}}!<br><br>Пайщик <strong>{{payload.ordererName}}</strong> подал заявление на гарантийный возврат имущества по заказу <strong>{{payload.order_id}}</strong> на вашем пункте выдачи <strong>{{payload.brananame}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Рассмотреть заявление: {{payload.deepLinkUrl}}",
+      "subject": "Новое заявление на гарантийный возврат от {{payload.ordererName}}"
+    },
+    "inApp": {
+      "body": "Пайщик {{payload.ordererName}} подал заявление по заказу {{payload.order_id}} — требуется удалённое рассмотрение.",
+      "subject": "Новое заявление на гарантийный возврат"
+    },
+    "name": "Новое заявление на гарантийный возврат",
+    "push": {
+      "body": "Заявление на гарантийный возврат на пункте выдачи {{payload.brananame}} ждёт рассмотрения.",
+      "subject": "Новое заявление на гарантийный возврат"
+    }
+  },
+  "marketplaceReturnCouncilDecided": {
+    "description": "Уведомление пайщику-заказчику о решении совета по гарантийному возврату имущества.",
+    "email": {
+      "body": "Уважаемый {{payload.ordererName}}!<br><br>{{payload.outcomeText}}<br><br>{{payload.nextStepText}}<br><br>Участок: <strong>{{payload.kuName}}</strong>.<br><br>Подробности: {{payload.deepLinkUrl}}",
+      "subject": "Решение совета по гарантийному возврату (заказ {{payload.order_id}})"
+    },
+    "inApp": {
+      "body": "{{payload.outcomeText}} {{payload.nextStepText}}",
+      "subject": "Решение совета по возврату"
+    },
+    "name": "Совет решил по гарантийному возврату",
+    "push": {
+      "body": "{{payload.outcomeText}} {{payload.nextStepText}}",
+      "subject": "Решение совета по возврату"
+    }
+  },
+  "marketplaceSupplierApproved": {
+    "description": "Уведомление поставщику об одобрении заявки на допуск — открыт доступ в личный кабинет Стола поставщика.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Ваша заявка на допуск поставщика по договору № {{payload.contractNumber}} одобрена председателем кооператива.<br><br>Вам открыт доступ в личный кабинет Стола поставщика — теперь вы можете публиковать предложения и принимать заказы: {{payload.deepLinkUrl}}",
+      "subject": "Заявка на допуск поставщика одобрена"
+    },
+    "inApp": {
+      "body": "Заявка по договору № {{payload.contractNumber}} одобрена. Открыт доступ в личный кабинет Стола поставщика.",
+      "subject": "Допуск поставщика одобрен"
+    },
+    "name": "Заявка поставщика на допуск одобрена",
+    "push": {
+      "body": "Открыт доступ в личный кабинет Стола поставщика.",
+      "subject": "Допуск поставщика одобрен"
+    }
+  },
+  "marketplaceSupplierClaimIssued": {
+    "description": "Уведомление поставщику о гарантийной претензии по его товару: имущество возвращено пайщиком и принято кооперативом, поставщику предлагается признать претензию или отказать.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>По вашему товару оформлен гарантийный возврат: пайщик вернул имущество, кооператив принял его на участке <strong>{{payload.kuName}}</strong> и по решению совета отменил сделку. Вам выставлена гарантийная претензия на <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reasonExcerpt}}<br><br>Откройте раздел «Гарантийные возвраты» на своём столе: там рекламация с подписями пайщика и оператора, фотографии и кнопки «Согласен» и «Не согласен». Если вы согласны, сумма будет удержана из ваших следующих выплат; если нет — свяжитесь с участком {{payload.kuName}}, там же можно забрать имущество.<br><br>Подробности: {{payload.deepLinkUrl}}",
+      "subject": "Гарантийная претензия на {{payload.amount}} по вашему товару"
+    },
+    "inApp": {
+      "body": "По вашему товару оформлен гарантийный возврат на участке {{payload.kuName}}. Ответьте по претензии в разделе «Гарантийные возвраты».",
+      "subject": "Гарантийная претензия на {{payload.amount}}"
+    },
+    "name": "Гарантийная претензия поставщику",
+    "push": {
+      "body": "Возврат по вашему товару на участке {{payload.kuName}} — ответьте в разделе «Гарантийные возвраты».",
+      "subject": "Гарантийная претензия на {{payload.amount}}"
+    }
+  },
+  "marketplaceSupplierPaymentConfirmed": {
+    "description": "Уведомление поставщику о подтверждённой кассиром выплате — банковский перевод выполнен, обязательство по акту приёмки закрыто.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир подтвердил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Номер платёжного поручения: {{payload.paymentReference}}.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} подтверждена"
+    },
+    "inApp": {
+      "body": "Кассир подтвердил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Платёжное поручение: {{payload.paymentReference}}.",
+      "subject": "Выплата подтверждена"
+    },
+    "name": "Выплата поставщику подтверждена кассиром",
+    "push": {
+      "body": "{{payload.amount}} по акту {{payload.apl_reception_id}}.",
+      "subject": "Выплата получена"
+    }
+  },
+  "marketplaceSupplierPaymentDeclined": {
+    "description": "Уведомление поставщику об отказе кассира провести банковский перевод по акту приёмки — обязательство кооператива остаётся открытым, требуется уточнение реквизитов.",
+    "email": {
+      "body": "Уважаемый {{payload.supplierName}}!<br><br>Кассир приостановил выплату по акту приёмки <strong>{{payload.apl_reception_id}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Причина: {{payload.reason}}.<br><br>Обязательство кооператива перед вами остаётся открытым; пожалуйста, свяжитесь с оператором для уточнения банковских реквизитов или сопроводительных документов.<br><br>История выплат: {{payload.deepLinkUrl}}",
+      "subject": "Выплата по акту приёмки {{payload.apl_reception_id}} приостановлена"
+    },
+    "inApp": {
+      "body": "Кассир приостановил выплату {{payload.amount}} по акту приёмки {{payload.apl_reception_id}}. Причина: {{payload.reason}}.",
+      "subject": "Выплата приостановлена"
+    },
+    "name": "Кассир отказал в выплате поставщику",
+    "push": {
+      "body": "Кассир приостановил {{payload.amount}} по акту {{payload.apl_reception_id}}: {{payload.reason}}",
+      "subject": "Выплата приостановлена"
+    }
+  },
+  "marketplaceWriteoffAuthorized": {
+    "description": "Уведомление администратору и председателю: совет одобрил Протокол списания, начинается per-item исполнение.",
+    "email": {
+      "body": "Здравствуйте, {{payload.recipientName}}!<br><br>Совет одобрил Протокол о списании <strong>{{payload.itemsCount}}</strong> позиций на сумму <strong>{{payload.totalAmount}}</strong>. Backend запустил per-item списания через execwroff.<br><br>Открыть проект: {{payload.deepLinkUrl}}",
+      "subject": "Списание скоропорта авторизовано советом"
+    },
+    "inApp": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Совет авторизовал списание"
+    },
+    "name": "Совет авторизовал проект списания скоропорта",
+    "push": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Совет авторизовал списание"
+    }
+  },
+  "marketplaceWriteoffDraftBuilt": {
+    "description": "Уведомление председателю / общему администратору о том, что сформирован новый черновик проекта списания скоропорта — нужно проверить состав и отправить в совет.",
+    "email": {
+      "body": "Здравствуйте, {{payload.chairmanName}}!<br><br>Сформирован черновик проекта списания скоропорта: <strong>{{payload.itemsCount}}</strong> позиций на сумму <strong>{{payload.totalAmount}}</strong>. Источник — {{payload.trigger}}.<br><br>Проверьте состав и подпишите Заявление о списании, чтобы отправить проект в совет: {{payload.deepLinkUrl}}",
+      "subject": "Готов черновик списания на {{payload.itemsCount}} позиций"
+    },
+    "inApp": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Новый черновик проекта списания"
+    },
+    "name": "Сформирован черновик проекта списания скоропорта",
+    "push": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Готов черновик списания"
+    }
+  },
+  "marketplaceWriteoffExecuted": {
+    "description": "Уведомление администратору о том, что все позиции проекта списания исполнены on-chain (executed).",
+    "email": {
+      "body": "Здравствуйте, {{payload.recipientName}}!<br><br>Backend завершил списание <strong>{{payload.itemsCount}}</strong> позиций на общую сумму <strong>{{payload.totalAmount}}</strong>. Проект переведён в финальный статус EXECUTED.<br><br>Открыть протокол: {{payload.deepLinkUrl}}",
+      "subject": "Списание скоропорта завершено"
+    },
+    "inApp": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Списание завершено"
+    },
+    "name": "Списание скоропорта исполнено",
+    "push": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Списание завершено"
+    }
+  },
+  "marketplaceWriteoffProposed": {
+    "description": "Уведомление членам совета и общему администратору, что председатель подписал Заявление о списании и проект встал на повестку совета.",
+    "email": {
+      "body": "Здравствуйте, {{payload.recipientName}}!<br><br>Председатель подписал Заявление о списании скоропорта. Проект встал на повестку совета: <strong>{{payload.itemsCount}}</strong> позиций на сумму <strong>{{payload.totalAmount}}</strong>.<br><br>Открыть проект: {{payload.deepLinkUrl}}",
+      "subject": "На повестке: списание {{payload.itemsCount}} позиций"
+    },
+    "inApp": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Проект списания на повестке"
+    },
+    "name": "Проект списания скоропорта — на повестке совета",
+    "push": {
+      "body": "{{payload.itemsCount}} позиций — {{payload.totalAmount}}",
+      "subject": "Проект списания на повестке"
+    }
+  },
+  "marketplaceWriteoffRejected": {
+    "description": "Уведомление администратору об отказе совета в проекте списания (или истёкшем сроке повестки).",
+    "email": {
+      "body": "Здравствуйте, {{payload.recipientName}}!<br><br>Совет отклонил проект списания скоропорта. Причина: <strong>{{payload.reason}}</strong>. Позиции остаются на складах участков.<br><br>Открыть проект: {{payload.deepLinkUrl}}",
+      "subject": "Совет отклонил проект списания"
+    },
+    "inApp": {
+      "body": "Причина: {{payload.reason}}",
+      "subject": "Проект списания отклонён"
+    },
+    "name": "Совет отклонил проект списания скоропорта",
+    "push": {
+      "body": "{{payload.reason}}",
+      "subject": "Проект списания отклонён"
+    }
+  },
+  "meetEnded": {
+    "description": "Уведомление о завершении общего собрания пайщиков",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>{{payload.endMessage}}<br><br>Для просмотра результатов перейдите по ссылке: {{payload.meetUrl}}<br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "{{payload.endTitle}}"
+    },
+    "inApp": {
+      "body": "{{payload.endMessage}}",
+      "subject": "{{payload.endTitle}}"
+    },
+    "name": "Собрание завершено",
+    "push": {
+      "body": "{{payload.endTitle}}",
+      "subject": "Собрание №{{payload.meetId}}"
+    }
+  },
+  "meetInitial": {
+    "description": "Начальное уведомление о назначении нового общего собрания пайщиков",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>В кооперативе объявлено новое общее собрание №{{payload.meetId}}.<br><br>Дата и время начала: {{payload.meetDate}} в {{payload.meetTime}} ({{payload.timezone}})<br>Дата и время завершения: {{payload.meetEndDate}} в {{payload.meetEndTime}} ({{payload.timezone}})<br><br>Для ознакомления с повесткой, пожалуйста, перейдите по ссылке:<br><a href=\"{{payload.meetUrl}}\">{{payload.meetUrl}}</a>{% if payload.details %}<br><br>Дополнительная информация:<div style=\"white-space:pre-wrap;\">{{payload.details}}</div>{% endif %}<br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "Уведомление о общем собрании пайщиков №{{payload.meetId}} в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Назначено собрание на {{payload.meetDate}} в {{payload.meetTime}}{% if payload.details %}. {{payload.details}}{% endif %}",
+      "subject": "Новое общее собрание №{{payload.meetId}}"
+    },
+    "name": "Уведомление о новом общем собрании",
+    "push": {
+      "body": "Собрание {{payload.meetDate}} в {{payload.meetTime}}",
+      "subject": "Новое общее собрание №{{payload.meetId}}"
+    }
+  },
+  "meetReminderEnd": {
+    "description": "Напоминание пайщикам о скором завершении общего собрания",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Общее собрание №{{payload.meetId}} завершится {{payload.timeDescription}} ({{payload.meetEndDate}} в {{payload.meetEndTime}} {{payload.timezone}}).<br><br>Если вы еще не проголосовали, пожалуйста, примите участие в голосовании по вопросам повестки дня.<br>Для голосования перейдите по ссылке:<br><a href=\"{{payload.meetUrl}}\">{{payload.meetUrl}}</a><br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "Напоминание о завершении собрания пайщиков №{{payload.meetId}} в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Завершится {{payload.timeDescription}}",
+      "subject": "Собрание №{{payload.meetId}} скоро завершится"
+    },
+    "name": "Напоминание о завершении собрания",
+    "push": {
+      "body": "Успейте проголосовать",
+      "subject": "Собрание №{{payload.meetId}} скоро завершится"
+    }
+  },
+  "meetReminderStart": {
+    "description": "Напоминание пайщикам о скором начале общего собрания",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Напоминаем, что {{payload.timeDescription}} состоится общее собрание пайщиков №{{payload.meetId}} ({{payload.meetDate}} в {{payload.meetTime}}).<br><br>Для ознакомления с повесткой и подписи уведомления, пожалуйста, перейдите по ссылке:<br><a href=\"{{payload.meetUrl}}\">{{payload.meetUrl}}</a>{% if payload.details %}<br><br>Дополнительная информация:<div style=\"white-space:pre-wrap;\">{{payload.details}}</div>{% endif %}<br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "Напоминание о предстоящем общем собрании №{{payload.meetId}} в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Собрание начнется {{payload.timeDescription}}{% if payload.details %}. {{payload.details}}{% endif %}",
+      "subject": "Напоминание о собрании №{{payload.meetId}}"
+    },
+    "name": "Напоминание о предстоящем собрании",
+    "push": {
+      "body": "Собрание начнется {{payload.timeDescription}}",
+      "subject": "Напоминание о собрании №{{payload.meetId}}"
+    }
+  },
+  "meetRestart": {
+    "description": "Уведомление о новой дате проведения повторного собрания",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Назначена новая дата проведения повторного собрания №{{payload.meetId}}.<br><br>Дата и время начала: {{payload.meetDate}} в {{payload.meetTime}} ({{payload.timezone}})<br>Дата и время завершения: {{payload.meetEndDate}} в {{payload.meetEndTime}} ({{payload.timezone}})<br><br>Повестка собрания остается прежней.<br>Для ознакомления с повесткой и подписи уведомления, пожалуйста, перейдите по ссылке:<br><a href=\"{{payload.meetUrl}}\">{{payload.meetUrl}}</a><br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "Назначена новая дата повторного собрания №{{payload.meetId}} в {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "Повторное собрание: {{payload.meetDate}} в {{payload.meetTime}}",
+      "subject": "Новая дата собрания №{{payload.meetId}}"
+    },
+    "name": "Назначена новая дата повторного собрания",
+    "push": {
+      "body": "Повторное собрание {{payload.meetDate}} в {{payload.meetTime}}",
+      "subject": "Новая дата собрания №{{payload.meetId}}"
+    }
+  },
+  "meetStarted": {
+    "description": "Уведомление о начале общего собрания пайщиков",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Сегодня началось общее собрание пайщиков №{{payload.meetId}}.<br>Собрание будет проходить до {{payload.meetEndDate}} {{payload.meetEndTime}} ({{payload.timezone}}).<br><br>Просим принять участие в голосовании по вопросам повестки дня.<br>Для голосования перейдите по ссылке:<br><a href=\"{{payload.meetUrl}}\">{{payload.meetUrl}}</a>{% if payload.details %}<br><br>Дополнительная информация:<div style=\"white-space:pre-wrap;\">{{payload.details}}</div>{% endif %}<br><br>С уважением, Совет {{payload.coopShortName}}.",
+      "subject": "Собрание пайщиков №{{payload.meetId}} в {{payload.coopShortName}} началось"
+    },
+    "inApp": {
+      "body": "Примите участие в голосовании{% if payload.details %}. {{payload.details}}{% endif %}",
+      "subject": "Собрание №{{payload.meetId}} началось"
+    },
+    "name": "Собрание началось",
+    "push": {
+      "body": "Голосование открыто до {{payload.meetEndDate}} {{payload.meetEndTime}}",
+      "subject": "Собрание №{{payload.meetId}} началось"
+    }
+  },
+  "membershipExitConfirmation": {
+    "description": "Подтверждение по email заявления о добровольном выходе пайщика из кооператива",
+    "email": {
+      "body": "Здравствуйте!<br><br>Вы подали заявление о добровольном выходе из кооператива. Это действие необратимо: после подтверждения запускается процедура выхода и возврата паевого взноса, а ваш аккаунт блокируется.<br><br>Если вы действительно хотите выйти из кооператива, перейдите по ссылке для подтверждения: <a href=\"{{payload.confirmationUrl}}\">{{payload.confirmationUrl}}</a><br><br>Если вы не подавали такое заявление — просто проигнорируйте это письмо, ничего не произойдёт.",
+      "subject": "Подтверждение выхода из кооператива"
+    },
+    "name": "Подтверждение выхода из кооператива"
+  },
+  "newAgendaItem": {
+    "description": "Уведомление о новом вопросе на повестке дня заседания совета для всех членов совета",
+    "email": {
+      "body": "Уважаемый член совета!<br><br>Добавлен новый вопрос на повестку заседания совета:<br><br><strong>{{payload.itemTitle}}</strong><br><br>{{payload.itemDescription}}<br><br>Заявитель: {{payload.authorName}}<br><br>Ссылка для рассмотрения: {{payload.agendaUrl}}<br><br>",
+      "subject": "Новый вопрос на повестке совета {{payload.coopShortName}}"
+    },
+    "inApp": {
+      "body": "{{payload.itemTitle}}\nОт: {{payload.authorName}}",
+      "subject": "Новый вопрос на повестке совета"
+    },
+    "name": "Новый вопрос на повестке совета",
+    "push": {
+      "body": "{{payload.itemTitle}} от {{payload.authorName}}",
+      "subject": "Новый вопрос на повестке"
+    }
+  },
+  "newDepositPaymentRequest": {
+    "description": "Уведомление председателю о создании новой заявки на паевой взнос",
+    "email": {
+      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Сформирована новая заявка на оплату. Проверяйте поступления.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Тип платежа: {{payload.paymentType}}<br><br>Подробности: {{payload.paymentUrl}}",
+      "subject": "Новая заявка на паевой взнос: {{payload.participantName}}"
+    },
+    "inApp": {
+      "body": "Пайщик {{payload.participantName}} создал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Проверяйте поступления.",
+      "subject": "Новая заявка на паевой взнос"
+    },
+    "name": "Новая новая заявка на паевой взнос",
+    "push": {
+      "body": "Заявка от пайщика {{payload.participantName}} на {{payload.paymentAmount}} {{payload.paymentCurrency}}",
+      "subject": "Новая заявка на паевой взнос"
+    }
+  },
+  "newDeviceLogin": {
+    "description": "Уведомление о входе в аккаунт с устройства, которое ранее не использовалось",
+    "email": {
+      "body": "Зафиксирован вход в ваш аккаунт с устройства, которое ранее не использовалось:<br><br><strong>Устройство:</strong> {{payload.summary}}<br><strong>IP-адрес:</strong> {{payload.ip}}<br><strong>Время:</strong> {{payload.time}}<br><br>Если это были вы — ничего делать не нужно.<br>Если нет — нажмите «Это не я», чтобы немедленно завершить все сессии: <a href=\"{{payload.notMeUrl}}\">Это не я</a>.<br>Управлять безопасностью аккаунта: <a href=\"{{payload.securityUrl}}\">{{payload.securityUrl}}</a>.",
+      "subject": "Новый вход в ваш аккаунт"
+    },
+    "inApp": {
+      "body": "Вход с нового устройства: {{payload.summary}}. Если это не вы — завершите сессии в настройках безопасности.",
+      "subject": "Новый вход в ваш аккаунт"
+    },
+    "name": "Вход с нового устройства"
+  },
+  "newInitialPaymentRequest": {
+    "description": "Уведомление председателю о создании новой заявки на вступительный/минимальный паевой взнос",
+    "email": {
+      "body": "Уважаемый {{payload.chairmanName}}!<br><br>Сформирована новая заявка на оплату. Проверяйте поступления.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Тип платежа: {{payload.paymentType}}<br><br>Подробности: {{payload.paymentUrl}}",
+      "subject": "Новая заявка на вступительный/мин.паевой взнос: {{payload.participantName}}"
+    },
+    "inApp": {
+      "body": "Пайщик {{payload.participantName}} создал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Проверяйте поступления.",
+      "subject": "Новая заявка на вступительный/мин.паевой взнос"
+    },
+    "name": "Новая заявка на вступительный взнос",
+    "push": {
+      "body": "Заявка от пайщика {{payload.participantName}} на {{payload.paymentAmount}} {{payload.paymentCurrency}}",
+      "subject": "Новая заявка на вступительный/мин.паевой взнос"
+    }
+  },
+  "paymentCancelled": {
+    "description": "Уведомление об отмене платежа",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Ваш платеж был отменен.<br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br>Номер платежа: {{payload.paymentId}}<br>Дата: {{payload.paymentDate}}<br><br>Подробная информация доступна по ссылке: {{payload.paymentUrl}}",
+      "subject": "Платеж отменен"
+    },
+    "inApp": {
+      "body": "Платеж на сумму {{payload.paymentAmount}} {{payload.paymentCurrency}} отменен",
+      "subject": "Платеж отменен"
+    },
+    "name": "Платеж отменен",
+    "push": {
+      "body": "Платеж {{payload.paymentAmount}} {{payload.paymentCurrency}} отменен",
+      "subject": "Платеж отменен"
+    }
+  },
+  "paymentPaid": {
+    "description": "Уведомление о успешном приёме платежа",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Ваш платеж успешно принят и отправлен в обработку.<br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Дата: {{payload.paymentDate}}<br><br>Подробная информация доступна по ссылке: {{payload.paymentUrl}}",
+      "subject": "Платеж успешно принят"
+    },
+    "inApp": {
+      "body": "Платеж на сумму {{payload.paymentAmount}} {{payload.paymentCurrency}} успешно завершен",
+      "subject": "Платеж принят"
+    },
+    "name": "Платеж принят",
+    "push": {
+      "body": "Платеж {{payload.paymentAmount}} {{payload.paymentCurrency}} завершен",
+      "subject": "Платеж принят"
+    }
+  },
+  "paymentRefunded": {
+    "description": "Уведомление о выполненном исходящем платеже пайщику (аванс, возврат, доплата и пр.)",
+    "email": {
+      "body": "Уважаемый {{payload.userName}}!<br><br>Вам выполнен платёж.<br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Дата: {{payload.paymentDate}}<br><br>Подробная информация доступна по ссылке: {{payload.paymentUrl}}",
+      "subject": "Платёж выполнен"
+    },
+    "inApp": {
+      "body": "Платёж на сумму {{payload.paymentAmount}} {{payload.paymentCurrency}} выполнен",
+      "subject": "Платёж выполнен"
+    },
+    "name": "Платёж выполнен",
+    "push": {
+      "body": "Платёж {{payload.paymentAmount}} {{payload.paymentCurrency}} выполнен",
+      "subject": "Платёж выполнен"
+    }
+  },
+  "resetKey": {
+    "description": "Уведомление о восстановлении доступа к аккаунту",
+    "email": {
+      "body": "Мы получили запрос на перевыпуск приватного ключа,<br><br>Для перевыпуска нажмите на ссылку: <a href=\"{{payload.resetUrl}}\">{{payload.resetUrl}}</a><br><br>Время действия ссылки - 10 минут.<br><br>Если вы не запрашивали перевыпуск ключа - проигнорируйте это сообщение.",
+      "subject": "Восстановление доступа"
+    },
+    "name": "Восстановление доступа"
+  },
+  "securityEvent": {
+    "description": "Уведомление о критичном изменении в безопасности аккаунта (2FA, способ восстановления, пароль, ключ)",
+    "email": {
+      "body": "В вашем аккаунте зафиксировано изменение в настройках безопасности:<br><br><strong>{{payload.event}}</strong><br><strong>IP-адрес:</strong> {{payload.ip}}<br><strong>Время:</strong> {{payload.time}}<br><br>Если это сделали вы — ничего делать не нужно.<br>Если нет — немедленно защитите аккаунт: <a href=\"{{payload.securityUrl}}\">{{payload.securityUrl}}</a> (отзыв активных сессий и смена пароля).",
+      "subject": "Изменение в безопасности вашего аккаунта"
+    },
+    "inApp": {
+      "body": "{{payload.event}}. Если это сделали не вы — откройте настройки безопасности, завершите сессии и смените пароль.",
+      "subject": "Событие безопасности"
+    },
+    "name": "Событие безопасности аккаунта"
+  },
+  "serverProvisioned": {
+    "description": "Уведомления о успешном развертывании цифрового кооператива",
+    "email": {
+      "body": "Здравствуйте!<br><br>Уведомляем вас о том, что цифровой кооператив <strong>{{payload.cooperativeName}}</strong> был успешно развернут и готов к работе.<br><br><strong>Детали развертывания:</strong><br>- Домен: {{payload.domain}}<br>- Дата развертывания: {{payload.provisionedAt}}<br><br>Ваш кооператив теперь доступен по адресу: <a href=\"https://{{payload.domain}}\">https://{{payload.domain}}</a><br><br>Перейдите по ссылке, чтобы завершить установку.<br><br>С уважением,<br>Команда технической поддержки",
+      "subject": "Цифровой кооператив развернут - {{payload.cooperativeName}}"
+    },
+    "inApp": {
+      "body": "Цифровой кооператив {{payload.cooperativeName}} успешно развернут. Перейдите по ссылке https://{{payload.domain}}, чтобы завершить установку.",
+      "subject": "Цифровой кооператив развернут"
+    },
+    "name": "Цифровой кооператив развернут",
+    "push": {
+      "body": "Цифровой кооператив активирован! Перейдите по ссылке, чтобы завершить установку.",
+      "subject": "Цифровой кооператив развернут - {{payload.cooperativeName}}"
+    }
+  },
+  "welcome": {
+    "description": "Приветственные уведомления для новых пользователей",
+    "email": {
+      "body": "Здравствуйте, {{payload.userName}}!<br><br>Для завершения процедуры вступления совершите взносы по предоставленным в личном кабинете реквизитам. После получения взноса совет примет Вас в пайщики. Обычно, это занимает не более 1-2 дней.",
+      "subject": "Добро пожаловать, {{payload.userName}}"
+    },
+    "inApp": {
+      "body": "Привет, {{payload.userName}}! Добро пожаловать в кооператив!",
+      "subject": "Добро пожаловать в систему"
+    },
+    "name": "Добро пожаловать",
+    "push": {
+      "body": "Добро пожаловать в кооператив!",
+      "subject": "Добро пожаловать, {{payload.userName}}!"
+    }
+  }
+}

@@ -1,12 +1,5 @@
-import { rethrowChainError } from '@coopenomics/extension-kit';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { createHash } from 'crypto';
 import { computeStockOrderHash } from '../shared/order-hash.util';
@@ -60,6 +53,7 @@ import type { MarketplaceOrderDomainEntity } from '../../domain/entities/marketp
 import { normalizeChainTxHash } from '../shared/chain-tx.util';
 
 import { MARKETPLACE_OFFER_APPROVED_EVENT } from '../events/marketplace-notification.events';
+import { t } from '../../i18n';
 
 export interface MarketplaceStockPublishInput {
   coopname: string;
@@ -190,12 +184,12 @@ export class MarketplaceStockService {
   async publishStock(input: MarketplaceStockPublishInput): Promise<MarketplaceOfferDomainEntity[]> {
     const positions = await this.loadFreeStockPositions(input.coopname, input.inventory_ids);
     if (positions.some((p) => p.published_offer_id !== null)) {
-      throw new ConflictException('Часть позиций уже опубликована — снимите с публикации перед изменением.');
+      throw DomainError.conflict('MARKETPLACE_STOCK_PARTIALLY_PUBLISHED');
     }
     if (input.price_per_unit !== undefined && input.price_per_unit !== null) {
       const price = Number.parseFloat(input.price_per_unit);
       if (Number.isNaN(price) || price <= 0) {
-        throw new BadRequestException('Цена публикации должна быть больше нуля.');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_PRICE_MUST_BE_POSITIVE');
       }
       // Только уценка (requirement 76, решение 12): продажа выше цены прибытия
       // потребовала бы доходной проводки, которой в модели нет; уценка же
@@ -213,16 +207,14 @@ export class MarketplaceStockService {
       if (tooHigh) {
         const perSaleUnit =
           tooHigh.package_size > 0
-            ? ` за упаковку ${tooHigh.package_size} ед.`
-            : ' за единицу';
-        throw new BadRequestException(
-          `Цена публикации выше цены прибытия позиции «${tooHigh.product_name_snapshot}» (${tooHigh.arrival_price}${perSaleUnit}) — допускается только уценка.`
-        );
+            ? t('marketplace.stock.perPackageUnitLabel', { packageSize: tooHigh.package_size })
+            : t('marketplace.stock.perUnitLabel');
+        throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_PRICE_ABOVE_ARRIVAL', { productName: tooHigh.product_name_snapshot, arrivalPrice: tooHigh.arrival_price, perSaleUnit });
       }
     }
     const braname = positions[0].braname;
     if (positions.some((p) => p.braname !== braname)) {
-      throw new BadRequestException('Публикация выполняется по одному КУ за раз.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_PUBLISH_SINGLE_KU_ONLY');
     }
 
     // Группа по исходному товару: order → offer поставщика (происхождение).
@@ -486,7 +478,7 @@ export class MarketplaceStockService {
       const tx = await this.chainPort.stockOrder(prepared.action);
       txHash = normalizeChainTxHash(
         tx,
-        'Заказ из остатка: цепь не вернула tx_hash. Повторите попытку.'
+        t('marketplace.stock.orderTxHashMissing')
       );
     } catch (error: any) {
       this.logger.error(
@@ -507,25 +499,23 @@ export class MarketplaceStockService {
    */
   async prepareStockOrder(input: MarketplaceStockOrderCreateInput): Promise<MarketplaceStockOrderPreparedLine> {
     if (!(input.quantity > 0)) {
-      throw new BadRequestException('Количество должно быть больше нуля.');
+      throw DomainError.badRequest('MARKETPLACE_QUANTITY_MUST_BE_POSITIVE');
     }
     const offer = await this.offerRepo.findById(input.offer_id);
     if (!offer || offer.coopname !== input.coopname) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_OFFER_NOT_FOUND');
     }
     if (!offer.stock_braname) {
-      throw new BadRequestException('Это предложение поставщика — оформите обычный заказ.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_OFFER_IS_SUPPLIER_OFFER');
     }
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-      throw new BadRequestException(`Предложение не активно (статус «${offer.status}»).`);
+      throw DomainError.badRequest('MARKETPLACE_STOCK_OFFER_NOT_ACTIVE', { offerStatus: offer.status });
     }
     // Эпик 18: способ отпуска → базовое количество/цена/упаковка (как в order-create).
     const resolved = resolveSaleUnit(offer, input.quantity, input.package_id);
     const shortfall = saleUnitShortfall(offer, resolved);
     if (shortfall) {
-      throw new BadRequestException(
-        `На складе доступно только ${shortfall.available} ${shortfall.unitLabel}; нельзя заказать ${shortfall.requested}.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_STOCK_INSUFFICIENT_AVAILABLE', { available: shortfall.available, unitLabel: shortfall.unitLabel, requested: shortfall.requested });
     }
     const packageDelta = packageDeltaOfSaleUnit(resolved);
 
@@ -634,15 +624,13 @@ export class MarketplaceStockService {
           order_hash,
         });
         await this.offerCounters.onOrderUnblocked(offer.id, resolved.baseQuantity, packageDelta);
-        await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', 'Недостаточно свободного остатка на складе');
+        await this.orderRepo.applyStatusTransition(order.id, 'CANCELLED_BY_ORDERER', t('marketplace.stock.orderCancelledInsufficientStockReason'));
       } catch (compErr: any) {
         this.logger.error(
           `createStockOrder: компенсация тоже упала (order=${order.id}): ${compErr.message}. РУЧНАЯ СВЕРКА!`
         );
       }
-      throw new ConflictException(
-        'Свободного остатка на складе не хватило — заказ отменён, средства разблокированы.'
-      );
+      throw DomainError.conflict('MARKETPLACE_STOCK_INSUFFICIENT_STOCK_ORDER_CANCELLED');
     }
 
     this.logger.log(
@@ -663,15 +651,13 @@ export class MarketplaceStockService {
   ): Promise<MarketplaceOrderDomainEntity> {
     const order = await this.orderRepo.findById(order_id);
     if (!order || order.coopname !== coopname) {
-      throw new NotFoundException('Заказ не найден.');
+      throw DomainError.notFound('MARKETPLACE_ORDER_NOT_FOUND_PLAIN');
     }
     if (order.supplier_account !== coopname) {
-      throw new BadRequestException('Это не заказ из остатка кооператива.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_NOT_STOCK_ORDER');
     }
     if (order.status !== MarketplaceOrderStatuses.ACCEPTED_TO_COOP) {
-      throw new ConflictException(
-        `Заказ в статусе «${order.status}» — отмена доступна только до открытия выдачи.`
-      );
+      throw DomainError.conflict('MARKETPLACE_STOCK_ORDER_CANCEL_WINDOW_CLOSED', { orderStatus: order.status });
     }
 
     try {
@@ -711,29 +697,25 @@ export class MarketplaceStockService {
     inventory_ids: string[]
   ): Promise<MarketplaceInventoryDomainEntity[]> {
     if (inventory_ids.length === 0) {
-      throw new BadRequestException('Не выбраны позиции остатка.');
+      throw DomainError.badRequest('MARKETPLACE_STOCK_NO_ITEMS_SELECTED');
     }
     const positions = await Promise.all(inventory_ids.map((id) => this.inventoryRepo.findById(id)));
     const found = positions.filter(Boolean) as MarketplaceInventoryDomainEntity[];
     if (found.length !== inventory_ids.length) {
-      throw new NotFoundException('Часть позиций остатка не найдена.');
+      throw DomainError.notFound('MARKETPLACE_STOCK_ITEMS_NOT_FOUND');
     }
     for (const p of found) {
       if (p.coopname !== coopname) {
-        throw new ForbiddenException('Позиция принадлежит другому кооперативу.');
+        throw DomainError.forbidden('MARKETPLACE_STOCK_ITEM_WRONG_COOP');
       }
       if (p.ownership !== MarketplaceInventoryOwnerships.COOP) {
-        throw new BadRequestException(
-          `Позиция «${p.product_name_snapshot}» — адресная (под заказ), к остатку не относится.`
-        );
+        throw DomainError.badRequest('MARKETPLACE_STOCK_ITEM_IS_ADDRESSED', { productName: p.product_name_snapshot });
       }
       if (p.reserved_order_id !== null) {
-        throw new ConflictException(
-          `Позиция «${p.product_name_snapshot}» зарезервирована под заказ из остатка.`
-        );
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_RESERVED', { productName: p.product_name_snapshot });
       }
       if (p.status !== 'RECEIVED' && p.status !== 'LABELED') {
-        throw new ConflictException(`Позиция «${p.product_name_snapshot}» уже не на складе.`);
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_NOT_IN_STOCK', { productName: p.product_name_snapshot });
       }
     }
     return found;
@@ -758,9 +740,7 @@ export class MarketplaceStockService {
       const offerId = offerIdByOrderId.get(p.order_id);
       const origin = offerId ? offerById.get(offerId) : undefined;
       if (!origin) {
-        throw new ConflictException(
-          `Не удалось определить товар позиции «${p.product_name_snapshot}» — публикация невозможна.`
-        );
+        throw DomainError.conflict('MARKETPLACE_STOCK_ITEM_PRODUCT_UNRESOLVED', { productName: p.product_name_snapshot });
       }
       // Если исходник сам — оффер кооператива (остаток перепубликуется после
       // отмены stock-ордера), группируем по его первоисточнику.

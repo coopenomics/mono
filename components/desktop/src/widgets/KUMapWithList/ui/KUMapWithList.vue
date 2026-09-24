@@ -21,7 +21,7 @@
 
   .ku-map-with-list__map(ref="mapContainer" v-if="apiKey" :style="mapMinHeight ? { minHeight: mapMinHeight } : undefined")
   BaseBanner(v-else, variant='warn')
-    | Карта недоступна: не задан YANDEX_MAPS_API_KEY.
+    | {{ $t('kUMapWithList.kUMapWithList.mapUnavailableBanner') }}
 </template>
 
 <script setup lang="ts">
@@ -30,6 +30,7 @@ import { env } from 'src/shared/config'
 import { BaseBanner } from 'src/shared/ui/base'
 import { loadYandexMaps } from 'src/shared/lib/yandexMaps'
 import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -45,7 +46,7 @@ const props = withDefaults(
   {
     loading: false,
     selectedBraname: null,
-    ariaLabel: 'Список пунктов выдачи Стола заказов',
+    ariaLabel: t('kUMapWithList.kUMapWithList.defaultAriaLabel'),
     mapMinHeight: undefined,
   }
 )
@@ -72,7 +73,7 @@ const visibleItems = computed(() =>
 // Человеческое имя КУ для показа: braname (служебный account-id) пользователю
 // не показываем НИКОГДА — только настоящее имя участка, затем адрес как фолбэк.
 function displayName(pvz: IMarketplaceKUDetails): string {
-  return pvz.name || pvz.addressFull || 'Кооперативный участок'
+  return pvz.name || pvz.addressFull || t('kUMapWithList.kUMapWithList.fallbackBranchName')
 }
 
 function cardClass(pvz: IMarketplaceKUDetails): string {
@@ -85,11 +86,11 @@ function geocodeWarnClass(pvz: IMarketplaceKUDetails): string {
 }
 
 function geocodeWarnText(pvz: IMarketplaceKUDetails): string {
-  if (pvz.geocodeStatus === 'PENDING') return 'Координаты не определены — повторите позже'
+  if (pvz.geocodeStatus === 'PENDING') return t('kUMapWithList.kUMapWithList.geocodePendingWarning')
   if (pvz.geocodeStatus === 'FAILED') {
     return pvz.geocodeErrorMessage
-      ? `Ошибка геокодинга: ${pvz.geocodeErrorMessage}`
-      : 'Ошибка геокодинга'
+      ? t('kUMapWithList.kUMapWithList.geocodeErrorWithMessage', { errorMessage: pvz.geocodeErrorMessage })
+      : t('kUMapWithList.kUMapWithList.geocodeErrorGeneric')
   }
   return ''
 }

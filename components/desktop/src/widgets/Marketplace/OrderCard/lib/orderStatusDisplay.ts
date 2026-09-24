@@ -1,5 +1,6 @@
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import type { DomainOrderStatus } from './toOrderCardModel';
+import { t } from 'src/shared/i18n';
 
 /**
  * Единый источник человекочитаемого статуса заказа Стола заказов: подпись +
@@ -22,27 +23,27 @@ const ORDER_STATUS_DISPLAY: Record<DomainOrderStatus, OrderStatusDisplay> = {
   // акцептовал). «Активен» заказчику ничего не говорит, а «Ожидает
   // подтверждения» дублировало бы ACCEPTED_PENDING_SUPPLIER. Эта стадия — про
   // СБОР партии (ниже по рангу, чем «Ждёт акцепта»): «Ожидает сборки партии».
-  ACTIVE: { label: 'Ожидает сборки партии', variant: 'neutral' },
-  ACCEPTED_PENDING_SUPPLIER: { label: 'Ждёт акцепта', variant: 'info' },
-  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: { label: 'Ждёт акцепта', variant: 'info' },
-  ACCEPTED: { label: 'Ожидает отгрузки', variant: 'info' },
+  ACTIVE: { label: t('marketplace.order.status.pendingAssembly'), variant: 'neutral' },
+  ACCEPTED_PENDING_SUPPLIER: { label: t('marketplace.order.status.pendingAcceptance'), variant: 'info' },
+  ACCEPTED_PENDING_SUPPLIER_INDIVIDUAL: { label: t('marketplace.order.status.pendingAcceptance'), variant: 'info' },
+  ACCEPTED: { label: t('marketplace.order.status.pendingShipment'), variant: 'info' },
   // SUPPLY_PREPARED = поставщик СОБРАЛ партию (выбран вариант доставки, для
   // экспедитора выпущена ТТН), но имущество ещё НЕ отгружено и НЕ принято на КУ
   // (приёмки ПВЗ и подписи председателя ещё не было). Поэтому «Поставка готова»
   // вводило в заблуждение — на этом этапе принят лишь акцепт поставщика. Канон-
   // термин: «Собрана к отгрузке».
-  SUPPLY_PREPARED: { label: 'Собрана к отгрузке', variant: 'info' },
-  ACCEPTED_TO_COOP: { label: 'Принят кооперативом', variant: 'info' },
-  READY_TO_RECEIVE: { label: 'Готов к выдаче', variant: 'warn' },
+  SUPPLY_PREPARED: { label: t('marketplace.order.status.readyToShip'), variant: 'info' },
+  ACCEPTED_TO_COOP: { label: t('marketplace.order.status.acceptedByCoop'), variant: 'info' },
+  READY_TO_RECEIVE: { label: t('marketplace.order.status.readyToIssue'), variant: 'warn' },
   // Паевая модель (компонент 68): заявление подано, совет решает; согласовал —
   // ждём акт пайщика; акт подписан — оператор закрывает выдачу.
-  ISSUE_PENDING: { label: 'На решении совета', variant: 'info' },
-  ISSUE_AUTHORIZED: { label: 'Совет согласовал — подпишите акт', variant: 'warn' },
-  ISSUE_ACT1: { label: 'Акт подписан — выдаётся', variant: 'pos' },
-  RECEIVED: { label: 'Получен', variant: 'pos' },
-  RETURNED: { label: 'Возвращён', variant: 'neutral' },
-  CANCELLED_BY_ORDERER: { label: 'Отменён заказчиком', variant: 'neg' },
-  CANCELLED_BY_SUPPLIER: { label: 'Отменён поставщиком', variant: 'neg' },
+  ISSUE_PENDING: { label: t('marketplace.order.status.councilPending'), variant: 'info' },
+  ISSUE_AUTHORIZED: { label: t('marketplace.order.status.councilApproved'), variant: 'warn' },
+  ISSUE_ACT1: { label: t('marketplace.order.status.actSignedIssuing'), variant: 'pos' },
+  RECEIVED: { label: t('marketplace.order.status.received'), variant: 'pos' },
+  RETURNED: { label: t('marketplace.order.status.returned'), variant: 'neutral' },
+  CANCELLED_BY_ORDERER: { label: t('marketplace.order.status.cancelledByOrderer'), variant: 'neg' },
+  CANCELLED_BY_SUPPLIER: { label: t('marketplace.order.status.cancelledBySupplier'), variant: 'neg' },
 };
 
 /**

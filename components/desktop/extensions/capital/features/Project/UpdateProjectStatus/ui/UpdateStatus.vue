@@ -25,6 +25,7 @@ import type { IProject } from 'app/extensions/capital/entities/Project/model'
 import { useUpdateProjectStatus } from '../model'
 import { getProjectStatusLabel } from 'app/extensions/capital/shared/lib/projectStatus'
 import { FailAlert } from 'src/shared/api/alerts'
+import { t } from '../../../../i18n';
 
 interface Props {
   project: IProject | undefined
@@ -33,7 +34,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  label: 'Статус',
+  label: t('capital.updateStatus.label'),
   readonly: false
 })
 

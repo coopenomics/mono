@@ -1,0 +1,34 @@
+{
+  "extension": {
+    "cancelButton": {
+      "label": "Отменить"
+    },
+    "disableButton": {
+      "disableError": "Ошибка отключения расширения: {errorMessage}",
+      "stateLabel": "включено",
+      "updatedSuccess": "Расширение обновлено"
+    },
+    "enableButton": {
+      "enableError": "Ошибка включения расширения: {errorMessage}",
+      "stateLabel": "отключено",
+      "updatedSuccess": "Расширение обновлено"
+    },
+    "installButton": {
+      "installError": "Ошибка установки расширения: {errorMessage}",
+      "installedSuccess": "Расширение установлено",
+      "submit": "Включить"
+    },
+    "saveButton": {
+      "saveError": "Ошибка сохранения расширения: {errorMessage}",
+      "updatedSuccess": "Расширение обновлено"
+    },
+    "settingsButton": {
+      "label": "Настройки"
+    },
+    "uninstallButton": {
+      "action": "удалить",
+      "uninstallError": "Ошибка удаления расширения: {errorMessage}",
+      "uninstalledSuccess": "Расширение удалено"
+    }
+  }
+}

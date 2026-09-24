@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import config from '~/config/config';
 import logger from '~/config/logger';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
@@ -7,6 +7,7 @@ import { ORGANIZATION_REPOSITORY, OrganizationRepository } from '~/domain/common
 import { MONO_STATUS_REPOSITORY, MonoStatusRepository } from '~/domain/common/repositories/mono-status.repository';
 import { PaymentMethodDomainEntity } from '~/domain/payment-method/entities/method-domain.entity';
 import { SystemStatus } from '~/application/system/dto/system-status.dto';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class InitInteractor {
@@ -21,9 +22,7 @@ export class InitInteractor {
 
     // Разрешаем инициализацию если установка еще не завершена (статус !== 'active')
     if (existingMono && (existingMono.status === SystemStatus.active || existingMono.status === SystemStatus.maintenance)) {
-      throw new BadRequestException(
-        `Инициализация невозможна - установка уже завершена. Система находится в статусе '${existingMono.status}'. `
-      );
+      throw DomainError.badRequest('SYSTEM_ALREADY_INITIALIZED', { status: existingMono.status });
     }
 
     // Определяем тип инициализации:
@@ -39,9 +38,7 @@ export class InitInteractor {
     // Проверяем права на обновление:
     // Пользователь не может обновлять данные, установленные сервером
     if (existingMono && existingMono.init_by_server === true && !isServerInit) {
-      throw new BadRequestException(
-        'Невозможно обновить данные организации - они были установлены администратором и доступны только для чтения.'
-      );
+      throw DomainError.badRequest('SYSTEM_ORGANIZATION_DATA_READONLY');
     }
 
     const { bank_account, ...organization } = data.organization_data;

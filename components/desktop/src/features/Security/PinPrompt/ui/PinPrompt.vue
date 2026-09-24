@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   v-model='visible',
-  :title='isUnlock ? "Введите PIN-код" : "Подтвердите PIN-код"',
+  :title='isUnlock ? $t("security.pinPrompt.enterTitle") : $t("security.pinPrompt.confirmTitle")',
   size='sm',
   :close-on-backdrop='false',
   :close-on-escape='false',
@@ -9,12 +9,12 @@ BaseDialog(
 )
   .pin-prompt
     p.pin-prompt__hint(v-if='isUnlock')
-      | Кабинет защищён PIN-кодом. Введите его, чтобы продолжить работу на этом устройстве.
+      | {{ $t('security.pinPrompt.lockedHint') }}
     //- Запереться кошелёк мог и сам по простою, и по нажатию замка — для
     //- вводящего это одно и то же: ключа в памяти нет, вернуть его нечем, кроме
     //- PIN-кода. Поэтому причину не называем, называем состояние.
     p.pin-prompt__hint(v-else)
-      | Кошелёк заперт: ключ убран из памяти. Введите PIN-код, чтобы им воспользоваться.
+      | {{ $t('security.pinPrompt.walletLockedHint') }}
 
     //- Ввод — ячейками с экранной клавиатурой: с телефона PIN набирают пальцем,
     //- за столом привычнее клавиши, и работает то и другое. Полный набор (шесть
@@ -32,13 +32,13 @@ BaseDialog(
       variant='secondary',
       :disabled='submitting',
       @click='onSecondary'
-    ) {{ isUnlock ? 'Войти заново' : 'Отмена' }}
+    ) {{ isUnlock ? $t('security.pinPrompt.reloginLabel') : $t('common.action.cancel') }}
     BaseButton(
       variant='primary',
       :loading='submitting',
       :disabled='!canSubmit',
       @click='onSubmit'
-    ) Подтвердить
+    ) {{ $t('common.action.confirm') }}
 </template>
 
 <script lang="ts" setup>

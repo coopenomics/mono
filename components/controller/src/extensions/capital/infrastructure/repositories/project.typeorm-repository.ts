@@ -14,7 +14,7 @@ import type { ArtifactAccessScope } from '../../domain/repositories/artifact-acc
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils, resolveSortColumn } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.
@@ -171,10 +171,10 @@ export class ProjectTypeormRepository
     const h = projectHash.toLowerCase();
     const existing = await this.repository.findOneBy({ project_hash: h });
     if (!existing) {
-      throw new Error(`Проект с хэшем ${h} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     if (existing.origin !== ProjectOrigin.LOCAL) {
-      throw new Error('Обновление локальных полей доступно только для персональных проектов');
+      throw DomainError.internal('CAPITAL_LOCAL_FIELDS_UPDATE_PERSONAL_ONLY');
     }
     const patch: Partial<ProjectTypeormEntity> = {};
     if (fields.title !== undefined) patch.title = fields.title;
@@ -185,7 +185,7 @@ export class ProjectTypeormRepository
     await this.repository.update({ project_hash: h }, patch);
     const updated = await this.findByHash(h);
     if (!updated) {
-      throw new Error(`Не удалось перечитать проект ${h} после локального обновления`);
+      throw DomainError.internal('CAPITAL_PROJECT_REFRESH_AFTER_LOCAL_UPDATE_FAILED', { hash: h });
     }
     return updated;
   }
@@ -194,10 +194,10 @@ export class ProjectTypeormRepository
     const h = projectHash.toLowerCase();
     const existing = await this.repository.findOneBy({ project_hash: h });
     if (!existing) {
-      throw new Error(`Проект с хэшем ${h} не найден`);
+      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     if (existing.origin !== ProjectOrigin.LOCAL) {
-      throw new Error('Мягкое удаление без блокчейна доступно только для персональных проектов');
+      throw DomainError.internal('CAPITAL_SOFT_DELETE_PERSONAL_ONLY');
     }
     await this.repository.update({ project_hash: h }, { present: false });
   }

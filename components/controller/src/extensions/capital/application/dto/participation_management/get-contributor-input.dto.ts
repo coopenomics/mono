@@ -1,5 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql';
 import { IsString, IsOptional, ValidateIf } from 'class-validator';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * DTO для получения участника
@@ -26,6 +27,6 @@ export class GetContributorInputDTO {
    */
   @ValidateIf((o: GetContributorInputDTO) => !o._id && !o.username && !o.contributor_hash)
   validateAtLeastOneField(): boolean {
-    throw new Error('Необходимо указать хотя бы одно из полей: _id, username или contributor_hash');
+    throw DomainError.internal('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
   }
 }

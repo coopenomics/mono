@@ -2,34 +2,34 @@
 .coopid-flow-page
   AuthSplit(
     :eyebrow='coopTitle',
-    title='Карта кооператора',
-    lead='Сеть карт просит кооператив опознать своего пайщика: шаги входа ведёт CoopID, стол их показывает.',
-    quote='Аутентификация целиком остаётся у CoopID — стол только спрашивает очередной шаг.',
-    step-eyebrow='Вход по карте кооператора',
+    :title='$t("registrator.coopidFlowPage.title")',
+    :lead='$t("registrator.coopidFlowPage.lead")',
+    :quote='$t("registrator.coopidFlowPage.quote")',
+    :step-eyebrow='$t("registrator.coopidFlowPage.stepEyebrow")',
     :heading='title',
     :text='subtitle'
   )
     template(#actions)
       AuthActions
     template(v-if='runner.state.value === FlowState.Starting')
-      p.flow-stage__lead Открываем вход…
+      p.flow-stage__lead {{ $t('registrator.coopidFlowPage.startingText') }}
 
     template(v-else-if='runner.state.value === FlowState.Leaving')
-      p.flow-stage__lead Завершаем…
+      p.flow-stage__lead {{ $t('registrator.coopidFlowPage.leavingText') }}
 
     template(v-else-if='runner.state.value === FlowState.Broken')
       BaseBanner(variant='neg')
-        strong Вход не отвечает.
-        |  {{ runner.failure.value ?? 'Попробуйте ещё раз через минуту.' }}
+        strong {{ $t('registrator.coopidFlowPage.brokenTitle') }}
+        |  {{ runner.failure.value ?? $t('registrator.coopidFlowPage.brokenFallback') }}
       .flow-stage__actions
-        BaseButton(variant='primary', @click='begin') Попробовать снова
+        BaseButton(variant='primary', @click='begin') {{ $t('registrator.coopidFlowPage.retryAction') }}
 
     template(v-else-if='unknownStage')
       BaseBanner(variant='neg')
-        strong Этот шаг входа стол ещё не умеет показывать.
-        |  Сообщите нам — добавим; пока войдите другим способом.
+        strong {{ $t('registrator.coopidFlowPage.unknownStageTitle') }}
+        |  {{ $t('registrator.coopidFlowPage.unknownStageHint') }}
       .flow-stage__actions
-        BaseButton(variant='primary', @click='begin') Начать заново
+        BaseButton(variant='primary', @click='begin') {{ $t('registrator.coopidFlowPage.restartAction') }}
 
     template(v-else)
       BaseBanner(v-if='runner.failure.value', variant='neg') {{ runner.failure.value }}
@@ -99,6 +99,7 @@ import {
   FlowPrompt,
   FlowSessionEnd,
 } from 'src/features/CoopidFlow/ui';
+import { t, t as i18nT } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -129,9 +130,9 @@ const title = computed(() => {
   const c = current.value;
   if (c?.component === FlowStage.Consent && (c.permissions?.length ?? 0) > 0) {
     const app = c.flow_info?.title?.replace(/^Redirecting to\s+/i, '').replace(/\s+запрашивает доступ$/i, '').trim();
-    return `${app || 'Сервис'} запрашивает доступ`;
+    return t('registrator.coopidFlowPage.consentRequestTitle', { appName: app || i18nT('coopidFlow.coopidFlowPage.serviceFallback') });
   }
-  return c?.flow_info?.title ?? 'Вход';
+  return c?.flow_info?.title ?? t('registrator.coopidFlowPage.defaultTitle');
 });
 
 /**
@@ -144,7 +145,7 @@ const title = computed(() => {
  */
 const subtitle = computed(() => {
   if (current.value?.component === FlowStage.Consent) return '';
-  return 'Кооператив опознаёт вас по шагам CoopID — так вход по карте выглядит иначе, чем обычный.';
+  return t('registrator.coopidFlowPage.subtitleHint');
 });
 
 const KNOWN = new Set<string>(Object.values(FlowStage));

@@ -1,4 +1,4 @@
-import { Injectable, Inject, ConflictException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { CapitalBlockchainPort, CAPITAL_BLOCKCHAIN_PORT } from '../../domain/interfaces/capital-blockchain.port';
 import type { CreateCommitDomainInput } from '../../domain/actions/create-commit-domain-input.interface';
@@ -25,9 +25,8 @@ import {
 } from '../../domain/repositories/issue-linked-git-commit.repository';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { assertBlockchainProject } from '../../domain/utils/assert-blockchain-project';
-import { AssetUtils,
-  generateHashFromString,
-} from '@coopenomics/extension-kit';
+import { AssetUtils, generateHashFromString, DomainError } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Интерактор домена для генерации в CAPITAL контракте
@@ -62,21 +61,19 @@ export class GenerationInteractor {
    */
   async createCommit(data: CreateCommitDomainInput, _currentUser: IMonoAccount): Promise<CommitDomainEntity> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
-    assertBlockchainProject(project, 'фиксацию коммита');
+    assertBlockchainProject(project, t('capital.generation.actionLabel.commitFixation'));
 
     // Получаем участника по username
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(data.username, data.coopname);
 
     if (!contributor) {
-      throw new Error(`Участник не найден: ${data.username} в кооперативе ${data.coopname}`);
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP_COLON', { username: data.username, coopname: data.coopname });
     }
 
     // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать.
     const { amount: ratePerHour } = AssetUtils.parseAsset(contributor.rate_per_hour);
     if (ratePerHour <= 0) {
-      throw new Error(
-        'Нельзя зафиксировать коммит: в профиле участника не задана стоимость часа. Укажите ставку и повторите.'
-      );
+      throw DomainError.internal('CAPITAL_CONTRIBUTOR_HOURLY_RATE_MISSING');
     }
 
     // Получаем доступное время для коммита (факт = uncommitted TimeEntry по DONE)
@@ -86,14 +83,14 @@ export class GenerationInteractor {
     );
 
     if (availableHours <= HOURS_FLOAT_EPSILON) {
-      throw new Error('Нет доступного времени для коммита. Пожалуйста, сначала поработайте над завершенными задачами.');
+      throw DomainError.internal('CAPITAL_NO_AVAILABLE_COMMIT_TIME');
     }
 
     // Проверяем что запрошенное количество часов не превышает доступное
     if (data.commit_hours > availableHours + HOURS_FLOAT_EPSILON) {
       throw new Error(
-        `Запрошенное количество часов коммита (${data.commit_hours}) превышает доступное время (${availableHours}). ` +
-          'Пожалуйста, уменьшите количество часов коммита или завершите больше задач.'
+        t('capital.generation.commitHoursExceeded.message', { commitHours: data.commit_hours, availableHours }) +
+          t('capital.generation.commitHoursExceeded.hint')
       );
     }
 
@@ -101,15 +98,15 @@ export class GenerationInteractor {
     const chainHours = Math.floor(data.commit_hours + HOURS_FLOAT_EPSILON);
     if (chainHours < 1) {
       throw new Error(
-        'Для коммита в блокчейн нужен минимум один полный час накопленного времени по завершённым задачам. ' +
-          `Сейчас при запросе ${data.commit_hours} ч в цепь уходит 0 ч — дождитесь накопления целого часа или укажите большее значение.`
+        t('capital.generation.commitBelowHour.message') +
+          t('capital.generation.commitBelowHour.detail', { commitHours: data.commit_hours })
       );
     }
     const maxChainFromAvailable = Math.floor(availableHours + HOURS_FLOAT_EPSILON);
     if (chainHours > maxChainFromAvailable) {
       throw new Error(
-        `Нельзя зафиксировать в блокчейне ${chainHours} ч: доступно не более ${maxChainFromAvailable} полных часов ` +
-          `(${availableHours} ч суммарно).`
+        t('capital.generation.chainHoursLimit.message', { chainHours, maxChainHours: maxChainFromAvailable }) +
+          t('capital.generation.chainHoursLimit.total', { availableHours })
       );
     }
 
@@ -177,7 +174,7 @@ export class GenerationInteractor {
             const msg = error instanceof Error ? error.message : String(error);
             const stack = error instanceof Error ? error.stack : undefined;
             this.logger.error(`Ошибка при обработке Git URL ${item.data.url}: ${msg}`, stack);
-            throw new Error(`Не удалось обработать Git URL ${item.data.url}: ${msg}`);
+            throw DomainError.internal('CAPITAL_GIT_URL_PROCESSING_FAILED', { url: item.data.url, message: msg });
           }
         } else if (item.type === 'contribution_feedback') {
           continue;
@@ -232,14 +229,14 @@ export class GenerationInteractor {
 
     // Проверяем, что commitHash был установлен
     if (!commitHash) {
-      throw new Error('commitHash не был установлен - это внутренняя ошибка');
+      throw DomainError.internal('CAPITAL_COMMIT_HASH_NOT_SET');
     }
 
     // Проверяем, существует ли уже коммит с таким хэшем
     const existingCommit = await this.commitRepository.findByCommitHash(commitHash);
     if (existingCommit) {
       this.logger.warn(`Коммит с хэшем ${commitHash} уже существует`);
-      throw new ConflictException(`Коммит с хэшем ${commitHash} уже существует`);
+      throw DomainError.conflict('CAPITAL_COMMIT_ALREADY_EXISTS', { hash: commitHash });
     }
 
     // Создаём доменную сущность для валидации
@@ -306,7 +303,7 @@ export class GenerationInteractor {
 
       const savedCommit = await this.commitRepository.findByCommitHash(commitHash);
       if (!savedCommit) {
-        throw new Error(`Не удалось найти созданный коммит с hash: ${commitHash}`);
+        throw DomainError.internal('CAPITAL_CREATED_COMMIT_NOT_FOUND', { hash: commitHash });
       }
       return savedCommit;
     }
@@ -323,17 +320,17 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw new Error(`Коммит с хешем ${data.commit_hash} не найден`);
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
-      throw new Error('Коммит не связан с проектом');
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_LINKED_TO_PROJECT');
     }
 
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw new Error('У вас нет прав для одобрения этого коммита. Только мастер проекта может одобрять коммиты.');
+      throw DomainError.internal('CAPITAL_COMMIT_APPROVE_FORBIDDEN');
     }
 
     // Создаём данные для блокчейна
@@ -362,17 +359,17 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw new Error(`Коммит с хешем ${data.commit_hash} не найден`);
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
-      throw new Error('Коммит не связан с проектом');
+      throw DomainError.internal('CAPITAL_COMMIT_NOT_LINKED_TO_PROJECT');
     }
 
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw new Error('У вас нет прав для отклонения этого коммита. Только мастер проекта может отклонять коммиты.');
+      throw DomainError.internal('CAPITAL_COMMIT_REJECT_FORBIDDEN');
     }
 
     // Обновляем статус в базе данных

@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { CompleteVotingDomainInput } from '../../../domain/actions/complete-voting-domain-input.interface';
 
@@ -8,12 +9,12 @@ import type { CompleteVotingDomainInput } from '../../../domain/actions/complete
 @InputType('CompleteVotingInput')
 export class CompleteVotingInputDTO implements CompleteVotingDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.completeVotingInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.completeVotingInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш проекта' })
-  @IsNotEmpty({ message: 'Хэш проекта не должен быть пустым' })
-  @IsString({ message: 'Хэш проекта должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.completeVotingInput.projectHash.required') })
+  @IsString({ message: validationMessage('capital.completeVotingInput.projectHash.string') })
   project_hash!: string;
 }

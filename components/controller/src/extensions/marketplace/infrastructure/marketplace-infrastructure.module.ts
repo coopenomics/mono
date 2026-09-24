@@ -156,6 +156,7 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
         const connection = databases.getConnection('marketplace');
         if (!connection) {
           throw new Error(
+            // i18n-ignore: проверка конфигурации при старте, до пайщика не доходит
             'Расширению marketplace не заведена отдельная база: без неё каталог, склад и заказы читать неоткуда'
           );
         }

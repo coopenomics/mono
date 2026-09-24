@@ -18,6 +18,7 @@ import { MarketplaceShareReturnStatementSignedInputDTO } from '../documents-dto/
 import { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
 import { MarketplaceConvertPayloadDTO } from './marketplace-checkout.dto';
 import { MarketplaceIssuanceSagaDTO } from './marketplace-issuance-saga.dto';
+import { t } from '../../i18n';
 
 export enum MarketplaceStockProposalStatusEnum {
   PROPOSED = 'PROPOSED',
@@ -467,7 +468,7 @@ export function toMarketplaceStockProposalDTO(
     item.ordered_total_cost = orderedTotals?.total_cost ?? null;
     item.package_label =
       i.package_size && i.unit_of_measure
-        ? `упак. ${String(i.package_size).replace('.', ',')} ${marketplaceOrderUnitLabel(i.unit_of_measure)}`
+        ? t('marketplace.stockDto.packageLabel', { size: String(i.package_size).replace('.', ','), unit: marketplaceOrderUnitLabel(i.unit_of_measure) })
         : null;
     return item;
   });

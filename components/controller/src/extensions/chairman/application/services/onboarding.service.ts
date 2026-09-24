@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import {
   ChairmanOnboardingAgendaInputDTO,
@@ -58,7 +58,7 @@ export class ChairmanOnboardingService {
       case ChairmanOnboardingAgendaStepEnum.voskhod_membership:
         return 'onboarding_voskhod_membership_done';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CHAIRMAN_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -77,7 +77,7 @@ export class ChairmanOnboardingService {
       case ChairmanOnboardingAgendaStepEnum.voskhod_membership:
         return 'onboarding_voskhod_membership_hash';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CHAIRMAN_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
@@ -96,13 +96,13 @@ export class ChairmanOnboardingService {
       case ChairmanOnboardingAgendaStepEnum.voskhod_membership:
         return 'voskhod_membership';
       default:
-        throw new Error(`Неизвестный шаг онбординга: ${step}`);
+        throw DomainError.internal('CHAIRMAN_ONBOARDING_UNKNOWN_STEP', { step });
     }
   }
 
   private async loadExtension(): Promise<ExtensionDomainEntity<IConfig>> {
     const extension = await this.extensionRepository.findByName('chairman');
-    if (!extension) throw new Error('Конфигурация расширения chairman не найдена');
+    if (!extension) throw DomainError.internal('CHAIRMAN_EXTENSION_CONFIG_NOT_FOUND');
     const config = { ...extension.config };
 
     const patch: Partial<IConfig> = {};

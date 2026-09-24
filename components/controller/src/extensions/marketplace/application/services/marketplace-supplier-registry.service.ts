@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   MARKETPLACE_SUPPLIER_REPOSITORY,
@@ -15,6 +15,7 @@ import {
   MarketplaceSupplierModel,
   MarketplaceSupplierStatus,
 } from '../../domain/entities/marketplace-supplier.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_SUPPLIER_REGISTRY_SERVICE = Symbol(
   'MARKETPLACE_SUPPLIER_REGISTRY_SERVICE'
@@ -95,7 +96,7 @@ export class MarketplaceSupplierRegistryService {
     const existing = await this.repo.findByMember(coopname, member_account);
     if (existing) {
       if (existing.status === MarketplaceSupplierStatus.APPROVED) {
-        throw new ConflictException('Вы уже допущены как поставщик.');
+        throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_ALREADY_APPROVED');
       }
       if (existing.status === MarketplaceSupplierStatus.PENDING) {
         return existing;
@@ -250,7 +251,7 @@ export class MarketplaceSupplierRegistryService {
     contract_date: string | null
   ): Promise<MarketplaceSupplierDomainEntity> {
     if (model === MarketplaceSupplierModel.SHARE) {
-      throw new ConflictException('Паевая модель работы поставщика пока недоступна.');
+      throw DomainError.conflict('MARKETPLACE_SUPPLIER_REGISTRY_SHARE_MODEL_UNAVAILABLE');
     }
     const result = await this.repo.patch(coopname, member_account, {
       model,

@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 /**
  * Исполнитель потоков authentik для CoopID (задача 105-30).
  *
@@ -138,15 +139,15 @@ export const executeFlow = async (
   try {
     response = await fetch(stepUrl(base, slug, query), request);
   } catch {
-    throw new FlowUnavailable('Сервер входа недоступен. Попробуйте ещё раз через минуту.');
+    throw new FlowUnavailable(t('api.authentikFlow.unavailableError'));
   }
   if (!response.ok) {
-    throw new FlowUnavailable(`Сервер входа ответил ошибкой ${response.status}. Попробуйте ещё раз.`);
+    throw new FlowUnavailable(t('api.authentikFlow.errorStatus', { status: response.status }));
   }
   try {
     return (await response.json()) as FlowChallenge;
   } catch {
-    throw new FlowUnavailable('Сервер входа ответил неожиданно. Попробуйте ещё раз.');
+    throw new FlowUnavailable(t('api.authentikFlow.unexpectedResponseError'));
   }
 };
 

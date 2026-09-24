@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
@@ -22,6 +22,7 @@ import {
   MarketplaceCartItemDTO,
 } from '../dto/marketplace-cart.dto';
 import { MarketplaceOfferImagesService } from './marketplace-offer-images.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_CART_SERVICE = Symbol('MARKETPLACE_CART_SERVICE');
 
@@ -71,9 +72,7 @@ export class MarketplaceCartService {
     // можно только в его контексте; при пустой — КУ задаётся первым добавлением.
     const targetKu = this.resolveTargetDeliveryBraname(cart, input.delivery_braname);
     if (targetKu && !this.offerDeliversTo(offer, targetKu)) {
-      throw new BadRequestException(
-        'Этот товар не возят на выбранный пункт выдачи. Смените КУ или выберите другой товар.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_CART_OFFER_NOT_DELIVERED_TO_BRANCH');
     }
     if (targetKu && targetKu !== cart.delivery_braname) {
       await this.cartRepo.setDeliveryBraname(cart.id, targetKu);
@@ -108,7 +107,7 @@ export class MarketplaceCartService {
 
   async setDeliveryPoint(scope: CartScope, delivery_braname: string): Promise<MarketplaceCartDTO> {
     if (!delivery_braname) {
-      throw new BadRequestException('Не указан пункт выдачи.');
+      throw DomainError.badRequest('MARKETPLACE_CART_BRANCH_REQUIRED');
     }
     const cart = await this.cartRepo.getOrCreate(scope.coopname, scope.orderer_account);
     await this.cartRepo.setDeliveryBraname(cart.id, delivery_braname);
@@ -123,15 +122,13 @@ export class MarketplaceCartService {
   ): Promise<MarketplaceOfferDomainEntity> {
     const offer = await this.offerRepo.findById(offer_id);
     if (!offer) {
-      throw new NotFoundException('Предложение не найдено.');
+      throw DomainError.notFound('MARKETPLACE_OFFER_NOT_FOUND');
     }
     if (offer.coopname !== coopname) {
-      throw new ForbiddenException('Предложение принадлежит другому кооперативу.');
+      throw DomainError.forbidden('MARKETPLACE_OFFER_FOREIGN_COOP');
     }
     if (offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-      throw new BadRequestException(
-        `Предложение не активно (статус «${offer.status}»). В корзину добавить нельзя.`
-      );
+      throw DomainError.badRequest('MARKETPLACE_CART_OFFER_NOT_ACTIVE', { status: offer.status });
     }
     return offer;
   }
@@ -143,9 +140,7 @@ export class MarketplaceCartService {
     if (cart.delivery_braname) {
       // Корзина уже привязана к КУ: если инпут указывает другой — отказ.
       if (inputKu && inputKu !== cart.delivery_braname) {
-        throw new BadRequestException(
-          'Корзина привязана к другому пункту выдачи. Смените КУ или очистите корзину перед добавлением.'
-        );
+        throw DomainError.badRequest('MARKETPLACE_CART_BRANCH_MISMATCH');
       }
       return cart.delivery_braname;
     }

@@ -1,10 +1,11 @@
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { wifPermissions } from '~/domain/vault/types/vault.types';
 import { PrivateKey } from '@wharfkit/antelope';
 import type { SetWifInputDomainInterface } from '~/domain/system/interfaces/set-wif-input-domain.interface';
 import { AccountDomainService } from '~/domain/account/services/account-domain.service';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { VaultDomainService, VAULT_DOMAIN_SERVICE } from '~/domain/vault/services/vault-domain.service';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class WifInteractor {
@@ -26,7 +27,7 @@ export class WifInteractor {
     const hasKey = this.blockchainPort.hasActiveKey(blockchainAccount, publicKeyK1);
 
     if (!hasKey) {
-      throw new UnauthorizedException('Неверный приватный ключ');
+      throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
     }
 
     // Сохраняем ключ в зашифрованном хранилище

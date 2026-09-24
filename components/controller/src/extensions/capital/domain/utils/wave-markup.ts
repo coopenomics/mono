@@ -28,6 +28,7 @@
  * на накопление и динамику (см. desktop projectMetricForecast.ts).
  */
 import { MetricSeriesMode } from '../enums/metric-series-mode.enum';
+import { t } from '../../i18n';
 
 /** Основные ретрейсменты коррекции после волны 1 */
 export const CORRECTION_RATIOS = [0.382, 0.5, 0.618] as const;
@@ -144,7 +145,7 @@ export interface AnalyzeWaveInput {
 }
 
 export const WAVE_DISCLAIMER =
-  'Рабочая разметка, пересматривается с каждой новой точкой — не установленный факт.';
+  t('capital.waveMarkup.disclaimer');
 
 function emptyCorridor(periodsAhead: number): ForecastCorridor {
   return {

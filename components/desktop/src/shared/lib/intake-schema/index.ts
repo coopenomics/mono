@@ -1,3 +1,4 @@
+import { t } from 'src/shared/i18n';
 /**
  * Анкеты вступления на стороне заявителя.
  *
@@ -44,8 +45,8 @@ function lengthProblems(label: string, property: IIntakeSchemaProperty, value: s
   const minLength = property.minLength ?? property.description?.minLength;
   const maxLength = property.maxLength ?? property.description?.maxLength;
   const problems: string[] = [];
-  if (typeof minLength === 'number' && length < minLength) problems.push(`${label}: не короче ${minLength} символов`);
-  if (typeof maxLength === 'number' && length > maxLength) problems.push(`${label}: не длиннее ${maxLength} символов`);
+  if (typeof minLength === 'number' && length < minLength) problems.push(t('intakeSchema.intakeSchema.minLengthError', { label, minLength }));
+  if (typeof maxLength === 'number' && length > maxLength) problems.push(t('intakeSchema.intakeSchema.maxLengthError', { label, maxLength }));
   return problems;
 }
 
@@ -60,13 +61,13 @@ export function isWebLink(value: string): boolean {
 }
 
 function stringProblems(label: string, property: IIntakeSchemaProperty, value: string): string[] {
-  if (property.format === 'uri' && !isWebLink(value)) return [`${label}: нужна ссылка вида https://…`];
+  if (property.format === 'uri' && !isWebLink(value)) return [t('intakeSchema.intakeSchema.urlFormatError', { label })];
   return lengthProblems(label, property, value);
 }
 
 function fieldProblems(name: string, property: IIntakeSchemaProperty, value: unknown, required: boolean): string[] {
   const label = property.description?.label ?? name;
-  if (!isFilled(value)) return required ? [`${label}: заполните поле`] : [];
+  if (!isFilled(value)) return required ? [t('intakeSchema.intakeSchema.requiredError', { label })] : [];
   if (property.type === 'object') return intakeFormProblems(property, value as Record<string, unknown>);
   return typeof value === 'string' ? stringProblems(label, property, value) : [];
 }

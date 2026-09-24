@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceOrderDeclinedBySupplierPayloadSchema = z.object({
   ordererName: z.string(),
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof marketplaceOrderDeclinedBySupplierPayloadS
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Заказ отклонён поставщиком';
-export const id = slugify(name);
+export const name = nt('marketplaceOrderDeclinedBySupplier.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'zakaz-otklonyon-postavschikom';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о том, что поставщик отклонил его заказ до приёма к поставке. Указывается причина отказа — заблокированные средства возвращаются заказчику.')
+  .i18nKey('marketplaceOrderDeclinedBySupplier')
+  .description(nt('marketplaceOrderDeclinedBySupplier.description'))
   .payloadSchema(marketplaceOrderDeclinedBySupplierPayloadSchema)
   .tags(['marketplace', 'orderer'])
   .addSteps([
     createEmailStep(
       'marketplace-order-declined-by-supplier-email',
-      'Поставщик отклонил ваш заказ «{{payload.productName}}»',
-      'Уважаемый {{payload.ordererName}}!<br><br>Поставщик отклонил ваш заказ <strong>«{{payload.productName}}»</strong> на кооперативном участке <strong>{{payload.kuName}}</strong> до приёма к поставке.<br><br>Причина отказа: <em>{{payload.reasonExcerpt}}</em><br><br>Заблокированные по заказу средства возвращены вам. Вы можете оформить заказ заново у другого поставщика.<br><br>Подробности: {{payload.deepLinkUrl}}'
+      nt('marketplaceOrderDeclinedBySupplier.email.subject'),
+      nt('marketplaceOrderDeclinedBySupplier.email.body')
     ),
     createInAppStep(
       'marketplace-order-declined-by-supplier-notification',
-      'Поставщик отклонил заказ «{{payload.productName}}»',
-      'КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}. Средства возвращены.'
+      nt('marketplaceOrderDeclinedBySupplier.inApp.subject'),
+      nt('marketplaceOrderDeclinedBySupplier.inApp.body')
     ),
     createPushStep(
       'marketplace-order-declined-by-supplier-push',
-      'Заказ «{{payload.productName}}» отклонён',
-      'Поставщик отклонил заказ на КУ {{payload.kuName}}. Причина: {{payload.reasonExcerpt}}'
+      nt('marketplaceOrderDeclinedBySupplier.push.subject'),
+      nt('marketplaceOrderDeclinedBySupplier.push.body')
     ),
   ])
   .build();

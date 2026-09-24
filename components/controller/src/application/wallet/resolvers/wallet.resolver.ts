@@ -1,7 +1,7 @@
 import { Resolver, Mutation, Query, Args, Subscription } from '@nestjs/graphql';
-import { ForbiddenException, Inject, UseGuards } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
@@ -47,11 +47,11 @@ export class WalletResolver {
     @Args('input') input: WalletEventsInputDTO
   ): AsyncIterator<{ walletEvents: WalletChangedEventDTO }> {
     if (input.coopname !== config.coopname) {
-      throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
+      throw DomainError.forbidden('WALLET_SUBSCRIPTION_OWN_COOPERATIVE_ONLY');
     }
     const username = user?.username;
     if (!username) {
-      throw new ForbiddenException('Подписка доступна только пайщику своего кооператива.');
+      throw DomainError.forbidden('WALLET_SUBSCRIPTION_MEMBER_ONLY');
     }
     return this.pubSub.asyncIterator(walletEventsTopic(config.coopname, username));
   }

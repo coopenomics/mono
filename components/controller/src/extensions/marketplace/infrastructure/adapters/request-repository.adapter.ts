@@ -5,6 +5,7 @@ import { RequestDomainRepository } from '../../domain/repositories/request-domai
 import { RequestDomainEntity, RequestType, RequestStatus } from '../../domain/entities/request-domain.entity';
 import { RequestEntity } from '../entities/request.entity';
 import { RequestMapper } from '../mappers/request.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class RequestRepositoryAdapter implements RequestDomainRepository {
@@ -212,7 +213,7 @@ export class RequestRepositoryAdapter implements RequestDomainRepository {
     });
 
     if (!fullEntity) {
-      throw new Error('Заявка не найдена после сохранения');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND_AFTER_SAVE');
     }
 
     return RequestMapper.toDomain(fullEntity);
@@ -227,7 +228,7 @@ export class RequestRepositoryAdapter implements RequestDomainRepository {
     });
 
     if (!updatedEntity) {
-      throw new Error('Заявка не найдена после обновления');
+      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND_AFTER_UPDATE');
     }
 
     return RequestMapper.toDomain(updatedEntity);

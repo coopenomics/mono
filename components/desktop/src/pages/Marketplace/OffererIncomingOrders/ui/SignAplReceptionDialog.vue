@@ -14,6 +14,7 @@ import {
   signReceptionGroupAsSupplier,
   type MarketplaceAplReceptionView,
 } from 'src/entities/MarketplaceAplReception';
+import { t } from 'src/shared/i18n';
 
 /**
  * Первая подпись поставщика на СВОДНОЙ поставке (on-chain `signsupp`).
@@ -45,10 +46,10 @@ const { showActs, toggleActs, resetActs } = useActsPreview(loadPreview, previewH
 watch(() => [props.modelValue, props.group?.key], resetActs);
 
 const VARIANT_LABEL: Record<string, string> = {
-  IN_PERSON: 'Очная приёмка',
-  EXPEDITOR: 'Через экспедитора',
-  A: 'Очная приёмка',
-  B: 'Через экспедитора',
+  IN_PERSON: t('marketplace.signAplReceptionDialog.variantLabelInPerson'),
+  EXPEDITOR: t('marketplace.signAplReceptionDialog.variantLabelExpeditor'),
+  A: t('marketplace.signAplReceptionDialog.variantLabelInPerson'),
+  B: t('marketplace.signAplReceptionDialog.variantLabelExpeditor'),
 };
 const variantLabel = computed(() =>
   props.group ? (VARIANT_LABEL[props.group.variant] ?? props.group.variant) : '',
@@ -73,7 +74,7 @@ const rejectedItems = computed<{ key: string; productName: string; count: number
       const key = f.product_name ?? '';
       const ex = map.get(key);
       if (ex) ex.count += 1;
-      else map.set(key, { key, productName: f.product_name || 'Товар по предложению', count: 1 });
+      else map.set(key, { key, productName: f.product_name || t('marketplace.signAplReceptionDialog.fallbackProductTitle'), count: 1 });
     }
   }
   return [...map.values()];
@@ -83,7 +84,7 @@ const hasRejected = computed(() => rejectedItems.value.length > 0);
 // уходят в блок «Отклоняется».
 const acceptedLines = computed(() => (props.group?.lines ?? []).filter((l) => l.quantity > 0));
 const hasAccepted = computed(() => acceptedLines.value.length > 0);
-const confirmLabel = computed(() => (hasAccepted.value ? 'Подписать' : 'Подтвердить отмену'));
+const confirmLabel = computed(() => (hasAccepted.value ? t('common.action.sign') : t('marketplace.signAplReceptionDialog.confirmCancelAction')));
 
 // Человекочитаемое имя КУ-получателя + адрес вместо служебного braname —
 // стор уже наполнен родительской страницей (singleton-pinia).
@@ -109,7 +110,7 @@ async function loadPreview(): Promise<void> {
     }
     previewHtml.value = parts.join('<hr/>');
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать акты приёмки');
+    FailAlert(e, t('marketplace.signAplReceptionDialog.buildActsFailedMessage'));
   } finally {
     previewLoading.value = false;
   }
@@ -119,7 +120,7 @@ async function confirm(): Promise<void> {
   if (!props.group || !props.group.receptions.length) return;
 
   // Акты подписываются параллельно — ключ отпираем один раз до старта.
-  if (!(await ensureSigningUnlocked('Не удалось получить ключ поставщика для подписи'))) return;
+  if (!(await ensureSigningUnlocked(t('marketplace.signAplReceptionDialog.supplierKeyFailedMessage')))) return;
 
   signing.value = true;
   done.value = 0;
@@ -135,18 +136,18 @@ async function confirm(): Promise<void> {
     );
 
     for (const { receptionId, error } of errors) {
-      FailAlert(error, `Не удалось подписать один из актов поставки (${receptionId.slice(0, 8)})`);
+      FailAlert(error, t('marketplace.signAplReceptionDialog.signActFailedMessage', { receptionId: receptionId.slice(0, 8) }));
     }
 
     if (errors.length === 0) {
       // Поставщику число актов в партии знать не нужно — это внутренняя кухня
       // оформления (одна поставка = много актов на цепи). Для него поставка —
       // единое целое: подписал и ждёт закрывающую подпись председателя КУ.
-      SuccessAlert('Поставка подписана. Ожидается закрывающая подпись оператора участка.');
+      SuccessAlert(t('marketplace.signAplReceptionDialog.signedSuccessMessage'));
     } else {
       FailAlert(
         new Error(
-          `Подписано ${done.value} из ${deliveriesCount.value}; по ${errors.length} осталась ошибка — повторите.`,
+          t('marketplace.error.aplSignPartial', { done: done.value, total: deliveriesCount.value, errorsCount: errors.length }),
         ),
       );
     }
@@ -165,7 +166,7 @@ function cancel(): void {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  title="Подпись поставки"
+  :title="$t('marketplace.signAplReceptionDialog.dialogTitle')"
   maximized
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
@@ -173,7 +174,7 @@ BaseDialog(
     template(#head)
       .sign-apl__top
         .sign-apl__ident
-          span.sign-apl__name Поставка на {{ kuName }}
+          span.sign-apl__name {{ $t('marketplace.signAplReceptionDialog.deliveryToLabel', { kuName }) }}
           span.sign-apl__addr(v-if="kuAddr")
             q-icon(name="place", size="14px")
             | {{ kuAddr }}
@@ -181,18 +182,18 @@ BaseDialog(
         .sign-apl__meta(v-if="group.ttnNumbers.length")
           span.sign-apl__ttn-label
             q-icon(name="description", size="14px")
-            | {{ group.ttnNumbers.length > 1 ? 'ТТН' : 'ТТН' }}
+            | {{ group.ttnNumbers.length > 1 ? $t('marketplace.signAplReceptionDialog.ttnLabel') : $t('marketplace.signAplReceptionDialog.ttnLabel') }}
           .sign-apl__ttn-list
             BaseChip(v-for="n in group.ttnNumbers", :key="n", variant="neutral", size="sm") {{ n }}
 
     template(v-if="!showActs")
-      .sign-apl__section-head(v-if="hasRejected && hasAccepted") Принимается
+      .sign-apl__section-head(v-if="hasRejected && hasAccepted") {{ $t('marketplace.signAplReceptionDialog.acceptingLabel') }}
       table.act-table(v-if="hasAccepted")
         thead
           tr
-            th Товар
-            th.num Кол-во
-            th.num Сумма
+            th {{ $t('marketplace.signAplReceptionDialog.productColumnLabel') }}
+            th.num {{ $t('marketplace.signAplReceptionDialog.qtyColumnLabel') }}
+            th.num {{ $t('marketplace.signAplReceptionDialog.amountColumnLabel') }}
         tbody
           tr(v-for="l in acceptedLines", :key="l.key")
             td {{ l.productName }}
@@ -200,22 +201,22 @@ BaseDialog(
             td.num {{ formatAsset2Digits(l.amount.toFixed(4)) }} ₽
         tfoot
           tr
-            td Итого к приёмке
+            td {{ $t('marketplace.signAplReceptionDialog.totalToAcceptLabel') }}
             td.num
             td.num {{ formatAsset2Digits(group.totalAmount) }} ₽
 
       .sign-apl__refuse(v-if="hasRejected")
         .sign-apl__section-head.sign-apl__section-head--neg
           q-icon(name="block", size="16px")
-          | Отклоняется (некондиция)
+          | {{ $t('marketplace.signAplReceptionDialog.rejectedLabel') }}
         ul.sign-apl__refuse-list
           li(v-for="r in rejectedItems", :key="r.key")
             span {{ r.productName }}
-            BaseChip(variant="neutral", size="sm") {{ r.count }} поз.
+            BaseChip(variant="neutral", size="sm") {{ $t('marketplace.signAplReceptionDialog.itemsCountLabel', { count: r.count }) }}
         p.sign-apl__refuse-note
-          | Эти позиции сняты при приёмке и не принимаются. Подтверждая, вы
-          | отменяете их поставку — заказчикам возвращается полная стоимость и
-          | целевой членский взнос, удержания с вас нет.
+          | {{ $t('marketplace.signAplReceptionDialog.rejectedHintIntro') }}
+          | {{ $t('marketplace.signAplReceptionDialog.rejectedHintRefund') }}
+          | {{ $t('marketplace.signAplReceptionDialog.rejectedHintNoCharge') }}
 
     .sign-apl__preview(v-else)
       q-inner-loading(:showing="previewLoading")
@@ -223,15 +224,15 @@ BaseDialog(
       div(v-if="previewHtml", v-html="sanitizeDocumentHtml(previewHtml)")
 
   template(#footer)
-    BaseButton(variant="ghost", :disabled="signing", @click="cancel") Отмена
+    BaseButton(variant="ghost", :disabled="signing", @click="cancel") {{ $t('common.action.cancel') }}
     BaseButton(variant="ghost", :loading="previewLoading", :disabled="!group || !hasAccepted", @click="toggleActs")
       template(#icon-left)
         q-icon(name="description", size="18px")
-      | {{ showActs ? 'Скрыть акты' : 'Показать акты' }}
+      | {{ showActs ? $t('marketplace.signAplReceptionDialog.hideActsAction') : $t('marketplace.signAplReceptionDialog.showActsAction') }}
     BaseButton(variant="primary", :loading="signing", :disabled="!group", @click="confirm")
       template(#icon-left)
         q-icon(name="draw", size="18px")
-      span(v-if="signing && group") Подписано {{ done }}/{{ deliveriesCount }}…
+      span(v-if="signing && group") {{ $t('marketplace.signAplReceptionDialog.signProgressLabel', { done, total: deliveriesCount }) }}
       span(v-else) {{ confirmLabel }}
 </template>
 

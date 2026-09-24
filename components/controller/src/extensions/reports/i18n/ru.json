@@ -1,0 +1,229 @@
+{
+  "errors": {
+    "REPORTS_BALANCE_CORRECTION_UPSERT_NOT_FOUND": "balance_correction upsert: запись не найдена после upsert",
+    "REPORTS_BUHOTCH_CORRECTION_NUMBER_INVALID": "buhotch: correctionNumber должен быть целым 0..999 (получено: {value})",
+    "REPORTS_COOPERATIVE_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ кооператива для отправки налогового платежа",
+    "REPORTS_EDITS_JSON_INVALID": "editsJson: невалидный JSON ({message})",
+    "REPORTS_GENERATOR_NOT_REGISTERED": "Генератор для типа отчёта \"{reportType}\" не зарегистрирован",
+    "REPORTS_NDFL_REFERENCE_UNAVAILABLE": "Справочник российской юрисдикции недоступен",
+    "REPORTS_NDFL_YEAR_UNSUPPORTED": "Параметры НДФЛ за {reportYear} год неизвестны: форма применяется с отчётности за 2025 год",
+    "REPORTS_PAYMENT_AMOUNT_NOT_POSITIVE": "Сумма платежа должна быть больше нуля",
+    "REPORTS_PAYMENT_REGISTRATION_FAILED": "Не удалось зарегистрировать платёж в реестре: {message}. Заявка не создана, повторите попытку.",
+    "REPORTS_REPORT_NOT_FOUND": "Отчёт с id={id} не найден",
+    "REPORTS_REPORT_TYPE_GENERATION_HIDDEN": "Тип отчёта {reportType} скрыт в MVP (feature-flag) и не может быть сгенерирован.",
+    "REPORTS_REPORT_TYPE_HIDDEN": "Тип отчёта {reportType} скрыт в MVP (feature-flag).",
+    "REPORTS_REQUISITES_UPSERT_NOT_FOUND": "report_requisites upsert: запись не найдена после upsert",
+    "REPORTS_USER_NOT_RESOLVED": "generateReportFromEdits: не удалось определить пользователя",
+    "REPORTS_UUSN_PERIOD_INVALID": "uusn: period должен быть целым от 1 до 4 (получено: {period})",
+    "REPORTS_UV_VZNOSY_PERIOD_CODE_NOT_FOUND": "uv-vznosy: не удалось вывести код периода для месяца {month}",
+    "REPORTS_UV_VZNOSY_PERIOD_INVALID": "uv-vznosy: period должен быть целым от 1 до 12 (получено: {period})"
+  },
+  "reports": {
+    "buhotch": {
+      "generationErrorMessage": "Ошибка генерации бухбаланса: {message}"
+    },
+    "dusn": {
+      "generationErrorMessage": "Ошибка генерации ДУСН: {message}"
+    },
+    "fss4": {
+      "generationErrorMessage": "Ошибка генерации ЕФС-1: {message}",
+      "pfrRegNumberRequiredPart1": "Для ЕФС-1 обязателен рег. номер страхователя в ПФР в формате XXX-XXX-XXXXXX ",
+      "pfrRegNumberRequiredPart2": "(поле signer.pfrRegNumber). Единый 10-значный номер СФР сюда не подходит — ",
+      "pfrRegNumberRequiredPart3": "оператор отклонит отчёт. Номер ПФР есть в выписке ЕГРЮЛ, в разделе о ",
+      "pfrRegNumberRequiredPart4": "регистрации страхователя в территориальном органе СФР."
+    },
+    "ndfl6": {
+      "generationErrorMessage": "Ошибка генерации 6-НДФЛ: {message}"
+    },
+    "ndfl6Edits": {
+      "birthDateFormat": "Дата рождения — ДД.ММ.ГГГГ",
+      "citizenshipCodeFormat": "Код страны — три цифры",
+      "correctionNumberFormat": "Номер корректировки справки — ровно две цифры",
+      "documentTypeCodeFormat": "Код вида документа — две цифры",
+      "taxpayerStatusFormat": "Статус налогоплательщика — одна цифра"
+    },
+    "psv": {
+      "generationErrorMessage": "Ошибка генерации ПСВ: {message}",
+      "signerInnRequiredMessage": "Для ПСВ обязателен ИНН подписанта (поле signer.inn) — без него СФР отклоняет отчёт"
+    },
+    "report": {
+      "innFormat": "ИНН должен быть 10 или 12 цифр",
+      "ogrnFormat": "ОГРН — 13 цифр, ОГРНИП — 15",
+      "sfrRegNumber14Format": "Рег. номер СФР — XXX-XXX-XXXXXX (14 симв.)"
+    },
+    "reportGeneration": {
+      "xmlNotGeneratedLabel": "XML не сгенерирован",
+      "xsdErrorEntry": "[строка {line}] {message}"
+    },
+    "reportPreview": {
+      "allSumsLabel": "Все суммы",
+      "assetsEqualsPassivesLabel": "Актив = Пассив",
+      "assetsNotEqualLabel": "Нет (Δ = {delta} тыс.)",
+      "averageHeadcountLabel": "Среднесписочная численность",
+      "balanceAssetsTitle": "Актив баланса (КНД 0710001)",
+      "balancePassivesTitle": "Пассив баланса",
+      "balanceRowValue": "Отч: {current} тыс.; Прдщ: {prev} тыс.; Прдшв: {prePrev} тыс.",
+      "cashLabel": "Денежные средства",
+      "efs1Title": "ЕФС-1 (подраздел 2.1, в СФР)",
+      "emptyZeroReportValue": "Пустой (нулевой отчёт)",
+      "halfYearLabel": "Полугодие (код 31)",
+      "insuranceTariffLabel": "Страховой тариф",
+      "kbkLabel": "КБК",
+      "materialAidTaxSourceValue": "Налог, удержанный из материальной помощи",
+      "ndfl6Title": "6-НДФЛ (КНД 1151100, ВерсФорм 5.05)",
+      "nineMonthsLabel": "9 месяцев (код 33)",
+      "nonMaterialFinAssetsLabel": "Нематериальные, финансовые и др. внеоборотные активы",
+      "periodLabel": "Период",
+      "periodNotSetValue": "не указан",
+      "quarter1Label": "I квартал (код 21)",
+      "quarterNLabel": "Квартал {number}",
+      "rateLabel": "Ставка",
+      "reconciliationTitle": "Сверка",
+      "rsvSectionLabel": "Раздел РасчетСВ",
+      "rsvTitle": "РСВ (КНД 1151111, ВерсФорм 5.08)",
+      "sfrHalfYearLabel": "Полугодие (06)",
+      "sfrNineMonthsLabel": "9 мес (09)",
+      "sfrPeriodLabel": "Период СФР",
+      "sfrQuarter1Label": "I кв (03)",
+      "sfrYearLabel": "Год (0)",
+      "shortTermFinAssetsLabel": "Финансовые и другие оборотные активы",
+      "sourceLabel": "Источник сумм",
+      "targetFundsLabel": "Целевые средства (паевой фонд + целевые поступления)",
+      "taxAmountLabel": "Сумма налога",
+      "taxRateLabel": "Ставка налога",
+      "thousandRubUnit": "тыс. ₽",
+      "totalAssetsLabel": "Итого активы",
+      "totalPassivesLabel": "Итого пассивы",
+      "usnDeclarationTitle": "Декларация УСН (КНД 1152017, ВерсФорм 5.09)",
+      "usnPeriodAnnualValue": "34 (годовой)",
+      "usnTaxObjectIncomeValue": "1 (доходы)",
+      "usnTaxObjectLabel": "Объект налогообложения",
+      "usnZeroRateValue": "0 % (нулевой отчёт)",
+      "yearLabel": "Отчётный год",
+      "yearPeriodLabel": "Год (код 34)",
+      "zeroAmountValue": "0.00 (нулевой отчёт)"
+    },
+    "reportRequisites": {
+      "field": {
+        "chairmanPosition": "Должность руководителя",
+        "inn": "ИНН",
+        "kpp": "КПП",
+        "ogrn": "ОГРН",
+        "okfs": "ОКФС",
+        "okopf": "ОКОПФ",
+        "oktmo": "ОКТМО",
+        "okved": "ОКВЭД",
+        "orgName": "Наименование организации",
+        "pfrRegNumber": "Регистрационный номер в ПФР",
+        "phone": "Телефон",
+        "sfrRegNumber": "Регистрационный номер в СФР",
+        "signerFirstName": "Имя подписанта",
+        "signerInn": "ИНН подписанта",
+        "signerLastName": "Фамилия подписанта",
+        "signerSnils": "СНИЛС подписанта"
+      },
+      "reasonDatabaseField": "Поле должно быть заполнено в БД кооператива (профиль организации)",
+      "reasonManualField": "Поле не заполнено в настройках отчётности — нужен ручной ввод"
+    },
+    "reportType": {
+      "buhotchDeadline": "До 31 марта следующего года",
+      "buhotchName": "Бухгалтерский баланс",
+      "dusnDeadline": "До 25 марта следующего года",
+      "dusnName": "Декларация по УСН",
+      "fss4Deadline": "До 25 числа следующего за кварталом месяца",
+      "fss4Name": "4-ФСС (ЕФС-1)",
+      "ndfl6Deadline": "До 25 числа следующего за кварталом месяца",
+      "ndfl6Name": "6-НДФЛ",
+      "psvDeadline": "До 25 числа следующего месяца; за март/июнь/сент/дек не сдаём (закрывается РСВ)",
+      "psvName": "Персонифицированные сведения (ПСВ)",
+      "rsvDeadline": "До 25 числа следующего за кварталом месяца",
+      "rsvName": "Расчёт по страховым взносам (РСВ)",
+      "uusnDeadline": "До 25 числа следующего за кварталом месяца",
+      "uusnName": "Уведомление по УСН",
+      "uvNdflDeadline": "За период с 1 по 22 число — до 25 числа того же месяца; ",
+      "uvNdflDeadlineTail": "за период с 23 по последнее число — до 3 числа следующего месяца",
+      "uvNdflName": "Уведомление об исчисленном НДФЛ",
+      "uvVznosyDeadline": "До 25 числа текущего месяца",
+      "uvVznosyName": "Уведомление об исчисленных страховых взносах"
+    },
+    "reportsCalendarRegistry": {
+      "halfYearLabel": "Полугодие",
+      "month": {
+        "april": "Апрель",
+        "august": "Август",
+        "december": "Декабрь",
+        "february": "Февраль",
+        "january": "Январь",
+        "july": "Июль",
+        "june": "Июнь",
+        "march": "Март",
+        "may": "Май",
+        "november": "Ноябрь",
+        "october": "Октябрь",
+        "september": "Сентябрь"
+      },
+      "nineMonthsLabel": "9 мес.",
+      "quarter1Label": "I кв.",
+      "reportShortName": {
+        "buhotch": "Бухотчётность",
+        "fss4": "ЕФС-1",
+        "ndfl6": "6-НДФЛ",
+        "psv": "ПСВ",
+        "rsv": "РСВ",
+        "uvNdfl": "Уведомление НДФЛ"
+      },
+      "semiMonthlyTailLabel": "{monthLabel} · 23–конец",
+      "yearLabel": "Год"
+    },
+    "requisites": {
+      "pfrRegNumberFormat": "Рег. номер ПФР — XXX-XXX-XXXXXX",
+      "sfrRegNumber10Format": "Рег. номер СФР — 10 цифр",
+      "status": {
+        "docDateFormat": "ДатаДок — DD.MM.YYYY",
+        "innUlFormat": "ИНН ЮЛ — 10 цифр",
+        "kppFullFormat": "КПП — 9 символов (4 цифры + 2 [0-9A-Z] + 3 цифры)",
+        "okfsFormat": "ОКФС — 1-3 цифры",
+        "okopfFormat": "ОКОПФ — 5 цифр",
+        "okpoFormat": "ОКПО — 8 или 10 цифр",
+        "oktmoFormat": "ОКТМО — 8 или 11 цифр",
+        "okvedFormat": "ОКВЭД — XX, XX.X, XX.XX, XX.XX.X или XX.XX.XX",
+        "signerInn12Format": "ИНН подписанта — 12 цифр",
+        "snilsFormat": "СНИЛС — XXX-XXX-XXX YY или 11 цифр"
+      }
+    },
+    "rsv": {
+      "generationErrorMessage": "Ошибка генерации РСВ: {message}"
+    },
+    "taxPayment": {
+      "amountExceedsAvailablePart1": "Доступно к перечислению {available}: перечислить можно не больше удержанного, ",
+      "amountExceedsAvailablePart2": "а {inPayment} уже отправлено кассиру и ждёт подтверждения",
+      "defaultMemo": "Перечисление удержанного НДФЛ",
+      "registrationFailedMessage": "Заявку на перечисление налога не удалось зарегистрировать"
+    },
+    "uusn": {
+      "generationErrorMessage": "Ошибка генерации уведомления по УСН: {message}"
+    },
+    "uvNdfl": {
+      "generationErrorMessage": "Ошибка генерации уведомления по НДФЛ: {message}",
+      "periodInvalidPrefix": "uv-ndfl: период должен быть целым от 1 до {periodsPerYear} ",
+      "periodInvalidSuffix": "(получено: {period})"
+    },
+    "uvVznosy": {
+      "generationErrorMessage": "Ошибка генерации уведомления о взносах: {message}"
+    },
+    "withheldTax": {
+      "amountPositiveFormat": "Сумма платежа должна быть больше нуля"
+    },
+    "xsdValidator": {
+      "schemaNotDefinedMessage": "XSD для отчёта {reportType} не определена — валидация невозможна",
+      "schemaNotFoundMessage": "XSD-схема не найдена: {fileName}. Доступны: {availableSchemas}",
+      "xmlParseErrorMessage": "Ошибка парсинга XML: {message}"
+    },
+    "zeroReportEdits": {
+      "kppShortFormat": "КПП — 9 символов",
+      "ogrnUlFormat": "ОГРН ЮЛ — 13 цифр",
+      "pfrRegNumberFormat": "Рег.номер ПФР — XXX-XXX-XXXXXX",
+      "sfrRegNumberFormat": "Рег.номер СФР — 10 цифр"
+    }
+  }
+}

@@ -5,6 +5,7 @@ div(v-if="agreement")
 
 <script setup lang="ts">
   import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
   const { info } = useSystemStore()
 
   import { useGenerateAgreement } from '../model';
@@ -32,7 +33,7 @@ div(v-if="agreement")
     try {
       await generateAgreement(info.coopname, session.username, Number(props.agreement.draft_id));
     } catch(e: any){
-      FailAlert(`Возникла ошибка при генерации соглашения, пожалуйста, обратитесь в поддержку с сообщением: ${e.message}`);
+      FailAlert(t('agreementer.agreementReader.generateError', { message: e.message }));
     }
 
   });

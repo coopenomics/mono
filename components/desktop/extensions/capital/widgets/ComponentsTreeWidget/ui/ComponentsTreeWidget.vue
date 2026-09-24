@@ -24,7 +24,7 @@
     // Канон-пустое состояние
     .list-empty(v-if='!components.items.length')
       q-icon(name='inbox', size='20px')
-      span {{ hasFiltersApplied ? 'Нет результатов по фильтрам' : 'Нет компонентов' }}
+      span {{ hasFiltersApplied ? $t('capital.componentsTreeWidget.noFilterResults') : $t('capital.componentsTreeWidget.emptyText') }}
 
     // Сентинел догрузки: попал в вид — тянем следующую страницу
     .components-sentinel(v-if='hasMorePages', ref='sentinelRef')
@@ -38,6 +38,7 @@ import { FailAlert } from 'src/shared/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import type { IGetProjectsInput } from 'app/extensions/capital/entities/Project/model';
 import { ComponentListRow } from 'app/extensions/capital/widgets/ComponentsListWidget';
+import { t } from '../../../i18n';
 
 type IProjectsFilter = NonNullable<IGetProjectsInput['filter']>;
 
@@ -149,7 +150,7 @@ const loadComponents = async (page = 1, append = false) => {
     );
   } catch (error) {
     console.error('Ошибка при загрузке компонентов:', error);
-    FailAlert('Не удалось загрузить список компонентов');
+    FailAlert(t('capital.componentsTreeWidget.loadError'));
   } finally {
     loading.value = false;
   }

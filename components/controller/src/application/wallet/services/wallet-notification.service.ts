@@ -5,6 +5,7 @@ import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Сервис для отправки уведомлений по wallet модулю
@@ -66,7 +67,7 @@ export class WalletNotificationService implements OnModuleInit {
         participantName,
         paymentAmount: AmountFormatterUtils.formatAmountSafe(paymentAmount),
         paymentCurrency,
-        paymentType: 'Паевой взнос по соглашению о ЦПП "Цифровой Кошелёк"',
+        paymentType: t('wallet.walletNotification.paymentTypeShareContribution'),
         coopname,
         paymentUrl: `${config.frontend_url}`,
       };

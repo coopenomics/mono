@@ -1,5 +1,6 @@
 import { Ledger2 } from 'cooptypes'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
+import { t } from 'src/shared/i18n';
 
 /**
  * Единые helper'ы отображения процесса ledger2 (цвет/метка/формат) — общие для
@@ -66,10 +67,10 @@ export function operationLabel(
     return Ledger2.getOperationHumanName(row.operationCode) ?? row.operationCode
   }
   if (row.action === 'walmove') {
-    return Ledger2.getOperationHumanName('o.adj.walmove') ?? 'Перевод между кошельками'
+    return Ledger2.getOperationHumanName('o.adj.walmove') ?? t('ledger2.processDisplay.walletTransferFallback')
   }
   if (row.action === 'revert') {
-    return Ledger2.getOperationHumanName('o.adj.rev') ?? 'Откат операции'
+    return Ledger2.getOperationHumanName('o.adj.rev') ?? t('ledger2.processDisplay.revertFallback')
   }
   return '—'
 }

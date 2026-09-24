@@ -257,8 +257,10 @@ export const KNOWN_PROCESS_TYPES: ReadonlySet<string> = new Set(Object.keys(PROC
   }
   if (missing.length > 0) {
     throw new Error(
+      // i18n-ignore: ошибка конфигурации локатора процессов при старте — разработческая, до пайщика не доходит
       `[process-hash-locator] PROCESS_HASH_LOCATOR не содержит process_type: ` +
         `${[...new Set(missing)].join(', ')}. ` +
+        // i18n-ignore: продолжение технического сообщения о конфигурации локатора процессов, до пайщика не доходит
         `Обнови локатор или cooptypes/src/ledger2/.`,
     );
   }

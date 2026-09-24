@@ -1,5 +1,6 @@
 // modules/appstore/dto/create-branch-graphql-input.dto.ts
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty } from 'class-validator';
 import type { EditBranchDomainInput } from '~/domain/branch/interfaces/edit-branch-domain-input.interface';
 import { NoMarkup } from '~/shared/validators/no-markup.decorator';
@@ -29,7 +30,7 @@ export class EditBranchGraphQLInput implements EditBranchDomainInput {
   @Field(() => String, {
     description: 'Документ, на основании которого действует Уполномоченный (решение совета №СС-.. от ..)',
   })
-  @IsNotEmpty({ message: 'Документ, на основании которого действует Упомолноченный, должен быть заданы' })
+  @IsNotEmpty({ message: validationMessage('branch.editBranchInput.basedOnRequired') })
   @NoMarkup()
   based_on!: string;
 

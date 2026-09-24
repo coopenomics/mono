@@ -5,6 +5,7 @@ import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFIC
 import { platformSettings, DateUtils } from '@coopenomics/extension-kit';
 import type { TrackedMeet } from './types';
 import { Workflows } from '@coopenomics/notifications';
+import { t } from './i18n';
 
 type MeetRecipient = { username: string; email: string; subscriberId: string };
 
@@ -54,7 +55,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
 
   // Форматирование сообщения о часовом поясе
   private getTimezoneDisplay(): string {
-    return platformSettings().timezone === 'Europe/Moscow' ? 'МСК' : platformSettings().timezone;
+    return platformSettings().timezone === 'Europe/Moscow' ? t('participant.meetWorkflowNotification.timezoneMsk') : platformSettings().timezone;
   }
 
   /**
@@ -188,7 +189,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       ...detailsPart,
     };
 
-    return this.broadcast(Workflows.MeetInitial.id, payload, meet, 'новое общее собрание');
+    return this.broadcast(Workflows.MeetInitial.id, payload, meet, t('participant.meetWorkflowNotification.eventType.newMeet'));
   }
 
   // 2. Уведомление за N минут до начала собрания
@@ -220,7 +221,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       Workflows.MeetReminderStart.id,
       payload,
       meet,
-      `напоминание за ${timeDescription} до начала`
+      t('participant.meetWorkflowNotification.eventType.reminderBeforeStart', { timeDescription })
     );
   }
 
@@ -243,7 +244,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       ...detailsPart,
     };
 
-    return this.broadcast(Workflows.MeetStarted.id, payload, meet, 'собрание началось');
+    return this.broadcast(Workflows.MeetStarted.id, payload, meet, t('participant.meetWorkflowNotification.eventType.started'));
   }
 
   // 4. Уведомление за N минут до окончания собрания
@@ -275,7 +276,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       Workflows.MeetReminderEnd.id,
       payload,
       meet,
-      `напоминание за ${timeDescription} до завершения`
+      t('participant.meetWorkflowNotification.eventType.reminderBeforeEnd', { timeDescription })
     );
   }
 
@@ -300,7 +301,7 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       meetUrl,
     };
 
-    return this.broadcast(Workflows.MeetRestart.id, payload, meet, 'назначена новая дата повторного собрания');
+    return this.broadcast(Workflows.MeetRestart.id, payload, meet, t('participant.meetWorkflowNotification.eventType.restartScheduled'));
   }
 
   // 6. Уведомление о разных вариантах завершения собрания
@@ -315,20 +316,20 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
     switch (meet.extendedStatus) {
       case ExtendedMeetStatus.EXPIRED_NO_QUORUM:
         endType = 'EXPIRED_NO_QUORUM';
-        endTitle = `Кворум общего собрания №${meet.id} в ${coopShortName} не собран`;
-        endMessage = `Кворум общего собрания №${meet.id} не собран. В ближайшее время будет назначена новая дата собрания с прежней повесткой. Следите за обновлениями.`;
+        endTitle = t('participant.meetWorkflowNotification.noQuorumTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.meetWorkflowNotification.noQuorumMessage', { meetId: meet.id });
         break;
 
       case ExtendedMeetStatus.VOTING_COMPLETED:
         endType = 'VOTING_COMPLETED';
-        endTitle = `Голосование по собранию №${meet.id} в ${coopShortName} завершено`;
-        endMessage = `Голосование по собранию №${meet.id} завершено. Ожидаем утверждения протокола собрания советом.`;
+        endTitle = t('participant.meetWorkflowNotification.votingCompletedTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.meetWorkflowNotification.votingCompletedMessage', { meetId: meet.id });
         break;
 
       case ExtendedMeetStatus.CLOSED:
         endType = 'CLOSED';
-        endTitle = `Общее собрание №${meet.id} в ${coopShortName} завершено`;
-        endMessage = `Общее собрание пайщиков №${meet.id} успешно завершено. Протокол собрания утвержден.`;
+        endTitle = t('participant.meetWorkflowNotification.closedTitle', { meetId: meet.id, coopShortName });
+        endMessage = t('participant.meetWorkflowNotification.closedMessage', { meetId: meet.id });
         break;
     }
 
@@ -346,6 +347,6 @@ export class MeetWorkflowNotificationService implements OnModuleInit {
       endMessage,
     };
 
-    return this.broadcast(Workflows.MeetEnded.id, payload, meet, 'собрание завершено');
+    return this.broadcast(Workflows.MeetEnded.id, payload, meet, t('participant.meetWorkflowNotification.eventType.ended'));
   }
 }

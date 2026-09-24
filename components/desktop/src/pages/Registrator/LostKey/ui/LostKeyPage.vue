@@ -4,12 +4,10 @@
       <template #actions>
         <AuthActions />
       </template>
-      <template #pane-foot>
-        Вспомнили ключ?
-        <a class="auth-link" href="#" @click.prevent="goToSignIn">Войти</a>
+      <template #pane-foot> {{ $t('registrator.lostKeyPage.rememberedKeyPrompt') }} <a class="auth-link" href="#" @click.prevent="goToSignIn">{{ $t('registrator.lostKeyPage.signInAction') }}</a>
       </template>
       <template #footer>
-        <a class="auth-link" href="#" @click.prevent="goBack">Назад</a>
+        <a class="auth-link" href="#" @click.prevent="goBack">{{ $t('common.action.back') }}</a>
       </template>
     </LostKey>
   </div>

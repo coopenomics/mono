@@ -1,6 +1,7 @@
+import './i18n';
 import cron from 'node-cron';
 import { Inject, Module, OnModuleDestroy } from '@nestjs/common';
-import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, LOG_EXTENSION_REPOSITORY, LogExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, type ILoggerPort,
   CHAIN_RESOURCES_PORT,
   type IChainResourcesPort,
@@ -8,6 +9,7 @@ import { LOGGER_PORT, type ILoggerPort,
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from './i18n';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -39,8 +41,8 @@ export const Schema = z.object({
     .default(defaultConfig.dailyPackageSize)
     .describe(
       describeField({
-        label: 'Стоимость минимальной квоты',
-        note: `Минимум: 5 ${defaultConfig.systemSymbol}. Ежедневно пополняет вычислительные ресурсы кооператива на указанную сумму токенов. При достижении минимального порога использования ресурсов происходит автоматическое пополнение ресурсов на сумму стоимости минимальной квоты.`,
+        label: t('powerup.settings.minQuotaCostLabel'),
+        note: t('powerup.settings.minQuotaCostNote', { symbol: defaultConfig.systemSymbol }),
         rules: ['val >= 5'],
         prepend: defaultConfig.systemSymbol,
       })
@@ -54,8 +56,8 @@ export const Schema = z.object({
         .default(defaultConfig.thresholds.cpu)
         .describe(
           describeField({
-            label: 'Порог использования CPU (%)',
-            note: 'При достижении указанного процента использования CPU происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+            label: t('powerup.settings.cpuThresholdLabel'),
+            note: t('powerup.settings.cpuThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -67,8 +69,8 @@ export const Schema = z.object({
         .default(defaultConfig.thresholds.net)
         .describe(
           describeField({
-            label: 'Порог использования NET (%)',
-            note: 'При достижении указанного процента использования NET происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+            label: t('powerup.settings.netThresholdLabel'),
+            note: t('powerup.settings.netThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -80,8 +82,8 @@ export const Schema = z.object({
         .default(defaultConfig.thresholds.ram)
         .describe(
           describeField({
-            label: 'Порог использования RAM (%)',
-            note: 'При достижении указанного процента использования RAM происходит автоматическое пополнение ресурсов на сумму минимальной квоты.',
+            label: t('powerup.settings.ramThresholdLabel'),
+            note: t('powerup.settings.ramThresholdNote'),
             append: '%',
             rules: ['val >= 0', 'val <= 100'],
           })
@@ -90,24 +92,27 @@ export const Schema = z.object({
     .default(defaultConfig.thresholds)
     .describe(
       describeField({
-        label: 'Пороги использования ресурсов',
-        note: 'Настройки для автоматического пополнения при достижении указанного процента использования ресурсов. Если любой из ресурсов (CPU, NET или RAM) достигает указанного порога, происходит автоматическое пополнение на сумму минимальной квоты.',
+        label: t('powerup.settings.thresholdsGroupLabel'),
+        note: t('powerup.settings.thresholdsGroupNote'),
       })
     ),
   lastDailyReplenishmentDate: z
     .string()
     .default(defaultConfig.lastDailyReplenishmentDate)
     .describe(
+      // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
       describeField({ label: 'Дата последнего ежедневного пополнения', visible: false, minLength: 10, maxLength: 10 })
     ),
   systemPrecision: z
     .number()
     .default(defaultConfig.systemPrecision)
+    // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
     .describe(describeField({ label: 'Точность системного утилити-токена', visible: false })),
   systemSymbol: z
     .string()
     .default(defaultConfig.systemSymbol)
     .describe(
+      // i18n-ignore: поле конфигурации visible:false — не отображается пайщику/админу
       describeField({ label: 'Символ системного утилити-токена', visible: false, minLength: 3, maxLength: 5, maxRows: 4 })
     ),
 });
@@ -170,7 +175,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
 
   async initialize() {
     const extensionData = await this.extensionRepository.findByName(this.name);
-    if (!extensionData) throw new Error('Конфиг не найден');
+    if (!extensionData) throw DomainError.internal('POWERUP_CONFIG_NOT_FOUND');
 
     this.extension = extensionData;
 
@@ -229,7 +234,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw new Error('Аккаунт не найден');
+        throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
       const trx_id = await this.blockchainPort.powerUp(username, quantity);
@@ -269,7 +274,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         },
       });
     } catch (error) {
-      this.onReplenishmentFailed('ежедневное пополнение', error);
+      this.onReplenishmentFailed(t('powerup.replenishment.kind.daily'), error);
     }
   }
 
@@ -299,7 +304,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
     const backoffMs = Math.min(RETRY_BACKOFF_START_MS * 2 ** (this.failureStreak - 1), RETRY_BACKOFF_MAX_MS);
     this.nextAttemptAt = Date.now() + backoffMs;
 
-    const message = `Не удалось выполнить ${what} ресурсов кооператива (попытка ${this.failureStreak}), следующая попытка через ${Math.round(backoffMs / 60000)} мин`;
+    const message = t('powerup.replenishment.failureMessage', { what, attempt: this.failureStreak, minutes: Math.round(backoffMs / 60000) });
 
     // Первый отказ серии — заметный; дальше причина та же, и повторять её
     // уровнем `error` незачем.
@@ -322,7 +327,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw new Error('Аккаунт не найден');
+        throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
       // Получаем текущие значения квот
@@ -367,7 +372,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         const updatedAccount = await this.blockchainPort.getAccount(username);
 
         if (!updatedAccount) {
-          throw new Error('Аккаунт не найден');
+          throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
         }
 
         // Журнал аренды ведётся по факту: строка появляется только после того,
@@ -386,7 +391,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         });
       }
     } catch (error) {
-      this.onReplenishmentFailed('пополнение', error);
+      this.onReplenishmentFailed(t('powerup.replenishment.kind.manual'), error);
     }
   }
 }

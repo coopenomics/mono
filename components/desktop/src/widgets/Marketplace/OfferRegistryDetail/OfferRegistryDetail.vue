@@ -11,6 +11,7 @@
  * на каких участках и с какими сроками.
  */
 import { computed, ref, watch } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop';
@@ -67,10 +68,10 @@ const loading = ref(true);
 const notFound = ref(false);
 
 const OFFER_STATUS: Record<string, { label: string; variant: BaseBadgeVariant }> = {
-  PENDING_MODERATION: { label: 'На модерации', variant: 'warn' },
-  ACTIVE: { label: 'Опубликовано', variant: 'pos' },
-  REJECTED: { label: 'Отклонено', variant: 'neg' },
-  WITHDRAWN: { label: 'Снято с публикации', variant: 'neutral' },
+  PENDING_MODERATION: { label: t('marketplace.offer.status.pendingModeration'), variant: 'warn' },
+  ACTIVE: { label: t('marketplace.offer.status.published'), variant: 'pos' },
+  REJECTED: { label: t('marketplace.offer.status.rejected'), variant: 'neg' },
+  WITHDRAWN: { label: t('marketplace.offer.status.withdrawn'), variant: 'neutral' },
 };
 
 async function load(): Promise<void> {
@@ -85,7 +86,7 @@ async function load(): Promise<void> {
   } catch (e) {
     offer.value = null;
     notFound.value = true;
-    FailAlert(e, 'Не удалось загрузить предложение');
+    FailAlert(e, t('marketplace.offerRegistryDetail.loadError'));
   } finally {
     loading.value = false;
   }
@@ -138,7 +139,7 @@ function formatSize(size: number): string {
 const saleUnitLabel = computed(() => {
   const pkg = defaultPackage.value;
   if (!isPackaged.value || !pkg) return unitShort.value;
-  return `упак. ${formatSize(pkg.size)} ${unitShort.value}`;
+  return t('marketplace.offerRegistryDetail.packageSizeLabel', { size: formatSize(pkg.size), unit: unitShort.value });
 });
 
 const priceLabel = computed(() => {
@@ -148,14 +149,14 @@ const priceLabel = computed(() => {
       ? Number(defaultPackage.value.price)
       : Number(offer.value.price_per_unit);
   const withFee = applyMembershipFee(base, feePercent.value);
-  return `${withFee.toLocaleString('ru-RU')} ${system.governSymbol} / ${saleUnitLabel.value}`;
+  return `${withFee.toLocaleString(uiLocale())} ${system.governSymbol} / ${saleUnitLabel.value}`;
 });
 
 const stockLabel = computed(() => {
   const o = offer.value;
   if (!o) return '—';
-  if (o.unlimited_flag) return 'Без ограничения остатка';
-  if (o.quantity_available <= 0) return 'Нет в наличии';
+  if (o.unlimited_flag) return t('marketplace.offerRegistryDetail.stockUnlimited');
+  if (o.quantity_available <= 0) return t('marketplace.offerRegistryDetail.stockUnavailable');
   if (isPackaged.value) {
     return marketplacePackageStockLabel(o.packages, o.unit_of_measure);
   }
@@ -166,8 +167,8 @@ const packageRows = computed(() =>
   (offer.value?.packages ?? []).map((p) => ({
     key: p.id,
     name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
-    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString('ru-RU')} ${system.governSymbol}`,
-    stock: offer.value?.unlimited_flag ? 'без ограничения' : `${p.quantity_available} упак.`,
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString(uiLocale())} ${system.governSymbol}`,
+    stock: offer.value?.unlimited_flag ? t('marketplace.offerRegistryDetail.packageStockUnlimited') : t('marketplace.offerRegistryDetail.packageStockCount', { count: p.quantity_available }),
   })),
 );
 
@@ -175,7 +176,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume} ${unitShort.value}`,
+    volume: t('marketplace.offerRegistryDetail.minVolumeLabel', { volume: p.min_supply_volume, unit: unitShort.value }),
   })),
 );
 
@@ -184,7 +185,7 @@ const supplierTitle = computed(
 );
 
 function formatDays(days: number | null | undefined, empty: string): string {
-  return days && days > 0 ? `${days} дн.` : empty;
+  return days && days > 0 ? t('marketplace.offerRegistryDetail.daysLabel', { days }) : empty;
 }
 
 // Решения модератора — тот же общий композабл, что и на ленте «Модерация» и
@@ -223,14 +224,14 @@ const canModerate = computed(
 </script>
 
 <template lang="pug">
-.offer-registry-detail(role='region', aria-label='Предложение')
+.offer-registry-detail(role='region', :aria-label='$t("marketplace.offerRegistryDetail.title")')
   q-inner-loading(:showing='loading && !offer')
     q-spinner(color='primary', size='2em')
 
   EmptyState(
     v-if='notFound && !loading',
-    title='Предложение не найдено',
-    body='Возможно, оно снято с публикации или удалено.'
+    :title='$t("marketplace.offerRegistryDetail.notFoundTitle")',
+    :body='$t("marketplace.offerRegistryDetail.notFoundBody")'
   )
     template(#icon)
       q-icon(name='search_off', size='48px')
@@ -259,10 +260,10 @@ const canModerate = computed(
 
           .offer-registry-detail__facts
             .offer-registry-detail__fact
-              .offer-registry-detail__fact-label Цена
+              .offer-registry-detail__fact-label {{ $t('marketplace.offerRegistryDetail.priceLabel') }}
               .offer-registry-detail__fact-value--money {{ priceLabel }}
             .offer-registry-detail__fact
-              .offer-registry-detail__fact-label В наличии
+              .offer-registry-detail__fact-label {{ $t('marketplace.offerRegistryDetail.inStockLabel') }}
               .offer-registry-detail__fact-value {{ stockLabel }}
 
           .offer-registry-detail__moderation(v-if='canModerate')
@@ -274,7 +275,7 @@ const canModerate = computed(
             )
               template(#icon-left)
                 q-icon(name='close', size='16px')
-              | Отклонить
+              | {{ $t('marketplace.offerRegistryDetail.rejectButton') }}
             BaseButton(
               variant='primary',
               size='sm',
@@ -283,19 +284,19 @@ const canModerate = computed(
             )
               template(#icon-left)
                 q-icon(name='check', size='16px')
-              | Одобрить
+              | {{ $t('marketplace.offerRegistryDetail.approveButton') }}
 
     BaseCard.offer-registry-detail__card
       template(#head)
-        .t-h3 Предложение
-      DataRow(label='Поставщик', :value='supplierTitle')
-      DataRow(label='Срок годности', :value='formatDays(offer.shelf_life_days, "Без срока годности")')
+        .t-h3 {{ $t('marketplace.offerRegistryDetail.title') }}
+      DataRow(:label='$t("marketplace.offerRegistryDetail.supplierLabel")', :value='supplierTitle')
+      DataRow(:label='$t("marketplace.offerRegistryDetail.shelfLifeLabel")', :value='formatDays(offer.shelf_life_days, $t("marketplace.offerRegistryDetail.noShelfLife"))')
       //- Кнопка живёт в колонке значения той же строки: строки карточки стоят
       //- одной сеткой, и собственная обёртка вокруг строки сбивала бы её
       //- значение относительно соседних.
-      DataRow(label='Гарантийный срок возврата')
+      DataRow(:label='$t("marketplace.offerRegistryDetail.warrantyLabel")')
         template(#value-override)
-          span {{ formatDays(offer.warranty_days, 'Без гарантийного срока возврата') }}
+          span {{ formatDays(offer.warranty_days, $t('marketplace.offerRegistryDetail.noWarranty')) }}
           BaseButton(
             v-if='canModerateOffers',
             variant='ghost',
@@ -305,11 +306,11 @@ const canModerate = computed(
           )
             template(#icon-left)
               q-icon(name='event_repeat', size='16px')
-            | Изменить
+            | {{ $t('marketplace.offerRegistryDetail.editButton') }}
 
     BaseCard.offer-registry-detail__card(v-if='packageRows.length')
       template(#head)
-        .t-h3 Упаковки
+        .t-h3 {{ $t('marketplace.offerRegistryDetail.packagesTitle') }}
       DataRow(
         v-for='row in packageRows',
         :key='row.key',
@@ -319,12 +320,12 @@ const canModerate = computed(
 
     BaseCard.offer-registry-detail__card(v-if='deliveryPoints.length')
       template(#head)
-        .t-h3 Участки поставки
+        .t-h3 {{ $t('marketplace.offerRegistryDetail.deliveryPointsTitle') }}
       DataRow(v-for='p in deliveryPoints', :key='p.key', :label='p.name', :value='p.volume')
 
     BaseCard.offer-registry-detail__card(v-if='offer.description')
       template(#head)
-        .t-h3 Описание
+        .t-h3 {{ $t('marketplace.offerRegistryDetail.descriptionTitle') }}
       .offer-registry-detail__desc {{ offer.description }}
 </template>
 

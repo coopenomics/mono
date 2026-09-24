@@ -1,25 +1,25 @@
 <template lang="pug">
 .process-supply-info
-  Loader(v-if='loading', text='Загрузка содержания заказа…')
+  Loader(v-if='loading', :text='$t("marketplace.processSupplyInfo.loadingText")')
   div(v-else-if='snapshot')
     .row.q-col-gutter-md
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Тип процесса
-        .text-body2.text-weight-medium Поставка имущества кооперативу
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.processTypeLabel') }}
+        .text-body2.text-weight-medium {{ $t('marketplace.processSupplyInfo.processTypeValue') }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Кооперативный участок (КУ)
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.kuLabel') }}
         .text-body2 {{ field('braname') || '—' }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Заказчик
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.ordererLabel') }}
         .text-body2.font-monospace {{ field('orderer') || field('orderer_account') || '—' }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Поставщик
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.supplierLabel') }}
         .text-body2.font-monospace {{ field('offerer') || field('offerer_account') || '—' }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Состояние заказа
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.statusLabel') }}
         .text-body2 {{ statusLabel }}
       .col-12.col-sm-6
-        .text-caption.text-grey-7 Единиц в заказе
+        .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.unitsLabel') }}
         .text-body2 {{ field('units_total') || field('units') || '—' }}
     .row.q-mt-md
       q-btn(
@@ -27,11 +27,11 @@
         no-caps
         color='primary'
         icon='fa-solid fa-up-right-from-square'
-        label='Открыть заказ на столе ПВЗ'
+        :label='$t("marketplace.processSupplyInfo.openAtPvzButton")'
         :to='deepLink'
       )
   div(v-else)
-    .text-caption.text-grey-7 Содержание заказа ещё не доступно.
+    .text-caption.text-grey-7 {{ $t('marketplace.processSupplyInfo.contentUnavailable') }}
 </template>
 
 <script lang="ts" setup>

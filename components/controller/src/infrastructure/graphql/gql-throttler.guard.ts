@@ -5,6 +5,7 @@ import { THROTTLER_LIMIT } from '@nestjs/throttler/dist/throttler.constants';
 import * as jwt from 'jsonwebtoken';
 import config from '~/config/config';
 import { tokenTypes } from '~/types/token.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /** Ответ, которого нет: у подписок и у части контекстов express-объекта Response не бывает. */
 const NO_RESPONSE = { header: () => undefined };
@@ -87,6 +88,6 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
    */
   protected async throwThrottlingException(_context: ExecutionContext, detail: ThrottlerLimitDetail): Promise<void> {
     const seconds = Math.max(1, Math.ceil(detail.timeToBlockExpire || detail.timeToExpire || 0));
-    throw new HttpException(`Слишком часто. Повторите через ${seconds} с.`, HttpStatus.TOO_MANY_REQUESTS);
+    throw new DomainError('GRAPHQL_RATE_LIMITED', { seconds }, HttpStatus.TOO_MANY_REQUESTS);
   }
 }

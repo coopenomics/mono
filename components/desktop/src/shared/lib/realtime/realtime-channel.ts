@@ -200,7 +200,9 @@ export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void 
   if (typeof document !== 'undefined') {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
+      // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
       reopenDeadSubscriptions('возврат вкладки');
+      // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
       resyncActive('POLL (возврат вкладки)');
     });
   }
@@ -208,7 +210,9 @@ export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void 
   // Сеть вернулась — поднимаем канал сразу, не дожидаясь возврата вкладки.
   if (typeof window !== 'undefined') {
     window.addEventListener('online', () => {
+      // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
       reopenDeadSubscriptions('сеть вернулась');
+      // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
       resyncActive('POLL (сеть вернулась)');
     });
   }
@@ -216,7 +220,9 @@ export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void 
   // Страховка от зомби-сокета (ws «жив», но публикацию пропустил). Это НЕ
   // возврат к частому поллингу — при здоровом канале дочитка ничего не меняет.
   setInterval(() => {
+    // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
     reopenDeadSubscriptions('страховка');
+    // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
     resyncActive('POLL (страховка 60с)');
   }, SAFETY_RESYNC_MS);
 }

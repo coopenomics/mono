@@ -1,0 +1,15 @@
+{
+  "errors": {
+    "NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND": "Уведомление инбокса '{id}' не найдено",
+    "NOTIFICATION_CENTER_JOURNAL_FOREIGN_COOP": "Журнал уведомлений чужого кооператива недоступен",
+    "NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND": "Уведомление '{id}' не найдено"
+  },
+  "notificationCenter": {
+    "inAppChannelAdapter": {
+      "defaultTitle": "Уведомление"
+    },
+    "webPushChannelAdapter": {
+      "defaultTitle": "Уведомление"
+    }
+  }
+}

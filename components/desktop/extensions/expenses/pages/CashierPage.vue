@@ -1,9 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHead(
-    eyebrow='Шасси расходов · Касса',
-    title='Касса',
-    subtitle='Очереди оплаты, ожидания отчётов и закрытых служебных записок'
+    :eyebrow='$t("expenses.cashierPage.eyebrow")',
+    :title='$t("expenses.cashierPage.pageTitle")',
+    :subtitle='$t("expenses.cashierPage.pageSubtitle")'
   )
 
   PageTabs.q-mb-md(
@@ -25,10 +25,10 @@
         table.table
           thead
             tr
-              th Пайщик
-              th.col-date Дата
-              th.col-num План
-              th.col-num Факт
+              th {{ $t('expenses.cashierPage.column.member') }}
+              th.col-date {{ $t('expenses.cashierPage.column.date') }}
+              th.col-num {{ $t('expenses.cashierPage.column.plan') }}
+              th.col-num {{ $t('expenses.cashierPage.column.fact') }}
               th Hash
               th.col-actions
           tbody
@@ -48,7 +48,7 @@
                   size='sm',
                   icon='chevron_right',
                   @click.stop='openDetail(row.proposal_hash)'
-                ) Открыть
+                ) {{ $t('expenses.cashierPage.openLabel') }}
 
       .table-foot
         span {{ rangeLabel }}
@@ -58,7 +58,7 @@
           size='sm',
           :loading='loading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('expenses.cashierPage.loadMoreLabel') }}
 
     EmptyState(
       v-else,
@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { PageHead, PageTabs } from 'src/shared/ui/layout';
@@ -83,6 +84,7 @@ import {
   getExpenseProposalsByCooperative,
   type IExpenseProposalsByCooperativeResult,
 } from '../api';
+import { t } from '../i18n';
 
 type IProposalRow = NonNullable<IExpenseProposalsByCooperativeResult['items']>[number];
 
@@ -110,20 +112,20 @@ const tabStatusMap: Record<TabKey, Zeus.ExpenseProposalStatus> = {
 
 const tabEmptyMap: Record<TabKey, { title: string; body: string }> = {
   to_pay: {
-    title: 'Готовых к оплате нет',
-    body: 'Здесь появятся служебные записки, утверждённые советом и ожидающие выплаты.',
+    title: t('expenses.cashierPage.emptyToPayTitle'),
+    body: t('expenses.cashierPage.emptyToPayHint'),
   },
   awaiting_report: {
-    title: 'Все оплаченные имеют отчёт',
-    body: 'Здесь будут оплаченные авансы, по которым пайщик ещё не подал отчёт.',
+    title: t('expenses.cashierPage.emptyAwaitingReportTitle'),
+    body: t('expenses.cashierPage.emptyAwaitingReportHint'),
   },
   awaiting_authorize: {
-    title: 'Нет отчётов на авторизацию',
-    body: 'Здесь будут отчёты, ожидающие утверждения председателем.',
+    title: t('expenses.cashierPage.emptyAuthorizationTitle'),
+    body: t('expenses.cashierPage.emptyAuthorizationHint'),
   },
   closed: {
-    title: 'Закрытых ещё нет',
-    body: 'Здесь будут полностью закрытые служебные записки.',
+    title: t('expenses.cashierPage.emptyClosedTitle'),
+    body: t('expenses.cashierPage.emptyClosedHint'),
   },
 };
 
@@ -132,10 +134,10 @@ function countByTab(key: TabKey): number {
 }
 
 const tabs = computed(() => [
-  { key: 'to_pay', label: 'К оплате', count: countByTab('to_pay') },
-  { key: 'awaiting_report', label: 'Ждут отчёта', count: countByTab('awaiting_report') },
-  { key: 'awaiting_authorize', label: 'На авторизации', count: countByTab('awaiting_authorize') },
-  { key: 'closed', label: 'Закрытые', count: countByTab('closed') },
+  { key: 'to_pay', label: t('expenses.cashierPage.tabToPay'), count: countByTab('to_pay') },
+  { key: 'awaiting_report', label: t('expenses.cashierPage.tabAwaitingReport'), count: countByTab('awaiting_report') },
+  { key: 'awaiting_authorize', label: t('expenses.cashierPage.tabAuthorization'), count: countByTab('awaiting_authorize') },
+  { key: 'closed', label: t('expenses.cashierPage.tabClosed'), count: countByTab('closed') },
 ]);
 
 const visible = computed(() =>
@@ -143,10 +145,10 @@ const visible = computed(() =>
 );
 
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Пайщик', cell: 'text' },
-  { label: 'Дата', cell: 'text', cellWidth: '120px' },
-  { label: 'План', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Факт', class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.cashierPage.column.member'), cell: 'text' },
+  { label: t('expenses.cashierPage.column.date'), cell: 'text', cellWidth: '120px' },
+  { label: t('expenses.cashierPage.column.plan'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.cashierPage.column.fact'), class: 'col-num', cell: 'text', cellWidth: '110px' },
   { label: 'Hash', cell: 'text', cellWidth: '160px' },
   { label: '', cell: 'text', cellWidth: '120px' },
 ]);
@@ -155,7 +157,7 @@ const hasMore = computed(() => currentPage.value < totalPages.value);
 
 const rangeLabel = computed(() => {
   const shown = visible.value.length;
-  return `${shown} на вкладке · загружено ${items.value.length} из ${totalCount.value}`;
+  return t('expenses.cashierPage.tabCountSummary', { shown, loaded: items.value.length, total: totalCount.value });
 });
 
 const emptyTitle = computed(() => tabEmptyMap[activeTab.value].title);
@@ -169,7 +171,7 @@ function formatCreatedAt(createdAt?: string | null): string {
   if (!createdAt) return '—';
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return createdAt;
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 function truncateHash(hash: string): string {

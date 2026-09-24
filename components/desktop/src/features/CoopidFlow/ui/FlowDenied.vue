@@ -15,22 +15,23 @@
 import { computed } from 'vue';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
 import type { FlowChallenge } from 'src/shared/api/authentik-flow';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ challenge: FlowChallenge; denied: boolean; entered: boolean }>();
 const emit = defineEmits<{ leave: [] }>();
 
 const title = computed(() => {
-  if (props.entered) return 'Вы уже вошли.';
-  return props.denied ? 'Вход не разрешён.' : 'Вход не удался.';
+  if (props.entered) return t('coopidFlow.flowDenied.enteredTitle');
+  return props.denied ? t('coopidFlow.flowDenied.deniedTitle') : t('coopidFlow.flowDenied.failedTitle');
 });
 const text = computed(() => {
-  if (props.entered) return 'Входить заново не нужно. Откройте стол.';
+  if (props.entered) return t('coopidFlow.flowDenied.enteredText');
   return (
     props.challenge.error_message ||
     (props.denied
-      ? 'Доступ закрыт. Если вы считаете, что это ошибка, обратитесь в кооператив.'
-      : 'Что-то сломалось на стороне входа. Попробуйте ещё раз; если повторится — сообщите нам.')
+      ? t('coopidFlow.flowDenied.deniedText')
+      : t('coopidFlow.flowDenied.failedText'))
   );
 });
-const action = computed(() => (props.entered ? 'Открыть стол' : 'Вернуться ко входу'));
+const action = computed(() => (props.entered ? t('coopidFlow.flowDenied.enteredAction') : t('coopidFlow.flowDenied.backAction')));
 </script>

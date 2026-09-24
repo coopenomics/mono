@@ -1,0 +1,12 @@
+{
+  "fileStorage": {
+    "minioFileStorage": {
+      "bodySizeLimitExceeded": "Размер тела превышает лимит {maxBytes} бакета '{bucketName}'",
+      "metadataRequired": "Метаданное '{field}' обязательно для бакета '{bucketName}'",
+      "mimeNotAllowed": "MIME '{contentType}' не входит в allowedMime бакета '{bucketName}'",
+      "objectNotFound": "Объект '{key}' не найден",
+      "objectNotFoundInBucket": "Объект '{bucketName}/{key}' не найден",
+      "sizeLimitExceeded": "Размер {bytes} байт превышает лимит {maxBytes} бакета '{bucketName}'"
+    }
+  }
+}

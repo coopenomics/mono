@@ -4,19 +4,19 @@ BaseCard.active-timer(variant='flat')
     .active-timer__icon.active-timer__icon--idle
       q-icon(name='timer', size='28px')
     .active-timer__copy
-      .active-timer__label.t-sm.t-muted Таймер
-      .active-timer__empty-title Сейчас ничего не учитывается
+      .active-timer__label.t-sm.t-muted {{ $t('capital.activeTimerWidget.title') }}
+      .active-timer__empty-title {{ $t('capital.activeTimerWidget.emptyTitle') }}
       .active-timer__empty-body.t-sm.t-muted
-        | Выберите задачу в мастерской и включите таймер на ней.
+        | {{ $t('capital.activeTimerWidget.emptyBody') }}
 
   .active-timer__row(v-else-if='session')
     .active-timer__icon(:class='{ "active-timer__icon--paused": session.is_paused }')
       q-icon(:name='session.is_paused ? "pause_circle" : "timer"', size='28px')
     .active-timer__main
       .active-timer__head
-        .active-timer__label.t-sm.t-muted Таймер
+        .active-timer__label.t-sm.t-muted {{ $t('capital.activeTimerWidget.title') }}
         BaseBadge(:variant='session.is_paused ? "warn" : "accent"')
-          | {{ session.is_paused ? 'пауза' : 'идёт' }}
+          | {{ session.is_paused ? $t('capital.activeTimerWidget.statusPaused') : $t('capital.activeTimerWidget.statusRunning') }}
       button.active-timer__task-link(@click='goToIssue') {{ taskTitle }}
       .active-timer__clock.t-mono {{ clockLabel }}
     .active-timer__actions
@@ -29,7 +29,7 @@ BaseCard.active-timer(variant='flat')
       )
         template(#icon-left)
           q-icon(name='play_arrow', size='16px')
-        | Продолжить
+        | {{ $t('capital.activeTimerWidget.resumeButton') }}
       BaseButton(
         v-else
         size='sm'
@@ -39,7 +39,7 @@ BaseCard.active-timer(variant='flat')
       )
         template(#icon-left)
           q-icon(name='pause', size='16px')
-        | Пауза
+        | {{ $t('capital.activeTimerWidget.pauseButton') }}
       BaseButton(
         size='sm'
         variant='danger'
@@ -48,7 +48,7 @@ BaseCard.active-timer(variant='flat')
       )
         template(#icon-left)
           q-icon(name='stop', size='16px')
-        | Стоп
+        | {{ $t('capital.activeTimerWidget.stopButton') }}
 
   .active-timer__loading(v-if='loading')
     q-spinner(color='primary', size='20px')
@@ -63,6 +63,7 @@ import { useSessionStore } from 'src/entities/Session/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base'
 import { useTimeEntriesStore } from 'app/extensions/capital/entities/TimeEntries/model'
+import { t } from '../../i18n';
 
 const props = defineProps<{
   coopname?: string
@@ -88,7 +89,7 @@ const username = computed(() => props.username || sessionStore.username)
 
 const taskTitle = computed(() => {
   if (!session.value) return ''
-  return session.value.issue_title?.trim() || `Задача ${session.value.issue_hash.slice(0, 8)}…`
+  return session.value.issue_title?.trim() || t('capital.activeTimerWidget.issueLabel', { issueHash: session.value.issue_hash.slice(0, 8) })
 })
 
 const displayElapsedSeconds = computed(() => {
@@ -152,7 +153,7 @@ async function onPause() {
       coopname: coopname.value,
       username: username.value,
     })
-    SuccessAlert('Таймер на паузе')
+    SuccessAlert(t('capital.activeTimerWidget.pausedNotice'))
     syncTick()
   } catch (error) {
     FailAlert(error)
@@ -169,7 +170,7 @@ async function onResume() {
       username: username.value,
     })
     tickNow.value = Date.now()
-    SuccessAlert('Таймер продолжен')
+    SuccessAlert(t('capital.activeTimerWidget.resumedNotice'))
     syncTick()
   } catch (error) {
     FailAlert(error)
@@ -185,7 +186,7 @@ async function onStop() {
       coopname: coopname.value,
       username: username.value,
     })
-    SuccessAlert('Таймер остановлен')
+    SuccessAlert(t('capital.activeTimerWidget.stoppedNotice'))
     syncTick()
   } catch (error) {
     FailAlert(error)

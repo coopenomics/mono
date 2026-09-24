@@ -10,6 +10,7 @@ import moment from 'src/shared/lib/utils/dates/moment'
 import { useSystemStore } from 'src/entities/System/model';
 import { IGenerateAgendaInput, IGenerateAgendaResult } from 'src/features/Meet/CreateMeet/model'
 import { type Router } from 'vue-router';
+import { t } from 'src/shared/i18n';
 
 export type IRestartMeetInput = Mutations.Meet.RestartAnnualGeneralMeet.IInput['data'];
 export type IRestartMeetResult = Mutations.Meet.RestartAnnualGeneralMeet.IOutput[typeof Mutations.Meet.RestartAnnualGeneralMeet.name];
@@ -178,7 +179,7 @@ export const useRestartMeet = (
       console.log('router on push', router)
       router.push({params: {hash: result.processing?.hash as string}})
 
-      SuccessAlert('Собрание успешно перезапущено')
+      SuccessAlert(t('meet.restartMeetModel.success'))
       return true
     } catch (error: any) {
       FailAlert(error)

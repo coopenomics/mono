@@ -6,13 +6,13 @@
 .correction-table(:class='{ "correction-table--selectable": selectable }', :style='{ "--ct-cols": gridColumns }')
   .correction-table__cols
     span(v-if='selectable')
-    span Позиция
-    span План
-    span(v-if='hasAvailable') Принято
-    span(v-if='hasLocation') Место
-    span Выдать
-    span(v-if='hasPrice') Цена
-    span Сверка
+    span {{ $t('marketplace.correctionTable.column.item') }}
+    span {{ $t('marketplace.correctionTable.column.plan') }}
+    span(v-if='hasAvailable') {{ $t('marketplace.correctionTable.column.received') }}
+    span(v-if='hasLocation') {{ $t('marketplace.correctionTable.column.location') }}
+    span {{ $t('marketplace.correctionTable.column.toIssue') }}
+    span(v-if='hasPrice') {{ $t('marketplace.correctionTable.column.price') }}
+    span {{ $t('marketplace.correctionTable.column.reconciliation') }}
 
   .correction-table__row(
     v-for='r in enrichedRows',
@@ -25,15 +25,15 @@
         :disabled='r.noStock',
         @update:model-value='(v) => emit("toggle", { sku: r.sku, included: !!v })'
       )
-      q-tooltip(v-if='r.noStock') Нет на складе — выдать нечего
+      q-tooltip(v-if='r.noStock') {{ $t('marketplace.correctionTable.outOfStockHint') }}
 
     .correction-table__cell.correction-table__cell--title {{ r.title }}
-    .correction-table__cell.correction-table__cell--num(data-label='План') {{ r.expected }} {{ r.unit }}
-    .correction-table__cell.correction-table__cell--num(v-if='hasAvailable', data-label='Принято')
+    .correction-table__cell.correction-table__cell--num(:data-label='$t("marketplace.correctionTable.column.plan")') {{ r.expected }} {{ r.unit }}
+    .correction-table__cell.correction-table__cell--num(v-if='hasAvailable', :data-label='$t("marketplace.correctionTable.column.received")')
       template(v-if='r.available !== undefined') {{ r.available }} {{ r.unit }}
       template(v-else) —
-    .correction-table__cell(v-if='hasLocation', data-label='Место') {{ r.location || '—' }}
-    .correction-table__cell(data-label='Выдать')
+    .correction-table__cell(v-if='hasLocation', :data-label='$t("marketplace.correctionTable.column.location")') {{ r.location || '—' }}
+    .correction-table__cell(:data-label='$t("marketplace.correctionTable.column.toIssue")')
       BaseInput.field-flush(
         :model-value='r.fact',
         type='number',
@@ -42,31 +42,31 @@
         :step='stepFor(r)',
         :disabled='isOff(r)',
         :suffix='r.unit',
-        aria-label='Выдать, количество',
+        :aria-label='$t("marketplace.correctionTable.issueQuantityAriaLabel")',
         @update:model-value='(v) => onFactInput(r, v)'
       )
-    .correction-table__cell(v-if='hasPrice', data-label='Цена')
+    .correction-table__cell(v-if='hasPrice', :data-label='$t("marketplace.correctionTable.column.price")')
       BaseInput.field-flush(
         :model-value='r.factPrice',
         type='number',
         :min='0',
         :max='r.maxPrice',
         :disabled='isOff(r)',
-        :suffix='r.packaged ? "₽/упак." : "₽/ед."',
-        :aria-label='r.packaged ? "Цена за упаковку" : "Цена за единицу"',
+        :suffix='r.packaged ? $t("marketplace.correctionTable.pricePerPackage") : $t("marketplace.correctionTable.pricePerUnit")',
+        :aria-label='r.packaged ? $t("marketplace.correctionTable.priceForPackage") : $t("marketplace.correctionTable.priceForUnit")',
         @update:model-value='(v) => onPriceInput(r, v)'
       )
-    .correction-table__cell(data-label='Сверка')
+    .correction-table__cell(:data-label='$t("marketplace.correctionTable.column.reconciliation")')
       BaseBadge(:variant='statusVariant(r)') {{ statusLabel(r) }}
 
   .correction-table__summary
-    .correction-table__summary-count Итого позиций: {{ enrichedRows.length }}
+    .correction-table__summary-count {{ $t('marketplace.correctionTable.totalItemsText', { count: enrichedRows.length }) }}
     .correction-table__summary-chips
-      BaseBadge(v-if='noStockCount', variant='neg') Нет на складе · {{ noStockCount }}
-      BaseBadge(v-if='overStockCount', variant='neg') Больше принятого · {{ overStockCount }}
-      BaseBadge(variant='pos') Совпадает · {{ matchCount }}
-      BaseBadge(variant='warn') Недостача · {{ shortCount }}
-      BaseBadge(variant='info') Избыток · {{ overCount }}
+      BaseBadge(v-if='noStockCount', variant='neg') {{ $t('marketplace.correctionTable.noStockCountText', { count: noStockCount }) }}
+      BaseBadge(v-if='overStockCount', variant='neg') {{ $t('marketplace.correctionTable.overStockCountText', { count: overStockCount }) }}
+      BaseBadge(variant='pos') {{ $t('marketplace.correctionTable.matchCountText', { count: matchCount }) }}
+      BaseBadge(variant='warn') {{ $t('marketplace.correctionTable.shortCountText', { count: shortCount }) }}
+      BaseBadge(variant='info') {{ $t('marketplace.correctionTable.overCountText', { count: overCount }) }}
 </template>
 
 <script setup lang="ts">
@@ -74,6 +74,7 @@ import { computed, type PropType } from 'vue';
 import { BaseBadge, BaseCheckbox, BaseInput } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import type { CorrectionRow } from './CorrectionTable.types';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   rows: { type: Array as PropType<CorrectionRow[]>, required: true },
@@ -134,6 +135,7 @@ function factCeiling(r: EnrichedRow): number | undefined {
 // шаг 0.001 (граммы/миллилитры), чтобы браузер не блокировал дробное значение.
 function stepFor(r: EnrichedRow): string {
   if (r.packaged) return '1';
+  // i18n-ignore: единица измерения из данных предложения, не надпись
   return r.unit === 'шт' || r.unit === 'шт.' ? '1' : '0.001';
 }
 
@@ -158,11 +160,11 @@ function onPriceInput(r: EnrichedRow, raw: unknown): void {
 }
 
 function statusLabel(r: EnrichedRow): string {
-  if (r.noStock) return 'Нет на складе';
-  if (r.overStock) return 'Больше принятого';
-  if (r.delta === 0) return 'Совпадает';
-  if (r.delta < 0) return 'Недостача';
-  return 'Избыток';
+  if (r.noStock) return t('marketplace.correctionTable.statusOutOfStock');
+  if (r.overStock) return t('marketplace.correctionTable.statusOverStock');
+  if (r.delta === 0) return t('marketplace.correctionTable.statusMatch');
+  if (r.delta < 0) return t('marketplace.correctionTable.statusShort');
+  return t('marketplace.correctionTable.statusOver');
 }
 
 function statusVariant(r: EnrichedRow): BaseBadgeVariant {

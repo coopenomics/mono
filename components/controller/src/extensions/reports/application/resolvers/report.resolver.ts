@@ -1,8 +1,6 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { UseGuards, Logger, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { UseGuards, Logger, Inject } from '@nestjs/common';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
@@ -28,6 +26,7 @@ import {
   type BalanceCorrectionRepository,
 } from '../../domain/repositories/balance-correction.repository';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 const HISTORY_MAX_LIMIT = 100;
 const HISTORY_DEFAULT_LIMIT = 20;
@@ -103,7 +102,7 @@ export class ReportResolver {
     @Args('input', { type: () => ReportPreviewInputDTO }) input: ReportPreviewInputDTO,
   ): Promise<ReportPreviewDTO> {
     if (HIDDEN_IN_MVP.has(input.reportType)) {
-      throw new BadRequestException(`Тип отчёта ${input.reportType} скрыт в MVP (feature-flag).`);
+      throw DomainError.badRequest('REPORTS_REPORT_TYPE_HIDDEN', { reportType: input.reportType });
     }
     const coopname = platformSettings().coopname;
     const ledgerData = await this.loadLedger(coopname);
@@ -182,7 +181,7 @@ export class ReportResolver {
     const coopname = platformSettings().coopname;
     const record = await this.reportRepo.findById(id);
     if (!record || record.coopname !== coopname) {
-      throw new NotFoundException(`Отчёт с id=${id} не найден`);
+      throw DomainError.notFound('REPORTS_REPORT_NOT_FOUND', { id });
     }
     return {
       id: record.id,
@@ -215,33 +214,29 @@ export class ReportResolver {
     const coopname = platformSettings().coopname;
 
     if (HIDDEN_IN_MVP.has(reportType)) {
-      throw new BadRequestException(
-        `Тип отчёта ${reportType} скрыт в MVP (feature-flag) и не может быть сгенерирован.`,
-      );
+      throw DomainError.badRequest('REPORTS_REPORT_TYPE_GENERATION_HIDDEN', { reportType });
     }
 
     if (!currentUser?.username) {
-      throw new BadRequestException('generateReportFromEdits: не удалось определить пользователя');
+      throw DomainError.badRequest('REPORTS_USER_NOT_RESOLVED');
     }
 
     let edits: unknown;
     try {
       edits = JSON.parse(editsJson);
     } catch (err) {
-      throw new BadRequestException(
-        `editsJson: невалидный JSON (${err instanceof Error ? err.message : String(err)})`,
-      );
+      throw DomainError.badRequest('REPORTS_EDITS_JSON_INVALID', { message: err instanceof Error ? err.message : String(err) });
     }
 
     const generated = this.reportRegistry.generate(reportType, edits);
 
     const xsdResult = generated.xml
       ? await this.xsdValidator.validateByReportType(generated.xml, reportType)
-      : { isValid: false, errors: [{ message: 'XML не сгенерирован' }] };
+      : { isValid: false, errors: [{ message: t('reports.reportGeneration.xmlNotGeneratedLabel') }] };
 
     const combinedErrors = [
       ...generated.errors,
-      ...xsdResult.errors.map((e) => (e.line ? `[строка ${e.line}] ${e.message}` : e.message)),
+      ...xsdResult.errors.map((e) => (e.line ? t('reports.reportGeneration.xsdErrorEntry', { line: e.line, message: e.message }) : e.message)),
     ];
     const finalIsValid = generated.isValid && xsdResult.isValid;
 

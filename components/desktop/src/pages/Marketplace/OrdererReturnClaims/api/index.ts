@@ -1,13 +1,14 @@
 import { Mutations, Queries, Zeus, type Types } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 const DEFECT_CATEGORY_LABELS: Record<string, string> = {
-  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
-  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
-  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
-  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
-  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: t('marketplace.returnClaimStatus.defectBroken'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: t('marketplace.returnClaimStatus.defectExpired'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: t('marketplace.returnClaimStatus.defectNotAsDescribed'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: t('marketplace.returnClaimStatus.defectWrongItem'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: t('marketplace.returnClaimStatus.defectOther'),
 };
 
 // Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем
@@ -28,14 +29,14 @@ const RETURN_CLAIM_STATUS_LABELS: Record<Zeus.MarketplaceReturnClaimStatus, stri
   // «на рассмотрении». Дальше (паевая модель) решает совет: имущество принято
   // у стойки и ждёт решения; принято советом — паевой взнос восстановлен;
   // совет отказал — имущество ждёт пайщика на участке; выдано обратно.
-  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: 'На рассмотрении',
-  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: 'Приглашение на участок',
-  [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: 'Отказано удалённо',
-  [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: 'Отказано на месте',
-  [Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL]: 'Имущество принято — ждём решение совета',
-  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: 'Совет отменил сделку — взносы восстановлены',
-  [Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL]: 'Совет отказал — заберите имущество',
-  [Zeus.MarketplaceReturnClaimStatus.HANDED_BACK]: 'Имущество выдано обратно',
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_CHAIRMAN_REVIEW]: t('marketplace.returnClaimStatus.pending'),
+  [Zeus.MarketplaceReturnClaimStatus.APPROVED_FOR_VISIT]: t('marketplace.returnClaimStatus.invitedOnSite'),
+  [Zeus.MarketplaceReturnClaimStatus.REJECTED_REMOTELY]: t('marketplace.returnClaimStatus.declinedRemote'),
+  [Zeus.MarketplaceReturnClaimStatus.REJECTED_AT_VISIT]: t('marketplace.returnClaimStatus.declinedOnSite'),
+  [Zeus.MarketplaceReturnClaimStatus.PENDING_COUNCIL]: t('marketplace.returnClaimStatus.acceptedPendingBoard'),
+  [Zeus.MarketplaceReturnClaimStatus.ACCEPTED_BY_COUNCIL]: t('marketplace.returnClaimStatus.boardCancelled'),
+  [Zeus.MarketplaceReturnClaimStatus.DECLINED_BY_COUNCIL]: t('marketplace.returnClaimStatus.boardDeclined'),
+  [Zeus.MarketplaceReturnClaimStatus.HANDED_BACK]: t('marketplace.returnClaimStatus.returnedToOrderer'),
 };
 
 export function returnClaimStatusLabel(status: MarketplaceReturnClaimView['status']): string {
@@ -74,15 +75,15 @@ export const OPEN_RETURN_CLAIM_STATUSES = new Set<MarketplaceReturnClaimView['st
 // Гуманизация решений из decision_log — используется и в деталях заявления,
 // и в хронологии заказа (DRY: один источник вместо двух локальных карт).
 const RETURN_CLAIM_DECISION_LABELS: Record<string, string> = {
-  approve_visit: 'Приглашение на участок',
-  reject_remote: 'Отказано удалённо',
-  accept_at_visit: 'Имущество принято у стойки — заявление в совете',
-  reject_at_visit: 'Отказано на месте',
-  council_authorized: 'Совет отменил сделку — взносы восстановлены',
-  council_declined: 'Совет отказал',
-  hand_back: 'Имущество выдано обратно',
-  fee_pending: 'Имущество и паевой взнос возвращены — членский взнос ждёт пополнения кошелька участка',
-  fee_settled: 'Членский взнос возвращён',
+  approve_visit: t('marketplace.returnClaimStatus.invitedOnSite'),
+  reject_remote: t('marketplace.returnClaimStatus.declinedRemote'),
+  accept_at_visit: t('marketplace.returnClaimStatus.acceptedAtCounterPendingBoard'),
+  reject_at_visit: t('marketplace.returnClaimStatus.declinedOnSite'),
+  council_authorized: t('marketplace.returnClaimStatus.boardCancelled'),
+  council_declined: t('marketplace.returnClaimStatus.boardDeclinedShort'),
+  hand_back: t('marketplace.returnClaimStatus.returnedToOrderer'),
+  fee_pending: t('marketplace.returnClaimStatus.refundPendingMemberFee'),
+  fee_settled: t('marketplace.returnClaimStatus.memberFeeReturned'),
 };
 
 /** Решения, которые читаются как отказ (для цвета в хронологии). */

@@ -1,13 +1,14 @@
 import { Zeus } from '@coopenomics/sdk';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
+import { t } from '../i18n';
 
 export const expenseItemStatusLabel: Record<Zeus.ExpenseItemStatus, string> = {
-  [Zeus.ExpenseItemStatus.UNDEFINED]: 'Не определена',
-  [Zeus.ExpenseItemStatus.APPROVED]: 'Одобрена',
-  [Zeus.ExpenseItemStatus.PAID]: 'Оплачена',
-  [Zeus.ExpenseItemStatus.REPORTED]: 'Отчёт подан',
-  [Zeus.ExpenseItemStatus.RETURNED]: 'Возврат',
-  [Zeus.ExpenseItemStatus.OVERSPENT]: 'Перерасход',
+  [Zeus.ExpenseItemStatus.UNDEFINED]: t('expenses.expenseItem.status.undefined'),
+  [Zeus.ExpenseItemStatus.APPROVED]: t('expenses.expenseItem.status.approved'),
+  [Zeus.ExpenseItemStatus.PAID]: t('expenses.expenseItem.status.paid'),
+  [Zeus.ExpenseItemStatus.REPORTED]: t('expenses.expenseItem.status.reportSubmitted'),
+  [Zeus.ExpenseItemStatus.RETURNED]: t('expenses.expenseItem.status.refund'),
+  [Zeus.ExpenseItemStatus.OVERSPENT]: t('expenses.expenseItem.status.overspend'),
 };
 
 export const expenseItemStatusVariant: Record<Zeus.ExpenseItemStatus, BaseBadgeVariant> = {
@@ -32,8 +33,8 @@ export function getExpenseItemStatusVariant(
 }
 
 export const expenseMechanicsLabel: Record<Zeus.ExpenseMechanics, string> = {
-  [Zeus.ExpenseMechanics.ADVANCE]: 'Аванс',
-  [Zeus.ExpenseMechanics.DIRECT]: 'Прямая оплата',
+  [Zeus.ExpenseMechanics.ADVANCE]: t('expenses.expenseItem.status.advance'),
+  [Zeus.ExpenseMechanics.DIRECT]: t('expenses.expenseItem.status.directPayment'),
 };
 
 export function getExpenseMechanicsLabel(mechanics?: Zeus.ExpenseMechanics | null): string {

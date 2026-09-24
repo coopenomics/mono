@@ -2,7 +2,7 @@
 q-input(
   v-if="project && project.permissions?.can_edit_project"
   v-model="videoIframe"
-  label="Встроить видео (iframe)"
+  :label="$t('capital.updateProjectVideo.label')"
   dense
   standout="bg-teal text-white"
   @change="updateVideo"

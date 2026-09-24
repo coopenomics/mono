@@ -2,7 +2,7 @@
 .extension-page(v-if='extension')
   button.extension-page__back(type='button', @click='goBack')
     q-icon(name='fa-solid fa-chevron-left' size='13px')
-    span Назад
+    span {{ $t('common.action.back') }}
 
   .extension-page__panel
     .extension-page__grid

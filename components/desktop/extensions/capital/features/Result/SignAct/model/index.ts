@@ -6,6 +6,7 @@ import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
 import type { ISignActAsContributorInput, ISignActAsChairmanInput } from './types';
 import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';
 import { useResultStore } from 'app/extensions/capital/entities/Result/model';
+import { t } from '../../../../i18n';
 
 export * from './types';
 
@@ -28,13 +29,13 @@ export function useSignAct() {
     isLoading.value = true;
     try {
       if (!segment.username) {
-        throw new Error('Имя пользователя не найдено');
+        throw new Error(t('capital.error.signActUsernameMissing'));
       }
 
       // Получаем result для извлечения result_hash
       const result = await resultStore.loadResultByFilters(segment.username, segment.project_hash);
       if (!result) {
-        throw new Error('Результат не найден');
+        throw new Error(t('capital.error.signActResultNotFound'));
       }
 
       // Генерируем акт
@@ -81,23 +82,23 @@ export function useSignAct() {
     isLoading.value = true;
     try {
       if (!segment.username) {
-        throw new Error('Имя пользователя не найдено');
+        throw new Error(t('capital.error.signActUsernameMissing'));
       }
 
       // Получаем result для извлечения уже подписанного участником акта
       const result = await resultStore.loadResultByFilters(segment.username, segment.project_hash);
       if (!result) {
-        throw new Error('Результат не найден');
+        throw new Error(t('capital.error.signActResultNotFound'));
       }
 
       // Проверяем наличие подписанного акта от участника
       if (!result.act) {
-        throw new Error('Акт от участника не найден. Участник должен сначала подписать акт.');
+        throw new Error(t('capital.error.signActParticipantActMissing'));
       }
 
       // Проверяем наличие rawDocument для наложения второй подписи
       if (!result.act.rawDocument) {
-        throw new Error('Сырой документ акта не найден. Невозможно наложить вторую подпись.');
+        throw new Error(t('capital.error.signActRawDocumentMissing'));
       }
 
       // Накладываем вторую подпись председателя на существующий акт

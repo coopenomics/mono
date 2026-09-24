@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue"
-  title="Редакции"
+  :title="$t('capital.revisionsDialog.title')"
   size="xxl"
   @update:model-value="(v: boolean) => emit('update:modelValue', v)"
 )
@@ -10,7 +10,7 @@ BaseDialog(
     .col-12.col-md-4
       .revisions__list
         CardListSkeleton(v-if="loading && !items.length")
-        EmptyState(v-else-if="!items.length" title="Редакций пока нет")
+        EmptyState(v-else-if="!items.length" :title="$t('capital.revisionsDialog.emptyTitle')")
         q-list(v-else separator)
           q-item(
             v-for="r in items"
@@ -25,37 +25,37 @@ BaseDialog(
                 span.t-mono-sm.revisions__rev №{{ r.rev }}
                 span.revisions__date {{ formatDateToHumanDateTime(r.created_at) }}
                 q-space
-                BaseChip(v-if="r.rev === currentRev" size="sm" variant="info") текущая
+                BaseChip(v-if="r.rev === currentRev" size="sm" variant="info") {{ $t('capital.revisionsDialog.currentTag') }}
               q-item-label(caption).revisions__meta
                 | {{ r.author }} · {{ originLabel(r) }}
-                template(v-if="r.merged")  · слито
-                template(v-if="r.description_delta !== 0")  · {{ r.description_delta > 0 ? '+' : '' }}{{ r.description_delta }} симв.
+                template(v-if="r.merged")  {{ $t('capital.revisionsDialog.mergedTag') }}
+                template(v-if="r.description_delta !== 0")  {{ $t('capital.revisionsDialog.charsDeltaTag', { sign: r.description_delta > 0 ? '+' : '', count: r.description_delta }) }}
     //- Справа — выбранная редакция: заголовок, переключатель вида, содержимое
     .col-12.col-md-8
       template(v-if="selected")
         .row.items-end.no-wrap.q-mb-md
           .col
-            .text-h6 Редакция №{{ selected.rev }}
+            .text-h6 {{ $t('capital.revisionsDialog.selectedRevisionLabel', { revision: selected.rev }) }}
             .text-caption.text-grey-7 {{ selected.title }} · {{ selected.author }} · {{ formatDateToHumanDateTime(selected.created_at) }}
           .col-auto
             q-tabs(v-model="view" dense no-caps inline-label indicator-color="primary" active-color="primary")
-              q-tab(name="diff" label="Отличия от текущей")
-              q-tab(name="text" label="Текст")
+              q-tab(name="diff" :label="$t('capital.revisionsDialog.diffTabLabel')")
+              q-tab(name="text" :label="$t('capital.revisionsDialog.textTabLabel')")
         .revisions__body
           template(v-if="view === 'diff'")
             DiffViewer(v-if="diffText" :diff="diffText")
-            .revisions__empty(v-else) Совпадает с текущим текстом
-          pre.revisions__pre(v-else) {{ selected.description || '(пусто)' }}
-      .revisions__empty(v-else-if="!loadingOne") Выберите редакцию слева
+            .revisions__empty(v-else) {{ $t('capital.revisionsDialog.matchesCurrentText') }}
+          pre.revisions__pre(v-else) {{ selected.description || $t('capital.revisionsDialog.emptyPlaceholder') }}
+      .revisions__empty(v-else-if="!loadingOne") {{ $t('capital.revisionsDialog.selectHint') }}
       CardListSkeleton(v-else)
   template(#footer)
-    BaseButton(variant="ghost" @click="emit('update:modelValue', false)") Закрыть
+    BaseButton(variant="ghost" @click="emit('update:modelValue', false)") {{ $t('common.action.close') }}
     BaseButton(
       v-if="selected && selected.rev !== currentRev && canRestore"
       variant="primary"
       :loading="restoring"
       @click="restore"
-    ) Вернуть эту редакцию
+    ) {{ $t('capital.revisionsDialog.restoreAction') }}
 </template>
 
 <script setup lang="ts">
@@ -66,6 +66,7 @@ import { formatDateToHumanDateTime } from 'src/shared/lib/utils'
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts'
 import { api, type IContentEntityType, type IContentRevision, type IContentRevisionSummary } from '../api'
 import { unifiedLineDiff } from '../lib/lineDiff'
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   modelValue: boolean
@@ -93,16 +94,16 @@ const selected = ref<IContentRevision | null>(null)
 const view = ref<'diff' | 'text'>('diff')
 
 const ORIGIN_LABELS: Record<string, string> = {
-  WEB: 'веб',
+  WEB: t('capital.revisionsDialog.sourceWeb'),
   CLI: 'blago',
-  RESTORE: 'откат',
-  CHAIN: 'из цепи',
-  BACKFILL: 'первичный снимок',
+  RESTORE: t('capital.revisionsDialog.sourceRollback'),
+  CHAIN: t('capital.revisionsDialog.sourceChain'),
+  BACKFILL: t('capital.revisionsDialog.sourceInitialSnapshot'),
 }
 
 const originLabel = (r: IContentRevisionSummary) => {
   const base = ORIGIN_LABELS[String(r.origin)] ?? String(r.origin)
-  return r.restored_from_rev ? `${base} к №${r.restored_from_rev}` : base
+  return r.restored_from_rev ? t('capital.revisionsDialog.rollbackSourceLabel', { base, fromRevision: r.restored_from_rev }) : base
 }
 
 const diffText = computed(() => {
@@ -139,7 +140,7 @@ async function restore() {
   restoring.value = true
   try {
     const summary = await api.restoreRevision(props.entityType, props.entityHash, selected.value.rev, props.currentRev)
-    SuccessAlert(`Возвращена редакция №${selected.value.rev}`)
+    SuccessAlert(t('capital.revisionsDialog.restoredMessage', { revision: selected.value.rev }))
     emit('restored', summary)
     emit('update:modelValue', false)
   } catch (e) {

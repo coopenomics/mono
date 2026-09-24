@@ -2,6 +2,7 @@ import { Cooperative } from 'cooptypes';
 import type { IRegistrationAgreementsConfig } from './agreement-config.interface';
 import { AccountType } from '~/application/account/enum/account-type.enum';
 import { AgreementType, AgreementId } from '../enum';
+import { t } from '~/i18n';
 
 /**
  * Платформенные соглашения, требуемые при регистрации пайщика в любом
@@ -23,9 +24,9 @@ export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
       id: AgreementId.SIGNATURE_AGREEMENT,
       registry_id: Cooperative.Registry.RegulationElectronicSignature.registry_id,
       agreement_type: AgreementType.SIGNATURE,
-      title: 'Соглашение о порядке и правилах использования простой электронной подписи',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'положение о порядке и правилах использования простой электронной подписи',
+      title: t('registration.registrationAgreements.signatureAgreementTitle'),
+      checkbox_text: t('registration.registrationAgreements.checkboxAcceptText'),
+      link_text: t('registration.registrationAgreements.signatureAgreementLinkText'),
       is_blockchain_agreement: true,
       link_to_statement: true,
       applicable_account_types: [AccountType.individual, AccountType.organization, AccountType.entrepreneur],
@@ -35,9 +36,9 @@ export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
       id: AgreementId.WALLET_AGREEMENT,
       registry_id: Cooperative.Registry.WalletAgreement.registry_id,
       agreement_type: AgreementType.WALLET,
-      title: 'Соглашение о целевой потребительской программе "Цифровой Кошелёк"',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'положение о целевой потребительской программе "Цифровой Кошелёк"',
+      title: t('registration.registrationAgreements.walletAgreementTitle'),
+      checkbox_text: t('registration.registrationAgreements.checkboxAcceptText'),
+      link_text: t('registration.registrationAgreements.walletAgreementLinkText'),
       is_blockchain_agreement: true,
       link_to_statement: true,
       applicable_account_types: [AccountType.individual, AccountType.organization, AccountType.entrepreneur],
@@ -47,9 +48,9 @@ export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
       id: AgreementId.USER_AGREEMENT,
       registry_id: Cooperative.Registry.UserAgreement.registry_id,
       agreement_type: AgreementType.USER,
-      title: 'Пользовательское соглашение',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'пользовательское соглашение',
+      title: t('registration.registrationAgreements.userAgreementTitle'),
+      checkbox_text: t('registration.registrationAgreements.checkboxAcceptText'),
+      link_text: t('registration.registrationAgreements.userAgreementLinkText'),
       is_blockchain_agreement: true,
       link_to_statement: true,
       applicable_account_types: [AccountType.individual, AccountType.organization, AccountType.entrepreneur],
@@ -59,9 +60,9 @@ export const REGISTRATION_AGREEMENTS_CONFIG: IRegistrationAgreementsConfig = {
       id: AgreementId.PRIVACY_AGREEMENT,
       registry_id: Cooperative.Registry.PrivacyPolicy.registry_id,
       agreement_type: AgreementType.PRIVACY,
-      title: 'Политика конфиденциальности',
-      checkbox_text: 'Я прочитал и принимаю',
-      link_text: 'политику конфиденциальности',
+      title: t('registration.registrationAgreements.privacyPolicyTitle'),
+      checkbox_text: t('registration.registrationAgreements.checkboxAcceptText'),
+      link_text: t('registration.registrationAgreements.privacyPolicyLinkText'),
       is_blockchain_agreement: true,
       link_to_statement: true,
       applicable_account_types: [AccountType.individual, AccountType.organization, AccountType.entrepreneur],

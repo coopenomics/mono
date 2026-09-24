@@ -1,5 +1,5 @@
 <template lang="pug">
-q-fab-action(color="primary" @click="handleButtonClick" icon="add") Проект
+q-fab-action(color="primary" @click="handleButtonClick" icon="add") {{ $t('capital.createProjectButton.label') }}
   //- q-btn(
   //-   color='primary',
   //-   @click='showDialog = true',

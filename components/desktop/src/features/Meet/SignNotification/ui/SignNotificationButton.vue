@@ -15,6 +15,7 @@ import { useSignNotification } from '../model'
 import { useSessionStore } from 'src/entities/Session'
 import { useMeetStore } from 'src/entities/Meet'
 import { Zeus } from '@coopenomics/sdk';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   coopname: string
@@ -27,7 +28,7 @@ const meetStore = useMeetStore()
 const { signNotification, loading, hasUserSentNotification } = useSignNotification()
 
 const username = computed(() => session.username)
-const label = computed(() => props.label || 'Подписать уведомление')
+const label = computed(() => props.label || t('meet.signNotificationButton.label'))
 
 const isAvailableForNotification = computed(() => {
   const meet = meetStore.currentMeet

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -51,11 +52,11 @@ const readonly = computed(() => route.meta?.readonly === true);
 // Реальный переход — router.back() (история совпадает с реферрером), это
 // корректные подпись и запасной маршрут.
 const BACK_TARGETS: Record<string, { label: string; name: string }> = {
-  cart: { label: 'В корзину', name: 'marketplace-cart' },
-  orders: { label: 'К реестру заказов', name: 'marketplace-admin-orders' },
-  offers: { label: 'К реестру предложений', name: 'marketplace-admin-offers' },
-  moderation: { label: 'К модерации', name: 'marketplace-moderation' },
-  warehouse: { label: 'К складу', name: 'marketplace-warehouse-summary' },
+  cart: { label: t('marketplace.marketplaceOfferDetailPage.cartAction'), name: 'marketplace-cart' },
+  orders: { label: t('marketplace.marketplaceOfferDetailPage.backToOrders'), name: 'marketplace-admin-orders' },
+  offers: { label: t('marketplace.marketplaceOfferDetailPage.backToOffers'), name: 'marketplace-admin-offers' },
+  moderation: { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' },
+  warehouse: { label: t('marketplace.marketplaceOfferDetailPage.backToWarehouse'), name: 'marketplace-warehouse-summary' },
 };
 
 const backTarget = computed<{ label: string; name: string }>(() => {
@@ -63,8 +64,8 @@ const backTarget = computed<{ label: string; name: string }>(() => {
   if (from) return from;
   // Без пометки: на столе администратора карточку исторически открывала
   // только модерация, у заказчика — каталог.
-  if (readonly.value) return { label: 'К модерации', name: 'marketplace-moderation' };
-  return { label: 'К каталогу', name: 'marketplace-catalog' };
+  if (readonly.value) return { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' };
+  return { label: t('marketplace.marketplaceOfferDetailPage.backToCatalog'), name: 'marketplace-catalog' };
 });
 
 // Модерация прямо на странице: показываем «Одобрить»/«Отклонить», только если
@@ -143,14 +144,14 @@ const canOrder = computed(() => {
 });
 const stockLabel = computed(() => {
   if (!offer.value) return '';
-  if (offer.value.unlimited_flag) return 'Без ограничения остатка';
-  if (isEmpty.value) return 'Нет в наличии';
+  if (offer.value.unlimited_flag) return t('marketplace.marketplaceOfferDetailPage.stockUnlimited');
+  if (isEmpty.value) return t('marketplace.marketplaceOfferDetailPage.stockEmpty');
   // Остаток при отпуске упаковкой ведётся на каждой упаковке — показываем
   // по упаковкам, а не одним числом литров.
   if (isPackaged.value) {
-    return `В наличии: ${marketplacePackageStockLabel(offer.value.packages, offer.value.unit_of_measure)}`;
+    return t('marketplace.marketplaceOfferDetailPage.stockAvailablePackaged', { stock: marketplacePackageStockLabel(offer.value.packages, offer.value.unit_of_measure) });
   }
-  return `В наличии: ${offer.value.quantity_available} ${unitShort.value}`;
+  return t('marketplace.marketplaceOfferDetailPage.stockAvailableSimple', { quantity: offer.value.quantity_available, unit: unitShort.value });
 });
 
 // requirement b6: единая ставка членского взноса входит в цену для всех,
@@ -172,7 +173,7 @@ const defaultPackage = computed(() => {
 const saleUnitLabel = computed(() => {
   const pkg = defaultPackage.value;
   if (!isPackaged.value || !pkg) return unitShort.value;
-  return `упак. ${formatSize(pkg.size)} ${unitShort.value}`;
+  return t('marketplace.marketplaceOfferDetailPage.packageSizeLabel', { size: formatSize(pkg.size), unit: unitShort.value });
 });
 const priceLabel = computed(() => {
   if (!offer.value) return '';
@@ -180,7 +181,7 @@ const priceLabel = computed(() => {
     ? Number(defaultPackage.value.price)
     : Number(offer.value.price_per_unit);
   const withFee = applyMembershipFee(base, feePercent.value);
-  return `${withFee.toLocaleString('ru-RU')} ${system.governSymbol} / ${saleUnitLabel.value}`;
+  return `${withFee.toLocaleString(uiLocale())} ${system.governSymbol} / ${saleUnitLabel.value}`;
 });
 
 /** Компактная запись объёма: 0.5 → «0,5». */
@@ -197,12 +198,12 @@ const packageRows = computed(() =>
   (offer.value?.packages ?? []).map((p) => ({
     key: p.id,
     name: [`${formatSize(p.size)} ${unitShort.value}`, p.package_type].filter(Boolean).join(', '),
-    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString('ru-RU')} ${system.governSymbol}`,
+    price: `${applyMembershipFee(Number(p.price), feePercent.value).toLocaleString(uiLocale())} ${system.governSymbol}`,
     stock: offer.value?.unlimited_flag
-      ? 'без ограничения'
+      ? t('marketplace.marketplaceOfferDetailPage.packageStockUnlimited')
       : p.quantity_available > 0
-        ? `${p.quantity_available} упак.`
-        : 'нет в наличии',
+        ? t('marketplace.marketplaceOfferDetailPage.packageStockQuantity', { quantity: p.quantity_available })
+        : t('marketplace.marketplaceOfferDetailPage.packageStockEmpty'),
   })),
 );
 // Цена всегда задаётся за базовую единицу (Эпик 17) — справочный пересчёт из
@@ -213,7 +214,7 @@ const deliveryPoints = computed(() =>
   (offer.value?.delivery_points ?? []).map((p) => ({
     key: p.braname,
     name: p.name ?? p.braname,
-    volume: `от ${p.min_supply_volume} ${unitShort.value}`,
+    volume: t('marketplace.marketplaceOfferDetailPage.minSupplyVolumeLabel', { minVolume: p.min_supply_volume, unit: unitShort.value }),
   })),
 );
 
@@ -273,7 +274,7 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.offer-detail(role="region", aria-label="Описание предложения")
+q-page.offer-detail(role="region", :aria-label="$t('marketplace.marketplaceOfferDetailPage.ariaLabel')")
   //- Корзина в шапке — тот же header-виджет, что в каталоге (вне режима модерации).
 
   .offer-detail__back
@@ -287,8 +288,8 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
 
   EmptyState(
     v-if="!firstLoad && !offer",
-    title="Предложение не найдено",
-    body="Возможно, оно снято с публикации."
+    :title="$t('marketplace.marketplaceOfferDetailPage.notFoundTitle')",
+    :body="$t('marketplace.marketplaceOfferDetailPage.notFoundBody')"
   )
     template(#icon)
       q-icon(name="search_off", size="48px")
@@ -320,21 +321,21 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         //- Один участок читается строкой «Участок поставки — РОМАШКА, от 10 кг».
         //- Несколько — списком под общим заголовком, иначе непонятно, что за
         //- названия идут подряд.
-        .offer-detail__facts-head(v-if="deliveryPoints.length > 1") Участки поставки
+        .offer-detail__facts-head(v-if="deliveryPoints.length > 1") {{ $t('marketplace.marketplaceOfferDetailPage.supplyPointsTitle') }}
         DataRow(
           v-for="p in deliveryPoints",
           :key="p.key",
-          :label="deliveryPoints.length > 1 ? p.name : 'Участок поставки'",
+          :label="deliveryPoints.length > 1 ? p.name : $t('marketplace.marketplaceOfferDetailPage.supplyPointLabel')",
           :value="deliveryPoints.length > 1 ? p.volume : `${p.name} — ${p.volume}`"
         )
         DataRow(
-          label="Срок годности",
-          :value="offer.shelf_life_days > 0 ? `${offer.shelf_life_days} дн.` : 'Без срока годности'"
+          :label="$t('marketplace.marketplaceOfferDetailPage.shelfLifeLabel')",
+          :value="offer.shelf_life_days > 0 ? $t(`marketplace.marketplaceOfferDetailPage.daysCount`, { days: offer.shelf_life_days }) : $t('marketplace.marketplaceOfferDetailPage.noShelfLifeLabel')"
         )
-        DataRow(label="Гарантийный срок возврата")
+        DataRow(:label="$t('marketplace.marketplaceOfferDetailPage.warrantyPeriodLabel')")
           template(#value-override)
             .offer-detail__warranty
-              span {{ offer.warranty_days > 0 ? `${offer.warranty_days} дн.` : 'Без гарантийного срока возврата' }}
+              span {{ offer.warranty_days > 0 ? $t(`marketplace.marketplaceOfferDetailPage.daysCount`, { days: offer.warranty_days }) : $t('marketplace.marketplaceOfferDetailPage.noWarrantyLabel') }}
               //- Правка срока — только на столе администратора: у заказчика
               //- карточка читающая.
               BaseButton(
@@ -346,16 +347,16 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
               )
                 template(#icon-left)
                   q-icon(name="event_repeat", size="16px")
-                | Изменить
+                | {{ $t('marketplace.marketplaceOfferDetailPage.editAction') }}
 
       BaseButton(
         v-if="!readonly",
         variant="primary",
         :disabled="!canOrder || noKU",
         @click="cartDialogOpen = true"
-      ) В корзину
+      ) {{ $t('marketplace.marketplaceOfferDetailPage.cartAction') }}
       .offer-detail__noku-hint(v-if="!readonly && noKU")
-        | Выберите пункт выдачи в каталоге, чтобы заказывать.
+        | {{ $t('marketplace.marketplaceOfferDetailPage.selectPvzHint') }}
 
       //- Модерация прямо на странице (стол администратора, статус «на модерации»).
       .offer-detail__moderation(v-if="canModerate")
@@ -366,7 +367,7 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         )
           template(#icon-left)
             q-icon(name="close", size="16px")
-          | Отклонить
+          | {{ $t('marketplace.marketplaceOfferDetailPage.rejectAction') }}
         BaseButton(
           variant="primary",
           :loading="isApproving(offer.id)",
@@ -374,15 +375,15 @@ q-page.offer-detail(role="region", aria-label="Описание предложе
         )
           template(#icon-left)
             q-icon(name="check", size="16px")
-          | Одобрить
+          | {{ $t('marketplace.marketplaceOfferDetailPage.approveAction') }}
 
   .offer-detail__sections(v-if="offer")
     section.offer-detail__section(v-if="offer.description")
-      .offer-detail__section-head Описание
+      .offer-detail__section-head {{ $t('marketplace.marketplaceOfferDetailPage.descriptionTitle') }}
       .offer-detail__desc {{ offer.description }}
 
     section.offer-detail__section(v-if="packageRows.length")
-      .offer-detail__section-head Упаковки
+      .offer-detail__section-head {{ $t('marketplace.marketplaceOfferDetailPage.packagesTitle') }}
       ul.offer-detail__points
         li.offer-detail__point(v-for="row in packageRows", :key="row.key")
           span.offer-detail__point-name {{ row.name }}

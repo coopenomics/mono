@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceOrderReadyPayloadSchema = z.object({
   ordererName: z.string(),
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof marketplaceOrderReadyPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Заказ готов к получению';
-export const id = slugify(name);
+export const name = nt('marketplaceOrderReady.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'zakaz-gotov-k-polucheniyu';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление пайщику-заказчику о том, что его заказ принят кооперативом и готов к получению на кооперативном участке.')
+  .i18nKey('marketplaceOrderReady')
+  .description(nt('marketplaceOrderReady.description'))
   .payloadSchema(marketplaceOrderReadyPayloadSchema)
   .tags(['marketplace', 'orderer'])
   .addSteps([
     createEmailStep(
       'marketplace-order-ready-email',
-      'Ваш заказ готов к получению на КУ {{payload.kuName}}',
-      'Уважаемый {{payload.ordererName}}!<br><br>Ваш заказ принят кооперативом и готов к выдаче на кооперативном участке <strong>{{payload.kuName}}</strong>.<br><br>Приходите на пункт выдачи и предъявите оператору номер заказа: <strong>{{payload.order_id}}</strong>.{{payload.passportReminder}}<br><br>Подробности заказа: {{payload.deepLinkUrl}}'
+      nt('marketplaceOrderReady.email.subject'),
+      nt('marketplaceOrderReady.email.body')
     ),
     createInAppStep(
       'marketplace-order-ready-notification',
-      'Заказ готов к получению',
-      'Ваш заказ на КУ {{payload.kuName}} ждёт получения — приходите на пункт выдачи.{{payload.passportReminder}}'
+      nt('marketplaceOrderReady.inApp.subject'),
+      nt('marketplaceOrderReady.inApp.body')
     ),
     createPushStep(
       'marketplace-order-ready-push',
-      'Заказ готов к получению',
-      'Ваш заказ на КУ {{payload.kuName}} ждёт вас на пункте выдачи.{{payload.passportReminder}}'
+      nt('marketplaceOrderReady.push.subject'),
+      nt('marketplaceOrderReady.push.body')
     ),
   ])
   .build();

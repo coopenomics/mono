@@ -9,7 +9,7 @@ BaseDialog(
 )
   div.row.justify-center
     q-card(flat).col-md-8.col-xs-12.q-pa-lg
-      Loader(v-if="isLoading" :text='`Формируем документ...`')
+      Loader(v-if="isLoading" :text='$t(`agreementer.signAgreementDialog.loadingText`)')
       slot
   template(#footer)
     .sign-agreement__actions
@@ -18,7 +18,7 @@ BaseDialog(
         variant='primary',
         :loading='isSubmitting',
         @click='sign'
-      ) Подписать
+      ) {{ $t('common.action.sign') }}
 </template>
 
 <script lang="ts" setup>
@@ -31,13 +31,14 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSignAgreement } from '../model';
 import { useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
+import { t } from 'src/shared/i18n';
 const { info } = useSystemStore()
 
 import { useSessionStore } from 'src/entities/Session';
 import { Loader } from 'src/shared/ui/Loader';
 
 const session = useSessionStore()
-const title = computed(() => props.is_modify ? 'Прочитайте и подпишите обновлённый документ' : 'Прочитайте и подпишите документ')
+const title = computed(() => props.is_modify ? t('agreementer.signAgreementDialog.titleModify') : t('agreementer.signAgreementDialog.title'))
 
 const props = defineProps({
   agreement: {
@@ -62,7 +63,7 @@ const agreementOnSign = computed(() => agreementStore.generatedAgreements.find(e
 const sign = async () => {
 
   if (!agreementOnSign.value){
-    FailAlert('Возникла ошибка подписи документа');
+    FailAlert(t('agreementer.signAgreementDialog.signMissingError'));
     return
   }
 
@@ -77,11 +78,11 @@ const sign = async () => {
     await walletStore.loadUserWallet({coopname: info.coopname, username: session.username})
     isSubmitting.value = false
     show.value = false
-    SuccessAlert('Документ принят')
+    SuccessAlert(t('agreementer.signAgreementDialog.acceptedSuccess'))
   } catch(e: any){
     isSubmitting.value = false
     console.error(e)
-    FailAlert(`Ошибка подписи документа: ${e.message}`)
+    FailAlert(t('agreementer.signAgreementDialog.signError', { message: e.message }))
   }
 
 }

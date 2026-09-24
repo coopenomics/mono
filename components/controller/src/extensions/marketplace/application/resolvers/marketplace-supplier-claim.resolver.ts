@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -107,7 +107,7 @@ export class MarketplaceSupplierClaimResolver {
     if (claim.supplier_account === member.username) return;
     const roles = member.marketplace_roles ?? [];
     if (roles.includes('admin') || roles.includes('board') || roles.includes('board_readonly')) return;
-    throw new ForbiddenException('Претензия выставлена другому поставщику.');
+    throw DomainError.forbidden('MARKETPLACE_SUPPLIER_CLAIM_FOREIGN');
   }
 
   /** Контакты участков, где лежит имущество по претензиям, — по одному запросу на участок. */

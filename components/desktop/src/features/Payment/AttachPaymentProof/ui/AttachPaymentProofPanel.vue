@@ -4,9 +4,9 @@
     .exp-step__num {{ step.number }}
     .exp-step__title {{ step.title }}
   .attach-proof__section
-    .t-sm.t-muted(v-if='step') Приложите чек об оплате — подтверждение, что платёж исполнен.
-    .t-sm.t-muted(v-else) Чек об оплате
-    .t-sm.t-muted(v-if='readonly && !proofFiles.length') Кассир ещё не приложил чек
+    .t-sm.t-muted(v-if='step') {{ $t('payment.attachPaymentProofPanel.intro') }}
+    .t-sm.t-muted(v-else) {{ $t('payment.attachPaymentProofPanel.sectionTitle') }}
+    .t-sm.t-muted(v-if='readonly && !proofFiles.length') {{ $t('payment.attachPaymentProofPanel.emptyHint') }}
     .files(v-if='proofFiles.length')
       button.file-link(
         v-for='file in proofFiles',
@@ -23,14 +23,15 @@
       v-model='pendingProof',
       accept='image/jpeg,image/png,image/webp,image/heic,application/pdf',
       :max-size='20 * 1024 * 1024',
-      title='Приложите чек об оплате',
-      hint='Изображение или PDF до 20 МБ — отправится сразу',
+      :title='$t("payment.attachPaymentProofPanel.uploadTitle")',
+      :hint='$t("payment.attachPaymentProofPanel.uploadHint")',
       :disabled='uploading'
     )
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { readFileForUpload } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -70,8 +71,8 @@ async function refresh(): Promise<void> {
 
 function fileLabel(file: IPaymentFile): string {
   if (file.original_filename) return file.original_filename;
-  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString('ru-RU') : '';
-  return `Чек от ${date}`;
+  const date = file.uploaded_at ? new Date(String(file.uploaded_at)).toLocaleString(uiLocale()) : '';
+  return t('payment.attachPaymentProofPanel.receiptFromLabel', { date });
 }
 
 const openingId = ref<number | null>(null);
@@ -79,7 +80,7 @@ async function openFile(file: IPaymentFile): Promise<void> {
   try {
     openingId.value = file.id;
     const url = await api.getPaymentFileReadUrl(file.id);
-    if (!url) throw new Error('Не удалось получить ссылку на файл');
+    if (!url) throw new Error(t('payment.error.fileLinkError'));
     window.open(url, '_blank', 'noopener');
   } catch (e) {
     FailAlert(e);
@@ -96,7 +97,7 @@ async function upload(file: File): Promise<void> {
       payment_hash: props.paymentHash,
       ...(await readFileForUpload(file)),
     });
-    SuccessAlert('Чек об оплате приложен');
+    SuccessAlert(t('payment.attachPaymentProofPanel.attachSuccess'));
     await refresh();
     emit('uploaded');
   } catch (e) {

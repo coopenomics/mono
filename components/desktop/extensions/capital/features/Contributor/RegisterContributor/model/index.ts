@@ -10,6 +10,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import type { IGeneratedDocumentOutput } from 'src/shared/lib/types/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
+import { t } from '../../../../i18n';
 
 export type IRegisterContributorInput =
   Mutations.Capital.RegisterContributor.IInput['data'];
@@ -89,7 +90,7 @@ export function useRegisterContributor() {
     isGenerating.value = true;
     try {
       if (!document) {
-        throw new Error('Документ не передан');
+        throw new Error(t('capital.error.registerContributorDocumentMissing'));
       }
 
       // Подписываем документ

@@ -25,10 +25,7 @@ import type {
   ProcessesFilter,
   ProcessSummary,
 } from '../interfaces/process-view.interface';
-import {
-  PaginationInputDTO,
-  PaginationResult,
-} from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, DomainError } from '@coopenomics/extension-kit';
 
 const LEDGER2_CODE = Ledger2Contract.contractName.production;
 // Epic 1 addendum (2026-04-18): apply orchestrator + 3 atomic inlines.
@@ -125,7 +122,7 @@ export class ProcessRegistryService {
       .getMany();
 
     if (allActions.length === 0) {
-      throw new NotFoundException(`Процесс с хэшем ${normHash} не найден`);
+      throw DomainError.notFound('PROCESS_REGISTRY_NOT_FOUND', { hash: normHash });
     }
 
     const processType = this.resolveProcessTypeOrFail(allActions, normHash);
@@ -273,6 +270,7 @@ export class ProcessRegistryService {
     const applies = actions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
     if (applies.length === 0) {
       throw new BadRequestException(
+        // i18n-ignore: внутренний инвариант реестра процессов ledger2 (отсутствует якорь apply), до пайщика не доходит
         `Якорь ledger2::apply отсутствует для process_hash=${processHash}; без него нельзя вывести process_type`
       );
     }
@@ -285,11 +283,13 @@ export class ProcessRegistryService {
         `ProcessRegistry: ни одна операция нитки не даёт имени процессу (hash=${processHash}, коды=[${codes}]). Синхронизируйте cooptypes/ledger2 с OPERATION_REGISTRY.`
       );
       throw new BadRequestException(
+        // i18n-ignore: внутренняя ошибка соответствия operation_code процессу, требует обновления карты разработчиком
         `Неизвестные operation_code: ${codes}. OPERATION_CODE_TO_PROCESS_TYPE требует обновления.`
       );
     }
     if (!KNOWN_PROCESS_TYPES.has(naming.processType)) {
       throw new BadRequestException(
+        // i18n-ignore: внутренняя ошибка соответствия process_type локатору, требует обновления разработчиком
         `Неизвестный process_type: ${naming.processType}. PROCESS_HASH_LOCATOR требует обновления.`
       );
     }
@@ -519,16 +519,14 @@ export class ProcessRegistryService {
   private normalizeHash(hash: string): string {
     const trimmed = (hash ?? '').trim().toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(trimmed)) {
-      throw new BadRequestException(`process_hash должен быть hex-64 (получено: "${hash}")`);
+      throw DomainError.badRequest('PROCESS_REGISTRY_HASH_INVALID_FORMAT', { hash });
     }
     return trimmed;
   }
 
   private enforceLimit(count: number, collection: string, hash: string) {
     if (count > HARD_LIMIT) {
-      throw new BadRequestException(
-        `Превышен лимит ${HARD_LIMIT} в ${collection} для процесса ${hash} (фактически: ${count})`
-      );
+      throw DomainError.badRequest('PROCESS_REGISTRY_LIMIT_EXCEEDED', { limit: HARD_LIMIT, collection, hash, count });
     }
   }
 

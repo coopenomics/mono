@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { t } from 'src/shared/i18n';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import { orderStatusDisplay, type DomainOrderStatus } from 'src/widgets/Marketplace/OrderCard';
 
@@ -77,9 +78,7 @@ const statusDisplay = computed(() => orderStatusDisplay(props.stageStatus));
 
 /** «2 заказа пайщиков» — состав партии всегда из чьих-то заказов. */
 const orderCountLabel = computed(() => {
-  const n = props.orderCount;
-  const tail = n % 10 === 1 && n % 100 !== 11 ? 'заказ' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'заказа' : 'заказов';
-  return `${n} ${tail}`;
+  return t('marketplace.supplyParty.orderCount', props.orderCount);
 });
 
 function onCardClick(): void {
@@ -106,7 +105,7 @@ function onCardClick(): void {
       .supply-party__name {{ productName }}
       .supply-party__place
         q-icon.supply-party__place-icon(name="place", size="14px")
-        span.supply-party__place-name КУ «{{ pvzName }}»
+        span.supply-party__place-name {{ $t('marketplace.supplyPartyCard.kuTitle', { kuName: pvzName }) }}
         span.supply-party__place-addr(v-if="pvzAddress") {{ pvzAddress }}
         BaseButton.supply-party__map-btn(
           v-if="mappable",
@@ -116,7 +115,7 @@ function onCardClick(): void {
         )
           template(#icon-left)
             q-icon(name="map", size="16px")
-          | На карте
+          | {{ $t('marketplace.supplyPartyCard.mapButton') }}
 
     .supply-party__marks
       BaseBadge(:variant="statusDisplay.variant") {{ statusDisplay.label }}
@@ -124,7 +123,7 @@ function onCardClick(): void {
   //- Ярус «как идёт сбор».
   .supply-party__progress(v-if="showProgress !== false")
     .supply-party__progress-top
-      span.supply-party__progress-label Собрано
+      span.supply-party__progress-label {{ $t('marketplace.supplyPartyCard.collectedLabel') }}
       span.supply-party__progress-percent {{ Math.round(progress * 100) }}%
     q-linear-progress.supply-party__progress-bar(
       :value="progress",
@@ -140,7 +139,7 @@ function onCardClick(): void {
   //- упаковки, а не литры.
   .supply-party__breakdown(v-if="breakdown && breakdown.length")
     .supply-party__breakdown-head
-      span.supply-party__breakdown-title Заказано
+      span.supply-party__breakdown-title {{ $t('marketplace.supplyPartyCard.orderedLabel') }}
       span.supply-party__breakdown-count {{ orderCountLabel }}
     .supply-party__line(v-for="row in breakdown", :key="row.id")
       span.supply-party__line-pkg {{ row.label }}

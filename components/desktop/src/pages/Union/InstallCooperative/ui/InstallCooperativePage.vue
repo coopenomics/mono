@@ -4,8 +4,8 @@
     //- ===== Шаг за шагом =====
     .install-card(v-if='!installStore.is_finish')
       header.install-card__head
-        h1.install-card__title Установка Цифрового Кооператива
-        p.install-card__sub Пошаговая настройка вашего кооператива
+        h1.install-card__title {{ $t('union.installCooperativePage.title') }}
+        p.install-card__sub {{ $t('union.installCooperativePage.subtitle') }}
 
       VerticalStepper.install-card__stepper(
         :steps='steps',
@@ -17,7 +17,7 @@
           //- ---------- Шаг 1: ключ установки ----------
           .install-step(v-if='step.key === "key"')
             p.install-step__intro
-              | Введите ключ, который был выдан вам при регистрации в качестве пайщика.
+              | {{ $t('union.installCooperativePage.keyStepIntro') }}
             RequestKeyForm
 
           //- ---------- Шаг 2: данные организации ----------
@@ -27,28 +27,28 @@
           //- ---------- Шаг 3: члены совета ----------
           .install-step(v-else-if='step.key === "soviet"')
             p.install-step__intro
-              | Укажите председателя и членов совета. Каждому будет создан аккаунт пайщика
-              | и отправлено приглашение на электронную почту.
+              | {{ $t('union.installCooperativePage.sovietStepIntroLine1') }}
+              | {{ $t('union.installCooperativePage.sovietStepIntroLine2') }}
             SetSovietForm
 
           //- ---------- Шаг 4: переменные документов ----------
           .install-step(v-else-if='step.key === "vars"')
             p.install-step__intro
-              | Задайте постоянные параметры, по которым фабрика генерирует
-              | документы кооператива.
+              | {{ $t('union.installCooperativePage.varsStepIntroLine1') }}
+              | {{ $t('union.installCooperativePage.varsStepIntroLine2') }}
             SetVariablesForm
 
     //- ===== Завершение =====
     .install-done(v-else)
       .install-done__icon
         q-icon(name='fa-solid fa-circle-check', size='44px')
-      h2.install-done__title Установка завершена
-      p.install-done__sub Ваш Цифровой Кооператив готов к работе
+      h2.install-done__title {{ $t('union.installCooperativePage.doneTitle') }}
+      p.install-done__sub {{ $t('union.installCooperativePage.doneSubtitle') }}
       p.install-done__hint
-        | Всем членам совета отправлены приглашения на электронные почты со
-        | ссылками для получения цифровых подписей. Перейдите по своей ссылке из
-        | письма, получите ключ председателя и используйте его для входа в систему.
-      BaseButton.install-done__btn(variant='primary', @click='goToSignin') Войти в систему
+        | {{ $t('union.installCooperativePage.doneHintLine1') }}
+        | {{ $t('union.installCooperativePage.doneHintLine2') }}
+        | {{ $t('union.installCooperativePage.doneHintLine3') }}
+      BaseButton.install-done__btn(variant='primary', @click='goToSignin') {{ $t('union.installCooperativePage.signInLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -60,16 +60,17 @@ import { useSystemStore } from 'src/entities/System/model';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { t } from 'src/shared/i18n';
 
 const router = useRouter();
 const systemStore = useSystemStore();
 const installStore = useInstallCooperativeStore();
 
 const steps: StepperStep[] = [
-  { key: 'key', label: 'Ключ установки', description: 'Ключ, выданный при регистрации пайщиком' },
-  { key: 'init', label: 'Данные организации', description: 'Реквизиты для документооборота с пайщиками' },
-  { key: 'soviet', label: 'Члены совета', description: 'Председатель и члены совета — им создадутся аккаунты' },
-  { key: 'vars', label: 'Настройка фабрики документов', description: 'Постоянные параметры для генерации документов' },
+  { key: 'key', label: t('union.installCooperativePage.stepKeyLabel'), description: t('union.installCooperativePage.stepKeyDescription') },
+  { key: 'init', label: t('union.installCooperativePage.stepInitLabel'), description: t('union.installCooperativePage.stepInitDescription') },
+  { key: 'soviet', label: t('union.installCooperativePage.stepSovietLabel'), description: t('union.installCooperativePage.stepSovietDescription') },
+  { key: 'vars', label: t('union.installCooperativePage.stepVarsLabel'), description: t('union.installCooperativePage.stepVarsDescription') },
 ];
 
 const stepOrder = ['key', 'init', 'soviet', 'vars'] as const;

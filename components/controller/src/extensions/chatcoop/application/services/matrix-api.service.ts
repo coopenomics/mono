@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { INTEGRATION_SETTINGS_PORT, type IIntegrationSettingsPort } from '@coopenomics/innercoop';
 
 interface MatrixLoginResponse {
@@ -128,7 +128,7 @@ export class MatrixApiService {
       return this.adminAccessToken;
     } catch (error: any) {
       this.logger.error('Не удалось войти администратору в Matrix', error);
-      throw new Error('Не удалось войти в Matrix как администратор');
+      throw DomainError.internal('CHATCOOP_MATRIX_ADMIN_LOGIN_FAILED');
     }
   }
 
@@ -243,7 +243,7 @@ export class MatrixApiService {
       return result;
     } catch (error: any) {
       this.logger.error(`Не удалось зарегистрировать пользователя ${username} в Matrix`, error);
-      throw new Error('Не удалось зарегистрировать пользователя в Matrix');
+      throw DomainError.internal('CHATCOOP_MATRIX_USER_REGISTER_FAILED');
     }
   }
 
@@ -259,7 +259,7 @@ export class MatrixApiService {
       return response.data;
     } catch (error: any) {
       this.logger.error(`Не удалось войти пользователю ${username} в Matrix`, error);
-      throw new Error('Не удалось войти в Matrix');
+      throw DomainError.internal('CHATCOOP_MATRIX_USER_LOGIN_FAILED');
     }
   }
   /**
@@ -473,7 +473,7 @@ export class MatrixApiService {
       return response.data.room_id;
     } catch (error: any) {
       this.logger.error(`Не удалось создать комнату "${name}": ${JSON.stringify(error?.response?.data)}`);
-      throw new Error('Не удалось создать комнату в Matrix');
+      throw DomainError.internal('CHATCOOP_MATRIX_ROOM_CREATE_FAILED');
     }
   }
 
@@ -606,7 +606,7 @@ export class MatrixApiService {
 
         const eventId = response.data?.event_id;
         if (!eventId) {
-          throw new Error('Matrix не вернул event_id');
+          throw DomainError.internal('CHATCOOP_MATRIX_EVENT_ID_MISSING');
         }
 
         this.logger.log(`Сообщение отправлено в комнату ${roomId}, event_id=${eventId}`);
@@ -625,13 +625,13 @@ export class MatrixApiService {
         this.logger.error(
           `Не удалось отправить сообщение в комнату ${roomId}: ${JSON.stringify(err.response?.data)}`
         );
-        throw new Error('Не удалось отправить сообщение');
+        throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_SEND_FAILED');
       }
     }
     this.logger.error(
       `Не удалось отправить сообщение в комнату ${roomId} после ${maxAttempts} попыток: ${JSON.stringify(lastError)}`
     );
-    throw new Error('Не удалось отправить сообщение');
+    throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_SEND_FAILED');
   }
 
   /**
@@ -661,7 +661,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось прочитать закрепления комнаты ${roomId}: ${JSON.stringify(err.response?.data)}`
       );
-      throw new Error('Не удалось прочитать закрепления комнаты');
+      throw DomainError.internal('CHATCOOP_MATRIX_ROOM_PINS_READ_FAILED');
     }
   }
 
@@ -687,7 +687,7 @@ export class MatrixApiService {
       }
       const err = error as { response?: { data?: unknown } };
       this.logger.error(`Не удалось обновить закрепления комнаты ${roomId}: ${JSON.stringify(err.response?.data)}`);
-      throw new Error('Не удалось закрепить сообщение в комнате');
+      throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_PIN_FAILED');
     }
   }
 
@@ -719,7 +719,7 @@ export class MatrixApiService {
         throw error;
       }
     }
-    throw new Error('Не удалось закрепить сообщение в комнате');
+    throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_PIN_FAILED');
   }
 
   /**
@@ -757,7 +757,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось отредактировать сообщение в комнате ${roomId}: ${JSON.stringify(err?.response?.data)}`
       );
-      throw new Error('Не удалось отредактировать сообщение в Matrix');
+      throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_EDIT_FAILED');
     }
   }
 
@@ -789,7 +789,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось выполнить redact сообщения ${rootEventId} в ${roomId}: ${JSON.stringify(err?.response?.data)}`
       );
-      throw new Error('Не удалось удалить сообщение в Matrix');
+      throw DomainError.internal('CHATCOOP_MATRIX_MESSAGE_DELETE_FAILED');
     }
   }
 
@@ -822,7 +822,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось присоединить пользователя ${userId} к комнате ${roomId}: ${JSON.stringify(error?.response?.data)}`
       );
-      throw new Error('Не удалось присоединить пользователя к комнате');
+      throw DomainError.internal('CHATCOOP_MATRIX_JOIN_FAILED');
     }
   }
 
@@ -843,7 +843,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось пригласить пользователя ${userId} в комнату ${roomId}: ${JSON.stringify(error?.response?.data)}`
       );
-      throw new Error('Не удалось пригласить пользователя в комнату');
+      throw DomainError.internal('CHATCOOP_MATRIX_INVITE_FAILED');
     }
   }
 
@@ -864,7 +864,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось исключить пользователя ${userId} из комнаты ${roomId}: ${JSON.stringify(error?.response?.data)}`
       );
-      throw new Error('Не удалось исключить пользователя из комнаты');
+      throw DomainError.internal('CHATCOOP_MATRIX_KICK_FAILED');
     }
   }
 
@@ -911,7 +911,7 @@ export class MatrixApiService {
       this.logger.log(`Права в комнате ${roomId} обновлены`);
     } catch (error: any) {
       this.logger.error(`Не удалось обновить права в комнате ${roomId}: ${JSON.stringify(error?.response?.data)}`);
-      throw new Error('Не удалось обновить права в комнате');
+      throw DomainError.internal('CHATCOOP_MATRIX_POWER_LEVELS_UPDATE_FAILED');
     }
   }
 
@@ -939,7 +939,7 @@ export class MatrixApiService {
       this.logger.error(
         `Не удалось добавить комнату ${roomId} в пространство ${spaceId}: ${JSON.stringify(error?.response?.data)}`
       );
-      throw new Error('Не удалось добавить комнату в пространство');
+      throw DomainError.internal('CHATCOOP_MATRIX_ROOM_ADD_TO_SPACE_FAILED');
     }
   }
 

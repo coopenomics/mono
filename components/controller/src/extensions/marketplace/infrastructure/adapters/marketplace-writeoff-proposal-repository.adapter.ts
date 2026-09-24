@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
@@ -15,6 +15,7 @@ import type {
 } from '../../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MarketplaceWriteoffProposalEntity } from '../entities/marketplace-writeoff-proposal.entity';
 import { MarketplaceWriteoffProposalMapper } from '../mappers/marketplace-writeoff-proposal.mapper';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MarketplaceWriteoffProposalRepositoryAdapter
@@ -158,7 +159,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
-      throw new Error('Редактировать можно только проект в статусе DRAFT');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_EDIT');
     }
     row.items = items;
     row.total_amount = total_amount;
@@ -180,7 +181,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
-      throw new Error('Передать в совет можно только проект в статусе DRAFT');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_SUBMIT_PLAIN');
     }
     row.status = MarketplaceWriteoffProposalStatuses.ON_AGENDA;
     row.proposal_hash = patch.proposal_hash;
@@ -204,7 +205,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
     if (row.status !== MarketplaceWriteoffProposalStatuses.ON_AGENDA) {
-      throw new Error('Авторизовать можно только проект, отправленный в совет (ON_AGENDA)');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_NOT_ON_AGENDA_FOR_AUTHORIZE');
     }
     // Совет одобрил → ждём подтверждения складов председателями КУ. На цепи
     // wroffprops.status = authorized; в PG — PENDING_CONFIRMATION.
@@ -223,7 +224,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
     if (row.status !== MarketplaceWriteoffProposalStatuses.AUTHORIZED) {
-      throw new Error('Запустить исполнение можно только из статуса AUTHORIZED');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_NOT_AUTHORIZED_FOR_EXECUTE_PLAIN');
     }
     row.status = MarketplaceWriteoffProposalStatuses.EXECUTING;
     row.decision_log = [...(row.decision_log ?? []), log];
@@ -238,7 +239,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
     const row = await this.repo.findOneOrFail({ where: { id } });
     if (item_index < 0 || item_index >= row.items.length) {
-      throw new Error('Указана несуществующая позиция в проекте списания');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_ITEM_NOT_FOUND_IN_PROJECT');
     }
     const items = row.items.map((it, idx) =>
       idx === item_index ? { ...it, executed: true } : it
@@ -282,9 +283,9 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
 
   async cancelDraft(id: string): Promise<void> {
     const row = await this.repo.findOne({ where: { id } });
-    if (!row) throw new NotFoundException('Проект списания не найден');
+    if (!row) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
-      throw new Error('Удалить можно только проект в статусе DRAFT');
+      throw DomainError.internal('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_DELETE');
     }
     await this.repo.delete({ id });
   }

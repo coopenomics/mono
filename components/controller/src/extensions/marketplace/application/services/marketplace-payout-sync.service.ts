@@ -15,6 +15,7 @@ import {
   type MarketplaceSupplierPaymentDeclinedEvent,
 } from '../events/marketplace-notification.events';
 import { PAYMENT_DESK_PORT, type IPaymentDeskPort } from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 
 /**
  * Story 5.6 / 5.7 + E11 техдолг 598-16 (Locked Decision L12):
@@ -121,7 +122,7 @@ export class MarketplacePayoutSyncService {
       const updated = await this.paymentRepo.applyDecline(
         data.coopname,
         outcomeHash,
-        data.reason ?? 'причина не указана'
+        data.reason ?? t('marketplace.payoutSync.reasonNotSpecified')
       );
       if (!updated) {
         this.logger.warn(
@@ -149,7 +150,7 @@ export class MarketplacePayoutSyncService {
         payment_request_id: updated.id,
         supplier_account: updated.payee_account,
         amount: `${updated.amount} ${updated.symbol}`,
-        reason: updated.decline_reason ?? 'причина не указана',
+        reason: updated.decline_reason ?? t('marketplace.payoutSync.reasonNotSpecified'),
       };
       this.eventBus.emit(MARKETPLACE_SUPPLIER_PAYMENT_DECLINED_EVENT, event);
     } catch (err: any) {

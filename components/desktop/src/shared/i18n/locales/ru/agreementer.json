@@ -1,0 +1,39 @@
+{
+  "agreementer": {
+    "agreementReader": {
+      "generateError": "Возникла ошибка при генерации соглашения, пожалуйста, обратитесь в поддержку с сообщением: {message}"
+    },
+    "error": {
+      "agreementSignFailed": "Ошибка подписи документа"
+    },
+    "provisionBackButton": {
+      "loggedInLabel": "В личный кабинет",
+      "loggedOutLabel": "На главную"
+    },
+    "readAgreementDialog": {
+      "cancel": "Отменить",
+      "loadingText": "Загружаем документ..."
+    },
+    "signAgreementDialog": {
+      "acceptedSuccess": "Документ принят",
+      "loadingText": "Формируем документ...",
+      "signError": "Ошибка подписи документа: {message}",
+      "signMissingError": "Возникла ошибка подписи документа",
+      "title": "Прочитайте и подпишите документ",
+      "titleModify": "Прочитайте и подпишите обновлённый документ"
+    },
+    "staticPrivacyDialog": {
+      "cancel": "Отменить"
+    },
+    "staticPrivacyPolicy": {
+      "loadError": "Не удалось загрузить текст политики конфиденциальности",
+      "loadingText": "Загрузка политики конфиденциальности...",
+      "pendingText": "Документ на утверждении советом."
+    },
+    "staticUserAgreement": {
+      "loadError": "Не удалось загрузить текст пользовательского соглашения",
+      "loadingText": "Загрузка пользовательского соглашения...",
+      "pendingText": "Документ на утверждении советом."
+    }
+  }
+}

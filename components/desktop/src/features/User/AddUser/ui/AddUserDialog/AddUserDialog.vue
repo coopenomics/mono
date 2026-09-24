@@ -3,13 +3,13 @@ q-dialog(v-model='show', persistent, :maximized='true')
   q-card.add-user-wizard
     //- ===== Шапка =====
     header.add-user-wizard__bar
-      .add-user-wizard__bar-title Добавить пайщика
+      .add-user-wizard__bar-title {{ $t('user.addUserDialog.title') }}
       q-btn(
         flat,
         round,
         dense,
         icon='close',
-        aria-label='Закрыть',
+        :aria-label='$t("common.action.close")',
         :disable='loading',
         @click='closeDialog'
       )
@@ -18,10 +18,10 @@ q-dialog(v-model='show', persistent, :maximized='true')
     .add-user-wizard__body
       .add-user-wizard__col
         p.add-user-wizard__intro
-          | Вы добавляете действующего пайщика в реестр цифрового кооператива.
-          | Он получит приглашение на электронную почту и сможет сразу пользоваться
-          | системой без заполнения заявления на вступление и оплаты взноса —
-          | это уже сделано ранее вне цифровой системы.
+          | {{ $t('user.addUserDialog.introLine1') }}
+          | {{ $t('user.addUserDialog.introLine2') }}
+          | {{ $t('user.addUserDialog.introLine3') }}
+          | {{ $t('user.addUserDialog.introLine4') }}
 
         VerticalStepper(
           :steps='steps',
@@ -34,10 +34,10 @@ q-dialog(v-model='show', persistent, :maximized='true')
             q-form.add-user-wizard__step(v-if='step.key === "contact"', ref='contactForm', greedy)
               q-input(
                 v-model='state.email',
-                label='Электронная почта',
+                :label='$t("user.addUserDialog.emailLabel")',
                 outlined,
                 autocomplete='off',
-                hint='На неё будет отправлено приглашение в кооператив',
+                :hint='$t("user.addUserDialog.emailHint")',
                 :rules='[validateEmail, validateExists]'
               )
 
@@ -51,10 +51,10 @@ q-dialog(v-model='show', persistent, :maximized='true')
                 v-model='addUserState.created_at',
                 outlined,
                 mask='datetime',
-                label='Дата и время подписания заявления',
-                placeholder='год/месяц/день часы:минуты',
+                :label='$t("user.addUserDialog.signedAtLabel")',
+                :placeholder='$t("user.addUserDialog.signedAtPlaceholder")',
                 autocomplete='off',
-                hint='Когда пайщик был принят в кооператив',
+                :hint='$t("user.addUserDialog.signedAtHint")',
                 :rules='[(val) => notEmpty(val), (val) => validateDateWithinRange(100)(val)]'
               )
               q-input(
@@ -62,32 +62,32 @@ q-dialog(v-model='show', persistent, :maximized='true')
                 outlined,
                 type='number',
                 :min='0',
-                label='Размер вступительного взноса',
-                hint='Был оплачен пайщиком при вступлении',
+                :label='$t("user.addUserDialog.initialAmountLabel")',
+                :hint='$t("user.addUserDialog.initialAmountHint")',
                 :rules='[(val) => moreThenZero(val)]'
               )
                 template(#append)
                   span.add-user-wizard__symbol {{ coop.governSymbol }}
                   q-btn(icon='sync', flat, dense, round, size='sm', @click='refresh("initial")')
-                    q-tooltip Вернуть значение из настроек кооператива
+                    q-tooltip {{ $t('user.addUserDialog.resetToDefaultTooltip') }}
               q-input(
                 v-model='minimum',
                 outlined,
                 type='number',
-                label='Размер минимального паевого взноса',
-                hint='Был оплачен пайщиком при вступлении',
+                :label='$t("user.addUserDialog.minimumAmountLabel")',
+                :hint='$t("user.addUserDialog.initialAmountHint")',
                 :rules='[(val) => moreThenZero(val)]'
               )
                 template(#append)
                   span.add-user-wizard__symbol {{ coop.governSymbol }}
                   q-btn(icon='sync', flat, dense, round, size='sm', @click='refresh("minimum")')
-                    q-tooltip Вернуть значение из настроек кооператива
+                    q-tooltip {{ $t('user.addUserDialog.resetToDefaultTooltip') }}
 
               label.add-user-wizard__option
                 q-checkbox(v-model='addUserState.spread_initial', color='primary')
                 .add-user-wizard__option-text
-                  .add-user-wizard__option-title Добавить вступительный взнос на кошелёк
-                  .add-user-wizard__option-caption Вступительный взнос будет добавлен на счёт кошелька кооператива и станет доступен для списания по фонду хозяйственной деятельности.
+                  .add-user-wizard__option-title {{ $t('user.addUserDialog.spreadInitialTitle') }}
+                  .add-user-wizard__option-caption {{ $t('user.addUserDialog.spreadInitialCaption') }}
 
     //- ===== Подвал: навигация =====
     footer.add-user-wizard__foot
@@ -96,7 +96,7 @@ q-dialog(v-model='show', persistent, :maximized='true')
         variant='ghost',
         :disabled='loading',
         @click='closeDialog'
-      ) Отмена
+      ) {{ $t('common.action.cancel') }}
       BaseButton(
         v-else,
         variant='ghost',
@@ -104,14 +104,14 @@ q-dialog(v-model='show', persistent, :maximized='true')
         @click='goBack'
       )
         q-icon(name='arrow_back', size='16px')
-        span.q-ml-sm Назад
+        span.q-ml-sm {{ $t('common.action.back') }}
       q-space
       BaseButton(
         v-if='activeKey !== "contribution"',
         variant='primary',
         @click='goNext'
       )
-        span.q-mr-sm Далее
+        span.q-mr-sm {{ $t('common.action.next') }}
         q-icon(name='arrow_forward', size='16px')
       BaseButton(
         v-else,
@@ -121,7 +121,7 @@ q-dialog(v-model='show', persistent, :maximized='true')
         @click='addUserNow'
       )
         q-icon(name='person_add', size='16px')
-        span.q-ml-sm Добавить пайщика
+        span.q-ml-sm {{ $t('user.addUserDialog.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -140,6 +140,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { notEmpty } from 'src/shared/lib/utils';
 import { validateDateWithinRange } from 'src/shared/lib/utils/dates/validateDateWithinRange';
 import { useAccountStore } from 'src/entities/Account/model';
+import { t } from 'src/shared/i18n';
 
 const { info } = useSystemStore();
 
@@ -166,9 +167,9 @@ const loading = ref(false);
 
 // ===== Шаги мастера =====
 const steps: StepperStep[] = [
-  { key: 'contact', label: 'Электронная почта', description: 'Куда отправить приглашение' },
-  { key: 'profile', label: 'Тип и данные пайщика', description: 'Кто вступает и его реквизиты' },
-  { key: 'contribution', label: 'Вступительный взнос', description: 'Что было оплачено при вступлении' },
+  { key: 'contact', label: t('user.addUserDialog.stepContactLabel'), description: t('user.addUserDialog.stepContactDescription') },
+  { key: 'profile', label: t('user.addUserDialog.stepProfileLabel'), description: t('user.addUserDialog.stepProfileDescription') },
+  { key: 'contribution', label: t('user.addUserDialog.stepContributionLabel'), description: t('user.addUserDialog.stepContributionDescription') },
 ];
 const activeKey = ref<string>('contact');
 const completedKeys = ref<string[]>([]);
@@ -189,7 +190,7 @@ async function goNext(): Promise<void> {
   }
   if (activeKey.value === 'profile') {
     if (!state.userData.type) {
-      FailAlert('Выберите тип аккаунта пайщика');
+      FailAlert(t('user.addUserDialog.selectTypeError'));
       return;
     }
     markCompleted('profile');
@@ -225,7 +226,7 @@ const addUserNow = async () => {
   try {
     loading.value = true;
     await addUser();
-    SuccessAlert('Пользователь добавлен');
+    SuccessAlert(t('user.addUserDialog.success'));
     clearUserData();
     closeDialog();
 
@@ -248,7 +249,7 @@ const closeDialog = () => {
 
 // Функция для проверки значения больше нуля
 const moreThenZero = (value: any) => {
-  return Number(value) > 0 || 'Значение должно быть больше нуля';
+  return Number(value) > 0 || t('user.addUserDialog.positiveAmountRule');
 };
 
 watch(initial, (newValue) => {
@@ -332,12 +333,12 @@ const isValidEmail = computed(() => emailIsValid(state.email));
 const isEmailExist = ref(false);
 
 const validateEmail = () => {
-  return isValidEmail.value || 'Введите корректный email';
+  return isValidEmail.value || t('user.addUserDialog.emailInvalidRule');
 };
 
 const validateExists = () => {
   return (
-    !isEmailExist.value || 'Пользователь с таким email уже существует. Войдите.'
+    !isEmailExist.value || t('user.addUserDialog.emailExistsRule')
   );
 };
 </script>

@@ -9,44 +9,44 @@ div.row.q-pa-md
             .sparkle.sparkle-1
             .sparkle.sparkle-2
             .sparkle.sparkle-3
-          .completion-title.text-h5.text-positive.q-mt-lg Поставка завершена!
+          .completion-title.text-h5.text-positive.q-mt-lg {{ $t('union.installationCompletedPage.title') }}
           .completion-subtitle.text-body1.text-grey-7.q-mt-sm
-          | Ваш Цифровой Кооператив успешно развернут и подключен к платформе
+          | {{ $t('union.installationCompletedPage.subtitle') }}
 
         .completion-details.q-mt-xl
           .detail-item
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Серверная инфраструктура
-              .text-caption.text-grey-6 Полностью настроена
+              .text-body2.text-weight-medium {{ $t('union.installationCompletedPage.serverInfraLabel') }}
+              .text-caption.text-grey-6 {{ $t('union.installationCompletedPage.serverInfraStatus') }}
 
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Блокчейн-узел
-              .text-caption.text-grey-6 Развернут, синхронизирован и подключен к сети
+              .text-body2.text-weight-medium {{ $t('union.installationCompletedPage.blockchainNodeLabel') }}
+              .text-caption.text-grey-6 {{ $t('union.installationCompletedPage.blockchainNodeStatus') }}
 
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium База данных
-              .text-caption.text-grey-6 Инициализирована и готова к работе
+              .text-body2.text-weight-medium {{ $t('union.installationCompletedPage.databaseLabel') }}
+              .text-caption.text-grey-6 {{ $t('union.installationCompletedPage.databaseStatus') }}
 
           .detail-item.q-mt-md
             q-icon(name="check_circle" color="positive" size="24px").q-mr-md
             .detail-text
-              .text-body2.text-weight-medium Мониторинг кооператива
-              .text-caption.text-grey-6 Запущен и функционирует
+              .text-body2.text-weight-medium {{ $t('union.installationCompletedPage.monitoringLabel') }}
+              .text-caption.text-grey-6 {{ $t('union.installationCompletedPage.monitoringStatus') }}
 
         .next-steps.q-mt-xl
-          .text-subtitle2.text-weight-medium.q-mb-md Что дальше?
+          .text-subtitle2.text-weight-medium.q-mb-md {{ $t('union.installationCompletedPage.nextStepsTitle') }}
 
           .next-step-item.q-mb-lg
             .text-body2.text-grey-8.q-mb-md
-              | Завершите начальную настройку вашего Цифрового Кооператива на сайте.
+              | {{ $t('union.installationCompletedPage.setupStepText') }}
             q-btn(
               color="primary"
-              label="Перейти на сайт кооператива"
+              :label="$t('union.installationCompletedPage.goToSiteLabel')"
               @click="goToCooperativeSite"
               size="lg"
               unelevated
@@ -57,10 +57,10 @@ div.row.q-pa-md
 
           .next-step-item
             .text-body2.text-grey-8.q-mb-md
-              | Перейдите к управлению подключением, где сможете просматривать статус подключения, управлять подписками и настраивать параметры платформы.
+              | {{ $t('union.installationCompletedPage.dashboardStepText') }}
             q-btn(
               color="primary"
-              label="Перейти к управлению подключением"
+              :label="$t('union.installationCompletedPage.goToDashboardLabel')"
               @click="goToDashboard"
               size="lg"
               unelevated

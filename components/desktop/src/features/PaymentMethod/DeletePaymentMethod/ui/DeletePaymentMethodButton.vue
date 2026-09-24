@@ -4,7 +4,7 @@ div
     variant='danger',
     :size='size',
     icon-only,
-    aria-label='Удалить метод платежа',
+    :aria-label='$t("paymentMethod.deletePaymentMethodButton.label")',
     @click='showDialog = true'
   )
     template(#icon-left)
@@ -12,18 +12,18 @@ div
 
   BaseDialog(
     v-model='showDialog',
-    title='Удалить метод платежа',
+    :title='$t("paymentMethod.deletePaymentMethodButton.label")',
     size='sm',
     @update:model-value='(v) => !v && clear()'
   )
     Form(
       :handler-submit="handlerSubmit"
       :is-submitting="isSubmitting"
-      :button-cancel-txt="'Отменить'"
-      :button-submit-txt="'Продолжить'"
+      :button-cancel-txt="$t('paymentMethod.deletePaymentMethodButton.cancel')"
+      :button-submit-txt="$t('paymentMethod.deletePaymentMethodButton.confirm')"
       @cancel="clear"
     )
-      p Вы уверены, что хотите удалить метод платежа?
+      p {{ $t('paymentMethod.deletePaymentMethodButton.confirmText') }}
 </template>
 <script lang="ts" setup>
 import { computed, ref, type PropType } from 'vue';
@@ -32,6 +32,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, type BaseButtonSize } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   username: {
@@ -71,7 +72,7 @@ const handlerSubmit = async (): Promise<void> => {
 
     showDialog.value = false
     isSubmitting.value = false
-    SuccessAlert('Метод платежа успешно удалён')
+    SuccessAlert(t('paymentMethod.deletePaymentMethodButton.deleteSuccess'))
 
   } catch (e: any) {
     showDialog.value = false

@@ -5,7 +5,7 @@ div.row.q-pa-md
     // Лоадер пока идет загрузка данных или технические работы у провайдера
     WindowLoader(
       v-if="isLoading || connectionAgreement.isBadGateway",
-      :text="connectionAgreement.isBadGateway ? 'технические работы...' : 'Загрузка данных подключения...'"
+      :text="connectionAgreement.isBadGateway ? $t('union.connectionAgreementPage.maintenanceText') : $t('union.connectionAgreementPage.loadingText')"
     )
 
     // Основной контент после загрузки (не показываем при технических работах у провайдера)
@@ -32,11 +32,11 @@ div.row.q-pa-md
           ColorCard(color="blue")
             .text-center.q-pa-md
               q-icon(name="fas fa-info-circle" size="2rem").q-mb-sm
-              .text-h6.q-mb-md Подключение к Кооперативной Экономике
-              p Для запуска вашего Цифрового Кооператива и подключения к платформе Кооперативной Экономики обратитесь в ПК ВОСХОД.
+              .text-h6.q-mb-md {{ $t('union.connectionAgreementPage.title') }}
+              p {{ $t('union.connectionAgreementPage.description') }}
               q-btn(
                 color="primary"
-                label="Перейти на сайт"
+                :label="$t('union.connectionAgreementPage.goToSiteLabel')"
                 @click="openProviderWebsite"
                 size="md"
               ).q-mt-md
@@ -113,6 +113,7 @@ watch(() => !isInstallationCompleted.value && !isLoading.value && !isOnCompletio
 })
 
 const openProviderWebsite = () => {
+  // i18n-ignore: URL для перехода, не текст интерфейса
   window.open('https://цифровой-кооператив.рф', '_blank');
 };
 

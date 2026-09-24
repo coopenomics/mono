@@ -3,25 +3,25 @@ q-dialog(v-model='show', persistent, :maximized='false')
   q-card
     div
       q-bar.bg-gradient-dark
-        span Добавить члена совета
+        span {{ $t('cooperative.addMemberDialog.title') }}
         q-space
         q-btn(v-close-popup, dense, flat, icon='close')
           q-tooltip Close
 
       .q-pa-sm
         .q-pa-md
-          p Внимание! Вы собираетесь добавить члена совета кооператива. У вашего действия должны быть юридические основания, например, решение общего собрания пайщиков. Выберите пайщика для добавления в совет:
+          p {{ $t('cooperative.addMemberDialog.warningText') }}
           .q-pa-md
             UserSearchSelector(
               v-model='selectedUsername',
-              label='Начните ввод ФИО нового члена совета',
+              :label='$t("cooperative.addMemberDialog.searchLabel")',
               dense,
               standout='bg-teal text-white',
-              :rules='[(val) => !!val || "Обязательное поле"]'
+              :rules='[(val) => !!val || $t("cooperative.addMemberDialog.requiredRule")]'
             )
         div
-          q-btn(flat, @click='cancel') Отменить
-          q-btn(color='primary', @click='add', :loading='loading') Добавить
+          q-btn(flat, @click='cancel') {{ $t('cooperative.addMemberDialog.cancel') }}
+          q-btn(color='primary', @click='add', :loading='loading') {{ $t('common.action.add') }}
 </template>
 
 <script setup lang="ts">

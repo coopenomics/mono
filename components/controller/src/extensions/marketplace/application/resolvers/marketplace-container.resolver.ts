@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
@@ -215,9 +215,7 @@ export class MarketplaceContainerResolver {
     if (own.length === 0) return null;
     if (requested) {
       if (!own.includes(requested)) {
-        throw new ForbiddenException(
-          'Боксы доступны только по участку, на котором вы являетесь председателем или доверенным лицом.'
-        );
+        throw DomainError.forbidden('MARKETPLACE_CONTAINERS_NOT_TRUSTEE');
       }
       return requested;
     }

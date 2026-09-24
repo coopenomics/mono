@@ -10,7 +10,7 @@ import {
   GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,
   type GithubBranchCommitSyncStateRepository,
 } from '../../domain/repositories/github-branch-commit-sync-state.repository';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { USER_DIRECTORY_PORT, type IUserDirectoryPort } from '@coopenomics/innercoop';
 import { computeGitPatchId } from '../utils/git-patch-id';
 
@@ -199,7 +199,7 @@ export class GitCommitMarkersSyncService {
     let processed = 0;
     for (const c of commits) {
       if (ctx.signal?.aborted) {
-        const err = new Error('Синхронизация Git прервана');
+        const err = DomainError.internal('CAPITAL_GIT_SYNC_ABORTED');
         err.name = 'AbortError';
         throw err;
       }

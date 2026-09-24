@@ -1,0 +1,8 @@
+{
+  "errors": {
+    "AGREEMENT_MISSING_SIGNATURE": "В документе нет подписи пайщика, от имени которого подаётся соглашение",
+    "AGREEMENT_ONLY_FOR_SELF": "Подать соглашение можно только за себя",
+    "AGREEMENT_SIGNATURE_KEY_MISMATCH": "Подпись сделана не ключом пайщика, от имени которого подаётся соглашение",
+    "AGREEMENT_TYPE_NOT_CONFIGURED": "Соглашение типа \"{agreementType}\" не настроено в кооперативе {coopname}"
+  }
+}

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue';
+import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -88,7 +89,7 @@ function packageLabel(pkg: { size: number; package_type?: string | null }): stri
 
 function packagePrice(pkg: { price: string | number }): string {
   const value = applyMembershipFee(Number(pkg.price), props.feePercent);
-  return `${value.toLocaleString('ru-RU')} ${system.governSymbol}`;
+  return `${value.toLocaleString(uiLocale())} ${system.governSymbol}`;
 }
 
 // Подпись варианта: объём с тарой и цена. Название упаковки от поставщика
@@ -115,7 +116,7 @@ const saleLine = computed(() => {
     const pkg = selectedPackage.value;
     return pkg ? `${packageLabel(pkg)} — ${packagePrice(pkg)}` : '';
   }
-  return `${priceWithFee.value.toLocaleString('ru-RU')} ${system.governSymbol} за ${unitLabel.value}`;
+  return t('marketplace.addToCartDialog.priceLine', { amount: priceWithFee.value.toLocaleString(uiLocale()), symbol: system.governSymbol, unit: unitLabel.value });
 });
 
 /** Нечего заказывать: упаковочный товар, у которого свободной тары не осталось. */
@@ -145,7 +146,7 @@ const priceWithFee = computed(() => {
 
 const saleUnitLabel = computed(() => {
   if (isPackaged.value && selectedPackage.value) {
-    return `упак. ${String(selectedPackage.value.size).replace('.', ',')} ${unitLabel.value}`;
+    return t('marketplace.addToCartDialog.packageSaleUnitLabel', { size: String(selectedPackage.value.size).replace('.', ','), unit: unitLabel.value });
   }
   return unitLabel.value;
 });
@@ -183,7 +184,7 @@ function onQuantityInput(value: string | number | null): void {
   const max = maxQuantity.value;
   if (max !== null && next > max) {
     next = max;
-    NotifyAlert(`Доступно не больше ${max} ${isPackaged.value ? 'упак.' : unitLabel.value}`);
+    NotifyAlert(t('marketplace.addToCartDialog.maxAvailableWarning', { max, unit: isPackaged.value ? i18nT('marketplace.addToCart.packUnit') : unitLabel.value }));
   }
   // Если клампинг возвращает то же значение, что уже лежит в quantity (типовой
   // случай — пользователь допечатал цифру сверх ранее заклампленного числа),
@@ -218,8 +219,8 @@ async function onSubmit(): Promise<void> {
   // к моменту показа уже могут смениться.
   const addedLabel = [
     props.offer.product_name,
-    `${Number(quantity.value).toLocaleString('ru-RU')} ${saleUnitLabel.value}`,
-    `${totalSum.value.toLocaleString('ru-RU')} ${system.governSymbol}`,
+    `${Number(quantity.value).toLocaleString(uiLocale())} ${saleUnitLabel.value}`,
+    `${totalSum.value.toLocaleString(uiLocale())} ${system.governSymbol}`,
   ].join(' · ');
   try {
     await cartStore.addItem(
@@ -233,9 +234,9 @@ async function onSubmit(): Promise<void> {
     // Рядом равноправный по смыслу отказ: набирать корзину дальше — такой же
     // нормальный сценарий, и человек не должен искать для этого крестик.
     SuccessAlert(
-      'Добавлено в корзину',
+      t('marketplace.addToCartDialog.addedToCartTitle'),
       {
-        text: 'Перейти в корзину',
+        text: t('marketplace.addToCartDialog.goToCartAction'),
         icon: 'shopping_cart',
         handler: () => {
           void router.push({
@@ -244,7 +245,7 @@ async function onSubmit(): Promise<void> {
           });
         },
       },
-      { caption: addedLabel, dismissText: 'Продолжить заказы' },
+      { caption: addedLabel, dismissText: t('marketplace.addToCartDialog.continueShoppingAction') },
     );
     emit('added');
     open.value = false;
@@ -259,7 +260,7 @@ async function onSubmit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="open",
-  :title="offer?.product_name || 'В корзину'",
+  :title="offer?.product_name || $t('marketplace.addToCartDialog.dialogTitleFallback')",
   size="sm",
   :close-on-backdrop="!submitting",
   @update:model-value="(v) => open = v"
@@ -269,7 +270,7 @@ BaseDialog(
       //- Свободной тары не осталось — предлагать нечего, и число тут ни при чём.
       .banner.banner--warn(v-if="nothingAvailable")
         q-icon.banner__icon(name="inventory_2", size="18px")
-        .banner__body Свободных упаковок не осталось — предложение разобрали.
+        .banner__body {{ $t('marketplace.addToCartDialog.soldOutMessage') }}
 
       template(v-else)
         //- Выбор тары — только когда вариантов больше одного. Цена стоит прямо
@@ -278,7 +279,7 @@ BaseDialog(
           v-if="hasPackageChoice",
           :model-value="selectedPackageId",
           :options="packageOptions",
-          label="Упаковка",
+          :label="$t('marketplace.addToCartDialog.packageLabel')",
           @update:model-value="(v) => selectedPackageId = v ? String(v) : null"
         )
         .add-to-cart__sale(v-else-if="saleLine") {{ saleLine }}
@@ -289,24 +290,24 @@ BaseDialog(
           :step="quantityStep",
           :min="0",
           :max="maxQuantity ?? undefined",
-          :label="isPackaged ? 'Число упаковок' : `Количество (${unitLabel})`",
-          :hint="maxQuantity !== null ? `Доступно: ${maxQuantity} ${isPackaged ? 'упак.' : unitLabel}` : 'Без ограничения остатка'",
+          :label="isPackaged ? $t('marketplace.addToCartDialog.packageCountLabel') : $t(`marketplace.addToCartDialog.quantityLabel`, { unit: unitLabel })",
+          :hint="maxQuantity !== null ? $t(`marketplace.addToCartDialog.availableHint`, { max: maxQuantity, unit: isPackaged ? $t('marketplace.addToCart.packUnit') : unitLabel }) : $t('marketplace.addToCartDialog.unlimitedStockHint')",
           @update:model-value="onQuantityInput"
         )
 
         .add-to-cart__note(v-if="alreadyInCart > 0")
-          | Уже в корзине: {{ alreadyInCart }} — добавление суммируется.
+          | {{ $t('marketplace.addToCartDialog.alreadyInCartHint', { amount: alreadyInCart }) }}
 
         .add-to-cart__total(v-if="offer")
-          | Итого: {{ totalSum.toLocaleString('ru-RU') }} {{ system.governSymbol }}
+          | {{ $t('marketplace.addToCartDialog.totalLabel', { amount: totalSum.toLocaleString(uiLocale()), symbol: system.governSymbol }) }}
   template(#footer)
-    BaseButton(variant="ghost", :disabled="submitting", @click="open = false") Отмена
+    BaseButton(variant="ghost", :disabled="submitting", @click="open = false") {{ $t('common.action.cancel') }}
     BaseButton(
       variant="primary",
       :disabled="!canSubmit || nothingAvailable",
       :loading="submitting",
       @click="onSubmit"
-    ) Добавить в корзину
+    ) {{ $t('marketplace.addToCartDialog.submitAction') }}
 </template>
 
 <style scoped lang="scss">

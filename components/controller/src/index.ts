@@ -31,6 +31,45 @@ export function getTokenApplicationService() {
   return nestApp.get('TokenApplicationService');
 }
 
+/**
+ * Разовые команды схемы базы (C28-79): выполнить и выйти, сервер не поднимать.
+ *
+ * `--migrate-schema` — только миграции схемы, шаг blue-green выкатки до старта
+ * новой версии: таблицы меняются раньше, чем новая версия начнёт их читать.
+ * `--schema-report` — отчёт о схеме базы относительно этой версии;
+ * `--database <имя>` — другая база, `--apply` — сначала применить миграции
+ * (только к копии, боевую базу отчёт не трогает).
+ *
+ * Код выхода явный по той же причине, что у `--migrate`: Sentry перехватывает
+ * необработанный отказ и не роняет процесс.
+ */
+async function runSchemaCommand(args: string[]): Promise<void> {
+  if (args.includes('--migrate-schema')) {
+    try {
+      await runDatabaseMigrations();
+      process.exit(0);
+    } catch (error) {
+      logger.error('Миграции схемы не прошли, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
+
+  if (args.includes('--schema-report')) {
+    try {
+      const databaseIndex = args.indexOf('--database');
+      const report = await reportSchema({
+        database: databaseIndex > -1 ? args[databaseIndex + 1] : undefined,
+        apply: args.includes('--apply'),
+      });
+      process.stdout.write(`${formatSchemaReport(report)}\n`);
+      process.exit(0);
+    } catch (error) {
+      logger.error('Отчёт о схеме не собран, выходим с кодом 1', error);
+      process.exit(1);
+    }
+  }
+}
+
 async function bootstrap() {
   // Инициализация Sentry для отслеживания ошибок
   if (config.sentry.dsn) {
@@ -67,37 +106,8 @@ async function bootstrap() {
   // Проверяем, был ли запущен режим миграций
   const args = process.argv.slice(2);
 
-  // Только миграции схемы — шаг blue-green выкатки до старта новой версии
-  // (C28-79): таблицы меняются раньше, чем новая версия начнёт их читать.
-  // Код выхода явный по той же причине, что у --migrate ниже: Sentry
-  // перехватывает необработанный отказ и не роняет процесс.
-  if (args.includes('--migrate-schema')) {
-    try {
-      await runDatabaseMigrations();
-      process.exit(0);
-    } catch (error) {
-      logger.error('Миграции схемы не прошли, выходим с кодом 1', error);
-      process.exit(1);
-    }
-  }
+  await runSchemaCommand(args);
 
-  // Отчёт о схеме базы относительно этой версии — сверка перед релизом.
-  // `--database <имя>` — другая база; `--apply` — сначала применить миграции
-  // (только к копии, боевую базу отчёт не трогает).
-  if (args.includes('--schema-report')) {
-    try {
-      const databaseIndex = args.indexOf('--database');
-      const report = await reportSchema({
-        database: databaseIndex > -1 ? args[databaseIndex + 1] : undefined,
-        apply: args.includes('--apply'),
-      });
-      process.stdout.write(`${formatSchemaReport(report)}\n`);
-      process.exit(0);
-    } catch (error) {
-      logger.error('Отчёт о схеме не собран, выходим с кодом 1', error);
-      process.exit(1);
-    }
-  }
   if (args.includes('--migrate')) {
     try {
       await migrateData();

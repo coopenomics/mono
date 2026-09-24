@@ -1,3 +1,4 @@
+// i18n-ignore-file: таблица транслитерации для slugify — данные, не текст интерфейса
 /* cspell:disable */
 
 export const builtinReplacements = [

@@ -1,0 +1,328 @@
+{
+  "cooperative": {
+    "addMemberButton": {
+      "boardDescription": "Совет кооператива",
+      "boardName": "Совет",
+      "chairmanTitle": "Председатель совета",
+      "memberTitle": "Член совета",
+      "triggerLabel": "Добавить члена",
+      "updateDelayNotice": "Состав совета обновится через несколько секунд",
+      "usernameNotFoundError": "Имя аккаунта не найдено"
+    },
+    "addMemberDialog": {
+      "cancel": "Отменить",
+      "requiredRule": "Обязательное поле",
+      "searchLabel": "Начните ввод ФИО нового члена совета",
+      "title": "Добавить члена совета",
+      "warningText": "Внимание! Вы собираетесь добавить члена совета кооператива. У вашего действия должны быть юридические основания, например, решение общего собрания пайщиков. Выберите пайщика для добавления в совет:"
+    },
+    "changeContacts": {
+      "bannerLine1": "Эти контакты показываются всем — в разделе «Контакты кооператива»",
+      "bannerLine2": "пайщикам и в подвале сайта незарегистрированным посетителям.",
+      "bannerLine3": "Держите их актуальными.",
+      "emailLabel": "Электронная почта",
+      "phoneLabel": "Телефон",
+      "sectionNote": "Данные для связи с кооперативом.",
+      "sectionTitle": "Публичные контакты",
+      "submitLabel": "Сохранить контакты",
+      "updateError": "Возникла ошибка при обновлении: {message}",
+      "updateSuccess": "Контакты успешно обновлены"
+    },
+    "changeRegisterPayments": {
+      "bannerText": "Укажите размеры вступительных и минимальных паевых взносов для пайщиков. Их величины должны соответствовать определённым в Уставе.",
+      "individualSectionNote": "Минимальные взносы для новых пайщиков.",
+      "individualSectionTitle": "Физические лица и ИП",
+      "initialIndividualLabel": "Вступительный взнос",
+      "initialOrgLabel": "Вступительный взнос",
+      "minimumIndividualLabel": "Минимальный паевый взнос",
+      "minimumOrgLabel": "Минимальный паевый взнос",
+      "orgSectionNote": "Для организаций и кооперативов.",
+      "orgSectionTitle": "Юридические лица",
+      "updateError": "Не удалось обновить взносы. Попробуйте перезагрузить страницу",
+      "updateSuccess": "Размеры взносов успешно обновлены"
+    },
+    "cooperativeKeyPage": {
+      "bannerLine1": "Приватный ключ используется для подписи транзакций в блокчейне. Хранится",
+      "bannerLine2": "зашифрованным на сервере. Обновляйте его при смене ключа у аккаунта",
+      "bannerLine3": "кооператива или при восстановлении доступа.",
+      "invalidKeyError": "Пожалуйста, введите действительный приватный ключ",
+      "keyHint": "Ключ не отображается после сохранения",
+      "keyLabel": "Приватный ключ",
+      "sectionNote": "Введите новый приватный ключ, чтобы заменить текущий.",
+      "sectionTitle": "Приватный ключ",
+      "submitLabel": "Обновить ключ",
+      "updateError": "Ошибка обновления ключа: {message}",
+      "updateSuccess": "Ключ кооператива успешно обновлен"
+    },
+    "documentCardsList": {
+      "downloadArchiveError": "Не удалось подготовить архив пакета документов",
+      "downloadPackageAriaLabel": "Скачать пакет",
+      "emptyBody": "Здесь появятся ваши документы и подписанные соглашения.",
+      "emptyTitle": "Документы не найдены",
+      "loadMoreLabel": "Загрузить ещё",
+      "rangeEmptyLabel": "0 из {total}",
+      "rangeLabel": "1–{shown} из {total}",
+      "relatedDocumentsLabel": "+ связанные документы: {related}",
+      "untitledDocument": "Документ без заголовка"
+    },
+    "documentDetailsPage": {
+      "backLabel": "К реестру документов",
+      "defaultTitle": "Документ",
+      "notFoundBody": "Проверьте правильность ссылки или вернитесь к реестру документов.",
+      "notFoundTitle": "Документ не найден"
+    },
+    "documentTemplatesModel": {
+      "kindAgreement": "Соглашение",
+      "kindForm": "Форма",
+      "kindProvision": "Положение",
+      "kindService": "Служебный",
+      "ownerCapital": "Капитал",
+      "ownerChairman": "Совет",
+      "ownerCore": "Кооператив",
+      "ownerMarket": "Стол заказов",
+      "stateApproved": "Утверждён",
+      "stateNotApproved": "Не утверждён",
+      "stateNotRequired": "Не требуется",
+      "stateOutdated": "Новая редакция",
+      "statePending": "В повестке"
+    },
+    "documentTemplatesPage": {
+      "approvalNotRequiredLabel": "утверждение не требуется",
+      "approvedProtocolLabel": "протокол № {decisionId} от {approvedAt}",
+      "approvedTabLabel": "Утверждённая",
+      "approvedVersionLabel": "Редакция № {version}",
+      "bannerLine1": "Здесь все шаблоны документов, которыми пользуется кооператив: базовый набор и документы установленных приложений.",
+      "bannerLine2": "Пайщикам предъявляется только редакция, утверждённая советом. Когда оператор платформы выпускает новую редакцию,",
+      "bannerLine3": "её нужно вынести на совет — до решения кооператив продолжает работать по прежней.",
+      "bundleLabelPrefix": " · пакет «",
+      "cardTitle": "Кооператив",
+      "column": {
+        "actions": "Действия",
+        "approved": "Утверждена советом",
+        "currentVersion": "Выпущена оператором",
+        "state": "Состояние",
+        "title": "Документ"
+      },
+      "currentVersionLabel": "Редакция № {version}",
+      "emptyBody": "Ни одно установленное приложение не объявило своих документов",
+      "emptyTitle": "Шаблонов пока нет",
+      "neverApprovedLabel": "ещё не утверждалась",
+      "newEditionLabel": "Новая редакция № {version}",
+      "notOnChainLabel": "нет в сети",
+      "openTextLabel": "Открыть текст",
+      "proposeBundleLabel": "Вынести пакет ({count})",
+      "proposeBundleSuccess": "Пакет документов вынесен на совет",
+      "proposeLabel": "Вынести на совет",
+      "proposeSuccess": "Документ вынесен на совет",
+      "textHashLabel": "Хэш текста:",
+      "toAgendaLabel": "К повестке",
+      "underReviewLabel": "На рассмотрении",
+      "viewerTitle": "{blankTitle} — редакция № {version}"
+    },
+    "documentsTable": {
+      "actionsHeader": "Действия",
+      "collapseAriaLabel": "Свернуть",
+      "column": {
+        "actions": "Действия",
+        "date": "Дата",
+        "document": "Документ",
+        "signers": "Подписи"
+      },
+      "dateHeader": "Дата {sortMark}",
+      "documentHeader": "Документ",
+      "downloadArchiveError": "Не удалось подготовить архив пакета документов",
+      "downloadPackageAriaLabel": "Скачать пакет",
+      "emptyBody": "Здесь появятся ваши документы и подписанные соглашения.",
+      "emptyTitle": "Документы не найдены",
+      "expandAriaLabel": "Развернуть",
+      "loadMoreLabel": "Загрузить ещё",
+      "rangeEmptyLabel": "0 из {total}",
+      "rangeLabel": "1–{shown} из {total}",
+      "relatedDocumentsLabel": "+ связанные документы: {relatedCount}",
+      "signersHeader": "Подписи",
+      "untitledDocument": "Документ без заголовка"
+    },
+    "exitCard": {
+      "description": "После рассмотрения Советом вашего заявления о выходе из Кооператива, вам будет возвращен минимальный паевый взнос, а Вы будете исключены из реестра пайщиков кооператива.",
+      "submitLabel": "Отправить заявление",
+      "title": "Выход из Кооператива"
+    },
+    "listOfAgendaQuestions": {
+      "approvedSuccess": "Решение принято и исполнено",
+      "rejectedSuccess": "Решение отклонено",
+      "voteAcceptedSuccess": "Голос принят"
+    },
+    "listOfDocumentsPage": {
+      "documentsTab": "Документы",
+      "templatesTab": "Шаблоны документов"
+    },
+    "listOfDocumentsWidget": {
+      "allIncomingOption": "Все входящие",
+      "onlyApprovedOption": "Только утверждённые"
+    },
+    "listOfOrdersWidget": {
+      "column": {
+        "amount": "Сумма",
+        "status": "Статус",
+        "type": "Тип платежа",
+        "username": "От кого"
+      },
+      "errorReasonLabel": "Причина ошибки: {message}",
+      "noActionsLabel": "нет доступных действий",
+      "noAdditionalInfo": "нет дополнительной информации",
+      "noDataLabel": "платежи не найдены",
+      "statusCompleted": "обработан",
+      "statusExpired": "истёк",
+      "statusFailed": "ошибка",
+      "statusPaid": "оплачен",
+      "statusPending": "ожидание оплаты",
+      "statusRefunded": "отменён",
+      "typeDeposit": "паевой",
+      "typeRegistration": "регистрационный"
+    },
+    "listOfParticipantsPage": {
+      "filterAll": "Все",
+      "filterNoPassport": "Без базовой — нужен паспорт",
+      "filterNotVerified": "Не верифицированные",
+      "filterPassportVerified": "С базовой — паспорт проверен",
+      "participantsTab": "Пайщики",
+      "verificationFilterLabel": "Верификация",
+      "verificationsTab": "Верификации"
+    },
+    "listOfPaymentsWidget": {
+      "actionsHeader": "Действия",
+      "advancePaymentNotFoundError": "Платёж выдачи аванса не найден на текущей странице реестра",
+      "amountHeader": "Сумма {sortMark}",
+      "collapseAriaLabel": "Свернуть",
+      "column": {
+        "amount": "Сумма",
+        "createdAt": "Дата создания",
+        "username": "Пайщик"
+      },
+      "confirmPaymentStep": "Подтвердите оплату",
+      "createdAtHeader": "Дата создания {sortMark}",
+      "directionHeader": "Направление",
+      "directionIncoming": "Входящий",
+      "directionOutgoing": "Исходящий",
+      "emptyBody": "Здесь появятся ваши платежи и взносы.",
+      "emptyTitle": "Платежи не найдены",
+      "expandAriaLabel": "Развернуть",
+      "hintIncomingOther": "В кооператив",
+      "hintIncomingSelf": "Ваш взнос в кооператив",
+      "hintOutgoingOther": "Из кооператива",
+      "hintOutgoingSelf": "Выплата вам из кооператива",
+      "loadMoreLabel": "Загрузить ещё",
+      "proofAttachedTooltip": "Чек об оплате приложен",
+      "proofMissingTooltip": "Чек об оплате не приложен",
+      "rangeEmptyLabel": "0 из {total}",
+      "rangeLabel": "1–{shown} из {total}",
+      "reportStep": "Отчёт пайщика",
+      "statusColumnLabel": "Статус",
+      "statusHeader": "Статус {sortMark}",
+      "typeHeader": "Тип платежа",
+      "usernameHeader": "Пайщик {sortMark}"
+    },
+    "meetDetailsPage": {
+      "backLabel": "К списку собраний",
+      "defaultTitle": "Детали собрания",
+      "notFoundBody": "Проверьте правильность ссылки или вернитесь к списку собраний.",
+      "notFoundTitle": "Собрание не найдено",
+      "titleWithId": "Общее собрание № {id}"
+    },
+    "memberBranchListPage": {
+      "accessCaption": "доступ к участку",
+      "accountCardCaption": "карточка счёта",
+      "bannerLine1": "Создание кооперативных участков сейчас происходит за пределами цифровой системы. Здесь добавляются уже созданные и юридически оформленные участки с их председателями.",
+      "bannerLine2": "При добавлении трёх участков кооператив автоматически переходит на мажоритарную систему управления. Действующим пайщикам будет предложено выбрать участок и делегировать голос его председателю. Новые пайщики делают выбор при регистрации.",
+      "branchCardCaption": "карточка участка",
+      "column": {
+        "name": "Название",
+        "trustee": "Председатель"
+      },
+      "trusteeCardCaption": "карточка председателя",
+      "trusteeHint": "для замены председателя участка — измените его имя аккаунта в карточке участка на аккаунт одного из пайщиков."
+    },
+    "members": {
+      "boardDescription": "Совет кооператива",
+      "boardName": "Совет",
+      "chairmanBadge": "Председатель совета",
+      "column": {
+        "firstName": "Имя",
+        "lastName": "Фамилия",
+        "middleName": "Отчество",
+        "position": "Позиция",
+        "username": "Аккаунт"
+      },
+      "memberBadge": "Член совета",
+      "removeLabel": "удалить",
+      "removeSuccess": "Участник успешно удален из совета"
+    },
+    "membersPage": {
+      "hint": "Состав членов совета должен быть утверждён общим собранием пайщиков."
+    },
+    "notificationJournalWidget": {
+      "channelInApp": "В приложении",
+      "column": {
+        "actions": "Действия",
+        "attempts": "Попыток",
+        "channel": "Канал",
+        "date": "Дата",
+        "recipient": "Получатель",
+        "status": "Статус",
+        "type": "Тип"
+      },
+      "emptyBody": "Здесь появятся отправленные кооперативом уведомления.",
+      "emptyTitle": "Уведомления не найдены",
+      "loadMoreLabel": "Загрузить ещё",
+      "rangeEmptyLabel": "0 из {totalCount}",
+      "rangeLabel": "1–{shown} из {totalCount}",
+      "resendLabel": "Переотправить",
+      "resendSuccess": "Уведомление поставлено на переотправку",
+      "statusCanceled": "Отменено",
+      "statusFailed": "Ошибка",
+      "statusPending": "В очереди",
+      "statusSending": "Отправляется",
+      "statusSent": "Доставлено"
+    },
+    "orderCard": {
+      "actionsLabel": "действия",
+      "amountLabel": "Сумма: {quantity}",
+      "collapseLabel": "Скрыть",
+      "errorReasonLabel": "Причина ошибки: {message}",
+      "expandLabel": "Подробнее",
+      "fromLabel": "От кого:",
+      "statusCompleted": "обработан",
+      "statusExpired": "истёк",
+      "statusFailed": "ошибка",
+      "statusLabel": "Статус:",
+      "statusPaid": "оплачен",
+      "statusPending": "ожидание оплаты",
+      "statusRefunded": "отменён",
+      "typeDeposit": "паевой",
+      "typeLabel": "Тип платежа:",
+      "typeRegistration": "регистрационный"
+    },
+    "personnelPage": {
+      "addRoleLabel": "Добавить роль",
+      "addRolePlaceholder": "Выберите набор возможностей",
+      "assignLabel": "Назначить",
+      "assignSuccess": "Роль назначена",
+      "assignedRolesLabel": "Назначенные роли",
+      "column": {
+        "name": "ФИО / Наименование",
+        "username": "Аккаунт"
+      },
+      "dialogTitleDefault": "Роли пайщика",
+      "dialogTitleWithName": "Роли пайщика: {name}",
+      "emptyCaption": "Добавьте роль из списка ниже",
+      "emptyTitle": "Ролей пока нет",
+      "grantsIntro": "Эта роль открывает:",
+      "hintLine1": "Назначайте пайщикам роли — наборы возможностей (например «Бухгалтер», «Кассир»).",
+      "hintLine2": "Роль открывает доступ к соответствующим столам и страницам кооператива.",
+      "noDataLabel": "У кооператива нет пайщиков",
+      "revokeAriaLabel": "Снять роль",
+      "revokeSuccess": "Роль снята",
+      "rolesButtonLabel": "Роли"
+    }
+  }
+}

@@ -1,6 +1,6 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Args, Resolver, Subscription } from '@nestjs/graphql';
-import { CurrentUser, platformSettings } from '@coopenomics/extension-kit';
+import { CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   MarketplaceEventPayload,
   MarketplaceEventUnion,
@@ -55,7 +55,7 @@ export class MarketplaceEventsResolver {
     @Args('input') input: MarketplaceEventsInputDTO
   ): Promise<AsyncIterator<MarketplaceEventPayload>> {
     if (input.coopname !== platformSettings().coopname) {
-      throw new ForbiddenException('Подписка доступна только в рамках своего кооператива.');
+      throw DomainError.forbidden('MARKETPLACE_SUBSCRIPTION_FOREIGN_COOP');
     }
 
     const username = user.username ?? (await this.resolveUsername(user.sub));
@@ -123,7 +123,7 @@ export class MarketplaceEventsResolver {
 
   private async resolveUsername(sub: string | undefined): Promise<string> {
     if (!sub) {
-      throw new ForbiddenException('Не удалось определить пайщика из токена подписки.');
+      throw DomainError.forbidden('MARKETPLACE_SUBSCRIPTION_MEMBER_UNRESOLVED');
     }
     const account = await this.userRepository.findBySubject(sub);
     return account.username;

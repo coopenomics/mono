@@ -16,12 +16,13 @@ q-input(
       icon='fa fa-copy',
       @click='copyToClipboard'
     )
-      q-tooltip Копировать
+      q-tooltip {{ $t('common.action.copy') }}
 </template>
 
 <script lang="ts" setup>
 import { copyToClipboard as copy } from 'quasar';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps({
   modelValue: {
@@ -53,11 +54,11 @@ const props = defineProps({
 const copyToClipboard = () => {
   copy(String(props.modelValue))
     .then(() => {
-      SuccessAlert('Скопировано в буфер обмена');
+      SuccessAlert(t('ui.copyableInput.copiedText'));
     })
     .catch((e) => {
       console.error(e);
-      FailAlert('Не удалось скопировать');
+      FailAlert(t('ui.copyableInput.copyErrorText'));
     });
 };
 </script>

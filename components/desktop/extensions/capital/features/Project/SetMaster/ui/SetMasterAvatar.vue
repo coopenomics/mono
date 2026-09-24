@@ -13,10 +13,10 @@
     template(v-else-if='currentMaster')
       .master-avatar
         span.master-initial {{ masterInitial }}
-        q-tooltip(anchor='bottom middle', self='top middle') Мастер: {{ currentMaster.display_name || currentMaster.username }}
+        q-tooltip(anchor='bottom middle', self='top middle') {{ $t('capital.setMasterAvatar.tooltip', { masterName: currentMaster.display_name || currentMaster.username }) }}
     template(v-else)
       q-icon.empty-icon(name='manage_accounts', size='18px', color='grey-6')
-      q-tooltip(v-if='canSet', anchor='bottom middle', self='top middle') Назначить мастера
+      q-tooltip(v-if='canSet', anchor='bottom middle', self='top middle') {{ $t('capital.setMasterAvatar.assignLabel') }}
 
     q-menu(
       v-if='canSet'
@@ -31,8 +31,8 @@
           :dense='true'
           :loading='loading'
           :project-hash='project?.project_hash'
-          placeholder='поиск...'
-          label='Мастер'
+          :placeholder='$t("capital.setMasterAvatar.searchPlaceholder")'
+          :label='$t("capital.setMasterAvatar.label")'
           autofocus
         )
 </template>

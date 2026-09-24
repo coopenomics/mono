@@ -63,12 +63,12 @@ q-header.app-q-header(:bordered='false', :reveal='isMobile')
         v-if="showRegisterButton && !is('signup') && !is('install')",
         variant='primary',
         @click='signup'
-      ) Регистрация
+      ) {{ $t('header.header.signupButton') }}
       BaseButton(
         v-if="showRegisterButton && is('signup')",
         variant='primary',
         @click='login'
-      ) Вход
+      ) {{ $t('header.header.loginButton') }}
 </template>
 
 <script setup lang="ts">
@@ -85,6 +85,7 @@ import { ThemeToggle } from 'src/shared/ui/base/ThemeToggle';
 import { BackButton } from 'src/widgets/Header/BackButton';
 import { NotificationCenter } from 'src/widgets/NotificationCenter';
 import logoSvg from 'src/assets/logo.svg?raw';
+import { t } from 'src/shared/i18n';
 
 defineProps({
   showDrawer: {
@@ -134,7 +135,7 @@ const coopTitle = computed<string>(() => {
     status === Zeus.SystemStatus.install ||
     status === Zeus.SystemStatus.initialized
   ) {
-    return 'УСТАНОВКА';
+    return t('header.header.installStatus');
   }
   return `${systemStore.info.vars?.short_abbr ?? ''} ${systemStore.info.vars?.name ?? ''}`.trim();
 });

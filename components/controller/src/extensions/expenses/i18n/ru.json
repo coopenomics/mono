@@ -1,0 +1,62 @@
+{
+  "errors": {
+    "EXPENSES_BRANCH_NOT_FOUND": "Кооперативный участок не найден",
+    "EXPENSES_FILE_ACCESS_DENIED": "Файлы расхода доступны совету, подавшему смету и получателю строки",
+    "EXPENSES_FILE_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого.",
+    "EXPENSES_FILE_DUPLICATE": "Файл с таким SHA-256 уже зарегистрирован в этом кооперативе (id={id}).",
+    "EXPENSES_FILE_NOT_FOUND": "Файл расхода #{fileId} не найден.",
+    "EXPENSES_FILE_SIZE_MISMATCH": "size_bytes ({sizeBytes}) не совпадает с фактическим размером base64-контента ({actualBytes}).",
+    "EXPENSES_ITEM_NOT_FOUND": "Строка расхода не найдена",
+    "EXPENSES_MEMBER_ONLY_ADVANCE": "Пайщику {recipient} средства передаются только авансом под отчёт (ADVANCE) — оплата по счёту доступна только организации/ИП",
+    "EXPENSES_ORG_ONLY_DIRECT": "Организации/ИП доступна только оплата по счёту (DIRECT) — аванс под отчёт ей не выдаётся",
+    "EXPENSES_PLAN_AMOUNT_NOT_POSITIVE": "Сумма планового расхода должна быть больше нуля",
+    "EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN": "Плановые расходы участка ведут председатель участка и его доверенные лица",
+    "EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED": "Плановые расходы уровня кооператива появятся вместе с общесистемным учётом расходов",
+    "EXPENSES_PLAN_DUE_DATE_REQUIRED": "Укажите дату, к которой расход должен быть оплачен",
+    "EXPENSES_PLAN_NOT_FOUND": "Плановый расход не найден",
+    "EXPENSES_PLAN_PAYMENT_ALREADY_STARTED": "По этому плановому расходу оплата уже запущена",
+    "EXPENSES_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ для совершения операции",
+    "EXPENSES_PROPOSAL_FORBIDDEN": "Создавать служебные записки на расход могут только председатель и члены совета",
+    "EXPENSES_RECIPIENT_REQUISITES_MISSING": "Не указаны реквизиты получателя {recipient} (платёжный метод) по строке расхода",
+    "EXPENSES_REPORT_ALREADY_SUBMITTED": "Отчёт по этой позиции уже подан — повторный отчёт недоступен",
+    "EXPENSES_REPORT_ONLY_FOR_ADVANCE": "Отчёт о фактической сумме применим только к авансу под отчёт",
+    "EXPENSES_SYMBOL_MISMATCH": "Символ фактической суммы не совпадает с символом аванса"
+  },
+  "expenses": {
+    "chassisConfig": {
+      "advancePaymentPurpose": "Аванс под отчёт",
+      "fundNameDative": "Фонду хозяйственной деятельности"
+    },
+    "expenseMutations": {
+      "reportOwnerOnlyMessage": "Отчитаться по авансу может только его получатель",
+      "returnOwnerOnlyMessage": "Вернуть остаток аванса может только его получатель"
+    },
+    "expensesMutations": {
+      "overspendMemo": "Доплата по перерасходу аванса под отчёт",
+      "underspendMemo": "Возврат неиспользованных средств, выданных авансом под отчёт"
+    },
+    "overspendExpenseItem": {
+      "amountFormatHint": "overspend_amount должен быть в формате asset (например \"200.0000 RUB\")."
+    },
+    "payExpenseItem": {
+      "amountFormatHint": "actual_amount должен быть в формате asset (например \"100.0000 RUB\")."
+    },
+    "reportExpenseItem": {
+      "amountFormatHint": "actual_amount должен быть в формате asset (например \"800.0000 RUB\")."
+    },
+    "requisites": {
+      "bankTransferLine": "Банковский перевод: счёт {account}",
+      "bikLine": "БИК {bik}",
+      "cardLine": "карта {card}",
+      "corrAccountLine": "к/с {corr}",
+      "sbpLine": "СБП, телефон {phone}"
+    },
+    "returnExpenseItem": {
+      "amountFormatHint": "return_amount должен быть в формате asset (например \"50.0000 RUB\")."
+    },
+    "uploadExpenseFile": {
+      "checksumFormatHint": "checksum_sha256 должен быть 64-символьным lowercase hex.",
+      "mimeTypeHint": "mime_type должен быть одним из allowed."
+    }
+  }
+}

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -53,7 +54,7 @@ function unitShort(u: string | null | undefined): string {
 }
 
 function money(value: string | number | null | undefined): string {
-  return Number(value ?? 0).toLocaleString('ru-RU');
+  return Number(value ?? 0).toLocaleString(uiLocale());
 }
 
 // Позиции корзины приходят с бэка без взноса (price_per_unit/line_total —
@@ -80,12 +81,12 @@ function quantize(item: IMarketplaceCartItem, v: number): number {
 // Причина недоступности: у заказчика на каждую — своё действие. Изменившаяся
 // упаковка требует выбрать её заново, недоставка на КУ — сменить пункт выдачи.
 const BLOCKER_LABELS: Record<string, string> = {
-  OFFER_GONE: 'Предложение больше не доступно',
-  PACKAGE_GONE: 'Поставщик изменил упаковки — выберите заново',
-  NOT_DELIVERED_TO_POINT: 'Недоступно на текущем пункте выдачи',
+  OFFER_GONE: t('marketplace.cart.offerUnavailableError'),
+  PACKAGE_GONE: t('marketplace.cart.packageChangedError'),
+  NOT_DELIVERED_TO_POINT: t('marketplace.cart.notAvailableAtPointError'),
 };
 function blockerLabel(item: IMarketplaceCartItem): string {
-  return BLOCKER_LABELS[item.blocker ?? ''] ?? 'Недоступно на текущем пункте выдачи';
+  return BLOCKER_LABELS[item.blocker ?? ''] ?? t('marketplace.cart.notAvailableAtPointError');
 }
 
 // Низкоуровневый коммит количества (> 0). Кламп делает changeQty.
@@ -116,7 +117,7 @@ function changeQty(item: IMarketplaceCartItem, next: number): number {
   const max = maxOf(item);
   if (max != null && n > max) {
     n = max;
-    NotifyAlert(`Доступно не больше ${max} ${saleUnitLabel(item)}`);
+    NotifyAlert(t('marketplace.cart.maxAvailableError', { max, unit: saleUnitLabel(item) }));
   }
   if (n !== item.quantity) void setQty(item.offer_id, n, item.package_id ?? null);
   return n;
@@ -148,10 +149,10 @@ async function onRemove(offerId: string, packageId: string | null): Promise<void
 
 function onClear(): void {
   Dialog.create({
-    title: 'Очистить корзину?',
-    message: 'Все позиции корзины будут удалены. Отменить это действие нельзя.',
-    cancel: { label: 'Отмена', flat: true },
-    ok: { label: 'Очистить', color: 'negative', unelevated: true },
+    title: t('marketplace.cart.clearConfirmTitle'),
+    message: t('marketplace.cart.clearConfirmMessage'),
+    cancel: { label: t('common.action.cancel'), flat: true },
+    ok: { label: t('marketplace.cart.clearConfirm'), color: 'negative', unelevated: true },
     persistent: true,
   }).onOk(async () => {
     try {
@@ -254,7 +255,7 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Стола заказов")
+q-page.mp-cart.mp-role-orderer(role="region", :aria-label="$t('marketplace.cart.pageAriaLabel')")
   KUHeaderBar(:coopname="coopname")
 
   //- Канон: первичная загрузка — скелетон-строки позиций, не перекрывающий спиннер.
@@ -269,13 +270,13 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
   //- Пустая корзина — ведём в каталог.
   EmptyState(
     v-else-if="!cartStore.hasItems",
-    title="Корзина пуста",
-    body="Добавьте товары из каталога — они появятся здесь для оформления одним заказом."
+    :title="$t('marketplace.cart.emptyTitle')",
+    :body="$t('marketplace.cart.emptyBody')"
   )
     template(#icon)
       q-icon(name="shopping_cart", size="48px")
     template(#actions)
-      BaseButton(variant="primary", @click="goToCatalog") В каталог
+      BaseButton(variant="primary", @click="goToCatalog") {{ $t('marketplace.cart.toCatalogButton') }}
 
   .row.q-col-gutter-md(v-else-if="cartStore.hasItems")
     //- Левая колонка: позиции корзины.
@@ -299,7 +300,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               variant="ghost",
               icon-only,
               size="sm",
-              aria-label="Уменьшить количество",
+              :aria-label="$t('marketplace.cart.decreaseQtyAriaLabel')",
               :disabled="it.quantity <= stepFor(it) || cartStore.mutating",
               @click="changeQty(it, it.quantity - stepFor(it))"
             )
@@ -314,7 +315,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               inputmode="numeric",
               :value="it.quantity",
               :disabled="cartStore.mutating",
-              aria-label="Количество",
+              :aria-label="$t('marketplace.cart.qtyAriaLabel')",
               @change="onQtyInput(it, $event)",
               @keyup.enter="blurOnEnter"
             )
@@ -322,7 +323,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
               variant="ghost",
               icon-only,
               size="sm",
-              aria-label="Увеличить количество",
+              :aria-label="$t('marketplace.cart.increaseQtyAriaLabel')",
               :disabled="cartStore.mutating || atMax(it)",
               @click="changeQty(it, it.quantity + stepFor(it))"
             )
@@ -333,7 +334,7 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
             variant="ghost",
             icon-only,
             size="sm",
-            aria-label="Удалить позицию",
+            :aria-label="$t('marketplace.cart.removeItemAriaLabel')",
             :disabled="cartStore.mutating",
             @click="onRemove(it.offer_id, it.package_id ?? null)"
           )
@@ -343,45 +344,44 @@ q-page.mp-cart.mp-role-orderer(role="region", aria-label="Корзина Сто�
     //- Правая колонка: липкая сводка заказа.
     .col-12.col-md-4
       BaseCard.mp-cart__summary
-        .mp-cart__summary-title Ваш заказ
+        .mp-cart__summary-title {{ $t('marketplace.cart.summaryTitle') }}
         .mp-cart__summary-line
-          span Позиций
+          span {{ $t('marketplace.cart.itemsCountLabel') }}
           span.mp-cart__summary-val {{ cartStore.positionsCount }}
         .mp-cart__summary-line
-          span Всего единиц
+          span {{ $t('marketplace.cart.totalUnitsLabel') }}
           span.mp-cart__summary-val {{ cartStore.totalQuantity }}
         .mp-cart__summary-line
-          span Себестоимость
+          span {{ $t('marketplace.cart.costLabel') }}
           span.mp-cart__summary-val {{ money(cartStore.totalCost) }} {{ symbol }}
         .mp-cart__summary-line(v-if="feePercent > 0")
-          span Целевой членский взнос ({{ feePercent }}%)
+          span {{ $t('marketplace.cart.targetFeeLabel', { percent: feePercent }) }}
           span.mp-cart__summary-val {{ money(feeAmount) }} {{ symbol }}
         .mp-cart__summary-total
-          span Итого
+          span {{ $t('marketplace.cart.totalLabel') }}
           span {{ money(totalWithFee) }} {{ symbol }}
         BaseButton.mp-cart__checkout(
           variant="primary",
           :loading="cartStore.checkingOut",
           :disabled="cartStore.mutating",
           @click="onCheckout"
-        ) Оформить заказ
+        ) {{ $t('marketplace.cart.checkoutButton') }}
         BaseButton.mp-cart__clear(
           variant="ghost",
           size="sm",
           :disabled="cartStore.mutating || cartStore.checkingOut",
           @click="onClear"
-        ) Очистить корзину
+        ) {{ $t('marketplace.cart.clearCartButton') }}
 
   //- Не хватило средств — предлагаем внести взнос не отходя от корзины;
   //- позиции остаются на месте, оформление можно повторить сразу.
-  BaseDialog(v-model="insufficientOpen", title="Не хватает средств", size="sm")
+  BaseDialog(v-model="insufficientOpen", :title="$t('marketplace.cart.insufficientTitle')", size="sm")
     .mp-cart__insufficient
       p.mp-cart__insufficient-text {{ insufficientMessage }}
       p.mp-cart__insufficient-hint
-        | Внесите паевой взнос — деньги попадут в главный кошелёк, и заказ можно
-        | будет оформить тем же составом. Корзина сохранится.
+        | {{ $t('marketplace.cart.topUpHint') }}
     template(#footer)
-      BaseButton(variant="ghost", @click="insufficientOpen = false") Закрыть
+      BaseButton(variant="ghost", @click="insufficientOpen = false") {{ $t('common.action.close') }}
       DepositButton
 </template>
 

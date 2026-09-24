@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { InnerIntakeJsonSchema, InnerIntakeJsonSchemaProperty } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Схема анкеты вступления в ядре.
@@ -39,6 +40,7 @@ function normalizeProperty(formId: string, name: string, source: IntakeJsonSchem
   const property: IntakeJsonSchemaProperty = { ...source, description: parseDescription(source.description) };
 
   if (!labelOf(property)) {
+    // i18n-ignore: ошибка объявления схемы анкеты расширением (нет describeField.label) — разработческая, до пайщика не доходит
     throw new BadRequestException(`Анкета "${formId}": у поля "${name}" нет подписи (describeField.label)`);
   }
 
@@ -50,7 +52,9 @@ function normalizeProperty(formId: string, name: string, source: IntakeJsonSchem
   const supported = SCALAR_TYPES.includes(property.type ?? '') || Array.isArray(property.enum);
   if (!supported) {
     throw new BadRequestException(
+      // i18n-ignore: ошибка объявления схемы анкеты расширением (неподдерживаемый тип поля) — разработческая, до пайщика не доходит
       `Анкета "${formId}": поле "${name}" — тип "${String(property.type)}" не поддерживается ` +
+        // i18n-ignore: продолжение сообщения о неподдерживаемом типе поля схемы анкеты, до пайщика не доходит
         `(строка, число, флажок, перечисление, вложенный объект)`
     );
   }
@@ -64,6 +68,7 @@ function normalizeProperties(
 ): Record<string, IntakeJsonSchemaProperty> {
   const entries = Object.entries(properties ?? {});
   if (entries.length === 0) {
+    // i18n-ignore: ошибка объявления схемы анкеты расширением (объект без полей) — разработческая, до пайщика не доходит
     throw new BadRequestException(`Анкета "${formId}": ${owner} — объект обязан иметь хотя бы одно поле`);
   }
   return Object.fromEntries(entries.map(([name, property]) => [name, normalizeProperty(formId, name, property)]));
@@ -76,10 +81,12 @@ function normalizeProperties(
  */
 export function normalizeIntakeSchema(formId: string, schema: IntakeJsonSchema): IntakeJsonSchema {
   if (schema?.type !== 'object') {
+    // i18n-ignore: ошибка объявления схемы анкеты расширением (схема не объект) — разработческая, до пайщика не доходит
     throw new BadRequestException(`Анкета "${formId}": схема обязана быть объектом с полями`);
   }
   return {
     type: 'object',
+    // i18n-ignore: слово-заполнитель 'схема' для разработческого сообщения об ошибке схемы анкеты
     properties: normalizeProperties(formId, schema.properties, 'схема'),
     required: Array.isArray(schema.required) ? [...schema.required] : [],
   };
@@ -99,36 +106,36 @@ function isWebLink(value: string): boolean {
 
 function checkString(property: IntakeJsonSchemaProperty, value: string): string | undefined {
   if (property.format === 'uri' && !isWebLink(value)) {
-    return 'нужна ссылка вида https://…';
+    return t('registration.intakeSchema.linkFormatHint');
   }
   if (typeof property.minLength === 'number' && value.length < property.minLength) {
-    return `не короче ${property.minLength} символов`;
+    return t('registration.intakeSchema.minLengthHint', { minLength: property.minLength });
   }
   if (typeof property.maxLength === 'number' && value.length > property.maxLength) {
-    return `не длиннее ${property.maxLength} символов`;
+    return t('registration.intakeSchema.maxLengthHint', { maxLength: property.maxLength });
   }
   return undefined;
 }
 
 function checkNumber(property: IntakeJsonSchemaProperty, value: number): string | undefined {
-  if (property.type === 'integer' && !Number.isInteger(value)) return 'нужно целое число';
-  if (typeof property.minimum === 'number' && value < property.minimum) return `не меньше ${property.minimum}`;
-  if (typeof property.maximum === 'number' && value > property.maximum) return `не больше ${property.maximum}`;
+  if (property.type === 'integer' && !Number.isInteger(value)) return t('registration.intakeSchema.integerRequiredHint');
+  if (typeof property.minimum === 'number' && value < property.minimum) return t('registration.intakeSchema.minimumHint', { minimum: property.minimum });
+  if (typeof property.maximum === 'number' && value > property.maximum) return t('registration.intakeSchema.maximumHint', { maximum: property.maximum });
   return undefined;
 }
 
 /** Замечание к значению скалярного поля; undefined — значение годится. */
 function checkScalar(property: IntakeJsonSchemaProperty, value: unknown): string | undefined {
   if (Array.isArray(property.enum)) {
-    return property.enum.includes(value) ? undefined : 'выберите значение из списка';
+    return property.enum.includes(value) ? undefined : t('registration.intakeSchema.selectFromListHint');
   }
   if (property.type === 'string') {
-    return typeof value === 'string' ? checkString(property, value) : 'нужен текст';
+    return typeof value === 'string' ? checkString(property, value) : t('registration.intakeSchema.textRequiredHint');
   }
   if (property.type === 'boolean') {
-    return typeof value === 'boolean' ? undefined : 'нужно «да» или «нет»';
+    return typeof value === 'boolean' ? undefined : t('registration.intakeSchema.booleanRequiredHint');
   }
-  return typeof value === 'number' && Number.isFinite(value) ? checkNumber(property, value) : 'нужно число';
+  return typeof value === 'number' && Number.isFinite(value) ? checkNumber(property, value) : t('registration.intakeSchema.numberRequiredHint');
 }
 
 interface IntakeValuesCheck {
@@ -180,7 +187,7 @@ export function validateIntakeValues(
     if (!isEmpty(value)) {
       checkField(property, value, fieldPath, result);
     } else if (schema.required?.includes(name)) {
-      result.issues.push({ path: fieldPath, message: 'заполните поле' });
+      result.issues.push({ path: fieldPath, message: t('registration.intakeSchema.fieldRequiredHint') });
     }
   }
 

@@ -10,8 +10,8 @@ q-btn(
 )
   CreateDialog(
     ref="dialogRef"
-    title="Откликнуться на приглашение"
-    submit-text="Отправить отклик"
+    :title="$t('capital.makeClearanceButton.buttonTitle')"
+    :submit-text="$t('capital.makeClearanceButton.submit')"
     size="lg"
     :is-submitting="isSubmitting"
     :disabled="isSubmitDisabled"
@@ -20,14 +20,14 @@ q-btn(
   )
     template(#form-fields)
       .invite-dialog__target.q-mb-md
-        .text-caption.text-grey-7.q-mb-xs Куда отклик
+        .text-caption.text-grey-7.q-mb-xs {{ $t('capital.makeClearanceButton.targetLabel') }}
         ProjectPathWidget(:project="project")
 
       BaseInput(
         v-model="contributionText"
         type="textarea"
         autogrow
-        label="Опишите какой вклад вы можете внести в проект"
+        :label="$t('capital.makeClearanceButton.contributionLabel')"
         required
       )
 </template>
@@ -43,6 +43,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
 import { CreateDialog } from 'src/shared/ui/CreateDialog';
 import { BaseInput } from 'src/shared/ui/base';
+import { t } from '../../../../i18n';
 
 interface Props {
   project: IGetProjectOutput;
@@ -56,8 +57,8 @@ const emit = defineEmits<{
 
 const buttonLabel = computed(() =>
   props.fab
-    ? formatCapitalFabLabel('Принять участие', 'join')
-    : 'Принять участие',
+    ? formatCapitalFabLabel(t('capital.makeClearanceButton.participateAction'), 'join')
+    : t('capital.makeClearanceButton.participateAction'),
 );
 
 const { info } = useSystemStore();
@@ -118,7 +119,7 @@ const handleConfirmRespond = async () => {
 
   const contribution = contributionText.value.trim();
   if (!contribution) {
-    FailAlert('Опишите вклад, который можете внести в проект');
+    FailAlert(t('capital.makeClearanceButton.contributionPlaceholder'));
     return;
   }
 
@@ -146,7 +147,7 @@ const handleConfirmRespond = async () => {
         : parentProject.value;
 
       if (!targetProject) {
-        throw new Error(`Проект с хэшем ${projectHash} не найден`);
+        throw new Error(t('capital.error.clearanceProjectHashNotFound', { hash: projectHash }));
       }
 
       // roles: [] — роли в форме отклика больше не выбираются
@@ -164,7 +165,7 @@ const handleConfirmRespond = async () => {
       );
     }
 
-    SuccessAlert('Отклик отправлен успешно!');
+    SuccessAlert(t('capital.makeClearanceButton.success'));
     dialogRef.value?.clear();
 
     // Уведомляем родительский компонент об успешной отправке запроса на допуск
@@ -172,7 +173,7 @@ const handleConfirmRespond = async () => {
 
   } catch (error) {
     console.error('Ошибка при отправке отклика:', error);
-    FailAlert(error, 'Не удалось отправить отклик');
+    FailAlert(error, t('capital.makeClearanceButton.error'));
   } finally {
     isSubmitting.value = false;
   }

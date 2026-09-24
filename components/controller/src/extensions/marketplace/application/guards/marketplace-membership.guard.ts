@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
-import { platformSettings, hasServerSecret } from '@coopenomics/extension-kit';
+import { platformSettings, hasServerSecret, DomainError } from '@coopenomics/extension-kit';
 import { MonoAccountStatus } from '@coopenomics/innercoop';
 
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -68,7 +68,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
     const username = user?.username;
     if (!user || !username) {
       if (!bypass) {
-        throw new UnauthorizedException('Требуется авторизованный пользователь');
+        throw DomainError.unauthorized('MARKETPLACE_AUTH_REQUIRED');
       }
       const serviceMember: IMarketplaceCurrentMember = {
         username: '',
@@ -83,7 +83,7 @@ export class MarketplaceMembershipGuard implements CanActivate {
     // Под межсервисным секретом статус не проверяется: это служебный вызов,
     // а не запрос пайщика.
     if (!bypass && user.status !== MonoAccountStatus.Active) {
-      throw new ForbiddenException('Доступ только для пайщиков кооператива');
+      throw DomainError.forbidden('MARKETPLACE_NOT_A_MEMBER');
     }
 
     const coreRoles = mapUserRoleToCoreRoles(user.role);

@@ -1,4 +1,5 @@
 import type { ActivityEvent, ActivityEventType } from 'src/shared/ui/domain/ActivityTimeline';
+import { t } from '../../i18n';
 
 /**
  * Значения LogEventType с бэкенда (Nest registerEnumType → lowercase enum value).
@@ -141,7 +142,7 @@ export function mapCapitalLogToActivity(log: CapitalLogLike): ActivityEvent {
     id: log._id,
     type: mapCapitalLogEventType(log.event_type),
     icon: mapCapitalLogIcon(log.event_type),
-    title: title || 'Событие',
+    title: title || t('capital.mapCapitalLogToActivity.defaultTitle'),
     description,
     actor,
     date,

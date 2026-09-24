@@ -4,9 +4,9 @@ q-page.allocations-page
     .col-12.col-md-6
       WalletCard(
         neutral,
-        title='Свободные средства программы',
-        subtitle='Остаток, который можно аллоцировать в компоненты',
-        balance-label='Доступно',
+        :title='$t("capital.allocationsPage.freeFundsTitle")',
+        :subtitle='$t("capital.allocationsPage.freeFundsSubtitle")',
+        :balance-label='$t("capital.allocationsPage.freeFundsBalanceLabel")',
         :balance='freePool.amount',
         :symbol='freePool.symbol',
         icon='savings',
@@ -15,9 +15,9 @@ q-page.allocations-page
     .col-12.col-md-6
       WalletCard(
         program='blagorost',
-        title='Аллоцировано в компоненты',
-        subtitle='Средства программы, ставшие бюджетом компонентов',
-        balance-label='Всего',
+        :title='$t("capital.allocationsPage.allocatedTitle")',
+        :subtitle='$t("capital.allocationsPage.allocatedSubtitle")',
+        :balance-label='$t("capital.allocationsPage.allocatedBalanceLabel")',
         :balance='allocatedTotal.amount',
         :symbol='allocatedTotal.symbol',
         icon='account_tree',
@@ -35,11 +35,11 @@ q-page.allocations-page
       table.table
         thead
           tr
-            th Компонент
-            th Проект
-            th Статус
-            th.col-num Аллоцировано
-            th.col-num Использовано
+            th {{ $t('capital.allocationsPage.column.component') }}
+            th {{ $t('capital.allocationsPage.column.project') }}
+            th {{ $t('capital.allocationsPage.column.status') }}
+            th.col-num {{ $t('capital.allocationsPage.column.allocated') }}
+            th.col-num {{ $t('capital.allocationsPage.column.used') }}
             th.col-action(v-if='canDeallocate')
         tbody
           tr.data-row(v-for='row in rows', :key='row.project_hash', @click='openComponent(row)')
@@ -57,8 +57,8 @@ q-page.allocations-page
               )
   EmptyState(
     v-else,
-    title='Средства пока не аллоцированы',
-    body='Здесь появятся компоненты, получившие бюджет программы.'
+    :title='$t("capital.allocationsPage.emptyTitle")',
+    :body='$t("capital.allocationsPage.emptyBody")'
   )
 </template>
 
@@ -81,6 +81,7 @@ import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import { AllocateFundsButton } from 'app/extensions/capital/features/Invest/AllocateFunds/ui';
 import { DeallocateFundsButton } from 'app/extensions/capital/features/Invest/DeallocateFunds/ui';
+import { t } from '../../../i18n';
 
 interface AllocationRow {
   project_hash: string;
@@ -179,11 +180,11 @@ const rows = computed<AllocationRow[]>(() =>
 );
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Компонент' },
-  { label: 'Проект' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Аллоцировано', class: 'col-num' },
-  { label: 'Использовано', class: 'col-num' },
+  { label: t('capital.allocationsPage.column.component') },
+  { label: t('capital.allocationsPage.column.project') },
+  { label: t('capital.allocationsPage.column.status'), cell: 'badge' },
+  { label: t('capital.allocationsPage.column.allocated'), class: 'col-num' },
+  { label: t('capital.allocationsPage.column.used'), class: 'col-num' },
 ];
 
 // Возвращать средства может только председатель — совет видит таблицу без колонки действий.

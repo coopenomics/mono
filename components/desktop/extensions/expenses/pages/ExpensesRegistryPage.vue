@@ -13,13 +13,13 @@
         table.table
           thead
             tr
-              th Назначение
-              th Пайщик
-              th.col-wallet Кошелёк (пул)
-              th.col-date Дата создания
-              th.col-num Сумма (план)
-              th.col-num Сумма (факт)
-              th Статус
+              th {{ $t('expenses.expensesRegistryPage.column.purpose') }}
+              th {{ $t('expenses.expensesRegistryPage.column.member') }}
+              th.col-wallet {{ $t('expenses.expensesRegistryPage.column.wallet') }}
+              th.col-date {{ $t('expenses.expensesRegistryPage.column.createdAt') }}
+              th.col-num {{ $t('expenses.expensesRegistryPage.column.amountPlan') }}
+              th.col-num {{ $t('expenses.expensesRegistryPage.column.amountFact') }}
+              th {{ $t('expenses.expensesRegistryPage.column.status') }}
               th.col-chevron
           tbody
             tr.data-row(
@@ -32,7 +32,7 @@
                 .cell-payer__fio {{ payerName(row) }}
                 button.cell-payer__acc(
                   type='button',
-                  title='Скопировать имя аккаунта',
+                  :title='$t("expenses.expensesRegistryPage.copyAccountTitle")',
                   @click.stop='copyAccount(row.username)'
                 )
                   span.t-mono-sm {{ row.username }}
@@ -54,12 +54,12 @@
           size='sm',
           :loading='loading',
           @click='loadMore'
-        ) Загрузить ещё
+        ) {{ $t('expenses.expensesRegistryPage.loadMoreLabel') }}
 
     EmptyState(
       v-else,
-      title='Расходов пока нет',
-      body='Здесь появятся служебные записки по расходам кооператива.'
+      :title='$t("expenses.expensesRegistryPage.emptyTitle")',
+      :body='$t("expenses.expensesRegistryPage.emptyHint")'
     )
       template(#icon)
         q-icon(name='receipt_long', size='48px')
@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { copyToClipboard, Notify } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
@@ -87,6 +88,7 @@ import {
   getExpenseProposalStatusLabel,
   getExpenseProposalStatusVariant,
 } from '../model';
+import { t } from '../i18n';
 
 type IProposalRow = NonNullable<IExpenseProposalsByCooperativeResult['items']>[number];
 
@@ -102,13 +104,13 @@ const totalCount = ref(0);
 const PAGE_LIMIT = 25;
 
 const skeletonColumns = computed<TableSkeletonColumn[]>(() => [
-  { label: 'Назначение', cell: 'text' },
-  { label: 'Пайщик', cell: 'text' },
-  { label: 'Кошелёк (пул)', class: 'col-wallet', cell: 'text', cellWidth: '200px' },
-  { label: 'Дата создания', cell: 'text', cellWidth: '120px' },
-  { label: 'Сумма (план)', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Сумма (факт)', class: 'col-num', cell: 'text', cellWidth: '110px' },
-  { label: 'Статус', cell: 'badge' },
+  { label: t('expenses.expensesRegistryPage.column.purpose'), cell: 'text' },
+  { label: t('expenses.expensesRegistryPage.column.member'), cell: 'text' },
+  { label: t('expenses.expensesRegistryPage.column.wallet'), class: 'col-wallet', cell: 'text', cellWidth: '200px' },
+  { label: t('expenses.expensesRegistryPage.column.createdAt'), cell: 'text', cellWidth: '120px' },
+  { label: t('expenses.expensesRegistryPage.column.amountPlan'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.expensesRegistryPage.column.amountFact'), class: 'col-num', cell: 'text', cellWidth: '110px' },
+  { label: t('expenses.expensesRegistryPage.column.status'), cell: 'badge' },
   { label: '', class: 'col-chevron', cell: 'text', cellWidth: '40px' },
 ]);
 
@@ -132,7 +134,7 @@ async function copyAccount(username?: string | null): Promise<void> {
   if (!username) return;
   try {
     await copyToClipboard(username);
-    Notify.create({ type: 'positive', message: 'Имя аккаунта скопировано', timeout: 1200 });
+    Notify.create({ type: 'positive', message: t('expenses.expensesRegistryPage.copiedMessage'), timeout: 1200 });
   } catch {
     // молча: копирование — вспомогательное действие
   }
@@ -144,14 +146,14 @@ function formatAmount(asset?: string | null): string {
 }
 
 function purposeOf(row: IProposalRow): string {
-  return row.items?.[0]?.description || '— без описания —';
+  return row.items?.[0]?.description || t('expenses.expensesRegistryPage.noDescriptionLabel');
 }
 
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 const rangeLabel = computed(() => {
   const shown = items.value.length;
-  return shown ? `1–${shown} из ${totalCount.value}` : `0 из ${totalCount.value}`;
+  return shown ? t('expenses.expensesRegistryPage.rangeSummary', { shown, total: totalCount.value }) : t('expenses.expensesRegistryPage.zeroRangeSummary', { total: totalCount.value });
 });
 
 function statusLabel(status?: Zeus.ExpenseProposalStatus | null): string {
@@ -166,7 +168,7 @@ function formatCreatedAt(createdAt?: string | null): string {
   if (!createdAt) return '—';
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return createdAt;
-  return date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  return date.toLocaleString(uiLocale(), { dateStyle: 'short', timeStyle: 'short' });
 }
 
 async function loadPage(page = 1): Promise<void> {

@@ -2,7 +2,7 @@
 //- Скелетон canon-таблицы: та же структура .table-wrap/.table, что и у
 //- реальной таблицы, поэтому при подгрузке данных каркас не дёргается.
 //- Заголовки показываем сразу, в ячейках — мерцающие плейсхолдеры (.skel).
-.table-wrap.table-wrap--skel(aria-busy='true', aria-label='Загрузка данных')
+.table-wrap.table-wrap--skel(aria-busy='true', :aria-label='$t("ui.tableSkeleton.loadingLabel")')
   .table-scroll
     table.table(:style='minWidth ? { minWidth } : undefined')
       thead

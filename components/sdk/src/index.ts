@@ -1,7 +1,8 @@
 import type { ClientConnectionOptions } from './types/client'
+import { lt } from '@coopenomics/i18n'
 import { Bytes, Checksum256, PrivateKey } from '@wharfkit/session'
-import WebSocket from 'isomorphic-ws'
 
+import WebSocket from 'isomorphic-ws'
 import * as Classes from './classes'
 import { type GraphQLErrorItem, graphQLErrorsFromBody, GraphQLResponseError } from './errors'
 import * as Mutations from './mutations'
@@ -35,9 +36,9 @@ export * as Subscriptions from './subscriptions'
 
 export * as Types from './types'
 
-export * as Zeus from './zeus/index'
-
 export { type ChainFailure, createChainFetch, describeChainFailure } from './utils/chainFetch'
+
+export * as Zeus from './zeus/index'
 
 if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocket as any
@@ -98,7 +99,7 @@ export class Client {
       this.vote.setWif(options.wif)
     }
     else if ((options.wif && !options.username) || (!options.wif && options.username)) {
-      throw new Error('wif и username должны быть указаны одновременно')
+      throw new Error(lt('sdkClient.error.wifUsernameRequiredTogether'))
     }
   }
 

@@ -13,7 +13,7 @@
           ref="createIssueRef"
           :project-hash="projectHash"
           size="sm"
-          label="Задача"
+          :label="$t('capital.componentPage.issueTabLabel')"
           @action-completed="handleIssueCreated"
         )
         CreateRequirementButton(
@@ -45,7 +45,7 @@
             ref="createIssueRef"
             :project-hash="projectHash"
             size="sm"
-            label="Задача"
+            :label="$t('capital.componentPage.issueTabLabel')"
             @action-completed="handleIssueCreated"
           )
           CreateRequirementButton(
@@ -71,8 +71,8 @@
   // Компонент удалён или недоступен — скелетон крутиться не должен
   .component-page-missing(v-if="notFound")
     EmptyState(
-      title="Компонент недоступен"
-      body="Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке."
+      :title="$t('capital.componentPage.unavailableTitle')"
+      :body="$t('capital.componentPage.unavailableBody')"
     )
       template(#icon)
         q-icon(name="code_off" size="32px")
@@ -97,7 +97,7 @@
       .q-px-md
         ProjectTitleEditor(
           :project="project"
-          label="Компонент"
+          :label="$t('capital.componentPage.componentTabLabel')"
           @field-change="handleFieldChange"
           @update:title="handleTitleUpdate"
         ).full-width
@@ -122,7 +122,7 @@
     .q-px-md
       ProjectTitleEditor(
         :project="project"
-        label="Компонент"
+        :label="$t('capital.componentPage.componentTabLabel')"
         @field-change="handleFieldChange"
         @update:title="handleTitleUpdate"
       ).full-width
@@ -178,6 +178,7 @@ import { ComponentSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { ComponentToProjectPathWidget } from 'app/extensions/capital/widgets/ComponentToProjectPathWidget';
 import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { t, t as i18nT } from '../../../i18n';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -291,21 +292,21 @@ const componentTabs = computed(() => {
   const params = { project_hash: projectHash.value };
 
   const tabs = [
-    { key: routeName('component-description'), label: 'Описание', route: { name: routeName('component-description'), params } },
-    { key: routeName('component-tasks'), label: 'Задачи', route: { name: routeName('component-tasks'), params } },
-    { key: routeName('component-requirements'), label: 'Артефакты', route: { name: routeName('component-requirements'), params } },
-    { key: routeName('component-planning'), label: 'План', route: { name: routeName('component-planning'), params } },
+    { key: routeName('component-description'), label: t('capital.componentPage.descriptionTabLabel'), route: { name: routeName('component-description'), params } },
+    { key: routeName('component-tasks'), label: t('capital.componentPage.tasksTabLabel'), route: { name: routeName('component-tasks'), params } },
+    { key: routeName('component-requirements'), label: t('capital.componentPage.artifactsTabLabel'), route: { name: routeName('component-requirements'), params } },
+    { key: routeName('component-planning'), label: t('capital.componentPage.planTabLabel'), route: { name: routeName('component-planning'), params } },
   ];
 
   if (!isLocalProject.value) {
     tabs.push(
-      { key: routeName('component-voting'), label: 'Голосование', route: { name: routeName('component-voting'), params } },
-      { key: routeName('component-results'), label: 'Результаты', route: { name: routeName('component-results'), params } },
-      { key: routeName('component-contributors'), label: 'Участники', route: { name: routeName('component-contributors'), params } },
+      { key: routeName('component-voting'), label: t('capital.componentPage.votingTabLabel'), route: { name: routeName('component-voting'), params } },
+      { key: routeName('component-results'), label: t('capital.componentPage.resultsTabLabel'), route: { name: routeName('component-results'), params } },
+      { key: routeName('component-contributors'), label: t('capital.componentPage.contributorsTabLabel'), route: { name: routeName('component-contributors'), params } },
     );
   }
 
-  tabs.push({ key: routeName('component-history'), label: 'История', route: { name: routeName('component-history'), params } });
+  tabs.push({ key: routeName('component-history'), label: t('capital.componentPage.historyTabLabel'), route: { name: routeName('component-history'), params } });
 
   return tabs;
 });
@@ -314,7 +315,7 @@ const componentTabs = computed(() => {
 // приоритет parent_hash — «назад» всегда уводил вверх к проекту, даже если
 // компонент открыли из списка компонентов или из «Моих проектов».
 useBackButton({
-  text: 'Назад',
+  text: i18nT('common.action.back'),
   componentId: 'component-base-' + projectHash.value,
   onClick: () =>
     goBackOr(router, {

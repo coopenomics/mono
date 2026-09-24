@@ -5,7 +5,7 @@
     .domain-header
       .domain-title
         q-icon(name="domain" size="20px").q-mr-sm
-        | Подключение
+        | {{ $t('connectionDashboard.domainCard.title') }}
 
       // Отображение или редактирование домена
       .domain-display
@@ -21,23 +21,23 @@
                   color="primary"
                   @click="startEdit"
                 )
-                  q-tooltip Редактировать домен
+                  q-tooltip {{ $t('connectionDashboard.domainCard.editTooltip') }}
             div(v-else).q-pa-sm
               .domain-warning.q-mb-md.full-width
                 .text-caption.text-orange-8.q-mb-sm
-                  | ⚠️ Убедитесь, что домен делегирован IP-адрес: {{ SERVER_IP }}.
-                  | Обновление домена перезагрузит цифровой кооператив.
-                  | Все данные будут сохранены.
+                  | {{ $t('connectionDashboard.domainCard.delegateWarningLine1', { serverIp: SERVER_IP }) }}
+                  | {{ $t('connectionDashboard.domainCard.delegateWarningLine2') }}
+                  | {{ $t('connectionDashboard.domainCard.delegateWarningLine3') }}
 
               q-input(
                 v-model="domainValue"
-                placeholder="Введите домен"
+                :placeholder="$t('connectionDashboard.domainCard.domainPlaceholder')"
                 outlined
                 dense
                 autofocus
                 @keyup.enter="saveDomain"
                 @keyup.escape="cancelEdit"
-                :rules="[(val) => !!val || 'Домен обязателен']"
+                :rules="[(val) => !!val || $t('connectionDashboard.domainCard.domainRequired')]"
               ).full-width.q-mt-md
                 template(#prepend)
                   q-btn(
@@ -48,7 +48,7 @@
                     color="negative"
                     @click="cancelEdit"
                   )
-                    q-tooltip Отменить
+                    q-tooltip {{ $t('connectionDashboard.domainCard.cancelTooltip') }}
                 template(#append)
                   q-btn(
                     flat
@@ -58,7 +58,7 @@
                     color="positive"
                     @click="saveDomain"
                   )
-                    q-tooltip Сохранить
+                    q-tooltip {{ $t('common.action.save') }}
 
 
       .row
@@ -71,7 +71,7 @@
           //-     size="sm"
           //-   ) {{ getMembershipStatusLabel }}
         .col-6
-          .text-caption.text-grey-7 Домен делегирован
+          .text-caption.text-grey-7 {{ $t('connectionDashboard.domainCard.delegatedLabel') }}
           .text-body2.text-weight-medium
             q-chip(
               :color="isDelegatingLoading ? 'grey' : (instance?.is_delegated ? 'positive' : 'grey')"
@@ -88,7 +88,7 @@
                   class="q-ml-xs rotating-icon"
                   color="grey-5"
                 )
-                span {{ instance?.is_delegated ? 'Да' : 'Обновляем' }}
+                span {{ instance?.is_delegated ? $t('common.answer.yes') : $t('connectionDashboard.domainCard.updatingStatus') }}
 
 </template>
 
@@ -101,6 +101,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
 import { ColorCard } from 'src/shared/ui'
 import { useProviderSubscriptions } from 'src/features/Provider/model'
+import { t } from 'src/shared/i18n';
 
 const connectionAgreement = useConnectionAgreementStore()
 
@@ -157,12 +158,12 @@ const cancelEdit = () => {
 // Сохранить домен
 const saveDomain = async () => {
   if (!domainValue.value.trim()) {
-    FailAlert('Домен не может быть пустым')
+    FailAlert(t('connectionDashboard.domainCard.domainEmptyError'))
     return
   }
 
   if (!coop.publicCooperativeData) {
-    FailAlert('Не удалось получить данные кооператива')
+    FailAlert(t('connectionDashboard.domainCard.coopDataError'))
     return
   }
 
@@ -185,9 +186,9 @@ const saveDomain = async () => {
     await connectionAgreement.loadCurrentInstance()
 
     isEditing.value = false
-    SuccessAlert('Домен успешно обновлен')
+    SuccessAlert(t('connectionDashboard.domainCard.domainUpdateSuccess'))
   } catch (error: any) {
-    FailAlert(`Ошибка при обновлении домена: ${error.message}`)
+    FailAlert(t('connectionDashboard.domainCard.domainUpdateError', { errorMessage: error.message }))
   } finally {
     isDelegatingLoading.value = false
   }

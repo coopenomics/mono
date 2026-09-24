@@ -4,7 +4,7 @@
 BaseButton(
   variant='ghost',
   size='sm',
-  :aria-label='`${buttonLabel}: выбор состояний`'
+  :aria-label='$t(`ui.statusFilterButton.ariaLabel`, { buttonLabel })'
 )
   template(#icon-left)
     q-icon(name='filter_list', size='18px')
@@ -18,7 +18,7 @@ BaseButton(
         q-item(clickable, @click='reset')
           q-item-section(avatar)
             q-icon(name='filter_alt_off', size='18px')
-          q-item-section Показать все
+          q-item-section {{ $t('ui.statusFilterButton.showAllLabel') }}
         q-separator
         q-item(
           v-for='option in props.options',
@@ -46,10 +46,11 @@ BaseButton(
 import { computed } from 'vue';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
 import type { StatusFilterButtonProps, StatusFilterOption } from './StatusFilterButton.types';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<StatusFilterButtonProps>();
 
-const buttonLabel = computed(() => props.label ?? 'Фильтр');
+const buttonLabel = computed(() => props.label ?? t('ui.statusFilterButton.defaultLabel'));
 
 const activeCount = computed(() => props.options.filter((o) => isActive(o)).length);
 

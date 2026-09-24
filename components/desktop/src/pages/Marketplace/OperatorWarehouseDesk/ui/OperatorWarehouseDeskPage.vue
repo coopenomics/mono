@@ -16,6 +16,7 @@ import {
 } from 'src/entities/MarketplaceInventory'
 import { useMarketplaceStorageStore } from 'src/entities/MarketplaceStorage'
 import { useOperatorBranchStore } from 'src/entities/OperatorBranch'
+import { t } from 'src/shared/i18n';
 
 /**
  * Стол «Склад» — всё складское хозяйство участка одной страницей.
@@ -80,23 +81,23 @@ const counts = ref<Record<'warehouse' | 'stock' | 'writeoffs' | 'containers', nu
 
 const tabs = computed<PageTab[]>(() => {
   const list: PageTab[] = [
-    { key: 'labeling', label: 'Раскладка и маркировка' },
+    { key: 'labeling', label: t('marketplace.operatorWarehouseDeskPage.tabPutaway') },
     // Раздел называется «Имущество», а не «Склад»: страница целиком про склад,
     // и вкладка с тем же словом внутри неё ничего не различала.
-    { key: 'warehouse', label: 'Имущество', count: counts.value.warehouse ?? undefined },
-    { key: 'stock', label: 'Остатки', count: counts.value.stock ?? undefined },
+    { key: 'warehouse', label: t('marketplace.operatorWarehouseDeskPage.tabProperty'), count: counts.value.warehouse ?? undefined },
+    { key: 'stock', label: t('marketplace.operatorWarehouseDeskPage.tabStock'), count: counts.value.stock ?? undefined },
   ]
   if (writeoffsAllowed.value) {
     list.push({
       key: 'writeoffs',
-      label: 'Списание',
+      label: t('marketplace.operatorWarehouseDeskPage.tabWriteoff'),
       count: counts.value.writeoffs ?? undefined,
     })
   }
   if (containersAllowed.value) {
     list.push({
       key: 'containers',
-      label: 'Боксы',
+      label: t('marketplace.operatorWarehouseDeskPage.tabBoxes'),
       count: counts.value.containers ?? undefined,
     })
   }
@@ -206,7 +207,7 @@ watch(
 </script>
 
 <template lang="pug">
-q-page.wh-desk(role='region', aria-label='Склад участка')
+q-page.wh-desk(role='region', :aria-label='$t("marketplace.operatorWarehouseDeskPage.pageAriaLabel")')
   OperatorBranchBar
 
   PageTabs(:tabs='tabs', :active-key='activeSection', @select='onSelectTab')

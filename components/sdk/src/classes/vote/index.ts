@@ -1,4 +1,5 @@
 import type { SovietContract } from 'cooptypes'
+import { lt } from '@coopenomics/i18n'
 import { PrivateKey, PublicKey, Signature } from '@wharfkit/antelope'
 import { Crypto } from '../crypto'
 
@@ -86,7 +87,7 @@ export class Vote {
    */
   private async signVote(action: VoteAction, coopname: string, decision_id: number): Promise<IVoteSignature> {
     if (!this.wif)
-      throw new Error('Ключ не установлен, выполните вызов метода setWif перед подписью голоса')
+      throw new Error(lt('sdkClient.error.voteKeyNotSet'))
 
     // Версия используемого стандарта подписи
     const version = '1.0.0'
@@ -104,7 +105,7 @@ export class Vote {
     // Проверка подписи
     const verified = signature.verifyDigest(signed_hash, this.wif.toPublic())
     if (!verified) {
-      throw new Error('Ошибка проверки подписи')
+      throw new Error(lt('sdkClient.error.signatureVerificationFailed'))
     }
 
     return {

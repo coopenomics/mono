@@ -35,6 +35,7 @@ import {
   toMarketplaceBranchEconomyDTO,
   toMarketplaceBranchWalletOperationDTO,
 } from '../dto/marketplace-economy.dto';
+import { t } from '../../i18n';
 
 const paginatedBranchWalletHistoryResult = createPaginationResult(
   MarketplaceBranchWalletOperationDTO,
@@ -327,7 +328,7 @@ export class MarketplaceEconomyResolver {
       platformSettings().coopname,
       braname,
       member.username,
-      'Экономика участка доступна его председателю и доверенным'
+      t('marketplace.economyResolver.accessHint')
     );
   }
 }

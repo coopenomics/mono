@@ -8,7 +8,7 @@
       clearable
       color='primary'
       :model-value='searchLocal',
-      :placeholder='searchPlaceholder ?? "Поиск"',
+      :placeholder='searchPlaceholder ?? $t("common.action.search")',
       @update:model-value='onSearchInput',
       @clear='onSearchInput("")'
     )
@@ -34,7 +34,7 @@
     .filter-bar__actions(v-if='!hideReset && hasActiveValues')
       button.filter-bar__reset(type='button', @click='resetAll')
         q-icon(name='close', size='16px')
-        | Сбросить
+        | {{ $t('ui.filterBar.resetLabel') }}
   .filter-bar__chips(v-if='activeChips.length')
     BaseChip(
       v-for='chip in activeChips',
@@ -45,7 +45,7 @@
       span {{ chip.label }}
       button.filter-bar__chip-remove(
         type='button',
-        :aria-label='`Сбросить фильтр ${chip.filterLabel}`',
+        :aria-label='$t(`ui.filterBar.resetFilterAriaText`, { filterLabel: chip.filterLabel })',
         @click='removeFilter(chip.key)'
       )
         q-icon(name='close', size='14px')

@@ -3,7 +3,7 @@
   .banner.banner--info
     q-icon.banner__icon(name='info' size='20px')
     .banner__body
-      | Меры кооператива — те, что вписаны при планировании компонентов. Здесь их можно временно выключить, чтобы не подсказывались в плане.
+      | {{ $t('capital.measuresPage.intro') }}
 
   TableSkeleton(
     v-if='loading && !measures.length',
@@ -14,8 +14,8 @@
 
   EmptyState(
     v-else-if='!measures.length',
-    title='Мер пока нет',
-    body='Мера заводится сама, когда вы вписываете её в цели компонента.'
+    :title='$t("capital.measuresPage.emptyTitle")',
+    :body='$t("capital.measuresPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='straighten' size='32px')
@@ -30,12 +30,12 @@
         .measures-page__title {{ m.title }}
         .measures-page__meta.t-sm
           span.measures-page__meta-item
-            span.measures-page__meta-label Единица:
+            span.measures-page__meta-label {{ $t('capital.measuresPage.unitPrefix') }}
             |
             | {{ m.unit }}
           span.measures-page__meta-sep ·
           span.measures-page__meta-item
-            span.measures-page__meta-label Режим:
+            span.measures-page__meta-label {{ $t('capital.measuresPage.modePrefix') }}
             |
             | {{ seriesModeLabel(m.series_mode) }}
       .measures-page__row-aside
@@ -58,6 +58,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert, SuccessAlert } from 'src/shared/api/alerts';
 import { api } from 'app/extensions/capital/entities/ComponentMetric/api';
 import type { IMeasure } from 'app/extensions/capital/entities/ComponentMetric/model';
+import { t } from '../../../i18n';
 
 const { info } = useSystemStore();
 
@@ -69,18 +70,18 @@ const activeStatus = Zeus.MetricStatus.ACTIVE;
 const archivedStatus = Zeus.MetricStatus.ARCHIVED;
 
 const skeletonColumns = [
-  { label: 'Мера', width: '40%' },
-  { label: 'Единица', width: '18%' },
-  { label: 'Режим', width: '18%' },
-  { label: 'Статус', width: '14%', cell: 'badge' as const },
+  { label: t('capital.measuresPage.column.measure'), width: '40%' },
+  { label: t('capital.measuresPage.column.unit'), width: '18%' },
+  { label: t('capital.measuresPage.column.mode'), width: '18%' },
+  { label: t('capital.measuresPage.column.status'), width: '14%', cell: 'badge' as const },
   { label: '', width: '10%', cell: 'icon' as const },
 ];
 
 const seriesModeLabel = (mode: Zeus.ModelTypes['MetricSeriesMode']) =>
-  mode === Zeus.MetricSeriesMode.LEVEL ? 'Уровень' : 'Изменения';
+  mode === Zeus.MetricSeriesMode.LEVEL ? t('capital.measuresPage.column.level') : t('capital.measuresPage.column.actions');
 
 const statusLabel = (status: Zeus.ModelTypes['MetricStatus']) =>
-  status === Zeus.MetricStatus.ARCHIVED ? 'Выключена' : 'Активна';
+  status === Zeus.MetricStatus.ARCHIVED ? t('capital.measuresPage.disabledStatus') : t('capital.measuresPage.activeStatus');
 
 const statusVariant = (status: Zeus.ModelTypes['MetricStatus']): BaseBadgeVariant =>
   status === Zeus.MetricStatus.ARCHIVED ? 'neutral' : 'pos';
@@ -103,7 +104,7 @@ const toggleActive = async (m: IMeasure, on: boolean) => {
       measure_hash: m.measure_hash,
       status: on ? Zeus.MetricStatus.ACTIVE : Zeus.MetricStatus.ARCHIVED,
     });
-    SuccessAlert(on ? 'Мера включена' : 'Мера выключена');
+    SuccessAlert(on ? t('capital.measuresPage.enabledSuccess') : t('capital.measuresPage.disabledSuccess'));
     await load();
   } catch (e) {
     FailAlert(e);

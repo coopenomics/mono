@@ -1,6 +1,7 @@
 import type { DesktopWalletCard } from 'src/shared/lib/types/desktop-wallet';
 import { walletCards as capitalWalletCards } from '../../../extensions/capital/install';
 import { walletCards as marketWalletCards } from '../../../extensions/market/install';
+import { t } from 'src/shared/i18n';
 
 /**
  * Реестр-фабрика кошельков стола пайщика (путь B).
@@ -24,8 +25,8 @@ import { walletCards as marketWalletCards } from '../../../extensions/market/ins
 const CORE_WALLET_CARDS: DesktopWalletCard[] = [
   {
     wallet_name: 'w.wal.share',
-    label: 'Главный паевой кошелёк',
-    description: 'Цифровой кошелёк',
+    label: t('initInstalledExtensions.walletCardsRegistry.shareWalletLabel'),
+    description: t('initInstalledExtensions.walletCardsRegistry.shareWalletDescription'),
     accent: 'wallet',
     icon: 'account_balance_wallet',
   },

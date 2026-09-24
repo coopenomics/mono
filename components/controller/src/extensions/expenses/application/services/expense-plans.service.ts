@@ -1,10 +1,10 @@
-import { Inject, BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, Not, Repository } from 'typeorm';
 import { BranchContract } from 'cooptypes';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
@@ -95,10 +95,10 @@ export class ExpensePlansService {
   ): Promise<ExpensePlanView> {
     await this.assertCanManage(coopname, initiator, input.braname ?? null);
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      throw new BadRequestException('Сумма планового расхода должна быть больше нуля');
+      throw DomainError.badRequest('EXPENSES_PLAN_AMOUNT_NOT_POSITIVE');
     }
     if (!input.due_date) {
-      throw new BadRequestException('Укажите дату, к которой расход должен быть оплачен');
+      throw DomainError.badRequest('EXPENSES_PLAN_DUE_DATE_REQUIRED');
     }
     const row = await this.planRepo.save(
       this.planRepo.create({
@@ -119,7 +119,7 @@ export class ExpensePlansService {
   async deletePlan(coopname: string, initiator: string, planId: number): Promise<void> {
     const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
     if (!row) {
-      throw new NotFoundException('Плановый расход не найден');
+      throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
     await this.assertCanManage(coopname, initiator, row.braname ?? null);
     await this.planRepo.delete({ id: planId });
@@ -149,10 +149,10 @@ export class ExpensePlansService {
   async attachProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
     const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
     if (!row) {
-      throw new NotFoundException('Плановый расход не найден');
+      throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
     if (row.proposalHash && row.proposalHash !== proposalHash.toLowerCase()) {
-      throw new BadRequestException('По этому плановому расходу оплата уже запущена');
+      throw DomainError.badRequest('EXPENSES_PLAN_PAYMENT_ALREADY_STARTED');
     }
     await this.planRepo.update({ id: planId }, { proposalHash: proposalHash.toLowerCase() });
   }
@@ -275,9 +275,7 @@ export class ExpensePlansService {
     braname: string | null
   ): Promise<void> {
     if (!braname) {
-      throw new ForbiddenException(
-        'Плановые расходы уровня кооператива появятся вместе с общесистемным учётом расходов'
-      );
+      throw DomainError.forbidden('EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED');
     }
     const branches = (await this.blockchainService.getAllRows(
       BranchContract.contractName.production,
@@ -286,13 +284,11 @@ export class ExpensePlansService {
     )) as BranchContract.Tables.Branches.IBranch[];
     const branch = branches.find((b) => b.braname === braname);
     if (!branch) {
-      throw new NotFoundException('Кооперативный участок не найден');
+      throw DomainError.notFound('EXPENSES_BRANCH_NOT_FOUND');
     }
     const isOperator = branch.trustee === initiator || branch.trusted.includes(initiator);
     if (!isOperator) {
-      throw new ForbiddenException(
-        'Плановые расходы участка ведут председатель участка и его доверенные лица'
-      );
+      throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN');
     }
   }
 

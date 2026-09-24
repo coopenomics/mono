@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, NotifyAlert, SuccessAlert } from 'src/shared/api';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import { BaseCard, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 16 / Story 16.2: финальный экран после оформления заказа.
@@ -29,8 +30,8 @@ async function onRetry(): Promise<void> {
   if (!result.value) return;
   try {
     const r = await cartStore.checkout(result.value.checkout_id);
-    if (r.fully_completed) SuccessAlert('Остаток заказа оформлен');
-    else NotifyAlert('Часть позиций снова не прошла — остаток в корзине.');
+    if (r.fully_completed) SuccessAlert(t('marketplace.orderConfirmationPage.remainderPlacedMessage'));
+    else NotifyAlert(t('marketplace.orderConfirmationPage.remainderFailedMessage'));
   } catch (e) {
     FailAlert(e);
   }
@@ -51,16 +52,16 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.order-confirm.mp-role-orderer(role="region", aria-label="Подтверждение заказа")
+q-page.order-confirm.mp-role-orderer(role="region", :aria-label="$t('marketplace.orderConfirmationPage.pageAriaLabel')")
   EmptyState(
     v-if="!result",
-    title="Нет данных об оформлении",
-    body="Откройте «Мои заказы», чтобы увидеть оформленные заказы."
+    :title="$t('marketplace.orderConfirmationPage.emptyTitle')",
+    :body="$t('marketplace.orderConfirmationPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="receipt_long", size="48px")
     template(#actions)
-      BaseButton(variant="primary", @click="goToOrders") К моим заказам
+      BaseButton(variant="primary", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
 
   template(v-else)
     BaseCard.order-confirm__card
@@ -70,14 +71,14 @@ q-page.order-confirm.mp-role-orderer(role="region", aria-label="Подтверж
           :color="result.fully_completed ? 'positive' : 'warning'",
           size="56px"
         )
-        .order-confirm__title {{ result.fully_completed ? 'Заказ оформлен' : 'Заказ оформлен частично' }}
-        .order-confirm__subtitle Создано заказов на пункт выдачи: {{ result.created_orders.length }}
+        .order-confirm__title {{ result.fully_completed ? $t('marketplace.orderConfirmationPage.successTitle') : $t('marketplace.orderConfirmationPage.partialTitle') }}
+        .order-confirm__subtitle {{ $t('marketplace.orderConfirmationPage.createdCount', { count: result.created_orders.length }) }}
 
       template(v-if="result.failed_lines.length")
         q-separator.order-confirm__sep
         .order-confirm__failed-head
           q-icon(name="warning", color="warning", size="18px")
-          span Не оформлено позиций: {{ result.failed_lines.length }}
+          span {{ $t('marketplace.orderConfirmationPage.failedCount', { count: result.failed_lines.length }) }}
         ul.order-confirm__failed
           li(v-for="f in result.failed_lines", :key="f.offer_id")
             span.order-confirm__failed-name {{ f.product_name || f.offer_id }}
@@ -89,9 +90,9 @@ q-page.order-confirm.mp-role-orderer(role="region", aria-label="Подтверж
           variant="secondary",
           :loading="cartStore.checkingOut",
           @click="onRetry"
-        ) Повторить оформление остатка
-        BaseButton(variant="ghost", @click="goToCatalog") В каталог
-        BaseButton(variant="primary", @click="goToOrders") К моим заказам
+        ) {{ $t('marketplace.orderConfirmationPage.retryRemainder') }}
+        BaseButton(variant="ghost", @click="goToCatalog") {{ $t('marketplace.orderConfirmationPage.catalogLink') }}
+        BaseButton(variant="primary", @click="goToOrders") {{ $t('marketplace.orderConfirmationPage.myOrdersLink') }}
 </template>
 
 <style scoped lang="scss">

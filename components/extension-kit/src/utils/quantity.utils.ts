@@ -1,4 +1,5 @@
 import { platformSettings } from '../config/platform-settings';
+import { DomainError } from '../errors/domain-error';
 
 /**
  * Утилиты для работы с количествами и символами в платежной системе
@@ -27,7 +28,7 @@ export class QuantityUtils {
     } else if (symbol === rootGovernSymbol) {
       return rootGovernPrecision;
     } else {
-      throw new Error(`Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${rootSymbol}, ${rootGovernSymbol}`);
+      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
   }
 
@@ -38,7 +39,7 @@ export class QuantityUtils {
   static validateSymbol(symbol: string): void {
     if (!this.isSupportedSymbol(symbol)) {
       const { rootSymbol, rootGovernSymbol } = platformSettings().blockchain;
-      throw new Error(`Неподдерживаемый символ: ${symbol}. Поддерживаются только: ${rootSymbol}, ${rootGovernSymbol}`);
+      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
   }
 
@@ -52,7 +53,7 @@ export class QuantityUtils {
     this.validateSymbol(symbol);
 
     if (isNaN(amount) || amount < 0) {
-      throw new Error(`Некорректное числовое значение: ${amount}`);
+      throw DomainError.internal('KIT_NUMBER_INVALID', { value: amount });
     }
 
     const precision = this.getPrecisionForSymbol(symbol);
@@ -71,7 +72,7 @@ export class QuantityUtils {
     this.validateSymbol(symbol);
 
     if (isNaN(amount) || amount < 0) {
-      throw new Error(`Некорректное числовое значение: ${amount}`);
+      throw DomainError.internal('KIT_NUMBER_INVALID', { value: amount });
     }
 
     return `${amount} ${symbol}`;
@@ -85,14 +86,14 @@ export class QuantityUtils {
   static parseQuantityString(quantity: string): { amount: number; symbol: string } {
     const parts = quantity.split(' ');
     if (parts.length !== 2) {
-      throw new Error(`Неверный формат quantity: ${quantity}. Ожидается "число символ"`);
+      throw DomainError.internal('KIT_QUANTITY_FORMAT_INVALID', { quantity });
     }
 
     const [amountStr, symbol] = parts;
     const amount = parseFloat(amountStr);
 
     if (isNaN(amount)) {
-      throw new Error(`Некорректное числовое значение в quantity: ${amountStr}`);
+      throw DomainError.internal('KIT_QUANTITY_AMOUNT_INVALID', { amount: amountStr });
     }
 
     this.validateSymbol(symbol);

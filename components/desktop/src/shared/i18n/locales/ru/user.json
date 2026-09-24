@@ -1,0 +1,383 @@
+{
+  "user": {
+    "addUserButton": {
+      "tooltip": "Добавить пайщика"
+    },
+    "addUserDialog": {
+      "emailExistsRule": "Пользователь с таким email уже существует. Войдите.",
+      "emailHint": "На неё будет отправлено приглашение в кооператив",
+      "emailInvalidRule": "Введите корректный email",
+      "emailLabel": "Электронная почта",
+      "initialAmountHint": "Был оплачен пайщиком при вступлении",
+      "initialAmountLabel": "Размер вступительного взноса",
+      "introLine1": "Вы добавляете действующего пайщика в реестр цифрового кооператива.",
+      "introLine2": "Он получит приглашение на электронную почту и сможет сразу пользоваться",
+      "introLine3": "системой без заполнения заявления на вступление и оплаты взноса —",
+      "introLine4": "это уже сделано ранее вне цифровой системы.",
+      "minimumAmountLabel": "Размер минимального паевого взноса",
+      "positiveAmountRule": "Значение должно быть больше нуля",
+      "resetToDefaultTooltip": "Вернуть значение из настроек кооператива",
+      "selectTypeError": "Выберите тип аккаунта пайщика",
+      "signedAtHint": "Когда пайщик был принят в кооператив",
+      "signedAtLabel": "Дата и время подписания заявления",
+      "signedAtPlaceholder": "год/месяц/день часы:минуты",
+      "spreadInitialCaption": "Вступительный взнос будет добавлен на счёт кошелька кооператива и станет доступен для списания по фонду хозяйственной деятельности.",
+      "spreadInitialTitle": "Добавить вступительный взнос на кошелёк",
+      "stepContactDescription": "Куда отправить приглашение",
+      "stepContactLabel": "Электронная почта",
+      "stepContributionDescription": "Что было оплачено при вступлении",
+      "stepContributionLabel": "Вступительный взнос",
+      "stepProfileDescription": "Кто вступает и его реквизиты",
+      "stepProfileLabel": "Тип и данные пайщика",
+      "submit": "Добавить пайщика",
+      "success": "Пользователь добавлен",
+      "title": "Добавить пайщика"
+    },
+    "batchImport": {
+      "unknownError": "Неизвестная ошибка"
+    },
+    "cardcoopHeaderActions": {
+      "issueLabel": "Выпустить карту кооператора",
+      "openLabel": "Открыть карту кооператора",
+      "openShort": "Открыть карту"
+    },
+    "cardcoopPage": {
+      "cardNumberLabel": "Номер карты",
+      "coopCaption": "Кооператив",
+      "defaultHolderName": "Пайщик",
+      "emptyBody": "Нажмите «Выпустить карту кооператора» — вы перейдёте в сеть карт и войдёте через кооператив, анкету заново заполнять не нужно.",
+      "emptyTitle": "Карта ещё не выпущена",
+      "holderCaption": "Держатель",
+      "ipPrefix": "ИП ",
+      "memberSinceLabel": "Участие с",
+      "membershipLabel": "Членство",
+      "networkLabel": "Сеть карт",
+      "purpose": {
+        "joinText": "При вступлении в другой кооператив анкету не заполняют заново: сведения уже подтверждены вашим кооперативом.",
+        "joinTitle": "Быстрое вступление",
+        "loginText": "В кооперативах сети, где включён вход по карте, вы входите по ней — без нового аккаунта и пароля.",
+        "loginTitle": "Вход в другие кооперативы",
+        "servicesText": "Сервисы кооперативной экономики, которые допускают вход с картой кооператора, узнают вас по ней.",
+        "servicesTitle": "Сервисы вокруг кооперации"
+      },
+      "purposeLeadLine1": "Карта кооператора одна на всю кооперативную экономику. Она хранит членства,",
+      "purposeLeadLine2": "подтверждённые кооперативами, и заменяет анкету там, где вас ещё не знают.",
+      "purposeTitle": "Что даёт карта",
+      "status": {
+        "active": "Подтверждено кооперативом",
+        "pending": "Подтверждается",
+        "rejected": "Отклонено сетью",
+        "revoked": "Прекращено",
+        "unknown": "Состояние неизвестно"
+      }
+    },
+    "certificateQr": {
+      "alt": "Код удостоверения пайщика",
+      "overflowError": "Удостоверение не помещается в код"
+    },
+    "collectPassport": {
+      "divisionCodeLabel": "Код подразделения",
+      "divisionCodeRule": "Код подразделения — в формате 123-456",
+      "intro": "Для договора о полной индивидуальной материальной ответственности нужны ваши паспортные данные. Они сохранятся в вашем профиле пайщика и будут использоваться повторно.",
+      "issuedAtLabel": "Дата выдачи",
+      "issuedByLabel": "Кем выдан",
+      "numberLabel": "Номер паспорта",
+      "numberRule": "Номер паспорта — 6 цифр",
+      "saveAndContinue": "Сохранить и продолжить",
+      "saved": "Паспортные данные сохранены",
+      "seriesLabel": "Серия паспорта",
+      "seriesRule": "Серия паспорта — 4 цифры",
+      "title": "Паспортные данные"
+    },
+    "coopCard": {
+      "ipPrefix": "ИП",
+      "minimumAccountLabel": "Минимальный паевый счёт",
+      "role": {
+        "chairman": "Председатель совета",
+        "member": "Член совета",
+        "participant": "Пайщик"
+      },
+      "usernameLabel": "Имя аккаунта"
+    },
+    "createUser": {
+      "signingProgress": "Подписываем {docTitle}"
+    },
+    "csvParser": {
+      "futureJoinDateError": "Дата вступления должна быть в прошлом",
+      "invalidJoinDateError": "Некорректная дата вступления",
+      "missingFieldsError": "Отсутствуют обязательные поля: {missingFields}",
+      "missingJoinDateError": "Не указана дата вступления",
+      "typeEntrepreneurFull": "Индивидуальные предприниматели",
+      "typeEntrepreneurShort": "ИП",
+      "typeIndividualFull": "Физические лица",
+      "typeIndividualShort": "Физлицо",
+      "typeOrganizationFull": "Юридические лица",
+      "typeOrganizationShort": "Юрлицо"
+    },
+    "emailCodeForm": {
+      "changeEmail": "Изменить адрес",
+      "confirm": "Подтвердить почту",
+      "enterDigitsSuffix": ". Введите шесть цифр из письма.",
+      "resend": "Отправить код повторно",
+      "resendCooldown": "Отправить повторно через {cooldown} с",
+      "sendingTo": "Отправляем код на",
+      "sentTo": "Код отправлен на"
+    },
+    "error": {
+      "accountTypeMissing": "Тип аккаунта не определён",
+      "csvEmptyFile": "Файл пуст",
+      "csvMissingColumns": "Отсутствуют столбцы: {missingColumns}",
+      "csvReadFailed": "Ошибка чтения файла",
+      "passwordLoginUnavailable": "Вход по паролю станет доступен после подключения авторизации кооператива. Пока войдите по ключу доступа.",
+      "sessionEstablishFailed": "Не удалось установить сессию входа. Попробуйте ещё раз или войдите по ключу доступа.",
+      "unknownAccountType": "Неизвестный тип аккаунта: {accountType}"
+    },
+    "importButton": {
+      "label": "Импорт",
+      "tooltip": "Импорт пайщиков"
+    },
+    "importDialog": {
+      "changeType": "Сменить тип",
+      "clear": "Очистить",
+      "column": {
+        "actions": "Действия",
+        "data": "Данные",
+        "email": "Почта",
+        "error": "Ошибка",
+        "name": "Имя/Название",
+        "phone": "Телефон",
+        "status": "Статус",
+        "type": "Тип"
+      },
+      "detail": {
+        "accountNumber": "Р/с",
+        "address": "Адрес",
+        "bank": "Банк",
+        "basis": "Основание",
+        "bik": "БИК",
+        "birthdate": "Дата рождения",
+        "city": "Город",
+        "corrAccount": "Корр. счет",
+        "country": "Страна",
+        "currency": "Валюта",
+        "factAddress": "Факт. адрес",
+        "fullName": "Полное название",
+        "initial": "Вступительный",
+        "inn": "ИНН",
+        "joinDate": "Дата вступления",
+        "kpp": "КПП",
+        "legalAddress": "Юр. адрес",
+        "minimum": "Минимальный",
+        "no": "нет",
+        "ogrn": "ОГРН",
+        "passportCode": "Код подразделения",
+        "passportIssuedAt": "Когда выдан",
+        "passportIssuedBy": "Кем выдан",
+        "passportNumber": "Паспорт номер",
+        "passportSeries": "Паспорт серия",
+        "position": "Должность",
+        "referer": "Реферер",
+        "representative": "Представитель",
+        "shortName": "Краткое название",
+        "spreadInitial": "Взнос в кошелек",
+        "type": "Тип",
+        "yes": "да"
+      },
+      "downloadResults": "Скачать результаты",
+      "downloadTemplate": "Шаблон CSV",
+      "dropzoneHint": "Перетащите CSV-файл или нажмите, чтобы выбрать",
+      "errorCountLabel": "Ошибок: {errorCount}",
+      "fileParsedNotice": "Файл разобран. Записей: {rowsCount}",
+      "hasErrorsWarning": "Есть строки с ошибками",
+      "importDoneAllSuccess": "Импорт завершен: {successCount}",
+      "importDoneMixed": "Импорт завершен. Успешно: {successCount}, Ошибок: {errorCount}",
+      "introLine1": "Массовая загрузка действующих пайщиков из CSV-файла. Выберите тип аккаунтов,",
+      "introLine2": "скачайте шаблон, заполните его данными и загрузите обратно — система",
+      "introLine3": "проверит записи и заведёт пайщиков в реестр без заявлений и оплаты взноса",
+      "introLine4": "(это уже сделано вне цифровой системы).",
+      "loadCoopDataError": "Не удалось загрузить данные кооператива",
+      "noDataError": "Нет данных для импорта",
+      "parseFileError": "Ошибка при разборе файла",
+      "previewTitle": "Предпросмотр ({rowsCount})",
+      "progressLabel": "Прогресс: {current}/{total} ({percent}%)",
+      "resultsTitle": "Результаты импорта",
+      "retryErrors": "Повторить ошибки",
+      "selectTypeError": "Выберите тип аккаунта",
+      "spreadInitialLabel": "Начислить вступительный взнос в кошелёк",
+      "startImport": "Импортировать",
+      "status": {
+        "error": "Ошибка",
+        "pending": "Ожидает",
+        "success": "Успешно"
+      },
+      "stopImport": "Остановить",
+      "successCountLabel": "Успешно: {successCount}",
+      "title": "Импорт пайщиков",
+      "typeEntrepreneurDescription": "ИП с паспортными и банковскими реквизитами",
+      "typeEntrepreneurFull": "Индивидуальные предприниматели",
+      "typeIndividualDescription": "Граждане — частные лица",
+      "typeIndividualFull": "Физические лица",
+      "typeOrganizationDescription": "Организации (ООО, кооперативы и др.) с представителем",
+      "typeOrganizationFull": "Юридические лица",
+      "typeSectionHint": "От типа зависит набор полей в шаблоне импорта.",
+      "typeSectionTitle": "Тип аккаунтов",
+      "uploadSectionHint": "Скачайте шаблон выше, заполните данными пайщиков и загрузите файл сюда.",
+      "uploadSectionTitle": "Загрузка CSV"
+    },
+    "loginForm": {
+      "backToLogin": "Назад ко входу",
+      "cardcoopLogin": "Войти с помощью карты кооператора",
+      "emailLabel": "Электронная почта",
+      "factorAppLabel": "Код из приложения-аутентификатора",
+      "factorEmailLabel": "Код из письма, отправленного на вашу почту",
+      "newPasswordLabel": "Новый пароль",
+      "passwordMismatch": "Пароли не совпадают",
+      "repeatPasswordLabel": "Повторите пароль",
+      "resend": "Отправить код повторно",
+      "resendWithCooldown": "Отправить код повторно ({resendCooldown} с)",
+      "secretLabel": "Пароль или ключ доступа",
+      "setPasswordSubmit": "Задать пароль и войти",
+      "submit": "Войти"
+    },
+    "loginRedirect": {
+      "eyebrow": "Вход",
+      "subtitle": "Запрошенная страница доступна только пайщикам.",
+      "title": "Войдите, чтобы продолжить"
+    },
+    "loginStepHeading": {
+      "migrateSubtitle": "Вход по ключу доступа больше не понадобится",
+      "migrateTitle": "Придумайте пароль",
+      "paneLead": "Личный кабинет пайщика: приложения целевых потребительских программ и общие собрания пайщиков кооператива.",
+      "paneQuote": "Общее собрание пайщиков — высший орган управления кооперативом.",
+      "paneTitle": "С возвращением",
+      "twofactorSubtitle": "Пароль принят — остался код подтверждения",
+      "twofactorTitle": "Подтвердите вход"
+    },
+    "logoutButton": {
+      "errorPrefix": "Ошибка при выходе: ",
+      "label": "Выйти"
+    },
+    "logoutCard": {
+      "errorPrefix": "Ошибка при выходе: ",
+      "hint": "Для повторного входа потребуется ввести ключ доступа, выданный при регистрации.",
+      "submit": "Выйти",
+      "title": "Выйти из приложения"
+    },
+    "paymentMethods": {
+      "accountNumberLabel": "Номер счёта",
+      "bankLabel": "Банк",
+      "bikLabel": "БИК",
+      "corrAccountLabel": "Корр. счёт",
+      "currencyLabel": "Валюта",
+      "emptyBody": "Добавьте банковскую карту или реквизиты для получения платежей от кооператива.",
+      "emptyTitle": "Способы получения платежей не добавлены",
+      "methodBankTransfer": "Банковский перевод",
+      "methodSbp": "Система Быстрых Платежей",
+      "phoneLabel": "Телефон"
+    },
+    "profilePage": {
+      "accountCardTitle": "Учётная запись",
+      "addressLabel": "Адрес",
+      "birthdateLabel": "Дата рождения",
+      "certCardTitle": "Удостоверение пайщика",
+      "certEmptyBody": "Кооператив пока не может заверить удостоверение. Оно появится здесь автоматически, как только заверение станет доступно.",
+      "certEmptyTitle": "Удостоверение ещё не выпущено",
+      "chainLabel": "Цепочка подписей",
+      "cityLabel": "Город",
+      "countdownRefreshing": "обновляем…",
+      "countdownRemaining": "осталось {minutes}:{seconds}",
+      "documentsCardTitle": "Документы и реквизиты",
+      "emptyBody": "Обратитесь к администратору для заполнения профиля",
+      "emptyTitle": "Профиль не заполнен",
+      "factAddressLabel": "Фактический адрес",
+      "innLabel": "ИНН",
+      "ipPrefix": "ИП ",
+      "notEndorsedWarning": "Удостоверение не утверждено АНО",
+      "ogrnLabel": "ОГРН",
+      "orgType": {
+        "coop": "Потребительский кооператив",
+        "ooo": "ООО",
+        "prodcoop": "Производственный кооператив",
+        "unspecified": "Не указан"
+      },
+      "orgTypeLabel": "Тип организации",
+      "passportCodeLabel": "Код подразделения",
+      "passportIssuedAtLabel": "Дата выдачи",
+      "passportIssuedByLabel": "Кем выдан",
+      "passportSeriesNumberLabel": "Серия и номер паспорта",
+      "personalCardTitle": "Личные данные",
+      "phoneLabel": "Телефон",
+      "positionLabel": "Должность",
+      "publicKeyLabel": "Публичный ключ",
+      "representativeLabel": "Представитель",
+      "role": {
+        "chairman": "Председатель совета",
+        "member": "Член совета",
+        "participant": "Пайщик"
+      },
+      "scanHint": "Поднесите код к сканеру проверяющего",
+      "selfChainLabel": "Вы",
+      "shortNameLabel": "Краткое наименование",
+      "showCert": "Показать",
+      "trustAnchorLabel": "АНО Кооперативная Экономика",
+      "usernameLabel": "Имя аккаунта",
+      "validUntil": "Годен до {validUntil}",
+      "verificationLevelLabel": "Уровень верификации"
+    },
+    "resetTwoFactor": {
+      "notEnrolled": "У пайщика приложение-аутентификатор не подключено",
+      "resetSuccess": "Приложение-аутентификатор снято. Пайщик войдёт по паролю и подключит его заново"
+    },
+    "resetTwoFactorAction": {
+      "confirmLine1": "Код из приложения перестанет запрашиваться при входе — пайщик войдёт по",
+      "confirmLine2": "одному паролю и сможет подключить приложение заново на новом устройстве.",
+      "confirmLine3": "Сбрасывайте, когда устройство с кодами утеряно: сам пайщик снять фактор",
+      "confirmLine4": "не может, для отключения нужен действующий код.",
+      "confirmLine5": "Пайщик получит уведомление о снятии защиты, а действие попадёт в журнал",
+      "confirmLine6": "безопасности с вашим именем.",
+      "confirmTitle": "Сброс приложения двойной аутентификации",
+      "disabledHint": "Код при входе временно не запрашивается",
+      "enrolled": "Подключено",
+      "notEnrolled": "Не подключено",
+      "reset": "Сбросить",
+      "title": "Приложение двойной аутентификации"
+    },
+    "verifyEmail": {
+      "invalidCode": "Неверный код"
+    },
+    "verifyEmailAction": {
+      "dialogTitle": "Подтверждение почты",
+      "notVerified": "Не подтверждена",
+      "success": "Электронная почта подтверждена",
+      "verified": "Подтверждена"
+    },
+    "verifyEmailOfferDialog": {
+      "codeWillArrive": "Код придёт на адрес",
+      "postpone": "Позже",
+      "sendCode": "Выслать код",
+      "success": "Электронная почта подтверждена",
+      "textLine1": "Подтверждение нужно, чтобы вы могли вернуть доступ к кабинету, если",
+      "textLine2": "забудете пароль, и получать уведомления кооператива.",
+      "title": "Подтвердите электронную почту"
+    },
+    "verifyIdentity": {
+      "revoked": "Верификация личности отозвана",
+      "verified": "Личность пайщика подтверждена",
+      "verifiedPendingReview": "Личность подтверждена. Сверку проверит совет кооператива"
+    },
+    "verifyIdentityActions": {
+      "confirmLine1": "Подтверждение личности будет снято, и пайщику снова понадобится",
+      "confirmLine2": "предъявить паспорт. Отзывайте, если верификация проведена ошибочно",
+      "confirmLine3": "или данные скомпрометированы.",
+      "confirmRevoke": "Отозвать",
+      "confirmTitle": "Отзыв верификации",
+      "revoke": "Отозвать верификацию",
+      "verify": "Подтвердить личность"
+    },
+    "verifyIdentityDialog": {
+      "photosTitle": "Фотографии сверки",
+      "uploaderHint": "Пайщик держит раскрытый паспорт у лица. Снимки хранятся до решения совета и затем удаляются",
+      "uploaderTitle": "Снимите пайщика с паспортом"
+    }
+  }
+}

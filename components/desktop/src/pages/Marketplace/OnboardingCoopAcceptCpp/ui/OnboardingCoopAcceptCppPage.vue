@@ -4,6 +4,7 @@ import { CouncilOnboardingCard } from 'src/shared/ui/CouncilOnboarding';
 import { BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
 import { useMarketplaceOnboarding } from '../model/composable';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 1 / Эпик 12: L1 — подключение кооперативом ЦПП «Стол заказов».
@@ -29,7 +30,7 @@ const chipVariant = computed<BaseBadgeVariant>(() =>
   isCompleted.value ? 'pos' : 'warn',
 );
 const chipLabel = computed(() =>
-  isCompleted.value ? 'Подключено' : 'Не подключено',
+  isCompleted.value ? t('marketplace.onboardingCoopAcceptCppPage.statusConnected') : t('marketplace.onboardingCoopAcceptCppPage.statusNotConnected'),
 );
 
 onMounted(async () => {
@@ -38,13 +39,13 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.onboarding-l1(role="region", aria-label="Подключение ЦПП Стол заказов")
+q-page.onboarding-l1(role="region", :aria-label="$t('marketplace.onboardingCoopAcceptCppPage.ariaLabel')")
   CouncilOnboardingCard(
     :config="config",
     :loading="loading",
     :submitting="submitting",
-    title="Подключение ЦПП «Стол заказов»",
-    subtitle="Целевая Потребительская Программа должна быть принята Советом кооператива, прежде чем пайщики смогут пользоваться Столом заказов. После принятия останется добавить кооперативные участки и отметить нужные из них пунктами выдачи заказов.",
+    :title="$t('marketplace.onboardingCoopAcceptCppPage.pageTitle')",
+    :subtitle="$t('marketplace.onboardingCoopAcceptCppPage.pageSubtitle')",
     :completion-title="config.completionTitle",
     :completion-message="config.completionMessage",
     @step-submit="handleStepSubmit"

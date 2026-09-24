@@ -57,8 +57,8 @@
   // Проект удалён или недоступен — скелетон крутиться не должен
   .project-page-missing(v-if="notFound")
     EmptyState(
-      title="Проект недоступен"
-      body="Он удалён или закрыт для вас. Ссылку из избранного можно снять звёздочкой в списке."
+      :title="$t('capital.projectPage.unavailableTitle')"
+      :body="$t('capital.projectPage.unavailableBody')"
     )
       template(#icon)
         q-icon(name="folder_off" size="32px")
@@ -150,6 +150,7 @@ import { PendingClearanceButton } from 'app/extensions/capital/shared/ui/Pending
 import { ProjectSidebarWidget } from 'app/extensions/capital/widgets';
 import { ProjectTitleEditor } from 'app/extensions/capital/widgets/ProjectTitleEditor';
 import { useCapitalFabHotkeys, useCapitalWorkspaceRoutes } from 'app/extensions/capital/shared/lib';
+import { t, t as i18nT } from '../../../i18n';
 
 // Используем window size для определения размера экрана
 const { isMobile } = useWindowSize();
@@ -252,19 +253,19 @@ const projectTabs = computed(() => {
   const params = { project_hash: projectHash.value };
 
   const tabs = [
-    { key: routeName('project-description'), label: 'Описание', route: { name: routeName('project-description'), params } },
-    { key: routeName('project-requirements'), label: 'Артефакты', route: { name: routeName('project-requirements'), params } },
-    { key: routeName('project-components'), label: 'Компоненты', route: { name: routeName('project-components'), params } },
-    { key: routeName('project-planning'), label: 'План', route: { name: routeName('project-planning'), params } },
+    { key: routeName('project-description'), label: t('capital.projectPage.descriptionTabLabel'), route: { name: routeName('project-description'), params } },
+    { key: routeName('project-requirements'), label: t('capital.projectPage.artifactsTabLabel'), route: { name: routeName('project-requirements'), params } },
+    { key: routeName('project-components'), label: t('capital.projectPage.componentsTabLabel'), route: { name: routeName('project-components'), params } },
+    { key: routeName('project-planning'), label: t('capital.projectPage.planTabLabel'), route: { name: routeName('project-planning'), params } },
   ];
 
   if (!isLocalProject.value) {
     tabs.push(
-      { key: routeName('project-contributors'), label: 'Участники', route: { name: routeName('project-contributors'), params } },
+      { key: routeName('project-contributors'), label: t('capital.projectPage.contributorsTabLabel'), route: { name: routeName('project-contributors'), params } },
     );
   }
 
-  tabs.push({ key: routeName('project-history'), label: 'История', route: { name: routeName('project-history'), params } });
+  tabs.push({ key: routeName('project-history'), label: t('capital.projectPage.historyTabLabel'), route: { name: routeName('project-history'), params } });
 
   return tabs;
 });
@@ -272,7 +273,7 @@ const projectTabs = computed(() => {
 // Назад — туда, откуда пришли (см. smartBack.ts); при прямом заходе по
 // ссылке истории нет — уходим на канонический список
 useBackButton({
-  text: 'Назад',
+  text: i18nT('common.action.back'),
   componentId: 'project-base-' + projectHash.value,
   onClick: () =>
     goBackOr(router, {

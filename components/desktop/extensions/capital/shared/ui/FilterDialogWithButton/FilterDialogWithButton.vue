@@ -9,7 +9,7 @@ div
     :stretch='stretch',
     :style='style',
     no-wrap,
-    aria-label='Фильтры',
+    :aria-label='$t("capital.filterDialogWithButton.ariaLabel")',
     @click='handleClick'
   )
     q-badge(
@@ -18,7 +18,7 @@ div
       floating
       rounded
     )
-    q-tooltip Фильтры
+    q-tooltip {{ $t('capital.filterDialogWithButton.title') }}
 
   //- Диалог фильтров
   FilterDialog(

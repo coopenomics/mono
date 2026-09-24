@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 export const marketplaceCashierNewPaymentPayloadSchema = z.object({
   cashierName: z.string(),
@@ -19,31 +19,34 @@ export type IPayload = z.infer<typeof marketplaceCashierNewPaymentPayloadSchema>
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новая задача кассиру — выплата поставщику';
-export const id = slugify(name);
+export const name = nt('marketplaceCashierNewPayment.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'novaya-zadacha-kassiru-vyplata-postavschiku';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление кассиру о новой задаче на исходящий платёж поставщику — после закрывающей подписи председателя по акту приёмки.')
+  .i18nKey('marketplaceCashierNewPayment')
+  .description(nt('marketplaceCashierNewPayment.description'))
   .payloadSchema(marketplaceCashierNewPaymentPayloadSchema)
   .tags(['marketplace', 'cashier'])
   .addSteps([
     createEmailStep(
       'marketplace-cashier-new-payment-email',
-      'Новая задача: выплата {{payload.amount}} поставщику {{payload.supplierName}}',
-      'Уважаемый {{payload.cashierName}}!<br><br>По акту приёмки {{payload.apl_reception_id}} требуется выплата поставщику <strong>{{payload.supplierName}}</strong> на сумму <strong>{{payload.amount}}</strong>.<br><br>Откройте стол кассира, чтобы подтвердить факт банковского перевода: {{payload.deepLinkUrl}}'
+      nt('marketplaceCashierNewPayment.email.subject'),
+      nt('marketplaceCashierNewPayment.email.body')
     ),
     createInAppStep(
       'marketplace-cashier-new-payment-notification',
-      'Новая выплата на подтверждение',
-      'Поставщик {{payload.supplierName}} ожидает выплату {{payload.amount}}.'
+      nt('marketplaceCashierNewPayment.inApp.subject'),
+      nt('marketplaceCashierNewPayment.inApp.body')
     ),
     createPushStep(
       'marketplace-cashier-new-payment-push',
-      'Новая выплата на подтверждение',
-      '{{payload.supplierName}}: {{payload.amount}}.'
+      nt('marketplaceCashierNewPayment.push.subject'),
+      nt('marketplaceCashierNewPayment.push.body')
     ),
   ])
   .build();

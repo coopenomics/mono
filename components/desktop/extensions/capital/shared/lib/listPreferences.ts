@@ -1,4 +1,5 @@
 import { computed, ref, type Ref, type ComputedRef } from 'vue';
+import { t } from '../../i18n';
 
 /** Список, к которому относятся настройки: у каждого свои фильтры и сортировка. */
 export type CapitalListScope = 'projects' | 'components' | 'issues';
@@ -40,25 +41,25 @@ export interface ICapitalListPreferences {
 /** Поля сортировки, разрешённые бэкендом (см. whitelist в репозиториях capital). */
 export const CAPITAL_SORT_FIELDS: Record<CapitalListScope, Array<{ value: string; label: string }>> = {
   projects: [
-    { value: '_created_at', label: 'Дата создания' },
-    { value: '_updated_at', label: 'Дата изменения' },
-    { value: 'title', label: 'Название' },
-    { value: 'status', label: 'Статус' },
-    { value: 'priority', label: 'Приоритет' },
+    { value: '_created_at', label: t('capital.listPreferences.sortField.createdAt') },
+    { value: '_updated_at', label: t('capital.listPreferences.sortField.updatedAt') },
+    { value: 'title', label: t('capital.listPreferences.sortField.title') },
+    { value: 'status', label: t('capital.listPreferences.sortField.status') },
+    { value: 'priority', label: t('capital.listPreferences.sortField.priority') },
   ],
   components: [
-    { value: '_created_at', label: 'Дата создания' },
-    { value: '_updated_at', label: 'Дата изменения' },
-    { value: 'title', label: 'Название' },
-    { value: 'status', label: 'Статус' },
-    { value: 'priority', label: 'Приоритет' },
+    { value: '_created_at', label: t('capital.listPreferences.sortField.createdAt') },
+    { value: '_updated_at', label: t('capital.listPreferences.sortField.updatedAt') },
+    { value: 'title', label: t('capital.listPreferences.sortField.title') },
+    { value: 'status', label: t('capital.listPreferences.sortField.status') },
+    { value: 'priority', label: t('capital.listPreferences.sortField.priority') },
   ],
   issues: [
-    { value: '_created_at', label: 'Дата создания' },
-    { value: '_updated_at', label: 'Дата изменения' },
-    { value: 'title', label: 'Название' },
-    { value: 'status', label: 'Статус' },
-    { value: 'priority', label: 'Приоритет' },
+    { value: '_created_at', label: t('capital.listPreferences.sortField.createdAt') },
+    { value: '_updated_at', label: t('capital.listPreferences.sortField.updatedAt') },
+    { value: 'title', label: t('capital.listPreferences.sortField.title') },
+    { value: 'status', label: t('capital.listPreferences.sortField.status') },
+    { value: 'priority', label: t('capital.listPreferences.sortField.priority') },
   ],
 };
 

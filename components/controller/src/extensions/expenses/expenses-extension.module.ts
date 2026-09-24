@@ -1,3 +1,4 @@
+import './i18n';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';

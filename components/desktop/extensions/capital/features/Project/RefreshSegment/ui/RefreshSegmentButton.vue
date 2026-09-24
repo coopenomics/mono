@@ -5,19 +5,19 @@ BaseButton(
   size='sm',
   icon-only,
   :loading='loading',
-  aria-label='Пересчитать результат',
+  :aria-label='$t("capital.refreshSegmentButton.ariaLabel")',
   @click.stop='handleRefreshSegment'
 )
   template(#icon-left)
     q-icon(name='refresh', size='18px')
-  q-tooltip(anchor='bottom middle', self='top middle') Пересчитать результат
+  q-tooltip(anchor='bottom middle', self='top middle') {{ $t('capital.refreshSegmentButton.label') }}
 
 BaseButton(
   v-else,
   variant='primary',
   :loading='loading',
   @click.stop='handleRefreshSegment'
-) Пересчитать результат
+) {{ $t('capital.refreshSegmentButton.label') }}
 </template>
 
 <script setup lang="ts">

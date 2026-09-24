@@ -1,5 +1,6 @@
 import { getJurisdiction, getPersonalIncomeTax } from '@coopenomics/jurisdictions';
 import type { JurisdictionProfile, PersonalIncomeTax } from '@coopenomics/jurisdictions';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Параметры НДФЛ для форм отчётности — ставка, КБК, код вида дохода и
@@ -20,7 +21,7 @@ const RUSSIA = 'Russia';
 /** Профиль российской юрисдикции — форма без него не строится. */
 function russianProfile(): JurisdictionProfile {
   const profile = getJurisdiction(RUSSIA);
-  if (!profile) throw new Error('Справочник российской юрисдикции недоступен');
+  if (!profile) throw DomainError.internal('REPORTS_NDFL_REFERENCE_UNAVAILABLE');
   return profile;
 }
 
@@ -35,9 +36,7 @@ function russianProfile(): JurisdictionProfile {
 export function getNdflParams(reportYear: number): PersonalIncomeTax {
   const params = getPersonalIncomeTax(RUSSIA, `${reportYear}-12-31`);
   if (!params) {
-    throw new Error(
-      `Параметры НДФЛ за ${reportYear} год неизвестны: форма применяется с отчётности за 2025 год`
-    );
+    throw DomainError.internal('REPORTS_NDFL_YEAR_UNSUPPORTED', { reportYear });
   }
   return params;
 }

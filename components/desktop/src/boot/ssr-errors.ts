@@ -15,6 +15,7 @@ import { boot } from 'quasar/wrappers';
 export default boot(({ app, ssrContext }) => {
   if (typeof window !== 'undefined') return;
   app.config.errorHandler = (err, instance, info) => {
+    // i18n-ignore: имя компонента для серверного console.error, пользователю не видно
     const name = instance?.$options?.name ?? instance?.$?.type?.__name ?? 'неизвестный компонент';
     const url = (ssrContext as { req?: { url?: string } } | null | undefined)?.req?.url ?? '';
     console.error(`[ssr] ошибка компонента «${name}» (${info}) на ${url}:`, err instanceof Error ? err.message : err);

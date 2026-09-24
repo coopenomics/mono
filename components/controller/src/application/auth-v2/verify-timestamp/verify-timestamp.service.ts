@@ -17,6 +17,7 @@ import { AuthMetricsService } from '../metrics/auth-metrics.service';
 import { LoginTwoFactorService } from '../login-2fa/login-two-factor.service';
 import type { SecondFactorChallengeResult } from '../login-2fa/login-two-factor.service';
 import { SessionIssueService } from './session-issue.service';
+import { t } from '~/i18n';
 
 /** Окно свежести метки времени против head_block_time, сек (epic AC Story 1.7). */
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -131,17 +132,18 @@ export class VerifyTimestampService {
   private async verifyInternal(input: VerifyTimestampInput): Promise<VerifyTimestampOutcome> {
     // 1. binding_token: подпись (HS256, shared secret 1.6) + exp + sub/jti.
     const secret = config.authV2.sessionBindingSecret;
-    if (!secret) throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'AUTH_V2_SESSION_BINDING_SECRET не сконфигурирован');
+    if (!secret) throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.verifyTimestampService.bindingSecretNotConfiguredMessage'));
 
     let sub: string;
     let jti: string;
     try {
       const { payload } = await jwtVerify(input.bindingToken, new TextEncoder().encode(secret));
+      // i18n-ignore: внутренняя проверка payload jwt, перехватывается и заменяется другой ошибкой для пайщика
       if (!payload.sub || !payload.jti) throw new Error('нет sub/jti');
       sub = payload.sub;
       jti = payload.jti;
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, 'session_binding_token недействителен или истёк');
+      throw new AuthV2Error(AuthV2ErrorCode.SessionBindingExpired, t('authV2.verifyTimestampService.bindingTokenInvalidMessage'));
     }
 
     // 2. single-use jti: потребляем ДО криптопроверки — токен «сгорает» при первой же
@@ -149,7 +151,7 @@ export class VerifyTimestampService {
     const consumed = await this.redis.consumeSingleUse(`${BINDING_JTI_PREFIX}${jti}`);
     if (consumed === null) {
       await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'binding_reused' }, ip: input.ip });
-      throw new AuthV2Error(AuthV2ErrorCode.SessionBindingReused, 'session_binding_token уже использован');
+      throw new AuthV2Error(AuthV2ErrorCode.SessionBindingReused, t('authV2.verifyTimestampService.bindingTokenReusedMessage'));
     }
 
     // 3. окно свежести метки против времени блокчейна (±60s). Полный get_info
@@ -158,12 +160,12 @@ export class VerifyTimestampService {
     try {
       info = await this.blockchainPort.getInfo();
     } catch {
-      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен: не удалось получить время блокчейна');
+      throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.verifyTimestampService.chainTimeUnavailableMessage'));
     }
     const skewSec = Math.abs(new Date(info.head_block_time).getTime() - new Date(input.timestamp).getTime()) / 1000;
     if (!Number.isFinite(skewSec) || skewSec > TIMESTAMP_WINDOW_SEC) {
       await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'timestamp_window' }, ip: input.ip });
-      throw new AuthV2Error(AuthV2ErrorCode.TimestampTooOld, 'Метка времени вне допустимого окна свежести');
+      throw new AuthV2Error(AuthV2ErrorCode.TimestampTooOld, t('authV2.verifyTimestampService.timestampOutOfWindowMessage'));
     }
 
     // 4. восстановить pubkey из подписи по тому же каноническому сообщению, что подписал клиент.
@@ -173,7 +175,7 @@ export class VerifyTimestampService {
       recoveredKey = this.blockchainPort.recoverPublicKey(message, input.signature);
     } catch {
       await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'signature_malformed' }, ip: input.ip });
-      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Не удалось восстановить ключ из подписи');
+      throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.verifyTimestampService.keyRecoveryFailedMessage'));
     }
 
     // 5. сверить восстановленный ключ с активными ключами аккаунта в COOPOS.
@@ -202,7 +204,7 @@ export class VerifyTimestampService {
         !!user.public_key && this.blockchainPort.hasActiveKey(manifestToAccount([user.public_key]), recoveredKey);
       if (!candidateOk) {
         await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'candidate_key_mismatch' }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
+        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.verifyTimestampService.signatureMismatchMessage'));
       }
     }
 
@@ -222,7 +224,7 @@ export class VerifyTimestampService {
     } else if (liveReadOk && liveFinalized) {
       if (!liveAccount || !this.blockchainPort.hasActiveKey(liveAccount, recoveredKey)) {
         await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: 'key_mismatch' }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, 'Подпись не соответствует ключу аккаунта');
+        throw new AuthV2Error(AuthV2ErrorCode.ChainVerificationFailed, t('authV2.verifyTimestampService.signatureMismatchMessage'));
       }
       // обновить снимок активных ключей с M-of-N консенсусом (Story 9.7); best-effort.
       await this.safeRefreshManifest(sub, input.ip);
@@ -236,7 +238,7 @@ export class VerifyTimestampService {
       if (!cacheMatch) {
         const failReason = liveReadOk ? 'key_not_finalized_no_cache' : 'coopos_down_no_cache';
         await this.safeAudit({ event: 'coopid.verify.timestamp', subjectId: sub, result: 'failure', context: { reason: failReason }, ip: input.ip });
-        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, 'COOPOS недоступен/не финализирован и нет валидного кеша ключей для проверки');
+        throw new AuthV2Error(AuthV2ErrorCode.CooposDegraded, t('authV2.verifyTimestampService.cooposUnavailableNoCacheMessage'));
       }
       degraded = true;
       degradedReason = reason;

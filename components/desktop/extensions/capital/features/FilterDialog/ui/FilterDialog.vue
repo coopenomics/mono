@@ -20,13 +20,13 @@ BaseDialog(
           multiple,
           use-chips,
           stack-label,
-          :label='isComponentsScope ? "Статусы компонентов" : "Статусы проектов"',
+          :label='isComponentsScope ? $t("capital.filterDialog.componentStatusesLabel") : $t("capital.filterDialog.projectStatusesLabel")',
           outlined,
           dense
         )
 
       .filter-dialog__field
-        .filter-dialog__group-label {{ isComponentsScope ? "Приоритеты компонентов" : "Приоритеты проектов" }}
+        .filter-dialog__group-label {{ isComponentsScope ? $t("capital.filterDialog.componentPrioritiesLabel") : $t("capital.filterDialog.projectPrioritiesLabel") }}
         .filter-dialog__checks
           BaseCheckbox(
             v-for='opt in priorityOptions',
@@ -40,7 +40,7 @@ BaseDialog(
         ContributorSelector(
           v-model='selectedMaster',
           :coopname='coopname',
-          label='Мастер',
+          :label='$t("capital.filterDialog.masterLabel")',
           placeholder='',
           outlined,
           dense,
@@ -49,7 +49,7 @@ BaseDialog(
       .filter-dialog__field
         BaseCheckbox(
           v-model='onlyMyMaster'
-          label='Где я мастер'
+          :label='$t("capital.filterDialog.whereIAmMasterLabel")'
         )
 
     //- Список задач: фильтруем по самим задачам, дерево проектов сюда не мешаем
@@ -65,7 +65,7 @@ BaseDialog(
           multiple,
           use-chips,
           stack-label,
-          label='Статусы задач',
+          :label='$t("capital.filterDialog.issueStatusesLabel")',
           outlined,
           dense
         )
@@ -81,7 +81,7 @@ BaseDialog(
           multiple,
           use-chips,
           stack-label,
-          label='Приоритеты задач',
+          :label='$t("capital.filterDialog.issuePrioritiesLabel")',
           outlined,
           dense
         )
@@ -91,7 +91,7 @@ BaseDialog(
           v-model='selectedCreator',
           :project-hash='projectHash',
           :coopname='coopname',
-          label='Исполнитель',
+          :label='$t("capital.filterDialog.assigneeLabel")',
           placeholder='',
           outlined,
           dense,
@@ -100,7 +100,7 @@ BaseDialog(
       .filter-dialog__field
         BaseCheckbox(
           v-model='onlyMyIssues'
-          label='Только мои задачи'
+          :label='$t("capital.filterDialog.onlyMyIssuesLabel")'
         )
 
       q-separator.filter-dialog__separator
@@ -109,7 +109,7 @@ BaseDialog(
         ContributorSelector(
           v-model='selectedMaster',
           :coopname='coopname',
-          label='Мастер компонента',
+          :label='$t("capital.filterDialog.componentMasterLabel")',
           placeholder='',
           outlined,
           dense,
@@ -118,11 +118,11 @@ BaseDialog(
       .filter-dialog__field
         BaseCheckbox(
           v-model='onlyMyMaster'
-          label='Где я мастер'
+          :label='$t("capital.filterDialog.whereIAmMasterLabel")'
         )
 
   template(#footer)
-    BaseButton(variant='ghost', @click='handleReset') Сбросить
+    BaseButton(variant='ghost', @click='handleReset') {{ $t('capital.filterDialog.resetAction') }}
 </template>
 
 <script lang="ts" setup>
@@ -140,6 +140,7 @@ import {
   type CapitalListScope,
   type ICapitalListFilters,
 } from 'app/extensions/capital/shared/lib/listPreferences';
+import { t } from '../../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -164,9 +165,9 @@ const isComponentsScope = computed(() => props.scope === 'components');
 
 const dialogTitle = computed(() => {
   if (props.title) return props.title;
-  if (props.scope === 'issues') return 'Фильтры задач';
-  if (props.scope === 'components') return 'Фильтры компонентов';
-  return 'Фильтры проектов';
+  if (props.scope === 'issues') return t('capital.filterDialog.issueFiltersTitle');
+  if (props.scope === 'components') return t('capital.filterDialog.componentFiltersTitle');
+  return t('capital.filterDialog.projectFiltersTitle');
 });
 
 const selfUsername = computed(() => contributorStore.self?.username || '');

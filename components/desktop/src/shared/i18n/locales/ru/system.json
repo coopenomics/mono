@@ -1,0 +1,21 @@
+{
+  "system": {
+    "nodeSyncIndicator": {
+      "blockSuffix": " (блок № {blockNumber})",
+      "disconnectedStatus": "Техническое обслуживание",
+      "laggingStatus": "Идёт синхронизация с блокчейном{blockSuffix}",
+      "syncedStatus": "Данные кооператива синхронизированы{blockSuffix}"
+    },
+    "nodeSyncOverlay": {
+      "aboutHours": "около {hours} ч",
+      "aboutHoursMinutes": "около {hours} ч {restMinutes} мин",
+      "aboutMinutes": "около {minutes} мин",
+      "lessThanMinute": "меньше минуты",
+      "maintenanceText": "Техническое обслуживание..",
+      "remainingLabel": "Осталось {remaining}",
+      "syncDescription": "Обновляем данные кооператива. Рабочий стол откроется, как только синхронизация завершится.",
+      "syncTitle": "Синхронизация с блокчейном",
+      "updatingLabel": "Идёт обновление данных"
+    }
+  }
+}

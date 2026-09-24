@@ -19,7 +19,7 @@
           size='sm'
           outline
           color='grey-7'
-        ) Учтён в взносе
+        ) {{ $t('capital.issueLinkedGitCommitsWidget.countedInContributionBadge') }}
         BaseChip(
           v-if='row.branch && !row.in_default_branch'
           variant='warn'
@@ -27,14 +27,16 @@
         )
           q-icon.q-mr-xs(name='call_split' size='14px')
           | {{ row.branch }}
-          q-tooltip Коммит ещё не дошёл до базовой ветки репозитория
+          q-tooltip {{ $t('capital.issueLinkedGitCommitsWidget.notInBaseBranchHint') }}
       .linked-git-commit-card__meta.text-caption.text-grey-6.q-mt-xs {{ formatCommitted(row.committed_at) }}
       pre.linked-git-commit-card__message(v-if='row.commit_message') {{ row.commit_message }}
 </template>
 
 <script lang="ts" setup>
 import type { Zeus } from '@coopenomics/sdk';
+import { uiLocale } from 'src/shared/i18n';
 import { BaseChip } from 'src/shared/ui/base';
+import { t } from '../../../i18n';
 
 type CapitalIssueLinkedGitCommit = Zeus.ModelTypes['CapitalIssueLinkedGitCommit'];
 
@@ -45,14 +47,14 @@ withDefaults(
     title?: string;
   }>(),
   {
-    title: 'Связанные коммиты',
+    title: t('capital.issueLinkedGitCommitsWidget.title'),
   },
 );
 
 const shortSha = (sha: string) => (sha?.length > 7 ? sha.slice(0, 7) : sha);
 
 const formatCommitted = (d: string | Date) =>
-  new Date(d).toLocaleString('ru-RU', {
+  new Date(d).toLocaleString(uiLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

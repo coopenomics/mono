@@ -24,6 +24,7 @@ import { useDisplayName } from 'src/shared/lib/composables/useDisplayName';
 import { useSystemStore } from 'src/entities/System/model';
 import { WalletPluginCoopId } from '../lib/walletPluginCoopId';
 import { createCoopIdStorage } from '../lib/coopidStorage';
+import { t } from 'src/shared/i18n';
 
 /** Состояние серверной сессии по cookie: гость, действующая, истёкшая, неизвестно. */
 type ServerSessionStatus = 'guest' | 'active' | 'expired' | 'unknown' | null;
@@ -256,16 +257,16 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
         while (!wallet) {
           const pin = await requestPin();
           if (pin === null)
-            throw new Error('Для подписи нужен PIN-код');
+            throw new Error(t('session.error.pinRequired'));
           wallet = await unlockWithPin({ pin, storage }).catch(() => null);
-          if (!wallet) pinError.value = 'Неверный PIN-код';
+          if (!wallet) pinError.value = t('session.store.invalidPinError');
         }
         pinError.value = '';
       } else {
         // Дефолтный PIN — прозрачная разблокировка без спроса.
         const wallet = await unlockWithPin({ storage });
         if (!wallet)
-          throw new Error('CoopID keystore заперт: войдите заново (нет локального ключа)');
+          throw new Error(t('session.error.keystoreLocked'));
       }
     }
     // После любой разблокировки ключ снова доступен подписи документов.
@@ -320,7 +321,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const completePinUnlock = async (pin: string): Promise<boolean> => {
     const wallet = await unlockWithPin({ pin, storage: coopStorage() }).catch(() => null);
     if (!wallet) {
-      pinError.value = 'Неверный PIN-код';
+      pinError.value = t('session.store.invalidPinError');
       return false;
     }
     pinError.value = '';

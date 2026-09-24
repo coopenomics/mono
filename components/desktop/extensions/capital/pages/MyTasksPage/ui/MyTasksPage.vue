@@ -30,11 +30,11 @@ router-view(v-if='!isRoot')
         template(#no-data)
           .list-empty
             q-icon(name='inbox', size='20px')
-            span {{ hasActiveFilters ? 'Нет задач по фильтрам' : 'Нет доступных задач' }}
+            span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
 
       .list-empty(v-else-if='!loading')
         q-icon(name='inbox', size='20px')
-        span {{ hasActiveFilters ? 'Нет задач по фильтрам' : 'Нет доступных задач' }}
+        span {{ hasActiveFilters ? $t('capital.myTasksPage.emptyFilteredText') : $t('capital.myTasksPage.emptyText') }}
 
   //- Диалог назначения компонента свободной задаче (открывается по клику «Без компонента»)
   MoveIssueButton(
@@ -68,6 +68,7 @@ import { useHeaderActions } from 'src/shared/hooks';
 import { useListPreferences } from 'app/extensions/capital/shared/lib';
 import { IssueOverlay } from 'app/extensions/capital/features/Issue/IssueOverlay';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
+import { t } from '../../../i18n';
 
 
 // Задача открывается оверлеем поверх списка (?issue= в адресе)
@@ -103,7 +104,7 @@ const pagination = ref({
 });
 
 const columns = [
-  { name: 'title', label: 'Задача', field: 'title', align: 'left' as const },
+  { name: 'title', label: t('capital.myTasksPage.taskColumnLabel'), field: 'title', align: 'left' as const },
 ];
 
 function formatContext(project: IProject | undefined | null): string {
@@ -146,7 +147,7 @@ async function resolveContexts(issues: IIssue[]) {
 }
 
 function contextLabel(issue: IIssue): string {
-  if (!issue.project_hash) return 'Без компонента';
+  if (!issue.project_hash) return t('capital.myTasksPage.noComponentLabel');
   return contextByHash.value[issue.project_hash] || '';
 }
 
@@ -192,7 +193,7 @@ async function reload() {
     await resolveContexts(items.value);
   } catch (error) {
     console.error(error);
-    FailAlert('Не удалось загрузить задачи');
+    FailAlert(t('capital.myTasksPage.loadError'));
   } finally {
     loading.value = false;
   }

@@ -9,6 +9,7 @@ q-icon.private-shield(
 </template>
 
 <script setup lang="ts">
+import { t } from '../../../../i18n';
 withDefaults(
   defineProps<{
     show?: boolean;
@@ -16,7 +17,7 @@ withDefaults(
   }>(),
   {
     show: true,
-    tooltip: 'Личное — видно только вам',
+    tooltip: t('capital.privateShieldIcon.tooltip'),
   }
 );
 </script>

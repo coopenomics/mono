@@ -6,25 +6,25 @@
   .migration-explainer__hero
     q-icon(name='verified_user', size='28px')
   p.migration-explainer__lead
-    | Кооператив переходит на новую систему идентификации —
-    | цифровое удостоверение пайщика.
+    | {{ $t('security.migrationExplainer.line1') }}
+    | {{ $t('security.migrationExplainer.line2') }}
   ul.migration-explainer__points
     li
       q-icon(name='lock', size='18px')
       span
-        | Для защиты ваших средств, документов и персональных данных
-        | рекомендуем установить пароль: вход в систему будет по email и паролю.
+        | {{ $t('security.migrationExplainer.line3') }}
+        | {{ $t('security.migrationExplainer.line4') }}
     li
       q-icon(name='key_off', size='18px')
       span
-        | Ключ доступа, выданный при регистрации, после установки пароля
-        | больше не потребуется.
+        | {{ $t('security.migrationExplainer.line5') }}
+        | {{ $t('security.migrationExplainer.line6') }}
     li
       q-icon(name='schedule', size='18px')
       span(v-if='inSession')
-        | Установка займёт меньше минуты — выходить из системы не придётся.
+        | {{ $t('security.migrationExplainer.line7NoLogout') }}
       span(v-else)
-        | Установка займёт меньше минуты — после неё вы сразу войдёте в кабинет.
+        | {{ $t('security.migrationExplainer.line7AutoLogin') }}
 </template>
 
 <script lang="ts" setup>

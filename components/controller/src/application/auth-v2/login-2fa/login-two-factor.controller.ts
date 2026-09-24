@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req, UseFilters, UseGuards, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthV2ExceptionFilter } from '../exceptions/auth-v2-exception.filter';
 import { AuthRateLimit } from '../rate-limit/auth-rate-limit.decorator';
@@ -7,6 +7,7 @@ import { LOGIN_IP_RULE } from '../rate-limit/auth-rate-limit.types';
 import { LoginTwoFactorService } from './login-two-factor.service';
 import type { SecondFactorConfirmResult } from './login-two-factor.service';
 import { setSessionCookie } from '../session-cookie/session-cookie';
+import { DomainError } from '@coopenomics/extension-kit';
 
 interface ConfirmBody {
   challenge_token?: string;
@@ -41,7 +42,7 @@ export class LoginTwoFactorController {
     @Res({ passthrough: true }) res: Response
   ): Promise<SecondFactorConfirmResult> {
     if (!body?.challenge_token || !body?.code) {
-      throw new BadRequestException('Требуются challenge_token и code');
+      throw DomainError.badRequest('AUTH_V2_LOGIN_2FA_CHALLENGE_FIELDS_REQUIRED');
     }
     const result = await this.service.confirm({ token: body.challenge_token, code: body.code, ip: req.ip ?? null });
     // Второй фактор пройден, токены выданы — cookie сессии для серверного рендера.
@@ -54,7 +55,7 @@ export class LoginTwoFactorController {
   @UseGuards(AuthRateLimitGuard)
   @AuthRateLimit({ ip: LOGIN_IP_RULE })
   async resend(@Body() body: ResendBody, @Req() req: Request): Promise<{ status: 'sent' }> {
-    if (!body?.challenge_token) throw new BadRequestException('Требуется challenge_token');
+    if (!body?.challenge_token) throw DomainError.badRequest('AUTH_V2_LOGIN_2FA_CHALLENGE_TOKEN_REQUIRED');
     await this.service.resendEmailCode(body.challenge_token, req.ip ?? null);
     return { status: 'sent' };
   }

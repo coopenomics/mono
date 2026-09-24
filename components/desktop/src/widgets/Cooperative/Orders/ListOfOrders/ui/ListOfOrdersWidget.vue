@@ -14,7 +14,7 @@
         :columns='columns',
         :table-colspan='9',
         :loading='onLoading',
-        :no-data-label='"платежи не найдены"',
+        :no-data-label='$t("cooperative.listOfOrdersWidget.noDataLabel")',
         virtual-scroll,
         @virtual-scroll='onScroll',
         :virtual-scroll-target='".scroll-area"',
@@ -51,26 +51,26 @@
             q-td {{ props.row.id }}
             q-td {{ props.row.amount }} {{ props.row.symbol }}
             q-td
-              q-badge(v-if='props.row.details.data.includes("registration")') регистрационный
-              q-badge(v-else) паевой
+              q-badge(v-if='props.row.details.data.includes("registration")') {{ $t('cooperative.listOfOrdersWidget.typeRegistration') }}
+              q-badge(v-else) {{ $t('cooperative.listOfOrdersWidget.typeDeposit') }}
 
             q-td(
               style='max-width: 150px; word-wrap: break-word; white-space: normal'
             ) {{ props.row.username }}
 
             q-td
-              q-badge(v-if='props.row.status === "COMPLETED"', color='teal') обработан
-              q-badge(v-if='props.row.status === "PENDING"', color='orange') ожидание оплаты
-              q-badge(v-if='props.row.status === "FAILED"', color='red') ошибка
-              q-badge(v-if='props.row.status === "PAID"', color='orange') оплачен
-              q-badge(v-if='props.row.status === "REFUNDED"', color='grey') отменён
-              q-badge(v-if='props.row.status === "EXPIRED"', color='grey') истёк
+              q-badge(v-if='props.row.status === "COMPLETED"', color='teal') {{ $t('cooperative.listOfOrdersWidget.statusCompleted') }}
+              q-badge(v-if='props.row.status === "PENDING"', color='orange') {{ $t('cooperative.listOfOrdersWidget.statusPending') }}
+              q-badge(v-if='props.row.status === "FAILED"', color='red') {{ $t('cooperative.listOfOrdersWidget.statusFailed') }}
+              q-badge(v-if='props.row.status === "PAID"', color='orange') {{ $t('cooperative.listOfOrdersWidget.statusPaid') }}
+              q-badge(v-if='props.row.status === "REFUNDED"', color='grey') {{ $t('cooperative.listOfOrdersWidget.statusRefunded') }}
+              q-badge(v-if='props.row.status === "EXPIRED"', color='grey') {{ $t('cooperative.listOfOrdersWidget.statusExpired') }}
             q-td
               SetOrderPaidStatusButton(
                 v-if='!hideActions && ["EXPIRED", "PENDING", "FAILED"].includes(props.row.status)',
                 :id='props.row.id'
               )
-              span.text-grey(v-else-if='!hideActions') нет доступных действий
+              span.text-grey(v-else-if='!hideActions') {{ $t('cooperative.listOfOrdersWidget.noActionsLabel') }}
 
           q-tr.q-virtual-scroll--with-prev(
             v-if='expanded.get(props.row.id)',
@@ -79,9 +79,9 @@
           )
             q-td(colspan='100%')
               div(v-if='props.row.status == "FAILED"')
-                span Причина ошибки: {{ props.row.message ?? 'нет дополнительной информации' }}
+                span {{ $t('cooperative.listOfOrdersWidget.errorReasonLabel', { message: props.row.message ?? $t('cooperative.listOfOrdersWidget.noAdditionalInfo') }) }}
               div(v-else)
-                span нет дополнительной информации
+                span {{ $t('cooperative.listOfOrdersWidget.noAdditionalInfo') }}
 </template>
 <script setup lang="ts">
 import { onMounted, ref, computed, reactive, nextTick } from 'vue';
@@ -91,6 +91,7 @@ import { SetOrderPaidStatusButton } from 'src/features/Payment/SetStatus/ui/SetO
 import OrderCard from './OrderCard.vue';
 import { useWindowSize } from 'src/shared/hooks';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { t } from 'src/shared/i18n';
 
 const paymentStore = usePaymentStore();
 const payments = computed(() => paymentStore.payments);
@@ -199,28 +200,28 @@ const columns: any[] = [
   {
     name: 'amount',
     align: 'left',
-    label: 'Сумма',
+    label: t('cooperative.listOfOrdersWidget.column.amount'),
     field: 'amount',
     sortable: true,
   },
   {
     name: 'type',
     align: 'left',
-    label: 'Тип платежа',
+    label: t('cooperative.listOfOrdersWidget.column.type'),
     field: '',
     sortable: false,
   },
   {
     name: 'username',
     align: 'left',
-    label: 'От кого',
+    label: t('cooperative.listOfOrdersWidget.column.username'),
     field: 'username',
     sortable: true,
   },
   {
     name: 'status',
     align: 'left',
-    label: 'Статус',
+    label: t('cooperative.listOfOrdersWidget.column.status'),
     field: 'status',
     sortable: true,
   },

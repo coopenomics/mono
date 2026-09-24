@@ -2,7 +2,7 @@
 //- Дополнение к вопросу о приёме пайщика: что заявитель рассказал о себе.
 //- Совет читает это рядом с заявлением, прежде чем голосовать.
 .participant-intake-info(v-if='username')
-  CandidateIntakeAnswers(:username='username', title='Сведения от заявителя')
+  CandidateIntakeAnswers(:username='username', :title='$t("decision.participantIntakeInfo.title")')
 </template>
 
 <script setup lang="ts">

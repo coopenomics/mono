@@ -2,6 +2,7 @@ import { z } from 'zod';
 import zodToJsonSchema from 'zod-to-json-schema';
 import type { InnerIntakeJsonSchema } from '@coopenomics/innercoop';
 import type { DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { t } from '../../i18n';
 
 /**
  * Анкета вступления в программу «Генератор».
@@ -24,15 +25,15 @@ function describeField(description: DeserializedDescriptionOfExtension): string 
 
 // Заголовок анкеты виден, только когда анкет у заявителя несколько, — он
 // различает их между собой и не должен повторять подпись поля.
-export const GENERATOR_INTAKE_TITLE = 'Анкета программы «Генератор»';
+export const GENERATOR_INTAKE_TITLE = t('capital.generatorIntake.title');
 
 export const GENERATOR_INTAKE_DESCRIPTION =
-  'Совету кооператива важно понимать, кто вступает в программу «Генератор». Ответьте своими словами.';
+  t('capital.generatorIntake.description');
 
-export const COVER_LETTER_LABEL = 'Сопроводительное письмо';
+export const COVER_LETTER_LABEL = t('capital.generatorIntake.coverLetter.label');
 
 export const COVER_LETTER_NOTE =
-  'Расскажите о себе: чем занимаетесь, какие навыки и опыт готовы приложить в программе «Генератор» и почему хотите участвовать. Письмо прочитает совет кооператива при рассмотрении вашего заявления.';
+  t('capital.generatorIntake.coverLetter.hint');
 
 export const COVER_LETTER_MIN_LENGTH = 200;
 export const COVER_LETTER_MAX_LENGTH = 4000;
@@ -40,14 +41,14 @@ export const COVER_LETTER_MAX_LENGTH = 4000;
 export const COVER_LETTER_MIN_ROWS = 6;
 
 export const COVER_LETTER_PLACEHOLDER =
-  'Начните писать: чем вы занимаетесь, что умеете и над чем хотите работать в программе…';
+  t('capital.generatorIntake.coverLetter.placeholder');
 
-export const RESUME_URL_LABEL = 'Ссылка на резюме';
+export const RESUME_URL_LABEL = t('capital.generatorIntake.resumeUrl.label');
 
 export const RESUME_URL_PLACEHOLDER = 'https://';
 
 export const RESUME_URL_NOTE =
-  'Необязательно, но желательно. Если резюме или портфолио опубликованы (hh.ru, LinkedIn, GitHub, личный сайт, облачный диск), вставьте ссылку.';
+  t('capital.generatorIntake.resumeUrl.hint');
 
 export const RESUME_URL_MAX_LENGTH = 500;
 

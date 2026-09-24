@@ -1,12 +1,12 @@
 <template lang="pug">
 BaseCard(
-  title='Подтверждение входа',
-  subtitle='Дополнительный код при входе по паролю — даже зная пароль, войти без него нельзя.'
+  :title='$t("security.loginSecurityCard.title")',
+  :subtitle='$t("security.loginSecurityCard.subtitle")'
 )
   //- Факторы — надстройка над входом по паролю: без него их некуда спрашивать
   //- (сервер включение тоже отвергает). Гейт — как у PIN-кода ниже по странице.
   BaseBanner(v-if='!passwordReady', variant='info')
-    | Подтверждение входа станет доступно после установки пароля.
+    | {{ $t('security.loginSecurityCard.unavailableNote') }}
 
   template(v-else-if='loading')
     q-skeleton(type='text', width='60%')
@@ -16,11 +16,11 @@ BaseCard(
       .lf__row-main
         .lf__row-title
           q-icon(name='phonelink_lock', size='18px')
-          span Код из приложения-аутентификатора
+          span {{ $t('security.loginSecurityCard.totpTitle') }}
         p.lf__row-hint(v-if='!factors.totp_enrolled')
-          | Приложение ещё не подключено. Подключите его, чтобы запрашивать код при входе.
+          | {{ $t('security.loginSecurityCard.totpNotConnected') }}
         p.lf__row-hint(v-else)
-          | Приложение подключено. Код запрашивается после ввода пароля.
+          | {{ $t('security.loginSecurityCard.totpConnected') }}
       .lf__row-side
         template(v-if='factors.totp_enrolled')
           q-toggle(
@@ -34,13 +34,13 @@ BaseCard(
           variant='primary',
           size='sm',
           @click='enrollOpen = true'
-        ) Подключить
+        ) {{ $t('security.loginSecurityCard.connect') }}
         BaseButton(
           v-else,
           variant='ghost',
           size='sm',
           @click='openCodeDialog("unenroll")'
-        ) Отключить приложение
+        ) {{ $t('security.loginSecurityCard.disconnect') }}
 
     q-separator
 
@@ -48,11 +48,11 @@ BaseCard(
       .lf__row-main
         .lf__row-title
           q-icon(name='mark_email_read', size='18px')
-          span Код на электронную почту
+          span {{ $t('security.loginSecurityCard.emailTitle') }}
         p.lf__row-hint(v-if='!factors.email_available')
-          | Почта не подтверждена — сначала подтвердите её в профиле.
+          | {{ $t('security.loginSecurityCard.emailNotVerified') }}
         p.lf__row-hint(v-else)
-          | Одноразовый код придёт на вашу почту после ввода пароля.
+          | {{ $t('security.loginSecurityCard.emailNote') }}
       .lf__row-side
         q-toggle(
           :model-value='factors.email_enabled',
@@ -72,13 +72,13 @@ BaseCard(
       //- Шестая цифра подтверждает сама — тянуться к кнопке не нужно.
       OtpInput(v-model='confirmCode', :length='6', :error='confirmError', @complete='onConfirmCode')
     template(#footer)
-      BaseButton(variant='secondary', :disabled='saving', @click='codeOpen = false') Отмена
+      BaseButton(variant='secondary', :disabled='saving', @click='codeOpen = false') {{ $t('common.action.cancel') }}
       BaseButton(
         variant='primary',
         :loading='saving',
         :disabled='confirmCode.length !== 6',
         @click='onConfirmCode'
-      ) Подтвердить
+      ) {{ $t('common.action.confirm') }}
 </template>
 
 <script lang="ts" setup>
@@ -90,6 +90,7 @@ import { useSessionStore } from 'src/entities/Session';
 import { api } from '../api';
 import type { ILoginFactors } from '../model';
 import TotpEnrollDialog from './TotpEnrollDialog.vue';
+import { t } from 'src/shared/i18n';
 
 const session = useSessionStore();
 
@@ -114,12 +115,12 @@ const confirmCode = ref('');
 const confirmError = ref('');
 
 const codeDialogTitle = computed(() =>
-  codeAction.value === 'unenroll' ? 'Отключение приложения' : 'Подтверждение изменения',
+  codeAction.value === 'unenroll' ? t('security.loginSecurityCard.disconnectDialogTitle') : t('security.loginSecurityCard.confirmDialogTitle'),
 );
 const codeDialogHint = computed(() =>
   codeAction.value === 'unenroll'
-    ? 'Введите код из приложения, чтобы отключить его. Код при входе перестанет запрашиваться.'
-    : 'Введите код из приложения-аутентификатора, чтобы подтвердить изменение.',
+    ? t('security.loginSecurityCard.disconnectDialogHint')
+    : t('security.loginSecurityCard.confirmDialogHint'),
 );
 
 async function reload(): Promise<void> {
@@ -155,7 +156,7 @@ async function onToggleEmail(target: boolean): Promise<void> {
       totp_enabled: factors.value.totp_enabled,
       email_enabled: target,
     });
-    SuccessAlert(target ? 'Код на почту при входе включён' : 'Код на почту при входе отключён');
+    SuccessAlert(target ? t('security.loginSecurityCard.emailEnabled') : t('security.loginSecurityCard.emailDisabled'));
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -170,7 +171,7 @@ async function onConfirmCode(): Promise<void> {
   try {
     if (codeAction.value === 'unenroll') {
       await api.disableTwoFactor(confirmCode.value);
-      SuccessAlert('Приложение-аутентификатор отключено');
+      SuccessAlert(t('security.loginSecurityCard.totpDisconnected'));
     } else {
       factors.value = await api.saveLoginFactors({
         totp_enabled: pendingTotpTarget.value,
@@ -179,14 +180,14 @@ async function onConfirmCode(): Promise<void> {
       });
       SuccessAlert(
         pendingTotpTarget.value
-          ? 'Код из приложения при входе включён'
-          : 'Код из приложения при входе отключён',
+          ? t('security.loginSecurityCard.totpEnabled')
+          : t('security.loginSecurityCard.totpDisabled'),
       );
     }
     codeOpen.value = false;
     await reload();
   } catch (e: any) {
-    confirmError.value = e?.message || 'Неверный код';
+    confirmError.value = e?.message || t('security.loginSecurityCard.wrongCode');
   } finally {
     saving.value = false;
   }

@@ -4,6 +4,7 @@ import { Cooperative } from 'cooptypes';
 import { RobotChainService, type AutomatorRow, type BoardRow } from './robot-chain.service';
 import { RobotKeyService } from './robot-key.service';
 import { RobotVoteMode } from '../../domain/enums/robot-vote-mode.enum';
+import { t } from '../../i18n';
 
 /** Ноль в time_point_sec — «бессрочно». */
 const ZERO_TIME = '1970-01-01T00:00:00';
@@ -282,10 +283,10 @@ export class RobotRegistryService {
     for (const v of voters) {
       if (!v.follow) continue;
       followBy.set(v.member, v.follow);
-      if (!isVoting(v.follow)) warnings.push(`${v.member} повторяет за ${v.follow}, у которого нет права голоса`);
+      if (!isVoting(v.follow)) warnings.push(t('sovietRobot.registryWarnings.followsNonVoter', { member: v.member, followed: v.follow }));
     }
     for (const cycle of followCycles(followBy)) {
-      warnings.push(`${cycle.join(', ')} повторяют друг за другом — никто не проголосует первым`);
+      warnings.push(t('sovietRobot.registryWarnings.followCycle', { members: cycle.join(', ') }));
     }
     return warnings;
   }

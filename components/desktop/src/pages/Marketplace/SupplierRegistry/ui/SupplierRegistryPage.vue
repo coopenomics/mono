@@ -31,6 +31,7 @@ import {
   SUPPLIER_STATUS_LABEL,
   SUPPLIER_STATUS_VARIANT,
 } from '../types';
+import { t } from 'src/shared/i18n';
 
 /**
  * Реестр поставщиков на столе администратора. Все поставщики проходят через
@@ -90,16 +91,16 @@ const hasPendingRequests = computed(
 const columns = computed<BaseTableColumn<MarketplaceSupplierView>[]>(() => [
   {
     key: 'member',
-    label: 'Поставщик',
+    label: t('marketplace.supplierRegistryPage.column.supplier'),
     width: '280px',
     sortable: true,
     field: (row) => supplierName(row.member_account) || row.member_account,
   },
-  { key: 'model', label: 'Модель', width: '200px', sortable: true, field: 'model' },
-  { key: 'contract', label: 'Договор', width: '220px' },
-  { key: 'status', label: 'Статус', width: '170px', sortable: true, field: 'status' },
+  { key: 'model', label: t('marketplace.supplierRegistryPage.column.model'), width: '200px', sortable: true, field: 'model' },
+  { key: 'contract', label: t('marketplace.supplierRegistryPage.column.contract'), width: '220px' },
+  { key: 'status', label: t('marketplace.supplierRegistryPage.column.status'), width: '170px', sortable: true, field: 'status' },
   ...(hasPendingRequests.value
-    ? [{ key: 'actions', label: 'Решение', width: '230px' } as BaseTableColumn<MarketplaceSupplierView>]
+    ? [{ key: 'actions', label: t('marketplace.supplierRegistryPage.column.decision'), width: '230px' } as BaseTableColumn<MarketplaceSupplierView>]
     : []),
 ]);
 
@@ -128,7 +129,7 @@ async function onApprove(row: MarketplaceSupplierView): Promise<void> {
   acting.value = row.member_account;
   try {
     await approveSupplier({ member_account: row.member_account });
-    SuccessAlert('Поставщик одобрен');
+    SuccessAlert(t('marketplace.supplierRegistryPage.approveSuccessMessage'));
     await load();
   } catch (e) {
     FailAlert(e);
@@ -141,7 +142,7 @@ async function onReject(row: MarketplaceSupplierView): Promise<void> {
   acting.value = row.member_account;
   try {
     await rejectSupplier({ member_account: row.member_account });
-    SuccessAlert('Заявка отклонена');
+    SuccessAlert(t('marketplace.supplierRegistryPage.rejectSuccessMessage'));
     await load();
   } catch (e) {
     FailAlert(e);
@@ -160,7 +161,7 @@ async function onAdd(): Promise<void> {
       contract_number: addNumber.value.trim(),
       contract_date: addDate.value,
     });
-    SuccessAlert('Поставщик добавлен и допущен');
+    SuccessAlert(t('marketplace.supplierRegistryPage.addSuccessMessage'));
     addOpen.value = false;
     addMember.value = '';
     addNumber.value = '';
@@ -176,7 +177,7 @@ async function onAdd(): Promise<void> {
 function contractLabel(row: MarketplaceSupplierView): string {
   if (!row.contract_number) return '—';
   return row.contract_date
-    ? `№ ${row.contract_number} от ${row.contract_date}`
+    ? t('marketplace.supplierRegistryPage.contractNumberText', { number: row.contract_number, date: row.contract_date })
     : `№ ${row.contract_number}`;
 }
 
@@ -194,10 +195,10 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр поставщиков")
+q-page.mp-role-admin.supplier-registry(role="region", :aria-label="$t('marketplace.supplierRegistryPage.pageAriaLabel')")
   PageHint(storage-key="mp:supplier-registry:banner-dismissed")
-    | Все поставщики действуют по договору. Заявку пайщика одобряет председатель;
-    | администратор может добавить поставщика напрямую.
+    | {{ $t('marketplace.supplierRegistryPage.introText1') }}
+    | {{ $t('marketplace.supplierRegistryPage.introText2') }}
 
   BaseTable(
     v-if="loading || items.length",
@@ -229,47 +230,47 @@ q-page.mp-role-admin.supplier-registry(role="region", aria-label="Реестр �
           size="sm",
           :loading="acting === row.member_account",
           @click="onApprove(row)"
-        ) Одобрить
+        ) {{ $t('marketplace.supplierRegistryPage.approveButton') }}
         BaseButton(
           variant="ghost",
           size="sm",
           :disabled="acting === row.member_account",
           @click="onReject(row)"
-        ) Отклонить
+        ) {{ $t('marketplace.supplierRegistryPage.rejectButton') }}
 
   EmptyState(
     v-else,
-    title="Поставщиков пока нет",
-    body="Здесь появятся поставщики кооператива. Добавьте поставщика напрямую или дождитесь заявок."
+    :title="$t('marketplace.supplierRegistryPage.emptyTitle')",
+    :body="$t('marketplace.supplierRegistryPage.emptyBody')"
   )
     template(#icon)
       q-icon(name="storefront", size="48px")
 
-  BaseDialog(v-model="addOpen", title="Добавить поставщика", size="sm")
+  BaseDialog(v-model="addOpen", :title="$t('marketplace.supplierRegistryPage.addDialogTitle')", size="sm")
     template(#default)
       .supplier-registry__form
         BaseInput(
           v-model="addMember",
-          label="Аккаунт поставщика",
-          placeholder="например, ivanov",
+          :label="$t('marketplace.supplierRegistryPage.accountLabel')",
+          :placeholder="$t('marketplace.supplierRegistryPage.accountPlaceholder')",
           mono,
           :disabled="adding"
         )
         BaseInput(
           v-model="addNumber",
-          label="Номер договора",
-          placeholder="например, 17/2026",
+          :label="$t('marketplace.supplierRegistryPage.contractNumberLabel')",
+          :placeholder="$t('marketplace.supplierRegistryPage.contractNumberPlaceholder')",
           :disabled="adding"
         )
         BaseInput(
           v-model="addDate",
           type="date",
-          label="Дата заключения договора",
+          :label="$t('marketplace.supplierRegistryPage.contractDateLabel')",
           :disabled="adding"
         )
     template(#footer)
-      BaseButton(variant="ghost", :disabled="adding", @click="addOpen = false") Отмена
-      BaseButton(variant="primary", :loading="adding", :disabled="!canAdd", @click="onAdd") Добавить
+      BaseButton(variant="ghost", :disabled="adding", @click="addOpen = false") {{ $t('common.action.cancel') }}
+      BaseButton(variant="primary", :loading="adding", :disabled="!canAdd", @click="onAdd") {{ $t('common.action.add') }}
 
   //- Карточка поставщика — оверлеем поверх реестра (?supplier= в адресе):
   //- отдельной страницы у поставщика нет, решение принимается здесь же

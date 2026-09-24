@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, IsOptional, Matches } from 'class-validator';
 import type { ImportContributorDomainInput } from '../../../domain/actions/import-contributor-domain-input.interface';
 
@@ -8,46 +9,46 @@ import type { ImportContributorDomainInput } from '../../../domain/actions/impor
 @InputType('ImportContributorInput')
 export class ImportContributorInputDTO implements ImportContributorDomainInput {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Имя аккаунта пользователя' })
-  @IsNotEmpty({ message: 'Имя аккаунта пользователя не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта пользователя должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.username.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.username.string') })
   username!: string;
 
   @Field(() => String, { description: 'Сумма вклада' })
-  @IsNotEmpty({ message: 'Сумма вклада не должна быть пустой' })
-  @IsString({ message: 'Сумма вклада должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.contributionAmount.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.contributionAmount.string') })
   contribution_amount!: string;
 
   @Field(() => String, { description: 'Номер договора участника' })
-  @IsNotEmpty({ message: 'Номер договора не должен быть пустым' })
-  @IsString({ message: 'Номер договора должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.contributorContractNumber.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.contributorContractNumber.string') })
   contributor_contract_number!: string;
 
   @Field(() => String, { description: 'Дата создания договора участника (в формате DD.MM.YYYY)' })
-  @IsNotEmpty({ message: 'Дата договора не должна быть пустой' })
-  @IsString({ message: 'Дата договора должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.contributorContractCreatedAt.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.contributorContractCreatedAt.string') })
   contributor_contract_created_at!: string;
 
   @Field(() => String, {
     description: 'Номер соглашения Благорост',
   })
-  @IsNotEmpty({ message: 'Номер соглашения Благорост не должен быть пустым' })
-  @IsString({ message: 'Номер соглашения Благорост должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.blagorostAgreementNumber.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.blagorostAgreementNumber.string') })
   blagorost_agreement_number!: string;
 
   @Field(() => String, {
     description: 'Дата соглашения Благорост в формате DD.MM.YYYY',
   })
-  @IsNotEmpty({ message: 'Дата соглашения Благорост не должна быть пустой' })
-  @IsString({ message: 'Дата соглашения Благорост должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.importContributorInput.blagorostAgreementCreatedAt.required') })
+  @IsString({ message: validationMessage('capital.importContributorInput.blagorostAgreementCreatedAt.string') })
   blagorost_agreement_created_at!: string;
 
   @Field(() => String, { description: 'Примечание', nullable: true })
   @IsOptional()
-  @IsString({ message: 'Примечание должно быть строкой' })
+  @IsString({ message: validationMessage('capital.importContributorInput.memo.string') })
   memo?: string;
 }

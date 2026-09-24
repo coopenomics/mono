@@ -1,37 +1,37 @@
 <template lang="pug">
 AuthSplit.invite(
   :eyebrow='coopTitle',
-  title='Приглашение',
-  lead='Кооператив выпустил для вас ключ доступа и цифровой подписи.',
-  quote='Ключ подписывает документы от вашего имени — храните его в менеджере паролей.',
-  step-eyebrow='Приглашение',
-  :heading='token ? "Сохраните ключ" : "Ссылка из письма"',
-  :text='token ? "Новый приватный ключ сгенерирован прямо в вашем браузере." : "Вы получили приглашение на подключение к кооперативу."'
+  :title='$t("registrator.invite.title")',
+  :lead='$t("registrator.invite.lead")',
+  :quote='$t("registrator.invite.quote")',
+  :step-eyebrow='$t("registrator.invite.title")',
+  :heading='token ? $t("registrator.invite.saveKeyHeading") : $t("registrator.invite.linkHeading")',
+  :text='token ? $t("registrator.invite.saveKeyText") : $t("registrator.invite.linkText")'
 )
   template(#actions)
     AuthActions
 
   template(v-if='token')
     p.invite__instruction
-      | Подтвердите, что надёжно сохранили ключ. Рекомендуем хранить его в
-      | бесплатном менеджере паролей, например
+      | {{ $t('registrator.invite.instructionPart1') }}
+      | {{ $t('registrator.invite.instructionPart2') }}
       a.q-ml-xs.invite__link(href='https://bitwarden.com/download', target='_blank') Bitwarden
       | .
 
     BaseBanner(variant='info')
-      | При первом входе по этому ключу мы предложим задать пароль — дальше будете
-      | входить им, а ключ останется запасным способом восстановления доступа.
+      | {{ $t('registrator.invite.keyBannerPart1') }}
+      | {{ $t('registrator.invite.keyBannerPart2') }}
 
     .invite__key(v-if='account && account.private_key')
       .invite__key-head
-        span.invite__key-label Приватный ключ
-        BaseButton(variant='ghost', size='sm', aria-label='Скопировать ключ', @click='copyMnemonic')
+        span.invite__key-label {{ $t('registrator.invite.privateKeyLabel') }}
+        BaseButton(variant='ghost', size='sm', :aria-label='$t("registrator.invite.copyKeyAriaLabel")', @click='copyMnemonic')
           template(#icon-left)
             q-icon(name='content_copy')
-          | Копировать
+          | {{ $t('common.action.copy') }}
       code.invite__key-value {{ account.private_key }}
 
-    BaseCheckbox(v-model='i_save', label='Я сохранил ключ')
+    BaseCheckbox(v-model='i_save', :label='$t("registrator.invite.saveKeyConfirmLabel")')
 
     BaseButton(
       variant='primary',
@@ -39,16 +39,16 @@ AuthSplit.invite(
       :disabled='!i_save',
       :loading='loading',
       @click='finish'
-    ) Установить ключ
+    ) {{ $t('registrator.invite.submit') }}
 
   template(v-else)
     p.invite__instruction
-      | Чтобы продолжить, перейдите по персональной ссылке из письма-приглашения.
-      | В ней содержится одноразовый код, по которому для вас будет выпущен ключ
-      | доступа.
+      | {{ $t('registrator.invite.noTokenPart1') }}
+      | {{ $t('registrator.invite.noTokenPart2') }}
+      | {{ $t('registrator.invite.noTokenPart3') }}
 
   template(#foot)
-    a.auth-link(href='#', @click.prevent='goToSignin') Перейти ко входу
+    a.auth-link(href='#', @click.prevent='goToSignin') {{ $t('registrator.invite.goToSignIn') }}
 </template>
 
 <script lang="ts" setup>
@@ -65,6 +65,7 @@ import { BaseCheckbox } from 'src/shared/ui/base/BaseCheckbox';
 import { useSystemStore } from 'src/entities/System/model';
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { t } from 'src/shared/i18n';
 
 const route = useRoute();
 const router = useRouter();
@@ -87,7 +88,7 @@ const copyMnemonic = () => {
 
   copyToClipboard(toCopy)
     .then(() => {
-      SuccessAlert('Ключ был скопирован в буфер обмена');
+      SuccessAlert(t('registrator.invite.copiedToClipboard'));
     })
     .catch((e) => {
       console.log(e);
@@ -101,7 +102,7 @@ const goToSignin = () => {
 const finish = async () => {
   try {
     if (!account.value) {
-      FailAlert('Возникла ошибка при генерации приватного ключа');
+      FailAlert(t('registrator.invite.genError'));
       return;
     }
     loading.value = true;
@@ -110,7 +111,7 @@ const finish = async () => {
       public_key: account.value.public_key,
     });
 
-    SuccessAlert('Ключ доступа успешно установлен');
+    SuccessAlert(t('registrator.invite.keySetSuccess'));
     loading.value = false;
 
     router.push({ name: 'signin' });

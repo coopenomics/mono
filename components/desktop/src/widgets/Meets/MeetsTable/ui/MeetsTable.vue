@@ -14,7 +14,7 @@ div.scroll-area(style="height: calc(100% - $toolbar-min-height); overflow-y: aut
     :virtual-scroll-sticky-size-start="48"
     :rows-per-page-options="[0]"
     :loading='loading'
-    :no-data-label="'Собрания не найдены'"
+    :no-data-label="$t('meet.meetsTable.noDataLabel')"
   )
     template(#header="props")
       q-tr(:props="props")
@@ -38,7 +38,7 @@ div.scroll-area(style="height: calc(100% - $toolbar-min-height); overflow-y: aut
             icon="fa-solid fa-arrow-right"
             flat
             @click="navigateToMeetDetails(props.row)"
-          ) Подробнее
+          ) {{ $t('meet.meetsTable.details') }}
 </template>
 
 <script setup lang="ts">
@@ -49,6 +49,7 @@ import type { QTableColumn } from 'quasar'
 import { useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
 import { useDesktopStore } from 'src/entities/Desktop/model'
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{
   meets: IMeet[],
@@ -66,11 +67,11 @@ const desktop = useDesktopStore()
 // Колонки для таблицы
 const columns: QTableColumn<IMeet>[] = [
   { name: 'hash', align: 'left', label: 'ID', field: (row: IMeet) => row.hash, sortable: true },
-  { name: 'type', align: 'left', label: 'Тип', field: (row: IMeet) => row.processing?.meet?.type, sortable: true },
-  { name: 'status', align: 'left', label: 'Статус', field: (row: IMeet) => row.processing?.meet?.status, sortable: true },
-  { name: 'open_at', align: 'left', label: 'Дата открытия', field: (row: IMeet) => row.processing?.meet?.open_at, sortable: true },
-  { name: 'close_at', align: 'left', label: 'Дата закрытия', field: (row: IMeet) => row.processing?.meet?.close_at, sortable: true },
-  { name: 'actions', align: 'left', label: 'Действия', field: () => '', sortable: false },
+  { name: 'type', align: 'left', label: t('meet.meetsTable.typeColumn'), field: (row: IMeet) => row.processing?.meet?.type, sortable: true },
+  { name: 'status', align: 'left', label: t('meet.meetsTable.statusColumn'), field: (row: IMeet) => row.processing?.meet?.status, sortable: true },
+  { name: 'open_at', align: 'left', label: t('meet.meetsTable.openAtColumn'), field: (row: IMeet) => row.processing?.meet?.open_at, sortable: true },
+  { name: 'close_at', align: 'left', label: t('meet.meetsTable.closeAtColumn'), field: (row: IMeet) => row.processing?.meet?.close_at, sortable: true },
+  { name: 'actions', align: 'left', label: t('meet.meetsTable.actionsColumn'), field: () => '', sortable: false },
 ]
 
 const tableRef = ref(null)

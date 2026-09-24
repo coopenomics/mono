@@ -1,7 +1,7 @@
 <template lang="pug">
   q-step(
     :name="6"
-    title="Поставка Цифрового Кооператива"
+    :title="$t('connection.installation.stepTitle')"
     icon="cloud_download"
     :done="isDone"
   )
@@ -12,16 +12,16 @@
         //- Заголовок с градиентом
 
         .installation-header
-          .text-h6.installation-title Поставка Цифрового Кооператива
+          .text-h6.installation-title {{ $t('connection.installation.title') }}
           .subtitle.text-body2.text-grey-7.q-mt-sm
-            | с подключением к платформе Кооперативной Экономики
+            | {{ $t('connection.installation.subtitle') }}
 
         //- Основная карточка прогресса
         .progress-card.q-mb-xl
           .progress-header
             .progress-title
               q-icon(name="rocket_launch" size="24px" color="primary").q-mr-sm
-              span.text-subtitle1.text-weight-medium Прогресс поставки
+              span.text-subtitle1.text-weight-medium {{ $t('connection.installation.progress') }}
 
           //- Живой прогресс-бар с анимацией
           .progress-bar-container.q-mt-lg
@@ -36,7 +36,7 @@
           .remaining-time.q-mt-md
             .time-display
               q-icon(name="schedule" size="18px" color="primary").q-mr-sm
-              span.text-body2 Осталось: {{ remainingTime }} мин
+              span.text-body2 {{ $t('connection.installation.remaining', { minutes: remainingTime }) }}
 
           //- Статус текущего этапа
           .current-stage.q-mt-lg
@@ -55,6 +55,7 @@
 import { computed } from 'vue'
 import type { IStepProps } from '../model/types'
 import { useConnectionAgreementStore } from 'src/entities/ConnectionAgreement'
+import { t } from 'src/shared/i18n';
 
 const props = withDefaults(defineProps<IStepProps>(), {})
 
@@ -73,36 +74,36 @@ const currentStageInfo = computed(() => {
     return {
       icon: 'settings',
       color: 'primary',
-      title: 'Подготовка серверного окружения',
-      description: 'Настраиваем инфраструктуру, разворачиваем серверные компоненты'
+      title: t('connection.installation.prepareTitle'),
+      description: t('connection.installation.prepareText')
     }
   } else if (progress < 40) {
     return {
       icon: 'download',
       color: 'info',
-      title: 'Загрузка компонентов Цифрового Кооператива',
-      description: 'Устанавливаем программное обеспечение и зависимости для работы платформы'
+      title: t('connection.installation.loadTitle'),
+      description: t('connection.installation.loadText')
     }
   } else if (progress < 60) {
     return {
       icon: 'storage',
       color: 'warning',
-      title: 'Настройка баз данных и хранилищ',
-      description: 'Разворачиваем базы данных, инициализируем структуры и настраиваем резервное копирование'
+      title: t('connection.installation.dbTitle'),
+      description: t('connection.installation.dbText')
     }
   } else if (progress < 80) {
     return {
       icon: 'security',
       color: 'secondary',
-      title: 'Запуск блокчейн-узла',
-      description: 'Разворачиваем и синхронизируем блокчейн-узел для подключения к Кооперативной Экономике'
+      title: t('connection.installation.nodeTitle'),
+      description: t('connection.installation.nodeText')
     }
   } else {
     return {
       icon: 'check_circle',
       color: 'positive',
-      title: 'Финализация поставки',
-      description: 'Выполняем заключительные настройки, проверяем работоспособность всех компонентов'
+      title: t('connection.installation.finalTitle'),
+      description: t('connection.installation.finalText')
     }
   }
 })

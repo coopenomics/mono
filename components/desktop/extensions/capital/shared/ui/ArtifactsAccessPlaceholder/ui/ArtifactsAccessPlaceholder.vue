@@ -11,6 +11,7 @@ q-card.artifacts-access-placeholder(flat, bordered)
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { t } from '../../../../i18n';
 
 const props = withDefaults(
   defineProps<{
@@ -27,22 +28,22 @@ const props = withDefaults(
 
 const title = computed(() => {
   if (props.pending) {
-    return 'Запрос на допуск рассматривается';
+    return t('capital.artifactsAccessPlaceholder.pendingTitle');
   }
   return props.scope === 'component'
-    ? 'Артефакты компонента доступны участникам'
-    : 'Артефакты проекта доступны участникам';
+    ? t('capital.artifactsAccessPlaceholder.componentDeniedTitle')
+    : t('capital.artifactsAccessPlaceholder.projectDeniedTitle');
 });
 
 const description = computed(() => {
   if (props.pending) {
     return props.scope === 'component'
-      ? 'Когда мастер компонента или председатель подтвердит ваш запрос на допуск, артефакты этого компонента станут видны.'
-      : 'Когда мастер проекта или председатель подтвердит ваш запрос на допуск, артефакты проекта и его компонентов станут видны.';
+      ? t('capital.artifactsAccessPlaceholder.pendingComponentBody')
+      : t('capital.artifactsAccessPlaceholder.pendingProjectBody');
   }
   return props.scope === 'component'
-    ? 'Чтобы открыть артефакты этого компонента, получите допуск к нему или к родительскому проекту.'
-    : 'Чтобы открыть артефакты проекта и его компонентов, получите допуск к проекту.';
+    ? t('capital.artifactsAccessPlaceholder.componentDeniedBody')
+    : t('capital.artifactsAccessPlaceholder.projectDeniedBody');
 });
 
 const showAction = computed(() => true);

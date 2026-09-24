@@ -1,3 +1,4 @@
+import './i18n';
 import { Inject, Module } from '@nestjs/common';
 import { z } from 'zod';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, BaseExtensionModule, DomainToBlockchainUtils } from '@coopenomics/extension-kit';

@@ -6,6 +6,7 @@ import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives'
 import { getCurrentInstance, type CurrentInstance } from '../api'
 import { extractGraphQLErrorMessages } from 'src/shared/api/errors'
 import type { ITariff, IConnectionAgreementState, ICooperativeFormData } from './types'
+import { t } from 'src/shared/i18n';
 
 
 const namespace = 'connection-agreement'
@@ -106,7 +107,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
   const signDocument = async () => {
     const session = useSessionStore()
     if (!document.value) {
-      throw new Error('Документ не найден')
+      throw new Error(t('connectionAgreement.error.documentNotFound'))
     }
 
     await document.value.sign(session.username)
@@ -158,6 +159,7 @@ export const useConnectionAgreementStore = defineStore(namespace, () => {
       currentInstanceError.value = extractGraphQLErrorMessages(error)
 
       // Не устанавливаем Bad Gateway для ошибки "Инстанс не найден"
+      // i18n-ignore: сверка с текстом ответа внешнего сервиса провайдера, кода у него нет
       if (!currentInstanceError.value?.includes('Инстанс не найден')) {
         isBadGateway.value = true
       }

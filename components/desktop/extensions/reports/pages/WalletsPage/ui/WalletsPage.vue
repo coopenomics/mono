@@ -7,13 +7,14 @@
 
 <script setup lang="ts">
 import { PageTabs } from 'src/shared/ui/layout'
+import { t } from '../../../i18n';
 
 // Shell-страница «Реестр кошельков»: канон-меню второго уровня
 // (Кооператив / Пайщики). Кнопка «Перевести» живёт в топбаре —
 // её регистрирует дочерняя CoopWalletsPage через useHeaderActions.
 const tabs = [
-  { key: 'reports-wallets-coop', routeName: 'reports-wallets-coop', label: 'Кооператив', icon: 'apartment' },
-  { key: 'reports-wallets-participants', routeName: 'reports-wallets-participants', label: 'Пайщики', icon: 'groups' },
+  { key: 'reports-wallets-coop', routeName: 'reports-wallets-coop', label: t('reports.walletsPage.tab.coop'), icon: 'apartment' },
+  { key: 'reports-wallets-participants', routeName: 'reports-wallets-participants', label: t('reports.walletsPage.tab.participants'), icon: 'groups' },
 ]
 </script>
 

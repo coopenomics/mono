@@ -4,6 +4,7 @@ import {
   verificationTypeLabel,
   verificationTypeShortLabel,
 } from '@coopenomics/auth';
+import { uiLocale, t } from 'src/shared/i18n';
 import type { BaseBadgeVariant } from 'src/shared/ui/base/BaseBadge';
 
 /**
@@ -54,7 +55,7 @@ export interface ParticipantVerificationView {
 const formatDate = (iso: string): string => {
   if (!iso) return '';
   const date = new Date(/(?:Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : `${iso}Z`);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('ru-RU');
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(uiLocale());
 };
 
 /**
@@ -68,9 +69,9 @@ const formatAttestation = (
   if (!entry.attested_by) return '';
   const who = naming.attestorName?.(entry.attested_by) || entry.attested_by;
   const where = entry.attested_in
-    ? `участок «${naming.branchName?.(entry.attested_in) || entry.attested_in}»`
-    : 'совет кооператива';
-  return `подтвердил ${who}, ${where}`;
+    ? t('verification.verification.attestedAtBranch', { branch: naming.branchName?.(entry.attested_in) || entry.attested_in })
+    : t('verification.verification.councilLabel');
+  return t('verification.verification.attestedBy', { who, where });
 };
 
 /** Подтверждённый уровень, как он приходит из ядра или из удостоверения. */
@@ -95,7 +96,7 @@ export function verificationLevelView(
     short: verificationTypeShortLabel(entry.type),
     label: verificationTypeLabel(entry.type),
     hint: [
-      entry.verified_at ? `с ${formatDate(entry.verified_at)}` : '',
+      entry.verified_at ? t('verification.verification.sinceDate', { date: formatDate(entry.verified_at) }) : '',
       formatAttestation(entry, naming),
     ]
       .filter(Boolean)
@@ -188,22 +189,22 @@ type DateFormatter = (value?: string | null) => string;
 /** Организация: сверяют полномочия представителя и реквизиты юрлица. */
 function organizationFacts(identity: VerificationIdentity): VerificationIdentityFact[] {
   return [
-    { label: 'Представитель', value: identity.representative_name ?? '', wide: true },
-    { label: 'Должность', value: identity.representative_position ?? '' },
-    { label: 'Действует на основании', value: identity.representative_based_on ?? '', wide: true },
-    { label: 'ИНН', value: identity.inn ?? '' },
-    { label: 'ОГРН', value: identity.ogrn ?? '' },
-    { label: 'Юридический адрес', value: identity.full_address ?? '', wide: true },
+    { label: t('verification.verification.representativeLabel'), value: identity.representative_name ?? '', wide: true },
+    { label: t('verification.verification.positionLabel'), value: identity.representative_position ?? '' },
+    { label: t('verification.verification.basedOnLabel'), value: identity.representative_based_on ?? '', wide: true },
+    { label: t('verification.verification.innLabel'), value: identity.inn ?? '' },
+    { label: t('verification.verification.ogrnLabel'), value: identity.ogrn ?? '' },
+    { label: t('verification.verification.legalAddressLabel'), value: identity.full_address ?? '', wide: true },
   ];
 }
 
 /** ИП: паспорта в кооперативе нет, сверяют лицо и регистрационные данные. */
 function entrepreneurFacts(identity: VerificationIdentity, formatDate: DateFormatter): VerificationIdentityFact[] {
   return [
-    { label: 'Дата рождения', value: formatDate(identity.birthdate) },
-    { label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true },
-    { label: 'ИНН', value: identity.inn ?? '' },
-    { label: 'ОГРНИП', value: identity.ogrn ?? '' },
+    { label: t('verification.verification.birthdateLabel'), value: formatDate(identity.birthdate) },
+    { label: t('verification.verification.registrationAddressLabel'), value: identity.full_address ?? '', wide: true },
+    { label: t('verification.verification.innLabel'), value: identity.inn ?? '' },
+    { label: t('verification.verification.ogrnipLabel'), value: identity.ogrn ?? '' },
   ];
 }
 
@@ -211,12 +212,12 @@ function entrepreneurFacts(identity: VerificationIdentity, formatDate: DateForma
 function individualFacts(identity: VerificationIdentity, formatDate: DateFormatter): VerificationIdentityFact[] {
   const passport = [identity.passport_series ?? '', identity.passport_number ?? ''].join(' ').trim();
   return [
-    { label: 'Дата рождения', value: formatDate(identity.birthdate) },
-    { label: 'Серия и номер', value: passport },
-    { label: 'Кем выдан', value: identity.passport_issued_by ?? '', wide: true },
-    { label: 'Дата выдачи', value: formatDate(identity.passport_issued_at) },
-    { label: 'Код подразделения', value: identity.passport_code ?? '' },
-    { label: 'Адрес регистрации', value: identity.full_address ?? '', wide: true },
+    { label: t('verification.verification.birthdateLabel'), value: formatDate(identity.birthdate) },
+    { label: t('verification.verification.passportSeriesLabel'), value: passport },
+    { label: t('verification.verification.issuedByLabel'), value: identity.passport_issued_by ?? '', wide: true },
+    { label: t('verification.verification.issuedAtLabel'), value: formatDate(identity.passport_issued_at) },
+    { label: t('verification.verification.passportCodeLabel'), value: identity.passport_code ?? '' },
+    { label: t('verification.verification.registrationAddressLabel'), value: identity.full_address ?? '', wide: true },
   ];
 }
 
@@ -243,6 +244,6 @@ export function verificationIdentityFacts(
 /** Что именно просят сверить — набор данных зависит от типа пайщика. */
 export function verificationHint(type: string): string {
   return type === 'individual'
-    ? 'Сверьте с оригиналом паспорта все данные выше: фамилию, имя, отчество, дату рождения, серию и номер, кем и когда выдан, код подразделения и адрес регистрации. Подтверждение записывается в цепи от вашего имени и делается один раз.'
-    : 'Сверьте данные выше с документом, удостоверяющим личность, и с документом о полномочиях. Подтверждение записывается в цепи от вашего имени и делается один раз.';
+    ? t('verification.verification.individualHint')
+    : t('verification.verification.organizationHint');
 }

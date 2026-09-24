@@ -1,0 +1,678 @@
+{
+  "reports": {
+    "accountIdCell": {
+      "copyHintLabel": "Клик — копировать",
+      "tooltipLabel": "{name} (клик — копировать)"
+    },
+    "accountsPage": {
+      "allOperationsLabel": "Все операции",
+      "balanceLabel": "Сальдо",
+      "column": {
+        "account": "Счёт",
+        "amount": "Сумма",
+        "date": "Дата",
+        "name": "Наименование",
+        "postingId": "№ проводки",
+        "processId": "№ процесса",
+        "type": "Тип"
+      },
+      "copyError": "Не удалось скопировать",
+      "copyFullHashHintLabel": "Клик — копировать полный хэш",
+      "copyHintLabel": "Клик — копировать",
+      "copySuccess": "Скопировано",
+      "creditLabel": "Кредит",
+      "debitLabel": "Дебет",
+      "emptyLabel": "План счетов не найден",
+      "postingsEmptyLabel": "Проводок нет",
+      "postingsHistoryTitle": "История проводок",
+      "status": {
+        "active": "Активный",
+        "passive": "Пассивный"
+      },
+      "toAccountOperationsLabel": "К операциям счёта",
+      "toOperationLabel": "К операции"
+    },
+    "buhotchEditor": {
+      "addressLabel": "Адрес места нахождения",
+      "addressLengthError": "до 255 символов",
+      "approvedByMeetingHint": "XSD ПрУтвер. Для кооперативов — «да» (утверждает общее собрание).",
+      "approvedByMeetingLabel": "Подлежит утверждению общим собранием",
+      "assetCashLabel": "Денежные средства и денежные эквиваленты",
+      "assetFinInvLabel": "Финансовые и другие оборотные активы",
+      "assetNonMatFinLabel": "Нематериальные, финансовые и др. внеоборотные активы",
+      "assetSectionLabel": "АКТИВ",
+      "assetTotalLabel": "БАЛАНС (актив)",
+      "auditRequiredHint": "XSD ПрАудит. Обычно для кооперативов «нет».",
+      "auditRequiredLabel": "Подлежит обязательному аудиту",
+      "balanceMismatchText": "⚠️ Актив не равен пассиву: Δ = {delta} тыс. ₽. Проверьте корректировки.",
+      "balanceOkText": "Актив = Пассив (расхождение {delta} тыс. ₽ в пределах регламента 0710001).",
+      "balanceSectionTitle": "Бухгалтерский баланс (форма 0710001), тыс. ₽",
+      "column": {
+        "code": "Код",
+        "indicator": "Показатель",
+        "yearPrev": "На 31.12.{year}",
+        "yearPrevPrev": "На 31.12.{year}",
+        "yearReport": "На 31.12.{year}"
+      },
+      "correctionNumberLabel": "Номер корректировки",
+      "docDateLabel": "Дата документа",
+      "innLabel": "ИНН",
+      "kppLabel": "КПП",
+      "notesFileNameHint": "XSD требует непустое значение. Если записки нет — оставьте \"-\".",
+      "notesFileNameLabel": "Имя файла пояснительной записки",
+      "notesSectionTitle": "Пояснения",
+      "okfsLabel": "ОКФС",
+      "okopfLabel": "ОКОПФ",
+      "okpoFormatError": "ОКПО — 8 или 10 цифр",
+      "okpoLabel": "ОКПО",
+      "orgNameLabel": "Наименование организации",
+      "organizationSectionTitle": "Организация",
+      "passiveSectionLabel": "ПАССИВ",
+      "passiveTargetLabel": "Целевые средства (паевой фонд + целевые поступления)",
+      "passiveTotalLabel": "БАЛАНС (пассив)",
+      "reportYearLabel": "Отчётный год",
+      "requiredHint": "обязательно",
+      "signerFirstNameLabel": "Имя",
+      "signerLastNameLabel": "Фамилия",
+      "signerMiddleNameLabel": "Отчество",
+      "signerRepDocLabel": "Документ, подтверждающий полномочия",
+      "signerSectionTitle": "Подписант",
+      "signerType": {
+        "chairmanOption": "1 — руководитель",
+        "representativeOption": "2 — уполномоченный представитель"
+      },
+      "titleSectionTitle": "Титульный лист (КНД 0710096)"
+    },
+    "calendarCell": {
+      "entryCaption": "до {dueDate} · {status}",
+      "monthMenuHeader": "Отчёты за месяц",
+      "reportCount": {
+        "one": "отчёт",
+        "other": "отчёта"
+      },
+      "status": {
+        "beforeRegistration": "Не требуется (до регистрации)",
+        "draft": "Черновик",
+        "empty": "Не сдан",
+        "noData": "Нечего подавать — выплат не было",
+        "notRequired": "Не надо сдавать",
+        "overdue": "Просрочен",
+        "submitted": "Сдан",
+        "submittedExternally": "Сдан (отметка)"
+      },
+      "tooltipLine": "{label} — до {dueDate}, {status}",
+      "tooltipSingle": "Срок: {dueDate}\nСтатус: {status}"
+    },
+    "coopWalletsPage": {
+      "availableLabel": "Доступно",
+      "column": {
+        "amount": "Сумма",
+        "date": "Дата",
+        "memo": "Примечание",
+        "name": "Наименование",
+        "walletFrom": "Из",
+        "walletTo": "В"
+      },
+      "copyError": "Не удалось скопировать",
+      "copyHintLabel": "Клик — копировать",
+      "copySuccess": "Скопировано",
+      "emptyLabel": "Кошельки не найдены",
+      "movementsEmptyLabel": "Движений нет",
+      "movementsTitle": "Движения по кошельку",
+      "toOperationLabel": "К операции",
+      "toOperationsLabel": "К операциям",
+      "transferFromLabel": "Перевести с этого кошелька"
+    },
+    "directionCell": {
+      "direction": {
+        "incoming": "Входящий",
+        "outgoing": "Исходящий",
+        "transfer": "Перевод"
+      }
+    },
+    "documentsArchivePage": {
+      "column": {
+        "archive": "Архив",
+        "file": "Файл",
+        "generatedAt": "Сгенерирован",
+        "period": "Период",
+        "type": "Тип",
+        "validation": "Валидация",
+        "year": "Год"
+      },
+      "downloadError": "Ошибка скачивания",
+      "downloadXmlLabel": "Скачать XML",
+      "errorsLabel": "Ошибки",
+      "reportType": {
+        "buhotch": "Бухотчётность",
+        "dusn": "ДУСН",
+        "efs1": "ЕФС-1",
+        "ndfl6": "НДФЛ-6",
+        "psv": "ПСВ",
+        "rsv": "РСВ",
+        "usn": "УСН",
+        "uvVznosy": "УВ-Взносы"
+      },
+      "reportTypeFilterLabel": "Тип отчёта",
+      "title": "Архив сгенерированных отчётов",
+      "validLabel": "Валиден",
+      "yearFilterLabel": "Год"
+    },
+    "documentsFormsPage": {
+      "column": {
+        "deadline": "Срок сдачи",
+        "periodicity": "Периодичность",
+        "readiness": "Готовность",
+        "report": "Отчёт"
+      },
+      "fillRequisitesLabel": "Заполнить реквизиты",
+      "loadError": "Ошибка загрузки",
+      "missingFieldsLabel": "Не заполнено: {fields}",
+      "openEditorLabel": "Открыть редактор формы",
+      "periodicity": {
+        "monthly": "Ежемесячно",
+        "quarterly": "Ежеквартально",
+        "yearly": "Ежегодно"
+      },
+      "refreshLabel": "Обновить",
+      "requisitesFilledLabel": "Реквизиты заполнены",
+      "requisitesIncompleteLabel": "Не все реквизиты заполнены",
+      "title": "Доступные формы"
+    },
+    "documentsPage": {
+      "tab": {
+        "archive": "Архив",
+        "calendar": "Календарь",
+        "forms": "Список форм"
+      }
+    },
+    "error": {
+      "fetchReportFailed": "Не удалось получить отчёт",
+      "pdfRenderFailed": "PDF: бумажный вид не отрендерился",
+      "requisitesValidationFailed": "Проверьте выделенные поля — есть незаполненные или некорректные значения",
+      "walletAccountResolveFailed": "Не удалось определить бух.счёт для выбранного кошелька"
+    },
+    "install": {
+      "route": {
+        "accountsTitle": "Реестр счетов",
+        "documentsArchiveTitle": "Архив",
+        "documentsCalendarTitle": "Календарь",
+        "documentsFormsTitle": "Список форм",
+        "documentsTitle": "Отчётность",
+        "ndflTitle": "НДФЛ",
+        "operationsTitle": "Реестр операций",
+        "postingsTitle": "Реестр проводок",
+        "processesTitle": "Реестр процессов",
+        "settingsTitle": "Реквизиты",
+        "walletsCoopTitle": "Кооператив",
+        "walletsParticipantsTitle": "Пайщики",
+        "walletsTitle": "Реестр кошельков"
+      },
+      "title": "Стол бухгалтера"
+    },
+    "ndfl6TaxSection": {
+      "birthDateLabel": "Дата рождения",
+      "birthDatePlaceholder": "ДД.ММ.ГГГГ",
+      "certificatesCardTitle": "Справки о доходах",
+      "certificatesHintPart1": "Приложение № 1 — по одной справке на получателя, сдаётся раз в год.",
+      "certificatesHintPart2": "ИНН физического лица не требуется: при его отсутствии у налогового",
+      "certificatesHintPart3": "агента поле не заполняется.",
+      "citizenshipHint": "Код страны по ОКСМ, 643 — Россия",
+      "citizenshipLabel": "Гражданство",
+      "deductionsTotalLabel": "Налоговые вычеты",
+      "documentNumberLabel": "Серия и номер документа",
+      "documentTypeHint": "21 — паспорт гражданина РФ",
+      "documentTypeLabel": "Код вида документа",
+      "incomeTotalLabel": "Сумма дохода",
+      "incomeTotalSummary": "Доход за год: {amount} ₽",
+      "monthsWithPaymentsSummary": "Месяцев с выплатами: {count}",
+      "noPassportBadge": "Нет паспорта",
+      "noPaymentsTitle": "Выплат за год не было",
+      "peopleCountLabel": "Физлиц, получивших доход",
+      "taxBaseLabel": "Налоговая база",
+      "taxCalculatedLabel": "Налог исчисленный, ₽",
+      "taxCardTitle": "Удержанный налог",
+      "taxHintPart1": "Суммы посчитаны по удержаниям из материальной помощи. Итоги — нарастающим",
+      "taxHintPart2": "итогом с начала года, разбивка по срокам — за последний квартал отчётного",
+      "taxHintPart3": "периода. Правьте, только если выплата прошла мимо платформы.",
+      "taxpayerStatusHint": "1 — налоговый резидент РФ",
+      "taxpayerStatusLabel": "Статус налогоплательщика",
+      "termLabel": {
+        "1": "Срок 1 (1–22 первого месяца), ₽",
+        "2": "Срок 2 (23–конец первого месяца), ₽",
+        "3": "Срок 3 (1–22 второго месяца), ₽",
+        "4": "Срок 4 (23–конец второго месяца), ₽",
+        "5": "Срок 5 (1–22 третьего месяца), ₽",
+        "6": "Срок 6 (23–конец третьего месяца), ₽"
+      },
+      "termsCardTitle": "Сроки перечисления",
+      "termsHintPart1": "Шесть сроков последнего квартала: с 1-го по 22-е и с 23-го по последнее",
+      "termsHintPart2": "число каждого месяца.",
+      "termsMismatchWarning": "Больше удержанного за год — проверьте разбивку",
+      "termsSumLabel": "Сумма по срокам: {amount} ₽",
+      "withheldSummary": "Удержано: {amount} ₽",
+      "withheldTotalLabel": "Налог удержанный, ₽"
+    },
+    "ndflPage": {
+      "amountLabel": "Сумма платежа",
+      "bannerLine1": "Удерживая налог с выплат физическим лицам, кооператив выступает налоговым",
+      "bannerLine2": "агентом: деньги остаются на расчётном счёте, а долг перед бюджетом",
+      "bannerLine3": "копится. Гасится он единым налоговым платежом — бухгалтер отправляет",
+      "bannerLine4": "накопленное на оплату, кассир перечисляет по реквизитам налоговой и",
+      "bannerLine5": "прикладывает чек. Расчётный период платежа — тот же, за который подаётся",
+      "bannerLine6": "уведомление об исчисленных суммах НДФЛ.",
+      "cardCaption": "НДФЛ, удержанный с выплат доходов физическим лицам",
+      "cardLabel": "Удержанный налог к перечислению",
+      "cashierFailedLabel": "Кассир не смог заплатить. Причина:",
+      "column": {
+        "amount": "Сумма",
+        "paidAt": "Оплачен",
+        "period": "Расчётный период",
+        "sentAt": "Отправлен",
+        "status": "Состояние"
+      },
+      "emptyBody": "Здесь появятся платежи в бюджет: сумма, расчётный период и чек кассира.",
+      "emptyTitle": "Перечислений пока не было",
+      "inPaymentCaption": "из них {amount} уже у кассира на оплате",
+      "loadMoreLabel": "Загрузить ещё",
+      "loadPaymentsError": "Не удалось загрузить историю перечислений",
+      "loadWithheldError": "Не удалось загрузить удержанный налог",
+      "payDialogHintLine1": "Заявка уйдёт кассиру в реестр исходящих платежей — он перечислит сумму",
+      "payDialogHintLine2": "по реквизитам налоговой и подтвердит перевод. Доступно к перечислению",
+      "payDialogHintLine3": "{available}: больше удержанного отправить нельзя.",
+      "payDialogTitle": "Перечисление налога в бюджет",
+      "paymentPurposeLabel": "Назначение платежа",
+      "rangeEmptyLabel": "0 из {total}",
+      "rangeLabel": "1–{shown} из {total}",
+      "recipientLabel": "Получатель",
+      "sectionTitle": "Перечисления",
+      "sendError": "Не удалось отправить налог на оплату",
+      "sendSuccess": "Отправлено на оплату: {amount}. Заявка ушла кассиру.",
+      "sendToPayLabel": "Отправить на оплату"
+    },
+    "operationsPage": {
+      "chip": {
+        "account": "Счёт {account}{accountSuffix}",
+        "operationNumber": "№ операции {number}",
+        "participant": "Пайщик {name}",
+        "process": "Процесс {hash}",
+        "wallet": "Кошелёк {wallet}{accountSuffix}"
+      },
+      "column": {
+        "amount": "Сумма",
+        "credit": "Кредит",
+        "date": "Дата",
+        "debit": "Дебет",
+        "operation": "Операция",
+        "operationId": "№ операции",
+        "participant": "Пайщик",
+        "processId": "№ процесса",
+        "walletFrom": "Из",
+        "walletTo": "В"
+      },
+      "copyError": "Не удалось скопировать",
+      "copyHintLabel": "Клик — копировать",
+      "copySuccess": "Скопировано",
+      "correctionsOnlyLabel": "Только корректировки",
+      "dateDoneLabel": "Готово",
+      "dateFromLabel": "С даты",
+      "dateToLabel": "По дату",
+      "emptyLabel": "Операции не найдены",
+      "openProcessLabel": "Открыть процесс в реестре процессов",
+      "operationType": {
+        "rollback": "Откат операции",
+        "walletTransfer": "Перевод между кошельками"
+      },
+      "participantLabel": "Пайщик: {name}",
+      "postingsEmptyLabel": "Проводок нет",
+      "postingsTitle": "Проводки по счетам",
+      "processContentTitle": "Содержание процесса",
+      "processIdLabel": "ID процесса:",
+      "processTypeLabel": "Тип процесса:",
+      "resetLabel": "Сбросить",
+      "searchLabel": "Поиск (№ операции / процесса)",
+      "walletMovementsEmptyLabel": "Движений по кошелькам нет",
+      "walletMovementsTitle": "Движения по кошелькам"
+    },
+    "participantWalletsPage": {
+      "column": {
+        "available": "Доступно",
+        "name": "ФИО / Наименование"
+      },
+      "emptyLabel": "Нет пайщиков (status=accepted)",
+      "loadError": "Не удалось загрузить кошельки пайщиков",
+      "operationsLabel": "Операции",
+      "sumByProgramLabel": "Σ по программе",
+      "toOperationsLabel": "К операциям пайщика",
+      "totalLabel": "Итого"
+    },
+    "postingsPage": {
+      "amountLabel": "Сумма",
+      "chip": {
+        "account": "Счёт {account}{accountSuffix}",
+        "operationNumber": "№ операции {number}",
+        "participant": "Пайщик {name}",
+        "postingNumber": "№ проводки {number}",
+        "process": "Процесс {hash}…"
+      },
+      "column": {
+        "amount": "Сумма",
+        "credit": "Кредит",
+        "date": "Дата",
+        "debit": "Дебет",
+        "operation": "Операция",
+        "participant": "Пайщик",
+        "postingId": "№ проводки",
+        "processId": "№ процесса"
+      },
+      "copyError": "Не удалось скопировать",
+      "copyHintLabel": "Клик — копировать",
+      "copySuccess": "Скопировано",
+      "dateDoneLabel": "Готово",
+      "dateFromLabel": "С даты",
+      "dateToLabel": "По дату",
+      "emptyLabel": "Проводки не найдены",
+      "openProcessLabel": "Открыть процесс в реестре процессов",
+      "participantLabel": "Пайщик: {name}",
+      "resetLabel": "Сбросить",
+      "searchLabel": "Поиск (№ проводки / операции / процесса)",
+      "toOperationLabel": "К операции"
+    },
+    "processesPage": {
+      "chip": {
+        "participant": "Пайщик {name}",
+        "process": "Процесс {hash}"
+      },
+      "column": {
+        "amount": "Сумма",
+        "createdAt": "Создан",
+        "lastEvent": "Последнее событие",
+        "participant": "Пайщик",
+        "processType": "Тип процесса"
+      },
+      "copyError": "Не удалось скопировать",
+      "copyFullHashHintLabel": "Клик — копировать полный хэш",
+      "copySuccess": "Скопировано",
+      "emptyLabel": "Процессы не найдены",
+      "kuLabel": "КУ",
+      "kuTooltip": "Кооперативный участок",
+      "processIdLabel": "ID процесса",
+      "processTypeFilterLabel": "Тип процесса",
+      "resetLabel": "Сбросить",
+      "searchLabel": "Поиск (пайщик)",
+      "subjectType": {
+        "branch": "Участок",
+        "participant": "Пайщик"
+      }
+    },
+    "reportEditorDialog": {
+      "actionsLabel": "Действия",
+      "alreadySubmittedText": "Отчёт за этот период уже сдан (XML в архиве)",
+      "deleteDraftError": "Ошибка удаления черновика",
+      "deleteDraftHint": "Вернуть форму к дефолтам",
+      "deleteDraftLabel": "Удалить черновик",
+      "deleteDraftSuccess": "Черновик удалён, форма перезаполнена дефолтами",
+      "downloadForSubmitHint": "Сохраняет черновик, генерирует XML, валидирует XSD и скачивает файл",
+      "downloadForSubmitLabel": "Скачать для отправки",
+      "downloadForViewHint": "Заполненный отчёт в PDF (из бумажного вида)",
+      "downloadForViewLabel": "Скачать для просмотра",
+      "draftLabel": "Черновик",
+      "draftSavedLabel": "Черновик сохранён {time}",
+      "emptyResponseError": "Пустой ответ от сервера",
+      "errorsCountLabel": "Ошибок: {count}",
+      "formErrorsText": "Есть {count} ошибок в полях формы — исправьте перед скачиванием.",
+      "formLoadError": "Ошибка загрузки формы",
+      "formValidLabel": "Форма валидна",
+      "goToRequisitesLabel": "Перейти к реквизитам",
+      "hideLabel": "Скрыть",
+      "markNotRequiredConfirm": "Отметить период как «не надо сдавать»? В календаре ячейка станет серой.",
+      "markNotRequiredHint": "Отметить, что этот период сдавать не нужно — ячейка станет серой",
+      "markNotRequiredLabel": "Не надо сдавать",
+      "markSetError": "Ошибка установки отметки",
+      "markSetSuccess": "Отметка поставлена",
+      "markSubmittedHint": "Если отчёт уже сдан в бумаге / через стороннюю систему. В архив XML не попадает, но ячейка станет зелёной.",
+      "markSubmittedLabel": "Отметить сданным",
+      "markSubmittedOffPlatformConfirm": "Отметить период как сданный вне платформы? В календаре ячейка станет зелёной ",
+      "markSubmittedOffPlatformConfirmSuffix": "(с обводкой — отличие от фактически сгенерированного XML).",
+      "markUnsetSuccess": "Отметка снята",
+      "markedNotRequiredText": "Период отмечен как «не надо сдавать»",
+      "markedSubmittedOffPlatformText": "Период отмечен как «сдан вне платформы»",
+      "newLabel": "Новый",
+      "pdfExportUnsupported": "PDF-экспорт для {reportTitle} пока не поддерживается",
+      "pdfGenerateError": "Ошибка генерации PDF",
+      "periodSuffixLabel": " · период {period}",
+      "regenerateError": "Ошибка перегенерации",
+      "regenerateHint": "Подтянуть актуальные данные из реестра; ваши правки сохраняются",
+      "regenerateLabel": "Перегенерировать",
+      "regenerateSuccess": "Свежие данные подтянуты, ваши правки сохранены",
+      "reportType": {
+        "buhotch": "Бухотчётность (КНД 0710096)",
+        "contributionsNotice": "Уведомление о взносах",
+        "efs1": "ЕФС-1",
+        "ndfl6": "6-НДФЛ",
+        "ndflNotice": "Уведомление об исчисленном НДФЛ",
+        "psv": "Персонифицированные сведения",
+        "rsv": "РСВ",
+        "usn": "Декларация УСН",
+        "usnNotice": "Уведомление УСН"
+      },
+      "reportTypeMissingTitle": "Тип отчёта не задан",
+      "requisitesRequiredText": "Для отчёта «{reportTitle}» не хватает обязательных полей. Заполните их в разделе «Реквизиты», после чего вернитесь сюда.",
+      "requisitesRequiredTitle": "Сначала заполните реквизиты",
+      "restoreStatusHint": "Вернуть обычный статус периода",
+      "savingLabel": "Сохраняем…",
+      "tab": {
+        "balance": "Баланс",
+        "header": "Шапка",
+        "notes": "Пояснения",
+        "organization": "Организация",
+        "signer": "Подписант"
+      },
+      "title": "{reportTitle} за {year}{periodSuffix}",
+      "unmarkConfirm": "Снять отметку? Статус периода вернётся к обычному.",
+      "unmarkLabel": "Снять отметку",
+      "xmlGenerateError": "Ошибка генерации XML",
+      "xmlGeneratedSuccess": "XML сгенерирован и прошёл XSD-валидацию"
+    },
+    "reportsCalendar": {
+      "currentYearLabel": "Текущий год",
+      "emptyState": "Нет данных по формам",
+      "loadError": "Ошибка загрузки календаря",
+      "month": {
+        "apr": "Апр",
+        "aug": "Авг",
+        "dec": "Дек",
+        "feb": "Фев",
+        "jan": "Янв",
+        "jul": "Июл",
+        "jun": "Июн",
+        "mar": "Мар",
+        "may": "Май",
+        "nov": "Ноя",
+        "oct": "Окт",
+        "sep": "Сен"
+      },
+      "nextYearLabel": "Следующий год",
+      "periodKind": {
+        "monthly": "ежемесячная",
+        "quarterly": "квартальная",
+        "semiMonthly": "дважды в месяц",
+        "yearly": "годовая"
+      },
+      "prevYearLabel": "Предыдущий год",
+      "refreshLabel": "Обновить",
+      "title": "Календарь отчётности {year} год"
+    },
+    "requisiteField": {
+      "formatError": "Некорректный формат",
+      "lengthError": "Допустимая длина: {digits} цифр",
+      "or": "или",
+      "requiredError": "Обязательное поле"
+    },
+    "settingsPage": {
+      "chairmanPositionLabel": "Должность председателя",
+      "chairmanPositionPlaceholder": "Председатель",
+      "classifier": {
+        "okfsLabel": "ОКФС",
+        "okfsPlaceholder": "1–3 цифры",
+        "okopfLabel": "ОКОПФ",
+        "okopfPlaceholder": "5 цифр",
+        "okpoLabel": "ОКПО",
+        "okpoPlaceholder": "8 или 10 цифр",
+        "oktmoLabel": "ОКТМО",
+        "oktmoPlaceholder": "8 или 11 цифр",
+        "okvedFormatError": "Формат: XX.XX или XX.XX.XX",
+        "okvedLabel": "ОКВЭД",
+        "okvedPlaceholder": "XX.XX или XX.XX.XX"
+      },
+      "classifiersHint": "ОКВЭД, ОКФС, ОКОПФ, ОКТМО, ОКПО — обязательны для большинства отчётов ФНС",
+      "classifiersTitle": "Классификаторы",
+      "field": {
+        "address": "Адрес",
+        "inn": "ИНН",
+        "kpp": "КПП",
+        "ogrn": "ОГРН",
+        "orgName": "Наименование",
+        "phone": "Телефон",
+        "signerFirstName": "Имя подписанта",
+        "signerLastName": "Фамилия подписанта",
+        "signerMiddleName": "Отчество подписанта"
+      },
+      "loadError": "Ошибка загрузки реквизитов",
+      "orgRequisitesHint": "Справочные данные кооператива — не редактируются",
+      "orgRequisitesTitle": "Реквизиты организации",
+      "pfrNumberFormatError": "Формат: XXX-XXX-XXXXXX (12 цифр с тире)",
+      "pfrNumberLabel": "Рег. номер ПФР",
+      "saveButtonLabel": "Сохранить реквизиты",
+      "saveError": "Ошибка сохранения",
+      "saveSuccess": "Реквизиты сохранены",
+      "sfrHint": "Регистрационные номера страхователя и должность председателя",
+      "sfrNumberFormatError": "Формат: 10 цифр без разделителей",
+      "sfrNumberLabel": "Рег. номер СФР",
+      "sfrNumberPlaceholder": "10 цифр",
+      "sfrTitle": "СФР/ПФР (для ЕФС-1)",
+      "signerHint": "Кто подписывает отчёты: председатель или представитель (по доверенности)",
+      "signerInnFormatError": "Формат: 12 цифр",
+      "signerInnLabel": "ИНН подписанта",
+      "signerInnPlaceholder": "12 цифр",
+      "signerRepDocLabel": "Документ представителя",
+      "signerRepDocPlaceholder": "Доверенность № X от DD.MM.YYYY",
+      "signerSnilsFormatError": "Формат: XXX-XXX-XXX XX (11 цифр)",
+      "signerSnilsLabel": "СНИЛС подписанта",
+      "signerTitle": "Подписант",
+      "signerType": {
+        "chairman": "Председатель",
+        "representative": "Представитель"
+      },
+      "signerTypeLabel": "Тип подписанта"
+    },
+    "transferWalletsButton": {
+      "label": "Перевести",
+      "tooltip": "Корректировка: перевод между кошельками одного бух.счёта"
+    },
+    "uvNdflAmountSection": {
+      "amountLabel": "Сумма налога, ₽",
+      "hintPart1": "Сумма посчитана по налогу, удержанному из материальной помощи за этот",
+      "hintPart2": "период. Уведомление подаётся только за периоды с удержаниями — если",
+      "hintPart3": "выплат не было, подавать нечего.",
+      "noWithholdingsHint": "За этот период удержаний не было — выберите период, в котором была выплата",
+      "periodLabel": "Расчётный период",
+      "title": "Налог к перечислению"
+    },
+    "uvNdflEdits": {
+      "month": {
+        "april": "Апрель",
+        "august": "Август",
+        "december": "Декабрь",
+        "february": "Февраль",
+        "january": "Январь",
+        "july": "Июль",
+        "june": "Июнь",
+        "march": "Март",
+        "may": "Май",
+        "november": "Ноябрь",
+        "october": "Октябрь",
+        "september": "Сентябрь"
+      },
+      "periodHalf": {
+        "first": "с 1 по 22 число",
+        "second": "с 23 по последнее число"
+      }
+    },
+    "walletIdCell": {
+      "copyHintLabel": "Клик — копировать",
+      "tooltipLabel": "{name} (клик — копировать)"
+    },
+    "walletTransferDialog": {
+      "accountLabel": "Бух.счёт",
+      "amountHint": "До 4 знаков после запятой",
+      "amountLabel": "Сумма (RUB)",
+      "amountPositiveError": "Сумма должна быть положительной",
+      "availableWalletsHint": "Доступно {count} {word} на счёте",
+      "crossAccountHint": "Перевод между разными счетами требует решения совета.",
+      "descriptionLine1": "Перевод между кошельками одного бухгалтерского счёта без изменения сальдо счёта.",
+      "descriptionLine2": "Доступен только председателю.",
+      "fromWalletLabel": "Из кошелька",
+      "fromWalletRequiredError": "Выберите кошелёк-источник",
+      "insufficientFundsError": "Недостаточно средств (доступно {available})",
+      "noOtherWalletsText": "Нет других кошельков на бух.счёте {account}.",
+      "noWalletsHint": "На этом бух.счёте нет других кошельков",
+      "optionAvailableLabel": "Доступно: {available}",
+      "reasonLabel": "Обоснование",
+      "reasonRequiredError": "Обязательно — укажите причину перевода",
+      "sameWalletError": "Источник и получатель не должны совпадать",
+      "submitLabel": "Перевести",
+      "title": "Перевод между кошельками",
+      "toWalletLabel": "В кошелёк",
+      "toWalletRequiredError": "Выберите кошелёк-получатель",
+      "transferSuccess": "Перевод выполнен",
+      "walletWord": "кошелёк | кошелька | кошельков"
+    },
+    "walletsPage": {
+      "tab": {
+        "coop": "Кооператив",
+        "participants": "Пайщики"
+      }
+    },
+    "zeroReportEditor": {
+      "chairmanInnLabel": "ИНН председателя",
+      "chairmanSnilsLabel": "СНИЛС председателя",
+      "correctionNumberLabel": "Номер корректировки",
+      "firstNameLabel": "Имя",
+      "innLabel": "ИНН",
+      "kppLabel": "КПП",
+      "lastNameLabel": "Фамилия",
+      "middleNameLabel": "Отчество",
+      "ogrnLabel": "ОГРН",
+      "oktmoLabel": "ОКТМО",
+      "okvedLabel": "ОКВЭД",
+      "orgNameLabel": "Наименование организации",
+      "organizationTitle": "Организация",
+      "periodLabel": {
+        "month": "Месяц (1-12)",
+        "quarter": "Квартал (1-4)",
+        "semiMonth": "Расчётный период (1-24)"
+      },
+      "pfrRegNumberLabel": "Регистрационный номер ПФР",
+      "readonlyHint": "Данные берутся из Реквизитов — правка доступна только там",
+      "repDocLabel": "Документ, подтверждающий полномочия",
+      "reportTitle": {
+        "dusn": "Декларация УСН (КНД 1152017)",
+        "fss4": "ЕФС-1 — СФР (приказ №1462)",
+        "ndfl6": "Расчёт 6-НДФЛ (КНД 1151100)",
+        "psv": "ПСВ — Персонифицированные сведения (КНД 1151162)",
+        "rsv": "РСВ — Расчёт по страховым взносам (КНД 1151111)",
+        "uusn": "Уведомление об исчисленных суммах УСН (КНД 1110355)",
+        "uvNdfl": "Уведомление об исчисленном НДФЛ (КНД 1110355)",
+        "uvVznosy": "Уведомление об исчисленных взносах (КНД 1110355)"
+      },
+      "reportYearLabel": "Отчётный год",
+      "signerPositionLabel": "Должность подписанта",
+      "signerTitle": "Подписант",
+      "signerType": {
+        "chairman": "1 — руководитель",
+        "representative": "2 — уполномоченный представитель"
+      }
+    }
+  }
+}

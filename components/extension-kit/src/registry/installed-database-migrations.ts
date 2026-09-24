@@ -24,6 +24,7 @@ let migrations: ReadonlyArray<ExtensionDatabaseMigrationClass> | undefined;
 export function registerExtensionDatabaseMigrations(list: ReadonlyArray<ExtensionDatabaseMigrationClass>): void {
   if (migrations) {
     throw new Error(
+      // i18n-ignore: ошибка сборки composition root для разработчика, до пайщика не доходит
       'Миграции таблиц расширений уже объявлены: registerExtensionDatabaseMigrations() вызывается один раз при старте'
     );
   }

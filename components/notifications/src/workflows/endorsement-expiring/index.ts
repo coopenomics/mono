@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Заверение кооператива в цепочке доверия подходит к концу срока. Пока оно
 // действует, удостоверения пайщиков проходят проверку; как только истечёт —
@@ -20,31 +20,34 @@ export type IPayload = z.infer<typeof endorsementExpiringPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Заверение кооператива в цепочке доверия истекает';
-export const id = slugify(name);
+export const name = nt('endorsementExpiring.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'zaverenie-kooperativa-v-tsepochke-doveriya-istekaet';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Предупреждение председателю о том, что признание кооператива в цепочке доверия скоро закончится и удостоверения пайщиков перестанут подтверждаться')
+  .i18nKey('endorsementExpiring')
+  .description(nt('endorsementExpiring.description'))
   .payloadSchema(endorsementExpiringPayloadSchema)
   .tags(['chairman'])
   .addSteps([
     createEmailStep(
       'endorsement-expiring-email',
-      'Заверение {{payload.short_abbr}} {{payload.name}} истекает через {{payload.daysLeft}} дн.',
-      'Уважаемый {{payload.chairmanName}}!<br><br>Признание {{payload.short_abbr}} {{payload.name}} в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.<br><br>Пока оно действует, удостоверения пайщиков проходят проверку. После истечения удостоверения продолжат выпускаться, но проверяющий увидит, что принадлежность кооператива к цепочке не подтверждена.<br><br>Продлить заверение может только тот, кто его выдал.'
+      nt('endorsementExpiring.email.subject'),
+      nt('endorsementExpiring.email.body')
     ),
     createInAppStep(
       'endorsement-expiring-notification',
-      'Заверение истекает',
-      'Признание {{payload.short_abbr}} {{payload.name}} в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.'
+      nt('endorsementExpiring.inApp.subject'),
+      nt('endorsementExpiring.inApp.body')
     ),
     createPushStep(
       'endorsement-expiring-push',
-      'Заверение истекает',
-      'Признание в цепочке доверия действует до {{payload.expiresAt}} — осталось {{payload.daysLeft}} дн.'
+      nt('endorsementExpiring.push.subject'),
+      nt('endorsementExpiring.push.body')
     ),
   ])
   .build();

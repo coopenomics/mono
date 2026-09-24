@@ -1,7 +1,7 @@
 <template lang="pug">
 div
-  | ChatWoot инициализируется глобально через boot файл.
-  | Для тестирования используйте кнопку "Поддержка" в левом меню или командную панель (Ctrl/Cmd + K).
+  | {{ $t('support.supportTrigger.chatwootNote') }}
+  | {{ $t('support.supportTrigger.testHint') }}
 </template>
 
 <script setup lang="ts">

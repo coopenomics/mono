@@ -1,7 +1,7 @@
 <template lang="pug">
   q-step(
     :name="5"
-    title="Ожидание подтверждения"
+    :title="$t('connectionAgreementStepper.approvalWaitingStep.title')"
     icon="schedule"
     :done="isDone"
   )
@@ -19,21 +19,21 @@
               clickable
             )
             .pulse-ring(v-if="instance?.blockchain_status !== 'active'")
-          .waiting-title.text-h5.text-weight-medium.text-primary Ожидание подтверждения союза
+          .waiting-title.text-h5.text-weight-medium.text-primary {{ $t('connectionAgreementStepper.approvalWaitingStep.waitingTitle') }}
 
         //- Статусная информация
         .status-info.q-mt-lg
           .status-description.text-body1.text-on-surface
-            | Все технические подготовки завершены. Ваш Цифровой Кооператив готов к установке и подключению к платформе Кооперативной Экономики.
-            | Теперь мы ожидаем подтверждения от представителя союза о готовности произвести стандартизацию вашего документооборота.
-            | Когда оно будет получено - установка продолжится автоматически.
+            | {{ $t('connectionAgreementStepper.approvalWaitingStep.statusLine1') }}
+            | {{ $t('connectionAgreementStepper.approvalWaitingStep.statusLine2') }}
+            | {{ $t('connectionAgreementStepper.approvalWaitingStep.statusLine3') }}
 
     //- Навигация
     q-stepper-navigation.q-gutter-sm
       q-btn(
         color="grey-6"
         flat
-        label="Назад"
+        :label="$t('common.action.back')"
         @click="handleBack"
       )
 </template>

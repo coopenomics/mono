@@ -3,8 +3,8 @@
   //- Пустое состояние — канон EmptyState на surface (без серой «прижатой» зоны q-table)
   EmptyState(
     v-if='!loading && candidates.length === 0',
-    title='У вас пока нет приглашений',
-    body='Приглашайте новых участников по своей ссылке. При каждой регистрации создаётся связь на 30 дней: если в этот период приглашённый внесёт денежный взнос в проект, вы получите 5% от суммы в виде доли в ОАП того же проекта.'
+    :title='$t("capital.invitationsListWidget.emptyTitle")',
+    :body='$t("capital.invitationsListWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='people_outline')
@@ -41,27 +41,27 @@
                 | {{ getConnectionStatusLabel(tableProps.row) }}
             .row.items-center.q-gutter-sm.t-sm.t-muted
               q-icon(name='event', size='14px')
-              div Дата регистрации: {{ tableProps.row.registered_at ? formatDateToHumanDateTime(tableProps.row.registered_at) : 'регистрация не завершена' }}
+              div {{ $t('capital.invitationsListWidget.registeredAtLabel', { date: tableProps.row.registered_at ? formatDateToHumanDateTime(tableProps.row.registered_at) : $t('capital.invitationsListWidget.notRegisteredYet') }) }}
 
             .row.q-col-gutter-sm.q-mt-sm
               .col-md-6.col-sm-12
                 WalletCard(
                   compact,
                   neutral,
-                  title='Взносы деньгами',
+                  :title='$t("capital.invitationsListWidget.moneyContributionsTitle")',
                   :balance='formatMoneyAmount(tableProps.row.contributed_as_investor)',
                   :symbol='governSymbol',
-                  balance-label='как инвестор',
+                  :balance-label='$t("capital.invitationsListWidget.asInvestorLabel")',
                   icon='payments'
                 )
               .col-md-6.col-sm-12
                 WalletCard(
                   compact,
                   neutral,
-                  title='Прочие взносы',
+                  :title='$t("capital.invitationsListWidget.otherContributionsTitle")',
                   :balance='formatMoneyAmount(calculateOtherContributions(tableProps.row))',
                   :symbol='governSymbol',
-                  balance-label='прочие роли',
+                  :balance-label='$t("capital.invitationsListWidget.otherRolesLabel")',
                   icon='handshake'
                 )
 
@@ -85,6 +85,7 @@ import { EmptyState, BaseBadge } from 'src/shared/ui/base';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { InvitationDetailsWidget } from '../../InvitationDetailsWidget';
 import { storeToRefs } from 'pinia';
+import { t } from '../../../i18n';
 
 interface Props {
   expanded: Record<string, boolean>;
@@ -112,7 +113,7 @@ const governSymbol = computed(
 
 const columns = [
   { name: 'expand', label: '', align: 'left' as const, field: '' },
-  { name: 'participant', label: 'Участник', align: 'left' as const, field: 'username' },
+  { name: 'participant', label: t('capital.invitationsListWidget.memberLabel'), align: 'left' as const, field: 'username' },
 ];
 
 const calculateOtherContributions = (candidate: {
@@ -147,7 +148,7 @@ const isConnectionActive = (candidate: { registered_at?: string | null }) => {
 };
 
 const getConnectionStatusLabel = (candidate: { registered_at?: string | null }) => {
-  return isConnectionActive(candidate) ? 'Связь активна' : 'Связь не активна';
+  return isConnectionActive(candidate) ? t('capital.invitationsListWidget.linkActive') : t('capital.invitationsListWidget.linkInactive');
 };
 
 const getConnectionStatusVariant = (candidate: { registered_at?: string | null }) => {

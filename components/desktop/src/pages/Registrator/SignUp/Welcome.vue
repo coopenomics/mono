@@ -1,10 +1,10 @@
 <template lang="pug">
 div(v-show='store.isStep("Welcome")')
 
-    p Совет кооператива {{ coopTitle }} принял положительное решение о приёме Вас в пайщики, выдал удостоверение и создал цифровой кошелёк для Вас.
+    p {{ $t('registrator.welcome.text', { coopName: coopTitle }) }}
 
     div.q-mt-lg
-      BaseButton(variant='primary', @click='next') Открыть кошелёк
+      BaseButton(variant='primary', @click='next') {{ $t('registrator.welcome.submit') }}
 </template>
 
 <script lang="ts" setup>

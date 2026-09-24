@@ -2,11 +2,11 @@
 .buhotch-editor(v-if='editsValue')
   //- === Титул ===
   .editor-section
-    h3.section-title Титульный лист (КНД 0710096)
+    h3.section-title {{ $t('reports.buhotchEditor.titleSectionTitle') }}
 
     .fields-grid
       q-input(
-        label='Номер корректировки'
+        :label='$t("reports.buhotchEditor.correctionNumberLabel")'
         type='number'
         :model-value='editsValue.header.correctionNumber'
         @update:model-value='v => updateField("header.correctionNumber", clampInt(v, 0, 999))'
@@ -16,7 +16,7 @@
         dense filled
       )
       q-input(
-        label='Отчётный год'
+        :label='$t("reports.buhotchEditor.reportYearLabel")'
         type='number'
         :model-value='editsValue.header.reportYear'
         @update:model-value='v => updateField("header.reportYear", clampInt(v, 2000, 2100))'
@@ -25,7 +25,7 @@
         dense filled
       )
       q-input(
-        label='Дата документа'
+        :label='$t("reports.buhotchEditor.docDateLabel")'
         :model-value='editsValue.header.docDate'
         @update:model-value='v => updateField("header.docDate", v)'
         mask='##.##.####'
@@ -42,24 +42,24 @@
     //-   (ст. 38 ФЗ-193 и аналоги). Тогда в документ добавляется НаимОргнУтв.
     .fields-grid
       q-checkbox(
-        label='Подлежит обязательному аудиту'
+        :label='$t("reports.buhotchEditor.auditRequiredLabel")'
         :model-value='editsValue.header.audit'
         @update:model-value='v => updateField("header.audit", !!v)'
       )
-        q-tooltip XSD ПрАудит. Обычно для кооперативов «нет».
+        q-tooltip {{ $t('reports.buhotchEditor.auditRequiredHint') }}
       q-checkbox(
-        label='Подлежит утверждению общим собранием'
+        :label='$t("reports.buhotchEditor.approvedByMeetingLabel")'
         :model-value='editsValue.header.approved'
         @update:model-value='v => updateField("header.approved", !!v)'
       )
-        q-tooltip XSD ПрУтвер. Для кооперативов — «да» (утверждает общее собрание).
+        q-tooltip {{ $t('reports.buhotchEditor.approvedByMeetingHint') }}
 
   //- === Организация ===
   .editor-section
-    h3.section-title Организация
+    h3.section-title {{ $t('reports.buhotchEditor.organizationSectionTitle') }}
 
     q-input(
-      label='Наименование организации'
+      :label='$t("reports.buhotchEditor.orgNameLabel")'
       :model-value='editsValue.organization.orgName'
       @update:model-value='v => updateField("organization.orgName", v)'
       :rules='[reportRules.length(1, 1000)]'
@@ -70,7 +70,7 @@
 
     .fields-grid
       q-input(
-        label='ИНН'
+        :label='$t("reports.buhotchEditor.innLabel")'
         :model-value='editsValue.organization.inn'
         @update:model-value='v => updateField("organization.inn", v)'
         :rules='[reportRules.innUl()]'
@@ -80,7 +80,7 @@
         dense filled
       )
       q-input(
-        label='КПП'
+        :label='$t("reports.buhotchEditor.kppLabel")'
         :model-value='editsValue.organization.kpp'
         @update:model-value='v => updateField("organization.kpp", String(v || "").toUpperCase())'
         :rules='[reportRules.kpp()]'
@@ -90,10 +90,10 @@
         maxlength='9'
       )
       q-input(
-        label='ОКПО'
+        :label='$t("reports.buhotchEditor.okpoLabel")'
         :model-value='editsValue.organization.okpo || ""'
         @update:model-value='v => updateField("organization.okpo", v || null)'
-        :rules='[reportRules.optionalRegex(/^\\d{8}(\\d{2})?$/, "ОКПО — 8 или 10 цифр")]'
+        :rules='[reportRules.optionalRegex(/^\\d{8}(\\d{2})?$/, $t("reports.buhotchEditor.okpoFormatError"))]'
         :error='errFor("organization.okpo")'
         :error-message='msgFor("organization.okpo")'
         dense filled
@@ -101,7 +101,7 @@
 
     .fields-grid
       q-input(
-        label='ОКФС'
+        :label='$t("reports.buhotchEditor.okfsLabel")'
         :model-value='editsValue.organization.okfs'
         @update:model-value='v => updateField("organization.okfs", v)'
         :rules='[reportRules.okfs()]'
@@ -110,7 +110,7 @@
         dense filled
       )
       q-input(
-        label='ОКОПФ'
+        :label='$t("reports.buhotchEditor.okopfLabel")'
         :model-value='editsValue.organization.okopf'
         @update:model-value='v => updateField("organization.okopf", v)'
         :rules='[reportRules.okopf()]'
@@ -120,20 +120,20 @@
       )
 
     q-input(
-      label='Адрес места нахождения'
+      :label='$t("reports.buhotchEditor.addressLabel")'
       :model-value='editsValue.organization.address || ""'
       @update:model-value='v => updateField("organization.address", v || null)'
       type='textarea'
       autogrow
       dense filled
-      :rules='[reportRules.optionalRegex(/^.{1,255}$/, "до 255 символов")]'
+      :rules='[reportRules.optionalRegex(/^.{1,255}$/, $t("reports.buhotchEditor.addressLengthError"))]'
       :error='errFor("organization.address")'
       :error-message='msgFor("organization.address")'
     )
 
   //- === Подписант ===
   .editor-section
-    h3.section-title Подписант
+    h3.section-title {{ $t('reports.buhotchEditor.signerSectionTitle') }}
 
     q-option-group(
       :model-value='editsValue.signer.type'
@@ -144,25 +144,25 @@
 
     .fields-grid
       q-input(
-        label='Фамилия'
+        :label='$t("reports.buhotchEditor.signerLastNameLabel")'
         :model-value='editsValue.signer.lastName'
         @update:model-value='v => updateField("signer.lastName", v)'
         dense filled
-        :rules='[v => !!v || "обязательно"]'
+        :rules='[v => !!v || $t("reports.buhotchEditor.requiredHint")]'
         :error='errFor("signer.lastName")'
         :error-message='msgFor("signer.lastName")'
       )
       q-input(
-        label='Имя'
+        :label='$t("reports.buhotchEditor.signerFirstNameLabel")'
         :model-value='editsValue.signer.firstName'
         @update:model-value='v => updateField("signer.firstName", v)'
         dense filled
-        :rules='[v => !!v || "обязательно"]'
+        :rules='[v => !!v || $t("reports.buhotchEditor.requiredHint")]'
         :error='errFor("signer.firstName")'
         :error-message='msgFor("signer.firstName")'
       )
       q-input(
-        label='Отчество'
+        :label='$t("reports.buhotchEditor.signerMiddleNameLabel")'
         :model-value='editsValue.signer.middleName || ""'
         @update:model-value='v => updateField("signer.middleName", v || null)'
         dense filled
@@ -170,7 +170,7 @@
 
     q-input(
       v-if='editsValue.signer.type === "representative"'
-      label='Документ, подтверждающий полномочия'
+      :label='$t("reports.buhotchEditor.signerRepDocLabel")'
       :model-value='editsValue.signer.repDoc || ""'
       @update:model-value='v => updateField("signer.repDoc", v || null)'
       :rules='[reportRules.length(1, 120)]'
@@ -181,20 +181,20 @@
 
   //- === Баланс ===
   .editor-section
-    h3.section-title Бухгалтерский баланс (форма 0710001), тыс. ₽
+    h3.section-title {{ $t('reports.buhotchEditor.balanceSectionTitle') }}
 
     .balance-table
       .balance-header
-        .bh-label Показатель
-        .bh-code Код
-        .bh-col На 31.12.{{ editsValue.header.reportYear }}
-        .bh-col На 31.12.{{ editsValue.header.reportYear - 1 }}
-        .bh-col На 31.12.{{ editsValue.header.reportYear - 2 }}
+        .bh-label {{ $t('reports.buhotchEditor.column.indicator') }}
+        .bh-code {{ $t('reports.buhotchEditor.column.code') }}
+        .bh-col {{ $t('reports.buhotchEditor.column.yearReport', { year: editsValue.header.reportYear }) }}
+        .bh-col {{ $t('reports.buhotchEditor.column.yearPrev', { year: editsValue.header.reportYear - 1 }) }}
+        .bh-col {{ $t('reports.buhotchEditor.column.yearPrevPrev', { year: editsValue.header.reportYear - 2 }) }}
 
-      .balance-section-title АКТИВ
+      .balance-section-title {{ $t('reports.buhotchEditor.assetSectionLabel') }}
 
       BalanceRowEditor(
-        label='Нематериальные, финансовые и др. внеоборотные активы'
+        :label='$t("reports.buhotchEditor.assetNonMatFinLabel")'
         code='1170'
         :row='editsValue.balance.nonMaterialAndLongFin'
         base-path='balance.nonMaterialAndLongFin'
@@ -202,7 +202,7 @@
         @update='row => updateRow("balance.nonMaterialAndLongFin", row)'
       )
       BalanceRowEditor(
-        label='Денежные средства и денежные эквиваленты'
+        :label='$t("reports.buhotchEditor.assetCashLabel")'
         code='1250'
         :row='editsValue.balance.cash'
         base-path='balance.cash'
@@ -210,7 +210,7 @@
         @update='row => updateRow("balance.cash", row)'
       )
       BalanceRowEditor(
-        label='Финансовые и другие оборотные активы'
+        :label='$t("reports.buhotchEditor.assetFinInvLabel")'
         code='1260'
         :row='editsValue.balance.shortTermFin'
         base-path='balance.shortTermFin'
@@ -218,7 +218,7 @@
         @update='row => updateRow("balance.shortTermFin", row)'
       )
       BalanceRowEditor.total(
-        label='БАЛАНС (актив)'
+        :label='$t("reports.buhotchEditor.assetTotalLabel")'
         code='1600'
         :row='editsValue.balance.assetsTotal'
         base-path='balance.assetsTotal'
@@ -226,10 +226,10 @@
         @update='row => updateRow("balance.assetsTotal", row)'
       )
 
-      .balance-section-title ПАССИВ
+      .balance-section-title {{ $t('reports.buhotchEditor.passiveSectionLabel') }}
 
       BalanceRowEditor(
-        label='Целевые средства (паевой фонд + целевые поступления)'
+        :label='$t("reports.buhotchEditor.passiveTargetLabel")'
         code='1350'
         :row='editsValue.balance.targetFunds'
         base-path='balance.targetFunds'
@@ -237,7 +237,7 @@
         @update='row => updateRow("balance.targetFunds", row)'
       )
       BalanceRowEditor.total(
-        label='БАЛАНС (пассив)'
+        :label='$t("reports.buhotchEditor.passiveTotalLabel")'
         code='1700'
         :row='editsValue.balance.passivesTotal'
         base-path='balance.passivesTotal'
@@ -247,19 +247,19 @@
 
     .balance-note(v-if='balanceDelta !== null')
       span(v-if='Math.abs(balanceDelta) <= 1')
-        | Актив = Пассив (расхождение {{ balanceDelta }} тыс. ₽ в пределах регламента 0710001).
+        | {{ $t('reports.buhotchEditor.balanceOkText', { delta: balanceDelta }) }}
       span.warn(v-else)
-        | ⚠️ Актив не равен пассиву: Δ = {{ balanceDelta }} тыс. ₽. Проверьте корректировки.
+        | {{ $t('reports.buhotchEditor.balanceMismatchText', { delta: balanceDelta }) }}
 
   //- === Пояснения ===
   .editor-section
-    h3.section-title Пояснения
+    h3.section-title {{ $t('reports.buhotchEditor.notesSectionTitle') }}
 
     q-input(
-      label='Имя файла пояснительной записки'
+      :label='$t("reports.buhotchEditor.notesFileNameLabel")'
       :model-value='editsValue.notes.explanationFileName'
       @update:model-value='v => updateField("notes.explanationFileName", v)'
-      hint='XSD требует непустое значение. Если записки нет — оставьте "-".'
+      :hint='$t("reports.buhotchEditor.notesFileNameHint")'
       :rules='[reportRules.length(1, 255)]'
       dense filled
     )
@@ -269,6 +269,7 @@
 import { computed } from 'vue'
 import { Selectors } from '@coopenomics/sdk'
 import BalanceRowEditor from './BalanceRowEditor.vue'
+import { t } from '../../i18n';
 
 const { reportRules } = Selectors
 
@@ -349,8 +350,8 @@ function msgFor(path: string): string {
 }
 
 const signerTypeOptions = [
-  { label: '1 — руководитель', value: 'chairman' },
-  { label: '2 — уполномоченный представитель', value: 'representative' },
+  { label: t('reports.buhotchEditor.signerType.chairmanOption'), value: 'chairman' },
+  { label: t('reports.buhotchEditor.signerType.representativeOption'), value: 'representative' },
 ]
 
 function setByPath(obj: Record<string, unknown>, path: string, value: unknown): void {

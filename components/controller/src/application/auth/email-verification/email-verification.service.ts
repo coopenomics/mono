@@ -1,7 +1,7 @@
 import { createHash, randomInt } from 'node:crypto';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import httpStatus from 'http-status';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 import { EMAIL_VERIFICATION_STORE } from '~/domain/auth-v2/ports/email-verification-store.port';
@@ -10,6 +10,7 @@ import { USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service'
 import type { UserDomainService } from '~/domain/user/services/user-domain.service';
 import { NotificationService } from '~/application/notification-center/notification.service';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
+import { t } from '~/i18n';
 
 /** Окно жизни кода. Столько же живёт письмо в почте, прежде чем станет бесполезным. */
 const CODE_TTL_SEC = 15 * 60;
@@ -74,7 +75,7 @@ export class EmailVerificationService {
   async request(rawEmail: string, ip: string | null): Promise<EmailVerificationRequestResult> {
     const email = normalizeUserEmail(rawEmail);
     if (!email || !email.includes('@')) {
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Укажите корректный адрес электронной почты.');
+      throw DomainError.badRequest('AUTH_EMAIL_INVALID');
     }
 
     await this.assertIpWithinLimit(ip);
@@ -89,10 +90,7 @@ export class EmailVerificationService {
     const existing = await this.store.get(email);
     if (existing && existing.sendCount >= MAX_SENDS_PER_WINDOW) {
       this.logger.warn('email-verify: на адрес исчерпан лимит писем за окно');
-      throw new HttpApiError(
-        httpStatus.TOO_MANY_REQUESTS,
-        'Слишком много писем на этот адрес. Попробуйте через 15 минут.'
-      );
+      throw DomainError.tooManyRequests('AUTH_EMAIL_RATE_LIMIT_ADDRESS');
     }
 
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
@@ -114,7 +112,7 @@ export class EmailVerificationService {
     const perIp = await this.store.bumpRequests('ip', ip, 60 * 60);
     if (perIp > MAX_REQUESTS_PER_IP_HOUR) {
       this.logger.warn(`email-verify: IP ${ip} превысил лимит запросов кода за час`);
-      throw new HttpApiError(httpStatus.TOO_MANY_REQUESTS, 'Слишком много запросов. Попробуйте позже.');
+      throw DomainError.tooManyRequests('AUTH_EMAIL_RATE_LIMIT_GENERAL');
     }
   }
 
@@ -135,14 +133,11 @@ export class EmailVerificationService {
         // подписчика кладётся синтетический идентификатор: колонка обязательна,
         // а доставка по нему не идёт.
         to: { subscriberId: `email:${email}`, email },
-        payload: { code, ttl: '15 минут' },
+        payload: { code, ttl: t('auth.emailVerificationService.codeTtlLabel') },
       });
     } catch (e) {
       this.logger.error(`email-verify: письмо с кодом не поставлено в очередь: ${e instanceof Error ? e.message : e}`);
-      throw new HttpApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        'Не удалось отправить письмо с кодом. Попробуйте позже.'
-      );
+      throw DomainError.internal('AUTH_EMAIL_SEND_FAILED');
     }
   }
 
@@ -157,10 +152,7 @@ export class EmailVerificationService {
 
     const state = await this.store.get(email);
     if (!state) {
-      throw new HttpApiError(
-        httpStatus.BAD_REQUEST,
-        'Код не запрашивался или уже недействителен. Запросите новый.',
-      );
+      throw DomainError.badRequest('AUTH_EMAIL_CODE_NOT_REQUESTED');
     }
 
     if (sha256Hex(code) !== state.codeHash) {
@@ -169,12 +161,9 @@ export class EmailVerificationService {
         // Перебор шестизначного кода не должен окупаться: сжигаем код целиком.
         await this.store.delete(email);
         this.logger.warn(`email-verify: код сожжён после ${attempts} неверных попыток`);
-        throw new HttpApiError(
-          httpStatus.BAD_REQUEST,
-          'Слишком много неверных попыток. Запросите новый код.',
-        );
+        throw DomainError.badRequest('AUTH_EMAIL_CODE_TOO_MANY_ATTEMPTS');
       }
-      throw new HttpApiError(httpStatus.BAD_REQUEST, 'Неверный код. Проверьте письмо и попробуйте ещё раз.');
+      throw DomainError.badRequest('AUTH_EMAIL_CODE_INVALID');
     }
 
     await this.store.delete(email);

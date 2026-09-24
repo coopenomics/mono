@@ -7,6 +7,7 @@ import { SovietContract } from 'cooptypes';
 import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
 import { Workflows } from '@coopenomics/notifications';
 import { NOTIFICATION_PORT, INotificationPort } from '@coopenomics/innercoop';
+import { t } from '~/i18n';
 
 /**
  * Сервис для отправки уведомлений о принятых решениях совета
@@ -72,7 +73,7 @@ export class DecisionNotificationService implements OnModuleInit {
       // Формируем данные для workflow (без приватных данных)
       const payload: Workflows.DecisionApproved.IPayload = {
         userName,
-        decisionTitle: `Решение №${decisionId}`,
+        decisionTitle: t('agenda.decisionNotificationService.decisionTitle', { decisionId }),
         coopname: action.coopname,
         decision_id: decisionId,
         decisionUrl: `${config.frontend_url}`,

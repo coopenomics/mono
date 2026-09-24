@@ -27,7 +27,7 @@ DocumentsTable(
         spread,
         unelevated,
         toggle-color='primary',
-        :options='[ { label: "Все входящие", value: "newsubmitted" }, { label: "Только утверждённые", value: "newresolved" }, ]'
+        :options='[ { label: $t("cooperative.listOfDocumentsWidget.allIncomingOption"), value: "newsubmitted" }, { label: $t("cooperative.listOfDocumentsWidget.onlyApprovedOption"), value: "newresolved" }, ]'
       )
 </template>
 

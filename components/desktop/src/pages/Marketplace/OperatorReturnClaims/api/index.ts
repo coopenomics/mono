@@ -1,12 +1,13 @@
 import { Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
+import { t } from 'src/shared/i18n';
 
 const DEFECT_CATEGORY_LABELS: Record<string, string> = {
-  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: 'Повреждено / сломано',
-  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: 'Истёк срок годности',
-  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: 'Не соответствует описанию',
-  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: 'Не тот товар',
-  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: 'Другое',
+  [Zeus.MarketplaceReturnClaimDefectCategory.BROKEN]: t('marketplace.returnClaimDefect.broken'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.EXPIRED]: t('marketplace.returnClaimDefect.expired'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.NOT_AS_DESCRIBED]: t('marketplace.returnClaimDefect.notAsDescribed'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.WRONG_ITEM]: t('marketplace.returnClaimDefect.wrongItem'),
+  [Zeus.MarketplaceReturnClaimDefectCategory.OTHER]: t('marketplace.returnClaimDefect.other'),
 };
 
 // Человекочитаемая метка категории дефекта; для незнакомых значений возвращаем

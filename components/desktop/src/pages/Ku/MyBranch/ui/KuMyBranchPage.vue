@@ -5,8 +5,8 @@
   KuBranchDetailsWidget(v-else-if='myBraname', :braname='myBraname')
   EmptyState(
     v-else,
-    title='Кооперативный участок пока не выбран',
-    body='Здесь появится ваш участок, когда вы выберете его для участия в общих собраниях или будете избраны его председателем. Участки кооператива — на вкладке «Кооперативные участки», учреждение нового — на вкладке «Собрания».'
+    :title='$t("ku.kuMyBranchPage.emptyTitle")',
+    :body='$t("ku.kuMyBranchPage.emptyBody")'
   )
     template(#icon)
       q-icon(name='home_work', size='48px')
@@ -23,11 +23,12 @@ import { FailAlert } from 'src/shared/api';
 import { EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { TableSkeletonColumn } from 'src/shared/ui/base';
 import { KuBranchDetailsWidget } from 'src/widgets/Ku/BranchDetails';
+import { t } from 'src/shared/i18n';
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Участок' },
-  { label: 'Председатель' },
-  { label: 'Доверенные' },
+  { label: t('ku.kuMyBranchPage.column.branch') },
+  { label: t('ku.kuMyBranchPage.column.chairman') },
+  { label: t('ku.kuMyBranchPage.column.trustees') },
 ];
 
 const account = useAccountStore();

@@ -16,7 +16,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   CardcoopAttestationState,
   CardcoopAttestationTypeormEntity,
@@ -154,7 +154,7 @@ export class CardcoopEntryService {
     const trip = this.pending.get(state);
     this.pending.delete(state);
     if (!trip || Date.now() - trip.createdAt > ROUND_TRIP_TTL_MS) {
-      throw new NotFoundException('Вход не начинался либо истёк — начните заново');
+      throw DomainError.notFound('CARDCOOP_ENTRY_NOT_STARTED');
     }
 
     const claims = await this.exchange(apiUrl, code, trip.verifier);
@@ -249,7 +249,7 @@ export class CardcoopEntryService {
 
     if (!response.ok) {
       this.logger.error(`Обмен кода входа по карте не удался: сеть ответила ${response.status}`);
-      throw new NotFoundException('Вход не подтверждён сетью — начните заново');
+      throw DomainError.notFound('CARDCOOP_ENTRY_NOT_CONFIRMED');
     }
 
     const tokens = (await response.json()) as { id_token?: string };
@@ -267,10 +267,10 @@ export class CardcoopEntryService {
     creds: { clientId: string; issuer: string }
   ): EntryClaims {
     if (!claims || claims.iss !== creds.issuer || claims.aud !== creds.clientId) {
-      throw new NotFoundException('Токен сети не разбирается либо адресован не нам');
+      throw DomainError.notFound('CARDCOOP_ENTRY_TOKEN_INVALID');
     }
     if (typeof claims.exp === 'number' && claims.exp * 1000 < Date.now()) {
-      throw new NotFoundException('Токен сети просрочен — начните заново');
+      throw DomainError.notFound('CARDCOOP_ENTRY_TOKEN_EXPIRED');
     }
 
     return {
@@ -289,12 +289,12 @@ export class CardcoopEntryService {
    */
   async session(id: string): Promise<CardcoopEntrySessionTypeormEntity> {
     const session = await this.sessions.findOne({ where: { id } });
-    if (!session) throw new NotFoundException('Сессия входа не найдена — начните заново');
+    if (!session) throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_NOT_FOUND');
 
     if (Date.now() - session.createdAt.getTime() > SESSION_TTL_MS) {
       // Срок сессии проверяется при чтении, а не только при чистке: чистка идёт на новом
       // входе, а его может не быть сутками, и просроченная сессия отвечала бы как живая.
-      throw new NotFoundException('Сессия входа истекла — начните заново');
+      throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_EXPIRED');
     }
 
     // Ожидание решения держателя не бесконечно. На стороне сети запрос к этому моменту уже
@@ -324,7 +324,7 @@ export class CardcoopEntryService {
   async takeProfile(id: string): Promise<{ subjectType: string; profile: Record<string, unknown> }> {
     const session = await this.session(id);
     if (!session.profile || !session.profileType || session.profileTakenAt) {
-      throw new NotFoundException('Анкета недоступна: её нет либо она уже забрана в форму');
+      throw DomainError.notFound('CARDCOOP_ENTRY_PROFILE_UNAVAILABLE');
     }
 
     const result = { subjectType: session.profileType, profile: session.profile };
@@ -339,7 +339,7 @@ export class CardcoopEntryService {
   private async requireCreds(): Promise<{ clientId: string; clientSecret: string; issuer: string }> {
     const state = await this.connectState.findOne({ where: { id: 'self' } });
     if (!state?.rpClientId || !state.rpClientSecret || !state.rpIssuer) {
-      throw new NotFoundException('Вход по карте не подключён у этого кооператива');
+      throw DomainError.notFound('CARDCOOP_ENTRY_NOT_CONFIGURED');
     }
     return { clientId: state.rpClientId, clientSecret: state.rpClientSecret, issuer: state.rpIssuer };
   }

@@ -31,10 +31,12 @@ export class ExpensePlanEntity {
     type: 'varchar',
     length: 13,
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Кооперативный участок; NULL — расход уровня кооператива',
   })
   braname?: string | null;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'title', type: 'varchar', length: 500, comment: 'Назначение расхода' })
   title!: string;
 
@@ -43,6 +45,7 @@ export class ExpensePlanEntity {
     type: 'numeric',
     precision: 20,
     scale: 4,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Сумма расхода в валюте кооператива',
   })
   amount!: string;
@@ -51,6 +54,7 @@ export class ExpensePlanEntity {
     name: 'due_date',
     type: 'timestamptz',
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Срок оплаты. Обязателен для новых записей; NULL остался у записей до отмены приоритетов',
   })
   dueDate?: Date | null;
@@ -60,6 +64,7 @@ export class ExpensePlanEntity {
     type: 'varchar',
     length: 16,
     default: ExpensePlanRecurrence.NONE,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Периодичность серии: NONE — разовый; MONTHLY/QUARTERLY/YEARLY — повторяющийся',
   })
   recurrence!: ExpensePlanRecurrence;
@@ -68,6 +73,7 @@ export class ExpensePlanEntity {
     name: 'next_spawned',
     type: 'boolean',
     default: false,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'По этой записи уже добавлен следующий экземпляр серии (защита от повторного порождения)',
   })
   nextSpawned!: boolean;
@@ -77,6 +83,7 @@ export class ExpensePlanEntity {
     type: 'varchar',
     length: 64,
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Расход, которым оплачивается запись (служебная записка шасси расходов); NULL — оплата не запускалась',
   })
   proposalHash?: string | null;
@@ -85,6 +92,7 @@ export class ExpensePlanEntity {
     name: 'paid_at',
     type: 'timestamptz',
     nullable: true,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Когда расход фактически оплачен; оплаченные записи не удерживают резерв',
   })
   paidAt?: Date | null;
@@ -93,10 +101,12 @@ export class ExpensePlanEntity {
     name: 'pay_to',
     type: 'varchar',
     length: 1000,
+    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
     comment: 'Реквизиты получателя платежа (строкой — передаётся в платёжку кассиру)',
   })
   payTo!: string;
 
+  // i18n-ignore: комментарий к колонке БД, не текст интерфейса
   @Column({ name: 'creator', type: 'varchar', length: 13, comment: 'Кто добавил запись' })
   creator!: string;
 

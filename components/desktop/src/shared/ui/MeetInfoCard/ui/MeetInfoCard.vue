@@ -7,39 +7,39 @@
     section.meet-info__sec
       .meet-info__sec-head
         q-icon(name='event', size='18px')
-        span Даты проведения
+        span {{ $t('ui.meetInfoCard.datesLabel') }}
       .meet-info__rows
         .meet-info__row
-          span.meet-info__label Открытие
+          span.meet-info__label {{ $t('ui.meetInfoCard.openingLabel') }}
           span.meet-info__value {{ meetStatus.formattedOpenDate }} ({{ timezoneLabel }})
         .meet-info__row
-          span.meet-info__label Закрытие
+          span.meet-info__label {{ $t('ui.meetInfoCard.closingLabel') }}
           span.meet-info__value {{ meetStatus.formattedCloseDate }} ({{ timezoneLabel }})
 
     section.meet-info__sec
       .meet-info__sec-head
         q-icon(name='people', size='18px')
-        span Ведущие
+        span {{ $t('ui.meetInfoCard.hostsLabel') }}
       .meet-info__rows
         .meet-info__row
-          span.meet-info__label Председатель собрания
-          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.presider_certificate) || 'Не назначен' }}
+          span.meet-info__label {{ $t('ui.meetInfoCard.chairmanLabel') }}
+          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.presider_certificate) || $t('ui.meetInfoCard.notAssignedText') }}
         .meet-info__row
-          span.meet-info__label Секретарь собрания
-          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.secretary_certificate) || 'Не назначен' }}
+          span.meet-info__label {{ $t('ui.meetInfoCard.secretaryLabel') }}
+          span.meet-info__value {{ getNameFromCertificate(meet.processing?.meet?.secretary_certificate) || $t('ui.meetInfoCard.notAssignedText') }}
 
     section.meet-info__sec
       .meet-info__sec-head
         q-icon(name='pie_chart', size='18px')
-        span Явка и кворум
+        span {{ $t('ui.meetInfoCard.attendanceQuorumLabel') }}
       .meet-info__metrics
         .meet-info__metric
-          span.meet-info__label Кворум
+          span.meet-info__label {{ $t('ui.meetInfoCard.quorumLabel') }}
           span.meet-info__num {{ meet.processing?.meet?.quorum_percent }}%
         .meet-info__metric
-          span.meet-info__label Явка
+          span.meet-info__label {{ $t('ui.meetInfoCard.attendanceLabel') }}
           span.meet-info__num {{ turnoutPercent }}%
-      .meet-info__note Собрание состоится при явке не менее {{ meet.processing?.meet?.quorum_percent }}% пайщиков
+      .meet-info__note {{ $t('ui.meetInfoCard.quorumRequirementText', { quorumPercent: meet.processing?.meet?.quorum_percent }) }}
 
   MeetStatusBanner.meet-info-card__banner(:meet='meet')
 </template>

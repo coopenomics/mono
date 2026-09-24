@@ -233,18 +233,33 @@ const balance = computed<ParsedBalance>(() => {
   const out: ParsedBalance = { asset: {}, passive: {} }
   if (!doc.value) return out
   const readRow = (sel: string): BalanceRow => ({
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     otch: getNum(sel, 'СумОтч'),
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     prdPrev: getNum(sel, 'СумПрдщ'),
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     prdPrePrev: getNum(sel, 'СумПрдшв'),
   })
+  // i18n-ignore: техническая строка (аргумент XML-селектора)
   if (doc.value.querySelector('Актив')) {
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     out.asset.total = readRow('Актив')
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     if (doc.value.querySelector('Актив НеМатФинАкт')) out.asset.nonMatFin = readRow('Актив НеМатФинАкт')
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     if (doc.value.querySelector('Актив ДенежнСр'))    out.asset.cash      = readRow('Актив ДенежнСр')
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     if (doc.value.querySelector('Актив ФинВлож'))     out.asset.finInv    = readRow('Актив ФинВлож')
   }
+  // i18n-ignore: техническая строка (аргумент XML-селектора)
   if (doc.value.querySelector('Пассив')) {
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     out.passive.total = readRow('Пассив')
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
+    // i18n-ignore: техническая строка (аргумент XML-селектора)
     if (doc.value.querySelector('Пассив ЦелевСредства')) out.passive.target = readRow('Пассив ЦелевСредства')
   }
   return out
@@ -263,6 +278,7 @@ const balanceDelta = computed(() => {
 })
 
 function dec31(year: number): string {
+  // i18n-ignore: официальная форма
   return `31 декабря ${year} г.`
 }
 

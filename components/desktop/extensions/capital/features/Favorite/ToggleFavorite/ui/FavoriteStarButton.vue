@@ -21,6 +21,7 @@ import { FailAlert } from 'src/shared/api';
 import { BaseButton } from 'src/shared/ui/base';
 import { useFavoritesStore } from 'app/extensions/capital/entities/Favorite';
 import type { IFavoriteTargetType } from 'app/extensions/capital/entities/Favorite';
+import { t } from '../../../../i18n';
 
 const props = defineProps<{
   targetType: IFavoriteTargetType;
@@ -32,7 +33,7 @@ const system = useSystemStore();
 const favorites = useFavoritesStore();
 
 const active = computed(() => favorites.isFavorite(props.targetType, props.targetHash));
-const hint = computed(() => (active.value ? 'Убрать из избранного' : 'В избранное'));
+const hint = computed(() => (active.value ? t('capital.favoriteStarButton.removeTitle') : t('capital.favoriteStarButton.addTitle')));
 const pending = ref(false);
 
 async function onToggle(): Promise<void> {
@@ -47,7 +48,7 @@ async function onToggle(): Promise<void> {
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось обновить избранное: ' + msg);
+    FailAlert(t('capital.favoriteStarButton.updateError') + msg);
   } finally {
     pending.value = false;
   }

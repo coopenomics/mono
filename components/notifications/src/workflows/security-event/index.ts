@@ -1,8 +1,8 @@
 import { WorkflowDefinition, type BaseWorkflowPayload } from '../../types';
 import { WorkflowBuilder } from '../../base/workflow-builder';
 import { createEmailStep, createInAppStep } from '../../base/defaults';
+import { nt } from '../../i18n';
 import { z } from 'zod';
-import { slugify } from '../../utils';
 
 // Схема для security-event воркфлоу (CoopID Story 3.11)
 export const securityEventPayloadSchema = z.object({
@@ -20,36 +20,32 @@ export type IPayload = z.infer<typeof securityEventPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Событие безопасности аккаунта';
-export const id = slugify(name);
+export const name = nt('securityEvent.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'sobytie-bezopasnosti-akkaunta';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление о критичном изменении в безопасности аккаунта (2FA, способ восстановления, пароль, ключ)')
+  .i18nKey('securityEvent')
+  .description(nt('securityEvent.description'))
   .payloadSchema(securityEventPayloadSchema)
   .tags(['auth'])
   .addSteps([
     createEmailStep(
       'security-event-email',
-      'Изменение в безопасности вашего аккаунта',
-      'В вашем аккаунте зафиксировано изменение в настройках безопасности:<br><br>' +
-      '<strong>{{payload.event}}</strong><br>' +
-      '<strong>IP-адрес:</strong> {{payload.ip}}<br>' +
-      '<strong>Время:</strong> {{payload.time}}<br><br>' +
-      'Если это сделали вы — ничего делать не нужно.<br>' +
-      'Если нет — немедленно защитите аккаунт: ' +
-      '<a href="{{payload.securityUrl}}">{{payload.securityUrl}}</a> ' +
-      '(отзыв активных сессий и смена пароля).'
+      nt('securityEvent.email.subject'),
+      nt('securityEvent.email.body')
     ),
     createInAppStep(
       'security-event-notification',
-      'Событие безопасности',
+      nt('securityEvent.inApp.subject'),
       // Без сырого IP (в docker-сети он бессмыслен) и с понятным действием:
       // нажатие на уведомление ведёт в настройки безопасности (deep-link по
       // payload.securityUrl собирает фронт) — там сессии и смена пароля.
-      '{{payload.event}}. Если это сделали не вы — откройте настройки безопасности, завершите сессии и смените пароль.'
+      nt('securityEvent.inApp.body')
     ),
   ])
   .build();

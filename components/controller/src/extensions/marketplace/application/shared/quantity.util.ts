@@ -1,8 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
 import {
   MarketplaceUnitsOfMeasure,
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
+import { DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Количество имущества (Эпик 17, L14): в API/БД контроллера — «витринное»
@@ -45,7 +45,7 @@ export function fromQuantityAsset(quantityAsset: string): number {
   const [amountPart] = quantityAsset.trim().split(/\s+/);
   const parsed = Number.parseFloat(amountPart);
   if (!Number.isFinite(parsed)) {
-    throw new BadRequestException(`Некорректное количество (asset): "${quantityAsset}"`);
+    throw DomainError.badRequest('MARKETPLACE_QUANTITY_INVALID_ASSET', { quantityAsset });
   }
   return parsed;
 }
@@ -56,16 +56,14 @@ export function fromQuantityAsset(quantityAsset: string): number {
  */
 export function assertValidQuantity(displayQty: number, unit: MarketplaceUnitOfMeasure): void {
   if (!Number.isFinite(displayQty) || displayQty <= 0) {
-    throw new BadRequestException('Количество должно быть больше нуля.');
+    throw DomainError.badRequest('MARKETPLACE_QUANTITY_MUST_BE_POSITIVE');
   }
   if (unit === MarketplaceUnitsOfMeasure.PIECE && !Number.isInteger(displayQty)) {
-    throw new BadRequestException('Количество в штуках должно быть целым.');
+    throw DomainError.badRequest('MARKETPLACE_QUANTITY_PIECES_MUST_BE_INTEGER');
   }
   const precision = MARKETPLACE_UNIT_PRECISION[unit];
   const scaled = displayQty * 10 ** precision;
   if (Math.abs(scaled - Math.round(scaled)) > 1e-9) {
-    throw new BadRequestException(
-      `Количество для единицы «${unit}» допускает не более ${precision} знаков после запятой.`
-    );
+    throw DomainError.badRequest('MARKETPLACE_QUANTITY_TOO_PRECISE', { unit, precision });
   }
 }

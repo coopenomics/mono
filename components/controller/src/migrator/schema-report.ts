@@ -1,3 +1,4 @@
+// i18n-ignore-file: отчёт о схеме для журнала деплоя и оператора, до пайщика не доходит
 // Реестр расширений (состав сущностей и их миграций) подключает database-migrations.
 import { DataSource } from 'typeorm';
 import config from '~/config/config';

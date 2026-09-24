@@ -22,13 +22,13 @@
         table.table.table--actions
           thead
             tr
-              th.col-date Дата
-              th Получатель
-              th Тип
-              th Канал
-              th Статус
-              th.col-num Попыток
-              th.col-action Действия
+              th.col-date {{ $t('cooperative.notificationJournalWidget.column.date') }}
+              th {{ $t('cooperative.notificationJournalWidget.column.recipient') }}
+              th {{ $t('cooperative.notificationJournalWidget.column.type') }}
+              th {{ $t('cooperative.notificationJournalWidget.column.channel') }}
+              th {{ $t('cooperative.notificationJournalWidget.column.status') }}
+              th.col-num {{ $t('cooperative.notificationJournalWidget.column.attempts') }}
+              th.col-action {{ $t('cooperative.notificationJournalWidget.column.actions') }}
           tbody
             tr(v-for='row in store.items', :key='row.id')
               td.col-date {{ formatDateToHumanDateTime(row.createdAt) }}
@@ -58,7 +58,7 @@
                   @click='onResend(row.id)'
                 )
                   q-icon.q-mr-xs(name='refresh', size='16px')
-                  | Переотправить
+                  | {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
 
     //- Мобайл: карточки. Поля — по два в ряд (col-xs-6), компактно, без
     //- посимвольного переноса и горизонтального скролла.
@@ -75,16 +75,16 @@
           BaseBadge(:variant='statusVariant(row.status)') {{ statusLabels[row.status] ?? row.status }}
         .nj-card__grid
           .nj-card__cell
-            .nj-card__label Дата
+            .nj-card__label {{ $t('cooperative.notificationJournalWidget.column.date') }}
             .nj-card__value {{ formatDateToHumanDateTime(row.createdAt) }}
           .nj-card__cell
-            .nj-card__label Тип
+            .nj-card__label {{ $t('cooperative.notificationJournalWidget.column.type') }}
             .nj-card__value {{ workflowLabel(row.workflowId) }}
           .nj-card__cell
-            .nj-card__label Канал
+            .nj-card__label {{ $t('cooperative.notificationJournalWidget.column.channel') }}
             .nj-card__value {{ channelLabels[row.channel] ?? row.channel }}
           .nj-card__cell
-            .nj-card__label Попыток
+            .nj-card__label {{ $t('cooperative.notificationJournalWidget.column.attempts') }}
             .nj-card__value {{ row.attempts }}
         .nj-card__error(v-if='row.lastError') {{ row.lastError }}
         BaseButton.nj-card__action(
@@ -94,7 +94,7 @@
           @click='onResend(row.id)'
         )
           q-icon.q-mr-xs(name='refresh', size='16px')
-          | Переотправить
+          | {{ $t('cooperative.notificationJournalWidget.resendLabel') }}
 
     .table-foot
       span {{ rangeLabel }}
@@ -104,12 +104,12 @@
         size='sm',
         :loading='store.loading',
         @click='store.loadMore'
-      ) Загрузить ещё
+      ) {{ $t('cooperative.notificationJournalWidget.loadMoreLabel') }}
 
   EmptyState(
     v-else,
-    title='Уведомления не найдены',
-    body='Здесь появятся отправленные кооперативом уведомления.'
+    :title='$t("cooperative.notificationJournalWidget.emptyTitle")',
+    :body='$t("cooperative.notificationJournalWidget.emptyBody")'
   )
     template(#icon)
       q-icon(name='notifications', size='48px')
@@ -134,6 +134,7 @@ import { getName } from 'src/shared/lib/utils/account';
 import { api as accountApi } from 'src/entities/Account/api';
 import { useNotificationJournalStore } from '../model';
 import type { INotificationsFilter } from '../model';
+import { t } from 'src/shared/i18n';
 
 const store = useNotificationJournalStore();
 const resendingId = ref<string | null>(null);
@@ -178,16 +179,16 @@ watch(() => store.items, () => void resolveRecipientNames(), { immediate: true }
 
 const channelLabels: Record<string, string> = {
   [Zeus.NotificationChannel.EMAIL]: 'Email',
-  [Zeus.NotificationChannel.IN_APP]: 'В приложении',
+  [Zeus.NotificationChannel.IN_APP]: t('cooperative.notificationJournalWidget.channelInApp'),
   [Zeus.NotificationChannel.PUSH]: 'Push',
 };
 
 const statusLabels: Record<string, string> = {
-  [Zeus.NotificationOutboxStatus.PENDING]: 'В очереди',
-  [Zeus.NotificationOutboxStatus.SENDING]: 'Отправляется',
-  [Zeus.NotificationOutboxStatus.SENT]: 'Доставлено',
-  [Zeus.NotificationOutboxStatus.FAILED]: 'Ошибка',
-  [Zeus.NotificationOutboxStatus.CANCELED]: 'Отменено',
+  [Zeus.NotificationOutboxStatus.PENDING]: t('cooperative.notificationJournalWidget.statusPending'),
+  [Zeus.NotificationOutboxStatus.SENDING]: t('cooperative.notificationJournalWidget.statusSending'),
+  [Zeus.NotificationOutboxStatus.SENT]: t('cooperative.notificationJournalWidget.statusSent'),
+  [Zeus.NotificationOutboxStatus.FAILED]: t('cooperative.notificationJournalWidget.statusFailed'),
+  [Zeus.NotificationOutboxStatus.CANCELED]: t('cooperative.notificationJournalWidget.statusCanceled'),
 };
 
 const statusVariants: Record<string, BaseBadgeVariant> = {
@@ -209,24 +210,24 @@ function workflowLabel(workflowId: string): string {
 const filterDefs: FilterDefinition[] = [
   {
     key: 'channel',
-    label: 'Канал',
+    label: t('cooperative.notificationJournalWidget.column.channel'),
     type: 'select',
     options: [
       { label: 'Email', value: Zeus.NotificationChannel.EMAIL },
-      { label: 'В приложении', value: Zeus.NotificationChannel.IN_APP },
+      { label: t('cooperative.notificationJournalWidget.channelInApp'), value: Zeus.NotificationChannel.IN_APP },
       { label: 'Push', value: Zeus.NotificationChannel.PUSH },
     ],
   },
   {
     key: 'status',
-    label: 'Статус',
+    label: t('cooperative.notificationJournalWidget.column.status'),
     type: 'select',
     options: [
-      { label: 'В очереди', value: Zeus.NotificationOutboxStatus.PENDING },
-      { label: 'Отправляется', value: Zeus.NotificationOutboxStatus.SENDING },
-      { label: 'Доставлено', value: Zeus.NotificationOutboxStatus.SENT },
-      { label: 'Ошибка', value: Zeus.NotificationOutboxStatus.FAILED },
-      { label: 'Отменено', value: Zeus.NotificationOutboxStatus.CANCELED },
+      { label: t('cooperative.notificationJournalWidget.statusPending'), value: Zeus.NotificationOutboxStatus.PENDING },
+      { label: t('cooperative.notificationJournalWidget.statusSending'), value: Zeus.NotificationOutboxStatus.SENDING },
+      { label: t('cooperative.notificationJournalWidget.statusSent'), value: Zeus.NotificationOutboxStatus.SENT },
+      { label: t('cooperative.notificationJournalWidget.statusFailed'), value: Zeus.NotificationOutboxStatus.FAILED },
+      { label: t('cooperative.notificationJournalWidget.statusCanceled'), value: Zeus.NotificationOutboxStatus.CANCELED },
     ],
   },
 ];
@@ -237,18 +238,18 @@ const filterValues = computed<FilterValues>(() => ({
 }));
 
 const skeletonColumns: TableSkeletonColumn[] = [
-  { label: 'Дата', cell: 'text', cellWidth: '132px' },
-  { label: 'Получатель', cell: 'text' },
-  { label: 'Тип', cell: 'text' },
-  { label: 'Канал', cell: 'text' },
-  { label: 'Статус', cell: 'badge' },
-  { label: 'Попыток', class: 'col-num', cell: 'text', cellWidth: '64px' },
-  { label: 'Действия', class: 'col-action', cell: 'icon' },
+  { label: t('cooperative.notificationJournalWidget.column.date'), cell: 'text', cellWidth: '132px' },
+  { label: t('cooperative.notificationJournalWidget.column.recipient'), cell: 'text' },
+  { label: t('cooperative.notificationJournalWidget.column.type'), cell: 'text' },
+  { label: t('cooperative.notificationJournalWidget.column.channel'), cell: 'text' },
+  { label: t('cooperative.notificationJournalWidget.column.status'), cell: 'badge' },
+  { label: t('cooperative.notificationJournalWidget.column.attempts'), class: 'col-num', cell: 'text', cellWidth: '64px' },
+  { label: t('cooperative.notificationJournalWidget.column.actions'), class: 'col-action', cell: 'icon' },
 ];
 
 const rangeLabel = computed(() => {
   const shown = store.items.length;
-  return shown ? `1–${shown} из ${store.totalCount}` : `0 из ${store.totalCount}`;
+  return shown ? t('cooperative.notificationJournalWidget.rangeLabel', { shown, totalCount: store.totalCount }) : t('cooperative.notificationJournalWidget.rangeEmptyLabel', { totalCount: store.totalCount });
 });
 
 async function onFilterChange(next: FilterValues): Promise<void> {
@@ -266,7 +267,7 @@ async function onResend(id: string): Promise<void> {
   resendingId.value = id;
   try {
     await store.resend(id);
-    SuccessAlert('Уведомление поставлено на переотправку');
+    SuccessAlert(t('cooperative.notificationJournalWidget.resendSuccess'));
   } catch (e: unknown) {
     FailAlert(e);
   } finally {

@@ -16,6 +16,7 @@ import {
   type MarketplaceWriteoffProposalView,
   type MarketplaceWriteoffStatementDocumentView,
 } from '../api';
+import { t } from 'src/shared/i18n';
 
 /**
  * Эпик 8: отправка списания скоропорта в совет — два шага в одном окне.
@@ -96,7 +97,7 @@ async function buildStatement(): Promise<void> {
     draft.value = created;
     previewDoc.value = await getWriteoffStatementSignablePayload({ draft_id: created.id });
   } catch (e) {
-    FailAlert(e, 'Не удалось сформировать Заявление о списании');
+    FailAlert(e, t('marketplace.submitToCouncilDialog.generateFailedError'));
   } finally {
     loading.value = false;
   }
@@ -112,11 +113,11 @@ async function signAndSubmit(): Promise<void> {
       draft_id: draft.value.id,
       signed_statement: signed,
     });
-    SuccessAlert('Проект отправлен в совет');
+    SuccessAlert(t('marketplace.submitToCouncilDialog.sentSuccess'));
     emit('submitted');
     emit('update:modelValue', false);
   } catch (e) {
-    FailAlert(e, 'Не удалось отправить проект в совет');
+    FailAlert(e, t('marketplace.submitToCouncilDialog.sendFailedError'));
   } finally {
     submitting.value = false;
   }
@@ -126,29 +127,29 @@ async function signAndSubmit(): Promise<void> {
 <template lang="pug">
 BaseDialog(
   :model-value="modelValue",
-  :title="previewDoc ? 'Заявление о списании' : 'Отправка списания в совет'",
+  :title="previewDoc ? $t('marketplace.submitToCouncilDialog.documentTitle') : $t('marketplace.submitToCouncilDialog.dialogTitle')",
   :maximized="!!previewDoc",
   :size="previewDoc ? undefined : 'sm'",
   :close-on-backdrop="false",
   @update:model-value="(v) => emit('update:modelValue', v)"
 )
-  Loader(v-if="loading", text="Формируем Заявление…")
+  Loader(v-if="loading", :text="$t('marketplace.submitToCouncilDialog.generatingText')")
 
   //- Шаг 1: причина списания — одна на всю подборку.
   .submit-council__reason(v-else-if="!previewDoc")
     .t-muted
-      | Выбрано позиций: {{ items.length }} на сумму {{ formatAsset2Digits(String(totalAmount)) }}.
-      | Причина попадёт в Заявление и в протокол совета.
+      | {{ $t('marketplace.submitToCouncil.selectedSummary', { count: items.length, amount: formatAsset2Digits(String(totalAmount)) }) }}
+      | {{ $t('marketplace.submitToCouncil.reasonHint') }}
     BaseInput(
       v-model="reason",
-      label="Причина списания",
-      placeholder="Например: истёк срок годности, порча, использование",
+      :label="$t('marketplace.submitToCouncilDialog.reasonLabel')",
+      :placeholder="$t('marketplace.submitToCouncilDialog.reasonPlaceholder')",
       autofocus
     )
 
   template(v-else)
     .t-muted.submit-council__intro
-      | Подписав это Заявление, вы выносите на повестку совета вопрос о списании имущества со складов кооперативных участков. Совет рассматривает проект и подписывает Протокол списания.
+      | {{ $t('marketplace.submitToCouncilDialog.agreementNotice') }}
     //- Документ — листом фиксированной ширины (как остальные документы), на
     //- мобильном во всю ширину; высоту не режем — прокручивается весь диалог.
     //- Рендерим html КАК ЕСТЬ (как все канон-документы — 1106 и пр.): шаблон
@@ -161,18 +162,18 @@ BaseDialog(
       .submit-council__doc(v-html="sanitizeDocumentHtml(previewDoc.html)")
 
   template(#footer)
-    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") Отмена
+    BaseButton(variant="secondary", @click="emit('update:modelValue', false)") {{ $t('common.action.cancel') }}
     BaseButton(
       v-if="!previewDoc",
       variant="primary",
       :disabled="!reasonValid",
       :loading="loading",
       @click="buildStatement"
-    ) Далее
+    ) {{ $t('common.action.next') }}
     BaseButton(v-else, variant="primary", :loading="submitting", @click="signAndSubmit")
       template(#icon-left)
         q-icon(name="draw", size="18px")
-      | Подписать
+      | {{ $t('common.action.sign') }}
 </template>
 
 <style lang="scss" scoped>

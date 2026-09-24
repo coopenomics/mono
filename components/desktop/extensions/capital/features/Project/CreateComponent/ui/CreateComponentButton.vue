@@ -5,12 +5,12 @@ span(:class='{ "create-host--row": row }')
     v-if='row',
     role='button',
     tabindex='0',
-    aria-label='Добавить компонент',
+    :aria-label='$t("capital.createComponentButton.addAriaLabel")',
     @click.stop='handleButtonClick',
     @keydown.enter.prevent='handleButtonClick'
   )
     q-icon(name='add', size='14px')
-    span Добавить компонент
+    span {{ $t('capital.createComponentButton.addLabel') }}
 
   BaseButton(
     v-else,
@@ -18,13 +18,13 @@ span(:class='{ "create-host--row": row }')
     :size='size ?? (mini ? "sm" : "md")',
     :loading='loading',
     :icon-only='mini',
-    aria-label='Создать компонент',
+    :aria-label='$t("capital.createComponentButton.createAriaLabel")',
     @click.stop='handleButtonClick'
   )
     template(#icon-left)
       q-icon(name='add', size='18px')
     template(v-if='!mini', #default)
-      | Компонент
+      | {{ $t('capital.createComponentButton.label') }}
 
   CreateComponentDialog(
     ref="dialogRef"

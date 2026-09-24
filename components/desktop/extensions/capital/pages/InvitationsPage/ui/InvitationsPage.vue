@@ -1,13 +1,13 @@
 <template lang="pug">
 //- Мои приглашения: surface-плоскость + канон-карточки шапки (как профиль / расходы).
 .invitations-page
-  WindowLoader(v-show='isInitialLoading', text='Загрузка моих приглашений...')
+  WindowLoader(v-show='isInitialLoading', :text='$t("capital.invitationsPage.loadingText")')
   .invitations-page__body(v-show='!isInitialLoading')
     //- Ссылка — тот же .wallet, что WalletCard: иконка + заголовок + URL слева, копировать справа.
     .wallet.invitations-link(
       role='button',
       tabindex='0',
-      title='Нажмите, чтобы скопировать ссылку',
+      :title='$t("capital.invitationsPage.copyLinkTitle")',
       @click='copyReferralLink',
       @keydown.enter.prevent='copyReferralLink',
       @keydown.space.prevent='copyReferralLink'
@@ -16,31 +16,31 @@
         q-icon(name='link')
       .wallet__body
         .wallet__main
-          .wallet__title Ссылка для приглашений
+          .wallet__title {{ $t('capital.invitationsPage.linkLabel') }}
           .wallet__sub.t-mono(:title='referralLink') {{ referralLink }}
         .wallet__amount
           .wallet__metric
             .wallet__metric-label
               q-icon(name='content_copy')
-              | Копировать
+              | {{ $t('common.action.copy') }}
 
     .row.q-col-gutter-md
       .col-12.col-md-6
         WalletCard(
           neutral,
-          title='Процент координатора',
+          :title='$t("capital.invitationsPage.coordinatorPercentTitle")',
           balance='5',
           symbol='%',
-          balance-label='от денежного взноса инвестора',
+          :balance-label='$t("capital.invitationsPage.coordinatorPercentBalanceLabel")',
           icon='percent'
         )
       .col-12.col-md-6
         WalletCard(
           neutral,
-          title='Срок активности связи',
+          :title='$t("capital.invitationsPage.linkTtlTitle")',
           balance='30',
-          symbol='дн.',
-          balance-label='после регистрации приглашённого',
+          :symbol='$t("capital.invitationsPage.daysSymbol")',
+          :balance-label='$t("capital.invitationsPage.linkTtlBalanceLabel")',
           icon='schedule'
         )
 
@@ -60,6 +60,7 @@ import { WindowLoader } from 'src/shared/ui/Loader';
 import { InvitationsListWidget } from 'app/extensions/capital/widgets';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
+import { t } from '../../../i18n';
 
 const { referralLink } = useReferralLink();
 
@@ -77,10 +78,10 @@ const {
 async function copyReferralLink(): Promise<void> {
   try {
     await copyToClipboard(referralLink.value);
-    SuccessAlert('Ссылка скопирована в буфер обмена');
+    SuccessAlert(t('capital.invitationsPage.copySuccess'));
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    FailAlert('Не удалось скопировать ссылку: ' + msg);
+    FailAlert(t('capital.invitationsPage.copyError') + msg);
   }
 }
 

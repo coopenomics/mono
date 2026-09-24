@@ -5,7 +5,7 @@ import httpStatus from 'http-status';
 import { ProjectFreeDecisionDomainEntity } from '~/domain/branch/entities/project-free-decision.entity';
 import type { ProjectFreeDecisionRepository } from '~/domain/common/repositories/project-free-decision.repository';
 import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator.port';
-import { HttpApiError } from '@coopenomics/extension-kit';
+import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ProjectFreeDecisionRepositoryImplementation implements ProjectFreeDecisionRepository {
@@ -16,7 +16,7 @@ export class ProjectFreeDecisionRepositoryImplementation implements ProjectFreeD
 
     //TODO присвоение убрать после реализации нормальной типизации в модуле генератора
     const project = (await this.generatorPort.get('project', { id })) as Cooperative.Document.IProjectData;
-    if (!project) throw new HttpApiError(httpStatus.BAD_REQUEST, `Проект решения с идентификатором ${id} не найден`);
+    if (!project) throw DomainError.badRequest('DATABASE_FREE_DECISION_PROJECT_NOT_FOUND', { id });
     else return new ProjectFreeDecisionDomainEntity(project);
   }
 

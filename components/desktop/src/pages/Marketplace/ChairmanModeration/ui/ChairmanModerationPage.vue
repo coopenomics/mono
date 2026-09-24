@@ -164,23 +164,23 @@ onMounted(async () => {
 </script>
 
 <template lang="pug">
-q-page.moderation(role="region", aria-label="Модерация предложений")
+q-page.moderation(role="region", :aria-label="$t('marketplace.chairmanModeration.pageAriaLabel')")
   PageHint(storage-key="mp:moderation:banner-dismissed")
-    | Предложения поставщиков ожидают вашего одобрения. После «Одобрить» товар появится в публичном каталоге кооператива.
+    | {{ $t('marketplace.chairmanModeration.pageHint') }}
 
   .moderation__toolbar
     q-space
     span.chip.chip--warn
       q-icon(name="hourglass_empty", size="14px")
-      | На модерации: {{ total }}
+      | {{ $t('marketplace.chairmanModeration.queueCount', { count: total }) }}
 
   //- Канон загрузки: скелетон, а не спиннер поверх.
   CardListSkeleton(v-if="firstLoad", :count="3")
 
   EmptyState(
     v-if="!firstLoad && items.length === 0",
-    title="Очередь модерации пуста",
-    body="Все предложения поставщиков рассмотрены."
+    :title="$t('marketplace.chairmanModeration.emptyTitle')",
+    :body="$t('marketplace.chairmanModeration.emptyBody')"
   )
     template(#icon)
       q-icon(name="check_circle", size="48px")
@@ -196,7 +196,7 @@ q-page.moderation(role="region", aria-label="Модерация предложе
           //- назначая гарантийный срок возврата в диалоге «Одобрить».
           template(#details)
             .mp-catalog-offer-card__reference
-              | Срок годности: {{ o.shelf_life_days > 0 ? `${o.shelf_life_days} дн.` : 'без срока годности' }}
+              | {{ $t('marketplace.chairmanModeration.shelfLifeLabel', { shelfLife: o.shelf_life_days > 0 ? $t('marketplace.chairmanModeration.shelfLifeDays', { days: o.shelf_life_days }) : $t('marketplace.chairmanModeration.noShelfLife') }) }}
           template(#actions)
             BaseButton(
               variant="danger",
@@ -206,7 +206,7 @@ q-page.moderation(role="region", aria-label="Модерация предложе
             )
               template(#icon-left)
                 q-icon(name="close", size="16px")
-              | Отклонить
+              | {{ $t('marketplace.chairmanModeration.rejectButton') }}
             BaseButton(
               variant="primary",
               size="sm",
@@ -215,7 +215,7 @@ q-page.moderation(role="region", aria-label="Модерация предложе
             )
               template(#icon-left)
                 q-icon(name="check", size="16px")
-              | Одобрить
+              | {{ $t('marketplace.chairmanModeration.approveButton') }}
     template(#loading)
       .row.justify-center.q-my-md
         q-spinner(color="primary", size="2em")

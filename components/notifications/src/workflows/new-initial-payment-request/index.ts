@@ -3,7 +3,7 @@ import { WorkflowBuilder } from '../../base/workflow-builder';
 import { z } from 'zod';
 import { BaseWorkflowPayload } from '../../types';
 import { createEmailStep, createInAppStep, createPushStep } from '../../base/defaults';
-import { slugify } from '../../utils';
+import { nt } from '../../i18n';
 
 // Схема для new-initial-payment-request воркфлоу
 export const newInitialPaymentRequestPayloadSchema = z.object({
@@ -20,31 +20,34 @@ export type IPayload = z.infer<typeof newInitialPaymentRequestPayloadSchema>;
 
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
 
-export const name = 'Новая заявка на вступительный взнос';
-export const id = slugify(name);
+export const name = nt('newInitialPaymentRequest.name');
+// Идентификатор закреплён: раньше он вычислялся из названия, и правка
+// или перевод названия меняли бы его. Не менять — на него ссылаются подписки.
+export const id = 'novaya-zayavka-na-vstupitelniy-vznos';
 
 export const workflow: WorkflowDefinition<IWorkflow> = WorkflowBuilder
   .create<IWorkflow>()
   .name(name)
   .workflowId(id)
-  .description('Уведомление председателю о создании новой заявки на вступительный/минимальный паевой взнос')
+  .i18nKey('newInitialPaymentRequest')
+  .description(nt('newInitialPaymentRequest.description'))
   .payloadSchema(newInitialPaymentRequestPayloadSchema)
   .tags(['chairman']) // Только для председателя
   .addSteps([
     createEmailStep(
       'new-initial-payment-request-email',
-      'Новая заявка на вступительный/мин.паевой взнос: {{payload.participantName}}',
-      'Уважаемый {{payload.chairmanName}}!<br><br>Сформирована новая заявка на оплату. Проверяйте поступления.<br><br>Пайщик: <strong>{{payload.participantName}}</strong><br><br>Сумма: <strong>{{payload.paymentAmount}} {{payload.paymentCurrency}}</strong><br><br>Тип платежа: {{payload.paymentType}}<br><br>Подробности: {{payload.paymentUrl}}'
+      nt('newInitialPaymentRequest.email.subject'),
+      nt('newInitialPaymentRequest.email.body')
     ),
     createInAppStep(
       'new-initial-payment-request-notification',
-      'Новая заявка на вступительный/мин.паевой взнос',
-      'Пайщик {{payload.participantName}} создал заявку на {{payload.paymentAmount}} {{payload.paymentCurrency}}. Проверяйте поступления.'
+      nt('newInitialPaymentRequest.inApp.subject'),
+      nt('newInitialPaymentRequest.inApp.body')
     ),
     createPushStep(
       'new-initial-payment-request-push',
-      'Новая заявка на вступительный/мин.паевой взнос',
-      'Заявка от пайщика {{payload.participantName}} на {{payload.paymentAmount}} {{payload.paymentCurrency}}'
+      nt('newInitialPaymentRequest.push.subject'),
+      nt('newInitialPaymentRequest.push.body')
     ),
   ])
   .build();

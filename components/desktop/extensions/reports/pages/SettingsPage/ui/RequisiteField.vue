@@ -23,6 +23,7 @@ q-input(
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { t } from '../../../i18n';
 
 const props = defineProps<{
   id: string
@@ -110,7 +111,7 @@ function onPaste(e: ClipboardEvent): void {
 const rules = computed(() => {
   const rs: Array<(v: string) => true | string> = []
   if (props.required && !props.readOnly) {
-    rs.push((v) => (!!v && String(v).trim() !== '') || 'Обязательное поле')
+    rs.push((v) => (!!v && String(v).trim() !== '') || t('reports.requisiteField.requiredError'))
   }
   if (props.exactLengths && props.exactLengths.length > 0) {
     const expected = props.exactLengths
@@ -119,13 +120,13 @@ const rules = computed(() => {
       if (!s) return true
       return (
         expected.includes(s.length) ||
-        `Допустимая длина: ${expected.join(' или ')} цифр`
+        t('reports.requisiteField.lengthError', { digits: expected.join(` ${t('reports.requisiteField.or')} `) })
       )
     })
   }
   if (props.pattern) {
     const re = props.pattern
-    const msg = props.patternMessage ?? 'Некорректный формат'
+    const msg = props.patternMessage ?? t('reports.requisiteField.formatError')
     rs.push((v) => {
       const s = String(v ?? '')
       if (!s) return true

@@ -16,14 +16,15 @@
 import { computed } from 'vue';
 import { BaseButton } from 'src/shared/ui/base';
 import type { FlowChallenge } from 'src/shared/api/authentik-flow';
+import { t } from 'src/shared/i18n';
 
 const props = defineProps<{ challenge: FlowChallenge; sending: boolean }>();
 const emit = defineEmits<{ answer: [payload: Record<string, unknown>] }>();
 
 const RIGHT_NAMES: Readonly<Record<string, string>> = {
-  'Email address': 'Адрес почты',
-  'General Profile Information': 'Основные сведения профиля',
-  'GoAuthentik.io API Access': 'Доступ к API',
+  'Email address': t('coopidFlow.flowConsent.scope.emailAddress'),
+  'General Profile Information': t('coopidFlow.flowConsent.scope.profile'),
+  'GoAuthentik.io API Access': t('coopidFlow.flowConsent.scope.apiAccess'),
 };
 
 const permissions = computed(() =>
@@ -32,8 +33,8 @@ const permissions = computed(() =>
     .filter((right) => right.name.length > 0),
 );
 const confirming = computed(() => permissions.value.length === 0);
-const lead = computed(() => (confirming.value ? 'Подтвердите действие.' : 'Сервис просит доступ к вашим данным в кооперативе.'));
-const action = computed(() => (confirming.value ? 'Подтвердить' : 'Разрешить'));
+const lead = computed(() => (confirming.value ? t('coopidFlow.flowConsent.confirmLead') : t('coopidFlow.flowConsent.accessLead')));
+const action = computed(() => (confirming.value ? t('common.action.confirm') : t('coopidFlow.flowConsent.allowAction')));
 const answer = (): void => emit('answer', { component: props.challenge.component, token: props.challenge.token });
 </script>
 

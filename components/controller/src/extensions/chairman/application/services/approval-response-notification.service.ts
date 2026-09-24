@@ -8,6 +8,7 @@ import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
 import { ApprovalStatus } from '../../domain';
+import { t } from '../../i18n';
 
 /**
  * Сервис для отправки уведомлений об ответах на запросы одобрения
@@ -117,13 +118,13 @@ export class ApprovalResponseNotificationService implements OnModuleInit {
       // Предмет запроса для текста уведомления — заголовок документа одобрения.
       // WHY: раньше в тексте фигурировал approval_hash — пользователю он ничего
       // не сообщает, а 64 символа без пробелов ломают вёрстку in-app/push.
-      const requestTitle = approval.document?.meta?.title?.trim() || 'Запрос на одобрение действия';
+      const requestTitle = approval.document?.meta?.title?.trim() || t('chairman.approvalResponseNotification.defaultTitle');
 
       // Формируем данные для workflow
       const payload: Workflows.ApprovalResponse.IPayload = {
         userName: authorName,
         approvalStatus: status,
-        approvalStatusText: status === ApprovalStatus.APPROVED ? 'одобрен' : 'отклонён',
+        approvalStatusText: status === ApprovalStatus.APPROVED ? t('chairman.approvalResponseNotification.status.approved') : t('chairman.approvalResponseNotification.status.declined'),
         requestTitle,
         approvalId: approvalHash,
         coopname: platformSettings().coopname,

@@ -6,6 +6,7 @@ import type { IDocument, IMetaDocument } from 'src/shared/lib/types/document';
 import type { Cooperative } from 'cooptypes';
 import { Classes } from '@coopenomics/sdk';
 import type { ISignedDocument2 } from 'src/entities/Document/model';
+import { t } from 'src/shared/i18n';
 
 export type ZGeneratedDocument = Cooperative.Document.ZGeneratedDocument;
 
@@ -30,7 +31,7 @@ export async function signDocument(
   signatureId = 1,
   existingSignedDocuments?: ISignedDocument2[],
 ): Promise<Cooperative.Document.ISignedDocument2> {
-  if (!document) throw new Error('Документ на подпись не предоставлен');
+  if (!document) throw new Error(t('document.error.notProvided'));
   const wifKey = await useGlobalStore().ensureSigningKey();
   const docSigner = new Classes.Document(wifKey);
   return await docSigner.signDocument(document, account, signatureId, existingSignedDocuments);
@@ -78,7 +79,7 @@ export class DigitalDocument {
     account: string,
     signatureId = 1,
   ): Promise<IDocument<T>> {
-    if (!this.data) throw new Error('Ошибка генерации документа');
+    if (!this.data) throw new Error(t('document.error.generateError'));
     const signedDoc = await signDocument(this.data, account, signatureId);
     this.signedDocument = signedDoc;
     return signedDoc;

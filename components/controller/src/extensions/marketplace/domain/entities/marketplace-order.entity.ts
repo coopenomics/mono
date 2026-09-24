@@ -99,6 +99,7 @@ export class MarketplaceOrderDomainEntity implements IBlockchainSynchronizable {
   constructor(props: MarketplaceOrderProps) {
     if (!props.order_hash || props.order_hash.length !== 64) {
       throw new Error(
+        // i18n-ignore: внутренний инвариант сущности, до пайщика не доходит
         `MarketplaceOrderDomainEntity: order_hash должен быть 64-символьным hex (получено: "${props.order_hash}")`
       );
     }

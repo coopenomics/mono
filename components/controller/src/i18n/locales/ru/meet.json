@@ -1,0 +1,24 @@
+{
+  "errors": {
+    "MEET_NOT_FOUND_AFTER_RESTART": "Собрание после перезапуска не найдено в блокчейне"
+  },
+  "meet": {
+    "createMeetAgendaInput": {
+      "agendaMustBeArray": "Повестка должна быть массивом",
+      "chairmanMustBeString": "Имя аккаунта председателя должно быть строкой",
+      "chairmanRequired": "Имя аккаунта председателя не должно быть пустым",
+      "closeTimeRequired": "Время закрытия собрания не должно быть пустым",
+      "coopnameMustBeString": "Имя аккаунта кооператива должно быть строкой",
+      "coopnameRequired": "Имя аккаунта кооператива не должно быть пустым",
+      "initiatorMustBeString": "Имя аккаунта инициатора должно быть строкой",
+      "initiatorRequired": "Имя аккаунта инициатора не должно быть пустым",
+      "openTimeRequired": "Время открытия собрания не должно быть пустым",
+      "secretaryMustBeString": "Имя аккаунта секретаря должно быть строкой",
+      "secretaryRequired": "Имя аккаунта секретаря не должно быть пустым"
+    },
+    "createProjectFreeDecision": {
+      "agendaQuestionRequired": "Вопрос повестки не должен быть пустым",
+      "draftMustBeString": "Проект решения должен быть строкой"
+    }
+  }
+}

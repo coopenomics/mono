@@ -11,7 +11,7 @@ div
     binary-state-sort,
     flat,
     square,
-    no-data-label='У председателя нет запросов предварительных одобрений'
+    :no-data-label='$t("chairman.approvalsTableWidget.emptyLabel")'
   )
 
 
@@ -63,6 +63,7 @@ div
 
 <script lang="ts" setup>
 import { onMounted, watch } from 'vue';
+import { uiLocale } from 'src/shared/i18n';
 import type { IApproval } from 'app/extensions/chairman/entities/Approval/model/types';
 import { ConfirmApprovalButton } from 'app/extensions/chairman/features/Approval/ConfirmApproval';
 import { DeclineApprovalButton } from 'app/extensions/chairman/features/Approval/DeclineApproval';
@@ -71,6 +72,7 @@ import { useExpandableState } from 'src/shared/lib/composables';
 import { BaseDocument } from 'src/shared/ui/BaseDocument';
 import type { Zeus } from '@coopenomics/sdk';
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton';
+import { t } from '../../../i18n';
 
 
 interface Props {
@@ -125,35 +127,35 @@ const columns = [
   },
   {
     name: 'username',
-    label: 'Пользователь',
+    label: t('chairman.approvalsTableWidget.column.user'),
     align: 'left' as const,
     field: 'username' as const,
     sortable: true,
   },
   {
     name: 'callback_action_approve',
-    label: 'Действие',
+    label: t('chairman.approvalsTableWidget.column.action'),
     align: 'left' as const,
     field: 'callback_action_approve' as const,
     sortable: true,
   },
   {
     name: 'status',
-    label: 'Статус',
+    label: t('chairman.approvalsTableWidget.column.status'),
     align: 'center' as const,
     field: 'status' as const,
     sortable: true,
   },
   {
     name: 'created_at',
-    label: 'Дата создания',
+    label: t('chairman.approvalsTableWidget.column.createdAt'),
     align: 'left' as const,
     field: 'created_at' as const,
     sortable: true,
   },
   {
     name: 'actions',
-    label: 'Действия',
+    label: t('chairman.approvalsTableWidget.column.actions'),
     align: 'center' as const,
     field: 'actions' as const,
   },
@@ -177,11 +179,11 @@ const getStatusColor = (status: Zeus.ApprovalStatus) => {
 const getStatusLabel = (status: Zeus.ApprovalStatus) => {
   switch (status) {
     case 'PENDING':
-      return 'Ожидает';
+      return t('chairman.approval.status.pending');
     case 'APPROVED':
-      return 'Одобрено';
+      return t('chairman.approval.status.approved');
     case 'DECLINED':
-      return 'Отклонено';
+      return t('chairman.approval.status.declined');
     default:
       return status;
   }
@@ -189,7 +191,7 @@ const getStatusLabel = (status: Zeus.ApprovalStatus) => {
 
 // Форматируем дату
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString('ru-RU');
+  return new Date(date).toLocaleDateString(uiLocale());
 };
 
 // Обработчик переключения развертывания

@@ -17,7 +17,7 @@
     //- открытое туда же, оказывалось под ней.
     q-menu(v-if='entries.length > 1' anchor='top left' self='bottom left')
       q-list(dense style='min-width: 220px')
-        q-item-label(header) Отчёты за месяц
+        q-item-label(header) {{ $t('reports.calendarCell.monthMenuHeader') }}
         q-item(
           v-for='entry in entries'
           :key='entry.periodCode ?? entry.label'
@@ -27,13 +27,14 @@
         )
           q-item-section
             q-item-label {{ entry.label }}
-            q-item-label(caption) до {{ entry.dueDate }} · {{ statusLabel(entry.status) }}
+            q-item-label(caption) {{ $t('reports.calendarCell.entryCaption', { dueDate: entry.dueDate, status: statusLabel(entry.status) }) }}
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Zeus } from '@coopenomics/sdk'
 import type { IReportCalendarPeriodEntry, IReportCalendarRow } from 'src/entities/Report'
+import { t } from '../../i18n';
 
 const props = defineProps<{
   row: IReportCalendarRow
@@ -78,7 +79,7 @@ const label = computed(() => {
   if (!props.entries.length) return ''
   if (!hasMultiplePerMonth.value) return primary.value?.label ?? ''
   const count = props.entries.length
-  return `${count} ${count === 1 ? 'отчёт' : 'отчёта'}`
+  return `${count} ${count === 1 ? t('reports.calendarCell.reportCount.one') : t('reports.calendarCell.reportCount.other')}`
 })
 
 // Форма сдаётся несколько раз в месяц — значит и в остальных месяцах подпись
@@ -99,14 +100,14 @@ const classes = computed<Record<string, boolean>>(() => ({
 }))
 
 const STATUS_RU: Record<string, string> = {
-  [Zeus.CalendarEntryStatus.SUBMITTED]: 'Сдан',
-  [Zeus.CalendarEntryStatus.SUBMITTED_EXTERNALLY]: 'Сдан (отметка)',
-  [Zeus.CalendarEntryStatus.DRAFT]: 'Черновик',
-  [Zeus.CalendarEntryStatus.OVERDUE]: 'Просрочен',
-  [Zeus.CalendarEntryStatus.NOT_REQUIRED]: 'Не надо сдавать',
-  [Zeus.CalendarEntryStatus.EMPTY]: 'Не сдан',
-  [Zeus.CalendarEntryStatus.BEFORE_REGISTRATION]: 'Не требуется (до регистрации)',
-  [Zeus.CalendarEntryStatus.NO_DATA]: 'Нечего подавать — выплат не было',
+  [Zeus.CalendarEntryStatus.SUBMITTED]: t('reports.calendarCell.status.submitted'),
+  [Zeus.CalendarEntryStatus.SUBMITTED_EXTERNALLY]: t('reports.calendarCell.status.submittedExternally'),
+  [Zeus.CalendarEntryStatus.DRAFT]: t('reports.calendarCell.status.draft'),
+  [Zeus.CalendarEntryStatus.OVERDUE]: t('reports.calendarCell.status.overdue'),
+  [Zeus.CalendarEntryStatus.NOT_REQUIRED]: t('reports.calendarCell.status.notRequired'),
+  [Zeus.CalendarEntryStatus.EMPTY]: t('reports.calendarCell.status.empty'),
+  [Zeus.CalendarEntryStatus.BEFORE_REGISTRATION]: t('reports.calendarCell.status.beforeRegistration'),
+  [Zeus.CalendarEntryStatus.NO_DATA]: t('reports.calendarCell.status.noData'),
 }
 
 function statusLabel(status: string): string {
@@ -117,13 +118,13 @@ const tooltip = computed(() => {
   if (!primary.value) return ''
   if (props.entries.length > 1) {
     const lines = props.entries.map(
-      (e) => `${e.label} — до ${e.dueDate}, ${statusLabel(e.status)}`,
+      (e) => t('reports.calendarCell.tooltipLine', { label: e.label, dueDate: e.dueDate, status: statusLabel(e.status) }),
     )
     return `${props.row.shortName}\n${lines.join('\n')}`
   }
   return (
     `${props.row.shortName}: ${primary.value.label}\n` +
-    `Срок: ${primary.value.dueDate}\nСтатус: ${statusLabel(primary.value.status)}`
+    t('reports.calendarCell.tooltipSingle', { dueDate: primary.value.dueDate, status: statusLabel(primary.value.status) })
   )
 })
 

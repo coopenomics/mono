@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
+import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard, DomainError } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { FavoritesService } from '../services/favorites.service';
 import {
@@ -62,7 +62,7 @@ export class FavoritesResolver {
   // Избранное строго личное: даже председатель не читает и не правит чужое
   private assertSelf(username: string, currentUser: IMonoAccount): void {
     if (username !== currentUser.username) {
-      throw new Error('Избранное доступно только своему владельцу');
+      throw DomainError.internal('CAPITAL_FAVORITES_ACCESS_FORBIDDEN');
     }
   }
 }

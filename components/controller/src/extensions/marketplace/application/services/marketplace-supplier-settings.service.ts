@@ -1,10 +1,11 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
   type MarketplaceSupplierSettingsDomainRepository,
 } from '../../domain/repositories/marketplace-supplier-settings.repository';
 import { formatPayoutDestination } from '../shared/payout-destination.util';
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort, type InnerPaymentMethod } from '@coopenomics/innercoop';
+import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_SUPPLIER_SETTINGS_SERVICE = Symbol(
   'MARKETPLACE_SUPPLIER_SETTINGS_SERVICE'
@@ -59,9 +60,7 @@ export class MarketplaceSupplierSettingsService {
     try {
       await this.paymentMethodRepo.get({ username, method_id });
     } catch {
-      throw new BadRequestException(
-        'Реквизиты не найдены. Добавьте их в разделе «Реквизиты» стола пайщика и выберите снова.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_SETTINGS_REQUISITES_NOT_FOUND');
     }
     await this.settingsRepo.setPayoutMethodId(coopname, username, method_id);
     return this.getSettings(coopname, username);
@@ -97,9 +96,7 @@ export class MarketplaceSupplierSettingsService {
   async assertPayoutMethodConfigured(coopname: string, username: string): Promise<void> {
     const resolved = await this.resolvePayoutMethod(coopname, username);
     if (!resolved) {
-      throw new BadRequestException(
-        'Чтобы публиковать предложения, укажите реквизиты для выплат: добавьте их в разделе «Реквизиты» и выберите на странице «Выплаты» стола поставщика.'
-      );
+      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_SETTINGS_PAYOUT_REQUISITES_REQUIRED');
     }
   }
 }

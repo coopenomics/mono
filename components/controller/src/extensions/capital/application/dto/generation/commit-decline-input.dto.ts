@@ -1,4 +1,5 @@
 import { Field, InputType } from '@nestjs/graphql';
+import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString } from 'class-validator';
 import type { CommitDeclineDomainInput } from '../../../domain/actions/commit-decline-domain-input.interface';
 
@@ -8,17 +9,17 @@ import type { CommitDeclineDomainInput } from '../../../domain/actions/commit-de
 @InputType('CommitDeclineInput')
 export class CommitDeclineInputDTO implements Omit<CommitDeclineDomainInput, 'master'> {
   @Field(() => String, { description: 'Имя аккаунта кооператива' })
-  @IsNotEmpty({ message: 'Имя аккаунта кооператива не должно быть пустым' })
-  @IsString({ message: 'Имя аккаунта кооператива должно быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.commitDeclineInput.coopname.required') })
+  @IsString({ message: validationMessage('capital.commitDeclineInput.coopname.string') })
   coopname!: string;
 
   @Field(() => String, { description: 'Хэш коммита для отклонения' })
-  @IsNotEmpty({ message: 'Хэш коммита не должен быть пустым' })
-  @IsString({ message: 'Хэш коммита должен быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.commitDeclineInput.commitHash.required') })
+  @IsString({ message: validationMessage('capital.commitDeclineInput.commitHash.string') })
   commit_hash!: string;
 
   @Field(() => String, { description: 'Причина отклонения' })
-  @IsNotEmpty({ message: 'Причина отклонения не должна быть пустой' })
-  @IsString({ message: 'Причина отклонения должна быть строкой' })
+  @IsNotEmpty({ message: validationMessage('capital.commitDeclineInput.reason.required') })
+  @IsString({ message: validationMessage('capital.commitDeclineInput.reason.string') })
   reason!: string;
 }

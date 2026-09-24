@@ -45,16 +45,19 @@ export class AuthMetricsService {
   constructor() {
     this.attempts = ensureCounter(globalRegistry, {
       name: 'auth_login_attempts_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число попыток входа (этап-2 timestamp-handshake) по контуру',
       labelNames: ['contour'],
     });
     this.success = ensureCounter(globalRegistry, {
       name: 'auth_login_success_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число успешных входов по контуру (success_rate = success/attempts в PromQL)',
       labelNames: ['contour'],
     });
     this.errors = ensureCounter(globalRegistry, {
       name: 'auth_errors_total',
+      // i18n-ignore: справка Prometheus-метрики, техническая строка для мониторинга, не для пайщика
       help: 'Число ошибок входа по контуру и типизированному коду ошибки',
       labelNames: ['contour', 'error_code'],
     });

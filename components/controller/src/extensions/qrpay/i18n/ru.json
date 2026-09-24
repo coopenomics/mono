@@ -1,0 +1,11 @@
+{
+  "errors": {
+    "QRPAY_CONFIG_NOT_FOUND": "Конфиг не найден",
+    "QRPAY_PAYMENT_NOT_FOUND": "Платеж с hash {hash} не найден"
+  },
+  "qrpay": {
+    "payment": {
+      "defaultDescription": "Платеж для {username}"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "branchCard": {
+    "branchCard": {
+      "addressLabel": "Фактический адрес",
+      "basedOnLabel": "Председатель действует на основании",
+      "branchUsernameLabel": "Имя аккаунта участка",
+      "emailLabel": "Email участка",
+      "fullNameLabel": "Полное наименование",
+      "phoneLabel": "Номер телефона участка",
+      "shortNameLabel": "Краткое наименование",
+      "trusteeUsernameLabel": "Имя аккаунта председателя"
+    }
+  }
+}
