@@ -45,6 +45,8 @@ const SNAPSHOT = path.join(path.dirname(new URL(import.meta.url).pathname), 'sna
 
 const matrix: Matrix = {}
 const sessionKillers = new Set<string>()
+/** Операции, вызванные ролью после последнего вызова, где её вход проверялся. */
+const sinceAuthCheck = new Map<string, string[]>()
 let ops: Operation[] = []
 let declared = new Map<string, DeclaredOp>()
 
@@ -52,16 +54,17 @@ function short(err: GqlError | null): Pick<Cell, 'code' | 'message'> {
   return { code: err?.code === null || err?.code === undefined ? null : String(err.code), message: err ? err.message.slice(0, 160) : null }
 }
 
-async function call(op: Operation, role: MatrixRole, tokens: Map<string, string | null>, prevOp: string | null): Promise<Cell> {
+async function call(op: Operation, role: MatrixRole, tokens: Map<string, string | null>): Promise<Cell> {
   for (let attempt = 0; attempt < 4; attempt++) {
     const r = await gqlRaw(tokens.get(role.name) ?? null, op.document, op.variables)
     const err = r.errors[0] ?? null
     const outcome = classify(err)
     // Сессию закрыла предыдущая операция (выход, смена ключа) — войти заново
     // и повторить: иначе все следующие вызовы роли выглядели бы как отказ.
+    // Открытые операции токен не смотрят, поэтому виновник — одна из
+    // операций после последнего вызова, где вход роли проверялся.
     if (role.platform !== 'guest' && err?.code === 'AUTH_SESSION_TERMINATED' && attempt === 0) {
-      if (prevOp)
-        sessionKillers.add(prevOp)
+      sessionKillers.add(`${role.name}: ${(sinceAuthCheck.get(role.name) ?? []).join(' | ')}`)
       tokens.set(role.name, await login(role.who()!))
       continue
     }
@@ -75,6 +78,10 @@ async function call(op: Operation, role: MatrixRole, tokens: Map<string, string 
       tokens.set(role.name, await login(role.who()!))
       continue
     }
+    const guarded = declared.get(op.name)?.guards.includes('GqlJwtAuthGuard') ?? false
+    if (guarded && outcome !== 'deny-auth')
+      sinceAuthCheck.set(role.name, [op.name])
+    else sinceAuthCheck.set(role.name, [...(sinceAuthCheck.get(role.name) ?? []), op.name])
     return { outcome, ...short(err) }
   }
   return { outcome: 'throttled', code: null, message: 'повторы исчерпаны' }
@@ -99,12 +106,10 @@ describe('матрица прав', () => {
     // Запросы раньше мутаций: мутация с чужими аргументами может поменять
     // стенд, а чтения должны видеть его таким, каким его оставили сценарии.
     ops.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === 'query' ? -1 : 1))
-    let prev: string | null = null
     for (const op of ops) {
       matrix[op.name] = {}
       for (const role of ROLES)
-        matrix[op.name][role.name] = await call(op, role, tokens, prev)
-      prev = op.name
+        matrix[op.name][role.name] = await call(op, role, tokens)
     }
     report()
   }, 40 * 60_000)
@@ -204,7 +209,15 @@ function report(): void {
   section('Гость прошёл закрытую операцию', f.guestPassed)
   section('Роль вне @AuthRoles прошла', f.roleEscalated)
   section('Роль из @AuthRoles получила отказ гварда', f.roleDenied)
-  section('Операции, закрывшие сессию', [...sessionKillers])
+  section('Сессию роли закрыла одна из операций', [...sessionKillers])
+  // Прошедшие проверку прав вызовы с чужими аргументами должны получать
+  // деловую ошибку (4xx, код домена). 500 значит, что вход не проверен и
+  // упал глубже: разбор uuid в базе, ассерт цепи, голый Error.
+  const crashes = Object.entries(matrix).flatMap(([op, row]) => {
+    const c = Object.entries(row).find(([, cell]) => cell.code === '500')
+    return c ? [`${op} (${c[0]}): ${c[1].message ?? ''}`] : []
+  })
+  section('Ответ 500 на чужие аргументы', crashes)
   const invalid = Object.entries(matrix).filter(([, row]) => Object.values(row).some(c => c.outcome === 'invalid')).map(([op, row]) => `${op}: ${Object.values(row).find(c => c.outcome === 'invalid')?.message ?? ''}`)
   section('Вызов не прошёл проверку схемы (право не проверено)', invalid)
   if (fs.existsSync(SNAPSHOT))

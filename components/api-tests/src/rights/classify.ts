@@ -29,11 +29,21 @@ export function classify(err: GqlError | null): Outcome {
     return 'throttled'
   if (INVALID.has(code) || /^(Variable "\$|Unknown argument|Field ".*" of required type|Cannot query field|Syntax Error)/.test(msg))
     return 'invalid'
+  // 401 без «Unauthorized» — сервис проверил токен или секрет из аргументов
+  // (подтверждение выхода по ссылке и т.п.), а не вход вызывающего.
+  if (code === '401' && !/^Unauthorized$/.test(msg))
+    return 'deny-service'
   if (AUTH.has(code) || /^Unauthorized$/.test(msg))
     return 'deny-auth'
+  if (ROLE.has(code))
+    return 'deny-role'
+  // Собственный код сервиса с FORBIDDEN — проверка по данным («только для
+  // себя»), даже если текст похож на отказ гварда.
+  if (/[A-Z]_FORBIDDEN$|_NOT_TRUSTEE|_SELF_ONLY|_FOREIGN/.test(code))
+    return 'deny-service'
   // Гварды Стола заказов отвечают по-английски «Forbidden: marketplace …»,
   // CASL — «Forbidden resource»/«Forbidden Exception», ядро — по-русски.
-  if (ROLE.has(code) || /^Forbidden: marketplace/.test(msg) || /Недостаточно прав доступа|Доступ только для пайщиков/.test(msg))
+  if (/^Forbidden: marketplace/.test(msg) || /Недостаточно прав доступа|Доступ только для пайщиков/.test(msg))
     return 'deny-role'
   if (code === '403' || /FORBIDDEN|NOT_TRUSTEE|SELF_ONLY|FOREIGN|NOT_OWNER|ACCESS_DENIED|NOT_ALLOWED/.test(code) || /^Forbidden/.test(msg))
     return 'deny-service'
