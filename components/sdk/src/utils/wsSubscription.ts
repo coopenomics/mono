@@ -50,6 +50,16 @@ export interface WsSubscriptionHandle<Z, T> {
   open: (listener: () => void) => void
   /** Операция завершена сервером. */
   off: (fn: () => void) => void
+  /**
+   * Жива ли сама операция подписки. Гаснет навсегда, как только операция
+   * получила ошибку или завершилась: сокет при этом может снова открыться —
+   * его откроет чужая подписка, — но эту операцию на нём никто не
+   * возобновит. Признак «сокет открыт» один на всех и о судьбе конкретной
+   * подписки не говорит (инцидент 23.09.2026: токен истёк во вкладке в
+   * фоне, сервер отказал в переподключении, подписка кошелька умерла, но
+   * считала себя живой по чужому открытию сокета — пополнение пришло опросом).
+   */
+  isActive: () => boolean
 }
 
 export type WsHeadersProvider = HeadersInit | (() => HeadersInit | Promise<HeadersInit>)
@@ -152,6 +162,7 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
       let onError: ((e: unknown) => void) | undefined
       let onClose: (() => void) | undefined
       let removeOpened: (() => void) | undefined
+      let terminated = false
 
       const wsClient = getClient()
       const unsubscribe = wsClient.subscribe(
@@ -164,9 +175,11 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
             onMessage?.(data)
           },
           error(error) {
+            terminated = true
             onError?.(error)
           },
           complete() {
+            terminated = true
             onClose?.()
           },
         },
@@ -188,11 +201,16 @@ export function wsSubscription(url: string, options: WsSubscriptionOptions = {})
         },
         open(listener) {
           removeOpened?.()
-          removeOpened = wsClient.on('opened', listener)
+          // Сокет общий: открыться он может ради чужой подписки. Мёртвой
+          // операции реконнект не касается — её слушатель молчит.
+          removeOpened = wsClient.on('opened', () => {
+            if (!terminated) listener()
+          })
         },
         off(listener) {
           onClose = listener
         },
+        isActive: () => !terminated,
       }
     }
 

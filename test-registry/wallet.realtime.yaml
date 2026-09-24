@@ -8,12 +8,24 @@ title: Кошелёк пайщика — событийное обновлени
 # До этого карточка пайщика перечитывала кошелёк только по собственному поводу,
 # и пополнение появлялось позже уведомления о приёме платежа.
 
+#
+# Правка 2026-09-23 (7DD-22): вкладка в фоне, токен истёк, сервер отказал в
+# переподключении — операция подписки кошелька умерла, но считала себя живой:
+# признак «сокет открыт» общий, и его подняла чужая переоткрытая подписка.
+# Канал не переоткрывался, пополнение приходило опросом через 20 секунд. Хэндл
+# подписки SDK получил isActive() — операция мертва после ошибки или
+# завершения, чужое открытие сокета её не оживляет; каналы кошелька, узла и
+# Стола заказов считают себя живыми, только пока жива их операция.
+
 sources:
   backend:
     - components/controller/src/application/wallet/services/wallet-events.service.ts
     - components/controller/src/application/wallet/dto/wallet-event.dto.ts
   ui:
     - components/desktop/src/entities/Wallet/model/walletEventsSubscription.ts
+    - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
+    - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/marketplaceEventsSubscription.ts
+    - components/sdk/src/utils/wsSubscription.ts
 
 cases:
   - id: wallet.realtime.happy.01
@@ -84,3 +96,18 @@ cases:
       на реконнекте клиент дочитывает остаток и показывает актуальную сумму —
       пропущенные за время обрыва сигналы не теряются
     status: missing
+
+  - id: wallet.realtime.side.06
+    level: ui
+    kind: side
+    scenario: >
+      Операция подписки получила ошибку (истёк токен во вкладке в фоне — сервер
+      отказал в переподключении) или завершилась; затем сокет снова открыла
+      другая подписка.
+    expect: >
+      операция считается мёртвой и слушатель «сокет открыт» у неё молчит —
+      канал сообщает, что не на связи, и ядро переоткрывает его на возврате
+      вкладки, появлении сети или по страховке
+    test: components/sdk/test/ws-subscription.test.ts
+    status: passing
+

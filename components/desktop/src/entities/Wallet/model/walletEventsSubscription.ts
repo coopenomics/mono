@@ -57,7 +57,9 @@ export function createWalletEventsSubscription(): RealtimeSubscription {
       // Транспорт подписок общий с расширениями, поэтому закрываем только свой
       // сокет: `disposeSubscriptions()` оборвал бы и чужие.
       return {
-        isAlive: () => alive,
+        // Жив и сокет, и сама операция: открытие сокета чужой подписки мёртвую
+        // операцию не оживляет — её канал переоткроет ядро.
+        isAlive: () => alive && stream.isActive(),
         close: () => {
           alive = false;
           stream.ws.close();
