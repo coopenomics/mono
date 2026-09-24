@@ -17,9 +17,9 @@
  * поэтому акт к подписи приходит в ответе на подпись заявления.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, gql, gqlError, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
-import { SAGA_FIELDS, historyOfProcess, pickOffer, sagaOf } from './flow'
+import { KRG, SAGA_FIELDS, getOrder, historyOfProcess, pickOffer, sagaOf } from './flow'
 import {
   CLOSE,
   CREATE_BUNDLE,
@@ -32,6 +32,7 @@ import {
   closeAggregate,
   createBundle,
   finalizeInput,
+  fundShare,
   inventoryOfOrder,
   money,
   offerCounters,
@@ -70,6 +71,8 @@ let operatorToken = ''
 let chairmanToken = ''
 let offer: { id: string, product_name: string, price_per_unit: string }
 let orderPrice = 0
+/** Заказ первого набора: его невыданный остаток идёт в докладку третьего. */
+let orderA: PreparedOrder | null = null
 
 beforeAll(async () => {
   member = ROLES.member()
@@ -82,14 +85,14 @@ beforeAll(async () => {
   chairmanToken = await tokenOf(CHAIRMAN)
   offer = await pickOffer(chairmanToken, supplier.account, undefined, OFFER_NAME)
   orderPrice = amount(offer.price_per_unit)
-  // Три заказа файла (4 + 2 + 2 единицы) с запасом на членский взнос.
-  await ensureShareFunds(member.account, orderPrice * 8 * 2, memberToken)
+  // Заказы файла (4 + 2 + 2 единицы и докладка из остатка) с запасом на взнос.
+  await fundShare(member.account, orderPrice * 10 * 2, memberToken)
 }, 300_000)
 
-describe('выдача одного заказа по этапам: заказано 4, привезли 3, выдано 2', () => {
+describe('выдача одного заказа по этапам: заказано 4, привезли 3, выдано 1', () => {
   const ORDERED = 4
   const RECEIVED = 3
-  const ISSUED = 2
+  const ISSUED = 1
   let arrival = 0
   let issuePrice = 0
   let order: PreparedOrder
@@ -111,6 +114,7 @@ describe('выдача одного заказа по этапам: заказа
       receivedQuantity: RECEIVED,
       arrivalPrice: arrival,
     })
+    orderA = order
   }, 300_000)
 
   it(caseName('mkt.iss.side.03', 'к выдаче больше принятого на склад — отказ, сага не рождается'), async () => {
@@ -354,5 +358,85 @@ describe('бандл из двух заказов: сбой позиции не 
       const rows = await historyOfProcess(chairmanToken, o.orderHash)
       expect(rows.filter(r => r.operationCode === 'o.mkt.loss'), 'цена выдачи равна цене прибытия — уценки нет').toEqual([])
     }
+  })
+})
+
+describe('заказ из остатка кооператива: зарезервировано 2, выдано 1', () => {
+  const RESERVED = 2
+  const ISSUED = 1
+  let stockOfferId = ''
+  let stockOrderId = ''
+  let before: OfferCounters
+  let after: OfferCounters
+
+  beforeAll(async () => {
+    expect(orderA, 'остаток даёт выдача первого набора').toBeTruthy()
+    const free = (await inventoryOfOrder(operatorToken, orderA!.orderId))
+      .filter(r => r.ownership === 'COOP' && r.status !== 'ISSUED' && !r.published_offer_id && !r.reserved_order_id)
+    expect(sumQty(free, () => true), 'в обезличенном остатке — невыданное по заказу').toBe(RESERVED)
+
+    const pub = await gql<any>(operatorToken, `mutation($d:MarketplacePublishStockInput!){
+      marketplacePublishStock(data:$d){ id price_per_unit }
+    }`, { d: { inventory_ids: free.map(r => r.id) } })
+    stockOfferId = pub.marketplacePublishStock[0].id
+
+    // Докладка со склада: заказ из остатка рождается на подписи пайщика.
+    const prep = await gql<any>(operatorToken, `query($d:MarketplaceStockIssuancePrepareInput!){
+      marketplaceStockIssuancePayloads(data:$d){ offer_id order_hash package_id quantity }
+    }`, { d: { braname: KRG, member_account: member.account, items: [{ offer_id: stockOfferId, quantity: RESERVED }] } })
+    const bundle = await gql<any>(operatorToken, CREATE_BUNDLE, {
+      d: {
+        braname: KRG,
+        member_account: member.account,
+        items: (prep.marketplaceStockIssuancePayloads as any[]).map(l => ({ offer_id: l.offer_id, order_hash: l.order_hash, package_id: l.package_id, quantity: l.quantity })),
+      },
+    })
+    const proposalId = bundle.marketplaceCreateStockProposal.id
+    const payloads = await bundlePayloads(memberToken, proposalId)
+    const lines = []
+    for (const [hash, statement] of payloads.statements) lines.push({ order_hash: hash, signed_statement: await signStatement(member, statement) })
+    const fin = await gql<any>(memberToken, FINALIZE, {
+      d: {
+        proposal_id: proposalId,
+        order_lines: lines,
+        signed_convert: payloads.convert ? await signDocument(member.wif, payloads.convert.document, member.account, 1) : null,
+      },
+    })
+    stockOrderId = fin.marketplaceFinalizeStockIssuance.order_ids[0]
+    expect(fin.marketplaceFinalizeStockIssuance.sagas[0].stage, 'совет решил у стойки').toBe('DECISION_AUTHORIZED')
+
+    // Пайщик забирает не всё: оператор снимает выдачу после решения совета и
+    // фиксирует меньший факт — заказ из остатка готов к выдаче снова.
+    const cancelled = await gql<any>(operatorToken, 'mutation($d:MarketplaceIssuanceOrderInput!){ marketplaceCancelIssuance(data:$d){ id stage } }', { d: { order_id: stockOrderId } })
+    expect(cancelled.marketplaceCancelIssuance.stage).toBe('CANCELLED')
+    const stockOrder = await getOrder(memberToken, stockOrderId)
+    expect(stockOrder.status, 'снятая выдача вернула заказ к готовности').toBe('READY_TO_RECEIVE')
+    const fixed = await gql<any>(operatorToken, `mutation($d:MarketplaceFixIssuanceFactInput!){
+      marketplaceFixIssuanceFact(data:$d){ saga{ id stage } statement{ full_title html hash meta binary } }
+    }`, { d: { order_id: stockOrderId, actual_quantity: ISSUED, actual_unit_price: stockOrder.price_per_unit } })
+    const submitted = await gql<any>(memberToken, SIGN_STATEMENT, {
+      d: { order_id: stockOrderId, signed_statement: await signStatement(member, fixed.marketplaceFixIssuanceFact.statement) },
+    })
+    expect(submitted.marketplaceSignIssuanceStatement.stage, 'совет решил у стойки').toBe('DECISION_AUTHORIZED')
+    const act = await actPayload(memberToken, stockOrderId)
+    await gql(memberToken, SIGN_ACT, { d: { order_id: stockOrderId, signed_act: await signDocument(member.wif, act, member.account, 1) } })
+
+    before = await offerCounters(chairmanToken, stockOfferId)
+    const agg = await closeAggregate(operatorToken, stockOrderId)
+    const closed = await gql<any>(operatorToken, CLOSE, {
+      d: { order_id: stockOrderId, signed_act: await signDocument(operator.wif, agg.rawDocument, operator.account, 2, [agg.document]) },
+    })
+    expect(closed.marketplaceCloseIssuance.stage).toBe('CLOSED')
+    after = await offerCounters(chairmanToken, stockOfferId)
+  }, 600_000)
+
+  it(caseName('mkt.iss.side.46', 'выданное из резерва выбывает, освобождённый резерв снова свободен в том же предложении'), async () => {
+    expect(after.consumed - before.consumed, 'выданное становится выданным').toBeCloseTo(ISSUED, 6)
+    expect(after.available - before.available, 'освобождённый резерв — снова в свободном').toBeCloseTo(RESERVED - ISSUED, 6)
+    expect(before.blocked - after.blocked, 'резерв заказа снят целиком').toBeCloseTo(RESERVED, 6)
+
+    const rows = await inventoryOfOrder(operatorToken, orderA!.orderId)
+    const released = rows.filter(r => r.published_offer_id === stockOfferId && !r.reserved_order_id && r.status !== 'ISSUED')
+    expect(sumQty(released, () => true), 'освобождённое осталось опубликованным в том же предложении').toBe(RESERVED - ISSUED)
   })
 })
