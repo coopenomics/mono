@@ -10,14 +10,17 @@
  * области `draft`) — работа оператора платформы: для теста это подготовка
  * состояния, проверяемое читается через API.
  */
+import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
 import { gql } from '../core/client'
-import { signDocument } from '../core/documents'
+import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
-import { CHAIRMAN } from '../core/roles'
+import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
+import { COOP_SIGNER, amount, ensureShareFunds, rub } from '../core/wallet'
+import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
 
@@ -123,6 +126,7 @@ export interface AgendaRow {
   id: number
   hash: string
   type: string
+  username: string
   meta: string
   votes_for: string[]
   votes_against: string[]
@@ -132,7 +136,7 @@ export interface AgendaRow {
 
 export async function agendaByHash(token: string, hash: string): Promise<AgendaRow | null> {
   const d = await gql<any>(token, `query{ getAgenda{
-    table{ id hash type meta votes_for votes_against statement{ meta } }
+    table{ id hash type meta username votes_for votes_against statement{ meta } }
     documents{ statement{ documentAggregate{ rawDocument{ html } } } }
   } }`)
   const row = (d.getAgenda as any[]).find(a => String(a.table.hash ?? '').toLowerCase() === hash.toLowerCase())
@@ -147,6 +151,7 @@ export async function agendaByHash(token: string, hash: string): Promise<AgendaR
     id: Number(row.table.id),
     hash: row.table.hash,
     type: row.table.type,
+    username: row.table.username,
     meta: row.table.meta,
     votes_for: row.table.votes_for ?? [],
     votes_against: row.table.votes_against ?? [],
@@ -231,4 +236,270 @@ export function plain(html: string): string {
     .replace(/&raquo;/g, '»')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
+}
+
+// ── Материальная помощь доверенному участка (p.brn.aid) ────────────────────
+//
+// Единственный источник удержанного НДФЛ: выплата матпомощи проводит
+// o.brn.aidtax (удержание в w.sov.ndfl) и o.brn.aid (выплата на руки). Путь
+// тот же, что у стола: деньги в общем кошельке участка → распределение
+// председателем участка на персональный кошелёк → заявление → решение совета
+// → кассир подтверждает перевод.
+//
+// Общий кошелёк участка на стенде пополняется из пула членских взносов
+// Стола заказов (branch::accrue от имени кооператива, как при закрытии
+// выдачи); пул наполняет обычный заказ пайщика. Это подготовка состояния.
+
+export const KRG = 'krg'
+
+/** Остаток кошелька кооператива ledger2 (w.mkt.fee, w.sov.ndfl…). */
+export async function coopWallet(id: string): Promise<number> {
+  const rows = await tableRows<any>('ledger2', COOP, 'wallets')
+  return amount(rows.find(r => r.id === id)?.available)
+}
+
+async function branchEconomy(token: string): Promise<any> {
+  const d = await gql<any>(token, `query($b:String!){ marketplaceGetBranchEconomy(braname:$b){
+    common_balance reserve_amount available_to_distribute total_weight weights{ username weight personal_balance }
+  } }`, { b: KRG })
+  return d.marketplaceGetBranchEconomy
+}
+
+/** Пул членских взносов не меньше нужного: при нехватке — заказ пайщика. */
+async function ensureFeePool(need: number): Promise<void> {
+  let rate = 0.1
+  for (let round = 0; round < 4; round++) {
+    const pool = await coopWallet('w.mkt.fee')
+    if (pool >= need)
+      return
+    const member = ROLES.member()
+    const token = await tokenOf(member)
+    const offer = await pickOffer(token, ROLES.supplier().account, KRG, 'Мёд цветочный')
+    const price = amount(offer.price_per_unit)
+    const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
+    await ensureShareFunds(member.account, price * qty * 2 + 1_000, token)
+    const { orderId } = await placeOrder({ who: member, offerId: offer.id, quantity: qty })
+    const order = await getOrder(token, orderId)
+    const fee = amount(order.membership_fee)
+    const cost = amount(order.total_cost)
+    if (fee > 0 && cost > 0)
+      rate = fee / cost
+  }
+  throw new Error(`пул членских взносов w.mkt.fee не набрал ${need} RUB`)
+}
+
+/** Персональный кошелёк председателя участка krg не меньше нужного. */
+async function ensurePersonalFunds(need: number): Promise<void> {
+  const chair = ROLES.branchChairman()
+  const token = await tokenOf(chair)
+  for (let round = 0; round < 3; round++) {
+    const eco = await branchEconomy(token)
+    const mine = (eco.weights as any[]).find(w => w.username === chair.account)
+    const have = amount(mine?.personal_balance)
+    if (have >= need)
+      return
+    if (!mine) {
+      await gql(token, 'mutation($d:MarketplaceSetTrusteeWeightInput!){ marketplaceSetTrusteeWeight(data:$d) }', {
+        d: { braname: KRG, username: chair.account, weight: 1 },
+      })
+      continue
+    }
+    const total = Number(eco.total_weight) || Number(mine.weight)
+    const toDistribute = Math.ceil((need - have) * total / Number(mine.weight)) + 1
+    const reserve = amount(eco.reserve_amount)
+    const common = amount(eco.common_balance)
+    const shortage = toDistribute + reserve - common
+    if (shortage > 0) {
+      const topUp = Math.ceil(shortage) + 1
+      await ensureFeePool(topUp)
+      await transact(COOP_SIGNER, [{
+        account: 'branch',
+        name: 'accrue',
+        data: {
+          coopname: COOP,
+          braname: KRG,
+          source_contract: 'marketplace',
+          amount: rub(topUp),
+          process_type: 'p.brn.fees',
+          process_hash: crypto.randomBytes(32).toString('hex'),
+          memo: 'Внешний слой: членские взносы участка под материальную помощь',
+        },
+      }])
+    }
+    await gql(token, 'mutation($d:MarketplaceDistributeBranchFundsInput!){ marketplaceDistributeBranchFunds(data:$d) }', {
+      d: { braname: KRG, amount: toDistribute },
+    })
+  }
+  throw new Error(`персональный кошелёк председателя участка не набрал ${need} RUB`)
+}
+
+let paymentMethodId = ''
+
+async function chairPaymentMethod(): Promise<string> {
+  if (paymentMethodId)
+    return paymentMethodId
+  const chair = ROLES.branchChairman()
+  const token = await tokenOf(chair)
+  const list = await gql<any>(token, 'query($d:GetPaymentMethodsInput){ getPaymentMethods(data:$d){ items{ method_id } } }', {
+    d: { username: chair.account, page: 1, limit: 10, sortOrder: 'ASC' },
+  })
+  paymentMethodId = list.getPaymentMethods.items[0]?.method_id ?? ''
+  if (!paymentMethodId) {
+    const m = await gql<any>(token, 'mutation($d:AddPaymentMethodInput!){ addPaymentMethod(data:$d){ method_id } }', {
+      d: {
+        username: chair.account,
+        is_default: true,
+        bank_transfer_data: {
+          account_number: '40817810099910004312',
+          bank_name: 'ПАО Сбербанк',
+          currency: 'RUB',
+          details: { bik: '044525225', corr: '30101810400000000225' },
+        },
+      },
+    })
+    paymentMethodId = m.addPaymentMethod.method_id
+  }
+  return paymentMethodId
+}
+
+export interface GatewayPaymentRow { id: string, hash: string, status: string, quantity: number, type: string, username: string, message: string | null }
+
+export async function paymentByHash(hash: string, type?: string): Promise<GatewayPaymentRow | null> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($d:PaymentFiltersInput,$o:PaginationInput){
+    getPayments(data:$d, options:$o){ items{ id hash quantity status type username message } }
+  }`, { d: { hash, ...(type ? { type } : {}) }, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
+  return (d.getPayments.items as any[]).find(p => String(p.hash).toLowerCase() === hash.toLowerCase()) ?? null
+}
+
+/** Кассир (председатель стенда) подтверждает фактический перевод. */
+export async function cashierPaid(paymentId: string): Promise<void> {
+  await gql(await tokenOf(CHAIRMAN), 'mutation($d:SetPaymentStatusInput!){ setPaymentStatus(data:$d){ id status } }', {
+    d: { id: paymentId, status: 'PAID' },
+  })
+}
+
+export interface LedgerOp { operationCode: string | null, quantity: string | null, username: string | null, processHash: string | null, createdAt: string, walletFrom: string | null, walletTo: string | null }
+
+export async function applyOps(processHash: string): Promise<LedgerOp[]> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($i:GetLedger2HistoryInput!){
+    getLedger2History(input:$i){ items{ operationCode quantity username processHash createdAt walletFrom walletTo } }
+  }`, { i: { coopname: COOP, processHash: processHash.toLowerCase(), actionNames: ['apply'], limit: 50, page: 1 } })
+  return d.getLedger2History.items as LedgerOp[]
+}
+
+export interface AidPayout {
+  aidHash: string
+  username: string
+  gross: number
+  tax: number
+  net: number
+  /** Время проводки выплаты (блок цепи, UTC). */
+  paidAt: string
+  decisionId: number
+}
+
+/**
+ * Материальная помощь председателю участка krg на сумму заявления `gross`
+ * от подачи до подтверждения перевода кассиром. Возвращает проводки выплаты.
+ */
+export async function payAid(gross: number): Promise<AidPayout> {
+  const chair = ROLES.branchChairman()
+  const token = await tokenOf(chair)
+  await ensurePersonalFunds(gross)
+  const methodId = await chairPaymentMethod()
+
+  const pl = await gql<any>(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
+    marketplaceAidStatementSignablePayload(data:$d){ full_title html hash meta binary }
+  }`, { d: { braname: KRG, amount: gross } })
+  const doc = pl.marketplaceAidStatementSignablePayload
+  const aidHash = String(docMeta(doc.meta).aid_hash).toLowerCase()
+  const signed = await signDocument(chair.wif, doc, chair.account, 1)
+  await gql(token, 'mutation($d:MarketplaceCreateAidInput!){ marketplaceCreateAid(data:$d) }', {
+    d: { braname: KRG, amount: gross, aid_hash: aidHash, statement: signed, payment_method_id: methodId },
+  })
+
+  const chairman = await tokenOf(CHAIRMAN)
+  const decision = await waitFor(() => agendaByHash(chairman, aidHash), { timeoutMs: 60_000, label: `решение о матпомощи ${aidHash}` })
+  await vote(decision, 'for')
+  const protocol = await gql<any>(chairman, 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ full_title html hash meta binary } }', {
+    i: {
+      data: {
+        registry_id: 1112,
+        coopname: COOP,
+        username: decision.username,
+        lang: 'ru',
+        decision_id: decision.id,
+        aid_hash: decision.statementMeta.aid_hash ?? aidHash,
+        receiver: decision.statementMeta.username ?? chair.account,
+        braname: decision.statementMeta.braname ?? KRG,
+        amount: decision.statementMeta.amount,
+      },
+      options: { lang: 'ru' },
+    },
+  })
+  const signedProtocol = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
+  await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
+    d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decision.id, document: signedProtocol },
+  })
+
+  // Платёж кассиру переходит в ожидание перевода по решению совета из ленты цепи.
+  const payment = await waitFor(async () => {
+    const p = await paymentByHash(aidHash, 'AID')
+    return p && p.status === 'PENDING' ? p : null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `выплата матпомощи ${aidHash} у кассира` })
+  await cashierPaid(payment.id)
+
+  const ops = await waitFor(async () => {
+    const rows = await applyOps(aidHash)
+    return rows.some(r => r.operationCode === 'o.brn.aid') ? rows : null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `проводки выплаты матпомощи ${aidHash}` })
+  const aid = ops.find(r => r.operationCode === 'o.brn.aid')!
+  const taxOp = ops.find(r => r.operationCode === 'o.brn.aidtax')
+  const net = amount(aid.quantity)
+  const tax = amount(taxOp?.quantity)
+  return { aidHash, username: aid.username ?? chair.account, gross: net + tax, tax, net, paidAt: aid.createdAt, decisionId: decision.id }
+}
+
+/** Дата по налоговому поясу (Москва, UTC+3): год, месяц, день. */
+export function mskParts(iso: string): { year: number, month: number, day: number } {
+  const d = new Date(new Date(iso).getTime() + 3 * 3_600_000)
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() }
+}
+
+/** Сквозной номер расчётного периода уведомления по НДФЛ: 1..24. */
+export function uvPeriodOf(month: number, day: number): number {
+  return (month - 1) * 2 + (day > 22 ? 2 : 1)
+}
+
+// ── Отчёты ─────────────────────────────────────────────────────────────────
+
+export async function initialEdits(reportType: string, year: number, period: number | null): Promise<any> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($t:ReportType!,$y:Int!,$p:Int){
+    buildInitialReportEdits(reportType:$t, year:$y, period:$p){ editsJson editedFields hasDraft }
+  }`, { t: reportType, y: year, p: period })
+  return JSON.parse(d.buildInitialReportEdits.editsJson)
+}
+
+export interface GeneratedReport { id: string | null, xml: string, isValid: boolean, errors: string[], fileName: string }
+
+export async function generateReport(reportType: string, year: number, period: number | null, edits: unknown): Promise<GeneratedReport> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), `mutation($t:ReportType!,$y:Int!,$p:Int,$e:String!){
+    generateReportFromEdits(reportType:$t, year:$y, period:$p, editsJson:$e){ id xml isValid errors fileName }
+  }`, { t: reportType, y: year, p: period, e: JSON.stringify(edits) })
+  return d.generateReportFromEdits
+}
+
+// ── Удержанный НДФЛ к перечислению ────────────────────────────────────────
+
+export async function withheldState(): Promise<{ withheld: number, in_payment: number, available: number }> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), 'query{ getWithheldTaxState{ withheld in_payment available } }')
+  const s = d.getWithheldTaxState
+  return { withheld: amount(s.withheld), in_payment: amount(s.in_payment), available: amount(s.available) }
+}
+
+export const TAX_PAYMENT_FIELDS = 'hash amount symbol status message memo created_at completed_at report_period report_period_label report_year recipient_name requisite_rows{ label value }'
+
+export async function withheldPayments(page = 1, limit = 50): Promise<any[]> {
+  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($p:Int,$l:Int){ getWithheldTaxPayments(page:$p, limit:$l){ items{ ${TAX_PAYMENT_FIELDS} } } }`, { p: page, l: limit })
+  return d.getWithheldTaxPayments.items
 }
