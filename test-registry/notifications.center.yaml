@@ -1,0 +1,173 @@
+feature: notifications.center
+title: Центр уведомлений — очередь доставки, журнал попыток, личный инбокс и веб-пуш подписки
+
+# Центр уведомлений ядра ходит в базу напрямую через TypeORM
+# (application/notification-center/*, application/notification/*), поэтому
+# перед переводом на Kysely его таблицы прикрыты снаружи: notification_outbox
+# (очередь, строка на пару получатель×канал), notification_deliveries (журнал
+# попыток), notification_inbox (канал in-app) и web_push_subscriptions.
+#
+# Внешний тест ставит уведомление мутацией председателя и ждёт фоновый
+# обработчик очереди опросом — это запись мимо мутации, а не пауза после неё.
+
+sources:
+  backend:
+    - components/controller/src/application/notification-center/**
+    - components/controller/src/application/notification/**
+    - components/controller/src/domain/notification/**
+    - components/controller/src/infrastructure/database/typeorm/entities/notification-*.typeorm-entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/web-push-subscription.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-web-push-subscription.repository.ts
+
+cases:
+  - id: ntf.center.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель ставит уведомление пайщику (тип с каналами email, in-app, push)
+    expect: обработчик очереди доставляет in-app — в инбоксе пайщика строка с отрендеренным заголовком и телом, непрочитанная, счётчик непрочитанных вырос на одну
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель открывает журнал уведомлений по получателю и детализацию строки in-app
+    expect: строка in-app в статусе SENT с одной попыткой; в журнале попыток одна запись SENT, ответ канала указывает на строку инбокса; фильтр по каналу отдаёт только этот канал
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.happy.03
+    level: backend
+    kind: happy
+    scenario: Пайщик отмечает уведомление прочитанным, затем повторяет отметку
+    expect: строка прочитана, время прочтения проставлено, счётчик уменьшился на одну; повтор ничего не меняет; чужой или несуществующий id — NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.happy.04
+    level: backend
+    kind: happy
+    scenario: Председатель переотправляет доставленное уведомление
+    expect: в очереди новая строка PENDING с тем же получателем и каналом, пайщик получает уведомление второй раз; исходная строка и её журнал не меняются
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.happy.05
+    level: backend
+    kind: happy
+    scenario: Пайщик отмечает весь инбокс прочитанным, затем повторяет на пустом
+    expect: счётчик непрочитанных ноль, все строки прочитаны; повтор не ошибка
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.side.01
+    level: backend
+    kind: side
+    scenario: Уведомление ставит член совета, пайщик или гость
+    expect: KIT_INSUFFICIENT_RIGHTS членам совета и пайщику, отказ входа гостю; в инбоксе ничего не появляется
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.side.02
+    level: backend
+    kind: side
+    scenario: У получателя нет веб-пуш подписки, а тип уведомления шлёт push
+    expect: строка push гасится в CANCELED с причиной, попыток в журнале нет
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.side.03
+    level: backend
+    kind: side
+    scenario: Журнал уведомлений читают пайщик, гость, член совета; чужой кооператив; несуществующий id
+    expect: пайщику KIT_INSUFFICIENT_RIGHTS, гостю отказ входа, совету открыт; чужой кооператив — NOTIFICATION_CENTER_JOURNAL_FOREIGN_COOP; неизвестный id — NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.side.04
+    level: backend
+    kind: side
+    scenario: Другой пайщик пытается отметить или увидеть чужое уведомление; гость читает инбокс
+    expect: чужая строка не находится (NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND) и в чужой ленте не видна, у владельца остаётся непрочитанной; гостю отказ входа
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.center.break.01
+    level: backend
+    kind: break
+    scenario: Канал доставки лежит целиком (почтовый шлюз недоступен)
+    expect: строка ждёт возвращения канала в пределах окна доставки, попытки не тратятся
+    # Снаружи канал не положить — проверяется юнит-тестом обработчика очереди.
+    status: missing
+
+  - id: ntf.center.side.05
+    level: backend
+    kind: side
+    scenario: Доставка проваливается до исчерпания попыток
+    expect: строка уходит в FAILED, журнал хранит все попытки, переотправка ставит новую строку
+    # Снаружи ждать пять попыток с отступом до часа — неприемлемо для прогона.
+    status: missing
+
+  - id: ntf.push.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подписывает своё устройство на веб-пуш
+    expect: подписка активна, ключи и имя пайщика сохранены, в списке его подписок ровно она
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.push.happy.02
+    level: backend
+    kind: happy
+    scenario: То же устройство подписывается повторно с новыми ключами
+    expect: обновляется та же строка (тот же id), новой не появляется
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.push.happy.03
+    level: backend
+    kind: happy
+    scenario: Подписку деактивируют, затем устройство подписывается снова
+    expect: деактивированная уходит из списка, в статистике растёт число неактивных; повторная подписка возвращает ту же строку активной
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.push.side.01
+    level: backend
+    kind: side
+    scenario: Чужие подписки читает пайщик, гость подписывается, статистику просит не председатель
+    expect: KIT_INSUFFICIENT_RIGHTS пайщику на чужие подписки и совету/пайщику на статистику, отказ входа гостю
+    test: components/api-tests/src/notifications/center.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
+
+  - id: ntf.push.side.02
+    level: backend
+    kind: side
+    scenario: Пайщик (роль user) отписывает своё устройство — рабочий стол зовёт deactivateWebPushSubscriptionById
+    expect: подписка деактивирована
+    # Сейчас пайщик получает KIT_INSUFFICIENT_RIGHTS: у мутации роли chairman/member,
+    # аргумент без username, самообход не срабатывает. Отписаться может только совет.
+    status: missing
+    decision_needed: true
+
+  - id: ntf.push.side.03
+    level: backend
+    kind: side
+    scenario: Член совета подписывает устройство на имя другого пайщика, читает или деактивирует чужие подписки
+    expect: отказ — подписка принадлежит пайщику, иначе совет получает чужие пуш-уведомления
+    # Сейчас проходит: роль member открывает все три операции без сверки владельца.
+    status: missing
+    decision_needed: true

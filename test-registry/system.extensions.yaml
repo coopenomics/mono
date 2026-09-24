@@ -1,0 +1,136 @@
+feature: system.extensions
+title: Система и расширения — сводка системы, настройки кооператива, каталог и установка расширений, журнал, рабочие столы
+
+# Таблицы ядра settings, system_status, extensions, extensions_logs и
+# mutation_logs ходят через TypeORM-репозитории. Внешний тест читает сводку
+# системы гостем, меняет настройку председателем (и возвращает её), ставит и
+# снимает расширение без defaults («Кооперативный участок») и сверяет состав
+# рабочих столов, который собирается из каталога.
+
+sources:
+  backend:
+    - components/controller/src/application/system/resolvers/system.resolver.ts
+    - components/controller/src/application/system/services/system.service.ts
+    - components/controller/src/application/system/interactors/system.interactor.ts
+    - components/controller/src/application/appstore/**
+    - components/controller/src/application/desktop/**
+    - components/controller/src/domain/extension/**
+    - components/controller/src/infrastructure/database/typeorm/entities/settings.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/system-status.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/extension.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/log-extension.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/mutation-log.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/settings.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-log-extension.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/mutation-log.typeorm-repository.ts
+    - components/controller/src/application/common/interceptors/mutation-logging.interceptor.ts
+
+cases:
+  - id: sys.ext.happy.01
+    level: backend
+    kind: happy
+    scenario: Гость читает сводку системы
+    expect: кооператив, статус узла active и настройки рабочих столов по умолчанию
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель меняет одну настройку (маршрут по умолчанию для вошедших) и возвращает её
+    expect: меняется только переданное поле, остальные прежние; сводка отдаёт новое значение, возврат восстанавливает исходное
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.01
+    level: backend
+    kind: side
+    scenario: Настройки меняют член совета, пайщик, гость
+    expect: KIT_INSUFFICIENT_RIGHTS совету и пайщику, отказ входа гостю; настройка не меняется
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель открывает каталог расширений, в том числе с фильтром «установленные»
+    expect: расширения по умолчанию установлены и включены, закрытое везде — недоступно и не установлено; фильтр отдаёт только установленные
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.02
+    level: backend
+    kind: side
+    scenario: Каталог, установку, обновление и удаление вызывают член совета, пайщик, гость
+    expect: KIT_INSUFFICIENT_RIGHTS совету и пайщику, отказ входа гостю; состав установленных не меняется
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.03
+    level: backend
+    kind: side
+    scenario: Обновляют неустановленное расширение; присылают конфиг, не прошедший схему
+    expect: DATABASE_EXTENSION_NOT_INSTALLED и EXTENSION_CONFIG_VALIDATION_FAILED, записи в каталоге не появляется
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.happy.04
+    level: backend
+    kind: happy
+    scenario: Председатель ставит расширение со столом, выключает, удаляет; повторяет установку и удаление
+    expect: каталог и состав рабочих столов (гостю и пайщику) следуют за каждым шагом; повторная установка отвергается без изменения записи; повторное удаление отвечает false
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.04
+    level: backend
+    kind: side
+    scenario: Рабочий стол запрошен с негодным токеном
+    expect: отказ входа, а не гостевой ответ
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.happy.05
+    level: backend
+    kind: happy
+    scenario: Председатель и член совета читают журнал расширений с фильтром по имени
+    expect: фильтр отдаёт строки только этого расширения; неизвестное имя — пустой журнал
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.05
+    level: backend
+    kind: side
+    scenario: Журнал расширений читают пайщик и гость
+    expect: KIT_INSUFFICIENT_RIGHTS пайщику, отказ входа гостю
+    test: components/api-tests/src/system/extensions.test.ts
+    api: components/api-tests/src/system/extensions.test.ts
+    status: passing
+
+  - id: sys.ext.side.06
+    level: backend
+    kind: side
+    scenario: Статус узла меняется установкой кооператива (startInstall, initSystem, installSystem)
+    expect: install → initialized → active
+    # На живом стенде установку не повторить без его поломки; запись system_status
+    # снаружи не проверяется, чтение — в sys.ext.happy.01.
+    status: missing
+
+  - id: sys.ext.side.07
+    level: backend
+    kind: side
+    scenario: Журнал мутаций (mutation_logs) — каждая мутация пишет строку с именем, пользователем, аргументами без ключей и исходом
+    expect: строка есть и для успешной мутации, и для отказа; wif и private_key вычищены
+    # Пишет любая мутация прогона; читает журнал только Благорост (журнал проекта) —
+    # проверка чтения за фичами capital.
+    status: missing
