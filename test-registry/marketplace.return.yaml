@@ -348,7 +348,6 @@ cases:
     scenario: С претензией пытается согласиться не тот поставщик, либо согласие даётся повторно
     expect: отказ до обращения к цепи; по заказу из остатка кооператива претензия не заводится
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
-    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.51
@@ -360,7 +359,6 @@ cases:
       кошелька долга; пустой кошелёк даёт ноль; несогласие в цепь не пишется,
       автоматических решений нет
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
-    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.52
