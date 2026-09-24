@@ -18,6 +18,8 @@ export function registerUserContextLive(): void {
       liveTable(SovietContract, SovietContract.Tables.Participants),
       { code: 'core', table: 'users' },
       { code: 'core', table: 'candidates' },
+      // Личные данные (ФИО, паспорт, реквизиты) — в генераторе, сигнал шлёт его сервис.
+      { code: 'core', table: 'private_accounts' },
     ],
     () => loadUserContext(),
   );

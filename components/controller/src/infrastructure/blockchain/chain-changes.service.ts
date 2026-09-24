@@ -140,6 +140,13 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   // Журнал уведомлений кооператива — совету.
   { code: 'core', table: 'notification_outbox', staff_only: true },
   { code: 'core', table: 'notification_deliveries', staff_only: true },
+  // Данные в генераторе (MongoDB), сигнал шлёт его сервис после записи:
+  // личные данные пайщика (ФИО, паспорт, реквизиты), способы оплаты и
+  // пользовательские данные — ему и совету; переменные кооператива — всем.
+  { code: 'core', table: 'private_accounts', owner_field: 'username' },
+  { code: 'core', table: 'payment_methods', owner_field: 'username' },
+  { code: 'core', table: 'user_data', owner_field: 'username' },
+  { code: 'core', table: 'coop_vars' },
   // Сведения о кооперативе: настройки и статус системы видит каждый пайщик.
   { code: 'core', table: 'settings' },
   { code: 'core', table: 'system_status' },

@@ -1,15 +1,20 @@
 // infrastructure/database/typeorm/repositories/typeorm-app.repository.ts
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, type FindOptionsWhere } from 'typeorm';
 import { ExtensionEntity } from '../entities/extension.entity';
 import { ExtensionDomainRepository, ExtensionDomainEntity, DomainError } from '@coopenomics/extension-kit';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 @Injectable()
 export class TypeOrmExtensionDomainRepository<TConfig = any> implements ExtensionDomainRepository<TConfig> {
   constructor(
     @InjectRepository(ExtensionEntity)
-    private readonly ormRepo: Repository<ExtensionEntity<TConfig>>
+    private readonly ormRepo: Repository<ExtensionEntity<TConfig>>,
+    // patchConfig пишет сырым SQL — подписчик базы узла такую запись не видит,
+    // сигнал ленты изменений публикуется здесь, после записи. По конфигурации
+    // живут шаги подключения расширений (онбординг) и рабочий стол.
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
   ) {}
 
   async findByName(name: string): Promise<ExtensionDomainEntity<TConfig> | null> {
@@ -81,6 +86,7 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
 
     const row = rows[0];
     if (!row) throw DomainError.internal('DATABASE_EXTENSION_NOT_INSTALLED');
+    void this.feed?.publishLocal('extensions', row.name);
 
     return new ExtensionDomainEntity<TConfig>(
       row.name,

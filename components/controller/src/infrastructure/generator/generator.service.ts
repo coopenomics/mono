@@ -1,5 +1,5 @@
 // infrastructure/generator/generator.service.ts
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
@@ -9,6 +9,22 @@ import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
 import { ControllerChainDataSource } from './controller-chain-data.source';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
+
+/**
+ * Коллекции генератора (MongoDB) и их имена в ленте изменений. Личные данные
+ * пайщика, способы оплаты и переменные кооператива живут не в Postgres —
+ * подписчик базы узла их не видит, поэтому сигнал шлёт этот сервис после
+ * записи. Имена объявлены в `chain-changes.service.ts`.
+ */
+const GENERATOR_FEED_TABLES: Record<string, string> = {
+  individual: 'private_accounts',
+  organization: 'private_accounts',
+  entrepreneur: 'private_accounts',
+  paymentMethod: 'payment_methods',
+  udata: 'user_data',
+  vars: 'coop_vars',
+};
 @Injectable()
 export class GeneratorInfrastructureService implements GeneratorPort, OnModuleInit {
   /**
@@ -17,8 +33,18 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
    */
   private readonly generator: Generator;
 
-  constructor(private readonly chainDataSource: ControllerChainDataSource) {
+  constructor(
+    private readonly chainDataSource: ControllerChainDataSource,
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null
+  ) {
     this.generator = new Generator(this.chainDataSource);
+  }
+
+  /** Сигнал ленты после записи в коллекцию с личными данными или переменными. */
+  private signal(collection: string, data: Record<string, unknown> | undefined): void {
+    const table = GENERATOR_FEED_TABLES[collection];
+    if (!table) return;
+    void this.feed?.publishLocal(table, String(data?.username ?? data?.coopname ?? ''), data);
   }
 
   async onModuleInit() {
@@ -71,10 +97,12 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
 
   async save(collection: string, data: any): Promise<void> {
     await (this.generator as any).save(collection as any, data);
+    this.signal(collection, data);
   }
 
   async del(collection: string, query: Record<string, any>): Promise<void> {
     await (this.generator as any).del(collection as any, query);
+    this.signal(collection, query);
   }
 
   async list<T = any>(collection: string, filter?: Record<string, any>): Promise<Cooperative.Document.IGetResponse<T>> {

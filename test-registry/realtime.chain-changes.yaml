@@ -49,12 +49,21 @@ title: Лента изменений цепи — живое обновлени�
 # комнаты секретаря — совет, учётную запись Matrix — владелец. В ленте ядра —
 # назначения наборов прав (participant_capability_sets) и журнал расширений.
 
+# Правка 24.09.2026 (C28-83, пятый проход): закрыты записи мимо ленты.
+# patchConfig расширений (шаги онбординга) пишет сырым SQL — сигнал по
+# extensions шлёт репозиторий. Личные данные пайщика, способы оплаты,
+# пользовательские данные и переменные кооператива живут в генераторе
+# (MongoDB) — сигнал шлёт его сервис после save/del (private_accounts,
+# payment_methods, user_data — владельцу и совету; coop_vars — всем).
+
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
     - components/controller/src/application/chain-changes/**
     - components/innercoop/src/core-ports/chain-changes.port.ts
     - components/controller/src/infrastructure/blockchain/local-changes.subscriber.ts
+    - components/controller/src/infrastructure/generator/generator.service.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
     - components/extension-kit/src/utils/local-changes-collector.ts
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
@@ -227,3 +236,14 @@ cases:
       тишина без ошибки; сырой UPDATE даёт сигнал по предложению, только если строка изменилась
     test: components/controller/tests/unit/marketplace/marketplace-live-feed.test.ts
     status: written
+
+  - id: rt.cc.happy.07
+    level: backend
+    kind: happy
+    scenario: Запись мимо подписчика базы узла — patchConfig расширения и запись в генератор (MongoDB).
+    expect: >
+      patchConfig — сигнал по extensions с именем расширения; личные данные, способы
+      оплаты и пользовательские данные — сигнал по своей таблице владельцу и совету,
+      переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
+    test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

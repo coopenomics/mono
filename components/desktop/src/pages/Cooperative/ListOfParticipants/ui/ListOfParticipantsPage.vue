@@ -219,6 +219,8 @@ useLiveReload(
     { code: 'core', table: 'candidates' },
     { code: 'core', table: 'payments' },
     { code: 'core', table: 'verification_reviews' },
+    // Личные данные пайщиков (ФИО, реквизиты) — в генераторе, сигнал шлёт его сервис.
+    { code: 'core', table: 'private_accounts' },
   ],
   () => loadParticipants(true),
 );

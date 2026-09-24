@@ -22,6 +22,8 @@ export function registerSystemInfoLive(): void {
       liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives),
       { code: 'core', table: 'settings' },
       { code: 'core', table: 'system_status' },
+      // Переменные кооператива (vars) — в генераторе, сигнал шлёт его сервис.
+      { code: 'core', table: 'coop_vars' },
     ],
     () => useSystemStore().loadSystemInfo(),
   );

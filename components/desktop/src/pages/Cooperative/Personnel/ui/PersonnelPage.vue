@@ -193,6 +193,7 @@ useLiveReload(
   [
     { code: 'core', table: 'users' },
     { code: 'core', table: 'participant_capability_sets' },
+    { code: 'core', table: 'private_accounts' },
     liveTable(SovietContract, SovietContract.Tables.Participants),
   ],
   load,

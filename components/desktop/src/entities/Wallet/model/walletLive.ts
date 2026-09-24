@@ -27,6 +27,8 @@ export function registerWalletLive(): void {
       liveTable(SovietContract, SovietContract.Tables.ProgramWallets),
       liveTable(SovietContract, SovietContract.Tables.Programs),
       liveTable(WalletContract, WalletContract.Tables.Users),
+      // Способы оплаты — в генераторе, сигнал шлёт его сервис.
+      { code: 'core', table: 'payment_methods' },
     ],
     reloadWallet,
   );
