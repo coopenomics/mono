@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import logger from '~/config/logger';
 import config from '~/config/config';
 import { MigrationManager } from './migrationManager';
+import { runDatabaseMigrations } from './database-migrations';
 
 // Настройка подключения к MongoDB
 const mongoConnect = async () => {
@@ -24,6 +25,9 @@ export const migrateData = async (): Promise<void> => {
 
   try {
     logger.info('===== Начало процесса миграции данных =====');
+
+    // Сначала схема: миграции данных работают с таблицами, которые она создаёт.
+    await runDatabaseMigrations();
 
     // Подключаемся к MongoDB
     await mongoConnect();

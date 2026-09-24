@@ -78,7 +78,7 @@ export class MarketplaceIssuanceSagaEntity {
   @Column({ type: 'varchar', length: 32, nullable: true })
   public decision_id!: string | null;
 
-  @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
+  @Column({ type: 'jsonb', default: () => "'{}'" })
   public tx_hashes!: MarketplaceIssuanceSagaTxHashes;
 
   @Column({ type: 'text', nullable: true })

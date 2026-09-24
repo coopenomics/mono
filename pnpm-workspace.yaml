@@ -2,3 +2,8 @@ link-workspace-packages: true
 packages:
   - 'components/*'
   - 'components/contracts/standards-site'
+
+# Патч TypeORM 0.3.20: переопределение колонки наследником портило опции
+# родителя, и значение по умолчанию утекало в соседние таблицы (C28-79).
+patchedDependencies:
+  typeorm@0.3.20: patches/typeorm@0.3.20.patch

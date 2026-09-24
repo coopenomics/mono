@@ -1,0 +1,30 @@
+diff --git a/browser/metadata-builder/EntityMetadataBuilder.js b/browser/metadata-builder/EntityMetadataBuilder.js
+index f28c9cd..ce85437 100644
+--- a/browser/metadata-builder/EntityMetadataBuilder.js
++++ b/browser/metadata-builder/EntityMetadataBuilder.js
+@@ -331,7 +331,9 @@ export class EntityMetadataBuilder {
+                 const childArgs = this.metadataArgsStorage.columns.find((c) => c.propertyName === args.propertyName &&
+                     c.target === entityMetadata.target);
+                 if (childArgs && childArgs.options.default) {
+-                    args.options.default = childArgs.options.default;
++                    // Copy instead of mutating the parent's args: they are shared by every
++                    // child entity, so one child's default leaked into sibling tables.
++                    args = { ...args, options: { ...args.options, default: childArgs.options.default } };
+                 }
+             }
+             const column = new ColumnMetadata({
+diff --git a/metadata-builder/EntityMetadataBuilder.js b/metadata-builder/EntityMetadataBuilder.js
+index be7ef0e..a398e99 100644
+--- a/metadata-builder/EntityMetadataBuilder.js
++++ b/metadata-builder/EntityMetadataBuilder.js
+@@ -334,7 +334,9 @@ class EntityMetadataBuilder {
+                 const childArgs = this.metadataArgsStorage.columns.find((c) => c.propertyName === args.propertyName &&
+                     c.target === entityMetadata.target);
+                 if (childArgs && childArgs.options.default) {
+-                    args.options.default = childArgs.options.default;
++                    // Copy instead of mutating the parent's args: they are shared by every
++                    // child entity, so one child's default leaked into sibling tables.
++                    args = { ...args, options: { ...args.options, default: childArgs.options.default } };
+                 }
+             }
+             const column = new ColumnMetadata_1.ColumnMetadata({
