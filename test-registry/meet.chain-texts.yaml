@@ -62,6 +62,7 @@ cases:
     scenario: контроллер отправляет повестку и читает вопросы
     expect: тексты сохраняются по хешу, в ответе вместо хешей — тексты
     test: components/controller/tests/unit/meet/chain-text.service.test.ts
+    api: components/api-tests/src/meet/chain-texts.test.ts
     status: passing
 
   - id: meet.texts.side.01

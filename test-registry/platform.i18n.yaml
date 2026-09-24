@@ -75,6 +75,7 @@ cases:
       после await язык тот же; неподдерживаемый язык заменяется русским;
       Accept-Language «en-US,en;q=0.9,ru;q=0.5» выбирает русский
     test: components/i18n/src/index.test.ts
+    api: components/api-tests/src/platform/i18n.test.ts
     status: written
 
   - id: plt.i18n.side.04
@@ -94,6 +95,7 @@ cases:
       код отказа, extensions.status — HTTP-статус, extensions.params — параметры;
       в REST-ответе code и params рядом с message
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    api: components/api-tests/src/platform/i18n.test.ts
     status: written
 
   - id: plt.i18n.side.05
@@ -104,6 +106,7 @@ cases:
       ответ не меняется — текст как был, extensions.code — HTTP-статус числом;
       неоперационная HttpApiError отдаёт общее сообщение из словаря и общий код
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    api: components/api-tests/src/platform/i18n.test.ts
     status: written
 
   - id: plt.i18n.side.06

@@ -31,6 +31,7 @@ cases:
     scenario: список запрашивается с сортировкой по колонке сущности
     expect: сортировка применяется по этой колонке
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 
   - id: platform.sort.break.01
@@ -39,6 +40,7 @@ cases:
     scenario: в поле сортировки дописан подзапрос или посторонние символы
     expect: ввод отклоняется до построения запроса
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 
   - id: platform.sort.break.02
@@ -47,6 +49,7 @@ cases:
     scenario: в поле сортировки допустимое по символам имя, которого нет среди колонок сущности
     expect: сортировка по умолчанию; чужая колонка в запрос не попадает
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 
   - id: platform.sort.break.03
@@ -55,6 +58,7 @@ cases:
     scenario: направление сортировки не ASC и не DESC
     expect: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 
   - id: platform.sort.side.01
@@ -63,6 +67,7 @@ cases:
     scenario: реестр пайщиков шлёт поле вместе с направлением — created_at:desc
     expect: запрос принимается; после двоеточия допустимо только asc или desc
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 
   - id: platform.sort.side.02
@@ -71,4 +76,5 @@ cases:
     scenario: таблица со снятой сортировкой присылает пустое поле
     expect: запрос принимается, порядок по умолчанию
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing

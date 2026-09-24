@@ -154,7 +154,7 @@ describe('platform.list-sort-order-by: поле сортировки списк�
     const problems: string[] = []
     const report: string[] = []
     for (const { list, who } of reachable) {
-      for (const sortBy of ['password', 'pbsortprobe', 'private_data']) {
+      for (const sortBy of ['password', 'private_data', 'nosuchcolumn']) {
         const r = await callList(who, list, sortBy)
         if (r.errors.length)
           report.push(`${list.query}: ${sortBy} → ${describeResponse(r)}`)

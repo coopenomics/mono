@@ -76,6 +76,7 @@ cases:
       генерация отказывает с внятной причиной (форма применяется с отчётности
       за 2025 год), а не собирает файл по сегодняшним ставкам
     test: components/controller/tests/unit/reports/ndfl-reference.test.ts
+    api: components/api-tests/src/platform/jurisdictions.test.ts
     status: passing
 
 # 2026-08-17: налоговый пояс из справочника понадобился второму потребителю —
