@@ -25,6 +25,12 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: Ledger2Contract.Tables.UserWallets.tableName,
     owner_field: 'username',
   },
+  // Общекооперативные кошельки (пулы программ и расходов) — совету.
+  {
+    code: Ledger2Contract.contractName.production,
+    table: Ledger2Contract.Tables.Wallets.tableName,
+    staff_only: true,
+  },
   // Стол совета (C28-83). Решение — вопрос пайщика: сигнал ему и совету.
   {
     code: SovietContract.contractName.production,

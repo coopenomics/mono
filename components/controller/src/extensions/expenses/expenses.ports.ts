@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DOCUMENT_PORT,
   FILE_STORAGE_PORT,
@@ -33,5 +34,7 @@ export const expensesPorts = {
     VAULT_PORT,
   ],
   optional: [
+    // Лента изменений: реестр расходов обновляется на столах сам.
+    CHAIN_CHANGES_PORT,
   ],
 };

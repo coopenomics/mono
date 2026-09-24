@@ -87,6 +87,7 @@ import {
 import {
   getExpenseProposalStatusLabel,
   getExpenseProposalStatusVariant,
+  useLiveProposalList,
 } from '../model';
 import { t } from '../i18n';
 
@@ -209,6 +210,22 @@ function openDetail(hash: string): void {
 onMounted(() => {
   void loadPage(1);
 });
+
+// Живой список: записки перечитываются по ленте изменений (model/useLiveProposalList).
+useLiveProposalList({
+  items,
+  currentPage,
+  totalPages,
+  totalCount,
+  pageLimit: PAGE_LIMIT,
+  fetch: (options) => {
+    const coopname = route.params.coopname as string;
+    return coopname
+      ? getExpenseProposalsByCooperative({ coopname, options: { ...options, sortBy: 'created_at', sortOrder: 'DESC' } })
+      : Promise.resolve(null);
+  },
+});
+
 </script>
 
 <style lang="scss" scoped>

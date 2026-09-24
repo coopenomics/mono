@@ -30,6 +30,7 @@ import {
   ExpensePlansService,
 } from './application/services/expense-plans.service';
 import { ExpensePlansResolver } from './application/resolvers/expense-plans.resolver';
+import { ExpensesLiveFeedService } from './application/services/expenses-live-feed.service';
 
 /**
  * Расширение «Расходы» цифрового кооператива.
@@ -88,6 +89,7 @@ import { ExpensePlansResolver } from './application/resolvers/expense-plans.reso
     ExpensePlansService,
     { provide: EXPENSE_PLANS_SERVICE, useExisting: ExpensePlansService },
     ExpensePlansResolver,
+    ExpensesLiveFeedService,
   ],
   exports: [
     ExpenseContractInfoService,

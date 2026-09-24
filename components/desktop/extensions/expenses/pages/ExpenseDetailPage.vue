@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -171,6 +172,7 @@ import {
   getExpenseItemStatusLabel,
   getExpenseItemStatusVariant,
   getExpenseMechanicsLabel,
+  EXPENSE_LIVE_TABLES,
 } from '../model';
 import { t } from '../i18n';
 
@@ -267,12 +269,12 @@ const PAYMENT_TYPE_ORDER: Record<string, number> = {
   [Zeus.PaymentType.EXPENSE_RETURN]: 1,
   [Zeus.PaymentType.EXPENSE_OVERSPEND]: 1,
 };
-async function loadLinkedPayments(): Promise<void> {
+async function loadLinkedPayments(silent = false): Promise<void> {
   const coopname = route.params.coopname as string;
   const proposal_hash = proposal.value?.proposal_hash;
   if (!coopname || !proposal_hash) return;
   try {
-    loadingPayments.value = true;
+    if (!silent) loadingPayments.value = true;
     const result = await paymentApi.loadPayments(
       { coopname, proposal_hash },
       { page: 1, limit: 100, sortOrder: 'DESC' },
@@ -284,7 +286,7 @@ async function loadLinkedPayments(): Promise<void> {
         (PAYMENT_TYPE_ORDER[b.type ?? ''] ?? 9),
     );
   } catch (e) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loadingPayments.value = false;
   }
@@ -506,30 +508,32 @@ async function openFile(file: IFileRow): Promise<void> {
   }
 }
 
-async function load(): Promise<void> {
+async function loadFiles(coopname: string, proposalHash: string, silent: boolean): Promise<void> {
+  try {
+    const filesResult = await getExpenseFilesByProposal({
+      coopname,
+      proposal_hash: proposalHash,
+    });
+    files.value = filesResult ?? [];
+  } catch (e) {
+    if (!silent) FailAlert(e);
+  }
+}
+
+async function load(silent = false): Promise<void> {
   const proposalHash = route.params.hash as string;
   const coopname = route.params.coopname as string;
   if (!proposalHash) return;
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     const proposalResult = await getExpenseProposal({ proposal_hash: proposalHash });
     proposal.value = proposalResult as IProposal | null;
 
-    if (coopname && proposal.value) {
-      try {
-        const filesResult = await getExpenseFilesByProposal({
-          coopname,
-          proposal_hash: proposalHash,
-        });
-        files.value = filesResult ?? [];
-      } catch (e) {
-        FailAlert(e);
-      }
-    }
+    if (coopname && proposal.value) await loadFiles(coopname, proposalHash, silent);
 
-    if (proposal.value) void loadLinkedPayments();
+    if (proposal.value) void loadLinkedPayments(silent);
   } catch (e) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loading.value = false;
     loaded.value = true;
@@ -539,6 +543,10 @@ async function load(): Promise<void> {
 onMounted(() => {
   void load();
 });
+
+// Карточка живёт по ленте изменений: утверждение, оплата, файлы и платежи по
+// записке приходят сигналом — перечитывается тихо.
+useLiveReload([...EXPENSE_LIVE_TABLES, { code: 'core', table: 'payments' }], () => load(true));
 </script>
 
 <style lang="scss" scoped>

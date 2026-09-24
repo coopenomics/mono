@@ -32,7 +32,8 @@ const EXCLUDE = [/\/_dev\//];
 
 const LOAD = /\b(load|fetch|refresh|reload|init|get)[A-Za-z0-9_]*\s*\(|\bclient\.Query\b|\.Query\(/;
 const POLL = /\b(setInterval|useDataPoller)\s*\(/;
-const MIRROR = /\b(useLiveReload|useMarketplaceRealtime|registerLiveReload)\s*\(/;
+// Зеркало — useLiveReload и обёртки над ним с именем useLive* (useLiveProposalList…).
+const MIRROR = /\b(useLive[A-Z]\w*|useMarketplaceRealtime|registerLiveReload)\s*\(/;
 const HOOK = /\b(onMounted|onBeforeMount|onActivated)\s*\(/g;
 const WATCH = /\bwatch(Effect)?\s*\(/g;
 
