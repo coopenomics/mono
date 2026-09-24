@@ -71,7 +71,7 @@ describe('приёмка на участке: права, одна приёмк�
     foreignToken = await tokenOf(chairodn)
     chairmanToken = await tokenOf(CHAIRMAN)
 
-    const offer = await pickOffer(chairmanToken, sidorov.account, KRG, 'Мёд цветочный')
+    const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     price = amount(offer.price_per_unit)
     markdownPrice = Math.floor(price * 75) / 100
     await fundShare(ekaterina, QTY * price * 2)

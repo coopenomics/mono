@@ -113,7 +113,7 @@ describe('гарантийный возврат: заявление, решен�
     const s = (await gql<any>(supplierToken, SUPPLIER_SUMMARY)).marketplaceSupplierClaimSummary
     summaryBefore = { admitted: amount(s.admitted_debt), pending: amount(s.not_admitted_total) }
 
-    const offer = await pickOffer(chairmanToken, sidorov.account, KRG, 'Мёд цветочный')
+    const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     order = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
     expect((await getOrder(memberToken, order.orderId)).status, 'заказ получен пайщицей').toBe('RECEIVED')
   }, 900_000)
@@ -247,7 +247,7 @@ describe('гарантийный возврат: заявление, решен�
   })
 
   it(caseName('mkt.ret.side.53', 'возврат имущества, выданного со снижением цены, — в остаток по цене выдачи'), async () => {
-    const offer = await pickOffer(chairmanToken, sidorov.account, KRG, 'Мёд цветочный')
+    const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     const price = amount(offer.price_per_unit)
     const issuePrice = Math.floor(price * 80) / 100
     const marked = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 1, issueUnitPrice: issuePrice })

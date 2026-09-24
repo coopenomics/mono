@@ -3,43 +3,19 @@
  * с кодом, чтение экономики участка. Только действия и чтение — ассерты живут
  * в тестах.
  */
-import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
-import { transact } from '../core/chain'
 import { type GqlError, gql, gqlRaw } from '../core/client'
-import { COOP } from '../core/env'
-import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
+import { amount, ensureShareFunds } from '../core/wallet'
 import { KRG, acceptToCoop, issueOrder, placeOrder } from './flow'
 
 /** Минимальный валидный PNG 1×1: фото к заявлениям о возврате обязательны. */
 export const PIXEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 export const PHOTO = { base64: PIXEL_PNG, mime_type: 'image/png' }
 
-/**
- * Паевой взнос деньгами: заявка на приход (`wallet::createdpst`) и её
- * исполнение шлюзом. Своя копия, потому что `deposit` ядра зовёт
- * несуществующее действие `createdeposit`.
- */
-export async function depositShare(username: string, sum: number): Promise<void> {
-  const hash = crypto.randomBytes(32).toString('hex')
-  await transact(COOP_SIGNER, [{ account: 'wallet', name: 'createdpst', data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) } }])
-  await transact(COOP_SIGNER, [{ account: 'gateway', name: 'completeincome', data: { coopname: COOP, income_hash: hash } }])
-}
-
-/** Довести паевой остаток пайщика до минимума и дождаться, пока его увидит зеркало контроллера. */
+/** Довести паевой остаток пайщика до минимума и дождаться его в зеркале контроллера. */
 export async function fundShare(who: Who, minimumRub: number): Promise<void> {
-  const have = await availableShare(who.account)
-  if (have >= minimumRub)
-    return
-  await depositShare(who.account, Math.ceil(minimumRub - have) + 10_000)
-  const token = await tokenOf(who)
-  await waitFor(async () => {
-    const d = await gql<any>(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
-    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
-    return row && amount(row.available) >= minimumRub ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
+  await ensureShareFunds(who.account, minimumRub, await tokenOf(who))
 }
 
 /** Первая ошибка вызова (или null, если прошёл) — код строкой: сервер отдаёт и числа (400/403), и имена. */

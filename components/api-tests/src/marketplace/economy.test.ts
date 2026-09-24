@@ -88,7 +88,7 @@ describe('экономика участка: общий кошелёк, сетк
 
     // Членский взнос с выданного заказа оседает в общем кошельке участка выдачи.
     const before = amount((await branchEconomy(krgToken, KRG)).common_balance)
-    const offer = await pickOffer(chairmanToken, sidorov.account, KRG, 'Мёд цветочный')
+    const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 3 })
     const after = amount((await branchEconomy(krgToken, KRG)).common_balance)
     expect(after, 'членский взнос с выданного заказа обязан попасть в общий кошелёк участка').toBeGreaterThan(before)
