@@ -80,7 +80,6 @@ cases:
       подтверждение кассира и найдёт платёж; кассир получает назначение
       платежа и реквизиты бюджета готовыми
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
-    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.side.01
