@@ -22,6 +22,11 @@ title: >-
 # shared/lib/live.ts) вместо опроса useDataPoller раз в 10–30 с. Поведение
 # фичи и набор случаев не менялись.
 
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/dto/segments/segment.dto.ts

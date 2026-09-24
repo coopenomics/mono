@@ -20,6 +20,8 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useBindIssueMetrics } from '../model';
 
 const props = withDefaults(
@@ -43,6 +45,9 @@ const handleDeltaChange = (metricHash: string, value: string | number | null) =>
   if (props.readonly) return;
   onDeltaChange(metricHash, value);
 };
+
+// Привязки метрик задачи живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadAll());
 
 onMounted(async () => {
   await loadAll();

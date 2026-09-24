@@ -15,6 +15,11 @@ title: Меры кооператива и дневная волновая мод
 # импорта — тип учётной записи пайщика и пагинация переехали в
 # `@coopenomics/innercoop` и `@coopenomics/extension-kit`. Правила расчёта ряда,
 # волны и резонанса, состав мер и набор случаев прежние.
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/services/component-metric.service.ts

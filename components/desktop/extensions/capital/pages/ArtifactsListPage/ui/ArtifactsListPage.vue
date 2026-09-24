@@ -37,6 +37,8 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
@@ -72,6 +74,9 @@ async function load(): Promise<void> {
     loading.value = false;
   }
 }
+
+// Артефакты живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => load());
 
 onMounted(load);
 

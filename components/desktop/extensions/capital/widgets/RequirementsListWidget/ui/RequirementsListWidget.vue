@@ -85,6 +85,8 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { Zeus } from '@coopenomics/sdk';
@@ -455,6 +457,12 @@ watch(requirements, async (newRequirements) => {
 }, { immediate: true });
 
 // Инициализация
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, async () => {
+  await loadRequirements();
+  await loadVisibleTitles();
+});
+
 onMounted(async () => {
   await loadRequirements();
   await loadVisibleTitles();

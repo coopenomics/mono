@@ -51,6 +51,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge, EmptyState, TableSkeleton } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -112,6 +114,9 @@ const toggleActive = async (m: IMeasure, on: boolean) => {
     togglingHash.value = null;
   }
 };
+
+// Меры живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => load());
 
 onMounted(load);
 </script>

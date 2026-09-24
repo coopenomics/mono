@@ -19,6 +19,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useVoteStore } from 'app/extensions/capital/entities/Vote/model';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -64,6 +66,9 @@ const loadVotes = async () => {
     loading.value = false;
   }
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadVotes());
 
 onMounted(async () => {
   await loadVotes();

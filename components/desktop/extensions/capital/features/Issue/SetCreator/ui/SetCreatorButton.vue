@@ -92,6 +92,7 @@ const loadCreators = async (creatorUsernames: string[]) => {
 };
 
 // Обновляем входные данные при изменении задачи
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 watch(
   () => props.issue,
   async (newIssue) => {

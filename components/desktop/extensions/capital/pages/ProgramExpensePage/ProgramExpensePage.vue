@@ -119,6 +119,8 @@ q-page.program-expense-page
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -192,6 +194,9 @@ async function refresh(): Promise<void> {
     loading.value = false;
   }
 }
+
+// Заявка на расход программы живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => refresh());
 
 onMounted(refresh);
 

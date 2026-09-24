@@ -56,6 +56,8 @@ BaseCard.active-timer(variant='flat')
 
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useSystemStore } from 'src/entities/System/model'
@@ -119,6 +121,7 @@ function syncTick() {
   }
   if (session.value && !session.value.is_paused) {
     tickNow.value = Date.now()
+    // timing: ui — секундомер запущенного таймера.
     tickTimer = setInterval(() => {
       tickNow.value = Date.now()
     }, 1000)
@@ -205,6 +208,9 @@ function goToIssue() {
     },
   })
 }
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => refresh());
 
 onMounted(() => {
   void refresh()

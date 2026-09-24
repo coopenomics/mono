@@ -62,6 +62,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { useTimeStatsStore } from 'app/extensions/capital/entities/TimeStats/model';
@@ -193,6 +195,9 @@ const goToComponent = (projectHash: string) => {
     params: { project_hash: projectHash },
   });
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadTimeStats());
 
 onMounted(async () => {
   await loadTimeStats();

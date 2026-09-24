@@ -60,6 +60,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { EmptyState, BaseBadge } from 'src/shared/ui/base';
@@ -221,6 +223,9 @@ const visibleRoles = (
   }
   return out;
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => (projectHash.value ? reload() : undefined));
 
 onMounted(async () => {
   if (projectHash.value) {

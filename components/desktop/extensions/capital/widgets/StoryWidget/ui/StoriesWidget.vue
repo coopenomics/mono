@@ -105,6 +105,8 @@ div
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import {
   useStoryStore,
@@ -355,6 +357,9 @@ const handleStatusChange = async (
 };
 
 // Инициализация
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadStories());
+
 onMounted(async () => {
   await loadStories();
 });

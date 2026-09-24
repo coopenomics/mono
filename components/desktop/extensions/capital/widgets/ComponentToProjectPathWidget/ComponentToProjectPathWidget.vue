@@ -78,6 +78,7 @@ watch(() => props.project, async (newProject) => {
 }, { immediate: true });
 
 // Инициализация
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 onMounted(async () => {
   if (props.project?.parent_hash) {
     await loadParentProject();

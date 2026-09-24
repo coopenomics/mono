@@ -75,6 +75,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import type { IAgenda } from 'src/entities/Agenda/model';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
@@ -314,6 +316,9 @@ async function loadDetails() {
     loading.value = false;
   }
 }
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadDetails());
 
 onMounted(loadDetails);
 

@@ -218,6 +218,7 @@ const handleVotesChanged = (data: { projectHash: string; voter: string }) => {
   emit('updated');
 };
 
+// realtime: нет источника — при открытии читается только раскрытие строк из браузера; результаты приходят свойством от живой страницы.
 onMounted(() => {
   loadExpandedState();
 });

@@ -144,6 +144,8 @@ div
 
 <script setup lang="ts">
 import { CsvUploader } from 'app/extensions/capital/widgets/CsvUploader';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { ImportResultsTable } from 'app/extensions/capital/widgets/ImportResultsTable';
 import {
   useCsvParser,
@@ -277,6 +279,9 @@ const {
 const showDialog = ref(false);
 
 // Загружаем состояние при монтировании
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => configStore.loadState({ coopname: info.coopname }));
+
 onMounted(async () => {
   try {
     await configStore.loadState({ coopname: info.coopname });
