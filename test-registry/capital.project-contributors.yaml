@@ -173,6 +173,7 @@ cases:
       лишь очередным сообщением от парсера — до тех пор список оставался
       без нового соавтора
     test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
   - id: cap.contrib.side.06
@@ -405,6 +406,7 @@ cases:
       (cap.resdesk.break.03). До 10.09.2026 отказ приходил каждому рядовому
       участнику, открывшему страницу, и падал в журнал ошибок
     test: components/controller/tests/unit/capital/segments-role.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
   - id: cap.contrib.break.18
@@ -421,6 +423,7 @@ cases:
       (extension-kit); свои доли по имени кандидат по-прежнему получает
       через самообход
     test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
   - id: capital.pc.side.fact-01
     level: backend
@@ -428,6 +431,7 @@ cases:
     scenario: "После транзакции строка сегмента читается из таблицы цепи."
     expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
 

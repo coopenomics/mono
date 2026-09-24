@@ -198,6 +198,7 @@ cases:
     scenario: "Пайщик вносит паевой взнос в программу; стол сразу после ответа перечитывает кошельки и взносы."
     expect: "Ответ уходит после дельт ledger2::userwallets и capital::contributors этого пайщика из блока транзакции; без порта ожидания — сразу, как раньше."
     test: components/controller/tests/unit/capital/program-invest-wait.test.ts
+    api: components/api-tests/src/capital/program-invest.test.ts
     status: passing
   - id: cap.pinv.ui.02
     level: ui
