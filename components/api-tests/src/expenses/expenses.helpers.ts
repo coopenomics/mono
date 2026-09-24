@@ -11,6 +11,7 @@ import { tableRows, transact } from '../core/chain'
 import { gql } from '../core/client'
 import { signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
+import { COOP_SIGNER } from '../core/wallet'
 import { CHAIRMAN } from '../core/roles'
 
 /** Пул программных расходов «Благороста» — кошелёк-источник шасси (EXPENSE_OPERATION_SETS). */
@@ -110,6 +111,46 @@ export function createInput(draft: Draft, statement: any, over: Record<string, u
     statement,
     ...over,
   }
+}
+
+/**
+ * Подача записки прямо в цепь (expense::createexp от имени кооператива) —
+ * тем же действием, что шлёт контроллер и расширения-инициаторы
+ * (capital::createpgexp). Подготовка состояния: мутация createExpenseProposal
+ * на стенде падает (см. отчёт ext-misc), а зеркало записки проверяется через API.
+ */
+export async function createInChain(draft: Draft, statement: any): Promise<void> {
+  const MECH = { ADVANCE: 0, DIRECT: 1 } as const
+  const RECIPIENT = { SELF: 0, MEMBER: 1, ORG: 2 } as const
+  await transact(COOP_SIGNER, [{
+    account: 'expense',
+    name: 'createexp',
+    data: {
+      coopname: COOP,
+      username: draft.author.account,
+      proposal_hash: draft.proposal_hash,
+      source_wallet: draft.source_wallet,
+      items: draft.items.map(it => ({
+        item_hash: it.item_hash,
+        mechanics: MECH[it.mechanics],
+        recipient_type: RECIPIENT[it.recipient_type],
+        recipient: it.recipient,
+        description: it.description,
+        planned_amount: it.planned_amount,
+        actual_amount: it.planned_amount,
+        status: 0,
+      })),
+      callback: { contract: '', action: '', data: '' },
+      statement: {
+        version: statement.version,
+        hash: statement.hash,
+        doc_hash: statement.doc_hash,
+        meta_hash: statement.meta_hash,
+        meta: typeof statement.meta === 'string' ? statement.meta : JSON.stringify(statement.meta),
+        signatures: statement.signatures,
+      },
+    },
+  }])
 }
 
 /** Реквизиты СБП пайщика: он заводит их сам (самообход RolesGuard по username). */
