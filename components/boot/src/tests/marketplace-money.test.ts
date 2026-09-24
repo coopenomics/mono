@@ -40,7 +40,7 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
-import { issueOrder } from './marketplace/orderFlow'
+import { issueOrder, pickOffer } from './marketplace/orderFlow'
 import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror, docMeta } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
@@ -90,19 +90,8 @@ describe('стол заказов — денежные места поставк
     // Берём любое активное предложение фонового поставщика с поставкой на наш
     // КУ: суммы теста считаются от заказа, поэтому конкретный товар не важен —
     // важно лишь, что предложение sidorov'а живое и доставляется на krg.
-    const d: any = await gqlAs(chairmanToken, `query($i:MarketplaceListAllOffersInput){
-      marketplaceListAllOffers(input:$i){ items {
-        id product_name status supplier_account price_per_unit unit_of_measure warranty_days
-        delivery_points { braname min_supply_volume }
-      } }
-    }`, { i: {} })
-    const candidates = (d.marketplaceListAllOffers.items as any[]).filter(
-      o => o.status === 'ACTIVE'
-        && o.supplier_account === sidorov.account
-        && o.delivery_points.some((p: any) => p.braname === BRANAME),
-    )
-    offer = candidates.find(o => o.product_name === 'Мёд цветочный') ?? candidates[0]
-    expect(offer, `на стенде нет активного предложения ${sidorov.account} с поставкой на КУ «${BRANAME}»`).toBeTruthy()
+    // Общий помощник ждёт, пока индексер донесёт одобрение засева до контроллера.
+    offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
 
     // Каждый прогон списывает с паевого заказчицы тело заказа и членский взнос.

@@ -333,8 +333,10 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
   }, 60_000)
 
   it('wallet::revokeagree без записи users → throws', async () => {
-    await ensureNoProgram(TEST_PROGRAM_ID_BLAGO)
-    await ensureNoProgram(TEST_PROGRAM_ID_GEN)
+    // Записи в wallet::users нет только у того, кто не подписал ни одной
+    // программы; зарегистрированный пайщик уже подписал Цифровой кошелёк.
+    // Контракт участие не проверяет — берём имя, которого на стенде нет.
+    const withoutRecord = generateRandomUsername()
 
     await expect(
       bc.api.transact({
@@ -342,7 +344,7 @@ describe('wallet::users / ledger2::migrate3 — edge cases (live blockchain)', (
           account: WalletContract.contractName.production,
           name: WalletContract.Actions.RevokeAgreement.actionName,
           authorization: [{ actor: COOP, permission: 'active' }],
-          data: { coopname: COOP, username: TEST_USERNAME, program_id: TEST_PROGRAM_ID_BLAGO },
+          data: { coopname: COOP, username: withoutRecord, program_id: TEST_PROGRAM_ID_BLAGO },
         }],
       }, txOpts())
     ).rejects.toThrow(/программных соглашений/i)
