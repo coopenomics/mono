@@ -119,16 +119,6 @@ cmd_image() {
 
 cmd_infra() {
   load_stack
-  # Образ MinIO полигона без curl (см. docker-compose.blackbox.yml): готовность
-  # проверяется с хоста по проброшенному порту, остальное — как на dev-стенде.
-  stack_wait_infra() {
-    stack_wait_for "MongoDB" 60 2 \
-      docker compose exec -T mongo mongosh --quiet --eval "db.adminCommand({ping:1}).ok"
-    stack_wait_for "PostgreSQL" 60 2 \
-      docker compose exec -T postgres pg_isready -U "${POSTGRES_USERNAME:-postgres}" -d "${POSTGRES_DATABASE:-voskhod}"
-    stack_wait_for "MinIO" 60 2 \
-      curl -sf "http://127.0.0.1:${MINIO_HOST_PORT:-9000}/minio/health/live"
-  }
   stack_up_infra
   stack_up_authentik
   stack_migrate_schema
