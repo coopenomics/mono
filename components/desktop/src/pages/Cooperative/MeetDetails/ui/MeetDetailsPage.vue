@@ -52,12 +52,13 @@ import { MeetDetailsAgenda } from 'src/widgets/Meets/MeetDetailsAgenda';
 import { MeetDetailsVoting } from 'src/widgets/Meets/MeetDetailsVoting';
 import { MeetDetailsResults } from 'src/widgets/Meets/MeetDetailsResults';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
-import { useMeetStore } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES } from 'src/entities/Meet';
 import { useDesktopStore } from 'src/entities/Desktop';
 import { useVoteOnMeet } from 'src/features/Meet/VoteOnMeet';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
 import { t } from 'src/shared/i18n';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const route = useRoute();
 const router = useRouter();
@@ -86,17 +87,19 @@ const showAgenda = computed(
 
 const { isVotingNow, setMeet } = useVoteOnMeet();
 
-let intervalId: ReturnType<typeof setInterval> | null = null;
-
-const loadMeetDetails = async () => {
+const loadMeetDetails = async (silent = false) => {
   try {
-    await meetStore.loadMeet({
-      coopname: coopname.value,
-      hash: meetHash.value,
-    });
+    await meetStore.loadMeet(
+      {
+        coopname: coopname.value,
+        hash: meetHash.value,
+      },
+      { silent },
+    );
     if (meet.value) setMeet(meet.value);
   } catch (error: any) {
-    FailAlert(error);
+    // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
+    if (!silent) FailAlert(error);
   } finally {
     loading.value = false;
   }
@@ -124,15 +127,17 @@ watch(
 
 onMounted(() => {
   loadMeetDetails();
-  intervalId = setInterval(loadMeetDetails, 15000);
 });
+
+// Карточка живёт по ленте изменений вместо опроса раз в 15 секунд: голоса
+// пайщиков, открытие, закрытие и подпись протокола приходят сигналом.
+useLiveReload(
+  MEET_LIVE_TABLES,
+  () => loadMeetDetails(true),
+);
 
 onUnmounted(() => {
   desktopStore.clearPageTitleOverride();
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
 });
 </script>
 

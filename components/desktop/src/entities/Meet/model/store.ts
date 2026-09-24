@@ -5,12 +5,17 @@ import type { IMeet, IGetMeetsInput, IGetMeetInput } from '../types';
 
 const namespace = 'meetStore';
 
+/** `silent` — перечитывание по ленте изменений: без индикатора загрузки. */
+interface ILoadOptions {
+  silent?: boolean
+}
+
 interface IMeetStore {
   meets: Ref<IMeet[]>
   currentMeet: Ref<IMeet | null>
   loading: Ref<boolean>
-  loadMeets: (data: IGetMeetsInput) => Promise<IMeet[]>;
-  loadMeet: (data: IGetMeetInput) => Promise<IMeet>;
+  loadMeets: (data: IGetMeetsInput, options?: ILoadOptions) => Promise<IMeet[]>;
+  loadMeet: (data: IGetMeetInput, options?: ILoadOptions) => Promise<IMeet>;
   setCurrentMeet: (meet: IMeet) => void;
 }
 
@@ -19,8 +24,8 @@ export const useMeetStore = defineStore(namespace, (): IMeetStore => {
   const currentMeet = ref<IMeet | null>(null)
   const loading = ref<boolean>(false)
 
-  const loadMeets = async (data: IGetMeetsInput) => {
-    loading.value = true
+  const loadMeets = async (data: IGetMeetsInput, options?: ILoadOptions) => {
+    if (!options?.silent) loading.value = true
     try {
       const result = await api.loadMeets(data);
       meets.value = result.slice().sort((a, b) => new Date(b.processing?.meet.created_at as string).getTime() - new Date(a.processing?.meet.created_at as string).getTime());
@@ -30,8 +35,8 @@ export const useMeetStore = defineStore(namespace, (): IMeetStore => {
     }
   };
 
-  const loadMeet = async (data: IGetMeetInput) => {
-    loading.value = true
+  const loadMeet = async (data: IGetMeetInput, options?: ILoadOptions) => {
+    if (!options?.silent) loading.value = true
     try {
       const result = await api.loadMeet(data);
       currentMeet.value = result;

@@ -13,10 +13,11 @@ import { onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { MeetCardsList } from 'src/widgets/Meets/MeetCardsList';
 import { CreateMeetButton } from 'src/features/Meet/CreateMeet';
-import { useMeetStore } from 'src/entities/Meet';
+import { useMeetStore, MEET_LIVE_TABLES } from 'src/entities/Meet';
 import { useSessionStore } from 'src/entities/Session';
 import { useWindowSize } from 'src/shared/hooks';
 import { FailAlert } from 'src/shared/api';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const route = useRoute();
 const coopname = computed(() => route.params.coopname as string);
@@ -36,6 +37,20 @@ const loadMeets = async () => {
     FailAlert(e);
   }
 };
+
+// Живой список: созыв, открытие, голоса и закрытие собрания меняют таблицы
+// meet в цепи, а собрание до созыва и итог обработки — таблицы узла.
+useLiveReload(
+  MEET_LIVE_TABLES,
+  async () => {
+    if (!isOnMeetListPage.value) return;
+    try {
+      await meetStore.loadMeets({ coopname: coopname.value }, { silent: true });
+    } catch (e) {
+      console.warn('[meets] фоновое перечитывание не удалось', e);
+    }
+  },
+);
 
 // Кнопку «Созвать собрание» видит член совета или председатель.
 const canCreateMeet = computed(() => session.isMember || session.isChairman);

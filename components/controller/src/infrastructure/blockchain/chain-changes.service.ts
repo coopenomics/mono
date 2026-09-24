@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainChangesPort, InnerChainChangesTable } from '@coopenomics/innercoop';
-import { Ledger2Contract, SovietContract } from 'cooptypes';
+import { Ledger2Contract, MeetContract, SovietContract } from 'cooptypes';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -36,13 +36,21 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: SovietContract.Tables.Boards.tableName,
     staff_only: true,
   },
+  // Общие собрания видят все пайщики: созыв, вопросы, ход голосования.
+  { code: MeetContract.contractName.production, table: MeetContract.Tables.Meets.tableName },
+  { code: MeetContract.contractName.production, table: MeetContract.Tables.Questions.tableName },
 ];
 
 /**
  * Таблицы базы узла, которые читают столы ядра. Конфигурация расширений несёт
  * состояние подключения ЦПП советом — экран подключения живёт по ней.
  */
-const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [{ code: 'core', table: 'extensions', staff_only: true }];
+const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
+  { code: 'core', table: 'extensions', staff_only: true },
+  // Собрание до созыва в цепи и итог обработки закрытого — узел ведёт их сам.
+  { code: 'core', table: 'meet_pre' },
+  { code: 'core', table: 'meet_processed' },
+];
 
 /** Роли совета: персонал любого расширения. */
 const COUNCIL_ROLES = ['chairman', 'member'];
