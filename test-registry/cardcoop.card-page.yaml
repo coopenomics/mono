@@ -48,6 +48,7 @@ cases:
       стол зовёт её выпустить; адрес выпуска собран из настроек расширения и
       имени кооператива, руками нигде не вписывается
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    api: components/api-tests/src/cardcoop/card-page.test.ts
     status: passing
 
   - id: cc.card.side.01
@@ -59,6 +60,7 @@ cases:
       карта всё равно показана выпущенной — запись журнала появляется по
       уведомлению о связи, значит карта у человека уже есть
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    api: components/api-tests/src/cardcoop/card-page.test.ts
     status: passing
 
   - id: cc.card.side.02
@@ -80,6 +82,7 @@ cases:
       номера нет, но членство по-прежнему подтверждено — состояние от этого не
       страдает
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    api: components/api-tests/src/cardcoop/card-page.test.ts
     status: passing
 
   - id: cc.card.side.04
@@ -91,6 +94,7 @@ cases:
       номер сохраняется в журнале и дописывается даже к уже подтверждённому
       членству — повторное уведомление единственный случай, когда он приезжает
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/card-page.test.ts
     status: passing
 
   - id: cc.card.ui.01
