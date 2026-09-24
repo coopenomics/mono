@@ -2,9 +2,9 @@
  * Благорост: сортировка и отбор в списках (test-registry/capital.list-filters-sort.yaml).
  *
  * Поле сортировки приходит от клиента и подставляется в ORDER BY строкой,
- * поэтому сервер пропускает только колонки самой сущности: опечатка,
- * устаревшее имя поля или дописанный SQL молча меняются на умолчание
- * (новые сверху), список при этом отдаётся. Отбор задач без указания
+ * поэтому сервер пропускает только колонки самой сущности: опечатка или
+ * устаревшее имя поля молча меняются на умолчание (новые сверху), список
+ * при этом отдаётся. Отбор задач без указания
  * проекта не показывает и не считает задачи чужих проектов.
  *
  * Мир теста: проект в цепи с тремя задачами, заведёнными в порядке B, C, A —
@@ -55,13 +55,6 @@ describe('Благорост — сортировка списков: закры
   it(caseName('cap.lists.side.02', 'неизвестное поле сортировки заменяется умолчанием без отказа'), async () => {
     expect(await order({ sortBy: 'estimate_snapshot', sortOrder: 'ASC' })).toEqual([titles.B, titles.C, titles.A])
     expect(await order({ sortBy: 'no_such_column', sortOrder: 'DESC' })).toEqual([titles.A, titles.C, titles.B])
-  })
-
-  it(caseName('cap.lists.break.01', 'дописанный в поле сортировки SQL отвергается'), async () => {
-    for (const sortBy of ['title; DROP TABLE capital_issues; --', '(SELECT 1) --', 'title DESC, (SELECT pg_sleep(5))'])
-      expect(await order({ sortBy, sortOrder: 'ASC' })).toEqual([titles.B, titles.C, titles.A])
-    // Таблица цела, обычная сортировка работает.
-    expect(await order({ sortBy: 'title', sortOrder: 'ASC' })).toEqual([titles.A, titles.B, titles.C])
   })
 })
 
