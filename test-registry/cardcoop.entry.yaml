@@ -125,7 +125,6 @@ cases:
       анкета читается ровно один раз и стирается при прочтении; повтор получает
       отказ, а не персональные данные
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
-    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.ui.01
