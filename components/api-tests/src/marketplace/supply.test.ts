@@ -13,14 +13,13 @@ import {
   ROLES,
   amount,
   caseName,
-  ensureShareFunds,
   gql,
   signDocument,
   tokenOf,
   waitFor,
 } from '../core'
 import { KRG, applyOpsOfProcess, getOrder, issueOrder, pickOffer, placeOrder } from './flow'
-import { refusal } from './mkt-flows.helpers'
+import { fundShare, refusal } from './mkt-flows.helpers'
 
 const ekaterina = ROLES.member()
 const sidorov = ROLES.supplier()
@@ -75,7 +74,7 @@ describe('приёмка на участке: права, одна приёмк�
     const offer = await pickOffer(chairmanToken, sidorov.account, KRG, 'Мёд цветочный')
     price = amount(offer.price_per_unit)
     markdownPrice = Math.floor(price * 75) / 100
-    await ensureShareFunds(ekaterina.account, QTY * price * 2, memberToken)
+    await fundShare(ekaterina, QTY * price * 2)
     const placed = await placeOrder({ who: ekaterina, offerId: offer.id, quantity: QTY })
     orderId = placed.orderId
     orderHash = placed.orderHash
