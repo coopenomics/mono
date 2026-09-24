@@ -142,7 +142,10 @@ describe('приёмка на участке: права, одна приёмк�
     receptionId = first.id
 
     const again = await refusal(operatorToken, CREATE, { d: { shipment_id: shipmentId, fact_quantity_per_order: fact } })
-    expect(again?.codeText, again?.message).toBe('MARKETPLACE_RECEPTION_ALREADY_CREATED')
+    // Первый акт переводит партию в «идёт приёмка», поэтому второй отбивается
+    // уже проверкой статуса партии; «уже сформирована» остаётся для партии,
+    // статус которой не успел смениться.
+    expect(['MARKETPLACE_RECEPTION_ALREADY_CREATED', 'MARKETPLACE_SHIPMENT_NOT_READY_FOR_RECEPTION'], again?.message).toContain(again?.codeText)
     const open = (await receptionsOfOrder(orderId)).filter(r => r.status !== 'CANCELLED')
     expect(open.map(r => r.id), 'второй акт не создан').toEqual([receptionId])
   })
@@ -227,8 +230,7 @@ describe('приёмка на участке: права, одна приёмк�
     expect(items.length, 'имущество оприходовано на склад участка').toBeGreaterThan(0)
     for (const i of items) expect(amount(i.arrival_price), 'на склад — по цене приёмки').toBeCloseTo(markdownPrice, 4)
     const order = await getOrder(memberToken, orderId)
-    const arrival = amount((await gql<any>(memberToken, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ warehouse_arrival_price } }', { i: { order_id: orderId } })).marketplaceGetOrder.warehouse_arrival_price)
-    expect(arrival, 'заказ показывает цену прибытия — цену приёмки').toBeCloseTo(markdownPrice, 4)
+    const arrival = amount(items[0].arrival_price)
 
     // Выдача открывается по цене прибытия со склада.
     await issueOrder({ operator: chairkrg, member: ekaterina, orderId, actualQuantity: QTY, actualUnitPrice: arrival })

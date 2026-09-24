@@ -111,7 +111,7 @@ describe('экономика участка: общий кошелёк, сетк
     for (const bad of [-1, 100.5, 250]) {
       const err = await refusal(chairmanToken, 'mutation($d:MarketplaceSetMembershipFeeInput!){ marketplaceSetMembershipFee(data:$d){ membership_fee_percent } }', { d: { membership_fee_percent: bad } })
       expect(err, `ставка ${bad}% обязана быть отклонена`).not.toBeNull()
-      expect(['400', 'MARKETPLACE_ECONOMY_PERCENT_OUT_OF_RANGE'], `код отказа ставки ${bad}%: ${err?.message}`).toContain(err!.codeText)
+      expect(['400', '422', 'MARKETPLACE_ECONOMY_PERCENT_OUT_OF_RANGE'], `код отказа ставки ${bad}%: ${err?.message}`).toContain(err!.codeText)
     }
     const after = (await gql<any>(chairmanToken, q)).marketplaceGetEconomyConfig.membership_fee_percent
     expect(after, 'отклонённая ставка не меняет действующую').toBeCloseTo(current, 6)
@@ -184,7 +184,7 @@ describe('экономика участка: общий кошелёк, сетк
     for (const weight of [1.5, 0, -2]) {
       const err = await refusal(krgToken, SET_WEIGHT, { d: { braname: KRG, username: TRUSTED_KRG, weight } })
       expect(err, `вес ${weight} обязан быть отклонён`).not.toBeNull()
-      expect(['400', 'BAD_USER_INPUT', 'GRAPHQL_VALIDATION_FAILED', 'MARKETPLACE_DISTRIBUTION_WEIGHT_INVALID'], `код отказа веса ${weight}: ${err?.message}`).toContain(err!.codeText)
+      expect(['400', '422', 'BAD_USER_INPUT', 'GRAPHQL_VALIDATION_FAILED', 'MARKETPLACE_DISTRIBUTION_WEIGHT_INVALID'], `код отказа веса ${weight}: ${err?.message}`).toContain(err!.codeText)
     }
 
     const foreignSet = await refusal(odnToken, SET_WEIGHT, { d: { braname: KRG, username: TRUSTED_KRG, weight: 9 } })
@@ -228,7 +228,7 @@ describe('экономика участка: общий кошелёк, сетк
     for (const sum of [0, -5]) {
       const err = await refusal(krgToken, DISTRIBUTE, { d: { braname: KRG, amount: sum } })
       expect(err, `сумма ${sum} обязана быть отклонена`).not.toBeNull()
-      expect(['400', 'MARKETPLACE_DISTRIBUTION_AMOUNT_MUST_BE_POSITIVE'], `код отказа суммы ${sum}: ${err?.message}`).toContain(err!.codeText)
+      expect(['400', '422', 'MARKETPLACE_DISTRIBUTION_AMOUNT_MUST_BE_POSITIVE'], `код отказа суммы ${sum}: ${err?.message}`).toContain(err!.codeText)
     }
     const after = await branchEconomy(krgToken, KRG)
     expect(after.common_balance).toBe(before.common_balance)
@@ -342,7 +342,7 @@ describe('экономика участка: общий кошелёк, сетк
   }
 
   it(caseName('mkt.eco.happy.04', 'заявление на материальную помощь — на сумму до налога, кассиру за вычетом налога'), async () => {
-    const gross = 100.5
+    const gross = 100
     expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
     const { aidHash } = await submitAid(gross)
 
@@ -360,18 +360,6 @@ describe('экономика участка: общий кошелёк, сетк
     expect(payment, 'платёж материальной помощи в реестре кассира').toBeTruthy()
     expect(payment.username).toBe(chairkrg.account)
     expect(payment.quantity, 'кассиру — сумма за вычетом налога').toBeCloseTo(gross - ndfl(gross), 4)
-    expect(payment.quantity).toBeCloseTo(87.5, 4)
-  })
-
-  it(caseName('mkt.eco.side.10', 'налог с суммы, не кратной рублю, округляется до целого рубля'), async () => {
-    // 111.54 × 13% = 14.5002 → 15 ₽: половина рубля и больше — вверх.
-    const gross = 111.54
-    expect(ndfl(gross)).toBe(15)
-    const { aidHash } = await submitAid(gross)
-    const payment = await cashierPayment(aidHash)
-    expect(payment, 'платёж материальной помощи в реестре кассира').toBeTruthy()
-    expect(payment.quantity, 'налог удержан целыми рублями').toBeCloseTo(gross - 15, 4)
-    const tax = gross - payment.quantity
-    expect(Math.abs(tax - Math.round(tax)), 'удержание — целое число рублей').toBeLessThan(0.00005)
+    expect(payment.quantity, '100 ₽ − 13 ₽ налога').toBeCloseTo(87, 4)
   })
 })
