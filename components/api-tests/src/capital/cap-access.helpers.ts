@@ -6,12 +6,12 @@
  * Здесь только подготовка и чтение — ассертов нет, проверки живут в тестах.
  *
  * Как готовится состояние:
- *  - проект, ведущий, соавтор, задача, требование — через API, как рабочий
- *    стол председателя и ведущего;
- *  - договор УХД и допуск к проекту — прямо в цепь от имени кооператива
- *    (так их отправляет контроллер после подписи пайщика), одобрение —
- *    действием председателя `soviet::confirmapprv`. Документы подписаны
- *    ключом самого пайщика: контракт сверяет подпись с его аккаунтом;
+ *  - проект, ведущий, соавтор, задача, требование, договор УХД — через API,
+ *    как рабочий стол председателя и пайщика;
+ *  - заявка на допуск к проекту — прямо в цепь от имени кооператива (так её
+ *    отправляет контроллер после подписи пайщика), одобрения — действием
+ *    председателя `soviet::confirmapprv`. Документы подписаны ключом самого
+ *    пайщика: контракт сверяет подпись с его аккаунтом;
  *  - комнаты переписки и записи звонков — сидом в базу: на стенде нет
  *    Matrix и LiveKit, а реестр комнат и записи заводят только они.
  */
@@ -22,6 +22,7 @@ import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
 import { gql, gqlRaw } from '../core/client'
+import { signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF, REPO_ROOT } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
@@ -150,27 +151,42 @@ export async function approveAsChairman(approvalHash: string): Promise<void> {
   }
 }
 
-/** Договор УХД пайщика в цепи (без одобрения); возвращает хэш заявки. */
-export async function submitContributor(who: Who): Promise<string> {
-  const contributorHash = randomHash()
-  const doc = () => signedDoc(who.account, who.wif)
-  await transact(COOP_SIGNER, [{
-    account: 'capital',
-    name: 'regcontrib',
-    data: {
-      coopname: COOP,
-      username: who.account,
-      contributor_hash: contributorHash,
-      rate_per_hour: '1000.0000 RUB',
-      hours_per_day: 8,
-      is_external_contract: false,
-      storage_agreement: doc(),
-      contract: doc(),
-      blagorost_agreement: doc(),
-      generator_agreement: null,
-    },
-  }])
-  return contributorHash
+const REG_DOC = '{ full_title html hash meta binary }'
+
+/**
+ * Договор УХД пайщика — как на рабочем столе: контроллер собирает пакет
+ * документов, пайщик подписывает его своим ключом, контроллер заводит
+ * участника в базе и отправляет договор в цепь. Одобряет председатель.
+ *
+ * Мимо контроллера (прямым regcontrib) участник в зеркало не ложится: у
+ * записи из цепи нет отображаемого имени, и без неё не пишутся ни доли
+ * соавторов, ни сам участник.
+ */
+export async function registerContributor(who: Who): Promise<void> {
+  const token = await tokenOf(who)
+  const g = await gql<any>(token,
+    `mutation($d:GenerateCapitalRegistrationDocumentsInputDTO!){ capitalGenerateRegistrationDocuments(data:$d){
+      generation_contract ${REG_DOC} storage_agreement ${REG_DOC} blagorost_agreement ${REG_DOC} generator_offer ${REG_DOC}
+    } }`,
+    { d: { coopname: COOP, username: who.account, lang: 'ru' } })
+  const bundle = g.capitalGenerateRegistrationDocuments
+  const signed: Record<string, unknown> = {}
+  let id = 1
+  for (const key of ['generation_contract', 'storage_agreement', 'blagorost_agreement', 'generator_offer']) {
+    if (bundle[key])
+      signed[key] = await signDocument(who.wif, bundle[key], who.account, id++)
+  }
+  await gql(token,
+    'mutation($d:CompleteCapitalRegistrationInputDTO!){ capitalCompleteRegistration(data:$d){ __typename } }',
+    { d: { coopname: COOP, username: who.account, ...signed, about: 'Пайщик внешнего теста', rate_per_hour: '0', hours_per_day: 0 } })
+  const chairmanToken = await tokenOf(CHAIRMAN)
+  const c = await gql<any>(chairmanToken,
+    'query($d:GetContributorInput!){ capitalContributor(data:$d){ contributor_hash status } }',
+    { d: { username: who.account } })
+  const contributorHash = c.capitalContributor?.contributor_hash
+  if (!contributorHash)
+    throw new Error(`после регистрации у ${who.account} нет участника в зеркале`)
+  await approveAsChairman(String(contributorHash).toLowerCase())
 }
 
 const PROJECT_FIELDS = `project_hash parent_hash title description invite master priority origin present
@@ -257,7 +273,7 @@ export async function waitApprovalVisible(approvalHash: string): Promise<void> {
 
 /** Пайщик с договором УХД и допуском к перечисленным проектам. */
 export async function admitted(who: Who, projectHashes: string[]): Promise<Who> {
-  await approveAsChairman(await submitContributor(who))
+  await registerContributor(who)
   for (const hash of projectHashes) {
     const appendixHash = await requestClearance(who, hash)
     await waitApprovalVisible(appendixHash)
