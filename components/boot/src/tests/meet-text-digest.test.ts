@@ -53,16 +53,11 @@ beforeAll(async () => {
 }, 240_000)
 
 describe('формулировки вопросов собрания в цепи — хешем', () => {
-  // Первый релиз выноса (TextDigest::PHASE2 = false в lib/core/text_digest.hpp):
-  // раскатка ставит контракты раньше контроллера, и прежний контроллер ещё шлёт
-  // текст — контракт его принимает. Во втором релизе PHASE2 = true, и здесь
-  // снова ждём отказа: .rejects.toThrow(/sha256/).
-  it('createmeet в первом релизе принимает и вопрос текстом — от прежнего контроллера', async () => {
+  it('createmeet отвергает вопрос текстом — в цепи только хеш', async () => {
     const hash = generateRandomSHA256()
-    await createMeet(hash, [{ title: 'Утвердить годовой отчёт', context: '', decision: chainTextDigest('Утвердить') }])
-
-    const [question] = await questionsOf(hash)
-    expect(question.title).toBe('Утвердить годовой отчёт')
+    await expect(
+      createMeet(hash, [{ title: 'Утвердить годовой отчёт', context: '', decision: chainTextDigest('Утвердить') }]),
+    ).rejects.toThrow(/sha256/)
   })
 
   it('createmeet кладёт в вопросы хеши формулировок как есть, пустой контекст остаётся пустым', async () => {

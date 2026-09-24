@@ -52,17 +52,11 @@ beforeAll(async () => {
 }, 240_000)
 
 describe('тексты проекта в цепи — хешем', () => {
-  // Первый релиз выноса (TextDigest::PHASE2 = false в lib/core/text_digest.hpp):
-  // раскатка ставит контракты раньше контроллера, и прежний контроллер ещё шлёт
-  // текст — контракт его принимает. Во втором релизе PHASE2 = true, и здесь
-  // снова ждём отказа: .rejects.toThrow(/sha256/).
-  it('createproj в первом релизе принимает и описание текстом — от прежнего контроллера', async () => {
+  it('createproj отвергает описание текстом — в цепи только хеш', async () => {
     const project_hash = generateRandomSHA256()
-    const description = generateRandomDescription()
-    await send(CapitalContract.Actions.CreateProject.actionName, projectData(project_hash, description))
-
-    const row = await getProject(blockchain, coopname, project_hash)
-    expect(row.description).toBe(description)
+    await expect(
+      send(CapitalContract.Actions.CreateProject.actionName, projectData(project_hash, generateRandomDescription())),
+    ).rejects.toThrow(/sha256/)
   })
 
   it('createproj кладёт в строку хеш описания как есть', async () => {
@@ -75,19 +69,13 @@ describe('тексты проекта в цепи — хешем', () => {
     expect(row.invite).toBe('')
   })
 
-  // Первый релиз выноса (TextDigest::PHASE2 = false в lib/core/text_digest.hpp):
-  // раскатка ставит контракты раньше контроллера, и прежний контроллер ещё шлёт
-  // текст — контракт его принимает. Во втором релизе PHASE2 = true, и здесь
-  // снова ждём отказа: .rejects.toThrow(/sha256/).
-  it('editproj в первом релизе принимает приглашение и текстом, и хешем', async () => {
+  it('editproj отвергает приглашение текстом и принимает его хеш', async () => {
     const project_hash = generateRandomSHA256()
     await send(CapitalContract.Actions.CreateProject.actionName, projectData(project_hash, ''))
 
     const { parent_hash: _parent, ...base } = projectData(project_hash, '')
     const edit: CapitalContract.Actions.EditProject.IEditProject = { ...base, invite: 'Приглашение текстом' }
-    await send(CapitalContract.Actions.EditProject.actionName, edit)
-    expect((await getProject(blockchain, coopname, project_hash)).invite).toBe('Приглашение текстом')
-    await new Promise(resolve => setTimeout(resolve, 600)) // timing: ui — два одинаковых действия подряд цепь приняла бы за повтор
+    await expect(send(CapitalContract.Actions.EditProject.actionName, edit)).rejects.toThrow(/sha256/)
 
     const invite = chainTextDigest('Приглашение текстом')
     await send(CapitalContract.Actions.EditProject.actionName, { ...edit, invite })
