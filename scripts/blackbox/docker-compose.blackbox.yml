@@ -1,0 +1,13 @@
+# Надстройка стенда для раннера CI (внешний слой тестов, C28-80).
+# Подключается через COMPOSE_FILE в .github/workflows/blackbox.yaml.
+#
+# Код монтируется с хоста, а на раннере его владелец — пользователь раннера,
+# не uid 1000 dev-машины: под чужим uid контейнер не прочитал бы секреты и не
+# смог бы писать логи. Контроллер стартует из собранного dist — ts-node
+# типизировал бы проект заново при каждом подъёме.
+services:
+  coopback:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: pnpm --filter @coopenomics/controller run start
+  parser2:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
