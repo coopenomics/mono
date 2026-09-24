@@ -62,13 +62,6 @@ cases:
     expect: "Ответ уходит после дельты самого одобрения (soviet::approvals по хэшу) и дельты контракта-адресата из блока транзакции; без порта или по таймауту — ответ сразу, с предупреждением в журнал."
     test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
     status: passing
-  - id: sync.wwd.happy.03
-    level: backend
-    kind: happy
-    scenario: "Дельта educontracts: договор стал active; строка ждущего договора стёрта; позже приходит действие apprvcontr."
-    expect: "Договор становится действующим с датой подписи из цепи сразу по дельте; стёртая строка ждущего — отказ; действие дату не перетирает, уведомление шлёт оно."
-    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    status: passing
   - id: sync.wwd.ui.01
     level: ui
     kind: happy

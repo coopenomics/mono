@@ -2,6 +2,9 @@
   "errors": {
     "BLOCKCHAIN_ABI_NOT_FOUND": "ABI контракта {code} не найден",
     "BLOCKCHAIN_CHAIRMAN_KEY_NOT_FOUND_FOR_ADJUSTMENT": "Не найден приватный ключ председателя для подписания корректировки",
+    "BLOCKCHAIN_CHANGES_FOREIGN_COOPERATIVE": "Подписка доступна только в рамках своего кооператива.",
+    "BLOCKCHAIN_CHANGES_MEMBER_ONLY": "Подписка доступна только пайщику своего кооператива.",
+    "BLOCKCHAIN_CHANGES_TABLE_NOT_IN_FEED": "Таблица {contract}::{table} не входит в ленту изменений.",
     "BLOCKCHAIN_COOPERATIVE_KEY_MISSING_FOR_CERTIFICATION": "Нет ключа кооператива {signerAccount} — опубликовать право заверения нечем",
     "BLOCKCHAIN_DOCUMENT_NOT_FOUND": "Не найден документ: {title}",
     "BLOCKCHAIN_KEY_MISSING_FOR_CERTIFICATION_SIGNING": "Нет ключа {signerAccount} — подписать заверение нечем",

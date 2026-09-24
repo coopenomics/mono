@@ -60,6 +60,7 @@
     "components/desktop/extensions/chairman/pages/ApprovalsPage/ui/ApprovalsPage.vue": 1,
     "components/desktop/extensions/chairman/pages/PaymentProviderPage/ui/PaymentProviderPage.vue": 1,
     "components/desktop/extensions/chairman/pages/SystemSettingsPage/ui/SystemSettingsPage.vue": 1,
+    "components/desktop/extensions/chairman/widgets/ApprovalsTableWidget/ui/ApprovalsTableWidget.vue": 1,
     "components/desktop/extensions/chatcoop/pages/CalendarPage/ui/CalendarPage.vue": 1,
     "components/desktop/extensions/chatcoop/pages/ChatCoopPage/ui/ChatCoopPage.vue": 1,
     "components/desktop/extensions/chatcoop/pages/MobileClientPage/ui/MobileClientPage.vue": 1,

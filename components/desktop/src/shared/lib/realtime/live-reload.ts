@@ -65,6 +65,7 @@ interface LiveConsumer {
 
 const DEFAULT_DEBOUNCE_MS = 150;
 /** Страховочная дочитка канала: при живом канале экранам она не нужна. */
+// i18n-ignore: служебная метка причины дочитки, сравнивается в коде (includes), до пайщика не доходит
 const SAFETY_REASON = 'страховка';
 
 const consumers = new Set<LiveConsumer>();
