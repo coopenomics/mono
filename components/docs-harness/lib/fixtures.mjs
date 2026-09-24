@@ -184,7 +184,7 @@ export function fixturesOfScenario(scenario, meta = {}) {
  * глобальном prepare: фаза 06b одобряет витрину, а до сценария модерации
  * витрина обязана оставаться PENDING (catalog-empty, offer-moderation).
  */
-export function runSeedPhase(phase, { log = () => {} } = {}) {
+export function runSeedPhase(phase, { log = () => {}, echo = false } = {}) {
   const ports = harnessPorts();
   const pg = readEnvFile(path.join(REPO_ROOT, 'components/controller/.env'));
   const env = {
@@ -208,4 +208,7 @@ export function runSeedPhase(phase, { log = () => {} } = {}) {
     throw new Error(`seed-фаза ${phase} упала:
 ${(r.stderr || r.stdout || '').slice(-2000)}`);
   }
+  // Фазы пишут ход в stderr. По умолчанию он скрыт, но прогону без браузера
+  // (scripts/blackbox) он нужен целиком: без него не понять, что засев сделал.
+  if (echo) process.stderr.write(r.stderr || '');
 }

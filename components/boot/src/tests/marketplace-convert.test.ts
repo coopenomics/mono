@@ -18,14 +18,16 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { pickOffer, placeOrder } from './marketplace/orderFlow'
-import { amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
 
 const BRANAME = 'krg'
 const COOPNAME = 'voskhod'
 
 const sidorov = fromState('sidorov')
 const ekaterina = fromState('ekaterina')
-const chairman = fromState('ant')
+// Председатель кооператива стенда — канон chainHelpers (как в соседних наборах);
+// файла ant.json docs-harness не создаёт, на dev-стенде его клали руками.
+const chairman = CHAIRMAN
 
 const bc = new Blockchain(config.network, config.private_keys)
 
