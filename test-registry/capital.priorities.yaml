@@ -39,6 +39,7 @@ cases:
     scenario: председатель ставит приоритет проекту и компоненту; мастер родительского проекта — компоненту
     expect: canSetProjectPriority=true, мутация пишет приоритет по нормализованному (lowercase) хэшу
     test: components/controller/tests/unit/capital/project-priority.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: written
 
   - id: cap.prio.break.01
@@ -47,6 +48,7 @@ cases:
     scenario: приоритет верхнеуровневого проекта пытается менять его мастер или член совета; приоритет компонента — мастер самого компонента
     expect: отказ — право есть только у председателя (проект) и мастера родителя (компонент)
     test: components/controller/tests/unit/capital/project-priority.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: written
 
   - id: cap.prio.break.02
@@ -55,6 +57,7 @@ cases:
     scenario: мутация capitalSetProjectPriority без права can_set_priority
     expect: ошибка «Недостаточно прав», interactor.setPriority не вызывается
     test: components/controller/tests/unit/capital/project-priority.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: written
 
   - id: cap.prio.side.01
@@ -63,6 +66,7 @@ cases:
     scenario: приоритет задачи меняет председатель (не мастер) и мастер родительского проекта компонента задачи
     expect: оба проходят валидацию; исполнитель задачи — отказ
     test: components/controller/tests/unit/capital/project-priority.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: written
 
   - id: cap.prio.side.02
@@ -71,6 +75,7 @@ cases:
     scenario: гость (без имени пользователя) запрашивает право на приоритет
     expect: canSetProjectPriority=false
     test: components/controller/tests/unit/capital/project-priority.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: written
 
   - id: cap.prio.ui.01
@@ -97,6 +102,7 @@ cases:
       исполняемое вырезано при записи; разметка и таблицы в описании остаются.
       Общее описание — platform.user-input-markup, задача C28-74
     test: components/cooptypes/test/sanitize-editor-text.test.ts
+    api: components/api-tests/src/capital/priorities.test.ts
     status: passing
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
