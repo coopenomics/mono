@@ -48,6 +48,7 @@ function useResendCooldown() {
     cooldown.value = Math.max(0, Math.round(seconds));
     stop();
     if (cooldown.value === 0) return;
+    // timing: ui — обратный отсчёт до повторной отправки письма
     timer = setInterval(() => {
       cooldown.value -= 1;
       if (cooldown.value <= 0) stop();

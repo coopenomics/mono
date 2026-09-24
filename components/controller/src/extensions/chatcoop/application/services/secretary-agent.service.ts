@@ -221,6 +221,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
         activeRoom.participantMicPipelines.get(String(participant.identity ?? ''))?.abort.abort();
         const buf = activeRoom.audioBuffers.get(participant.identity);
         const scheduleOnlySecretaryCheck = (): void => {
+          // timing: schedule — следующий тик: список участников LiveKit обновляется после события отключения
           setTimeout(() => {
             void this.maybeLeaveWhenOnlySecretaryRemains(activeRoom, livekitRoomName).catch((err: unknown) =>
               this.logger.error(`Завершение после выхода участника: ${String(err)}`)
@@ -291,6 +292,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
       await room.connect(String(this.livekit?.url ?? ''), jwt, { autoSubscribe: true, dynacast: true });
       this.logger.log(`LiveKit: подключено к ${livekitRoomName}, remoteParticipants=${room.remoteParticipants.size}`);
 
+      // timing: timeout — LiveKit досылает уже сидящих участников и их дорожки после connect; пришедших позже ловит ParticipantConnected
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       for (const [, participant] of room.remoteParticipants) {
@@ -435,6 +437,7 @@ export class SecretaryAgentService implements OnModuleDestroy {
             }
 
             if (rms <= VAD_THRESHOLD && !buffer.silenceTimer) {
+              // timing: debounce — фрагмент речи закрывается по паузе в голосе
               buffer.silenceTimer = setTimeout(() => {
                 void this.flushBuffer(buffer, activeRoom).catch((e) =>
                   this.logger.error(`Flush по тишине (${buffer.participantName}): ${e}`)

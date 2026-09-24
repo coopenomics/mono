@@ -131,6 +131,7 @@ const setIndex = (v: number, withTip = true) => {
 const revealTip = () => {
   showTip.value = true;
   if (tipTimer.value) clearTimeout(tipTimer.value);
+  // timing: ui — подсказка у ползунка гаснет, когда его отпустили
   tipTimer.value = setTimeout(() => {
     if (!dragging.value && !coasting.value) showTip.value = false;
   }, 900);

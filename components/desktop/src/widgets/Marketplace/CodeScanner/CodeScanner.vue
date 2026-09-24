@@ -136,6 +136,7 @@ async function start(): Promise<void> {
   }
   state.value = 'requesting';
   stopped = false;
+  // timing: timeout — браузер может не ответить на запрос камеры
   requestTimer = setTimeout(() => {
     if (state.value !== 'requesting') return;
     teardown();

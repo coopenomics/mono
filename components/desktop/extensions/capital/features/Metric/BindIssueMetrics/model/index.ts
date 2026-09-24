@@ -83,6 +83,7 @@ export function useBindIssueMetrics(issueHash: string, projectHash: string) {
 
   const debounceSave = (delay = 800) => {
     if (saveTimeout) clearTimeout(saveTimeout);
+    // timing: debounce — сохранение привязки метрик после серии правок
     saveTimeout = setTimeout(() => {
       void performSave();
     }, delay);

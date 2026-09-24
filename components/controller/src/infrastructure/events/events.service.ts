@@ -38,6 +38,7 @@ export class EventsService {
   async emitAsyncWithTimeout(eventName: string, data: any, timeoutMs: number): Promise<boolean> {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<false>((resolve) => {
+      // timing: timeout — не держать поток вечно из-за зависшего обработчика форка
       timer = setTimeout(() => resolve(false), timeoutMs);
     });
     try {

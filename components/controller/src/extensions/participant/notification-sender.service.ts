@@ -123,6 +123,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -174,6 +175,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -220,6 +222,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -273,6 +276,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -323,6 +327,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
@@ -394,6 +399,7 @@ export class NotificationSenderService {
 
       // Небольшая пауза между отправками, чтобы не спамить (100ms)
       if (i < users.length - 1) {
+        // timing: throttle — рассылка уведомлений не всплеском, а по одному
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }

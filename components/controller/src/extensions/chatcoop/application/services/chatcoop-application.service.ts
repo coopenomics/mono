@@ -387,8 +387,6 @@ export class ChatCoopApplicationService {
     try {
       this.logger.debug('Начинаем синхронизацию существующих пользователей в комнаты чаткооп...');
 
-      // Небольшая задержка, чтобы конфигурация успела сохраниться
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Получаем всех существующих Matrix пользователей
       const existingUsers = await this.matrixUserManagementService.getAllMatrixUsers();

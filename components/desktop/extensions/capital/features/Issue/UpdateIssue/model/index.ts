@@ -37,6 +37,7 @@ export function useUpdateIssue() {
     // Возвращаем Promise с результатом мутации (слитый текст и новый content_rev)
     return new Promise<IUpdateIssueOutput | undefined>((resolve, reject) => {
       // Устанавливаем новый таймер
+      // timing: debounce — автосохранение описания задачи после паузы в наборе
       autoSaveTimeout = setTimeout(async () => {
         try {
           resolve(await performAutoSave(data, projectHash));

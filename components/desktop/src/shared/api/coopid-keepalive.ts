@@ -65,6 +65,7 @@ export const startCoopidKeepalive = (base = ''): (() => void) => {
   };
 
   document.addEventListener('visibilitychange', onVisible);
+  // timing: schedule — продление сессии входа у провайдера, пока вкладка открыта
   timer = setInterval(() => void ping(), KEEPALIVE_INTERVAL_MS);
   void ping();
 

@@ -22,11 +22,7 @@
       @open-parent='emit("openParent", component.parent_hash || "")'
     )
     .component-row__nested(v-if='expanded[component.project_hash]')
-      // Скелетон загрузки задач компонента
-      .component-row__skeleton(v-if='loadingComponents[component.project_hash]')
-        .skel.skel--num(v-for='i in 4', :key='i')
-      // Реальный контент
-      slot(v-else, name='component-content', :component='component')
+      slot(name='component-content', :component='component')
 
   // Канон-пустое состояние списка
   .list-empty(v-if='!components || !components.length')
@@ -34,7 +30,7 @@
     span {{ $t('capital.componentsListWidget.emptyText') }}
 </template>
 <script lang="ts" setup>
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import type { IProject, IProjectComponent } from 'app/extensions/capital/entities/Project/model';
 import { CreateComponentButton } from 'app/extensions/capital/features/Project/CreateComponent';
 import ComponentListRow from './ComponentListRow.vue';
@@ -55,62 +51,40 @@ const emit = defineEmits<{
   openParent: [parentHash: string];
 }>();
 
-// Локальное состояние загрузки для каждого компонента
-const loadingComponents = ref<Record<string, boolean>>({});
+// «Развернуть всё»: раскрываем каждый компонент, как только включён режим и
+// компоненты пришли — в каком бы порядке это ни случилось. Без задержек:
+// список компонентов — факт, по которому и раскрываем.
+const expandAllComponents = (): void => {
+  props.components?.forEach((component) => {
+    if (!props.expanded[component.project_hash]) emit('toggleComponent', component.project_hash);
+  });
+};
 
-// Watcher для автоматического развертывания/сворачивания всех компонентов
-watch(() => props.expandAll, (newValue, oldValue) => {
-  if (props.components && newValue !== oldValue) {
+watch(
+  () => props.expandAll,
+  (newValue, oldValue) => {
+    if (!props.components || newValue === oldValue) return;
     if (newValue) {
-      // Небольшая задержка, чтобы компоненты успели загрузиться после разворота проектов
-      setTimeout(() => {
-        if (props.components) {
-          props.components.forEach((component) => {
-            if (!props.expanded[component.project_hash]) {
-              emit('toggleComponent', component.project_hash);
-            }
-          });
-        }
-      }, 200);
-    } else {
-      // Свернуть все компоненты
-      props.components.forEach((component) => {
-        if (props.expanded[component.project_hash]) {
-          emit('toggleComponent', component.project_hash);
-        }
-      });
+      expandAllComponents();
+      return;
     }
-  }
-});
+    props.components.forEach((component) => {
+      if (props.expanded[component.project_hash]) emit('toggleComponent', component.project_hash);
+    });
+  },
+);
 
-// Watcher для применения expandAll после загрузки компонентов
-watch(() => props.components, (newComponents) => {
-  if (newComponents && props.expandAll) {
-    // Небольшая задержка для стабильности
-    setTimeout(() => {
-      if (props.components) {
-        props.components.forEach((component) => {
-          if (!props.expanded[component.project_hash]) {
-            emit('toggleComponent', component.project_hash);
-          }
-        });
-      }
-    }, 50);
-  }
-});
+watch(
+  () => props.components,
+  (components) => {
+    if (components && props.expandAll) expandAllComponents();
+  },
+);
 
 const isLocalRow = (row: IProjectComponent | IProject) =>
   row.origin === 'local' || props.project?.origin === 'local';
 
 const handleToggleComponent = (componentHash: string) => {
-  // Если компонент разворачивается (становится expanded), устанавливаем loading
-  if (!props.expanded[componentHash]) {
-    loadingComponents.value[componentHash] = true;
-    // Снимаем loading через 100мс, чтобы кнопка реагировала сразу
-    setTimeout(() => {
-      loadingComponents.value[componentHash] = false;
-    }, 100);
-  }
   emit('toggleComponent', componentHash);
 };
 
@@ -148,10 +122,4 @@ const handleOpenComponent = (componentHash: string) => {
   font-size: var(--p-fs-body-sm);
 }
 
-.component-row__skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-2);
-  padding: var(--p-4);
-}
 </style>

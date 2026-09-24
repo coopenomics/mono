@@ -72,8 +72,4 @@ export function useDesktopHealthWatcherProcess() {
     },
   );
 
-  // Дополнительная проверка через небольшую задержку на случай если статус изменился ДО регистрации watch
-  setTimeout(() => {
-    check();
-  }, 100);
 }

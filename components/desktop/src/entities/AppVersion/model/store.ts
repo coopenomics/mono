@@ -108,6 +108,7 @@ export const useUpdateWatch = defineStore('updateWatch', () => {
   const checkWithStartupRetries = async (): Promise<void> => {
     for (const delay of STARTUP_RETRY_MS) {
       if (delay > 0) {
+        // timing: backoff — повтор проверки версии сразу после деплоя
         await new Promise((r) => setTimeout(r, delay));
       }
       const ok = await check();
@@ -118,6 +119,7 @@ export const useUpdateWatch = defineStore('updateWatch', () => {
   const scheduleNext = (): void => {
     if (typeof window === 'undefined') return; // SSR-safe
     stop();
+    // timing: schedule — периодическая проверка новой версии приложения
     timer = setTimeout(() => {
       if (document.visibilityState === 'visible') void check();
       scheduleNext();

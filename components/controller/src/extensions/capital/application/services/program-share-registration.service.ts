@@ -19,13 +19,6 @@ import { AssetUtils } from '@coopenomics/extension-kit';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
 import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
-const REGSHARE_TX_GAP_MS = 500;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 /**
  * Сверка баланса программы «Благорост» с долёй в сегментах проектов и вызов regshare при расхождении.
@@ -174,7 +167,6 @@ export class ProgramShareRegistrationService {
         this.logger.log(
           `regshare: ${contributor.username} → проект ${projectHash}, user_shares=${targetShares} (было ${registeredStr})`
         );
-        await delay(REGSHARE_TX_GAP_MS);
       } catch (error: unknown) {
         // HttpApiError наследует Error, отдельная ветка ничего не добавляла,
         // а в production-образе ломала компиляцию: типы Nest там не резолвятся

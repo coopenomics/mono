@@ -20,6 +20,11 @@ title: Меры кооператива и дневная волновая мод
 # редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
 # случаев не менялись.
 
+# Правка 24.09.2026 (C28-83): таймеры этой фичи помечены назначением
+# (// timing: backoff | schedule | timeout | debounce | throttle | ui) — это
+# законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
+# Поведение и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/services/component-metric.service.ts

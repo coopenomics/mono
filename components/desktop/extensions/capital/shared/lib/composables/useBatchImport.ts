@@ -60,7 +60,7 @@ export function useBatchImport() {
 
       importProgress.value = i + 1;
 
-      // Небольшая задержка между запросами
+      // timing: throttle — пакетный импорт не всплеском запросов, а по одному
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 

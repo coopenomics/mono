@@ -188,6 +188,7 @@ export const useSessionStore = defineStore('session', (): ISessionStore => {
   const armAutoLock = () => {
     if (!coopIdAccount.value) return;
     if (autoLockTimer) clearTimeout(autoLockTimer);
+    // timing: timeout — автоблокировка ключа после простоя
     autoLockTimer = setTimeout(() => {
       lockWalletNow();
     }, AUTO_LOCK_MS);

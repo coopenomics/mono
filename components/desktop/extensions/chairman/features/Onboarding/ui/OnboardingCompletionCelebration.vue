@@ -43,7 +43,7 @@ div.row.q-pa-md
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 
@@ -57,10 +57,9 @@ const hideOnboarding = () => {
   // Меняем рабочий стол на стол пайщика и переходим на его дефолтный маршрут
   desktop.selectWorkspace('participant');
 
-  // Небольшая задержка чтобы дать системе переключить рабочий стол
-  setTimeout(() => {
-    desktop.goToDefaultPage(router);
-  }, 100);
+  // Стол переключается синхронно — переходим на следующем тике, когда
+  // вычисляемые маршруты стола уже пересчитаны.
+  void nextTick(() => desktop.goToDefaultPage(router));
 };
 
 // Анимация для блеска

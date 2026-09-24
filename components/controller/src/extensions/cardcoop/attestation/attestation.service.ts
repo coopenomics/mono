@@ -225,6 +225,7 @@ export class CardcoopAttestationService {
         lastReason = error instanceof Error ? error.message : String(error);
       }
 
+      // timing: backoff — повтор доставки аттестации в сеть карт
       if (attempt < DELIVERY_ATTEMPTS) await delay(backoffMs(attempt));
     }
 

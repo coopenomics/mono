@@ -619,6 +619,7 @@ export class MatrixApiService {
           this.logger.warn(
             `Matrix rate limit при отправке в ${roomId}, попытка ${attempt}/${maxAttempts}, пауза ${waitMs} мс`
           );
+          // timing: backoff — Matrix вернул rate limit и назвал срок ожидания
           await new Promise((r) => setTimeout(r, waitMs));
           continue;
         }
@@ -713,6 +714,7 @@ export class MatrixApiService {
           this.logger.warn(
             `Matrix rate limit при закреплении в ${roomId}, попытка ${attempt}/${maxPinAttempts}, пауза ${waitMs} мс`
           );
+          // timing: backoff — Matrix вернул rate limit и назвал срок ожидания
           await new Promise((r) => setTimeout(r, waitMs));
           continue;
         }

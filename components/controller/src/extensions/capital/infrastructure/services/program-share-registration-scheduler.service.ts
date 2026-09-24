@@ -44,6 +44,7 @@ export class ProgramShareRegistrationSchedulerService implements OnModuleDestroy
       }
     };
 
+    // timing: schedule — периодическая сверка долей участников проектов
     this.intervalId = setInterval(() => {
       void runTick();
     }, ms);

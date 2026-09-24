@@ -64,6 +64,7 @@ export default boot(async ({ app }) => {
           } else if (Date.now() - startedAt >= timeoutMs) {
             resolve(false);
           } else {
+            // timing: schedule — SDK поддержки грузится с внешнего хоста и событий готовности не шлёт; опрос с жёстким пределом
             setTimeout(checkReady, 100);
           }
         };

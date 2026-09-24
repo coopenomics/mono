@@ -90,6 +90,7 @@ export class ActionReleaseGate implements OnModuleDestroy {
           resolve(true);
         },
       };
+      // timing: timeout — страховка выпуска действий, если Redis не ответил (BLOCKCHAIN_ACTION_RELEASE_MAX_WAIT_MS)
       const timer = setTimeout(() => {
         const i = this.queue.indexOf(entry);
         if (i >= 0) this.queue.splice(i, 1);
@@ -177,6 +178,7 @@ export class ActionReleaseGate implements OnModuleDestroy {
 
   private ensureTicker(): void {
     if (this.timer) return;
+    // timing: schedule — проверка простоя потока, пока в очереди есть действия
     this.timer = setInterval(() => {
       if (this.checking) return;
       this.checking = true;

@@ -357,6 +357,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    */
   startRetries(apiUrl: string): void {
     if (this.retryTimer) return;
+    // timing: schedule — повторная доставка недоставленного в сеть карт
     this.retryTimer = setInterval(() => void this.retryUndelivered(apiUrl), RETRY_SWEEP_MS);
     // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
     this.retryTimer.unref();

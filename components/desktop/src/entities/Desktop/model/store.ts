@@ -593,11 +593,11 @@ export const useDesktopStore = defineStore(namespace, () => {
 
     if (defaultPageRoute) {
       // Если маршрут найден, выполняем переход
-      router.push(defaultPageRoute);
-      // Устанавливаем небольшую задержку для плавного перехода
-      setTimeout(() => {
+      // Спиннер смены стола снимаем, когда переход завершён (или отменён), а не
+      // по таймеру.
+      void router.push(defaultPageRoute).finally(() => {
         isWorkspaceChanging.value = false;
-      }, 500);
+      });
     } else {
       // Если маршрут не найден, просто сбрасываем состояние загрузки
       isWorkspaceChanging.value = false;

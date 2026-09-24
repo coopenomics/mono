@@ -79,6 +79,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     const interval = config.blockchain.rpcHealthCheckIntervalMs;
     if (this.endpoints.length > 1 && interval > 0) {
+      // timing: schedule — проверка здоровья узлов RPC
       this.healthTimer = setInterval(() => void this.probeAll(), interval);
       this.healthTimer.unref?.();
     }
@@ -189,6 +190,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   private withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
     if (!ms || ms <= 0) return p;
     return new Promise<T>((resolve, reject) => {
+      // timing: timeout — предел ожидания ответа RPC
       const t = setTimeout(() => reject(DomainError.internal('BLOCKCHAIN_RPC_TIMEOUT', { ms })), ms);
       t.unref?.();
       p.then(

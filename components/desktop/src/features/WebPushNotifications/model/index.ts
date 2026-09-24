@@ -116,6 +116,7 @@ export function useWebPushNotifications() {
       const permission = await Promise.race([
         Notification.requestPermission(),
         new Promise<never>((_, reject) => {
+          // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
           setTimeout(() => {
             reject(new Error(t('webPushNotifications.error.webpushPermissionTimeout')));
           }, 15000);
@@ -193,6 +194,7 @@ export function useWebPushNotifications() {
       const permission = await Promise.race([
         Notification.requestPermission(),
         new Promise<never>((_, reject) => {
+          // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
           setTimeout(() => {
             reject(new Error(t('webPushNotifications.error.webpushPermissionTimeout')));
           }, 30000);
@@ -281,6 +283,7 @@ export function useWebPushNotifications() {
         const registration = await Promise.race([
           navigator.serviceWorker.ready,
           new Promise<never>((_, reject) => {
+            // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
             setTimeout(() => {
               reject(new Error(t('webPushNotifications.error.webpushServiceWorkerTimeout')));
             }, 5000);
@@ -607,6 +610,7 @@ export function useWebPushNotifications() {
               return true;
             }),
             new Promise<boolean>((resolve) => {
+              // timing: timeout — браузер может не ответить на запрос разрешения или готовности service worker
               setTimeout(() => {
                 console.log(
                   'Timeout: Service Worker не готов в течение 3 секунд',

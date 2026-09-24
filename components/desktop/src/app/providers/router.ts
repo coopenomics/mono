@@ -85,6 +85,7 @@ export default route(function () {
         return;
       }
       chunkRetry.attempt += 1;
+      // timing: backoff — повтор загрузки чанка после сбоя сети
       chunkRetry.timer = setTimeout(() => {
         if (chunkRetry) chunkRetry.timer = null;
         // Повторный провал снова придёт в onError и запланирует следующую попытку.

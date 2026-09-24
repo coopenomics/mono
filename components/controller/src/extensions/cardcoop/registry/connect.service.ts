@@ -73,6 +73,7 @@ export class CardcoopConnectService implements OnModuleDestroy {
    */
   startRetries(apiUrl: string): void {
     if (this.retryTimer) return;
+    // timing: schedule — повторное подключение к узлу сети карт
     this.retryTimer = setInterval(() => void this.connectIfChanged(apiUrl), CONNECT_RETRY_MS);
     // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
     this.retryTimer.unref();

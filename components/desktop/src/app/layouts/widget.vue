@@ -143,7 +143,7 @@ onMounted(() => {
   if (isWidget.value) {
     // Наблюдаем за изменениями DOM
     const observer = new MutationObserver(() => {
-      // Небольшая задержка для корректного вычисления размеров
+      // timing: ui — размер виджета меряем после того, как браузер разложил изменённый DOM
       setTimeout(() => {
         const body = document.body;
         const height = Math.max(
