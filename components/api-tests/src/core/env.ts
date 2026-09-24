@@ -13,4 +13,4 @@ export const COOP = process.env.COOPNAME || 'voskhod'
 /** Ключ, который boot выдаёт председателю и членам совета стенда. */
 export const DEFAULT_WIF = process.env.TEST_WIF || process.env.EOSIO_PRV_KEY || '5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3'
 
-export const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..')
+export const REPO_ROOT = process.env.REPO_ROOT || path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..')

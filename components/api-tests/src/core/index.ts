@@ -1,10 +1,12 @@
 export * from './auth'
 export * from './chain'
 export * from './client'
+export * from './documents'
 export * from './env'
 export * from './participants'
 export * from './roles'
 export * from './wait'
+export * from './wallet'
 
 /**
  * Имя теста со ссылкой на случай реестра (test-registry/<фича>.yaml): по

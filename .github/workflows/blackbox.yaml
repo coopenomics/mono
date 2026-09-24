@@ -17,7 +17,11 @@ name: Blackbox
 # сводке было видно время каждой.
 on:
   push:
-    branches: [ci/blackbox]
+    # ci/blackbox — полный прогон. ci/blackbox-fast-<имя> — быстрый полигон
+    # для параллельной работы над API-тестами: стенд целиком, но без прежних
+    # наборов boot и без матрицы прав (их гоняет полный прогон). Имя после
+    # префикса — чья это работа, у каждой ветки свой прогон.
+    branches: [ci/blackbox, 'ci/blackbox-fast-*']
   workflow_dispatch:
 
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
@@ -144,6 +148,7 @@ jobs:
 
       - name: Внешние тесты
         id: tests
+        if: ${{ !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh tests
 
@@ -169,7 +174,7 @@ jobs:
       # владелец, до этого расхождения прогон не роняют.
       - name: Матрица прав
         id: rights
-        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
         continue-on-error: true
         timeout-minutes: 30
         run: bash scripts/blackbox/stack.sh rights

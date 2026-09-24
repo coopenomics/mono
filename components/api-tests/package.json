@@ -10,6 +10,9 @@
     "test:api": "vitest run",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@coopenomics/sdk": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20.12.12",
     "eosjs": "^22.1.0",

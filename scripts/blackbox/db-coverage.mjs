@@ -128,8 +128,11 @@ function main() {
   const rowOf = (db, table) => {
     const key = `${db}.${table}`
     if (!cov.has(key)) {
-      const entity = entities.get(table) ?? null
-      cov.set(key, { db, table, entity, domain: domainOf(entity), read: {}, write: {} })
+      // Во второй базе (CoopID, auth-v2) сущностей нет — репозитории ходят в
+      // неё сырым SQL (infrastructure/auth-v2/postgres-*.repository.ts).
+      const entity = db === 'voskhod' ? entities.get(table) ?? null : null
+      const domain = db === 'voskhod' ? domainOf(entity) : `${db} (сырой SQL)`
+      cov.set(key, { db, table, entity, domain, read: {}, write: {} })
     }
     return cov.get(key)
   }

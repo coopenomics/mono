@@ -94,6 +94,10 @@ importers:
         version: 2.9.0
 
   components/api-tests:
+    dependencies:
+      '@coopenomics/sdk':
+        specifier: workspace:*
+        version: link:../sdk
     devDependencies:
       '@types/node':
         specifier: ^20.12.12

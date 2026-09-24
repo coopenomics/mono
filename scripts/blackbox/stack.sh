@@ -212,7 +212,7 @@ cmd_rights() {
 #   dbcov start       — завести расширение, выписать таблицы, обнулить журнал;
 #   dbcov snap <фаза> — сохранить журнал фазы в $OUT/dbcov/<фаза>.json и обнулить.
 # Разбор — scripts/blackbox/db-coverage.mjs (сводка покрытия таблиц).
-DBCOV_DBS_SQL="SELECT datname FROM pg_database WHERE NOT datistemplate AND datname NOT IN ('postgres','authentik_db','coop_domain_db')"
+DBCOV_DBS_SQL="SELECT datname FROM pg_database WHERE NOT datistemplate AND datname NOT IN ('postgres','authentik_db')"
 
 pg() { docker compose exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -tAq "$@"; }
 
