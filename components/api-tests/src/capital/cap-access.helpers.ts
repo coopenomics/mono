@@ -150,8 +150,8 @@ export async function approveAsChairman(approvalHash: string): Promise<void> {
   }
 }
 
-/** Договор УХД пайщика в цепи и его одобрение председателем. */
-export async function registerContributor(who: Who): Promise<void> {
+/** Договор УХД пайщика в цепи (без одобрения); возвращает хэш заявки. */
+export async function submitContributor(who: Who): Promise<string> {
   const contributorHash = randomHash()
   const doc = () => signedDoc(who.account, who.wif)
   await transact(COOP_SIGNER, [{
@@ -170,7 +170,7 @@ export async function registerContributor(who: Who): Promise<void> {
       generator_agreement: null,
     },
   }])
-  await approveAsChairman(contributorHash)
+  return contributorHash
 }
 
 const PROJECT_FIELDS = `project_hash parent_hash title description invite master priority origin present
@@ -184,13 +184,8 @@ export async function projectAs(who: Who, hash: string): Promise<any | null> {
   return d.capitalProject
 }
 
-/**
- * Допуск пайщика к проекту: приложение к договору УХД в цепи, затем
- * одобрение председателя. Контроллер разбирает блоки по порядку: заявка
- * (дельта таблицы приложений) попадает в базу раньше одобрения, поэтому
- * ждать между ними нечего — ждём только сам подтверждённый допуск.
- */
-export async function grantClearance(who: Who, projectHash: string): Promise<void> {
+/** Заявка на допуск к проекту — приложение к договору УХД в цепи; возвращает её хэш. */
+export async function requestClearance(who: Who, projectHash: string): Promise<string> {
   const appendixHash = randomHash()
   await transact(COOP_SIGNER, [{
     account: 'capital',
@@ -203,11 +198,7 @@ export async function grantClearance(who: Who, projectHash: string): Promise<voi
       document: signedDoc(who.account, who.wif),
     },
   }])
-  await approveAsChairman(appendixHash)
-  await waitFor(async () => {
-    const p = await projectAs(who, projectHash)
-    return p?.permissions?.has_clearance ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 1_000, label: `допуск ${who.account} к ${projectHash.slice(0, 8)} подтверждён` })
+  return appendixHash
 }
 
 /** Проект (или компонент) в цепи — председатель через API. */
@@ -248,11 +239,38 @@ export async function addAuthor(projectHash: string, author: Who): Promise<void>
     { d: { coopname: COOP, project_hash: projectHash, author: author.account } })
 }
 
-/** Пайщик с договором УХД и допуском к перечисленным проектам. */
+/**
+ * Пайщик с договором УХД и допуском к перечисленным проектам.
+ *
+ * Порядок важен. Контроллер заводит заявку на допуск в базе по дельте таблицы
+ * приложений, а одобрение находит её там по хэшу; если одобрение разобрано
+ * раньше дельты, допуск в базе не появится никогда. Поэтому заявки подаются
+ * до одобрения договора, а одобряются после того, как договор виден
+ * контроллеру активным: дельты идут по порядку блоков, и к этому моменту
+ * заявки уже в базе.
+ */
 export async function admitted(who: Who, projectHashes: string[]): Promise<Who> {
-  await registerContributor(who)
+  const contributorHash = await submitContributor(who)
+  const appendixHashes: string[] = []
   for (const hash of projectHashes)
-    await grantClearance(who, hash)
+    appendixHashes.push(await requestClearance(who, hash))
+  await approveAsChairman(contributorHash)
+  const chairmanToken = await tokenOf(CHAIRMAN)
+  await waitFor(async () => {
+    const d = await gql<any>(chairmanToken,
+      'query($d:GetContributorInput!){ capitalContributor(data:$d){ status } }',
+      { d: { username: who.account } })
+    const status = d.capitalContributor?.status
+    return status === 'ACTIVE' || status === 'APPROVED' ? true : null
+  }, { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} активен в зеркале` })
+  for (const appendixHash of appendixHashes)
+    await approveAsChairman(appendixHash)
+  for (const hash of projectHashes) {
+    await waitFor(async () => {
+      const p = await projectAs(who, hash)
+      return p?.permissions?.has_clearance ? true : null
+    }, { timeoutMs: 120_000, intervalMs: 1_000, label: `допуск ${who.account} к ${hash.slice(0, 8)} подтверждён` })
+  }
   return who
 }
 
