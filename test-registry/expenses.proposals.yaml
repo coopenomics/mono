@@ -1,0 +1,324 @@
+feature: expenses.proposals
+title: Служебная записка на расход — подача, решение совета, реквизиты получателей и первичные файлы
+
+# Шасси расходов (контракт expense): член совета или председатель подаёт
+# служебную записку (документ 2010) со строками расхода — оплата организации
+# по счёту либо аванс пайщику под отчёт на его реквизиты. Записка уходит на
+# решение совета; после утверждения председатель оплачивает строки, держатель
+# аванса отчитывается чеками или возвращает остаток, совет закрывает отчёт.
+# Реквизиты получателей в цепь не пишутся — снимок хранится на узле и виден
+# только совету. Первичные файлы (платёжки, чеки, закрывающие документы)
+# лежат в хранилище, доступ — совету, автору записки и получателю строки.
+#
+# Заведено 24.09.2026 (C28-80): внешний слой прикрывает таблицы
+# expense_proposals, expense_requisite_snapshots и expense_files перед
+# переводом репозиториев на Kysely.
+#
+# На стенде пул программных расходов (w.cap.pgexp) пуст: пополняется только
+# из инвестиций программы «Благорост» (capital::topupprogexp). Поэтому оплата
+# строки, отчёт, возврат и закрытие проверяются до цепи (права) и отказом
+# контракта по статусу — счастливый путь оплаты остаётся без внешнего теста.
+
+sources:
+  backend:
+    - components/controller/src/extensions/expenses/application/resolvers/expense-mutations.resolver.ts
+    - components/controller/src/extensions/expenses/application/resolvers/expense-proposal.resolver.ts
+    - components/controller/src/extensions/expenses/application/resolvers/expense-files.resolver.ts
+    - components/controller/src/extensions/expenses/application/services/expenses-mutations.service.ts
+    - components/controller/src/extensions/expenses/application/services/expenses-management.service.ts
+    - components/controller/src/extensions/expenses/application/services/expense-files.service.ts
+    - components/controller/src/extensions/expenses/application/services/expense-requisite-snapshots.service.ts
+    - components/controller/src/extensions/expenses/application/syncers/expense-proposal-sync.service.ts
+    - components/controller/src/extensions/expenses/infrastructure/**
+    - components/controller/src/extensions/expenses/domain/**
+
+cases:
+
+  - id: exp.prop.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Член совета подаёт записку: строка организации (оплата по счёту) и аванс пайщику на его СБП
+    expect: >
+      зеркало отдаёт записку в статусе CREATED с автором, кошельком-источником, суммой, строками APPROVED и хэшем подписанного документа; протокола решения ещё нет
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Записка в реестре кооператива и в списке автора
+    expect: >
+      есть в постраничном реестре кооператива и в списке автора, нет в списке другого пайщика
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      Совет голосует за записку, председатель утверждает протоколом 2011
+    expect: >
+      зеркало переходит в AUTHORIZED, протокол решения приложен, реестр кооператива показывает новый статус
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.req.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Снимки реквизитов получателей после подачи
+    expect: >
+      две строки: организация — реквизиты и назначение как введены; пайщик — метод СБП с телефоном и фиксированным назначением «аванс под отчёт»
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.req.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик и сам получатель аванса запрашивают реквизиты записки
+    expect: >
+      отказ KIT_INSUFFICIENT_RIGHTS — персональные данные только совету
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Обычный пайщик подаёт записку от своего и от чужого имени
+    expect: >
+      от своего — EXPENSES_PROPOSAL_FORBIDDEN, от чужого — KIT_INSUFFICIENT_RIGHTS; записки нет
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Повторная подача записки с тем же хэшем
+    expect: >
+      отказ цепи CHAIN_ASSERT «уже существует», снимков реквизитов по-прежнему два
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Строка пайщика без его сохранённых реквизитов
+    expect: >
+      отказ EXPENSES_RECIPIENT_REQUISITES_MISSING до цепи, записки нет
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Организации — аванс, пайщику — оплата по счёту
+    expect: >
+      EXPENSES_ORG_ONLY_DIRECT и EXPENSES_MEMBER_ONLY_ADVANCE
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Кошелёк-источник без набора операций шасси
+    expect: >
+      отказ цепи CHAIN_ASSERT о source_wallet, записки нет
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик читает реестр кооператива; гость читает записку
+    expect: >
+      KIT_INSUFFICIENT_RIGHTS и 401
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик и член совета оплачивают строку
+    expect: >
+      отказ KIT_INSUFFICIENT_RIGHTS — оплата только председателю
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Председатель оплачивает строку записки до решения совета
+    expect: >
+      отказ цепи CHAIN_ASSERT (оплата только из AUTHORIZED / PARTIALLY_PAID), статус CREATED
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Возврат и отчёт по авансу: чужой пайщик, держатель аванса, член совета; получатель аванса — по строке организации
+    expect: >
+      чужому и по чужой строке — 403; держатель аванса и совет проходят проверку прав и получают отказ контракта по статусу
+    test: components/controller/tests/unit/expenses/expense-item-owner.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.10
+    level: backend
+    kind: side
+    scenario: >
+      Пайщик закрывает отчёт по записке
+    expect: >
+      отказ KIT_INSUFFICIENT_RIGHTS — закрытие советом
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.11
+    level: backend
+    kind: side
+    scenario: >
+      После утверждения председатель платит сверх плана строки и по несуществующей строке
+    expect: >
+      отказ цепи CHAIN_ASSERT в обоих случаях, записка AUTHORIZED, строки APPROVED
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.side.12
+    level: backend
+    kind: side
+    scenario: >
+      Член совета закрывает отчёт по утверждённой, но не оплаченной записке
+    expect: >
+      отказ цепи CHAIN_ASSERT, записка AUTHORIZED
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.happy.01
+    level: backend
+    kind: happy
+    scenario: >
+      Член совета прикладывает платёжку (PDF) к строке организации
+    expect: >
+      запись с видом, типом, размером, контрольной суммой, именем файла и автором; читается по id с адресом скачивания и находится в списках по записке и по строке
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Получатель аванса прикладывает чек к своей строке
+    expect: >
+      файл принят; получатель видит его в списке строки и все файлы своей записки
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Чужой пайщик загружает файл и читает файлы записки
+    expect: >
+      отказ EXPENSES_FILE_ACCESS_DENIED на загрузку, оба списка и чтение по id
+    test: components/controller/tests/unit/expenses/expense-files-owner.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Получатель аванса прикладывает файл к чужой строке своей записки
+    expect: >
+      отказ EXPENSES_FILE_ACCESS_DENIED на загрузку и чтение строки
+    test: components/controller/tests/unit/expenses/expense-files-owner.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.side.03
+    level: backend
+    kind: side
+    scenario: >
+      Повторная загрузка того же содержимого
+    expect: >
+      конфликт EXPENSES_FILE_DUPLICATE, запись одна
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.side.04
+    level: backend
+    kind: side
+    scenario: >
+      Размер и контрольная сумма не сходятся с содержимым; недопустимый MIME
+    expect: >
+      EXPENSES_FILE_SIZE_MISMATCH, EXPENSES_FILE_CHECKSUM_MISMATCH, 422
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.file.side.05
+    level: backend
+    kind: side
+    scenario: >
+      Чтение несуществующего файла
+    expect: >
+      отказ EXPENSES_FILE_NOT_FOUND
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+
+  - id: exp.prop.happy.04
+    level: backend
+    kind: happy
+    scenario: >
+      Председатель оплачивает строку утверждённой записки (прямая оплата
+      организации, выдача аванса), держатель аванса отчитывается чеком или
+      возвращает остаток, совет закрывает отчёт
+    expect: >
+      строки PAID/REPORTED, записка PARTIALLY_PAID → REPORT_SUBMITTED → CLOSED;
+      снаружи не проверить — на стенде пуст пул w.cap.pgexp, пополнение только
+      из инвестиций программы «Благорост»
+    test: ~
+    status: missing
+
+  - id: exp.prop.side.13
+    level: backend
+    kind: side
+    scenario: >
+      Список записок пайщика (expenseProposalsByMember) и записка по хэшу
+      (expenseProposal) открыты любому пайщику по чужому имени
+    expect: не определено — видеть ли пайщику записки и строки чужих расходов
+    test: ~
+    status: missing
+    decision_needed: true

@@ -1,0 +1,137 @@
+feature: expenses.plans
+title: Реестр плановых расходов участка — предстоящие траты с суммой, сроком и реквизитами
+
+# Плановый расход — предстоящая трата кооперативного участка: назначение,
+# сумма, срок, реквизиты и периодичность. Неоплаченные записи со сроком в
+# ближайшие 30 дней образуют резерв, недоступный распределению членских
+# взносов участка. Планы ведёт председатель участка или его доверенное лицо
+# (состав берётся из цепи, branch::branches); записи уровня кооператива
+# закрыты, пока шасси расходов их не откроет.
+#
+# Заведено 24.09.2026 (C28-80): внешний слой прикрывает таблицу expense_plans
+# перед переводом репозитория на Kysely.
+
+sources:
+  backend:
+    - components/controller/src/extensions/expenses/application/resolvers/expense-plans.resolver.ts
+    - components/controller/src/extensions/expenses/application/services/expense-plans.service.ts
+    - components/controller/src/extensions/expenses/application/dto/expense-plan.dto.ts
+    - components/controller/src/extensions/expenses/infrastructure/entities/expense-plan.entity.ts
+    - components/controller/src/extensions/expenses/domain/expense-plan.types.ts
+
+cases:
+  - id: exp.plan.happy.01
+    level: backend
+    kind: happy
+    scenario: Председатель участка заводит плановый расход участка
+    expect: >
+      запись возвращается с участком, суммой в валюте кооператива, сроком,
+      реквизитами, автором и без привязки к расходу; та же запись читается из
+      реестра участка и из общего реестра кооператива
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.happy.02
+    level: backend
+    kind: happy
+    scenario: Регулярный расход заводится с периодичностью
+    expect: периодичность сохраняется и отдаётся реестром
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.happy.03
+    level: backend
+    kind: happy
+    scenario: Председатель участка удаляет плановый расход
+    expect: мутация отвечает true, записи в реестре больше нет
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.01
+    level: backend
+    kind: side
+    scenario: Запись уровня кооператива (без участка), даже от председателя кооператива
+    expect: отказ EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.02
+    level: backend
+    kind: side
+    scenario: Обычный пайщик заводит план участка
+    expect: отказ EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN, запись не создаётся
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.03
+    level: backend
+    kind: side
+    scenario: Председатель чужого участка заводит или удаляет план участка krg
+    expect: оба действия — отказ EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN, чужая запись остаётся
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.04
+    level: backend
+    kind: side
+    scenario: План несуществующего участка
+    expect: отказ EXPENSES_BRANCH_NOT_FOUND
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.05
+    level: backend
+    kind: side
+    scenario: Нулевая или отрицательная сумма
+    expect: отказ проверки входа (422), запись не создаётся
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.06
+    level: backend
+    kind: side
+    scenario: Удаление несуществующей записи
+    expect: отказ EXPENSES_PLAN_NOT_FOUND
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.07
+    level: backend
+    kind: side
+    scenario: Гость читает реестр или заводит запись
+    expect: отказ 401
+    test: components/api-tests/src/expenses/plans.test.ts
+    api: components/api-tests/src/expenses/plans.test.ts
+    status: passing
+
+  - id: exp.plan.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Реестр плановых расходов открыт любому пайщику кооператива — с
+      реквизитами получателей платежей всех участков
+    expect: не определено — видеть ли пайщику реквизиты планов чужого участка
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: exp.plan.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Срок регулярного расхода наступил — воркер добавляет следующий
+      экземпляр серии, резерв 30 дней считает неоплаченные записи
+    expect: >
+      следующий экземпляр появляется в реестре; снаружи не проверить — тик
+      воркера шесть часов, резерв отдаётся только другим расширениям
+    test: ~
+    status: missing
