@@ -10,15 +10,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { FailAlert } from 'src/shared/api';
 import { ContributorsListWidget } from 'app/extensions/capital/widgets/ContributorsListWidget';
 import { ImportContributorButton } from 'app/extensions/capital/features/Contributor/ImportContributor';
 import { useContributorStore } from 'app/extensions/capital/entities/Contributor/model';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { useHeaderActions } from 'src/shared/hooks';
 import { t } from '../../../i18n';
 
@@ -104,10 +104,9 @@ const reloadContributors = async () => {
   }
 };
 
-const { start: startContributorsPoll, stop: stopContributorsPoll } = useDataPoller(
-  reloadContributors,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadContributors);
 
 onMounted(async () => {
   if (canAddContributor.value) {
@@ -118,11 +117,6 @@ onMounted(async () => {
     });
   }
   await loadContributors();
-  startContributorsPoll();
-});
-
-onBeforeUnmount(() => {
-  stopContributorsPoll();
 });
 </script>
 

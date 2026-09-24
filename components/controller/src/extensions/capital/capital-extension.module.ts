@@ -747,13 +747,37 @@ export class CapitalExtension extends BaseExtensionModule {
     try {
       registerCapitalOnboardingSteps(this.onboardingStepRegistration);
       await registerCapitalDocuments(this.documentDeclarations);
-      // Столы Благороста перечитывают пайщика программы по ленте изменений.
+      // Столы Благороста живут по ленте изменений (C28-83). Проекты, сегменты,
+      // голоса, результаты и коммиты — общая работа участников, их видят все
+      // (сигнал данных строки не несёт); личные финансы — владельцу и совету.
+      const code = CapitalContract.contractName.production;
+      const T = CapitalContract.Tables;
       this.chainChanges?.declareTables([
-        {
-          code: CapitalContract.contractName.production,
-          table: CapitalContract.Tables.Contributors.tableName,
-          owner_field: 'username',
-        },
+        { code, table: T.Contributors.tableName, owner_field: 'username' },
+        ...[T.Projects, T.ProjectProperties, T.ProgramProperties, T.Segments, T.Votes, T.Results, T.Commits, T.Appendixes, T.State].map(
+          (t) => ({ code, table: t.tableName })
+        ),
+        ...[T.Invests, T.ProgramInvests, T.Debts, T.ProgramWithdraws, T.ProgramWallets, T.Expenses, T.ProgramExpenses].map(
+          (t) => ({ code, table: t.tableName, owner_field: 'username' })
+        ),
+      ]);
+      // Оффчейн-работа Благороста в базе узла: задачи, истории, обсуждения,
+      // учёт времени, метрики. Избранное — личное.
+      this.chainChanges?.declareLocalTables([
+        ...[
+          'capital_issues',
+          'capital_stories',
+          'capital_comments',
+          'capital_cycles',
+          'capital_time_entries',
+          'capital_timer_sessions',
+          'capital_component_metrics',
+          'capital_measures',
+          'capital_metric_contributions',
+          'capital_issue_metric_bindings',
+          'capital_issue_linked_git_commits',
+        ].map((table) => ({ code, table })),
+        { code, table: 'capital_favorites', owner_field: 'username' },
       ]);
       this.logger.log('[CAPITAL.ONBOARDING] зарегистрировано 5 шагов онбординга capital и документы реестра шаблонов');
     } catch (error: unknown) {

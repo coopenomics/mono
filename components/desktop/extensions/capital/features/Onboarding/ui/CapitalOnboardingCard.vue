@@ -97,8 +97,8 @@ import { WindowLoader, Loader } from 'src/shared/ui/Loader';
 import { VerticalStepper } from 'src/shared/ui/domain/VerticalStepper';
 import type { StepperStep } from 'src/shared/ui/domain/VerticalStepper';
 import type { ICouncilOnboardingStep } from 'src/shared/ui/CouncilOnboarding';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import CapitalProgramDocumentStepPanel from './CapitalProgramDocumentStepPanel.vue';
 import CapitalCouncilStepGroup from './CapitalCouncilStepGroup.vue';
 import { useCapitalOnboarding } from '../model';
@@ -381,15 +381,15 @@ const shouldPollCouncilState = computed(
   () => hasPendingCouncilDecisions.value && !isOnboardingCompleted.value,
 );
 
-const { start: startCouncilPoll, stop: stopCouncilPoll } = useDataPoller(
+// Решения совета о подключении приходят по ленте изменений (повестка —
+// soviet::decisions, итог — конфигурация расширения в базе узла): состояние
+// перечитывается, только пока карточка ждёт совета, как прежде опрос.
+useLiveReload(
+  [liveTable(SovietContract, SovietContract.Tables.Decisions), { code: 'core', table: 'extensions' }],
   async () => {
+    if (!shouldPollCouncilState.value) return;
     await refreshState();
     syncWizardStepWithCouncilProgress();
-  },
-  {
-    interval: POLL_INTERVALS.FAST,
-    immediate: false,
-    enabled: shouldPollCouncilState,
   },
 );
 
@@ -397,14 +397,6 @@ function handleVisibilityChange() {
   if (document.hidden || !shouldPollCouncilState.value) return;
   void refreshState().then(() => syncWizardStepWithCouncilProgress());
 }
-
-watch(shouldPollCouncilState, (enabled) => {
-  if (enabled) {
-    startCouncilPoll();
-  } else {
-    stopCouncilPoll();
-  }
-});
 
 watch(
   () => councilSteps.value.map((step) => `${step.id}:${step.status}`).join('|'),
@@ -445,15 +437,10 @@ onMounted(async () => {
     }
   }
 
-  if (shouldPollCouncilState.value) {
-    startCouncilPoll();
-  }
-
   document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onBeforeUnmount(() => {
-  stopCouncilPoll();
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>

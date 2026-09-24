@@ -17,6 +17,11 @@ title: >-
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 24.09.2026 (C28-83): экраны фичи перечитываются по ленте изменений
+# (таблицы Благороста объявлены расширением, набор на столе —
+# shared/lib/live.ts) вместо опроса useDataPoller раз в 10–30 с. Поведение
+# фичи и набор случаев не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/dto/segments/segment.dto.ts

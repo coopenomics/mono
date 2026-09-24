@@ -92,12 +92,13 @@
 
 <script lang="ts" setup>
 import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
+import { useExpandableState } from 'src/shared/lib/composables';
 import { goBackOr } from 'src/shared/lib/navigation';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import { EmptyState, BaseButton, BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -241,10 +242,9 @@ const reloadVotingData = async () => {
   }
 };
 
-const { start: startVotingPoll, stop: stopVotingPoll } = useDataPoller(
-  reloadVotingData,
-  { interval: POLL_INTERVALS.FAST, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadVotingData);
 
 watch(
   () => project.value?.title,
@@ -262,11 +262,9 @@ onMounted(async () => {
   if (!canShowVoting.value) {
     isInitialLoading.value = false;
   }
-  startVotingPoll();
 });
 
 onBeforeUnmount(() => {
-  stopVotingPoll();
   if (isStandaloneVoting.value) {
     desktopStore.clearPageTitleOverride();
   }
