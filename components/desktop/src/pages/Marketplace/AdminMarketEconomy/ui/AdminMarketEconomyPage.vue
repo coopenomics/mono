@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { AmountInput, PageHint } from 'src/shared/ui/domain'
@@ -78,8 +80,9 @@ const turnoverLoading = ref(true)
 /** Сколько исполненных заказов забираем под свод: хвост старше периода не нужен. */
 const TURNOVER_ORDERS_LIMIT = 500
 
-async function loadTurnover(): Promise<void> {
-  turnoverLoading.value = true
+/** `silent` — перечитывание по ленте: свод обновляется на месте, без скелетона. */
+async function loadTurnover(silent = false): Promise<void> {
+  if (!silent) turnoverLoading.value = true
   try {
     const [inventoryRows, orderRows] = await Promise.all([
       listInventory(),
@@ -98,6 +101,11 @@ onMounted(() => {
   void load()
   void loadTurnover()
 })
+
+// Сбор с оборота живёт в цепи (marketplace::config), свод оборота — в базе
+// стола: приёмки склада и исполненные заказы.
+useLiveReload(marketLiveTables('economy'), load)
+useLiveReload(marketLiveTables('order', 'warehouse'), () => loadTurnover(true))
 </script>
 
 <template lang="pug">

@@ -25,7 +25,9 @@ import {
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { operationLabel, formatProcessAmount } from 'src/shared/lib/ledger2'
-import { NDFL_RATE_PERCENT, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
+import { NDFL_RATE_PERCENT, marketLiveTables, ndflNet, ndflTax } from 'src/shared/lib/marketplace'
+import { Ledger2Contract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { paymentStatusLabel, paymentStatusVariant } from 'src/shared/lib/payment'
 import {
   type ExpensePlanView,
@@ -116,9 +118,10 @@ const turnoverLoading = ref(true)
 /** Сколько исполненных заказов забираем под свод: хвост старше периода не нужен. */
 const TURNOVER_ORDERS_LIMIT = 500
 
-async function loadTurnover(): Promise<void> {
+/** `silent` — перечитывание по ленте: свод обновляется на месте, без скелетона. */
+async function loadTurnover(silent = false): Promise<void> {
   if (!braname.value) return
-  turnoverLoading.value = true
+  if (!silent) turnoverLoading.value = true
   try {
     const [inventoryRows, orderRows] = await Promise.all([
       listInventory({ braname: braname.value }),
@@ -232,6 +235,21 @@ watch(braname, () => {
   void loadAll()
   void loadTurnover()
 })
+
+// Экономика участка живёт по ленте: веса и помощь участка, сбор с оборота,
+// кошельки (общий — совету, личный — владельцу), платежи по матпомощи и
+// плановые расходы. Оборот — по приёмкам склада и исполненным заказам.
+useLiveReload(
+  [
+    ...marketLiveTables('economy'),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets),
+    { code: 'core', table: 'payments' },
+    { code: 'expenses', table: 'expense_plans' },
+  ],
+  loadAll,
+)
+useLiveReload(marketLiveTables('order', 'warehouse'), () => loadTurnover(true))
 
 // ─── Ручное распределение из общего кошелька (председатель КУ) ───
 

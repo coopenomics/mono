@@ -20,6 +20,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert } from 'src/shared/api'
 import { EmptyState } from 'src/shared/ui/base'
 import { KUMapWithList } from 'src/widgets/KUMapWithList'
@@ -66,6 +68,10 @@ onMounted(async () => {
     FailAlert(e, t('marketplace.kuSelector.loadError'))
   }
 })
+
+// Список пунктов выдачи и карта живут по ленте: участки и их детали
+// перечитываются сами.
+useLiveReload(marketLiveTables('ku'), () => kuStore.load({ coopname: props.coopname, onlyActive: true }))
 </script>
 
 <style scoped lang="scss">

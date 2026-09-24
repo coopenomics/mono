@@ -9,6 +9,8 @@
  * Подтверждение и отказ выплат делает кассир кооператива — здесь только обзор.
  */
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { t, uiLocale, t as i18nT } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useFirstLoad } from 'src/shared/lib/composables';
@@ -155,6 +157,10 @@ onMounted(() => {
   });
   void load();
 });
+
+// Выплаты поставщикам живут по ленте: новая заявка и её оплата
+// перечитывают список.
+useLiveReload(marketLiveTables('payment'), load);
 </script>
 
 <template lang="pug">

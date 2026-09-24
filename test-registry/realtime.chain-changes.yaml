@@ -30,6 +30,12 @@ title: Лента изменений цепи — живое обновлени�
 # расширение наблюдает свою базу само и публикует через порт (publishLocal).
 # Сырой UPDATE счётчиков предложения публикует его репозиторий.
 
+# Правка 24.09.2026 (C28-83, второй проход): подписчик Стола заказов объявляет
+# и таблицу цепи marketplace::config (сбор с оборота); расширение расходов —
+# плановые расходы (expense_plans, открыто). Снимок процесса перечитывается по
+# таблицам шагов процесса (useLiveProcessSnapshot): у журнала действий своего
+# сигнала нет.
+
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
@@ -39,12 +45,14 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
     - components/extension-kit/src/utils/local-changes-collector.ts
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
+    - components/controller/src/extensions/expenses/application/services/expenses-live-feed.service.ts
   ui:
     - components/desktop/src/shared/lib/realtime/live-reload.ts
     - components/desktop/src/entities/System/model/chainChangesSubscription.ts
     - components/sdk/src/subscriptions/chain/**
     - components/desktop/extensions/edubridge/shared/lib/live.ts
     - components/desktop/src/shared/lib/marketplace/marketplace-live.ts
+    - components/desktop/src/entities/Process/model/useLiveProcessSnapshot.ts
 
 cases:
   - id: rt.cc.happy.01

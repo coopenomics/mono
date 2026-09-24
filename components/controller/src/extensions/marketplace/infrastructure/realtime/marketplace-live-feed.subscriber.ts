@@ -3,6 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import type { DataSource } from 'typeorm';
 import { LocalChangesCollector } from '@coopenomics/extension-kit';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort, type InnerChainChangesTable } from '@coopenomics/innercoop';
+import { MarketContract } from 'cooptypes';
 
 /** Имя расширения в реестре — `code` его таблиц в ленте изменений. */
 const CODE = 'market';
@@ -41,6 +42,15 @@ export const MARKETPLACE_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: CODE, table: 'marketplace_cart', owner_field: 'orderer_account' },
 ];
 
+/**
+ * Таблицы контракта Стола заказов, которые стол читает из цепи напрямую, — сбор
+ * с оборота. Заказы, возвраты и списания цепи стол читает из базы расширения:
+ * их сигнал даёт запись зеркала.
+ */
+export const MARKETPLACE_LIVE_CHAIN_TABLES: InnerChainChangesTable[] = [
+  { code: MarketContract.contractName.production, table: MarketContract.Tables.Config.tableName },
+];
+
 const WATCHED = new Set(MARKETPLACE_LIVE_TABLES.map((t) => t.table));
 
 /**
@@ -60,6 +70,7 @@ export class MarketplaceLiveFeedSubscriber extends LocalChangesCollector {
       (table, primary_key, row) => chainChanges?.publishLocal(table, primary_key, row)
     );
     chainChanges?.declareLocalTables(MARKETPLACE_LIVE_TABLES);
+    chainChanges?.declareTables(MARKETPLACE_LIVE_CHAIN_TABLES);
     dataSource.subscribers.push(this);
   }
 }

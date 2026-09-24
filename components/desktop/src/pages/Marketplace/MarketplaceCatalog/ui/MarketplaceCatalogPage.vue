@@ -324,30 +324,10 @@ onMounted(async () => {
   await loadPage(false);
 });
 
-// ── Живая витрина: realtime-сигналы каталога (Фаза A) ──────────────────────
-// Остаток меняется → точечно правим карточку по offer_id, без перезагрузки и
-// мельтешения (частое событие). Новый оффер / catch-up → ненавязчивое обновление
-// с сохранением уже загруженной глубины (НЕ сброс на первую страницу — иначе
-// страховочный resync раз в 60с дёргал бы прокрутку у листающего пайщика).
-function patchOfferStock(
-  offerId: string,
-  quantityAvailable: number,
-  unlimited: boolean,
-  packages: ReadonlyArray<{ package_id: string; quantity_available: number }>,
-): void {
-  const item = items.value.find((o) => o.id === offerId);
-  if (!item) return; // оффер не на текущей вкладке/в загруженном диапазоне — пропуск
-  item.quantity_available = quantityAvailable;
-  item.unlimited_flag = unlimited;
-  // Остаток по упаковкам: диалог «В корзину» ограничивает ввод остатком
-  // выбранной упаковки, поэтому обновляем и его. До перезапуска dev-сервера
-  // предсобранный SDK поля ещё не запрашивает — тогда списка нет.
-  for (const p of packages ?? []) {
-    const pkg = item.packages.find((x) => x.id === p.package_id);
-    if (pkg) pkg.quantity_available = p.quantity_available;
-  }
-}
-
+// ── Живая витрина по ленте изменений ──────────────────────────────────────
+// Остатки, новые предложения и категории → ненавязчивое обновление с
+// сохранением уже загруженной глубины (НЕ сброс на первую страницу — иначе
+// страховочная дочитка ленты дёргала бы прокрутку у листающего пайщика).
 async function refreshCatalogLiveNow(): Promise<void> {
   await loadCategories();
   if (

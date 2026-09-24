@@ -11,6 +11,7 @@
  * на каких участках и с какими сроками.
  */
 import { computed, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -26,8 +27,7 @@ import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
   applyMembershipFee,
   getMembershipFeePercent,
-  marketplacePackageStockLabel,
-} from 'src/shared/lib/marketplace';
+  marketplacePackageStockLabel, marketLiveTables } from 'src/shared/lib/marketplace';
 import { useOfferModeration } from 'src/features/Marketplace/OfferModeration';
 import {
   fetchCategoryNames,
@@ -221,6 +221,10 @@ function editWarranty(): void {
 const canModerate = computed(
   () => canModerateOffers.value && offer.value?.status === 'PENDING_MODERATION',
 );
+
+// Карточка предложения живёт по ленте: модерация, остатки и правка
+// поставщиком видны сразу.
+useLiveReload(marketLiveTables('offer', 'catalog'), load);
 </script>
 
 <template lang="pug">

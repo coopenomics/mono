@@ -7,6 +7,8 @@
  * стола. Строка открывает страницу заказа этого же стола.
  */
 import { onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { PageHint, StatusFilterButton } from 'src/shared/ui/domain';
@@ -101,6 +103,10 @@ onMounted(() => {
   });
   void load();
 });
+
+// Реестр заказов живёт по ленте: смена состояния заказа перечитывает
+// показанную страницу.
+useLiveReload(marketLiveTables('order'), load);
 </script>
 
 <template lang="pug">

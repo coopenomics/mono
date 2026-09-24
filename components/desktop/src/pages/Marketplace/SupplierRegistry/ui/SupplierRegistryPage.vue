@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSessionStore } from 'src/entities/Session/model';
@@ -192,6 +194,10 @@ onMounted(() => {
   });
   void load();
 });
+
+// Реестр поставщиков живёт по ленте: регистрация, проверка и блокировка
+// поставщика видны сразу.
+useLiveReload(marketLiveTables('supplier'), load);
 </script>
 
 <template lang="pug">

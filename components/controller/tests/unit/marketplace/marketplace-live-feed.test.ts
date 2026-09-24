@@ -3,7 +3,8 @@
  *
  * Инварианты:
  *   - подписчик объявляет таблицы расширения в ленте: корзина — личная по
- *     заказчику, остальные открыты пайщикам кооператива;
+ *     заказчику, остальные открыты пайщикам кооператива; из цепи — настройки
+ *     стола (сбор с оборота);
  *   - запись в таблицу своей базы — сигнал через порт после фиксации;
  *   - таблица вне списка — тишина;
  *   - узел без порта ленты — подписчик молчит и не падает;
@@ -11,6 +12,7 @@
  *     репозиторий сам, и только когда строка действительно изменилась.
  */
 import {
+  MARKETPLACE_LIVE_CHAIN_TABLES,
   MARKETPLACE_LIVE_TABLES,
   MarketplaceLiveFeedSubscriber,
 } from '~/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber';
@@ -27,14 +29,18 @@ function metadata(tableName: string) {
 function port() {
   return {
     declareLocalTables: jest.fn(),
+    declareTables: jest.fn(),
     publishLocal: jest.fn().mockResolvedValue(undefined),
   } as any;
 }
 
 describe('MarketplaceLiveFeedSubscriber', () => {
-  it('объявляет таблицы расширения: корзина личная, остальные открыты', () => {
+  it('объявляет таблицы расширения: корзина личная, остальные открыты; сбор с оборота из цепи', () => {
     const chainChanges = port();
     new MarketplaceLiveFeedSubscriber({ subscribers: [] } as any, chainChanges);
+
+    expect(chainChanges.declareTables).toHaveBeenCalledWith(MARKETPLACE_LIVE_CHAIN_TABLES);
+    expect(MARKETPLACE_LIVE_CHAIN_TABLES).toEqual([{ code: 'marketplace', table: 'config' }]);
 
     expect(chainChanges.declareLocalTables).toHaveBeenCalledWith(MARKETPLACE_LIVE_TABLES);
     const cart = MARKETPLACE_LIVE_TABLES.find((t) => t.table === 'marketplace_cart');

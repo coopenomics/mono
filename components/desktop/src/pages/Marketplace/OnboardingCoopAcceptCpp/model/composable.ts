@@ -158,6 +158,12 @@ export const useMarketplaceOnboarding = () => {
     }
   };
 
+  /** Перечитать только состояние шагов — бланки документов не пересобираются. */
+  const refreshState = async () => {
+    if (isCompleted.value) return;
+    onboardingState.value = await fetchOnboardingState();
+  };
+
   const handleStepSubmit = async (step: ICouncilOnboardingStep) => {
     try {
       submitting.value = true;
@@ -183,6 +189,7 @@ export const useMarketplaceOnboarding = () => {
     submitting,
     isCompleted,
     loadState,
+    refreshState,
     handleStepSubmit,
   };
 };
