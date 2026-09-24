@@ -8,7 +8,7 @@
   span.t-meta.t-muted(v-else) Ждёт подписи председателя
 
   BaseDialog(v-model="open" :title="kind === 'approve' ? 'Подписать документ' : 'Отклонить документ'" size="sm")
-    p(v-if="kind === 'approve'") Документ «{{ title }}» будет подписан вашей подписью от лица кооператива.
+    p(v-if="kind === 'approve'") Документ «{{ title }}» будет подписан вашей подписью.
     template(v-else)
       p Документ «{{ title }}» вернётся пайщику с причиной отказа.
       BaseInput.q-mt-sm(v-model="reason" label="Причина отказа" type="textarea" :rows="2" required)

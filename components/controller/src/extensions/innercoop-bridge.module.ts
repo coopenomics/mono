@@ -4,6 +4,7 @@ import {
   CHAIN_PORT,
   CHAIN_RESOURCES_PORT,
   CHAIRMAN_APPROVALS_PORT,
+  CHAIN_DELTA_WAIT_PORT,
   CHATCOOP_CALENDAR_PORT,
   ACCOUNT_PORT,
   AGREEMENT_CATALOG_PORT,
@@ -123,6 +124,7 @@ import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ChatCoopExtensionModule } from './chatcoop/chatcoop-extension.module';
 import { ChairmanExtensionModule } from './chairman/chairman-extension.module';
 import { ChairmanInnercoopApprovalsAdapter } from './chairman/infrastructure/innercoop/chairman-innercoop-approvals.adapter';
+import { ChainDeltaWaiterService } from '~/infrastructure/blockchain/chain-delta-waiter.service';
 import { CapitalExtensionModule } from './capital/capital-extension.module';
 import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { SovietRobotExtensionModule } from '~/extensions/soviet-robot/soviet-robot-extension.module';
@@ -228,6 +230,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: CHATCOOP_CALENDAR_PORT,
       useExisting: ChatcoopInnercoopChatCoopCalendarAdapter,
+    },
+    {
+      // Ответ мутации после факта из цепи (ADR-009): ожидание живёт в ядре,
+      // будит его единый потребитель событий индексатора.
+      provide: CHAIN_DELTA_WAIT_PORT,
+      useExisting: ChainDeltaWaiterService,
     },
     {
       // Стол, чей процесс завёл одобрение (договор преподавателя и т. п.),
@@ -458,6 +466,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     SOVIET_ROBOT_PORT,
     MATRIX_ROOM_MESSAGING_PORT,
     CHAIRMAN_APPROVALS_PORT,
+    CHAIN_DELTA_WAIT_PORT,
     CHATCOOP_CALENDAR_PORT,
     PROJECT_CAPITAL_CLEARANCE_PORT,
     EXPENSE_CHASSIS_PORT,

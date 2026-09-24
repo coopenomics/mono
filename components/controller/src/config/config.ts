@@ -223,6 +223,24 @@ const envVarsSchema = z.object({
     .default('3000')
     .transform((val) => parseInt(val, 10)),
   /**
+   * Сколько мутация ждёт изменение своей транзакции из цепи, прежде чем
+   * ответить «ещё идёт» (ADR-009, DEC-023). Обычно дельта приходит за доли
+   * секунды — это верхняя граница, а не пауза.
+   */
+  BLOCKCHAIN_WRITE_WAIT_DELTA_MS: z
+    .string()
+    .default('3000')
+    .transform((val) => parseInt(val, 10)),
+  /**
+   * Сколько потребитель событий ждёт слушателей дельты (проекции в базе),
+   * прежде чем будить ожидающие мутации и идти дальше. Барьер не даёт
+   * медленному слушателю остановить разбор цепи.
+   */
+  BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS: z
+    .string()
+    .default('5000')
+    .transform((val) => parseInt(val, 10)),
+  /**
    * Story 4.4: глобальный выключатель ежечасного retention-крона архива
    * invalidated_entities/invalidated_entity_versions. На малом объёме (нынешний
    * кооператив) данные могут копиться годами — отключить кроном.
@@ -575,6 +593,8 @@ export default {
     root_govern_precision: envVars.data.ROOT_GOVERN_PRECISION,
     post_transact_chain_read_delay_ms: envVars.data.POST_TRANSACT_CHAIN_READ_DELAY_MS,
     action_emit_delay_ms: envVars.data.BLOCKCHAIN_ACTION_EMIT_DELAY_MS,
+    write_wait_delta_ms: envVars.data.BLOCKCHAIN_WRITE_WAIT_DELTA_MS,
+    delta_listeners_barrier_ms: envVars.data.BLOCKCHAIN_DELTA_LISTENERS_BARRIER_MS,
     archive_retention_enabled: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED,
     archive_retention_cron: envVars.data.BLOCKCHAIN_ARCHIVE_RETENTION_CRON,
     unsupported_version_strict: envVars.data.BLOCKCHAIN_UNSUPPORTED_VERSION_STRICT,

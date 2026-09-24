@@ -1,5 +1,13 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
+import { Injectable, Inject, Optional } from '@nestjs/common';
+import { SovietContract } from 'cooptypes';
+import {
+  CHAIN_DELTA_WAIT_PORT,
+  DOCUMENT_PORT,
+  LOGGER_PORT,
+  type IChainDeltaWaitPort,
+  type IDocumentPort,
+  type ILoggerPort,
+} from '@coopenomics/innercoop';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalRepository, APPROVAL_REPOSITORY } from '../../domain/repositories/approval.repository';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
@@ -23,9 +31,44 @@ export class ApprovalService {
     @Inject(CHAIRMAN_BLOCKCHAIN_PORT)
     private readonly blockchainAdapter: ChairmanBlockchainAdapter,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Optional() @Inject(CHAIN_DELTA_WAIT_PORT) private readonly chainWait: IChainDeltaWaitPort | null = null
   ) {
     this.logger.setContext(ApprovalService.name);
+  }
+
+  /**
+   * Решение по одобрению отвечает после факта из цепи (ADR-009): ждём, пока
+   * придут и лягут в базу изменение самого одобрения и изменение
+   * контракта-адресата (договор преподавателя, приложение к проекту…) — они
+   * в том же блоке. Тогда стол, где подписали, сразу видит новое состояние,
+   * без выдуманных пауз. Не дождались — отвечаем как раньше, интерфейс
+   * догонит при следующем чтении.
+   */
+  private async awaitDecisionApplied(tx: unknown, approval: ApprovalDomainEntity): Promise<void> {
+    if (!this.chainWait) return;
+    const minBlockNum = this.chainWait.blockOf(tx);
+    if (!minBlockNum) return;
+    const hash = approval.approval_hash.toLowerCase();
+    const waits = [
+      this.chainWait.waitForDelta({
+        code: SovietContract.contractName.production,
+        table: SovietContract.Tables.Approvals.tableName,
+        scope: approval.coopname,
+        minBlockNum,
+        match: (d) => !d.value?.approval_hash || String(d.value.approval_hash).toLowerCase() === hash,
+      }),
+    ];
+    if (approval.callback_contract) {
+      waits.push(this.chainWait.waitForDelta({ code: approval.callback_contract, scope: approval.coopname, minBlockNum }));
+    }
+    const applied = await Promise.all(waits);
+    if (applied.some((d) => d === null)) {
+      this.logger.warn('Решение по одобрению отправлено, но изменение из цепи не пришло в срок — ответ без ожидания', {
+        approval_hash: hash,
+        block_num: minBlockNum,
+      });
+    }
   }
 
   /**
@@ -82,7 +125,8 @@ export class ApprovalService {
     };
     console.log('domainData', domainData)
     // Вызвать блокчейн действие
-    await this.blockchainAdapter.confirmApprove(domainData);
+    const tx = await this.blockchainAdapter.confirmApprove(domainData);
+    await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения и сохранить одобренный документ
     approval.approve(input.approved_document);
@@ -113,7 +157,8 @@ export class ApprovalService {
     };
 
     // Вызвать блокчейн действие
-    await this.blockchainAdapter.declineApprove(domainData);
+    const tx = await this.blockchainAdapter.declineApprove(domainData);
+    await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения
     approval.decline();
