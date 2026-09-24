@@ -163,6 +163,20 @@ cases:
     test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
     status: passing
 
+  - id: rt.cc.side.06
+    level: backend
+    kind: side
+    scenario: >
+      Образование объявляет свои таблицы в ленте, а стол слушает их по имени;
+      в одном из трёх мест (сущность, объявление, стол) имя или поле владельца
+      разошлось.
+    expect: >
+      объявленная таблица — таблица сущности образования, поле владельца —
+      её колонка, стол слушает только объявленное сервером; расхождение
+      роняет тест, а не выключает молча живое обновление экрана
+    test: components/controller/tests/unit/edubridge/live-feed.test.ts
+    status: passing
+
   - id: rt.cc.ui.04
     level: ui
     kind: happy
