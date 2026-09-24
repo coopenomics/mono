@@ -131,7 +131,6 @@ cases:
     expect: >
       отказ — зарезервировать больше свободного остатка нельзя; оптимистический счётчик предложения при отказе не двигается
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
-    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.04
@@ -152,7 +151,6 @@ cases:
       К публикации выбрана позиция, которую публиковать нельзя: адресная под заказ пайщика, уже зарезервированная, чужого кооператива, ушедшая со склада либо уже опубликованная
     expect: отказ по каждой из причин; предложение кооператива не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-stock-publish.test.ts
-    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   - id: mkt.stock.side.06
@@ -162,7 +160,6 @@ cases:
       Предложение поставщика заказывают путём заказа из остатка, либо предложение остатка неактивно
     expect: отказ — у предложения поставщика есть цикл поставки, резервировать нечего
     test: components/controller/tests/unit/marketplace/marketplace-stock-order-guards.test.ts
-    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
   # 2026-08-18: в файлах фичи изменилась только строка импорта — чистка отказа
