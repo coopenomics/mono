@@ -287,7 +287,8 @@ for line in sys.stdin:
     echo
     local junit found=0
     for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml"; do
-      [ -f "$junit" ] || continue
+      # Пустой отчёт — набор не нашёл файлов или упал до старта.
+      [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
@@ -311,6 +312,7 @@ if fails:
         print(f"- {f}")
 print()
 PY
+    [ $? -eq 0 ] || echo "_отчёт $(basename "$junit") не разобран_"
     done
     [ $found = 1 ] || echo "_отчётов JUnit нет — до тестов прогон не дошёл_"
     echo

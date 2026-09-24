@@ -62,6 +62,21 @@ function entityMap() {
   return map
 }
 
+/** Таблицы ядра — по доменам (карта C28-81), а не по файлу сущности. */
+const CORE_DOMAINS = {
+  'ядро/синхронизация с цепью': ['blockchain_actions', 'blockchain_deltas', 'blockchain_forks', 'blockchain_sync_state', 'consumer_dedup'],
+  'ядро/пользователи и вход': ['users', 'tokens', 'vaults', 'candidates'],
+  'ядро/документы': ['signed_documents', 'draft_templates', 'draft_translations', 'chain_texts'],
+  'ядро/платежи': ['payments', 'payment_files', 'payment_state', 'ipn'],
+  'ядро/кошельки и соглашения': ['program_wallets', 'user_wallets', 'user_agreements', 'agreements', 'ledger_operations'],
+  'ядро/собрания': ['meet_pre', 'meet_processed'],
+  'ядро/уведомления': ['notification_outbox', 'notification_deliveries', 'notification_inbox', 'web_push_subscriptions'],
+  'ядро/система и расширения': ['settings', 'system_status', 'migrations', 'mutation_logs', 'extensions', 'extensions_logs', 'schema_migrations'],
+  'ядро/выход из кооператива': ['membership_exit_requests'],
+  'ядро/отслеживание решений': ['tracking_rules'],
+}
+const CORE_DOMAIN_OF = new Map(Object.entries(CORE_DOMAINS).flatMap(([d, ts]) => ts.map(t => [t, d])))
+
 /** Домен по пути файла сущности: расширение или область ядра. */
 function domainOf(file) {
   if (!file) return '(не найдена сущность)'
@@ -131,7 +146,7 @@ function main() {
       // Во второй базе (CoopID, auth-v2) сущностей нет — репозитории ходят в
       // неё сырым SQL (infrastructure/auth-v2/postgres-*.repository.ts).
       const entity = db === 'voskhod' ? entities.get(table) ?? null : null
-      const domain = db === 'voskhod' ? domainOf(entity) : `${db} (сырой SQL)`
+      const domain = db !== 'voskhod' ? `${db} (сырой SQL)` : CORE_DOMAIN_OF.get(table) ?? domainOf(entity)
       cov.set(key, { db, table, entity, domain, read: {}, write: {} })
     }
     return cov.get(key)
