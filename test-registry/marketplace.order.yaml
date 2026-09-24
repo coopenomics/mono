@@ -85,6 +85,7 @@ cases:
     scenario: Заказ по несуществующему предложению
     expect: «Предложение не найдено», заказ не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.02
@@ -102,6 +103,7 @@ cases:
       Заказ по предложению, снятому с публикации либо отклонённому модерацией
     expect: отказ с указанием статуса предложения, заказ не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.04
@@ -110,6 +112,7 @@ cases:
     scenario: Количество больше доступного остатка (предложение с ограничением)
     expect: отказ с указанием доступного количества
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.05
@@ -118,6 +121,7 @@ cases:
     scenario: Количество нулевое или отрицательное
     expect: «Количество должно быть больше нуля»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.06
@@ -126,6 +130,7 @@ cases:
     scenario: Не указан ПВЗ получения
     expect: «Не указан ПВЗ получения», заказ не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.07
@@ -154,6 +159,7 @@ cases:
       Заказ по предложению без ограничения количества («без ограничения»)
     expect: проверка остатка не применяется, заказ создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   # ── Приём и отказ поставщиком ───────────────────────────────────────────
@@ -163,6 +169,7 @@ cases:
     scenario: Приём заказа, уже присоединённого к партии либо не активного
     expect: отказ, что заказ нельзя принять в текущем состоянии
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.11
@@ -171,6 +178,7 @@ cases:
     scenario: Отказ по заказу без указания причины
     expect: «Укажите причину отказа»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.12
@@ -179,6 +187,7 @@ cases:
     scenario: Массовое действие поставщика с пустым списком заказов
     expect: отказ «Не выбрано ни одного заказа»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.13
@@ -187,6 +196,7 @@ cases:
     scenario: Действие по заказу, оформленному по чужому предложению
     expect: отказ «Действие доступно только поставщику-владельцу предложения»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.14
@@ -207,6 +217,7 @@ cases:
     expect: >
       отказ до первого обращения к цепи; ни один заказ не принят, партия не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.21
@@ -215,6 +226,7 @@ cases:
     scenario: Массовый отказ, где один из заказов непроходной
     expect: отказ до первого обращения к цепи; ни один отказ не отправлен
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
     # ── Отмена заказчиком ───────────────────────────────────────────────────
   - id: mkt.order.side.15
@@ -223,6 +235,7 @@ cases:
     scenario: Отмену заказа запрашивает не его заказчик
     expect: «Отменить заказ может только его заказчик»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.16
@@ -231,6 +244,7 @@ cases:
     scenario: Отмена заказа после открытия акта выдачи
     expect: отказ с указанием, что отмена закрыта после открытия акта выдачи
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.17
@@ -239,6 +253,7 @@ cases:
     scenario: Отмена несуществующего заказа либо заказа чужого кооператива
     expect: «Заказ не найден» либо отказ доступа
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.18
@@ -325,6 +340,7 @@ cases:
       взнос покрывается остатком кошелька в порядке проведения строк, недостающее переводится
       в членский, тело всегда с паевого; сумма заявления — тело плюс недостающая часть взноса
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: written
 
   - id: mkt.order.side.31
@@ -337,6 +353,7 @@ cases:
       в мете — якорь, сумма, членская часть и источник, ничего лишнего; незаведённый кошелёк
       считается пустым
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: written
 
   - id: mkt.order.side.32
@@ -350,6 +367,7 @@ cases:
       отказ «обновите оформление» до отправки в цепь, с обеими суммами при расхождении;
       сошедшееся заявление превращается в document2 для действия convert
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: written
 
   - id: mkt.order.side.33
@@ -387,6 +405,7 @@ cases:
       отказ «Доступно только 3 упак.» до счётчиков и до цепи; заказ по мере по-прежнему
       сверяется с остатком в базовых единицах
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.36
@@ -413,6 +432,7 @@ cases:
       обезличенный остаток КУ — ждать его больше некому. До склада заказ не дошёл или склад
       недоступен — возвращается весь объём и склад не трогается, как при обычной отмене
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-cancel.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.happy.04
@@ -441,6 +461,7 @@ cases:
       в цепь уходит одна транзакция: перевод первым действием с суммами по каждому заказу, затем
       заказы в порядке корзины; после блока оба заказа записаны, строки убраны из корзины
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.break.02
@@ -451,6 +472,7 @@ cases:
       отказ всего оформления: брони остатка сняты по каждой строке, ни один заказ не записан,
       корзина не тронута, перевод в членский кошелёк не проведён (откатился вместе с заказами)
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.38
@@ -461,6 +483,7 @@ cases:
       оформление не запущено целиком — перевод адресован заказу, которого не будет; брони
       остальных строк сняты, заказчику названа позиция и причина
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.39
@@ -471,6 +494,7 @@ cases:
       остальные строки оформляются одной транзакцией без перевода, непрошедшая остаётся в
       корзине с причиной; если не прошла ни одна — транзакция не отправляется
     test: components/controller/src/extensions/marketplace/application/services/marketplace-checkout.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.show.01
