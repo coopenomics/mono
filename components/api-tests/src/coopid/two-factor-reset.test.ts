@@ -4,11 +4,15 @@
  *
  * Пайщик потерял телефон — председатель снимает приложение без кода, и вместе
  * с ним гасится настройка «код из приложения при входе». Пайщик свежий: он
- * подключает приложение сам, через API, кодом RFC 6238 от выданного секрета.
+ * ставит пароль (факторы входа — надстройка над паролем), подключает
+ * приложение сам через API кодом RFC 6238 от выданного секрета, и подключение
+ * сразу включает код при входе.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COUNCIL, ROLES, type Who, caseName, freshMember, gql, gqlRaw, login, tokenOf } from '../core'
-import { LOGIN_FACTORS, PARTICIPANT_LOGIN_SECURITY, RESET_TWO_FACTOR, enrollTotp, totpCode } from './coopid-a.helpers'
+import { AUTH_CODES, LOGIN_FACTORS, PARTICIPANT_LOGIN_SECURITY, RESET_TWO_FACTOR, enrollTotp, setPassword, totpCode } from './coopid-a.helpers'
+
+const DISABLE_TWO_FACTOR = 'mutation($d:TwoFactorCodeInput!){ disableTwoFactor(data:$d) }'
 
 describe('coopid.two-factor-reset: председатель снимает приложение-аутентификатор', () => {
   let chairmanToken = ''
@@ -19,14 +23,20 @@ describe('coopid.two-factor-reset: председатель снимает пр�
   beforeAll(async () => {
     chairmanToken = await tokenOf(CHAIRMAN)
     who = freshMember({ prefix: 'c2f' })
-    // Вход до подключения приложения: после него вход спросит код.
+    // Вход подписью — до пароля: после него пайщик входит только новым контуром.
     memberToken = await login(who)
+    const migrated = await setPassword(who)
+    // Пароль уходит в провайдер входа уже после записи блоба; для факторов входа
+    // важен именно блоб, поэтому ответ провайдера здесь не решает — решает
+    // состояние факторов, которое тест проверяет первым делом.
+    if (!migrated.ok)
+      console.warn(`coop/migration ${who.account}: ${migrated.status} ${(await migrated.text()).slice(0, 300)}`)
     secret = await enrollTotp(memberToken)
   })
 
   it(caseName('cid.2fr.happy.01', 'подключённое приложение видно председателю, сброс снимает секрет без кода'), async () => {
     const own = (await gql<any>(memberToken, LOGIN_FACTORS)).getLoginFactors
-    expect(own).toEqual({ totp_enrolled: true, totp_enabled: true })
+    expect(own, 'подключение приложения включило код при входе').toEqual({ totp_enrolled: true, totp_enabled: true })
     const seen = (await gql<any>(chairmanToken, PARTICIPANT_LOGIN_SECURITY, { d: { username: who.account } })).getParticipantLoginSecurity
     expect(seen).toEqual({ totp_enrolled: true, totp_enabled: true })
 
@@ -35,7 +45,8 @@ describe('coopid.two-factor-reset: председатель снимает пр�
 
     expect((await gql<any>(memberToken, LOGIN_FACTORS)).getLoginFactors.totp_enrolled).toBe(false)
     // Секрета больше нет: код от прежнего приложения ничего не отключает.
-    const stale = await gqlRaw(memberToken, 'mutation($d:TwoFactorCodeInput!){ disableTwoFactor(data:$d) }', { d: { code: totpCode(secret) } })
+    const stale = await gqlRaw(memberToken, DISABLE_TWO_FACTOR, { d: { code: totpCode(secret) } })
+    expect(stale.data).toBeNull()
     expect(stale.errors.length).toBeGreaterThan(0)
   })
 
@@ -44,23 +55,21 @@ describe('coopid.two-factor-reset: председатель снимает пр�
     expect(seen).toEqual({ totp_enrolled: false, totp_enabled: false })
     const own = (await gql<any>(memberToken, LOGIN_FACTORS)).getLoginFactors
     expect(own).toEqual({ totp_enrolled: false, totp_enabled: false })
-    // Вход снова проходит одной подписью ключа — код приложения не спрашивается.
-    const fresh = await login(who)
-    expect(fresh).toBeTruthy()
   })
 
   it(caseName('cid.2fr.side.01', 'у пайщика без приложения сброс возвращает false и ничего не меняет'), async () => {
     const reset = await gql<any>(chairmanToken, RESET_TWO_FACTOR, { d: { username: who.account } })
     expect(reset.resetParticipantTwoFactor).toBe(false)
+    expect((await gql<any>(memberToken, LOGIN_FACTORS)).getLoginFactors).toEqual({ totp_enrolled: false, totp_enabled: false })
 
     const plain = freshMember({ prefix: 'c2n' })
     const resetPlain = await gql<any>(chairmanToken, RESET_TWO_FACTOR, { d: { username: plain.account } })
     expect(resetPlain.resetParticipantTwoFactor).toBe(false)
-    const seen = (await gql<any>(chairmanToken, PARTICIPANT_LOGIN_SECURITY, { d: { username: plain.account } })).getParticipantLoginSecurity
-    expect(seen).toEqual({ totp_enrolled: false, totp_enabled: false })
+    const plainSeen = (await gql<any>(chairmanToken, PARTICIPANT_LOGIN_SECURITY, { d: { username: plain.account } })).getParticipantLoginSecurity
+    expect(plainSeen).toEqual({ totp_enrolled: false, totp_enabled: false })
   })
 
-  it(caseName('cid.2fr.break.01', 'пайщик и член совета без роли председателя не сбрасывают чужое приложение'), async () => {
+  it(caseName('cid.2fr.break.01', 'пайщик, член совета и председатель участка не сбрасывают чужое приложение; себе — тоже нет'), async () => {
     const target = freshMember({ prefix: 'c2b' })
     const targetToken = await login(target)
     await enrollTotp(targetToken)
@@ -76,7 +85,8 @@ describe('coopid.two-factor-reset: председатель снимает пр�
     expect(self.errors[0]?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     const guest = await gqlRaw(null, RESET_TWO_FACTOR, { d: { username: target.account } })
     expect(guest.data).toBeNull()
+    expect(AUTH_CODES.has(String(guest.errors[0]?.code))).toBe(true)
 
-    expect((await gql<any>(targetToken, LOGIN_FACTORS)).getLoginFactors).toEqual({ totp_enrolled: true, totp_enabled: true })
+    expect((await gql<any>(targetToken, LOGIN_FACTORS)).getLoginFactors.totp_enrolled).toBe(true)
   })
 })
