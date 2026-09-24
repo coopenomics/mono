@@ -186,8 +186,9 @@ export async function projectAs(who: Who, hash: string): Promise<any | null> {
 
 /**
  * Допуск пайщика к проекту: приложение к договору УХД в цепи, затем
- * одобрение председателя. Одобрение ждёт, пока контроллер увидит заявку, —
- * иначе подтверждать в базе было бы нечего.
+ * одобрение председателя. Контроллер разбирает блоки по порядку: заявка
+ * (дельта таблицы приложений) попадает в базу раньше одобрения, поэтому
+ * ждать между ними нечего — ждём только сам подтверждённый допуск.
  */
 export async function grantClearance(who: Who, projectHash: string): Promise<void> {
   const appendixHash = randomHash()
@@ -202,10 +203,6 @@ export async function grantClearance(who: Who, projectHash: string): Promise<voi
       document: signedDoc(who.account, who.wif),
     },
   }])
-  await waitFor(async () => {
-    const p = await projectAs(who, projectHash)
-    return p?.permissions?.pending_clearance || p?.permissions?.has_clearance ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 1_000, label: `заявка на допуск ${who.account} видна контроллеру` })
   await approveAsChairman(appendixHash)
   await waitFor(async () => {
     const p = await projectAs(who, projectHash)
@@ -271,7 +268,7 @@ export async function createLocalProject(owner: Who, title: string, parentHash =
         project_hash: randomHash(),
         parent_hash: parentHash,
         title,
-        description: extra.description ?? '',
+        description: extra.description ?? `Личный проект внешнего теста «${title}».`,
         invite: extra.invite ?? '',
         meta: '',
         data: '',
