@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { PubSub } from 'graphql-subscriptions';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import type { IChainChangesPort, InnerChainChangesTable } from '@coopenomics/innercoop';
-import { DraftContract, Ledger2Contract, MeetContract, SovietContract } from 'cooptypes';
+import { BranchContract, DraftContract, Ledger2Contract, MeetContract, RegistratorContract, SovietContract } from 'cooptypes';
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -37,15 +37,17 @@ const CORE_TABLES: InnerChainChangesTable[] = [
     table: SovietContract.Tables.Decisions.tableName,
     owner_field: 'username',
   },
-  // Состав совета: порог повестки и список членов — только совету.
-  {
-    code: SovietContract.contractName.production,
-    table: SovietContract.Tables.Boards.tableName,
-    staff_only: true,
-  },
+  // Состав совета: порог повестки и список членов. Он и так приходит каждому
+  // пайщику в сведениях о кооперативе, поэтому таблица открыта.
+  { code: SovietContract.contractName.production, table: SovietContract.Tables.Boards.tableName },
+  // Карточка кооператива в реестре сети: реквизиты, взносы при вступлении,
+  // контакты. Своя строка выделяется по username (правило принадлежности).
+  { code: RegistratorContract.contractName.production, table: RegistratorContract.Tables.Cooperatives.tableName },
   // Общие собрания видят все пайщики: созыв, вопросы, ход голосования.
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Meets.tableName },
   { code: MeetContract.contractName.production, table: MeetContract.Tables.Questions.tableName },
+  // Кооперативные участки: создание, правка, смена председателя участка.
+  { code: BranchContract.contractName.production, table: BranchContract.Tables.Branches.tableName },
   // Пайщики кооператива в цепи: вступление, блокировка, выход.
   {
     code: SovietContract.contractName.production,
@@ -79,6 +81,9 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   { code: 'core', table: 'signed_documents', owner_field: 'username' },
   // Вопросы повестки, которые узел отслеживает (утверждение редакций и т. п.) — совету.
   { code: 'core', table: 'tracking_rules', staff_only: true },
+  // Сведения о кооперативе: настройки и статус системы видит каждый пайщик.
+  { code: 'core', table: 'settings' },
+  { code: 'core', table: 'system_status' },
 ];
 
 /** Роли совета: персонал любого расширения. */

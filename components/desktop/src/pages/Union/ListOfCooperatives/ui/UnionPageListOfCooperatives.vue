@@ -70,6 +70,7 @@
   <script setup lang="ts">
   import { useLoadCooperatives } from 'src/features/Union/LoadCooperatives';
 import { t } from 'src/shared/i18n';
+  // realtime: нет источника — реестр кооперативов сети читается из цепи напрямую, а узел хранит и сигналит только строку своего кооператива; список обновляется после своих действий.
   const {loadCooperatives} = useLoadCooperatives()
   import { useUnionStore } from 'src/entities/Union/model';
   import { computed, ref } from 'vue';

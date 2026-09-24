@@ -2,6 +2,7 @@ import { registerRealtimeSubscription } from 'src/shared/lib/realtime';
 import { createNodeSyncSubscription } from 'src/entities/System/model/nodeSyncSubscription';
 import { createWalletEventsSubscription } from 'src/entities/Wallet/model/walletEventsSubscription';
 import { createChainChangesSubscription } from 'src/entities/System/model/chainChangesSubscription';
+import { registerSystemInfoLive } from 'src/entities/System/model/systemInfoLive';
 
 /**
  * Регистрация ПЛАТФОРМЕННЫХ realtime-подписок в универсальный канал ядра.
@@ -17,4 +18,5 @@ export function registerCoreRealtimeSubscriptions(): void {
   registerRealtimeSubscription(createNodeSyncSubscription());
   registerRealtimeSubscription(createWalletEventsSubscription());
   registerRealtimeSubscription(createChainChangesSubscription());
+  registerSystemInfoLive();
 }

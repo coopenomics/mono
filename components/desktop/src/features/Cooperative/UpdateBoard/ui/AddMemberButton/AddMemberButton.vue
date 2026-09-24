@@ -30,7 +30,6 @@ import {
   useUpdateBoard,
 } from 'src/features/Cooperative/UpdateBoard';
 import { readBlockchain, SuccessAlert, FailAlert } from 'src/shared/api';
-import { sleep } from 'src/shared/api/sleep';
 import { useWindowSize } from 'src/shared/hooks';
 import { t } from 'src/shared/i18n';
 
@@ -97,8 +96,9 @@ const updateBoard = async (members: any[]) => {
       description: t('cooperative.addMemberButton.boardDescription'),
     });
 
-    await sleep(3000);
-    SuccessAlert(t('cooperative.addMemberButton.updateDelayNotice'));
+    // Ответ приходит, когда состав уже записан в цепь: сведения о кооперативе
+    // перечитываем сразу, остальные столы получат его по ленте изменений.
+    SuccessAlert(t('cooperative.addMemberButton.updatedSuccess'));
     await systemStore.loadSystemInfo();
   } catch (e) {
     await systemStore.loadSystemInfo();

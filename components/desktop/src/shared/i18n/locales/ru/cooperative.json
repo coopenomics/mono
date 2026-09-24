@@ -6,7 +6,7 @@
       "chairmanTitle": "Председатель совета",
       "memberTitle": "Член совета",
       "triggerLabel": "Добавить члена",
-      "updateDelayNotice": "Состав совета обновится через несколько секунд",
+      "updatedSuccess": "Состав совета обновлён",
       "usernameNotFoundError": "Имя аккаунта не найдено"
     },
     "addMemberDialog": {

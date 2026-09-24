@@ -77,6 +77,8 @@ import { BankDetailsCard } from 'src/widgets/BankDetailsCard';
 import { useSystemStore } from 'src/entities/System/model';
 import { useHeaderActions } from 'src/shared/hooks';
 import { t } from 'src/shared/i18n';
+import { BranchContract, SovietContract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 
 const { info } = useSystemStore();
 const branchStore = useBranchStore();
@@ -85,6 +87,16 @@ const { registerAction } = useHeaderActions();
 branchStore.loadBranches({
   coopname: info.coopname,
 });
+
+// Участки и прикрепление пайщиков к ним (participant.braname) приходят по
+// ленте изменений — список перечитывается сам.
+useLiveReload(
+  [
+    liveTable(BranchContract, BranchContract.Tables.Branches),
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+  ],
+  () => branchStore.loadBranches({ coopname: info.coopname }).catch((e) => console.warn('[branches] фоновое перечитывание не удалось', e)),
+);
 
 const onLoading = ref(false);
 

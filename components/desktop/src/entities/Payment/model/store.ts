@@ -21,12 +21,15 @@ interface IPaymentStore {
   ) => Promise<void>;
   reloadLoaded: (
     data: IGetPaymentsInputData | undefined,
-    options: Omit<IGetPaymentsInputOptions, 'page' | 'limit'>,
+    options: IPaymentSortOptions,
     pageSize: number,
   ) => Promise<void>;
   updateSinglePayment: (updatedPayment: IPayment) => void;
   clear: () => void;
 }
+
+/** Сортировка списка — всё, кроме страницы: окно перечитывания задаёт её само. */
+type IPaymentSortOptions = Pick<NonNullable<IGetPaymentsInputOptions>, 'sortBy' | 'sortOrder'>;
 
 const namespace = 'payments';
 
@@ -107,7 +110,7 @@ export const usePaymentStore = defineStore(namespace, (): IPaymentStore => {
   // обновляются, удалённые уходят. Так живёт список по ленте изменений.
   const reloadLoaded = async (
     data: IGetPaymentsInputData | undefined,
-    options: Omit<IGetPaymentsInputOptions, 'page' | 'limit'>,
+    options: IPaymentSortOptions,
     pageSize: number,
   ): Promise<void> => {
     const window = liveWindow(payments.value?.currentPage, pageSize);

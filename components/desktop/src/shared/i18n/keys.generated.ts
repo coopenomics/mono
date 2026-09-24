@@ -2148,7 +2148,7 @@ export type MessageKey =
   | 'cooperative.addMemberButton.chairmanTitle'
   | 'cooperative.addMemberButton.memberTitle'
   | 'cooperative.addMemberButton.triggerLabel'
-  | 'cooperative.addMemberButton.updateDelayNotice'
+  | 'cooperative.addMemberButton.updatedSuccess'
   | 'cooperative.addMemberButton.usernameNotFoundError'
   | 'cooperative.addMemberDialog.cancel'
   | 'cooperative.addMemberDialog.requiredRule'
