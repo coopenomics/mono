@@ -84,7 +84,8 @@ describe('заказ: дельта создания опережает запи�
 
     expect(order.updateFromBlockchain).toHaveBeenCalledWith(chainState(), 42, true);
     expect(repo.update).toHaveBeenCalledWith({ id: 'order-1' }, expect.objectContaining({ membership_fee: '720.0000' }));
-    expect(adapter.takeEarlyChainState(HASH), 'отложенное забирается ровно один раз').toBeNull();
+    // отложенное забирается ровно один раз
+    expect(adapter.takeEarlyChainState(HASH)).toBeNull();
   });
 
   it('без отложенного состояния запись строки ничего из цепи не применяет', async () => {
@@ -154,6 +155,7 @@ describe('заказ: дельта создания опережает запи�
 
     expect(result).toMatchObject({ updated: true });
     expect(order.updateFromBlockchain).toHaveBeenCalledWith(chainState(), 42, true);
-    expect(adapter.takeEarlyChainState(HASH), 'отложенное забрано').toBeNull();
+    // отложенное забрано синхронизацией
+    expect(adapter.takeEarlyChainState(HASH)).toBeNull();
   });
 });
