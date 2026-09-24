@@ -251,7 +251,7 @@ export async function waitForOrderMirror(
   timeoutMs = 180_000,
 ): Promise<any> {
   const query = `query($i:MarketplaceGetOrderInput!){
-    marketplaceGetOrder(input:$i){ id status order_hash quantity total_cost total_cost_with_fee membership_fee price_per_unit }
+    marketplaceGetOrder(input:$i){ id status order_hash quantity total_cost total_cost_with_fee membership_fee accepted_cost price_per_unit }
   }`
   const deadline = Date.now() + timeoutMs
   let last: any = null

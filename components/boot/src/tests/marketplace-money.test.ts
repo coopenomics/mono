@@ -283,6 +283,10 @@ describe('стол заказов — денежные места поставк
     const rows = await historyOfProcess(chairmanToken, orderHash)
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, arrivalCost).length, 'приёмка обязана лечь Дт 10').toBeGreaterThan(0)
     expect(postingsFor(rows, 'credit', ACC.SETTLEMENTS, arrivalCost).length, 'приёмка обязана лечь Кт 76 — это закупка у поставщика').toBeGreaterThan(0)
+
+    // Зеркало заказа знает принятую стоимость — по ней считается выплата
+    // поставщику. До 24.09.2026 контроллер не записывал это поле вовсе.
+    await waitForOrderMirror(ekaterinaToken, orderId, o => Math.abs(amount(o.accepted_cost) - arrivalCost) < 0.005, 30_000)
   }, 300_000)
 
   it('выдача 3 из 4 списывает выданное по цене прибытия (o.mkt.consum) и разблокирует недовыдачу (o.mkt.unlock)', async () => {
