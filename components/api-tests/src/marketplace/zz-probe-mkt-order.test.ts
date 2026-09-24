@@ -1,7 +1,7 @@
 // ВРЕМЕННЫЙ зонд (mkt-order): печатает ответы стенда на спорные входы, ничего не утверждает.
 import { describe, it } from 'vitest'
 import { CHAIRMAN, ROLES, gqlRaw, tokenOf } from '../core'
-import { clearCart, fillCart, findActiveOffer, PREVIEW_QUERY } from './order.helpers'
+import { clearCart, fillCart, seedOffer, PREVIEW_QUERY } from './order.helpers'
 
 describe('probe mkt-order', () => {
   it('probe', async () => {
@@ -9,7 +9,7 @@ describe('probe mkt-order', () => {
     try {
       const m = ROLES.member()
       const mt = await tokenOf(m)
-      const potato = await findActiveOffer('sidorov', 'Картофель деревенский')
+      const potato = await seedOffer('sidorov', 'Картофель деревенский')
       await fillCart(mt, [{ offer_id: potato.id, quantity: 1.5 }])
       log('fractional-preview', await gqlRaw(mt, PREVIEW_QUERY))
       log('fractional-checkout', await gqlRaw(mt, 'mutation{ marketplaceCheckoutCart{ fully_completed failed_lines{ reason } created_orders{ id } } }'))
