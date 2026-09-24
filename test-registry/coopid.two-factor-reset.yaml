@@ -30,6 +30,7 @@ cases:
       секрет удалён без проверки кода, настройка «код при входе» погашена,
       пайщик уведомлён
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.happy.02
@@ -40,6 +41,7 @@ cases:
       пайщик найден по учётному имени, сброс вызван от имени председателя,
       onTotpUnenrolled погасил настройку входа
     test: components/controller/src/application/auth-v2/account-security/account-security.resolver.spec.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.side.01
@@ -50,6 +52,7 @@ cases:
       возвращается false, записи в журнале и уведомления НЕ появляются —
       сброс несуществующей защиты не событие безопасности
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.break.01
