@@ -58,6 +58,7 @@ cases:
     scenario: Попытка удалить базовую категорию платформы
     expect: отказ «Базовую категорию удалить нельзя»
     test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    api: components/api-tests/src/marketplace/categories.test.ts
     status: passing
 
   - id: mkt.cat.side.02
@@ -67,6 +68,7 @@ cases:
       Создание собственной категории с именем, которое уже есть в пределах кооператива (его собственная либо базовая категория платформы)
     expect: отказ «Категория с таким названием уже существует», дубликат не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    api: components/api-tests/src/marketplace/categories.test.ts
     status: passing
     # Эта часть определена: `createCustom` сверяется с `listForCoop` —
     # базовые категории плюс собственные категории кооператива, сравнение
@@ -98,6 +100,7 @@ cases:
     expect: >
       остаётся одна категория; проигравший запрос получает тот же отказ «уже существует», что и при обычной проверке
     test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    api: components/api-tests/src/marketplace/categories.test.ts
     status: passing
     # Был дефект (2026-08-08): уникальность держалась только проверкой в
     # сервисе, а уникального индекса не было — две параллельные попытки
@@ -114,6 +117,7 @@ cases:
     scenario: Управление категориями от пайщика без роли председателя
     expect: отказ доступа, справочник не меняется
     test: components/controller/tests/unit/marketplace/marketplace-category-admin-access.test.ts
+    api: components/api-tests/src/marketplace/categories.test.ts
     status: passing
 
   - id: mkt.cat.side.04

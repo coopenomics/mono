@@ -7,17 +7,13 @@
  * допускают тем же путём, что рабочий стол: реквизиты для выплат заводит сам
  * пайщик, в реестр поставщиков его добавляет председатель.
  */
-import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
-import { transact } from '../core/chain'
 import { gql } from '../core/client'
 import { signDocument } from '../core/documents'
 import { COOP } from '../core/env'
 import { freshMember } from '../core/participants'
 import { CHAIRMAN } from '../core/roles'
-import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
 
 export const OFFER_FIELDS = `id status product_name supplier_account unit_of_measure sale_form price_per_unit
   quantity_available quantity_blocked quantity_consumed unlimited_flag shelf_life_days
@@ -142,28 +138,3 @@ export async function checkoutLines(who: Who, lines: { offer_id: string, quantit
   return result.created_orders
 }
 
-/**
- * Довести паевой остаток пайщика до минимума. Повторяет ensureShareFunds из
- * ядра, но действиями нынешнего контракта: wallet::createdpst +
- * gateway::incomplete (в ядре — прежние createdeposit/completeincome, которых
- * в контракте wallet больше нет). Пополнение идёт мимо контроллера, поэтому
- * ждём, пока зеркало кошелька увидит деньги.
- */
-export async function fundShare(who: Who, minimumRub: number): Promise<void> {
-  const have = await availableShare(who.account)
-  if (have < minimumRub) {
-    const hash = crypto.randomBytes(32).toString('hex')
-    await transact(COOP_SIGNER, [{
-      account: 'wallet',
-      name: 'createdpst',
-      data: { coopname: COOP, username: who.account, deposit_hash: hash, quantity: rub(Math.ceil(minimumRub - have) + 10_000) },
-    }])
-    await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
-  }
-  const token = await tokenOf(who)
-  await waitFor(async () => {
-    const d = await gql<any>(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
-    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
-    return row && amount(row.available) >= minimumRub ? true : null
-  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
-}
