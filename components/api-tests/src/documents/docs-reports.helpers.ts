@@ -19,7 +19,7 @@ import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
-import { COOP_SIGNER, amount, ensureShareFunds, rub } from '../core/wallet'
+import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
 import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
@@ -268,6 +268,31 @@ async function branchEconomy(token: string): Promise<any> {
   return d.marketplaceGetBranchEconomy
 }
 
+/**
+ * Паевой взнос деньгами: заявка на приход (wallet::createdpst) и его
+ * исполнение шлюзом (gateway::incomplete) — как платёжный провайдер.
+ * Помощник ядра deposit() зовёт прежние имена действий (createdeposit /
+ * completeincome), которых в контрактах больше нет.
+ */
+async function depositShare(username: string, sum: number): Promise<void> {
+  const hash = crypto.randomBytes(32).toString('hex')
+  await transact(COOP_SIGNER, [{ account: 'wallet', name: 'createdpst', data: { coopname: COOP, username, deposit_hash: hash, quantity: rub(sum) } }])
+  await transact(COOP_SIGNER, [{ account: 'gateway', name: 'incomplete', data: { coopname: COOP, income_hash: hash } }])
+}
+
+/** Паевой остаток пайщика не меньше нужного, и зеркало контроллера это видит. */
+async function ensureShare(who: Who, minimumRub: number): Promise<void> {
+  const have = await availableShare(who.account)
+  if (have < minimumRub)
+    await depositShare(who.account, Math.ceil(minimumRub - have) + 10_000)
+  const token = await tokenOf(who)
+  await waitFor(async () => {
+    const d = await gql<any>(token, 'query{ marketplaceMemberWallet{ wallets{ name available } } }')
+    const row = d.marketplaceMemberWallet.wallets.find((w: any) => w.name === 'w.wal.share')
+    return row && amount(row.available) >= minimumRub ? true : null
+  }, { timeoutMs: 120_000, intervalMs: 2_000, label: `зеркало кошелька ${who.account} ≥ ${minimumRub} RUB` })
+}
+
 /** Пул членских взносов не меньше нужного: при нехватке — заказ пайщика. */
 async function ensureFeePool(need: number): Promise<void> {
   let rate = 0.1
@@ -281,7 +306,7 @@ async function ensureFeePool(need: number): Promise<void> {
     const offer = await pickOffer(await tokenOf(CHAIRMAN), ROLES.supplier().account, KRG, 'Мёд цветочный')
     const price = amount(offer.price_per_unit)
     const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
-    await ensureShareFunds(member.account, price * qty * 2 + 1_000, token)
+    await ensureShare(member, price * qty * 2 + 1_000)
     const { orderId } = await placeOrder({ who: member, offerId: offer.id, quantity: qty })
     const order = await getOrder(token, orderId)
     const fee = amount(order.membership_fee)
