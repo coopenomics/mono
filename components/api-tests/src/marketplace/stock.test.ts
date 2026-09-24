@@ -57,8 +57,7 @@ describe('Стол заказов: остаток кооператива', () =>
     chairmanToken = await tokenOf(CHAIRMAN)
     const memberToken = await tokenOf(member)
 
-    // Каталог целиком (все поставщики) читает председатель.
-    const offer = await pickOffer(chairmanToken, supplier.account, KRG, PRODUCT)
+    const offer = await pickOffer(supplier.account, KRG, PRODUCT)
     supplierOfferId = offer.id
     arrivalPrice = amount(offer.price_per_unit)
     await ensureShareFunds(member.account, ORDERED * arrivalPrice * 2, memberToken)
