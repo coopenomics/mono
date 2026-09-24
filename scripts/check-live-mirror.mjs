@@ -7,7 +7,7 @@
 //
 //   useLiveReload([liveTable(CapitalContract, CapitalContract.Tables.Contributors)], reload)
 //
-// (или useMarketplaceRealtime у Стола заказов). Иначе экран показывает то,
+// (у Стола заказов — useLiveReload(marketLiveTables(...), reload)). Иначе экран показывает то,
 // что было на момент открытия, и пайщик узнаёт об изменении перезагрузкой.
 //
 // Нет источника (данные только из localStorage, статичный справочник) —
@@ -38,7 +38,7 @@ const LOAD_REF = /^\(\s*(load|fetch|refresh|reload|init)[A-Za-z0-9_]*\s*\)$/;
 const TOP_LEVEL_LOAD = /^(?:void\s+|await\s+)?(?:[\w$]+\.)*(load|fetch|refresh|reload)[A-Za-z0-9_]*\s*\(/;
 const POLL = /\b(setInterval|useDataPoller)\s*\(/;
 // Зеркало — useLiveReload и обёртки над ним с именем useLive* (useLiveProposalList…).
-const MIRROR = /\b(useLive[A-Z]\w*|useMarketplaceRealtime|registerLiveReload)\s*\(/;
+const MIRROR = /\b(useLive[A-Z]\w*|registerLiveReload)\s*\(/;
 const HOOK = /\b(onMounted|onBeforeMount|onActivated)\s*\(/g;
 const WATCH = /\bwatch(Effect)?\s*\(/g;
 

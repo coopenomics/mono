@@ -46,10 +46,9 @@ import { SupplierRegistryPage } from 'src/pages/Marketplace/SupplierRegistry'
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace'
 import { agreementsBase } from 'src/shared/lib/consts/workspaces'
 import { registerGlobalOverlay } from 'src/shared/lib/overlays'
-import { registerRealtimeSubscription } from 'src/shared/lib/realtime'
 import {
   OnsiteSignatureGateOverlay,
-  createMarketplaceEventsSubscription,
+  registerOnsiteGateLive,
 } from 'src/widgets/Marketplace/OnsiteSignatureGate'
 import { registerMarketplaceProcessInfoHandlers } from './app/extensions'
 import { t } from './i18n';
@@ -105,10 +104,9 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   // на получении).
   registerGlobalOverlay('marketplace:onsite-signature-gate', OnsiteSignatureGateOverlay)
 
-  // Фаза 2: расширение вкладывает свою realtime-подписку в канал ядра (как и
-  // оверлей выше). Ядро откроет её при авторизации и будет дёргать catch-up;
-  // события персонального канала пайщика обновляют гейт без поллинга.
-  registerRealtimeSubscription(createMarketplaceEventsSubscription())
+  // Гейт живёт по общей ленте изменений ядра (C28-83): ядро держит одну
+  // подписку chainChanges и дочитывает после переподключения само.
+  registerOnsiteGateLive()
 
   return [
     // ───────────────────────── Стол заказчика ─────────────────────────

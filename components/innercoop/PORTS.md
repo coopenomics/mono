@@ -21,7 +21,7 @@
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
-| `CHAIN_CHANGES_PORT` | `IChainChangesPort` (3)<br><sub>core-ports/chain-changes.port.ts</sub> | `ChainChangesService` | capital*, cardcoop*, chairman*, expenses*, soviet-robot* | Лента изменений цепи — сигнал столу «эти данные изменились, перечитай». |
+| `CHAIN_CHANGES_PORT` | `IChainChangesPort` (4)<br><sub>core-ports/chain-changes.port.ts</sub> | `ChainChangesService` | capital*, cardcoop*, chairman*, expenses*, marketplace*, soviet-robot* | Лента изменений цепи — сигнал столу «эти данные изменились, перечитай». |
 | `CHAIN_DELTA_WAIT_PORT` | `IChainDeltaWaitPort` (3)<br><sub>core-ports/chain-delta-wait.port.ts</sub> | `ChainDeltaWaiterService` | capital*, chairman* | Ответ после факта из цепи. |
 | `CHAIN_RESOURCES_PORT` | `IChainResourcesPort` (2)<br><sub>core-ports/chain-resources.port.ts</sub> | `ChainResourcesInnercoopAdapter` | powerup | Ресурсы аккаунта в цепи: оперативная память, полоса, процессорное время. |
 | `CHAIN_PORT` | `IChainPort` (4)<br><sub>core-ports/chain.port.ts</sub> | `ChainInnercoopAdapter` | capital, cardcoop, chairman, expenses, ku, marketplace, reports, soviet-robot | Проводка действий в цепь и чтение её таблиц. |
@@ -53,7 +53,7 @@
 | `PAYMENT_NOTICE_LOG_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentNoticeLogInnercoopAdapter` | yookassa | Реестр способов оплаты. |
 | `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
-| `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | marketplace | Шина событий реального времени — то, из чего кормятся подписки клиента. |
+| `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | — | Шина событий реального времени — то, из чего кормятся подписки клиента. |
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop, soviet-robot | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -19,7 +20,7 @@ import {
   HandoffTokenKind,
   handoffStageRoute,
   useMarketplaceHandoffSignal,
-  useMarketplaceRealtime,
+  marketLiveTables,
 } from 'src/shared/lib/marketplace';
 import { useGlobalStore } from 'src/shared/store';
 import { ensureSigningUnlocked, signDocument } from 'src/shared/lib/document';
@@ -485,31 +486,24 @@ async function onQrScanned(code: string): Promise<void> {
   await resolvePickup();
 }
 
-const PICKUP_RESOLVE_RETRIES = 2;
-const PICKUP_RESOLVE_DELAY_MS = 600;
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * Резолв отсканированного кода получения: есть позиции «к выдаче» — сразу
  * открываем полную выдачу (промежуточное окно «Открыть выдачу» — лишний клик);
  * нечего открывать — показываем резолв-окно с докладкой со склада (req. 76).
  *
- * Несколько попыток с паузой, а не один отказ: лента собирается из composite-
- * entity (БД + блокчейн-снапшот), парсер догоняет цепь с лагом — код передачи
- * заказчик может показать раньше, чем лента отразит актуальный статус заказа.
+ * Код передачи заказчик может показать раньше, чем узел разобрал блок с его
+ * заказом. Тогда окно открывается без позиций, а лента изменений перечитает
+ * заказы — кнопка «Открыть выдачу» появится в том же окне.
  */
 async function resolvePickup(): Promise<void> {
-  for (let attempt = 0; attempt <= PICKUP_RESOLVE_RETRIES; attempt += 1) {
-    if (!loading.value) await load();
-    if (pickupToIssueCount.value > 0) {
-      if (pickupNeedsVerification.value) {
-        verifyDialogOpen.value = true;
-      } else {
-        startOpen(pickupOrders.value);
-      }
-      return;
+  if (!loading.value) await load();
+  if (pickupToIssueCount.value > 0) {
+    if (pickupNeedsVerification.value) {
+      verifyDialogOpen.value = true;
+    } else {
+      startOpen(pickupOrders.value);
     }
-    if (attempt < PICKUP_RESOLVE_RETRIES) await wait(PICKUP_RESOLVE_DELAY_MS);
+    return;
   }
   pickupDialogOpen.value = true;
 }
@@ -543,13 +537,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    MarketplaceIssuanceSagaUpdatedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('order'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);

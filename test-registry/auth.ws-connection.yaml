@@ -15,13 +15,17 @@ title: Опознание пайщика в ws-соединении подпис
 # мостик проверки сессии (ws-session-check.registry) заменён опознанием
 # стратегией целиком.
 
+# Правка 24.09.2026 (C28-83): подписка marketplaceEvents снята, Стол заказов
+# живёт по общей ленте chainChanges — её резолвер и стоит в источниках.
+# Опознание соединения и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/infrastructure/graphql/ws-auth.registry.ts
     - components/controller/src/infrastructure/graphql/graphql.module.ts
     - components/controller/src/application/auth/strategies/jwt.strategy.ts
     - components/controller/src/application/auth/services/session-alive.service.ts
-    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-events.resolver.ts
+    - components/controller/src/application/chain-changes/**
 
 cases:
   - id: auth.ws.happy.01

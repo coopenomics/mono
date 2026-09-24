@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
 import { BaseBadge, BaseButton, BaseSelect } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderUnitLabel, MarketplaceSaleForm, type MarketplaceUnitOfMeasure } from 'src/shared/lib/consts';
-import { useMarketplaceRealtime, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
+import { marketLiveTables, saleQuantityStep, quantizeSaleQuantity } from 'src/shared/lib/marketplace';
 import {
   createStockProposal,
   cancelStockProposal,
@@ -210,15 +211,10 @@ async function withdraw(p: MarketplaceStockProposalView): Promise<void> {
 
 // Live: пайщик принял/отказался → статус у стойки обновляется немедленно;
 // принятие также создаёт заказы — родительская лента перечитается сама.
-useMarketplaceRealtime(
-  {
-    MarketplaceStockProposalResolvedEvent: () => {
-      void loadProposals();
-      void loadOffers();
-    },
-  },
-  { onResync: () => void loadProposals() },
-);
+useLiveReload(marketLiveTables('stock', 'offer'), async () => {
+    await loadProposals();
+    await loadOffers();
+  });
 
 onMounted(() => {
   void loadOffers();

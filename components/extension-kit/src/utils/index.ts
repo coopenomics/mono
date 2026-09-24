@@ -21,3 +21,4 @@ export * from './hash.utils';
 export * from './currency-validation.utils';
 export * from './user-text.utils';
 export * from './sort-column.utils';
+export * from './local-changes-collector';

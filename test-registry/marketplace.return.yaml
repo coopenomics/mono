@@ -32,6 +32,13 @@ title: Гарантийный возврат имущества — заявле
 # в той же транзакции, transact ждёт разбора блока); ожидание робота у стойки —
 # подпиской на событие решения совета (waitForEvent), а не опросом базы.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.return/accretrn.cpp

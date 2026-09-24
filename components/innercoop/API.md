@@ -279,6 +279,7 @@
 - `declareTables(tables: InnerChainChangesTable[]): void`
 - `declareLocalTables(tables: InnerChainChangesTable[]): void`
 - `setStaff(code: string, usernames: string[]): void`
+- `publishLocal(table: string, primary_key: string, row?: Record<string, unknown>): Promise<void>`
 
 ## IChainDeltaWaitPort
 

@@ -1138,9 +1138,6 @@ export const AllTypesProps: Record<string,any> = {
 	MarketplaceDistributeBranchFundsInput:{
 
 	},
-	MarketplaceEventsInput:{
-
-	},
 	MarketplaceFinalizeStockIssuanceInput:{
 		order_lines:"MarketplaceStockFinalizeLineInput",
 		signed_convert:"MarketplaceConvertStatementSignedInput"
@@ -3618,9 +3615,6 @@ export const AllTypesProps: Record<string,any> = {
 		chainChanges:{
 			input:"ChainChangesInput"
 		},
-		marketplaceEvents:{
-			input:"MarketplaceEventsInput"
-		},
 		walletEvents:{
 			input:"WalletEventsInput"
 		}
@@ -3784,10 +3778,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5899,11 +5889,6 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceAplReceptionResult:{
 		apl_reception:"MarketplaceAplReception"
 	},
-	MarketplaceAplReceptionStatusChangedEvent:{
-		braname:"String",
-		reception_id:"String",
-		status:"MarketplaceAplReceptionStatus"
-	},
 	MarketplaceAttribute:{
 		attributeComplexId:"Int",
 		attributeId:"Int",
@@ -6164,21 +6149,6 @@ export const ReturnTypes: Record<string,any> = {
 	MarketplaceEconomyConfig:{
 		membership_fee_percent:"Float"
 	},
-	MarketplaceEvent:{
-		"...on MarketplaceAplReceptionStatusChangedEvent":"MarketplaceAplReceptionStatusChangedEvent",
-		"...on MarketplaceIssuanceSagaUpdatedEvent":"MarketplaceIssuanceSagaUpdatedEvent",
-		"...on MarketplaceOfferModerationEvent":"MarketplaceOfferModerationEvent",
-		"...on MarketplaceOfferPublishedEvent":"MarketplaceOfferPublishedEvent",
-		"...on MarketplaceOfferStockChangedEvent":"MarketplaceOfferStockChangedEvent",
-		"...on MarketplaceOrderReadyToReceiveEvent":"MarketplaceOrderReadyToReceiveEvent",
-		"...on MarketplaceOrderStatusChangedEvent":"MarketplaceOrderStatusChangedEvent",
-		"...on MarketplacePaymentStatusChangedEvent":"MarketplacePaymentStatusChangedEvent",
-		"...on MarketplaceReceptionPendingSignEvent":"MarketplaceReceptionPendingSignEvent",
-		"...on MarketplaceReturnClaimStatusChangedEvent":"MarketplaceReturnClaimStatusChangedEvent",
-		"...on MarketplaceStockProposalCreatedEvent":"MarketplaceStockProposalCreatedEvent",
-		"...on MarketplaceStockProposalResolvedEvent":"MarketplaceStockProposalResolvedEvent",
-		"...on MarketplaceWriteoffStatusChangedEvent":"MarketplaceWriteoffStatusChangedEvent"
-	},
 	MarketplaceExpressPickupCandidate:{
 		braname:"String",
 		offerer_account:"String",
@@ -6257,15 +6227,6 @@ export const ReturnTypes: Record<string,any> = {
 		stage:"MarketplaceIssuanceSagaStage",
 		statement_document:"SignedDigitalDocument",
 		updated_at:"DateTime"
-	},
-	MarketplaceIssuanceSagaUpdatedEvent:{
-		braname:"String",
-		decision_mode:"String",
-		order_hash:"String",
-		order_id:"String",
-		proposal_id:"String",
-		saga_id:"String",
-		stage:"String"
 	},
 	MarketplaceIssuanceStatementPayload:{
 		saga:"MarketplaceIssuanceSaga",
@@ -6363,10 +6324,6 @@ export const ReturnTypes: Record<string,any> = {
 		sort_order:"Int",
 		url:"String"
 	},
-	MarketplaceOfferModerationEvent:{
-		offer_id:"String",
-		status:"MarketplaceOfferStatus"
-	},
 	MarketplaceOfferPackage:{
 		id:"String",
 		is_default:"Boolean",
@@ -6379,25 +6336,11 @@ export const ReturnTypes: Record<string,any> = {
 		size:"Float",
 		sort_order:"Int"
 	},
-	MarketplaceOfferPackageStock:{
-		package_id:"String",
-		quantity_available:"Float"
-	},
 	MarketplaceOfferPaginationResult:{
 		currentPage:"Int",
 		items:"MarketplaceOffer",
 		totalCount:"Int",
 		totalPages:"Int"
-	},
-	MarketplaceOfferPublishedEvent:{
-		category_id:"Int",
-		offer_id:"String"
-	},
-	MarketplaceOfferStockChangedEvent:{
-		offer_id:"String",
-		packages:"MarketplaceOfferPackageStock",
-		quantity_available:"Float",
-		unlimited_flag:"Boolean"
 	},
 	MarketplaceOnboardingState:{
 		agreement_id:"Int",
@@ -6478,16 +6421,6 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	MarketplaceOrderReadyToReceiveEvent:{
-		braname:"String",
-		order_hash:"String",
-		order_id:"String"
-	},
-	MarketplaceOrderStatusChangedEvent:{
-		order_id:"String",
-		previous_status:"MarketplaceOrderStatus",
-		status:"MarketplaceOrderStatus"
-	},
 	MarketplaceOutgoingPaymentCoreRecord:{
 		completed_at:"DateTime",
 		created_at:"DateTime",
@@ -6536,10 +6469,6 @@ export const ReturnTypes: Record<string,any> = {
 		updated_at:"DateTime",
 		withheld_amount:"String"
 	},
-	MarketplacePaymentStatusChangedEvent:{
-		payment_request_id:"String",
-		status:"MarketplaceOutgoingPaymentRequestStatus"
-	},
 	MarketplacePersonalEconomy:{
 		personal_balance:"String"
 	},
@@ -6550,10 +6479,6 @@ export const ReturnTypes: Record<string,any> = {
 		isAvailable:"Boolean",
 		typeId:"Int",
 		typeName:"String"
-	},
-	MarketplaceReceptionPendingSignEvent:{
-		ku_name:"String",
-		reception_id:"String"
 	},
 	MarketplaceRegistrationOfferStatus:{
 		agreement_id:"String",
@@ -6716,11 +6641,6 @@ export const ReturnTypes: Record<string,any> = {
 		claim:"MarketplaceReturnClaim",
 		tx_hash:"String"
 	},
-	MarketplaceReturnClaimStatusChangedEvent:{
-		braname:"String",
-		claim_id:"String",
-		status:"MarketplaceReturnClaimStatus"
-	},
 	MarketplaceShipment:{
 		braname:"String",
 		coopname:"String",
@@ -6785,10 +6705,6 @@ export const ReturnTypes: Record<string,any> = {
 		proposal:"MarketplaceStockProposal",
 		sagas:"MarketplaceIssuanceSaga"
 	},
-	MarketplaceStockProposalCreatedEvent:{
-		braname:"String",
-		proposal_id:"String"
-	},
 	MarketplaceStockProposalItem:{
 		offer_id:"String",
 		order_hash:"String",
@@ -6801,10 +6717,6 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"Float",
 		unit_of_measure:"MarketplaceUnitOfMeasure",
 		unit_price:"String"
-	},
-	MarketplaceStockProposalResolvedEvent:{
-		braname:"String",
-		proposal_id:"String"
 	},
 	MarketplaceStorageCell:{
 		braname:"String",
@@ -6979,10 +6891,6 @@ export const ReturnTypes: Record<string,any> = {
 		quantity:"String",
 		reason:"String",
 		unit_of_measure:"MarketplaceUnitOfMeasure"
-	},
-	MarketplaceWriteoffStatusChangedEvent:{
-		proposal_id:"String",
-		status:"MarketplaceWriteoffProposalStatus"
 	},
 	MatrixAccountStatusResponseDTO:{
 		hasAccount:"Boolean",
@@ -8627,7 +8535,6 @@ export const ReturnTypes: Record<string,any> = {
 	},
 	Subscription:{
 		chainChanges:"ChainChange",
-		marketplaceEvents:"MarketplaceEvent",
 		nodeSyncState:"NodeSyncState",
 		walletEvents:"WalletChangedEvent"
 	},

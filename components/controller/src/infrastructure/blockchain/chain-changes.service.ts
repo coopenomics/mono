@@ -228,7 +228,7 @@ export class ChainChangesService implements IChainChangesPort {
   }
 
   /** Опубликовать изменение таблицы базы узла — после фиксации записи. */
-  async publishLocal(dbTable: string, primary_key: string, row: Record<string, unknown> | undefined): Promise<void> {
+  async publishLocal(dbTable: string, primary_key: string, row?: Record<string, unknown>): Promise<void> {
     const declared = this.localTableOf(dbTable);
     if (!declared) return;
     const owner = declared.owner_field ? row?.[declared.owner_field] : undefined;

@@ -40,7 +40,7 @@ sources:
   ui:
     - components/desktop/src/entities/Wallet/model/walletLive.ts
     - components/desktop/src/entities/System/model/nodeSyncSubscription.ts
-    - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/marketplaceEventsSubscription.ts
+    - components/desktop/src/widgets/Marketplace/OnsiteSignatureGate/model/onsiteGateLive.ts
     - components/sdk/src/utils/wsSubscription.ts
 
 cases:

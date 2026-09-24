@@ -12,13 +12,14 @@
  * период, а не состояние полок.
  */
 import { computed, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { debounce } from 'quasar'
 import { Zeus } from '@coopenomics/sdk'
 import { FailAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
 import { PageHint } from 'src/shared/ui/domain'
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts/marketplace-units'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import {
@@ -65,14 +66,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
 }, 400)
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-)
+useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLive());
 
 onMounted(() => {
   void load()

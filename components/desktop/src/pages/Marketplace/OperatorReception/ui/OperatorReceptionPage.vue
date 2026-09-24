@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -21,7 +22,7 @@ import {
   groupAplReceptions,
   handoffStageRoute,
   useMarketplaceHandoffSignal,
-  useMarketplaceRealtime,
+  marketLiveTables,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -732,15 +733,7 @@ const reloadLive = debounce(() => {
   if (loading.value || acceptingPickup.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive();
-    },
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('reception', 'order'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);

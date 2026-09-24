@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   marketplaceAvailablePackages,
   offerCardUnitCost,
   offerCardUnitLabel,
@@ -383,14 +384,7 @@ const refreshCatalogLive = debounce(() => {
   void refreshCatalogLiveNow();
 }, 400);
 
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferStockChangedEvent: (e) =>
-      patchOfferStock(e.offer_id, e.quantity_available, e.unlimited_flag, e.packages),
-    MarketplaceOfferPublishedEvent: () => refreshCatalogLive(),
-  },
-  { onResync: () => refreshCatalogLive() }
-);
+useLiveReload(marketLiveTables('offer'), () => refreshCatalogLive());
 </script>
 
 <template lang="pug">

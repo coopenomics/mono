@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, debounce } from 'quasar';
@@ -14,7 +15,7 @@ import { marketplaceOrderSaleUnit, marketplaceOrderSaleUnitLabel, marketplaceQua
 import {
   groupAplReceptions,
   marketplacePackageLabel,
-  useMarketplaceRealtime,
+  marketLiveTables,
   type ReceptionGroup,
 } from 'src/shared/lib/marketplace';
 import {
@@ -510,13 +511,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load(1, false);
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    MarketplaceReceptionPendingSignEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('order', 'reception'), () => reloadLive());
 </script>
 
 <template lang="pug">

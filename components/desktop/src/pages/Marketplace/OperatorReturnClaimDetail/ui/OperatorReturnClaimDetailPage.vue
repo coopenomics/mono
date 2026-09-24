@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
 import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { formatDateToLocalTimezone, getTimezoneLabel } from 'src/shared/lib/utils/dates';
@@ -145,14 +146,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceReturnClaimStatusChangedEvent: (event) => {
-      if (event.claim_id === claimId.value) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('return'), () => reloadLive());
 </script>
 
 <template lang="pug">

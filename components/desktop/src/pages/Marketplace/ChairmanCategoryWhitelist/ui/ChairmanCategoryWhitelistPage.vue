@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { Dialog, Notify, debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
@@ -13,7 +14,7 @@ import {
 } from 'src/shared/ui/base';
 import type { BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import {
   clearAvailableCategories,
   createCustomCategory,
@@ -163,7 +164,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime({}, { onResync: () => reloadLive() });
+useLiveReload(marketLiveTables('catalog'), () => reloadLive());
 
 onMounted(load);
 </script>

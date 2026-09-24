@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { date } from 'quasar';
 import {
@@ -16,7 +17,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { floorDecimalString } from 'src/shared/lib/utils/floorDecimalString';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import {
   listStock,
   publishStock,
@@ -78,13 +79,7 @@ async function reload(): Promise<void> {
 }
 
 onMounted(() => void reload());
-useMarketplaceRealtime(
-  {
-    MarketplaceStockProposalResolvedEvent: () => void reload(),
-    MarketplaceOfferStockChangedEvent: () => void reload(),
-  },
-  { onResync: () => void reload() },
-);
+useLiveReload(marketLiveTables('stock', 'offer'), () => reload());
 
 type StockState = 'free' | 'published' | 'reserved';
 function stateOf(i: MarketplaceInventoryItemView): StockState {

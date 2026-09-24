@@ -53,6 +53,14 @@ export interface IChainChangesPort {
    * состава расширение передаёт его заново.
    */
   setStaff(code: string, usernames: string[]): void;
+
+  /**
+   * Опубликовать изменение строки объявленной таблицы базы узла, когда запись
+   * прошла мимо подписчика ядра: сырой SQL или своя база расширения (её
+   * расширение наблюдает само — `LocalChangesCollector` из extension-kit).
+   * Звать после фиксации записи; `row` — для владельца личной таблицы.
+   */
+  publishLocal(table: string, primary_key: string, row?: Record<string, unknown>): Promise<void>;
 }
 
 export const CHAIN_CHANGES_PORT = Symbol.for('Innercoop.CorePort.ChainChanges');

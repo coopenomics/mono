@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
-import { debounce } from 'quasar'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute } from 'vue-router'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { useSessionStore } from 'src/entities/Session'
@@ -15,8 +15,8 @@ import type { IMarketplaceKUDetails } from 'src/entities/MarketplaceKUDetails'
 import { BaseBadge, BaseButton, BaseDialog, BaseTable, EmptyState } from 'src/shared/ui/base'
 import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base'
 import { IdentityCell, PageHint } from 'src/shared/ui/domain'
-import { useDataPoller, useFirstLoad } from 'src/shared/lib/composables'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { useFirstLoad } from 'src/shared/lib/composables'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 // Map экспортируется как `Map` — импортируем под алиасом, чтобы не затенять
 // глобальный `Map` (используется в `rows`).
 import { Map as MapView } from 'src/shared/ui/Map'
@@ -164,26 +164,15 @@ async function load(): Promise<void> {
   }
 }
 
-/** Тихое обновление ПВЗ-детализаций — для poll, пока геокодер в PENDING. */
+// Геокодер на бэкенде fire-and-forget: статус PENDING → OK/FAILED приходит
+// по ленте изменений (marketplace_ku_details), перечитываем тихо, без спиннера.
 async function reloadKuDetails(): Promise<void> {
   try {
     await kuStore.load({ coopname: coopname.value, onlyActive: false })
   } catch {
-    // Poll не спамит FailAlert — следующий тик или resync подхватят.
+    // Тихое обновление не спамит FailAlert — следующий сигнал ленты подхватит.
   }
 }
-
-const hasPendingGeocode = computed(() =>
-  kuStore.details.some((d) => d.geocodeStatus === GeocodeStatus.PENDING),
-)
-
-// После сохранения ПВЗ геокодер на бэкенде fire-and-forget: статус PENDING → OK/FAILED.
-// Пока есть PENDING — опрашиваем каждые 3 с (быстрее страховочного resync ws).
-useDataPoller(reloadKuDetails, {
-  interval: 3000,
-  immediate: true,
-  enabled: hasPendingGeocode,
-})
 
 function openAdd(branch: IBranch): void {
   dialogBranch.value = branch
@@ -232,12 +221,7 @@ async function retryGeocode(row: IssuancePointRow): Promise<void> {
   }
 }
 
-// Страховочный resync ws-канала + catch-up на возврат вкладки (дополнение к poll).
-const reloadLive = debounce(() => {
-  if (loading.value) return
-  void load()
-}, 400)
-useMarketplaceRealtime({}, { onResync: () => reloadLive() })
+useLiveReload(marketLiveTables('ku'), reloadKuDetails);
 
 onMounted(() => {
   void load()

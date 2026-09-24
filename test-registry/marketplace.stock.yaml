@@ -28,6 +28,13 @@ title: Обезличенный остаток кооператива — пер
 # `@coopenomics/extension-kit` и `@coopenomics/innercoop`. Поведение операций,
 # правила доступа и набор случаев прежние.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts

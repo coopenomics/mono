@@ -142,6 +142,7 @@ import { MARKETPLACE_ISSUANCE_SAGA_REPOSITORY } from '../domain/repositories/mar
 import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories/marketplace-writeoff-proposal.repository';
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
+import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
 
 @Module({
   imports: [
@@ -256,6 +257,8 @@ import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories
     ), // Указываем имя подключения
   ],
   providers: [
+    // Сигналы общей ленты изменений по своей базе расширения (C28-83).
+    MarketplaceLiveFeedSubscriber,
     {
       provide: CATEGORY_DOMAIN_REPOSITORY,
       useClass: CategoryRepositoryAdapter,

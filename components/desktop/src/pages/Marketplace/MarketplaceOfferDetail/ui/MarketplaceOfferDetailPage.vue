@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
@@ -13,7 +14,7 @@ import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   getMembershipFeePercent,
   applyMembershipFee,
   marketplaceAvailablePackages,
@@ -246,14 +247,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferStockChangedEvent: (event) => {
-      if (event.offer_id === offerId.value) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('offer'), () => reloadLive());
 
 onMounted(async () => {
   try {

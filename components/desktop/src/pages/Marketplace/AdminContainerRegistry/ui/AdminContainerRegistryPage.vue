@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t as i18nT } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
@@ -18,7 +19,7 @@ import type { BaseSelectOption, BaseTableColumn } from 'src/shared/ui/base'
 import { PageHint } from 'src/shared/ui/domain'
 import { PageTabs, type PageTab } from 'src/shared/ui/layout'
 import { ContainerContentsDrawer } from 'src/widgets/Marketplace/ContainerContentsDrawer'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useDesktopStore } from 'src/entities/Desktop'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import {
@@ -337,14 +338,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
 }, 400)
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-)
+useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLive());
 
 onMounted(async () => {
   // Имена участков — best-effort: без них реестр покажет служебные коды, но

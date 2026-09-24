@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
@@ -26,7 +27,7 @@ import {
   HandoffTokenKind,
   decodeScannedCode,
   printBarcodeSheet,
-  useMarketplaceRealtime,
+  marketLiveTables,
 } from 'src/shared/lib/marketplace'
 import {
   buildPlacementOptions,
@@ -353,6 +354,7 @@ function setCompactDragImage(event: DragEvent, title: string, note: string): voi
   // курсора и не закрывает то, на что наводятся.
   event.dataTransfer.setDragImage(ghost, 12, 12)
   // Снимок браузер делает синхронно; сам элемент дальше не нужен.
+  // timing: ui — снимок перетаскивания браузер берёт синхронно, элемент убираем следующим тиком
   setTimeout(() => ghost.remove(), 0)
 }
 
@@ -854,17 +856,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
 }, 400)
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive()
-    },
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    // Исполненное списание тоже опустошает склад.
-    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-)
+useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLive());
 
 onMounted(async () => {
   await branchStore.ensureLoaded(coopname.value)
