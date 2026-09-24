@@ -1,0 +1,190 @@
+feature: wallet.agreements
+title: Кошельки и соглашения пайщика — зеркала цепи и их чтение
+
+# Соглашения кооператива (подпись ПЭП, пользовательское, политика
+# конфиденциальности) живут в soviet::agreements3 и зеркалятся в таблицу
+# agreements; программные соглашения (кошелёк, Благорост…) — в wallet::users и
+# таблице user_agreements; остатки кошельков — в ledger2::userwallets и
+# user_wallets; журнал операций старого плана счетов (ledger::add/sub…) —
+# в ledger_operations; программные кошельки старого образца (soviet::progwallets)
+# — в program_wallets.
+#
+# Заведено 24.09.2026 (C28-80): каждая таблица прикрыта внешним тестом до
+# перевода слоя данных на Kysely (C28-81). Пишутся таблицы разбором цепи:
+# через мутации контроллера (sendAgreement/confirmAgreement/declineAgreement),
+# а где мутации нет — действием в цепь в подготовке теста.
+
+sources:
+  backend:
+    - components/controller/src/application/agreement/**/*.ts
+    - components/controller/src/application/wallet/resolvers/wallet.resolver.ts
+    - components/controller/src/application/wallet/services/wallet.service.ts
+    - components/controller/src/application/wallet/services/program-wallet-*.ts
+    - components/controller/src/application/wallet/interactors/wallet.interactor.ts
+    - components/controller/src/application/ledger/**/*.ts
+    - components/controller/src/domain/agreement/**/*.ts
+    - components/controller/src/domain/wallet/repositories/*.ts
+    - components/controller/src/domain/ledger/**/*.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/agreement.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/user-agreement.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/user-wallet.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/program-wallet.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-ledger-operation.repository.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/agreement.typeorm-entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/user-agreement.typeorm-entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/user-wallet.typeorm-entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/program-wallet.typeorm-entity.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/ledger-operation.entity.ts
+
+cases:
+  - id: wal.agr.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик читает свои соглашения после вступления в программу «Кошелёк»
+    expect: в списке программное соглашение типа wallet, статус CONFIRMED, program_id > 0
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.happy.02
+    level: backend
+    kind: happy
+    scenario: паевой кошелёк пайщика пополнен в цепи; пайщик читает кошельки и программный кошелёк
+    expect: w.wal.share прибавил сумму пополнения, program_id = 1; программный кошелёк «Кошелька» показывает тот же остаток
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.01
+    level: backend
+    kind: side
+    scenario: чужой пайщик читает кошельки и программные кошельки пайщика; гость читает кошельки
+    expect: отказ KIT_INSUFFICIENT_RIGHTS пайщику, 401 гостю
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.happy.03
+    level: backend
+    kind: happy
+    scenario: пайщик подписывает и подаёт соглашение о простой электронной подписи, председатель принимает
+    expect: соглашение появляется REGISTERED с документом, после принятия — CONFIRMED
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.02
+    level: backend
+    kind: side
+    scenario: пайщик повторно подаёт уже принятое соглашение
+    expect: отказ, соглашение остаётся CONFIRMED и одно
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.03
+    level: backend
+    kind: side
+    scenario: пайщик принимает своё соглашение; чужой пайщик отклоняет его
+    expect: отказ KIT_INSUFFICIENT_RIGHTS, соглашение остаётся REGISTERED
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.happy.04
+    level: backend
+    kind: happy
+    scenario: председатель отклоняет поданное соглашение о политике конфиденциальности с комментарием
+    expect: соглашение DECLINED, находится фильтром по статусу
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.happy.05
+    level: backend
+    kind: happy
+    scenario: пайщик переподписывает программное соглашение «Кошелёк»
+    expect: соглашение одно, CONFIRMED, дата подписи позже прежней
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.04
+    level: backend
+    kind: side
+    scenario: пайщик подаёт соглашение от имени другого пайщика
+    expect: отказ AGREEMENT_ONLY_FOR_SELF
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.05
+    level: backend
+    kind: side
+    scenario: в документе соглашения нет подписи самого пайщика
+    expect: отказ AGREEMENT_MISSING_SIGNATURE
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.06
+    level: backend
+    kind: side
+    scenario: подпись от имени пайщика сделана чужим ключом
+    expect: отказ AGREEMENT_SIGNATURE_KEY_MISMATCH, соглашение не заводится
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.07
+    level: backend
+    kind: side
+    scenario: соглашение типа, которого нет в кооперативе
+    expect: отказ AGREEMENT_TYPE_NOT_CONFIGURED
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.08
+    level: backend
+    kind: side
+    scenario: гость подаёт соглашение; чужой пайщик читает соглашения пайщика
+    expect: 401 гостю, KIT_INSUFFICIENT_RIGHTS пайщику
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.happy.06
+    level: backend
+    kind: happy
+    scenario: проводка и сторно по счёту старого плана счетов (ledger::add/sub) в цепи
+    expect: обе операции появляются в журнале совета с тем же хэшем, счётом, суммой и пайщиком
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.09
+    level: backend
+    kind: side
+    scenario: пайщик читает журнал операций кооператива
+    expect: отказ KIT_INSUFFICIENT_RIGHTS
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
+
+  - id: wal.agr.side.10
+    level: backend
+    kind: side
+    scenario: чтение программных кошельков старого образца (program_wallets, зеркало soviet::progwallets)
+    expect: таблица читается хотя бы одной операцией API — сейчас её пишет только синхронизация, а getProgramWallets собирает ответ из user_agreements и user_wallets
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: wal.agr.side.11
+    level: backend
+    kind: side
+    scenario: список соглашений пайщика с фильтром по статусу или типу без program_id
+    expect: в выдаче только соглашения нужного статуса/типа (сейчас программные соглашения добавляются в выдачу без учёта statuses и type)
+    test: ~
+    status: missing
