@@ -8,7 +8,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, caseName, gql, gqlError, tokenOf } from '../core'
+import { COOP, caseName, gql, gqlError, tokenOf, waitFor } from '../core'
 import { createIssue } from './cap-access.helpers'
 import {
   capitalMember,
@@ -29,6 +29,14 @@ let member: Who
 let token = ''
 let active = ''
 let idle = ''
+
+/** Мастер проекта виден зеркалу — задачи в проекте заводит он. */
+async function masterSeen(hash: string): Promise<void> {
+  await waitFor(async () => {
+    const d = await gql<any>(token, 'query($d:GetProjectInput!){ capitalProject(data:$d){ master } }', { d: { hash } })
+    return d.capitalProject?.master === member.account ? true : null
+  }, { timeoutMs: 60_000, intervalMs: 1_000, label: `мастер проекта ${hash.slice(0, 8)} в зеркале` })
+}
 
 /** Выполненная задача с часами участника — из неё берётся время коммита. */
 async function doneIssueWithHours(project: string, hours: number): Promise<void> {
@@ -54,17 +62,19 @@ describe('Благорост: коммит часов через API', () => {
     await clearance(member, active)
     await setMaster(active, member)
     await startProject(active)
+    await masterSeen(active)
 
     // Проект не запущен: контракт откажет в коммите, контроллер — нет.
     idle = await createProject(`Незапущенный проект коммитов ${tag}`)
     await clearance(member, idle)
     await setMaster(idle, member)
+    await masterSeen(idle)
   })
 
   it(caseName('cap.commit.side.01', 'коммит сразу после ответа в зеркале с данными цепи — одна строка на хэш, снимок задач сохранён'), async () => {
     await doneIssueWithHours(active, 3)
     const d = await gql<any>(token, COMMIT, {
-      d: { coopname: COOP, username: member.account, project_hash: active, commit_hours: 3, description: `Работа ${tag}`, meta: '' },
+      d: { coopname: COOP, username: member.account, project_hash: active, commit_hours: 3, description: `Работа ${tag}`, meta: '{}' },
     })
     const commit = d.capitalCreateCommit
     expect(commit.present).toBe(true)
@@ -77,7 +87,7 @@ describe('Благорост: коммит часов через API', () => {
 
   it(caseName('cap.commit.side.02', 'цепь отказала в коммите — строки в зеркале не остаётся, часы не списаны'), async () => {
     await doneIssueWithHours(idle, 2)
-    const input = { coopname: COOP, username: member.account, project_hash: idle, commit_hours: 2, description: `Отказ ${tag}`, meta: '' }
+    const input = { coopname: COOP, username: member.account, project_hash: idle, commit_hours: 2, description: `Отказ ${tag}`, meta: '{}' }
     const refused = await gqlError(token, COMMIT, { d: input })
     expect(refused).not.toBeNull()
     expect((await commitsOf({ project_hash: idle, username: member.account })).totalCount).toBe(0)

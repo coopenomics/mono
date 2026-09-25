@@ -29,7 +29,7 @@ function build() {
   return { interactor, appendixRepository, rows, logger };
 }
 
-const request = (hash: string) => ({
+const request_ = (hash: string) => ({
   block_num: 797,
   data: { coopname: 'voskhod', username: 'ivanov', project_hash: 'PROJ', appendix_hash: hash, document: { hash: 'd' } },
 });
@@ -37,7 +37,7 @@ const request = (hash: string) => ({
 describe('допуск, поданный в цепь мимо API', () => {
   it('заявка заводит строку по действию, одобрение в том же блоке её находит и подтверждает', async () => {
     const m = build();
-    await m.interactor.handleGetClearance(request('ABC') as any);
+    await m.interactor.handleGetClearance(request_('ABC') as any);
     await m.interactor.handleConfirmClearance({ block_num: 797, data: { appendix_hash: 'ABC' } } as any);
 
     const row = m.rows.get('abc');
@@ -51,9 +51,36 @@ describe('допуск, поданный в цепь мимо API', () => {
     const existing = { appendix_hash: 'abc', status: AppendixStatus.CREATED, contribution: 'Опыт' };
     m.rows.set('abc', existing);
 
-    await m.interactor.handleGetClearance(request('ABC') as any);
+    await m.interactor.handleGetClearance(request_('ABC') as any);
 
     expect(m.appendixRepository.save).not.toHaveBeenCalled();
     expect(m.rows.get('abc')).toBe(existing);
+  });
+
+  it('одобрение, запущенное параллельно с заявкой того же блока, дожидается её строки', async () => {
+    const m = build();
+    // Сохранение строки заявки медленнее поиска у одобрения.
+    const save = m.appendixRepository.save.getMockImplementation()!;
+    m.appendixRepository.save.mockImplementation(async (a: any) => {
+      await new Promise((r) => setImmediate(r));
+      return save(a);
+    });
+
+    const request = m.interactor.handleGetClearance(request_('ABC') as any);
+    const confirm = m.interactor.handleConfirmClearance({ block_num: 797, data: { appendix_hash: 'ABC' } } as any);
+    await Promise.all([request, confirm]);
+
+    expect(m.rows.get('abc').status).toBe(AppendixStatus.CONFIRMED);
+    expect(m.logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('строка, пришедшая дельтой без статуса, становится заявкой на рассмотрении', async () => {
+    const m = build();
+    const fromDelta = { appendix_hash: 'abc', status: AppendixStatus.UNDEFINED, username: 'ivanov' };
+    m.rows.set('abc', fromDelta);
+
+    await m.interactor.handleGetClearance(request_('ABC') as any);
+
+    expect(m.rows.get('abc').status).toBe(AppendixStatus.CREATED);
   });
 });

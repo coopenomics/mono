@@ -47,22 +47,50 @@ export class ClearanceManagementInteractor {
   }
 
   /**
+   * Заведение строки по действию заявки, которое ещё идёт. Действия блока
+   * разбираются параллельно: одобрение в том же блоке искало строку раньше,
+   * чем заявка успевала её сохранить, — и допуск не появлялся (C28-80).
+   */
+  private readonly requestsInFlight = new Map<string, Promise<void>>();
+
+  /**
    * Заявка на допуск, поданная в цепь мимо API (capital::getclearance
    * напрямую). Если председатель одобрил её в том же блоке, строка приложения
    * в цепи создалась и закрылась внутри блока, дельты по ней нет — и одобрение
-   * не находило допуск вовсе, допуск не появлялся никогда (C28-80). Строка
-   * заводится по действию; поданную через API или пришедшую дельтой не трогаем.
-   * Действия блока выпускаются по порядку, поэтому одобрение её уже найдёт.
+   * не находило допуск вовсе (C28-80). Строка заводится по действию; строка,
+   * пришедшая дельтой раньше действия, получает статус «на рассмотрении»:
+   * синхронизатор статус не ставит, и заявка не выглядела ждущей решения.
+   * Поданную через API строку не трогаем.
    */
-  async handleGetClearance(actionData: InnerChainActionRecord): Promise<void> {
+  handleGetClearance(actionData: InnerChainActionRecord): Promise<void> {
     const request = actionData.data as CapitalContract.Actions.GetClearance.IGetClearance;
     const appendixHash = String(request.appendix_hash).toLowerCase();
-    if (await this.appendixRepository.findByAppendixHash(appendixHash)) return;
+    // Регистрация — до первого ожидания: одобрение из того же блока стартует
+    // сразу следом и должно её увидеть.
+    const work = this.recordClearanceRequest(request, appendixHash, actionData.block_num).finally(() =>
+      this.requestsInFlight.delete(appendixHash)
+    );
+    this.requestsInFlight.set(appendixHash, work);
+    return work;
+  }
+
+  private async recordClearanceRequest(
+    request: CapitalContract.Actions.GetClearance.IGetClearance,
+    appendixHash: string,
+    blockNum: number
+  ): Promise<void> {
+    const existing = await this.appendixRepository.findByAppendixHash(appendixHash);
+    if (existing) {
+      if (existing.status !== AppendixStatus.UNDEFINED) return;
+      existing.status = AppendixStatus.CREATED;
+      await this.appendixRepository.save(existing);
+      return;
+    }
 
     const now = new Date();
     const appendix = new AppendixDomainEntity({
       _id: '',
-      block_num: actionData.block_num,
+      block_num: blockNum,
       present: false,
       appendix_hash: appendixHash,
       status: AppendixStatus.CREATED,
@@ -87,6 +115,7 @@ export class ClearanceManagementInteractor {
       this.logger.debug(`Обработка одобрения приложения ${actionPayload.appendix_hash} в блоке ${block_num}`);
 
       const appendixHashNorm = String(actionPayload.appendix_hash).toLowerCase();
+      await this.requestsInFlight.get(appendixHashNorm);
       const appendix = await this.appendixRepository.findByAppendixHash(appendixHashNorm);
 
       if (appendix) {
@@ -120,10 +149,10 @@ export class ClearanceManagementInteractor {
 
       this.logger.debug(`Обработка отклонения приложения ${actionPayload.appendix_hash} в блоке ${block_num}`);
 
-      // Найти приложение по appendix_hash
-      const appendix = await this.appendixRepository.findByAppendixHash(
-        String(actionPayload.appendix_hash).toLowerCase()
-      );
+      // Найти приложение по appendix_hash (заявка из того же блока — дождаться её)
+      const appendixHashNorm = String(actionPayload.appendix_hash).toLowerCase();
+      await this.requestsInFlight.get(appendixHashNorm);
+      const appendix = await this.appendixRepository.findByAppendixHash(appendixHashNorm);
 
       if (!appendix) {
         this.logger.warn(`Приложение ${actionPayload.appendix_hash} не найдено для отклонения`);
