@@ -13,6 +13,7 @@ import { signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { COOP_SIGNER } from '../core/wallet'
 import { CHAIRMAN } from '../core/roles'
+import { waitFor } from '../core/wait'
 
 /** Пул программных расходов «Благороста» — кошелёк-источник шасси (EXPENSE_OPERATION_SETS). */
 export const PROGRAM_EXPENSE_POOL = 'w.cap.pgexp'
@@ -198,7 +199,10 @@ export async function approveByCouncil(proposalHash: string): Promise<number> {
 
   const statementMeta = typeof decision.statement?.meta === 'string' ? JSON.parse(decision.statement.meta) : decision.statement?.meta
   const token = await tokenOf(CHAIRMAN)
-  const gen = await gql<any>(token, `mutation($d:ExpenseProposalDecisionGenerateDocumentInput!){
+  // Протокол собирается по голосам из журнала действий узла, а голоса ушли в
+  // цепь мимо контроллера — ждём, пока узел их разберёт. Интервал 21 с: у
+  // генерации протокола предел — три вызова в минуту.
+  const gen = await waitFor(() => gql<any>(token, `mutation($d:ExpenseProposalDecisionGenerateDocumentInput!){
     generateExpenseProposalDecisionDocument(data:$d){ full_title html hash meta binary }
   }`, {
     d: {
@@ -210,7 +214,7 @@ export async function approveByCouncil(proposalHash: string): Promise<number> {
       items: statementMeta.items,
       resolution: { kind: 'approve' },
     },
-  })
+  }), { timeoutMs: 150_000, intervalMs: 21_000, label: `протокол решения ${id} по голосам совета` })
   const signed = await signDocument(CHAIRMAN.wif, gen.generateExpenseProposalDecisionDocument, CHAIRMAN.account, 1)
   await gql<any>(token, `mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }`, {
     d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: id, document: signed },
