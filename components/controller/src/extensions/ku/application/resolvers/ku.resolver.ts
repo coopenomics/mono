@@ -362,9 +362,10 @@ export class KuResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['user', 'member', 'chairman'])
   async kuTrustRequests(
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: KuTrustRequestFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<KuTrustRequestDTO>> {
-    return this.kuService.getTrustRequests(filter, options);
+    return this.kuService.getTrustRequests(filter, options, currentUser);
   }
 }

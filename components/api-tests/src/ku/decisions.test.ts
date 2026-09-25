@@ -77,8 +77,9 @@ async function decision(token: string, hash: string): Promise<any> {
   return (await gql<any>(token, DECISION, { h: hash })).kuDecision
 }
 
+/** Заявки участка odn глазами вызывающего — так их запрашивает экран участка. */
 async function trustRequest(token: string, username: string, hash: string): Promise<any> {
-  const d = (await gql<any>(token, REQUESTS, { f: { username }, o: { page: 1, limit: 50, sortOrder: 'DESC' } })).kuTrustRequests
+  const d = (await gql<any>(token, REQUESTS, { f: { coopname: COOP, braname: BRANCH_ODN, username }, o: { page: 1, limit: 50, sortOrder: 'DESC' } })).kuTrustRequests
   return d.items.find((r: any) => r.hash.toLowerCase() === hash.toLowerCase()) ?? null
 }
 
@@ -231,5 +232,13 @@ describe('заявки доверенных лиц участка', () => {
 
   it(caseName('ku.trust.side.03', 'список заявок гостю закрыт'), async () => {
     expectAuthDenied(await gqlError(null, REQUESTS, { f: { username: applicant.account } }))
+  })
+
+  it(caseName('ku.trust.side.04', 'посторонний пайщик не видит чужие заявки с договором и доверенностью, заявитель видит свою'), async () => {
+    // Договор и доверенность несут паспорт, адрес и телефон заявителя.
+    expect(await trustRequest(outsiderToken, applicant.account, declinedHash)).toBeNull()
+    expect(await trustRequest(foreignChairToken, applicant.account, declinedHash)).toBeNull()
+    const own = await trustRequest(applicantToken, applicant.account, declinedHash)
+    expect(own?.username).toBe(applicant.account)
   })
 })

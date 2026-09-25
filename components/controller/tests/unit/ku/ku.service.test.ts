@@ -334,3 +334,35 @@ describe('KuService — генерация документов', () => {
     expect(data.registry_id).toBe(330);
   });
 });
+
+describe('KuService — кто видит заявки в доверенные лица', () => {
+  // Заявка несёт договор с паспортом, адресом и телефоном заявителя. До
+  // 25.09.2026 список отдавался любому пайщику целиком.
+  const filterOf = (repos: any) => repos.trustRequestRepository.findAllPaginated.mock.calls[0][0];
+
+  it('пайщик видит только свои заявки, даже если просит чужой участок', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests({ coopname: COOP, braname: 'romashka' }, undefined, makeUser('stranger'));
+    expect(filterOf(repos)).toMatchObject({ coopname: COOP, braname: 'romashka', username: 'stranger' });
+  });
+
+  it('пайщик без фильтра получает только свои', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests(undefined, undefined, makeUser('stranger'));
+    expect(filterOf(repos)).toMatchObject({ username: 'stranger' });
+  });
+
+  it('председатель участка видит все заявки своего участка', async () => {
+    const { service, repos } = makeService();
+    await service.getTrustRequests({ coopname: COOP, braname: 'romashka' }, undefined, makeUser('trustee1'));
+    expect(filterOf(repos).username).toBeUndefined();
+  });
+
+  it('совет и председатель кооператива видят все заявки', async () => {
+    for (const role of ['member', 'chairman']) {
+      const { service, repos } = makeService();
+      await service.getTrustRequests({ coopname: COOP }, undefined, { username: 'boss', role } as any);
+      expect(filterOf(repos).username).toBeUndefined();
+    }
+  });
+});
