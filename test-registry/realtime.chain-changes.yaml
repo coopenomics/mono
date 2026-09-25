@@ -264,11 +264,14 @@ cases:
   - id: rt.cc.happy.08
     level: backend
     kind: happy
-    scenario: Паевой взнос через шлюз — приход пайщика появляется в цепи.
+    scenario: >
+      Выплата через шлюз ждёт кассира — например, председатель отправил
+      удержанный налог на перечисление.
     expect: >
-      сигнал ленты по таблице приходов шлюза приходит пайщику с ключом строки;
+      сигнал ленты по таблице выплат шлюза приходит совету с ключом строки;
       индексер публикует контракт gateway (parser2.config.yaml, в том числе в
-      шаблоне раскатки)
-    test: components/api-tests/src/platform/realtime.chain-changes.test.ts
-    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+      шаблоне раскатки). Приход шлюза создаётся и закрывается в одном блоке,
+      дельты по нему нет — сигнал о нём несёт кошелёк пайщика
+    test: components/api-tests/src/reports/withheld-tax.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
