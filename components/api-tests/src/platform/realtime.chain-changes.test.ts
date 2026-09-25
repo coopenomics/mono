@@ -14,7 +14,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, caseName, freshMember, gql, login, tableRows, tokenOf, transact } from '../core'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, caseName, deposit, freshMember, gql, login, tableRows, tokenOf, transact } from '../core'
 import type { WsConn } from './platform-a.helpers'
 import {
   WS_FORBIDDEN,
@@ -176,6 +176,17 @@ describe('realtime.chain-changes: лента изменений — сигнал
       const after = await gql<any>(null, 'query{ getSystemInfo{ settings{ updated_at } } }')
       expect(sig.block_num).toBe(0)
       expect(after.getSystemInfo.settings.updated_at).toBe(written)
+    })
+
+    it(caseName('rt.cc.happy.08', 'приход шлюза (паевой взнос) — сигнал пайщику по таблице приходов'), async () => {
+      // До 25.09.2026 контракта gateway не было в публикации индексера, и лента
+      // по приходам и выплатам шлюза молчала — кошелёк по ним не обновлялся.
+      const INCOMES = { code: 'gateway', table: 'incomes' }
+      const sub = chainChangesOf(await open(memberToken), [INCOMES])
+      await settleSubscriptions()
+      await deposit(member.account, 100)
+      const sig = await waitSignal(sub, INCOMES)
+      expect(sig.primary_key).not.toBe('')
     })
 
     it(caseName('rt.cc.happy.06', 'корзина Стола заказов — личная таблица: сигнал приходит заказчику с ключом строки'), async () => {

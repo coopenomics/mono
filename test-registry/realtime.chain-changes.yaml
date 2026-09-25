@@ -58,7 +58,8 @@ title: Лента изменений цепи — живое обновлени�
 
 #
 # Правка 2026-09-25 (C28-85): корзина Стола заказов сохраняется целой строкой —
-# сигнал ленты приходит заказчику с ключом строки.
+# сигнал ленты приходит заказчику с ключом строки; индексер публикует контракт
+# gateway — лента по приходам и выплатам шлюза больше не молчит.
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-changes.service.ts
@@ -259,3 +260,15 @@ cases:
       переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
     test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
     status: written   # прогон — CI на полигоне ci/tests
+
+  - id: rt.cc.happy.08
+    level: backend
+    kind: happy
+    scenario: Паевой взнос через шлюз — приход пайщика появляется в цепи.
+    expect: >
+      сигнал ленты по таблице приходов шлюза приходит пайщику с ключом строки;
+      индексер публикует контракт gateway (parser2.config.yaml, в том числе в
+      шаблоне раскатки)
+    test: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
+    status: passing
