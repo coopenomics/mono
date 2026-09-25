@@ -8,6 +8,8 @@
  */
 import { ClearanceManagementInteractor } from '~/extensions/capital/application/use-cases/clearance-management.interactor';
 import { AppendixStatus } from '~/extensions/capital/domain/enums/appendix-status.enum';
+import { AppendixDomainEntity } from '~/extensions/capital/domain/entities/appendix.entity';
+import { AppendixMapper } from '~/extensions/capital/infrastructure/mappers/appendix.mapper';
 
 function build() {
   const rows = new Map<string, any>();
@@ -82,5 +84,31 @@ describe('допуск, поданный в цепь мимо API', () => {
     await m.interactor.handleGetClearance(request_('ABC') as any);
 
     expect(m.rows.get('abc').status).toBe(AppendixStatus.CREATED);
+  });
+});
+
+describe('строка допуска без номера из цепи', () => {
+  // До 25.09.2026 маппер писал пайщика и проект только вместе с номером строки
+  // из цепи: у заявки, заведённой по действию, их в базе не было, и
+  // подтверждённый допуск не находился по пайщику и проекту (C28-80).
+  it('пайщик, проект и кооператив сохраняются и читаются обратно', () => {
+    const domain = new AppendixDomainEntity({
+      _id: '',
+      block_num: 797,
+      present: false,
+      appendix_hash: 'abc',
+      status: AppendixStatus.CONFIRMED,
+      _created_at: new Date(),
+      _updated_at: new Date(),
+    } as any);
+    domain.coopname = 'voskhod';
+    domain.username = 'ivanov';
+    domain.project_hash = 'proj';
+
+    const row = AppendixMapper.toEntity(domain);
+    expect(row).toMatchObject({ coopname: 'voskhod', username: 'ivanov', project_hash: 'proj', status: AppendixStatus.CONFIRMED });
+
+    const back = AppendixMapper.toDomain({ ...row, _id: 'r1' } as any);
+    expect(back).toMatchObject({ coopname: 'voskhod', username: 'ivanov', project_hash: 'proj' });
   });
 });
