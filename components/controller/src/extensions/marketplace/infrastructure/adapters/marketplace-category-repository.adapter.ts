@@ -9,7 +9,7 @@ import {
 import { MarketplaceCategoryEntity } from '../entities/marketplace-category.entity';
 import { MarketplaceCategoryMapper } from '../mappers/marketplace-category.mapper';
 import {
-  CATEGORY_NAME_TAKEN,
+  categoryNameTaken,
   UX_CATEGORY_DISPLAY_NAME,
 } from '../../constants/marketplace-category.constants';
 
@@ -119,14 +119,14 @@ export class MarketplaceCategoryRepositoryAdapter
         if (isDisplayNameConflict(e)) {
           // Второй запрос с тем же названием прошёл проверку сервиса и упёрся
           // в индекс — отказ тот же, что и при проверке.
-          throw new Error(CATEGORY_NAME_TAKEN);
+          throw categoryNameTaken();
         }
         if (!isPrimaryKeyConflict(e) || attempt === CREATE_ATTEMPTS - 1) {
           throw e;
         }
       }
     }
-    throw new Error(CATEGORY_NAME_TAKEN);
+    throw categoryNameTaken();
   }
 
   async deleteCustom(coopname: string, id: number): Promise<boolean> {

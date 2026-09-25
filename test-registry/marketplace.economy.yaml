@@ -221,8 +221,11 @@ cases:
       налог округляется до целого рубля по правилам налогового кодекса, и
       контракт с бэкендом округляют одинаково
     test: components/controller/src/extensions/marketplace/application/shared/ndfl.util.spec.ts
+    api: components/api-tests/src/marketplace/economy.test.ts
     status: passing
     # Расхождение округления развело бы платёжку кассира и проводку контракта.
+    # До 25.09.2026 снаружи не проходило: сумма платежа хранилась целым, и
+    # выплата с копейками не регистрировалась.
 
   - id: mkt.eco.ui.03
     level: ui

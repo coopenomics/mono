@@ -16,6 +16,11 @@ title: Поле сортировки списков — только колон�
 # одобрений председателя добавлен findByActions для порта одобрений (карточка
 # преподавателя образования) — фиксированный порядок created_at DESC, строка
 # клиента в ORDER BY не попадает. Правило сортировки и набор случаев прежние.
+# Правка 25.09.2026 (C28-80): неверное направление сортировки отклоняется на
+# входе (проверка PaginationInput) — списки Стола заказов падали на нём 500;
+# отказы проверки параметров списка (KIT_*) отвечают 400, а не 500; девять
+# списков Благороста, расходов и участков сверяют имя сортировки с колонками.
+
 sources:
   backend:
     - components/extension-kit/src/dto/pagination.dto.ts
@@ -38,7 +43,7 @@ cases:
     level: backend
     kind: break
     scenario: в поле сортировки дописан подзапрос или посторонние символы
-    expect: ввод отклоняется до построения запроса
+    expect: ввод отклоняется проверкой (422) до построения запроса — во всех списках, включая Благорост
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
     api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
@@ -56,8 +61,10 @@ cases:
     level: backend
     kind: break
     scenario: направление сортировки не ASC и не DESC
-    expect: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает
-    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    expect: >
+      списки на общем входе пагинации отказывают при проверке ввода; ни в одном
+      списке строка клиента не попадает в запрос и не даёт ответа 500
+    test: components/controller/tests/unit/extension-kit/pagination-validation.test.ts
     api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
 

@@ -32,4 +32,8 @@ export class TypeOrmMeetRepository implements MeetRepository {
     });
     await this.meetPreRepo.save(ormEntity);
   }
+
+  async deleteByHash(hash: string): Promise<void> {
+    await this.meetPreRepo.delete({ hash: hash.toUpperCase() });
+  }
 }

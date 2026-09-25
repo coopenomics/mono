@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { t } from '~/i18n';
 /** Зеркало enum'а ошибок SDK @coopenomics/auth (источник контракта един). */
 export enum AuthV2ErrorCode {
@@ -49,4 +50,50 @@ export class VaultServerDecryptionForbiddenError extends AuthV2Error {
       t('authV2.authV2Error.vaultServerDecryptionForbidden'),
     );
   }
+}
+
+/**
+ * HTTP-статус ошибки контура auth-v2. Одна таблица на REST-фильтр контура и
+ * на общий фильтр GraphQL: мутации двухфакторки и восстановления в GraphQL
+ * до 25.09.2026 отвечали на те же отказы статусом 500 (C28-80).
+ */
+const STATUS_BY_CODE: Record<AuthV2ErrorCode, number> = {
+  // 503: блокчейн/инфраструктура временно недоступна — клиенту «повторить позже».
+  [AuthV2ErrorCode.CooposDegraded]: HttpStatus.SERVICE_UNAVAILABLE,
+  // 429: сработал rate-limit контура входа (Story 9.1) — слишком много попыток.
+  [AuthV2ErrorCode.TooManyAttempts]: HttpStatus.TOO_MANY_REQUESTS,
+  // 429: rate-limit recovery (Story 3.1) — слишком много запросов восстановления.
+  [AuthV2ErrorCode.TooManyRecoveryAttempts]: HttpStatus.TOO_MANY_REQUESTS,
+  // 401: неверный код второго фактора (Story 3.6) — TOTP не прошёл.
+  [AuthV2ErrorCode.InvalidTwoFactorCode]: HttpStatus.UNAUTHORIZED,
+  // 400: второй фактор не подключён, а операция его требует (Story 3.6).
+  [AuthV2ErrorCode.TwoFactorNotEnrolled]: HttpStatus.BAD_REQUEST,
+  // 400: recovery-токен недействителен/истёк/уже использован (Story 3.2).
+  [AuthV2ErrorCode.InvalidRecoveryToken]: HttpStatus.BAD_REQUEST,
+  // 400: offline-код восстановления неверен/использован (Story 3.4).
+  [AuthV2ErrorCode.InvalidOfflineCode]: HttpStatus.BAD_REQUEST,
+  // 403: серверная расшифровка ключа запрещена инвариантом (не «не авторизован»).
+  [AuthV2ErrorCode.VaultServerDecryptionForbidden]: HttpStatus.FORBIDDEN,
+  // 400: некорректный ввод/данные клиента (AC Story 1.11 — invalid_credentials → 400).
+  [AuthV2ErrorCode.InvalidCredentials]: HttpStatus.BAD_REQUEST,
+  // 400: пароль не проходит требования стойкости (Story 11.4 / FR58).
+  [AuthV2ErrorCode.WeakPassword]: HttpStatus.BAD_REQUEST,
+  // 409: ротация ключа недоступна кандидату (регистрация не завершена) —
+  // клиент по этому коду прозрачно повторяет миграцию без ротации.
+  [AuthV2ErrorCode.RotationUnavailable]: HttpStatus.CONFLICT,
+  [AuthV2ErrorCode.VaultDecryptionFailed]: HttpStatus.BAD_REQUEST,
+  // 401: провал второго этапа аутентификации (владение ключом не доказано).
+  [AuthV2ErrorCode.TimestampTooOld]: HttpStatus.UNAUTHORIZED,
+  [AuthV2ErrorCode.SessionBindingReused]: HttpStatus.UNAUTHORIZED,
+  [AuthV2ErrorCode.SessionBindingExpired]: HttpStatus.UNAUTHORIZED,
+  [AuthV2ErrorCode.ChainVerificationFailed]: HttpStatus.UNAUTHORIZED,
+  // 401: challenge второго фактора входа истёк/неизвестен — вход начинается заново.
+  [AuthV2ErrorCode.LoginChallengeExpired]: HttpStatus.UNAUTHORIZED,
+  // 403: уровень верификации пайщика ниже требуемого правилом действия (Story 4.2) —
+  // «доступ запрещён по уровню доверия», пайщик аутентифицирован (не 401).
+  [AuthV2ErrorCode.InsufficientVerification]: HttpStatus.FORBIDDEN,
+};
+
+export function authV2HttpStatus(code: AuthV2ErrorCode): number {
+  return STATUS_BY_CODE[code] ?? HttpStatus.UNAUTHORIZED;
 }

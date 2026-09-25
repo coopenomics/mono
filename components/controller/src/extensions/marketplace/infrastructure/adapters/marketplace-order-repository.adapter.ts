@@ -109,6 +109,9 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       quantity: input.quantity,
       unit_of_measure: input.unit_of_measure,
       price_per_unit: input.price_per_unit,
+      // Упаковка заказа: до 25.09.2026 сюда не передавалась, и заказ упаковками
+      // жил без package_id — счётчики упаковки при отмене и акты её не видели.
+      package_id: input.package_id ?? null,
       package_size: input.package_size,
       total_cost: input.total_cost,
       cycle_id: input.cycle_id,

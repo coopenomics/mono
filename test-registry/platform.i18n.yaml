@@ -15,6 +15,10 @@ title: Интернационализация — словари, формат �
 #  - язык запроса на сервере: он обязан пережить await внутри запроса и не
 #    протечь в соседний запрос.
 
+# Правка 25.09.2026 (C28-80): значение, которое база не разобрала как тип
+# колонки (Postgres 22P02: не-UUID, текст вместо числа), — отказ 400 с кодом
+# COMMON_INVALID_VALUE_FORMAT, а не ответ 500 с внутренним текстом базы.
+
 sources:
   backend:
     - components/i18n/src/**
@@ -137,3 +141,17 @@ cases:
       остаётся CHAIN_ASSERT; сервер различает отказы контракта по коду, а не по фразе
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
     status: written
+
+  - id: plt.i18n.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Запрос с идентификатором не в формате колонки базы — например, не-UUID
+      вместо номера заказа.
+    expect: >
+      отказ 400 с кодом COMMON_INVALID_VALUE_FORMAT и текстом словаря; внутренний
+      текст базы наружу не уходит (до 25.09.2026 — ответ 500 с ним)
+    test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    api: components/api-tests/src/platform/i18n.test.ts
+    status: passing
+

@@ -98,6 +98,8 @@ EOF
   set_env "$ctl_env" POSTGRES_PASSWORD "$PG_PASSWORD"
   set_env "$ctl_env" POSTGRES_DATABASE voskhod
   set_env "$ctl_env" MINIO_ENDPOINT "http://minio:9000"
+  set_env "$ctl_env" SMTP_HOST mailpit
+  set_env "$ctl_env" SMTP_PORT 1025
   # Ключи веб-уведомлений обязательны для конфига; одноразовая пара, как в test.yaml.
   local vapid
   vapid="$(cd components/controller && node -e "const k=require('web-push').generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)")"
@@ -133,8 +135,17 @@ cmd_boot() {
   set_env components/controller/.env CHAIN_ID "$id"
 }
 
+# Автоматическая регистрация долей держателей Благороста выключена, пока идут
+# boot-тесты контракта: они шлют действия прямо в цепь и считают премии
+# вкладчиков точно, а доли, заведённые контроллером параллельно, делали итог
+# зависимым от гонки. Перед API-тестами автоматика включается обратно
+# (controller_autoreg_on) — там её проверяют (решение владельца 25.09.2026).
+AUTOREG_KEY=CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION
+
 cmd_app() {
   load_stack
+  set_env components/controller/.env "$AUTOREG_KEY" off
+  docker compose up -d mailpit
   docker compose up -d parser2
   docker compose up -d coopback
 
@@ -188,7 +199,22 @@ api_tests_env() {
   export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
 }
 
+# Контроллер с включённой автоматикой: пересоздаётся, только если стенд
+# поднимался с выключенной (повторный запуск фазы ничего не перезапускает).
+controller_autoreg_on() {
+  load_stack
+  grep -q "^${AUTOREG_KEY}=off$" components/controller/.env || return 0
+  set_env components/controller/.env "$AUTOREG_KEY" on
+  echo "▸ Включаем автоматическую регистрацию долей — пересоздаём контроллер..."
+  docker compose up -d --no-deps --force-recreate coopback
+  if ! stack_wait_for "API контроллера" 300 3 api_ready; then
+    docker compose logs --tail 200 coopback
+    exit 1
+  fi
+}
+
 cmd_apitests() {
+  ( controller_autoreg_on )
   api_tests_env
   cd components/api-tests
   pnpm exec vitest run \
@@ -250,7 +276,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit authentik-server authentik-worker; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true

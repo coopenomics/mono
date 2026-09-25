@@ -9350,6 +9350,8 @@ export type ValueTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code?:boolean | `@${string}`,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** Название товара (для отображения). */
@@ -25003,6 +25005,8 @@ export type ResolverInputTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code?:boolean | `@${string}`,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** Название товара (для отображения). */
@@ -40166,7 +40170,9 @@ export type ModelTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
-		/** Идентификатор предложения непрошедшей позиции. */
+		/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code: string,
+	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id: string,
 	/** Название товара (для отображения). */
 	product_name?: string | undefined | null,
@@ -43522,7 +43528,7 @@ export type ModelTypes = {
 	createProjectOfFreeDecision: ModelTypes["CreatedProjectFreeDecision"],
 	/** Создать веб-пуш подписку для пользователя
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	createWebPushSubscription: ModelTypes["CreateSubscriptionResponse"],
 	/** Создать заявку на вывод средств
 
@@ -43530,7 +43536,7 @@ export type ModelTypes = {
 	createWithdraw: ModelTypes["CreateWithdrawResponse"],
 	/** Деактивировать веб-пуш подписку по ID
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	deactivateWebPushSubscriptionById: boolean,
 	/** Отклонить соглашение пайщика администратором
 
@@ -46026,7 +46032,7 @@ export type ModelTypes = {
 	getUserWallets: Array<ModelTypes["UserWallet"]>,
 	/** Получить веб-пуш подписки пользователя
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	getUserWebPushSubscriptions: Array<ModelTypes["WebPushSubscriptionDto"]>,
 	/** Получить статистику веб-пуш подписок (только для председателя)
 
@@ -56723,6 +56729,8 @@ export type GraphQLTypes = {
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
 	__typename: "MarketplaceCheckoutFailedLine",
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code: string,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id: string,
 	/** Название товара (для отображения). */
@@ -60301,7 +60309,7 @@ export type GraphQLTypes = {
 	createProjectOfFreeDecision: GraphQLTypes["CreatedProjectFreeDecision"],
 	/** Создать веб-пуш подписку для пользователя
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	createWebPushSubscription: GraphQLTypes["CreateSubscriptionResponse"],
 	/** Создать заявку на вывод средств
 
@@ -60309,7 +60317,7 @@ export type GraphQLTypes = {
 	createWithdraw: GraphQLTypes["CreateWithdrawResponse"],
 	/** Деактивировать веб-пуш подписку по ID
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	deactivateWebPushSubscriptionById: boolean,
 	/** Отклонить соглашение пайщика администратором
 
@@ -62982,7 +62990,7 @@ export type GraphQLTypes = {
 	getUserWallets: Array<GraphQLTypes["UserWallet"]>,
 	/** Получить веб-пуш подписки пользователя
 
-Требуемые роли: chairman, member.  */
+Требуемые роли: chairman, member, user.  */
 	getUserWebPushSubscriptions: Array<GraphQLTypes["WebPushSubscriptionDto"]>,
 	/** Получить статистику веб-пуш подписок (только для председателя)
 

@@ -176,14 +176,14 @@ export class CardcoopIdentityService {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw DomainError.internal('CARDCOOP_PARTICIPANT_PROFILE_EMPTY', { username });
+      throw DomainError.badRequest('CARDCOOP_PARTICIPANT_PROFILE_EMPTY', { username });
     }
 
     const kind = privateAccount.type;
     const source = await this.readCard(kind, username, privateAccount);
 
     if (!source) {
-      throw DomainError.internal('CARDCOOP_PARTICIPANT_SUBJECT_DATA_NOT_FOUND', { username, kind });
+      throw DomainError.notFound('CARDCOOP_PARTICIPANT_SUBJECT_DATA_NOT_FOUND', { username, kind });
     }
 
     return { kind, source };

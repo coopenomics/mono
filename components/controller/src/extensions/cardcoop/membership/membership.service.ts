@@ -9,6 +9,7 @@
  * одно с другим.
  */
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { retryWithCurrentApiUrl } from '../infrastructure/current-api-url-retry';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -110,6 +111,14 @@ export class CardcoopMembershipService implements OnModuleDestroy {
     await this.attestations.save(record);
 
     const result = await this.attestationService.issueMembership(apiUrl, { username, cardId, memberSince });
+
+    // Пока сеть выдавала свидетельство, держатель мог удалить карту (forgetCard):
+    // сохранение по стёртой строке вставило бы её заново, и удалённая карта
+    // «воскресала» у пайщика (C28-80).
+    if ((await this.attestations.count({ where: { id: record.id } })) === 0) {
+      this.logger.info(`Карта ${cardId} удалена держателем во время выдачи свидетельства — запись не восстанавливается`);
+      return;
+    }
     this.applyOutcome(record, result, username);
 
     await this.attestations.save(record);
@@ -300,7 +309,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   }
 
   /**
-   * Отзывает все действующие подтверждения пайщика.
+   * Отзывает все подтверждения пайщика: действующие — в сети, невыданные — локально.
    *
    * Подтверждение без идентификатора отозвать нечем: сеть его либо не приняла,
    * либо не назвала. Помечаем такое отозванным локально и говорим об этом —
@@ -308,6 +317,23 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * действующим.
    */
   private async revokeAllFor(apiUrl: string, username: string): Promise<void> {
+    // Невыданное в сеть (ожидает доставки или отвергнуто по существу) закрывается
+    // вместе с членством: в сети его нет, отзывать там нечего, а повтор выпуска
+    // иначе выдал бы свидетельство уже вышедшему пайщику. До 25.09.2026 такие
+    // записи переживали выход (решение владельца 25.09: отзывать, C28-80).
+    const undelivered = await this.attestations.find({
+      where: [
+        { username, state: CardcoopAttestationState.Pending },
+        { username, state: CardcoopAttestationState.Rejected },
+      ],
+    });
+    for (const record of undelivered) {
+      record.state = CardcoopAttestationState.Revoked;
+      record.revokedAt = new Date();
+      record.lastError = null;
+      await this.attestations.save(record);
+    }
+
     const active = await this.attestations.find({
       where: { username, state: CardcoopAttestationState.Active },
     });
@@ -355,10 +381,10 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    *
    * @param apiUrl — адрес сети карт из конфигурации расширения.
    */
-  startRetries(apiUrl: string): void {
+  startRetries(resolveApiUrl: () => Promise<string>): void {
     if (this.retryTimer) return;
     // timing: schedule — повторная доставка недоставленного в сеть карт
-    this.retryTimer = setInterval(() => void this.retryUndelivered(apiUrl), RETRY_SWEEP_MS);
+    this.retryTimer = setInterval(() => void retryWithCurrentApiUrl(resolveApiUrl, (apiUrl) => this.retryUndelivered(apiUrl), this.logger), RETRY_SWEEP_MS);
     // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
     this.retryTimer.unref();
   }

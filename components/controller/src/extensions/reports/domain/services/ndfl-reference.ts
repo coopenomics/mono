@@ -36,7 +36,7 @@ function russianProfile(): JurisdictionProfile {
 export function getNdflParams(reportYear: number): PersonalIncomeTax {
   const params = getPersonalIncomeTax(RUSSIA, `${reportYear}-12-31`);
   if (!params) {
-    throw DomainError.internal('REPORTS_NDFL_YEAR_UNSUPPORTED', { reportYear });
+    throw DomainError.badRequest('REPORTS_NDFL_YEAR_UNSUPPORTED', { reportYear });
   }
   return params;
 }

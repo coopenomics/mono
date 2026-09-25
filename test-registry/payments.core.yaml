@@ -231,16 +231,18 @@ cases:
     kind: side
     scenario: паевой платёж нулевой или отрицательной суммы
     expect: отказ, платёж не заводится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
 
   - id: pay.core.side.17
     level: backend
     kind: side
     scenario: повторная смена статуса завершённого платежа — код отказа
-    expect: отказ кодом GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN (сейчас любой сбой setPaymentStatus подменяется кодом GATEWAY_PAYMENT_NOT_FOUND)
-    test: ~
-    status: missing
+    expect: отказ кодом GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN (до 25.09.2026 любой сбой setPaymentStatus подменялся кодом GATEWAY_PAYMENT_NOT_FOUND)
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
 
   - id: pay.core.side.18
     level: backend
@@ -262,6 +264,7 @@ cases:
     level: backend
     kind: happy
     scenario: владелец удаляет свои реквизиты
-    expect: реквизиты пропадают из списка (сейчас deletePaymentMethod отвергает любой вызов — method_id строкового поля проверяется как число, 422)
-    test: ~
-    status: missing
+    expect: реквизиты пропадают из списка (до 25.09.2026 deletePaymentMethod отвергал любой вызов — method_id строкового поля проверялся как число, 422)
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing

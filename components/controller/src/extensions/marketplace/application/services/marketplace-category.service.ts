@@ -4,7 +4,7 @@ import {
   type MarketplaceCategoryDomainRepository,
 } from '../../domain/repositories/marketplace-category.repository';
 import type { MarketplaceCategoryDomainEntity } from '../../domain/entities/marketplace-category.entity';
-import { CATEGORY_NAME_TAKEN } from '../../constants/marketplace-category.constants';
+import { categoryNameTaken } from '../../constants/marketplace-category.constants';
 import { DomainError } from '@coopenomics/extension-kit';
 
 export const MARKETPLACE_CATEGORY_SERVICE = Symbol('MARKETPLACE_CATEGORY_SERVICE');
@@ -44,10 +44,10 @@ export class MarketplaceCategoryService {
   async createCustom(coopname: string, displayName: string): Promise<MarketplaceCategoryDomainEntity> {
     const name = (displayName ?? '').trim();
     if (!name) {
-      throw DomainError.internal('MARKETPLACE_CATEGORY_NAME_REQUIRED');
+      throw DomainError.badRequest('MARKETPLACE_CATEGORY_NAME_REQUIRED');
     }
     if (await this.repo.existsByDisplayName(name)) {
-      throw new Error(CATEGORY_NAME_TAKEN);
+      throw categoryNameTaken();
     }
     return this.repo.createCustom(coopname, name);
   }

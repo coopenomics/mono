@@ -14,12 +14,14 @@ const makeRepo = (rows: any[] = []) => {
     store,
     create: (data: any) => ({ ...data }),
     save: jest.fn(async (row: any) => {
+      row.id ??= `att-row-${store.length + 1}`;
       const index = store.findIndex((r) => r === row || (r.username === row.username && r.cardId === row.cardId));
       if (index >= 0) store[index] = row;
       else store.push(row);
       return row;
     }),
     findOne: jest.fn(async ({ where }: any) => store.find((r) => Object.entries(where).every(([k, v]) => r[k] === v)) ?? null),
+    count: jest.fn(async ({ where }: any) => store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v)).length),
     find: jest.fn(async ({ where }: any) => {
       const clauses = Array.isArray(where) ? where : [where];
       return store.filter((r) => clauses.some((c: any) => Object.entries(c).every(([k, v]) => r[k] === v)));
@@ -57,6 +59,22 @@ describe('Членство пайщика в сети карт', () => {
       attestationId: 'att-1',
       state: CardcoopAttestationState.Active,
     });
+  });
+
+  // До 25.09.2026 итоговое сохранение вставляло стёртую строку заново, и
+  // удалённая карта «воскресала» у пайщика (C28-80).
+  it('держатель удалил карту, пока сеть выдавала свидетельство, — запись не восстанавливается', async () => {
+    const attestations = makeRepo();
+    const service = build(attestations, makeRepo(), {
+      issueMembership: jest.fn(async () => {
+        await service.forgetCard('card-1');
+        return { delivered: true, status: 201, attestationId: 'att-1' };
+      }),
+    });
+
+    await service.issue('https://card.coop', 'ant', 'card-1', '2026-01-15');
+
+    expect(attestations.store).toEqual([]);
   });
 
   it('повторное уведомление о той же связи не порождает второго свидетельства', async () => {
@@ -99,6 +117,27 @@ describe('Членство пайщика в сети карт', () => {
     expect(attestations.store[0].state).toBe(CardcoopAttestationState.Revoked);
     expect(attestations.store[0].revokedAt).toBeInstanceOf(Date);
     expect(exits.store).toHaveLength(0);
+  });
+
+  // До 25.09.2026 выход отзывал только действующие подтверждения, а ожидающие
+  // и отвергнутые повтор продолжал выпускать уже вышедшему пайщику (C28-80).
+  it('выход закрывает и невыданные подтверждения — повтор не выпустит их вышедшему пайщику', async () => {
+    const attestations = makeRepo([
+      { username: 'ant', cardId: 'card-1', attestationId: null, state: CardcoopAttestationState.Pending },
+      { username: 'ant', cardId: 'card-2', attestationId: null, state: CardcoopAttestationState.Rejected, lastError: '422' },
+      { username: 'bob', cardId: 'card-3', attestationId: null, state: CardcoopAttestationState.Pending },
+    ]);
+    const exits = makeRepo([{ exitHash: 'exit-1', username: 'ant', coopname: 'voskhod' }]);
+    const revoke = jest.fn();
+
+    await build(attestations, exits, { revoke }).revokeByCompletedExit('https://card.coop', 'exit-1');
+
+    expect(revoke).not.toHaveBeenCalled();
+    const [pending, rejected, foreign] = attestations.store;
+    expect(pending.state).toBe(CardcoopAttestationState.Revoked);
+    expect(rejected.state).toBe(CardcoopAttestationState.Revoked);
+    expect(rejected.lastError).toBeNull();
+    expect(foreign.state).toBe(CardcoopAttestationState.Pending);
   });
 
   it('выход неизвестного пайщика ничего не отзывает, но попадает в журнал', async () => {

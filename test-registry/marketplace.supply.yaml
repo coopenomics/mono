@@ -34,6 +34,10 @@ title: Поставка — сборка партии поставщиком, п
 # перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
 # Серверные сценарии и их случаи не менялись.
 
+#
+# Правка 2026-09-25 (C28-85): экспресс-приёмка проверяет факт до записи —
+# прежде отказ «факт больше заказа» оставлял заказ в заведённой партии, и
+# повторная экспресс-приёмка его не видела.
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp
@@ -89,7 +93,7 @@ cases:
     level: backend
     kind: side
     scenario: Оператор указывает к приёмке больше единиц, чем было заказано
-    expect: отказ — принять больше заказанного нельзя
+    expect: отказ — принять больше заказанного нельзя; отказ ничего не меняет — партия не заводится, заказ ждёт приёмки
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
     api: components/api-tests/src/marketplace/supply.test.ts
     status: passing

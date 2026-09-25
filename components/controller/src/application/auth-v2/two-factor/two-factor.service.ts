@@ -4,7 +4,7 @@ import { encrypt, decrypt } from '~/utils/aes';
 import { AuthV2Error, AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { TWO_FACTOR_REPOSITORY } from '~/domain/auth-v2/ports/two-factor.port';
 import type { ITwoFactorRepository, ITwoFactorVerifier } from '~/domain/auth-v2/ports/two-factor.port';
-import { buildOtpauthUri, generateTotpSecret, verifyTotp } from '~/domain/auth-v2/totp/totp';
+import { buildOtpauthUri, generateTotpSecret, matchTotpStep } from '~/domain/auth-v2/totp/totp';
 import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-event.types';
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
@@ -44,7 +44,7 @@ export class TwoFactorService implements ITwoFactorVerifier {
   async activate(subjectId: string, code: string, ip: string | null): Promise<void> {
     const record = await this.repo.get(subjectId);
     if (!record) throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, t('authV2.twoFactorService.notEnrolledMessage'));
-    if (!verifyTotp(decrypt(record.secretEnc), code)) {
+    if (!(await this.acceptCode(subjectId, record.secretEnc, code))) {
       throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.twoFactorService.invalidTotpCodeMessage'));
     }
     await this.repo.enable(subjectId);
@@ -59,7 +59,7 @@ export class TwoFactorService implements ITwoFactorVerifier {
     if (!record || !record.enabled) {
       throw new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, t('authV2.twoFactorService.notConnectedMessage'));
     }
-    if (!verifyTotp(decrypt(record.secretEnc), code)) {
+    if (!(await this.acceptCode(subjectId, record.secretEnc, code))) {
       throw new AuthV2Error(AuthV2ErrorCode.InvalidTwoFactorCode, t('authV2.twoFactorService.invalidTotpCodeMessage'));
     }
     await this.repo.remove(subjectId);
@@ -107,6 +107,17 @@ export class TwoFactorService implements ITwoFactorVerifier {
   async verify(subjectId: string, code: string): Promise<boolean> {
     const record = await this.repo.get(subjectId);
     if (!record || !record.enabled) return false;
-    return verifyTotp(decrypt(record.secretEnc), code);
+    return this.acceptCode(subjectId, record.secretEnc, code);
+  }
+
+  /**
+   * Код принимается один раз: совпавший шаг времени занимается, повтор того же
+   * кода (или более раннего) отвергается. До 25.09.2026 один код проходил
+   * дважды подряд — подслушанный код давал второе действие (нашёл внешний слой).
+   */
+  private async acceptCode(subjectId: string, secretEnc: string, code: string): Promise<boolean> {
+    const step = matchTotpStep(decrypt(secretEnc), code);
+    if (step === null) return false;
+    return this.repo.claimStep(subjectId, step);
   }
 }

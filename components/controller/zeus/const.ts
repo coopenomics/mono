@@ -6034,6 +6034,7 @@ export const ReturnTypes: Record<string,any> = {
 		totalTypes:"Int"
 	},
 	MarketplaceCheckoutFailedLine:{
+		code:"String",
 		offer_id:"String",
 		product_name:"String",
 		quantity:"Float",

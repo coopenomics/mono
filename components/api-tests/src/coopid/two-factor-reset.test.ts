@@ -9,8 +9,8 @@
  * сразу включает код при входе.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COUNCIL, ROLES, type Who, caseName, freshMember, gql, gqlRaw, login, tokenOf } from '../core'
-import { AUTH_CODES, LOGIN_FACTORS, PARTICIPANT_LOGIN_SECURITY, RESET_TWO_FACTOR, enrollTotp, setPassword, totpCode } from './coopid-a.helpers'
+import { CHAIRMAN, COUNCIL, ROLES, caseName, expectAuthDenied, freshMember, gql, gqlRaw, login, tokenOf, totp, type Who } from '../core'
+import { LOGIN_FACTORS, PARTICIPANT_LOGIN_SECURITY, RESET_TWO_FACTOR, enrollTotp, setPassword } from './coopid-a.helpers'
 
 const DISABLE_TWO_FACTOR = 'mutation($d:TwoFactorCodeInput!){ disableTwoFactor(data:$d) }'
 
@@ -45,7 +45,7 @@ describe('coopid.two-factor-reset: председатель снимает пр�
 
     expect((await gql<any>(memberToken, LOGIN_FACTORS)).getLoginFactors.totp_enrolled).toBe(false)
     // Секрета больше нет: код от прежнего приложения ничего не отключает.
-    const stale = await gqlRaw(memberToken, DISABLE_TWO_FACTOR, { d: { code: totpCode(secret) } })
+    const stale = await gqlRaw(memberToken, DISABLE_TWO_FACTOR, { d: { code: totp(secret) } })
     expect(stale.data).toBeNull()
     expect(stale.errors.length).toBeGreaterThan(0)
   })
@@ -85,7 +85,7 @@ describe('coopid.two-factor-reset: председатель снимает пр�
     expect(self.errors[0]?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     const guest = await gqlRaw(null, RESET_TWO_FACTOR, { d: { username: target.account } })
     expect(guest.data).toBeNull()
-    expect(AUTH_CODES.has(String(guest.errors[0]?.code))).toBe(true)
+    expectAuthDenied(guest.errors[0] ?? null)
 
     expect((await gql<any>(targetToken, LOGIN_FACTORS)).getLoginFactors.totp_enrolled).toBe(true)
   })

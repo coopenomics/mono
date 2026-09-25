@@ -89,6 +89,16 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(own.some(p => p.quantity === 500)).toBe(false)
   })
 
+  it(caseName('pay.core.side.16', 'паевой платёж нулевой или отрицательной суммы — отказ, платёж не заводится'), async () => {
+    // До 25.09.2026 принимались 0 и −100 RUB.
+    for (const quantity of [0, -100]) {
+      const err = await gqlError(payerToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity, symbol: 'RUB' } })
+      expect(err?.code).toBe('GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE')
+    }
+    const own = await listPayments(payerToken, { username: payer.account })
+    expect(own.some(p => p.quantity <= 0)).toBe(false)
+  })
+
   it(caseName('pay.core.side.04', 'платёж в чужой валюте отклоняется'), async () => {
     const err = await gqlError(payerToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity: 700, symbol: 'XYZ' } })
     expect(err?.code).toBe('KIT_SYMBOL_UNSUPPORTED')
@@ -113,7 +123,7 @@ describe('платежи ядра: паевой платёж, статус, че
     // Свой список пайщика: ни одного чужого имени, платежа двойника нет.
     const own = await listPayments(memberToken, { username: member.account })
     expect(own.every(p => p.username === member.account)).toBe(true)
-    expect(await paymentByHash(memberToken, lookalikePayment.hash, member.account)).toBeNull()
+    expect(await paymentByHash(memberToken, lookalikePayment.hash, { username: member.account })).toBeNull()
     // Совет по имени пайщика тоже получает только его платежи.
     const byChair = await listPayments(chairToken, { username: member.account, hash: lookalikePayment.hash })
     expect(byChair).toEqual([])
@@ -124,7 +134,7 @@ describe('платежи ядра: паевой платёж, статус, че
   it(caseName('pay.core.side.07', 'пайщик не отмечает свой платёж оплаченным'), async () => {
     const err = await gqlError(payerToken, SET_STATUS, { d: { id: deposit.id, status: 'PAID' } })
     expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await paymentByHash(payerToken, deposit.hash, payer.account))?.status).toBe('PENDING')
+    expect((await paymentByHash(payerToken, deposit.hash, { username: payer.account }))?.status).toBe('PENDING')
   })
 
   it(caseName('pay.core.happy.02', 'председатель отмечает паевой платёж оплаченным — платёж завершён, кошелёк пополнен'), async () => {
@@ -132,7 +142,7 @@ describe('платежи ядра: паевой платёж, статус, че
     const d = await gql<any>(chairToken, SET_STATUS, { d: { id: deposit.id, status: 'PAID' } })
     expect(d.setPaymentStatus.id).toBe(deposit.id)
 
-    const after = await paymentByHash(payerToken, deposit.hash, payer.account)
+    const after = await paymentByHash(payerToken, deposit.hash, { username: payer.account })
     expect(after.status).toBe('COMPLETED')
     expect(after.can_change_status).toBe(false)
     expect(after.is_final).toBe(true)
@@ -141,8 +151,9 @@ describe('платежи ядра: паевой платёж, статус, че
 
   it(caseName('pay.core.side.08', 'завершённый платёж повторно не меняет статус'), async () => {
     const err = await gqlError(chairToken, SET_STATUS, { d: { id: deposit.id, status: 'CANCELLED' } })
-    expect(err).not.toBeNull()
-    expect((await paymentByHash(payerToken, deposit.hash, payer.account))?.status).toBe('COMPLETED')
+    // pay.core.side.17: причина своя, не «платёж не найден» (до 25.09.2026).
+    expect(err?.code).toBe('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN')
+    expect((await paymentByHash(payerToken, deposit.hash, { username: payer.account }))?.status).toBe('COMPLETED')
   })
 
   it(caseName('pay.core.side.09', 'смена статуса несуществующего платежа — не найден'), async () => {
@@ -154,7 +165,7 @@ describe('платежи ядра: паевой платёж, статус, че
     const pending = await createDeposit(payerToken, payer.account, 1234)
     const reason = `отмена api-tests ${crypto.randomBytes(4).toString('hex')}`
     await gql(await tokenOf(COUNCIL), SET_STATUS, { d: { id: pending.id, status: 'CANCELLED', message: reason } })
-    const seen = await paymentByHash(payerToken, pending.hash, payer.account)
+    const seen = await paymentByHash(payerToken, pending.hash, { username: payer.account })
     expect(seen.status).toBe('CANCELLED')
     expect(seen.message).toBe(reason)
     expect(seen.can_change_status).toBe(false)
@@ -186,7 +197,7 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(one.paymentFile.read_url).toBeTruthy()
     expect(one.paymentFile.original_filename).toBe('chek.png')
 
-    const payment = await paymentByHash(payerToken, deposit.hash, payer.account)
+    const payment = await paymentByHash(payerToken, deposit.hash, { username: payer.account })
     expect(payment.blockchain_data?.proof_count).toBe(1)
   })
 
@@ -251,7 +262,7 @@ describe('платежи ядра: паевой платёж, статус, че
   it(caseName('pay.core.side.15', 'чужой пайщик не читает, не добавляет, не меняет и не удаляет реквизиты пайщика'), async () => {
     expect((await gqlError(otherToken, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     expect((await gqlError(otherToken, ADD_METHOD, { d: { username: payer.account, is_default: true, sbp_data: { phone: randomPhone() } } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, UPDATE_BANK, { d: { username: payer.account, method_id: sbp.method_id, is_default: true, data: bankAccount('Чужой банк') } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect((await gqlError(otherToken, UPDATE_BANK, { d: { username: payer.account, method_id: sbp.method_id, is_default: true, data: bankAccount({ bank_name: 'Чужой банк' }) } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     expect((await gqlError(otherToken, DELETE_METHOD, { d: { username: payer.account, method_id: sbp.method_id } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     expect(String((await gqlError(null, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code)).toBe('401')
 
@@ -262,11 +273,11 @@ describe('платежи ядра: паевой платёж, статус, че
   })
 
   it(caseName('pay.core.happy.06', 'пайщик ведёт свой банковский счёт: добавляет и меняет его'), async () => {
-    const add = await gql<any>(payerToken, ADD_METHOD, { d: { username: payer.account, is_default: false, bank_transfer_data: bankAccount('Банк Первый') } })
+    const add = await gql<any>(payerToken, ADD_METHOD, { d: { username: payer.account, is_default: false, bank_transfer_data: bankAccount({ bank_name: 'Банк Первый' }) } })
     const bank = add.addPaymentMethod
     expect(bank.method_type).toBe('bank_transfer')
 
-    const next = bankAccount('Банк Второй')
+    const next = bankAccount({ bank_name: 'Банк Второй' })
     await gql(payerToken, UPDATE_BANK, { d: { username: payer.account, method_id: bank.method_id, is_default: false, data: next } })
     const mine = await methodsOf(payerToken, payer.account)
     const updated = mine.filter(m => m.method_id === bank.method_id)
@@ -285,5 +296,15 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(seenByChair.some(m => m.method_id === added.method_id)).toBe(true)
     const seenByPayer = await methodsOf(payerToken, payer.account)
     expect(seenByPayer.find(m => m.method_id === added.method_id)?.data?.phone).toBe(phone)
+  })
+
+  it(caseName('pay.core.happy.08', 'владелец удаляет свои реквизиты — они пропадают из списка'), async () => {
+    // До 25.09.2026 удаление отвергалось всегда: id способа оплаты — строка,
+    // а проверка входа ждала число (422).
+    const extra = await addSbpMethod(payerToken, payer.account, randomPhone())
+    expect((await gql<any>(payerToken, DELETE_METHOD, { d: { username: payer.account, method_id: extra.method_id } })).deletePaymentMethod).toBe(true)
+    const mine = await methodsOf(payerToken, payer.account)
+    expect(mine.some(m => m.method_id === extra.method_id)).toBe(false)
+    expect(mine.some(m => m.method_id === sbp.method_id)).toBe(true)
   })
 })

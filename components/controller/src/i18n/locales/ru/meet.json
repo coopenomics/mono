@@ -1,5 +1,6 @@
 {
   "errors": {
+    "MEET_NOT_FOUND": "Собрание не найдено",
     "MEET_NOT_FOUND_AFTER_RESTART": "Собрание после перезапуска не найдено в блокчейне"
   },
   "meet": {

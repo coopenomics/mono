@@ -12,18 +12,8 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, gql, gqlError, signDocument, tableRows, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, randomHash, signDocument, tableRows, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const digest = (text: string): string => text ? crypto.createHash('sha256').update(text, 'utf8').digest('hex') : ''
 
@@ -149,5 +139,39 @@ describe('общее собрание: созыв и чтение', () => {
 
     expectAuthDenied(await gqlError(null, LIST, { d: { coopname: COOP } }))
     expectAuthDenied(await gqlError(null, GET, { d: { coopname: COOP, hash: meetHash } }))
+  })
+
+  // До 25.09.2026 строка собрания оставалась в базе и при отказе цепи
+  // (решение владельца 25.09: такого быть не должно, C28-80). Базу снаружи не
+  // видно — её проверяет модульный тест; здесь — то, что видит председатель.
+  it(caseName('meet.gm.side.03', 'цепь отвергла созыв — председателю отказ цепи, собрания не появилось'), async () => {
+    const hashes = async (): Promise<string[]> => (await gql<any>(chairToken, LIST, { d: { coopname: COOP } })).getMeets.map((m: any) => m.hash)
+    const before = new Set(await hashes())
+    const err = await gqlError(chairToken, CREATE, {
+      d: {
+        coopname: COOP,
+        initiator: CHAIRMAN.account,
+        presider: CHAIRMAN.account,
+        secretary: CHAIRMAN.account,
+        agenda,
+        open_at: openAt.toISOString(),
+        close_at: openAt.toISOString(),
+        proposal,
+      },
+    })
+    expectCode(err, 'CHAIN_ASSERT')
+    expect(err!.message).toMatch(/Дата закрытия должна быть после даты открытия/)
+    // Соседние наборы могут созвать свои собрания — отвергнутого среди новых нет.
+    for (const hash of (await hashes()).filter(h => !before.has(h))) {
+      const pre = (await gql<any>(chairToken, GET, { d: { coopname: COOP, hash } })).getMeet.pre
+      // Закрытие в момент открытия цепь не принимает — такое собрание было бы нашим.
+      expect(new Date(pre?.close_at).getTime(), `собрание ${hash}`).not.toBe(new Date(pre?.open_at).getTime())
+    }
+  })
+
+  // До 25.09.2026 чужой или ошибочный хэш давал ответ 500 с внутренним
+  // текстом «Hash для объекта meet не найден» (C28-80).
+  it(caseName('meet.gm.side.04', 'собрания с таким хэшем нет — отказ «не найдено», а не сбой сервера'), async () => {
+    expectCode(await gqlError(memberToken, GET, { d: { coopname: COOP, hash: randomHash() } }), 'MEET_NOT_FOUND')
   })
 })

@@ -25,6 +25,10 @@ title: Доступные категории кооператива — огра
 # изменилась только строка импорта — состав guard'ов на операциях, правила
 # доступа и набор случаев прежние.
 
+# Правка 25.09.2026 (C28-80): занятое название — отказ с кодом
+# MARKETPLACE_CATEGORY_NAME_TAKEN (409); прежде резолвер заворачивал его в 400
+# без кода, и отказ различался только по тексту.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts
@@ -66,7 +70,7 @@ cases:
     kind: side
     scenario: >
       Создание собственной категории с именем, которое уже есть в пределах кооператива (его собственная либо базовая категория платформы)
-    expect: отказ «Категория с таким названием уже существует», дубликат не создаётся
+    expect: отказ MARKETPLACE_CATEGORY_NAME_TAKEN (409) «Категория с таким названием уже существует», дубликат не создаётся
     test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
     api: components/api-tests/src/marketplace/categories.test.ts
     status: passing

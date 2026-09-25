@@ -1,4 +1,5 @@
 import { CoreBaseline1790197276751 } from './1790197276751-baseline';
+import { PaymentsQuantityNumeric1790316882052 } from './1790316882052-payments-quantity-numeric';
 import type { MigrationInterface } from 'typeorm';
 
 /**
@@ -11,4 +12,7 @@ import type { MigrationInterface } from 'typeorm';
  * Миграции таблиц расширений объявляются в их записях реестра
  * (`databaseMigrations`) и идут той же лентой.
  */
-export const coreDatabaseMigrations: ReadonlyArray<new () => MigrationInterface> = [CoreBaseline1790197276751];
+export const coreDatabaseMigrations: ReadonlyArray<new () => MigrationInterface> = [
+  CoreBaseline1790197276751,
+  PaymentsQuantityNumeric1790316882052,
+];

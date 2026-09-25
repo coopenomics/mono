@@ -44,6 +44,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ заявления на вступление в кооператив от пайщика',
   })
   @ValidateNested()
+  @Type(() => ParticipantApplicationSignedDocumentInputDTO)
   @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.statementRequired') })
   statement!: ParticipantApplicationSignedDocumentInputDTO;
 
@@ -51,6 +52,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ политики конфиденциальности от пайщика',
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.privacyAgreementRequired') })
   privacy_agreement!: SignedDigitalDocumentInputDTO;
 
@@ -58,6 +60,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ положения о цифровой подписи от пайщика',
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.signatureAgreementRequired') })
   signature_agreement!: SignedDigitalDocumentInputDTO;
 
@@ -65,6 +68,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ пользовательского соглашения от пайщика',
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.userAgreementRequired') })
   user_agreement!: SignedDigitalDocumentInputDTO;
 
@@ -72,6 +76,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     description: 'Подписанный документ положения целевой потребительской программы "Цифровой Кошелёк" от пайщика',
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsNotEmpty({ message: validationMessage('registration.registerParticipantInput.walletAgreementRequired') })
   wallet_agreement!: SignedDigitalDocumentInputDTO;
 
@@ -80,6 +85,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   blagorost_offer?: SignedDigitalDocumentInputDTO;
 
@@ -88,6 +94,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   generator_offer?: SignedDigitalDocumentInputDTO;
 
@@ -96,6 +103,7 @@ export class RegisterParticipantInputDTO implements RegisterParticipantDomainInt
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => SignedDigitalDocumentInputDTO)
   @IsOptional()
   marketplace_offer?: SignedDigitalDocumentInputDTO;
 

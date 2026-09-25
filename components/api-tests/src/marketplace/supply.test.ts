@@ -113,16 +113,12 @@ describe('приёмка на участке: права, одна приёмк�
     expect(express?.codeText, express?.message).toBe('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED')
     expect(await receptionsOfOrder(orderId), 'акт не создан').toEqual([])
 
-    // Партия самовывоза заводится до проверки факта; по ней приёмка
-    // открывается формированием акта — там тот же потолок.
-    const after = await gql<any>(memberToken, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ id status shipment_id } }', { i: { order_id: orderId } })
-    console.info(`[mkt.supply.side.02] после отказа экспресс-приёмки: заказ ${after.marketplaceGetOrder.status}, партия ${after.marketplaceGetOrder.shipment_id ?? '—'}`)
-    shipmentId = after.marketplaceGetOrder.shipment_id ?? ''
-    if (shipmentId) {
-      const create = await refusal(operatorToken, CREATE, { d: { shipment_id: shipmentId, fact_quantity_per_order: over } })
-      expect(create?.codeText, create?.message).toBe('MARKETPLACE_ORDER_FACT_EXCEEDS_ORDERED')
-      expect(await receptionsOfOrder(orderId), 'акт не создан').toEqual([])
-    }
+    // Отказ ничего не меняет: партия не заводится, заказ ждёт приёмки как
+    // прежде. До 25.09.2026 партия создавалась до проверки факта, заказ
+    // застревал в ней, и повторная экспресс-приёмка его не видела.
+    const after = (await gql<any>(memberToken, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ id status shipment_id } }', { i: { order_id: orderId } })).marketplaceGetOrder
+    expect(after.status, 'заказ ждёт приёмки, как до отказа').toBe('ACCEPTED')
+    expect(after.shipment_id ?? null, 'партия не заведена').toBeNull()
   })
 
   let receptionId = ''

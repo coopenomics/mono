@@ -96,4 +96,29 @@ describe('BlockchainService.transact — ответ после разбора б
 
     await expect(service.transact(ACTION)).resolves.toBe(RESULT);
   });
+
+  // До 25.09.2026 клиент цепи превращал отказ контракта в простой Error, и
+  // пайщик получал ответ 500 без кода, а журнал ошибок — «поломку» (C28-80).
+  it('отказ контракта уходит отказом с кодом: код контракта или CHAIN_ASSERT, статус 400', async () => {
+    const { service } = build();
+    const session = (service as any).session;
+
+    session.transact.mockRejectedValueOnce(new Error('assertion failure with message: GATEWAY_OUTCOME_NOT_FOUND: Объект возврата не существует'));
+    const coded = await service.transact(ACTION).catch((e) => e);
+    expect(coded.code).toBe('GATEWAY_OUTCOME_NOT_FOUND');
+    expect(coded.getStatus()).toBe(400);
+
+    session.transact.mockRejectedValueOnce(new Error('assertion failure with message: Проект должен быть в статусе active'));
+    await expect(service.transact(ACTION)).rejects.toMatchObject({
+      code: 'CHAIN_ASSERT',
+      params: { message: 'Проект должен быть в статусе active' },
+    });
+  });
+
+  it('сбой цепи без отказа контракта уходит как был', async () => {
+    const { service } = build();
+    const failure = new Error('connect ECONNREFUSED');
+    (service as any).session.transact.mockRejectedValueOnce(failure);
+    await expect(service.transact(ACTION)).rejects.toBe(failure);
+  });
 });

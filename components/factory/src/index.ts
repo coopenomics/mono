@@ -2,6 +2,7 @@ export * from './Interfaces'
 export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
+export { documentMetaKey } from './Utils/documentMetaKey'
 
 import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'
@@ -66,6 +67,14 @@ export interface IGenerator {
 
   // Новый метод поиска
   search: (query: string) => Promise<ISearchResult[]>
+}
+
+/** Для номера реестра нет фабрики документа — такой документ генератор не собирает. */
+export class UnknownDocumentFactoryError extends Error {
+  constructor(public readonly registry_id: number) {
+    super(`Фабрика для документа #${registry_id} не найдена.`)
+    this.name = 'UnknownDocumentFactoryError'
+  }
 }
 
 export class Generator implements IGenerator {
@@ -261,7 +270,7 @@ export class Generator implements IGenerator {
     const factory = this.factories[data.registry_id as Numbers] // Get the factory
 
     if (!factory)
-      throw new Error(`Фабрика для документа #${data.registry_id} не найдена.`)
+      throw new UnknownDocumentFactoryError(data.registry_id)
 
     // синтезируем документ
     return await factory.generateDocument(data, options)
@@ -271,7 +280,7 @@ export class Generator implements IGenerator {
     const factory = this.factories[data.registry_id as Numbers]
 
     if (!factory)
-      throw new Error(`Фабрика для документа #${data.registry_id} не найдена.`)
+      throw new UnknownDocumentFactoryError(data.registry_id)
 
     return await factory.generateBlank(data)
   }

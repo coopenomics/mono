@@ -17,6 +17,11 @@ sources:
     - components/controller/src/extensions/chairman/infrastructure/mappers/approval*.ts
     - components/controller/src/extensions/chairman/infrastructure/blockchain/**
 
+# Правка 25.09.2026 (C28-80): одобренный документ читается из базы (конструктор
+# одобрения его терял, и стол всегда видел пустоту); после решения сохраняется
+# одобрение, перечитанное после транзакции, — признак «в цепи» больше не
+# возвращается устаревшим объектом.
+
 cases:
   - id: chair.appr.happy.01
     level: backend
@@ -68,8 +73,9 @@ cases:
     kind: side
     scenario: Председатель повторно одобряет закрытое одобрение
     expect: отказ цепи CHAIN_ASSERT, статус APPROVED не меняется
-    # Сейчас отказ приходит без кода — code 500 (транзакция через @wharfkit/session).
-    status: missing
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
 
   - id: chair.appr.side.04
     level: backend
@@ -85,16 +91,15 @@ cases:
     kind: side
     scenario: Одобрение подтверждено встречной подписью, председатель открывает его снова
     expect: одобренный документ (две подписи) отдаётся в approved_document
-    # Сейчас approved_document всегда null: конструктор ApprovalDomainEntity не переносит
-    # поле из базы (domain/entities/approval.entity.ts), запись есть, чтения нет.
-    status: missing
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
 
   - id: chair.appr.side.06
     level: backend
     kind: side
     scenario: Одобрение подтверждено или отклонено — контракт стирает строку одобрения
     expect: одобрение отдаётся с present=false (строки в цепи больше нет)
-    # Сейчас present остаётся true: сервис читает одобрение до транзакции, разбор дельты
-    # стирания ставит present=false, а затем approvalRepository.save(approval) пишет
-    # устаревший объект поверх (approval.service.ts confirmApprove/declineApprove).
-    status: missing
+    test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing

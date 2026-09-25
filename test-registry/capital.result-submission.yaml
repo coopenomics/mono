@@ -34,6 +34,9 @@ sources:
     - components/desktop/extensions/capital/features/Project/ConvertSegment/**
     - components/desktop/extensions/capital/widgets/ResultSubmissionActionsWidget/**
 
+# Правка 25.09.2026 (C28-80): признак «доля завершена» читается из базы —
+# конструктор доли его терял, и стол всегда видел долю незавершённой.
+
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────
   # Источник — p.cap.rid.standard.yaml (секции 3 и 4) и eosio::check в
@@ -483,6 +486,18 @@ cases:
       (checksum256 регистр не различает), а markAsCompleted искал по исходному
       регистру и не находил — пайщик получал ошибку на успешной операции
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.92
+    level: backend
+    kind: side
+    scenario: доля конвертирована и отмечена завершённой; пайщик открывает её снова
+    expect: >
+      доля отдаётся с is_completed=true — признак читается из базы (до
+      25.09.2026 конструктор доли его терял, и доля всегда выглядела
+      незавершённой)
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
     api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 

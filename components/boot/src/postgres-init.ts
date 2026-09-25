@@ -1,5 +1,6 @@
 /* eslint-disable node/prefer-global/process */
 import { Client } from 'pg'
+import { subscriberIdentity } from './subscriber-identity'
 
 /**
  * Таблицу создают миграции схемы контроллера, а не boot: засев только пишет
@@ -73,6 +74,7 @@ export async function initUsersInPostgres(
     status: string
     is_registered: boolean
   }>,
+  coopname: string,
 ) {
   const client = new Client({
     host: process.env.POSTGRES_HOST,
@@ -96,12 +98,13 @@ export async function initUsersInPostgres(
         continue
       }
 
+      const subscriber = subscriberIdentity(coopname)
       await client.query(`
         INSERT INTO "users" (
           username, email, type, role, status, is_registered,
-          has_account, is_email_verified, created_at, updated_at
+          has_account, is_email_verified, subscriber_id, subscriber_hash, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ON CONFLICT (username) DO NOTHING
       `, [
         user.username,
@@ -112,6 +115,8 @@ export async function initUsersInPostgres(
         user.is_registered,
         false, // has_account
         true, // is_email_verified
+        subscriber.subscriber_id,
+        subscriber.subscriber_hash,
       ])
     }
 

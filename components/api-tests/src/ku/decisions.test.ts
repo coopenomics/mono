@@ -11,23 +11,11 @@
  * Доверенное лицо, принятое тестом, — свежий пайщик и больше нигде не
  * участвует; участок krg фикстур Стола заказов не трогается.
  */
-import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, ROLES, caseName, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { COOP, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomHash, signDocument, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
-const newHash = (): string => crypto.randomBytes(32).toString('hex')
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
@@ -77,8 +65,9 @@ async function decision(token: string, hash: string): Promise<any> {
   return (await gql<any>(token, DECISION, { h: hash })).kuDecision
 }
 
+/** Заявки участка odn глазами вызывающего — так их запрашивает экран участка. */
 async function trustRequest(token: string, username: string, hash: string): Promise<any> {
-  const d = (await gql<any>(token, REQUESTS, { f: { username }, o: { page: 1, limit: 50, sortOrder: 'DESC' } })).kuTrustRequests
+  const d = (await gql<any>(token, REQUESTS, { f: { coopname: COOP, braname: BRANCH_ODN, username }, o: { page: 1, limit: 50, sortOrder: 'DESC' } })).kuTrustRequests
   return d.items.find((r: any) => r.hash.toLowerCase() === hash.toLowerCase()) ?? null
 }
 
@@ -115,7 +104,7 @@ beforeAll(async () => {
 })
 
 describe('собрание пайщиков участка', () => {
-  const hash = newHash()
+  const hash = randomHash()
   const meetAt = new Date(Date.now() + 7 * 24 * 3600_000).toISOString()
   const meetPlace = `Красногорск, ул. Тестовая, ${hash.slice(0, 6)}`
 
@@ -176,8 +165,8 @@ describe('собрание пайщиков участка', () => {
 })
 
 describe('заявки доверенных лиц участка', () => {
-  const declinedHash = newHash()
-  const approvedHash = newHash()
+  const declinedHash = randomHash()
+  const approvedHash = randomHash()
 
   it(caseName('ku.trust.side.01', 'подать заявку за другого пайщика нельзя'), async () => {
     const pkg = await signedTrustPackage(joiner, joinerToken, declinedHash)
@@ -202,7 +191,7 @@ describe('заявки доверенных лиц участка', () => {
   it(caseName('ku.trust.side.02', 'решать по заявке может только председатель своего участка'), async () => {
     expectCode(await gqlError(foreignChairToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'чужой участок' } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
     expectCode(await gqlError(applicantToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'сам себе' } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
-    expectCode(await gqlError(branchChairToken, DECLINE, { d: { coopname: COOP, hash: newHash(), reason: 'нет такой' } }), 'KU_TRUST_REQUEST_NOT_FOUND')
+    expectCode(await gqlError(branchChairToken, DECLINE, { d: { coopname: COOP, hash: randomHash(), reason: 'нет такой' } }), 'KU_TRUST_REQUEST_NOT_FOUND')
     expectAuthDenied(await gqlError(null, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'гость' } }))
     expect((await trustRequest(branchChairToken, applicant.account, declinedHash)).present).toBe(true)
   })
@@ -229,7 +218,33 @@ describe('заявки доверенных лиц участка', () => {
     expect(await trustedOf(branchChairToken, BRANCH_ODN)).toContain(approvedApplicant.account)
   })
 
+  it(caseName('ku.trust.side.05', 'два пакета одного пайщика подряд, подана первая заявка — встречная подпись ложится на её документ'), async () => {
+    // До 25.09.2026 тело договора и блок у двух генераций совпадали, вторая
+    // версия черновика затирала первую, и встречная подпись первой заявки
+    // падала «Хэш метаданных не совпадает» (C28-80).
+    const twice = freshMember({ prefix: 'kuw' })
+    const twiceToken = await login(twice)
+    const firstHash = randomHash()
+    const first = await signedTrustPackage(twice, twiceToken, firstHash)
+    await signedTrustPackage(twice, twiceToken, randomHash())
+    await gql(twiceToken, REQUEST, { d: { coopname: COOP, braname: BRANCH_ODN, username: twice.account, hash: firstHash, ...first } })
+
+    const r = await trustRequest(branchChairToken, twice.account, firstHash)
+    const countersigned = await signDocument(branchChair.wif, r.document.rawDocument, branchChair.account, 2, [r.document.document])
+    const countersignedAuthority = await signDocument(branchChair.wif, r.authority_document.rawDocument, branchChair.account, 2, [r.authority_document.document])
+    await gql(branchChairToken, APPROVE, { d: { coopname: COOP, hash: firstHash, countersigned, countersigned_authority: countersignedAuthority } })
+    expect(await trustedOf(branchChairToken, BRANCH_ODN)).toContain(twice.account)
+  })
+
   it(caseName('ku.trust.side.03', 'список заявок гостю закрыт'), async () => {
     expectAuthDenied(await gqlError(null, REQUESTS, { f: { username: applicant.account } }))
+  })
+
+  it(caseName('ku.trust.side.04', 'посторонний пайщик не видит чужие заявки с договором и доверенностью, заявитель видит свою'), async () => {
+    // Договор и доверенность несут паспорт, адрес и телефон заявителя.
+    expect(await trustRequest(outsiderToken, applicant.account, declinedHash)).toBeNull()
+    expect(await trustRequest(foreignChairToken, applicant.account, declinedHash)).toBeNull()
+    const own = await trustRequest(applicantToken, applicant.account, declinedHash)
+    expect(own?.username).toBe(applicant.account)
   })
 })

@@ -43,6 +43,14 @@ title: Импорт пайщика с бумажными договорами
 # не менялся; правило хранения текстов покрыто
 # test-registry/capital.project-chain-texts.yaml.
 
+# Правка 25.09.2026 (C28-80): строка участника заводится до отправки в цепь.
+# Транзакция с 23.09 ждёт свой блок, и дельта участника приходила раньше, чем
+# контроллер создавал строку: синхронизатор не мог записать участника без
+# имени, и после импорта зеркало навсегда показывало «ожидает» без взноса.
+# Цепь отказала — строка удаляется. Завершение регистрации сохраняет строку,
+# перечитанную после транзакции, а не объект до неё. Участник, заведённый в
+# цепи мимо контроллера, попадает в зеркало с именем из аккаунта.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/participation_management/import_contributor/importcontr.cpp
@@ -50,6 +58,8 @@ sources:
     - components/contracts/cpp/wallet/src/agreement/importagree.cpp
   backend:
     - components/controller/src/extensions/capital/application/use-cases/participation-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/contributor-sync.service.ts
+    - components/controller/src/extensions/capital/domain/entities/contributor.entity.ts
     - components/controller/src/extensions/capital/infrastructure/blockchain/adapters/capital-blockchain.adapter.ts
   ui:
     - components/desktop/extensions/capital/features/Contributor/ImportContributor/**
@@ -125,8 +135,9 @@ cases:
     scenario: >
       Импорт участника, который уже заведён в реестре контроллера.
     expect: отказ до обращения к цепи
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
 
   - id: cap.cimp.side.04
     level: backend
@@ -136,8 +147,47 @@ cases:
     expect: >
       ни записи участника, ни параметров бумажных документов в реестре
       контроллера не остаётся
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Председатель импортирует пайщика; стол сразу после ответа открывает его
+      карточку.
+    expect: >
+      участник уже в зеркале со статусом из цепи, суммой взноса и именем —
+      строка заведена до транзакции, дельта своего блока ложится в неё
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.08
+    level: backend
+    kind: side
+    scenario: >
+      Договор УХД пайщика отправлен в цепь мимо контроллера (прямое действие
+      регистрации вкладчика).
+    expect: >
+      участник появляется в зеркале, имя дописывается из аккаунта пайщика
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
+
+  - id: cap.cimp.side.09
+    level: backend
+    kind: side
+    scenario: >
+      Импортированный пайщик завершает регистрацию в Благоросте — отправляет
+      договор УХД и соглашения.
+    expect: >
+      сохраняется строка, перечитанная после транзакции: данные цепи из дельты
+      своего блока не затираются объектом, прочитанным до неё
+    test: components/controller/tests/unit/capital/contributor-row-before-transact.test.ts
+    api: components/api-tests/src/capital/contributor-import.test.ts
+    status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 

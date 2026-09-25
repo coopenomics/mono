@@ -327,6 +327,7 @@ cases:
     expect: >
       администратору уходит уведомление с названием имущества, именем поставщика и ссылкой на очередь модерации
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.26
@@ -335,6 +336,7 @@ cases:
     scenario: Администратор одобрил предложение
     expect: поставщику уходит уведомление, что предложение опубликовано в каталоге
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.27
@@ -344,6 +346,7 @@ cases:
     expect: >
       поставщику уходит уведомление с причиной отказа — по ней он правит карточку и отправляет её на повторную проверку
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.side.28
@@ -454,7 +457,10 @@ cases:
       репозиторий вызван с упаковкой и числом упаковок, событие изменения остатка несёт
       счётчики каждой упаковки; дробные упаковки — отказ до репозитория
     test: components/controller/tests/unit/marketplace/marketplace-offer-counters-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
+    # До 25.09.2026 дробная мера по весу (1,5 кг) падала 500 на превью и
+    # оформлении корзины: тело строки считалось BigInt(количество).
 
   - id: mkt.offer.side.33
     level: backend

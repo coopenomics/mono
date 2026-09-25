@@ -11,40 +11,8 @@ import { tokenOf } from '../core/auth'
 import { gql, gqlRaw } from '../core/client'
 import type { GqlResponse } from '../core/client'
 import { API_URL, COOP } from '../core/env'
-
-interface TypeRef { kind: string, name: string | null, ofType: TypeRef | null }
-interface InputValue { name: string, type: TypeRef }
-interface FullType {
-  kind: string
-  name: string
-  fields: { name: string, args: InputValue[], type: TypeRef }[] | null
-  inputFields: InputValue[] | null
-  enumValues: { name: string }[] | null
-}
-
-const TYPE_REF = 'kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } }'
-const INTROSPECTION = `{ __schema {
-  queryType { name }
-  types { kind name
-    fields { name args { name type { ${TYPE_REF} } } type { ${TYPE_REF} } }
-    inputFields { name type { ${TYPE_REF} } }
-    enumValues { name }
-  }
-} }`
-
-function named(t: TypeRef): TypeRef {
-  let x = t
-  while (x.ofType) x = x.ofType
-  return x
-}
-
-function printType(t: TypeRef): string {
-  if (t.kind === 'NON_NULL')
-    return `${printType(t.ofType!)}!`
-  if (t.kind === 'LIST')
-    return `[${printType(t.ofType!)}]`
-  return t.name!
-}
+import { bankAccount } from '../payments/payments.helpers'
+import { INTROSPECTION, named, printType, type FullType, type TypeRef } from '../rights/schema'
 
 /** Список, у которого клиент задаёт поле сортировки. */
 export interface SortableList {
@@ -237,16 +205,6 @@ export async function freshKeyPair(): Promise<{ wif: string, publicKey: string }
   return { wif, publicKey: ecc.privateToPublic(wif) }
 }
 
-/** Реквизиты банка, которые фабрика документов примет. */
-export function bankAccount(overrides: Record<string, unknown> = {}): Record<string, any> {
-  return {
-    account_number: '40703810500000000001',
-    bank_name: 'ПАО «Сбербанк»',
-    currency: 'RUB',
-    details: { bik: '044525225', corr: '30101810400000000225' },
-    ...overrides,
-  }
-}
 
 /**
  * Анкета физлица с привычными знаками: дефис в фамилии, апостроф в имени,
@@ -348,3 +306,5 @@ export async function gqlFull(token: string | null, query: string, variables?: u
 export async function apiOrigin(): Promise<string> {
   return new URL(API_URL).origin
 }
+
+export { bankAccount }

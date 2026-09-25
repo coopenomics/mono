@@ -166,7 +166,8 @@ describe('документы: фабрика утверждений редакц
     const gen = await gqlError(chair, 'mutation($i:GenerateAnyDocumentInput!){ generateDocument(input:$i){ hash } }', {
       i: { data: { coopname: COOP, username: CHAIRMAN.account, registry_id: 995, lang: 'ru' }, options: { skip_save: true } },
     })
-    expect(gen?.code, 'генератор не собирает двойник 995').toBe('GENERATOR_DOCUMENT_GENERATION_FAILED')
+    // До 25.09.2026 отказ был общим «не удалось собрать», причина — только в журнале.
+    expect(gen?.code, 'генератор не собирает двойник 995').toBe('GENERATOR_DOCUMENT_TYPE_UNKNOWN')
     const working = WORKING_OFFERS.filter(id => ids.has(id))
     expect(working, 'рабочая оферта Стола заказов 1102 в реестре').toContain(1102)
     for (const id of working) {

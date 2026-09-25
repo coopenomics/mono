@@ -1,3 +1,4 @@
+import { MarketplaceUnitsOfMeasure } from '../../domain/entities/marketplace-offer.types';
 import { MarketplaceEconomyService } from './marketplace-economy.service';
 
 /**
@@ -39,27 +40,46 @@ describe('MarketplaceEconomyService — units↔asset, lineUnits', () => {
     }
   });
 
-  it('lineUnits = тело + членский взнос (формула контракта)', () => {
-    // 3 × 10.0000, ставка 0% → только тело
-    expect(service.lineUnits('10.0000', 3, 0)).toBe(300_000n);
+  // Тело строки — каноническим расчётом стоимости (calcCostMinor), взнос —
+  // формулой контракта. До 25.09.2026 тело считалось BigInt(количество), и
+  // дробная мера (1,5 кг) роняла превью и оформление корзины ошибкой 500.
+  const lineUnits = (sale: { baseQuantity: number; unitPrice: string; packageSize: number }, unit: any, percent: number) => {
+    const body = service.lineBodyUnits(sale, unit);
+    return body + service.membershipFeeUnits(body, percent);
+  };
+
+  it('тело строки по мере — количество × цена, в том числе дробное количество', () => {
+    expect(service.lineBodyUnits({ baseQuantity: 3, unitPrice: '10.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.PIECE)).toBe(300_000n);
+    // 1,5 кг × 600 = 900 — прежде падало «cannot be converted to a BigInt».
+    expect(service.lineBodyUnits({ baseQuantity: 1.5, unitPrice: '600.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.KG)).toBe(9_000_000n);
+    // 0,333 кг × 10 = 3,33 — округление половины вверх, как в контракте.
+    expect(service.lineBodyUnits({ baseQuantity: 0.333, unitPrice: '10.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.KG)).toBe(33_300n);
+  });
+
+  it('тело строки упаковкой — число упаковок × цена упаковки', () => {
+    // 2 бутылки по 0,5 л по 80 = 160.
+    expect(service.lineBodyUnits({ baseQuantity: 1, unitPrice: '80.0000', packageSize: 0.5 }, MarketplaceUnitsOfMeasure.LITER)).toBe(1_600_000n);
+  });
+
+  it('тело + членский взнос (формула контракта)', () => {
     // 3 × 10.0000 = 300000, взнос 5% = 15000 → 315000
-    expect(service.lineUnits('10.0000', 3, 50_000)).toBe(315_000n);
+    expect(lineUnits({ baseQuantity: 3, unitPrice: '10.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.PIECE, 0)).toBe(300_000n);
+    expect(lineUnits({ baseQuantity: 3, unitPrice: '10.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.PIECE, 50_000)).toBe(315_000n);
   });
 
   it('инвариант замены: членских хватает → дефицит 0', () => {
     // Высвобождено отменой ≥ сумма строки → конвертировать нечего.
-    const lineUnits = service.lineUnits('25.0000', 2, 50_000); // 500000 + 25000 = 525000
+    const line = lineUnits({ baseQuantity: 2, unitPrice: '25.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.PIECE, 50_000); // 525000
     const memberAvailable = service.assetToUnits('60.0000 RUB'); // 600000
-    const fromMember = memberAvailable >= lineUnits ? lineUnits : memberAvailable;
-    const convertUnits = lineUnits - fromMember;
-    expect(convertUnits).toBe(0n);
+    const fromMember = memberAvailable >= line ? line : memberAvailable;
+    expect(line - fromMember).toBe(0n);
   });
 
   it('инвариант доплаты: членских не хватает → конвертируется только дефицит', () => {
-    const lineUnits = service.lineUnits('25.0000', 2, 50_000); // 525000
+    const line = lineUnits({ baseQuantity: 2, unitPrice: '25.0000', packageSize: 0 }, MarketplaceUnitsOfMeasure.PIECE, 50_000); // 525000
     const memberAvailable = service.assetToUnits('20.0000 RUB'); // 200000
-    const fromMember = memberAvailable >= lineUnits ? lineUnits : memberAvailable;
-    const convertUnits = lineUnits - fromMember;
+    const fromMember = memberAvailable >= line ? line : memberAvailable;
+    const convertUnits = line - fromMember;
     expect(convertUnits).toBe(325_000n);
     expect(service.unitsToAsset(convertUnits)).toBe('32.5000 RUB');
   });

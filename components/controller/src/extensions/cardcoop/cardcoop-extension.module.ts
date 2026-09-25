@@ -104,16 +104,18 @@ export class CardcoopExtensionModule {
     // одновременный запуск отвергал собственное подключение оператора, пока его допуск ещё
     // был в пути (стенд 02.09.2026). Пока сеть не приняла, подключение повторяется по расписанию.
     const apiUrl = this.cardcoopExtension.config.api_url;
+    // Повторы берут адрес сети на момент прохода — председатель мог его сменить.
+    const currentApiUrl = async (): Promise<string> => (await this.cardcoopExtension.freshConfig()).api_url;
     void (async () => {
       await this.operatorAnnounce.resendUndelivered();
       // Ключ уведомлений сети — до подключения: первое уведомление о связи может прийти сразу.
       await this.webhookKey.ensurePublished(apiUrl);
       await this.connect.connectIfChanged(apiUrl);
-      this.connect.startRetries(apiUrl);
+      this.connect.startRetries(currentApiUrl);
     })();
     // Свидетельства и отзывы, не доставленные за время внутренних ретраев, повторяются
     // периодически: card.coop о них больше не напомнит — уведомление о связи мы уже
     // подтвердили, а событие выхода в цепи не повторится.
-    this.membership.startRetries(this.cardcoopExtension.config.api_url);
+    this.membership.startRetries(currentApiUrl);
   }
 }

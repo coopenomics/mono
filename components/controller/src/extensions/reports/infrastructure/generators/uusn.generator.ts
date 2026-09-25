@@ -36,7 +36,7 @@ export class UusnGenerator implements IReportGenerator {
     const kodNO = getTaxOfficeCode(organization.kpp);
     const quarter = header.period ?? 1;
     if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
-      throw DomainError.internal('REPORTS_UUSN_PERIOD_INVALID', { period: header.period });
+      throw DomainError.badRequest('REPORTS_UUSN_PERIOD_INVALID', { period: header.period });
     }
     // В XSD UT_UVISCHSUMNAL v5.03: Период ∈ {21,31,33,34}, НомерМесКварт ∈ {01..04}.
     const periodByQuarter: Record<number, string> = { 1: '21', 2: '31', 3: '33', 4: '34' };

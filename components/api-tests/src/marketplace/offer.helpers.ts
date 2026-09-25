@@ -15,7 +15,7 @@ import { COOP } from '../core/env'
 import { freshMember } from '../core/participants'
 import { CHAIRMAN } from '../core/roles'
 
-export const OFFER_FIELDS = `id status product_name supplier_account unit_of_measure sale_form price_per_unit
+export const OFFER_FIELDS = `id status product_name supplier_account stock_braname unit_of_measure sale_form price_per_unit
   quantity_available quantity_blocked quantity_consumed unlimited_flag shelf_life_days
   approved_at approved_by reject_reason warranty_days barcode_strategy pack_size
   delivery_points { braname min_supply_volume }

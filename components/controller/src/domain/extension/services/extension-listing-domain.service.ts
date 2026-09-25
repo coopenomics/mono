@@ -76,7 +76,7 @@ export class ExtensionDomainListingService<TConfig = any> {
    */
   assertInstallable(name: string): void {
     const ext = AppRegistry[name];
-    if (!ext) throw DomainError.internal('EXTENSION_NOT_FOUND', { name });
+    if (!ext) throw DomainError.notFound('EXTENSION_NOT_FOUND', { name });
     if (!isExtensionAvailable(ext.availability, appConfig.blockchain.is_mainnet)) {
       throw DomainError.internal('EXTENSION_NOT_AVAILABLE_FOR_INSTALL', { name });
     }
@@ -103,7 +103,7 @@ export class ExtensionDomainListingService<TConfig = any> {
    */
   validateConfig(name: string, config: any): void {
     const ext = AppRegistry[name];
-    if (!ext) throw DomainError.internal('EXTENSION_NOT_FOUND', { name });
+    if (!ext) throw DomainError.notFound('EXTENSION_NOT_FOUND', { name });
     const result = ext.schema.safeParse(config);
     if (!result.success) {
       const errors = result.error.errors.map((err) => `${err.path.join('.')}: ${err.message}`).join('; ');

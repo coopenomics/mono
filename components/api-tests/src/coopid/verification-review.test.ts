@@ -10,26 +10,10 @@
  * Сверка меняет состояние пайщика необратимо — каждый сценарий берёт свежего
  * пайщика и ищет в журнале только его записи.
  */
+import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, type Who, caseName, freshMember, gqlRaw, tokenOf, transact } from '../core'
-import {
-  APPROVE,
-  AUTH_CODES,
-  BRANCH,
-  REJECT,
-  REVIEWS,
-  REVIEW_PHOTOS,
-  type Review,
-  certificateLevels,
-  identityFor,
-  onlyReviewOf,
-  photo,
-  photos,
-  reviewsOf,
-  unverify,
-  verifyOk,
-  verifyOnsite,
-} from './coopid-a.helpers'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, caseName, expectAuthDenied, freshMember, gqlRaw, tokenOf, transact, type Who } from '../core'
+import { APPROVE, BRANCH, REJECT, REVIEWS, REVIEW_PHOTOS, type Review, certificateLevels, identityFor, onlyReviewOf, photo, photos, reviewsOf, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
 
 function hasPassport(levels: { type: string }[]): boolean {
   return levels.some(l => l.type === 'passport_onsite' || l.type === 'PassportOnsite')
@@ -86,6 +70,25 @@ describe('coopid.verification-review: снимки сверки и решени�
       expect(r.data).toBeNull()
       expect(r.errors[0]?.code).toBe('AUTH_V2_VERIFICATION_PHOTOS_LIMIT')
       expect(r.errors[0]?.message).toMatch(/5/)
+      expect(hasPassport(await certificateLevels(rejected))).toBe(false)
+      expect(await reviewsOf(rejected.account)).toEqual([])
+    })
+
+    it(caseName('cid.vrev.break.04', 'не изображение или снимок больше 10 МБ — отказ до записи в цепь, уровня без записи на проверку совета нет'), async () => {
+      // До 25.09.2026 такой снимок отвергал только бакет уже после выдачи
+      // уровня: уровень оставался, а записи для совета не было.
+      const text = await verifyOnsite(branchToken, rejected.account, { braname: BRANCH, photos: [photo({ mime_type: 'text/plain' })] })
+      expect(text.errors[0]?.code).toBe('AUTH_V2_VERIFICATION_PHOTO_MIME_NOT_ALLOWED')
+
+      const body = crypto.randomBytes(11 * 1024 * 1024)
+      const huge = photo({
+        content_base64: body.toString('base64'),
+        size_bytes: body.byteLength,
+        checksum_sha256: crypto.createHash('sha256').update(body).digest('hex'),
+      })
+      const big = await verifyOnsite(branchToken, rejected.account, { braname: BRANCH, photos: [huge] })
+      expect(big.errors[0]?.code).toBe('AUTH_V2_VERIFICATION_PHOTO_TOO_LARGE')
+
       expect(hasPassport(await certificateLevels(rejected))).toBe(false)
       expect(await reviewsOf(rejected.account)).toEqual([])
     })
@@ -224,7 +227,7 @@ describe('coopid.verification-review: снимки сверки и решени�
     it(caseName('cid.vrev.break.06', 'гость получает отказ по входу'), async () => {
       const r = await gqlRaw(null, REVIEWS, { d: { username: who.account } })
       expect(r.data).toBeNull()
-      expect(AUTH_CODES.has(String(r.errors[0]?.code))).toBe(true)
+      expectAuthDenied(r.errors[0] ?? null)
     })
 
     it(caseName('cid.vrev.break.08', 'решение возвращает записанную строку журнала целиком'), async () => {

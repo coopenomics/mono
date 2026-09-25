@@ -6,6 +6,7 @@
  * результат тест всё равно читает через API контроллера — зеркало узла и есть
  * то, что видит пайщик.
  */
+import crypto from 'node:crypto'
 import { Api, JsonRpc } from 'eosjs'
 import { JsSignatureProvider } from 'eosjs/dist/eosjs-jssig'
 import type { Who } from './auth'
@@ -72,4 +73,9 @@ export function chainMessage(e: unknown): string {
   if (Array.isArray(details) && details[0]?.message)
     return String(details[0].message).replace(/^assertion failure with message:\s*/, '')
   return String(any?.message ?? e)
+}
+
+/** Случайный хэш цепи (checksum256) — идентификатор заявки, проекта, документа. */
+export function randomHash(): string {
+  return crypto.randomBytes(32).toString('hex')
 }

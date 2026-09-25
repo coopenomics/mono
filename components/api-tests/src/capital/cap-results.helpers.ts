@@ -27,6 +27,7 @@ import { CHAIRMAN } from '../core/roles'
 import { signDocument } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, rub } from '../core/wallet'
+import { randomHash } from '../core/chain'
 
 export const GENERATED = 'full_title html hash meta binary'
 
@@ -42,9 +43,6 @@ export function sha256(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex')
 }
 
-export function randomHash(): string {
-  return crypto.randomBytes(32).toString('hex')
-}
 
 export { amount, rub }
 
@@ -174,14 +172,26 @@ const REG_DOCS = ['generation_contract', 'storage_agreement', 'blagorost_agreeme
  * (CapitalRegistrationPage): пакет документов регистрации из генератора,
  * подпись ключом пайщика, отправка договора УХД через API и одобрение
  * председателем. Возвращается, когда контроллер видит договор действующим.
- *
- * Договор, отправленный в цепь мимо контроллера, в зеркало не попадает:
- * строку участника без имени синхронизатор не записывает (display_name
- * обязателен), а имя знает только контроллер.
  */
 export async function capitalMember(prefix = 'cap'): Promise<Who> {
   const who = freshMember({ prefix })
   await signCapitalAgreement(who)
+  await completeCapitalRegistration(who)
+  const chairToken = await tokenOf(CHAIRMAN)
+  const pending = await contributorOf(chairToken, who.account)
+  if (!pending?.contributor_hash)
+    throw new Error(`после регистрации у ${who.account} нет договора УХД в зеркале`)
+  await chairmanApprove(pending.contributor_hash)
+  await waitFor(async () => ((await contributorOf(chairToken, who.account))?.status === 'ACTIVE' ? true : null),
+    { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} действует в зеркале` })
+  return who
+}
+
+/**
+ * Пайщик завершает регистрацию в Благоросте, как на рабочем столе: пакет
+ * документов из генератора, подпись своим ключом, отправка через API.
+ */
+export async function completeCapitalRegistration(who: Who, about = 'Участник внешнего слоя тестов'): Promise<void> {
   const token = await tokenOf(who)
   const gen = await gqlPaced<any>(token, `mutation($d:GenerateCapitalRegistrationDocumentsInputDTO!){
     capitalGenerateRegistrationDocuments(data:$d){
@@ -195,16 +205,32 @@ export async function capitalMember(prefix = 'cap'): Promise<Who> {
       signed[key] = await signDocument(who.wif, bundle[key], who.account)
   }
   await gqlPaced(token, `mutation($d:CompleteCapitalRegistrationInputDTO!){ capitalCompleteRegistration(data:$d){ transaction } }`, {
-    d: { coopname: COOP, username: who.account, ...signed, about: 'Участник внешнего слоя тестов', rate_per_hour: '1000', hours_per_day: 8 },
+    d: { coopname: COOP, username: who.account, ...signed, about, rate_per_hour: '1000', hours_per_day: 8 },
   })
-  const chairToken = await tokenOf(CHAIRMAN)
-  const pending = await contributorOf(chairToken, who.account)
-  if (!pending?.contributor_hash)
-    throw new Error(`после регистрации у ${who.account} нет договора УХД в зеркале`)
-  await chairmanApprove(pending.contributor_hash)
-  await waitFor(async () => ((await contributorOf(chairToken, who.account))?.status === 'ACTIVE' ? true : null),
-    { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} действует в зеркале` })
-  return who
+}
+
+/** Кошельки пайщика: главный паевой и «Благорост» (доступно + заблокировано). */
+export async function capitalWallets(token: string, username: string): Promise<{ share: number, blago: number }> {
+  const d = await gql<any>(token, 'query($u:String!){ getUserWallets(username:$u){ wallet_name available blocked } }', { u: username })
+  const rows = d.getUserWallets as any[]
+  const share = rows.find(w => w.wallet_name === 'w.wal.share')
+  const blago = rows.find(w => w.wallet_name === 'w.cap.blago')
+  return {
+    share: amount(share?.available),
+    blago: amount(blago?.available) + amount(blago?.blocked),
+  }
+}
+
+/** Паевой взнос в программу «Благорост» — заявление, подпись, отправка, как на столе. */
+export async function programInvest(who: Who, token: string, sum: number): Promise<void> {
+  const value = `${sum.toFixed(4)} RUB`
+  const gen = await gqlPaced<any>(token, `mutation($d:ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput!){
+    capitalGenerateProgramMoneyInvestStatement(data:$d){ full_title html hash meta binary }
+  }`, { d: { coopname: COOP, username: who.account, amount: value } })
+  const statement = await signDocument(who.wif, gen.capitalGenerateProgramMoneyInvestStatement, who.account)
+  await gql(token, `mutation($d:CreateProgramInvestInput!){ capitalCreateProgramInvest(data:$d){ transaction } }`, {
+    d: { coopname: COOP, username: who.account, amount: value, statement },
+  })
 }
 
 // ── Проект ─────────────────────────────────────────────────────────────────
@@ -243,7 +269,8 @@ export async function clearance(who: Who, project: string): Promise<void> {
   await chairmanApprove(appendixHash)
 }
 
-export async function setMaster(project: string, master: Who): Promise<void> {
+/** Ведущий проекта — действием цепи от кооператива, мимо API. */
+export async function setMasterInChain(project: string, master: Who): Promise<void> {
   await coop('setmaster', { project_hash: project, master: master.account })
 }
 
@@ -431,3 +458,5 @@ export const PUSH_RESULT = `mutation($d:PushResultInput!){ capitalPushResult(dat
 export const SIGN_ACT_CONTRIBUTOR = `mutation($d:SignActAsContributorInput!){ capitalSignActAsContributor(data:$d){ ${SEGMENT_FIELDS} } }`
 export const SIGN_ACT_CHAIRMAN = `mutation($d:SignActAsChairmanInput!){ capitalSignActAsChairman(data:$d){ ${SEGMENT_FIELDS} } }`
 export const CONVERT_SEGMENT = `mutation($d:ConvertSegmentInput!){ capitalConvertSegment(data:$d){ ${SEGMENT_FIELDS} } }`
+
+export { randomHash }

@@ -17,6 +17,8 @@ declare module 'eosjs-ecc' {
     resultEncoding?: string,
     encoding?: string,
   ): string
+  /** Подпись строки или буфера (библиотека сама берёт SHA-256). */
+  export function sign(data: string | Buffer, privateKey: string, encoding?: string): string
   /** Подпись готового хеша приватным ключом. */
   export function signHash(
     dataSha256: string | Buffer,
@@ -30,6 +32,7 @@ declare module 'eosjs-ecc' {
     privateToPublic: typeof privateToPublic
     sha256: typeof sha256
     signHash: typeof signHash
+    sign: typeof sign
   }
   export default ecc
 }

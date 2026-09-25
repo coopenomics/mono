@@ -15,10 +15,25 @@ import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { ProjectStatus } from '../../domain/enums/project-status.enum';
 import type { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
+import { isLocalProject } from '../../domain/utils/assert-blockchain-project';
 import { AssetUtils } from '@coopenomics/extension-kit';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
 import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
+/**
+ * Автоматическая регистрация долей держателей Благороста в активных проектах.
+ * Включена всегда; `CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION=off` выключает её
+ * целиком — и по событиям, и по расписанию.
+ *
+ * Выключается только на стенде внешнего слоя, пока идут boot-тесты контракта:
+ * они шлют действия прямо в цепь и считают премии вкладчиков точно, а
+ * автоматика, заводящая доли параллельно, делала их итог зависимым от того,
+ * кто успел раньше (решение владельца 25.09.2026, C28-80). Читается при каждом
+ * вызове: стенд включает автоматику обратно пересозданием контроллера.
+ */
+export function programShareAutoRegistrationEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return (env.CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION ?? 'on').trim().toLowerCase() !== 'off';
+}
 
 /**
  * Сверка баланса программы «Благорост» с долёй в сегментах проектов и вызов regshare при расхождении.
@@ -42,6 +57,7 @@ export class ProgramShareRegistrationService {
    * Обход участников в статусах active/import по active-проектам; при изменении user_shares относительно capital_contributor_shares — regshare.
    */
   async syncProgramSharesForCoop(coopname: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const projects = await this.findActiveProjects(coopname);
     if (projects.length === 0) {
       this.logger.debug(`Синхронизация regshare: нет active-проектов для ${coopname}`);
@@ -65,7 +81,8 @@ export class ProgramShareRegistrationService {
    * на дельты `ledger2::userwallets[w.cap.blago]`. Не пишет лог, если у пайщика
    * нет ни одного active-проекта.
    */
-  async syncProgramSharesForUser(coopname: string, username: string): Promise<void> {
+  async syncProgramSharesForUser(coopname: string, username: string, knownShares?: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const projects = await this.findActiveProjects(coopname);
     if (projects.length === 0) return;
 
@@ -77,7 +94,7 @@ export class ProgramShareRegistrationService {
     );
     if (!contributor) return;
 
-    await this.syncContributor(coopname, contributor, projects.map((p) => p.project_hash));
+    await this.syncContributor(coopname, contributor, projects.map((p) => p.project_hash), knownShares);
   }
 
   /**
@@ -94,6 +111,7 @@ export class ProgramShareRegistrationService {
    * Переиспользует тот же `syncContributor`, что и обход по расписанию.
    */
   async syncProgramSharesForProject(coopname: string, project_hash: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const contributors = (await this.contributorRepository.findAll()).filter(
       (c) =>
         c.coopname === coopname &&
@@ -111,36 +129,28 @@ export class ProgramShareRegistrationService {
    * 2026-06-16) — заводим/сверяем доли лишь в активных проектах.
    */
   private async findActiveProjects(coopname: string): Promise<ProjectDomainEntity[]> {
+    // Личный (локальный) проект живёт только в базе узла — доли в цепи ему
+    // не заводятся; до 25.09.2026 каждая попытка кончалась «проект не найден».
     return (await this.projectRepository.findAll()).filter(
-      (p) => p.coopname === coopname && p.status === ProjectStatus.ACTIVE
+      (p) => p.coopname === coopname && p.status === ProjectStatus.ACTIVE && !isLocalProject(p)
     );
   }
 
+  /**
+   * @param knownShares баланс Благороста, уже известный вызывающему (из дельты
+   *   кошелька). Зеркало кошельков пишет ту же дельту параллельно со
+   *   слушателем, и чтение из него отдавало баланс ДО взноса: доля в
+   *   активном проекте оставалась старой (C28-80, внешний тест
+   *   cap.areg.happy.02).
+   */
   private async syncContributor(
     coopname: string,
     contributor: ContributorDomainEntity,
-    projectHashes: string[]
+    projectHashes: string[],
+    knownShares?: string
   ): Promise<void> {
-    const programId = getProgramId(ProgramType.BLAGOROST);
-
-    const wallet = await this.walletDomainPort.getProgramWallet({
-      coopname,
-      username: contributor.username,
-      program_id: programId,
-    });
-
-    if (!wallet || !wallet.available || !wallet.blocked) return;
-
-    let targetShares: string;
-    try {
-      targetShares = AssetUtils.sumAssets([wallet.available, wallet.blocked]);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(
-        `Синхронизация regshare: не удалось сложить балансы кошелька ${contributor.username}: ${message}`
-      );
-      return;
-    }
+    const targetShares = knownShares ?? (await this.blagorostShares(coopname, contributor.username));
+    if (!targetShares) return;
 
     const targetParsed = AssetUtils.parseAsset(targetShares);
     if (!targetParsed.symbol) return;
@@ -177,6 +187,28 @@ export class ProgramShareRegistrationService {
           stack
         );
       }
+    }
+  }
+
+  /** Баланс Благороста пайщика (доступно + заблокировано) из зеркала кошельков. */
+  private async blagorostShares(coopname: string, username: string): Promise<string | null> {
+    const wallet = await this.walletDomainPort.getProgramWallet({
+      coopname,
+      username,
+      program_id: getProgramId(ProgramType.BLAGOROST),
+    });
+    if (!wallet || !wallet.available || !wallet.blocked) return null;
+    return this.sumShares(username, wallet.available, wallet.blocked);
+  }
+
+  /** Сумма доступного и заблокированного; несложимое — в журнал и пропуск. */
+  sumShares(username: string, available: string, blocked: string): string | null {
+    try {
+      return AssetUtils.sumAssets([available, blocked]);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Синхронизация regshare: не удалось сложить балансы кошелька ${username}: ${message}`);
+      return null;
     }
   }
 

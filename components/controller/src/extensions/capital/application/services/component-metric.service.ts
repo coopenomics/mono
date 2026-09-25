@@ -64,7 +64,7 @@ import {
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { generateUniqueHash, DomainError } from '@coopenomics/extension-kit';
+import { generateUniqueHash, DomainError, platformSettings } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
 
 /**
@@ -131,7 +131,7 @@ export class ComponentMetricService {
   private assertMeasureStatus(status: MetricStatus | undefined): void {
     if (status === undefined) return;
     if (status !== MetricStatus.ACTIVE && status !== MetricStatus.ARCHIVED) {
-      throw DomainError.internal('CAPITAL_METRIC_STATUS_INVALID');
+      throw DomainError.badRequest('CAPITAL_METRIC_STATUS_INVALID');
     }
   }
 
@@ -166,7 +166,7 @@ export class ComponentMetricService {
       unit
     );
     if (duplicate && duplicate.measure_hash !== existing.measure_hash) {
-      throw DomainError.internal('CAPITAL_MEASURE_DUPLICATE', { title, unit });
+      throw DomainError.conflict('CAPITAL_MEASURE_DUPLICATE', { title, unit });
     }
   }
 
@@ -235,9 +235,14 @@ export class ComponentMetricService {
     data: CreateComponentMetricInputDTO,
     currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
+    // Метрика живёт в кооперативе узла: до 25.09.2026 кооператив брался из
+    // ввода как есть, и метрику можно было завести на чужой (C28-80).
+    if (data.coopname !== platformSettings().coopname) {
+      throw DomainError.forbidden('CAPITAL_METRIC_FOREIGN_COOPERATIVE');
+    }
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
     await this.assertCanManageMetrics(project, currentUser);
 
@@ -267,14 +272,14 @@ export class ComponentMetricService {
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!existing) {
-      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
+      throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
     }
     if (existing.status === MetricStatus.ARCHIVED) {
       throw DomainError.internal('CAPITAL_METRIC_ARCHIVED_READONLY');
     }
     const project = await this.projectRepository.findByHash(existing.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: existing.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: existing.project_hash });
     }
     await this.assertCanManageMetrics(project, currentUser);
 
@@ -308,11 +313,11 @@ export class ComponentMetricService {
   ): Promise<ComponentMetricOutputDTO> {
     const existing = await this.metricRepository.findByMetricHash(metricHash);
     if (!existing) {
-      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: metricHash });
+      throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: metricHash });
     }
     const project = await this.projectRepository.findByHash(existing.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: existing.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: existing.project_hash });
     }
     await this.assertCanManageMetrics(project, currentUser);
 
@@ -330,7 +335,7 @@ export class ComponentMetricService {
   ): Promise<ComponentMetricOutputDTO[]> {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND_BY_HASH', { hash: projectHash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND_BY_HASH', { hash: projectHash });
     }
     await this.assertCanViewMetrics(project, currentUser);
 
@@ -345,7 +350,7 @@ export class ComponentMetricService {
     return metrics.map((m) => {
       const measure = measureMap.get(m.measure_hash.toLowerCase());
       if (!measure) {
-        throw DomainError.internal('CAPITAL_MEASURE_NOT_FOUND_FOR_METRIC', { measureHash: m.measure_hash, metricHash: m.metric_hash });
+        throw DomainError.notFound('CAPITAL_MEASURE_NOT_FOUND_FOR_METRIC', { measureHash: m.measure_hash, metricHash: m.metric_hash });
       }
       return this.toMetricOutput(m, measure, facts.get(m.metric_hash) ?? 0);
     });
@@ -357,26 +362,26 @@ export class ComponentMetricService {
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
     if (!issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_NOT_FOUND', { hash: data.issue_hash });
+      throw DomainError.notFound('CAPITAL_ISSUE_NOT_FOUND', { hash: data.issue_hash });
     }
     const issueProjectHash = issue.project_hash?.trim();
     if (!issueProjectHash) {
-      throw DomainError.internal('CAPITAL_METRIC_LINK_SCOPE_INVALID');
+      throw DomainError.badRequest('CAPITAL_METRIC_LINK_SCOPE_INVALID');
     }
     const project = await this.projectRepository.findByHash(issueProjectHash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: issueProjectHash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: issueProjectHash });
     }
     await this.assertCanEditIssueMetrics(project, issue, currentUser);
 
     if (issue.status === IssueStatus.DONE) {
-      throw DomainError.internal('CAPITAL_ISSUE_METRIC_LINKS_LOCKED_DONE');
+      throw DomainError.badRequest('CAPITAL_ISSUE_METRIC_LINKS_LOCKED_DONE');
     }
 
     for (const item of data.bindings) {
       const metric = await this.metricRepository.findByMetricHash(item.metric_hash);
       if (!metric) {
-        throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: item.metric_hash });
+        throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: item.metric_hash });
       }
       if (metric.project_hash !== issueProjectHash.toLowerCase()) {
         throw DomainError.internal('CAPITAL_METRIC_NOT_IN_COMPONENT', { hash: item.metric_hash });
@@ -409,7 +414,7 @@ export class ComponentMetricService {
   ): Promise<IssueMetricBindingOutputDTO[]> {
     const issue = await this.issueRepository.findByIssueHash(issueHash);
     if (!issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_NOT_FOUND', { hash: issueHash });
+      throw DomainError.notFound('CAPITAL_ISSUE_NOT_FOUND', { hash: issueHash });
     }
     const issueProjectHash = issue.project_hash?.trim();
     if (!issueProjectHash) {
@@ -417,7 +422,7 @@ export class ComponentMetricService {
     }
     const project = await this.projectRepository.findByHash(issueProjectHash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: issueProjectHash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: issueProjectHash });
     }
     await this.assertCanViewMetrics(project, currentUser);
     const bindings = await this.bindingRepository.findByIssueHash(issueHash);
@@ -430,14 +435,14 @@ export class ComponentMetricService {
   ): Promise<MetricContributionOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
-      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
+      throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
     }
     if (metric.status === MetricStatus.ARCHIVED) {
-      throw DomainError.internal('CAPITAL_METRIC_ARCHIVED_CONTRIBUTION_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_METRIC_ARCHIVED_CONTRIBUTION_FORBIDDEN');
     }
     const project = await this.projectRepository.findByHash(metric.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
     }
     await this.assertCanManageMetrics(project, currentUser);
 
@@ -474,11 +479,11 @@ export class ComponentMetricService {
   ): Promise<PaginationResult<MetricContributionOutputDTO>> {
     const metric = await this.metricRepository.findByMetricHash(metricHash);
     if (!metric) {
-      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: metricHash });
+      throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: metricHash });
     }
     const project = await this.projectRepository.findByHash(metric.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
     }
     await this.assertCanViewMetrics(project, currentUser);
 
@@ -500,11 +505,11 @@ export class ComponentMetricService {
   ): Promise<MetricSeriesOutputDTO> {
     const metric = await this.metricRepository.findByMetricHash(data.metric_hash);
     if (!metric) {
-      throw DomainError.internal('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
+      throw DomainError.notFound('CAPITAL_METRIC_NOT_FOUND', { hash: data.metric_hash });
     }
     const project = await this.projectRepository.findByHash(metric.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND', { hash: metric.project_hash });
     }
     await this.assertCanViewMetrics(project, currentUser);
 
@@ -671,7 +676,7 @@ export class ComponentMetricService {
   ) {
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND', { hash: projectHash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND', { hash: projectHash });
     }
     await this.assertCanViewMetrics(project, currentUser);
 
@@ -698,7 +703,7 @@ export class ComponentMetricService {
     const metricsInput: SuperpositionMetricInput[] = metrics.map((metric) => {
       const measure = measureMap.get(metric.measure_hash.toLowerCase());
       if (!measure) {
-        throw DomainError.internal('CAPITAL_MEASURE_NOT_FOUND_FOR_METRIC', { measureHash: metric.measure_hash, metricHash: metric.metric_hash });
+        throw DomainError.notFound('CAPITAL_MEASURE_NOT_FOUND_FOR_METRIC', { measureHash: metric.measure_hash, metricHash: metric.metric_hash });
       }
       return {
         metric_hash: metric.metric_hash,
@@ -796,14 +801,14 @@ export class ComponentMetricService {
     currentUser: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
-      throw DomainError.internal('CAPITAL_METRIC_VIEW_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_METRIC_VIEW_FORBIDDEN');
     }
     if (project.origin !== ProjectOrigin.LOCAL) {
       return;
     }
     const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
     if (!permissions.can_view_artifacts) {
-      throw DomainError.internal('CAPITAL_METRIC_VIEW_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_METRIC_VIEW_FORBIDDEN');
     }
   }
 
@@ -812,11 +817,11 @@ export class ComponentMetricService {
     currentUser: IMonoAccount
   ): Promise<void> {
     if (!project) {
-      throw DomainError.internal('CAPITAL_COMPONENT_NOT_FOUND_GENERIC');
+      throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND_GENERIC');
     }
     const permissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
     if (!permissions.can_manage_issues && !permissions.can_edit_project) {
-      throw DomainError.internal('CAPITAL_METRIC_MANAGE_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_METRIC_MANAGE_FORBIDDEN');
     }
   }
 
@@ -831,14 +836,14 @@ export class ComponentMetricService {
     );
     const issuePermissions = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
     if (!projectPermissions.can_manage_issues && !issuePermissions.can_edit_issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_METRIC_LINK_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_METRIC_LINK_FORBIDDEN');
     }
   }
 
   private async requireMeasure(measureHash: string): Promise<MeasureDomainEntity> {
     const measure = await this.measureRepository.findByMeasureHash(measureHash);
     if (!measure) {
-      throw DomainError.internal('CAPITAL_MEASURE_NOT_FOUND', { hash: measureHash });
+      throw DomainError.notFound('CAPITAL_MEASURE_NOT_FOUND', { hash: measureHash });
     }
     return measure;
   }
@@ -860,7 +865,7 @@ export class ComponentMetricService {
     }
 
     if (!data.title?.trim()) {
-      throw DomainError.internal('CAPITAL_MEASURE_INPUT_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_MEASURE_INPUT_REQUIRED');
     }
 
     return this.findOrCreateMeasure(
@@ -910,7 +915,7 @@ export class ComponentMetricService {
   ): Promise<MeasureDomainEntity> {
     const measure = await this.requireMeasure(measureHash);
     if (measure.coopname !== coopname) {
-      throw DomainError.internal('CAPITAL_MEASURE_FOREIGN_COOPERATIVE');
+      throw DomainError.forbidden('CAPITAL_MEASURE_FOREIGN_COOPERATIVE');
     }
     if (measure.status === MetricStatus.ARCHIVED) {
       measure.status = MetricStatus.ACTIVE;

@@ -11,9 +11,10 @@
 import crypto from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { COOP, caseName, gqlRaw } from '../core'
-import { BACKEND_URL } from './cardcoop-entry.helpers'
+import { BASE_URL } from './cardcoop-card.helpers'
 
-const ENTRY_BASE = `${BACKEND_URL}/v1/extensions/cardcoop/entry`
+
+const ENTRY_BASE = `${BASE_URL}/v1/extensions/cardcoop/entry`
 
 /** Куда уводит браузер ручка входа (без следования за редиректом). */
 async function redirectOf(path: string): Promise<{ status: number, location: string }> {

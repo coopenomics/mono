@@ -7,7 +7,7 @@ import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
 import { CycleMapper } from '../mappers/cycle.mapper';
 import { CycleStatus } from '../../domain/enums/cycle-status.enum';
 import type { CycleFilterInputDTO } from '../../application/dto/generation/cycle-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CycleTypeormRepository implements CycleRepository {
@@ -120,11 +120,10 @@ export class CycleTypeormRepository implements CycleRepository {
 
     // Получаем записи с пагинацией
     const orderBy: any = {};
-    if (validatedOptions.sortBy) {
-      orderBy[validatedOptions.sortBy] = validatedOptions.sortOrder;
-    } else {
-      orderBy.start_date = 'DESC';
-    }
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = resolveSortColumn(this.cycleTypeormRepository, validatedOptions.sortBy, 'start_date');
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     const entities = await this.cycleTypeormRepository.find({
       where,

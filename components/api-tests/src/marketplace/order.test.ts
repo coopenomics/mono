@@ -209,6 +209,7 @@ describe('заказ: границы оформления', () => {
     expect(res.created_orders).toHaveLength(0)
     expect(res.failed_lines.map((f: any) => f.offer_id)).toEqual([withdrawable.id])
     expect(res.failed_lines[0].reason).toBeTruthy()
+    expect(res.failed_lines[0].code).toBe('MARKETPLACE_CHECKOUT_OFFER_NOT_ACTIVE')
     expect(await myOrdersOfOffer(mt, withdrawable.id)).toHaveLength(0)
 
     const again = await gqlError(mt, ADD_TO_CART, { i: { offer_id: withdrawable.id, quantity: 1, delivery_braname: KRG } })
@@ -270,6 +271,7 @@ describe('заказ: остаток предложения и упаковки'
     expect(res.created_orders).toHaveLength(0)
     expect(res.failed_lines[0].offer_id).toBe(limited.id)
     expect(res.failed_lines[0].reason).toContain('5')
+    expect(res.failed_lines[0].code).toBe('MARKETPLACE_ORDER_QUANTITY_UNAVAILABLE')
     const offer = await getOffer(ot, limited.id)
     expect(offer.quantity_available).toBe(5)
     expect(offer.quantity_blocked).toBe(0)
@@ -305,17 +307,15 @@ describe('заказ: остаток предложения и упаковки'
     expect(res.created_orders).toHaveLength(0)
     expect(res.failed_lines[0].offer_id).toBe(packaged.id)
     expect(res.failed_lines[0].reason).toContain('3')
+    expect(res.failed_lines[0].code).toBe('MARKETPLACE_ORDER_QUANTITY_UNAVAILABLE')
     const offer = await getOffer(ot, packaged.id)
     expect(offer.packages.find((p: any) => p.id === small.id).quantity_blocked).toBe(0)
     expect(offer.quantity_blocked).toBe(0)
     await clearCart(mt)
   })
 
-  // mkt.order.side.08 целиком не закрыт: заказ упаковками записывается без
-  // package_id (persistAfterBlock его не пишет) — баг платформы, см. отчёт
-  // mkt-order. Здесь — то, что работает, и заказ на предложение ivanpetrov
-  // для проверок поставщика ниже.
-  it('заказ упаковками: базовое количество в заказе и счётчиках, число упаковок у упаковки, цена за упаковку', async () => {
+  // Заказ на предложение ivanpetrov нужен и проверкам поставщика ниже.
+  it(caseName('mkt.order.side.08', 'заказ упаковками: базовое количество в заказе и счётчиках, число упаковок у упаковки, упаковка в заказе, цена за упаковку'), async () => {
     const small = packaged.packages.find((p: any) => p.size === 0.5)
     const big = packaged.packages.find((p: any) => p.size === 1)
     const before = await getOffer(ot, packaged.id)
@@ -328,6 +328,10 @@ describe('заказ: остаток предложения и упаковки'
     expect(o.package_size).toBe(0.5)
     expect(amount(o.price_per_unit)).toBe(50)
     expect(amount(o.total_cost)).toBe(100)
+    // Упаковка сохраняется в заказе (до 25.09.2026 терялась при записи строки).
+    expect(o.package_id).toBe(small.id)
+    const stored = (await gql<any>(mt, `query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ package_id } }`, { i: { order_id: o.id } })).marketplaceGetOrder
+    expect(stored.package_id).toBe(small.id)
     packagedOrderId = o.id
 
     const after = await getOffer(ot, packaged.id)

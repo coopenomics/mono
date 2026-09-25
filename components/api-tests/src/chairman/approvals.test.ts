@@ -13,18 +13,8 @@
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, caseName, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
@@ -128,6 +118,28 @@ describe('одобрения председателя', () => {
     expect(await approvalsOf(chairToken, approvedWho.account, ['PENDING'])).toEqual([])
   })
 
+  it(caseName('chair.appr.side.03', 'повторное одобрение закрытого — отказ цепи с кодом, статус прежний'), async () => {
+    // До 25.09.2026 отказ контракта приходил ответом 500 без кода (C28-80).
+    const approved_document = await signDocument(CHAIRMAN.wif, pendingApproval.document.rawDocument, CHAIRMAN.account, 2, [pendingApproval.document.document])
+    const err = await gqlError(chairToken, CONFIRM, {
+      d: { coopname: COOP, approval_hash: pendingApproval.approval_hash.toLowerCase(), approved_document },
+    })
+    expect(err?.code).toBe('CHAIN_ASSERT')
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a?._id).toBe(pendingApproval._id)
+  })
+
+  it(caseName('chair.appr.side.05', 'одобрение подтверждено — одобренный документ с двумя подписями отдаётся'), async () => {
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a.approved_document).not.toBeNull()
+    expect(a.approved_document.document.signatures).toHaveLength(2)
+  })
+
+  it(caseName('chair.appr.side.06', 'одобрение закрыто — строки в цепи больше нет, признак «в цепи» снят'), async () => {
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a.present).toBe(false)
+  })
+
   it(caseName('chair.appr.happy.03', 'председатель отклоняет одобрение с причиной — статус отклонён'), async () => {
     await registerInCapital(declinedWho, declinedToken)
     const [a] = await approvalsOf(chairToken, declinedWho.account, ['PENDING'])
@@ -137,6 +149,7 @@ describe('одобрения председателя', () => {
     expect(r).toMatchObject({ _id: a._id, status: 'DECLINED' })
     const [after] = await approvalsOf(chairToken, declinedWho.account, ['DECLINED'])
     expect(after?._id).toBe(a._id)
+    expect(after.present).toBe(false)
   })
 
   it(caseName('chair.appr.side.04', 'фильтр по статусу отдаёт только этот статус'), async () => {

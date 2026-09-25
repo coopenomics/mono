@@ -12,9 +12,9 @@
 import { gql } from '../core/client'
 import { COOP } from '../core/env'
 
-interface TypeRef { kind: string, name: string | null, ofType: TypeRef | null }
-interface InputValue { name: string, type: TypeRef }
-interface FullType {
+export interface TypeRef { kind: string, name: string | null, ofType: TypeRef | null }
+export interface InputValue { name: string, type: TypeRef }
+export interface FullType {
   kind: string
   name: string
   fields: { name: string, args: InputValue[], type: TypeRef }[] | null
@@ -22,8 +22,8 @@ interface FullType {
   enumValues: { name: string }[] | null
 }
 
-const TYPE_REF = 'kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } }'
-const INTROSPECTION = `{ __schema {
+export const TYPE_REF = 'kind name ofType { kind name ofType { kind name ofType { kind name ofType { kind name } } } }'
+export const INTROSPECTION = `{ __schema {
   queryType { name } mutationType { name } subscriptionType { name }
   types { kind name
     fields(includeDeprecated: true) { name args { name type { ${TYPE_REF} } } type { ${TYPE_REF} } }
@@ -46,7 +46,7 @@ export interface Operation {
 export const PROBE_ACCOUNT = 'rightsprobe1'
 const ZERO_HASH = '0'.repeat(64)
 
-function printType(t: TypeRef): string {
+export function printType(t: TypeRef): string {
   if (t.kind === 'NON_NULL')
     return `${printType(t.ofType!)}!`
   if (t.kind === 'LIST')
@@ -54,7 +54,7 @@ function printType(t: TypeRef): string {
   return t.name!
 }
 
-function named(t: TypeRef): TypeRef {
+export function named(t: TypeRef): TypeRef {
   let x = t
   while (x.ofType) x = x.ofType
   return x

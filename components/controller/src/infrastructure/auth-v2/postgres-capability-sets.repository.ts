@@ -1,3 +1,4 @@
+import { affectedRows } from './raw-query-result';
 import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { DataSource } from 'typeorm';
@@ -138,15 +139,17 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
 
   async revoke(username: string, setKey: string): Promise<boolean> {
     const ds = await this.getDataSource();
-    // RETURNING → строки реально затронутых (детерминированно по всем драйверам).
-    const rows: { username: string }[] = await ds.query(
+    // Отозвано ли что-то — по числу затронутых строк (у UPDATE TypeORM отдаёт
+    // пару [строки, число]; см. raw-query-result.ts).
+    const raw: unknown = await ds.query(
       `UPDATE participant_capability_sets SET revoked_at = now()
         WHERE username = $1 AND set_key = $2 AND revoked_at IS NULL
        RETURNING username`,
       [username, setKey],
     );
-    if (rows.length > 0) this.signal(username, setKey);
-    return rows.length > 0;
+    const revoked = affectedRows(raw) > 0;
+    if (revoked) this.signal(username, setKey);
+    return revoked;
   }
 
   async onModuleDestroy(): Promise<void> {

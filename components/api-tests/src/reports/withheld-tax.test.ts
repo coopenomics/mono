@@ -22,8 +22,11 @@ import {
   withheldPayments,
   withheldState,
 } from '../documents/docs-reports.helpers'
+import type { WsConn, WsSub } from '../platform/platform-a.helpers'
+import { chainChangesOf, settleSubscriptions, waitSignal, wsAs } from '../platform/platform-a.helpers'
 
 const PAY = 'mutation($d:PayWithheldTaxInput!){ payWithheldTax(data:$d) }'
+const OUTCOMES = { code: 'gateway', table: 'outcomes' }
 
 describe('отчёты: перечисление удержанного НДФЛ в бюджет', () => {
   let chair: string
@@ -31,6 +34,9 @@ describe('отчёты: перечисление удержанного НДФЛ
   let declinedHash = ''
   let paidHash = ''
   const reason = `Внешний слой: реквизиты налоговой не приняты банком ${crypto.randomBytes(3).toString('hex')}`
+  /** Лента изменений глазами совета: перечисление кассиру — строка выплаты шлюза. */
+  let conn: WsConn
+  let outcomesSub: WsSub
 
   beforeAll(async () => {
     chair = await tokenOf(CHAIRMAN)
@@ -41,6 +47,9 @@ describe('отчёты: перечисление удержанного НДФЛ
   it(caseName('rep.tax.happy.02', 'удержанный налог уходит кассиру: сумма переходит в оплату, платёж с назначением в истории перечислений'), async () => {
     const before = await withheldState()
     const known = new Set((await withheldPayments()).map(p => p.hash))
+    conn = await wsAs(chair)
+    outcomesSub = chainChangesOf(conn, [OUTCOMES])
+    await settleSubscriptions()
     const sent = await gql<any>(chair, PAY, { d: { amount: 1 } })
     expect(amount(sent.payWithheldTax)).toBe(1)
     const after = await withheldState()
@@ -54,6 +63,18 @@ describe('отчёты: перечисление удержанного НДФЛ
     expect(amount(item.amount)).toBe(1)
     expect(item.status).toBe('PENDING')
     expect(String(item.memo).length, 'назначение платежа').toBeGreaterThan(0)
+    // Реквизиты бюджета — из справочника по стране кооператива; до 25.09.2026
+    // засев стенда писал страну текстом, справочник её не узнавал (C28-80).
+    expect((item.requisite_rows as any[]).map(r => r.label), 'реквизиты бюджета в карточке кассира').toContain('КБК')
+  })
+
+  it(caseName('rt.cc.happy.08', 'выплата шлюза (перечисление налога кассиру) — сигнал совету по таблице выплат'), async () => {
+    // До 25.09.2026 контракта gateway не было в публикации индексера, и лента
+    // по выплатам шлюза молчала. Приход шлюза так не проверить: строка
+    // прихода создаётся и закрывается в одном блоке, дельты по ней нет.
+    const sig = await waitSignal(outcomesSub, OUTCOMES)
+    expect(sig.primary_key).not.toBe('')
+    conn.close()
   })
 
   it(caseName('rep.tax.happy.01', 'у платежа расчётный период по налоговому поясу и подпись периода из календаря отчётности'), async () => {

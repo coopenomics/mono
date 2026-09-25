@@ -27,6 +27,10 @@ title: >-
 # редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
 # случаев не менялись.
 
+# Правка 25.09.2026 (C28-80): признак «доля завершена» читается из базы
+# (конструктор доли его терял). Поведение стола результатов прежнее, случай
+# покрыт в capital.result-submission (cap.rid.side.92).
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/dto/segments/segment.dto.ts

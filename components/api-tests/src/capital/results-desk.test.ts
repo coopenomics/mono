@@ -18,7 +18,7 @@ import {
   refreshSegment,
   segmentOf,
   segmentsOf,
-  setMaster,
+  setMasterInChain,
 } from './cap-results.helpers'
 
 const SEGMENTS = `query($f:CapitalSegmentFilter){ capitalSegments(filter:$f){ totalCount items{ username project_hash } } }`
@@ -43,8 +43,8 @@ describe('Благорост: стол «Результаты»', () => {
     await clearance(alice, component)
     // Мастер получает долю автора: так у участника появляются доли и в
     // проекте верхнего уровня, и в компоненте.
-    await setMaster(project, alice)
-    await setMaster(component, alice)
+    await setMasterInChain(project, alice)
+    await setMasterInChain(component, alice)
 
     await waitFor(async () => {
       const mine = await segmentsOf(aliceToken, { username: alice.account })

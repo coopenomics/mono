@@ -59,6 +59,11 @@ title: Выдача заказа на пункте выдачи — заявле
 # законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
 # Поведение и набор случаев прежние.
 
+
+# Правка 2026-09-25 (C28-80): тело строки заказа и докладки считается тем же
+# расчётом стоимости, что контракт (calcCostMinor): дробная мера по весу
+# (1,5 кг) больше не роняет превью и оформление ошибкой 500. Набор случаев
+# не менялся.
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/readyissue.cpp
@@ -158,7 +163,10 @@ cases:
     scenario: Повторная фиксация факта по заказу, выдача которого уже идёт
     expect: отказ — вторая сага не рождается; закрытие уже закрытой выдачи — no-op
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
+    # До 25.09.2026 повтор закрытия получал «выдача не начата», а ход выдачи
+    # после закрытия читался как null.
 
   - id: mkt.iss.side.06
     level: backend

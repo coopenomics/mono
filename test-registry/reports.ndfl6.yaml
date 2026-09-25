@@ -178,6 +178,7 @@ cases:
       и квартальный с суммами, и годовой со справками проходят XSD-валидацию
       по NO_NDFL6.2_1_231_00_05_05_02.xsd
     test: components/controller/tests/unit/reports/report-generators.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
     status: passing
 
   - id: rep.ndfl6.ui.01
@@ -209,6 +210,7 @@ cases:
       КБК НДФЛ, сумма равна удержанному за период; форма та же, что у
       уведомлений по УСН и взносам
     test: components/controller/tests/unit/reports/report-generators.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
     status: passing
 
   - id: rep.ndfl6.happy.05

@@ -1,0 +1,50 @@
+feature: documents.generation-rights
+title: Кто собирает документ на чужое имя
+
+# Универсальная генерация документа (generateDocument) собирает документ на
+# себя: иначе пайщик собирал бы заявления и акты на чужое имя (правка
+# 17.09.2026). Исключение одно — протокол решения совета: его председатель и
+# члены совета собирают на имя заявителя, чьё заявление рассматривает совет.
+# Список протоколов — единый реестр решений (decisionTypesRegistry).
+#
+# Правка 25.09.2026 (C28-80): до неё исключения не было, и рабочий стол не мог
+# вручную утвердить ни одно решение по чужому заявлению — например,
+# материальную помощь доверенному участка (обработчики решений собирают
+# протокол на имя заявителя). На стенде это не было видно: решения Стола
+# заказов принимает робот. Нашёл внешний слой.
+
+sources:
+  backend:
+    - components/controller/src/application/document/resolvers/document.resolver.ts
+  ui:
+    - components/desktop/src/processes/process-decisions/**
+
+cases:
+  - id: doc.gen.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик собирает документ на себя
+    expect: документ собран
+    test: components/controller/tests/unit/document/generate-document-council-protocol.test.ts
+    # Снаружи — пакет заявки в доверенные (договор 327) собирается на себя.
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: doc.gen.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик, член совета или председатель собирают на чужое имя документ, который не протокол решения совета
+    expect: отказ DOCUMENT_GENERATION_FORBIDDEN
+    test: components/controller/tests/unit/document/generate-document-council-protocol.test.ts
+    # Снаружи — матрица прав: generateDocument на чужое имя от каждой роли, отказ в утверждённом снимке.
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: passing
+
+  - id: doc.gen.side.02
+    level: backend
+    kind: side
+    scenario: Председатель утверждает вручную решение о материальной помощи — протокол собирается на имя заявителя, как это делает рабочий стол
+    expect: протокол собран и подписан, решение утверждено, выплата доходит до кассира
+    test: components/controller/tests/unit/document/generate-document-council-protocol.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
+    status: passing

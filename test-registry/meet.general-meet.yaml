@@ -6,6 +6,10 @@ title: Общее собрание пайщиков — созыв по подп
 # (фича meet.chain-texts). Внешний тест созывает собрание председателем и
 # читает его пайщиком: это страхует оба репозитория при переводе на Kysely.
 
+# Правка 25.09.2026 (C28-80): собрание, которого нет ни в базе, ни в цепи,
+# отвечает отказом MEET_NOT_FOUND (404), а не ошибкой сервера 500. Созыв,
+# отвергнутый цепью, не оставляет строки собрания в базе.
+
 sources:
   backend:
     - components/controller/src/application/meet/**
@@ -55,8 +59,19 @@ cases:
     level: backend
     kind: side
     scenario: Созыв отвергнут цепью (подпись предложения не инициатора, дата открытия раньше срока)
-    expect: следа в базе не остаётся
-    # Сейчас строка meet_pre пишется ДО транзакции (MeetInteractor.createAnnualGeneralMeet)
-    # и остаётся сиротой при отказе цепи. Нужен ответ: откатывать или так задумано.
-    status: missing
-    decision_needed: true
+    expect: отказ цепи уходит пайщику, строка meet_pre удаляется — следа в базе не остаётся
+    # Строка пишется до транзакции (её читают обработчики блока созыва) и при
+    # отказе удаляется (решение владельца 25.09.2026). Снаружи базу не видно:
+    # внешний тест проверяет отказ цепи и пустой список, строку — модульный.
+    test: components/controller/tests/unit/meet/meet-create-chain-refusal.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing
+
+  - id: meet.gm.side.04
+    level: backend
+    kind: side
+    scenario: Пайщик читает собрание по хешу, которого нет ни в базе, ни в цепи
+    expect: отказ MEET_NOT_FOUND со статусом 404, без внутреннего текста
+    test: components/api-tests/src/meet/general-meet.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing

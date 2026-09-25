@@ -123,7 +123,8 @@ export async function placeOrder(args: { who: Who, offerId: string, quantity: nu
   return { orderId, orderHash: ord.marketplaceGetOrder.order_hash as string }
 }
 
-export const ORDER_FIELDS = 'id status order_hash quantity total_cost total_cost_with_fee membership_fee accepted_cost price_per_unit orderer_account supplier_account delivery_braname'
+export const ORDER_FIELDS = `id status order_hash offer_id quantity package_id package_size price_per_unit total_cost total_cost_with_fee
+  membership_fee accepted_cost orderer_account supplier_account delivery_braname cycle_id checkout_id create_tx{ tx_hash block_num }`
 
 export async function getOrder(token: string, orderId: string): Promise<any> {
   const d = await gql<any>(token, `query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ ${ORDER_FIELDS} } }`, { i: { order_id: orderId } })

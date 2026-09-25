@@ -8,9 +8,13 @@ import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
 import { ExpensePlanRecurrence, nextRecurrenceDate } from '../../domain/expense-plan.types';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
-import { CHAIN_PORT, type IChainPort } from '@coopenomics/innercoop';
+import { CHAIN_PORT, type IChainPort, type IMonoAccount } from '@coopenomics/innercoop';
 
 export const EXPENSE_PLANS_SERVICE = Symbol('EXPENSE_PLANS_SERVICE');
+
+function isBranchOperator(branch: BranchContract.Tables.Branches.IBranch, username: string): boolean {
+  return branch.trustee === username || branch.trusted.includes(username);
+}
 
 /**
  * Горизонт планового резерва расходов, дни. Жёсткая константа (решение
@@ -79,6 +83,24 @@ export class ExpensePlansService {
       order: { dueDate: 'ASC', id: 'ASC' },
     });
     return rows.map((r) => this.toView(r));
+  }
+
+  /**
+   * Реестр глазами того, кто спрашивает. В записях — реквизиты получателей
+   * платежей, поэтому целиком реестр видит совет, а операторы участка
+   * (председатель и доверенные лица — все, у кого есть доступ к участку) —
+   * планы своего участка. Прочим пайщикам реестр закрыт до надобности:
+   * до 25.09.2026 он был открыт любому (решение владельца 25.09, C28-80).
+   */
+  async listPlansFor(coopname: string, viewer: IMonoAccount, braname?: string | null): Promise<ExpensePlanView[]> {
+    if (viewer.role === 'chairman' || viewer.role === 'member') return this.listPlans(coopname, braname);
+    const own = await this.operatedBranches(coopname, viewer.username);
+    if (braname) {
+      if (!own.includes(braname)) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
+      return this.listPlans(coopname, braname);
+    }
+    if (own.length === 0) throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN');
+    return (await this.listPlans(coopname)).filter((p) => p.braname !== null && own.includes(p.braname));
   }
 
   async createPlan(
@@ -277,19 +299,26 @@ export class ExpensePlansService {
     if (!braname) {
       throw DomainError.forbidden('EXPENSES_PLAN_COOP_LEVEL_NOT_SUPPORTED');
     }
-    const branches = (await this.blockchainService.getAllRows(
+    const branch = (await this.branches(coopname)).find((b) => b.braname === braname);
+    if (!branch) {
+      throw DomainError.notFound('EXPENSES_BRANCH_NOT_FOUND');
+    }
+    if (!isBranchOperator(branch, initiator)) {
+      throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN');
+    }
+  }
+
+  /** Участки, где пайщик — председатель или доверенное лицо. */
+  private async operatedBranches(coopname: string, username: string): Promise<string[]> {
+    return (await this.branches(coopname)).filter((b) => isBranchOperator(b, username)).map((b) => b.braname);
+  }
+
+  private async branches(coopname: string): Promise<BranchContract.Tables.Branches.IBranch[]> {
+    return (await this.blockchainService.getAllRows(
       BranchContract.contractName.production,
       coopname,
       BranchContract.Tables.Branches.tableName
     )) as BranchContract.Tables.Branches.IBranch[];
-    const branch = branches.find((b) => b.braname === braname);
-    if (!branch) {
-      throw DomainError.notFound('EXPENSES_BRANCH_NOT_FOUND');
-    }
-    const isOperator = branch.trustee === initiator || branch.trusted.includes(initiator);
-    if (!isOperator) {
-      throw DomainError.forbidden('EXPENSES_PLAN_BRANCH_MANAGE_FORBIDDEN');
-    }
   }
 
   private toView(row: ExpensePlanEntity): ExpensePlanView {

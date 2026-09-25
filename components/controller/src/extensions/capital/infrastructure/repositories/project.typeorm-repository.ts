@@ -171,7 +171,7 @@ export class ProjectTypeormRepository
     const h = projectHash.toLowerCase();
     const existing = await this.repository.findOneBy({ project_hash: h });
     if (!existing) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     if (existing.origin !== ProjectOrigin.LOCAL) {
       throw DomainError.internal('CAPITAL_LOCAL_FIELDS_UPDATE_PERSONAL_ONLY');
@@ -194,7 +194,7 @@ export class ProjectTypeormRepository
     const h = projectHash.toLowerCase();
     const existing = await this.repository.findOneBy({ project_hash: h });
     if (!existing) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     if (existing.origin !== ProjectOrigin.LOCAL) {
       throw DomainError.internal('CAPITAL_SOFT_DELETE_PERSONAL_ONLY');
@@ -460,11 +460,10 @@ export class ProjectTypeormRepository
 
     // Получаем записи с пагинацией
     const orderBy: any = {};
-    if (validatedOptions.sortBy) {
-      orderBy[validatedOptions.sortBy] = validatedOptions.sortOrder;
-    } else {
-      orderBy.created_at = 'DESC';
-    }
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     const entities = await this.repository.find({
       where,

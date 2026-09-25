@@ -88,12 +88,12 @@ export class RequestDomainService {
     // Получение категории и типа
     const category = await this.categoryRepository.findById(params.descriptionCategoryId);
     if (!category) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_CATEGORY_NOT_FOUND', { categoryId: params.descriptionCategoryId });
+      throw DomainError.notFound('MARKETPLACE_REQUEST_CATEGORY_NOT_FOUND', { categoryId: params.descriptionCategoryId });
     }
 
     const productType = await this.typeRepository.findById(params.typeId);
     if (!productType) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_TYPE_NOT_FOUND', { typeId: params.typeId });
+      throw DomainError.notFound('MARKETPLACE_REQUEST_TYPE_NOT_FOUND', { typeId: params.typeId });
     }
 
     // Проверка соответствия типа категории
@@ -110,7 +110,7 @@ export class RequestDomainService {
       params.username
     );
     if (!isArticleNumberUnique) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_ARTICLE_ALREADY_USED', { articleNumber: params.articleNumber });
+      throw DomainError.conflict('MARKETPLACE_REQUEST_ARTICLE_ALREADY_USED', { articleNumber: params.articleNumber });
     }
 
     // Создание атрибутов заявки
@@ -211,7 +211,7 @@ export class RequestDomainService {
   ): Promise<RequestDomainEntity> {
     const existingRequest = await this.requestRepository.findById(requestId);
     if (!existingRequest) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
+      throw DomainError.notFound('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     if (!existingRequest.canBeEdited()) {
@@ -249,7 +249,7 @@ export class RequestDomainService {
   async publishRequest(requestId: number): Promise<RequestDomainEntity> {
     const request = await this.requestRepository.findById(requestId);
     if (!request) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
+      throw DomainError.notFound('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     // Валидация готовности к публикации
@@ -268,7 +268,7 @@ export class RequestDomainService {
   async findPotentialMatches(requestId: number): Promise<RequestDomainEntity[]> {
     const request = await this.requestRepository.findById(requestId);
     if (!request) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_NOT_FOUND');
+      throw DomainError.notFound('MARKETPLACE_REQUEST_NOT_FOUND');
     }
 
     return await this.requestRepository.findPotentialMatches(request);
@@ -395,7 +395,7 @@ export class RequestDomainService {
     for (const attrData of attributesData) {
       const attribute = await this.attributeRepository.findById(attrData.attributeId);
       if (!attribute) {
-        throw DomainError.internal('MARKETPLACE_REQUEST_ATTRIBUTE_NOT_FOUND', { attributeId: attrData.attributeId });
+        throw DomainError.notFound('MARKETPLACE_REQUEST_ATTRIBUTE_NOT_FOUND', { attributeId: attrData.attributeId });
       }
 
       const attributeValue = new RequestAttributeValueDomainEntity({
@@ -468,7 +468,7 @@ export class RequestDomainService {
 
     // Проверка наличия хотя бы одного изображения
     if (images.length === 0 && !primaryImageUrl) {
-      throw DomainError.internal('MARKETPLACE_REQUEST_IMAGE_REQUIRED');
+      throw DomainError.badRequest('MARKETPLACE_REQUEST_IMAGE_REQUIRED');
     }
 
     // Проверка уникальности главного изображения

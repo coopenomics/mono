@@ -22,3 +22,5 @@ export * from './currency-validation.utils';
 export * from './user-text.utils';
 export * from './sort-column.utils';
 export * from './local-changes-collector';
+export * from './numeric-column.transformer';
+export * from './safe-markup.decorator';

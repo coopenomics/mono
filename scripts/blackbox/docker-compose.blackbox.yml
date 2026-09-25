@@ -23,3 +23,11 @@ services:
       - pg_stat_statements.track=all
       - -c
       - pg_stat_statements.max=20000
+  # Перехватчик почты: письма контроллера (коды подтверждения, ссылки
+  # восстановления) внешний слой читает через API Mailpit, как пайщик читает
+  # свою почту, а не из журнала контроллера. На dev-стендах Mailpit свой.
+  mailpit:
+    image: axllent/mailpit:v1.31.0
+    ports:
+      - "127.0.0.1:8025:8025"
+

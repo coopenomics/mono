@@ -1,0 +1,68 @@
+feature: chatcoop.transcriptions
+title: Транскрипции звонков «Чата кооператива» — список, запись с сегментами, заметка
+
+# Запись транскрипции заводит вебхук сервера звонков (LiveKit), сегменты
+# дописывает распознавание речи. Читать и править заметку может тот, кто
+# вправе читать комнату: комната пайщиков и совета — совет, комната проекта
+# Благороста — участники проекта.
+#
+# Заведено 24.09.2026 (C28-80). На стенде внешнего слоя нет ни сервера
+# звонков, ни реестра комнат Matrix: записи транскрипций снаружи не завести.
+
+sources:
+  backend:
+    - components/controller/src/extensions/chatcoop/application/resolvers/transcription.resolver.ts
+    - components/controller/src/extensions/chatcoop/domain/services/transcription-management.service.ts
+    - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/call-transcription.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/transcription-segment.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/application/controllers/livekit-webhook.controller.ts
+
+cases:
+  - id: chat.tr.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик без доступных комнат запрашивает список транскрипций
+    expect: пустой список
+    test: components/api-tests/src/chatcoop/transcriptions.test.ts
+    api: components/api-tests/src/chatcoop/transcriptions.test.ts
+    status: passing
+
+  - id: chat.tr.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик запрашивает транскрипции комнаты не из реестра
+    expect: отказ CHATCOOP_ROOM_ACCESS_DENIED
+    test: components/controller/tests/unit/chatcoop/transcription-room-access.test.ts
+    api: components/api-tests/src/chatcoop/transcriptions.test.ts
+    status: passing
+
+  - id: chat.tr.side.02
+    level: backend
+    kind: side
+    scenario: Чтение и заметка по несуществующей транскрипции
+    expect: чтение — null, заметка — отказ CHATCOOP_TRANSCRIPTION_NOT_FOUND
+    test: components/api-tests/src/chatcoop/transcriptions.test.ts
+    api: components/api-tests/src/chatcoop/transcriptions.test.ts
+    status: passing
+
+  - id: chat.tr.side.03
+    level: backend
+    kind: side
+    scenario: Гость читает список и правит заметку
+    expect: отказ 401
+    test: components/api-tests/src/chatcoop/transcriptions.test.ts
+    api: components/api-tests/src/chatcoop/transcriptions.test.ts
+    status: passing
+
+  - id: chat.tr.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Звонок в комнате совета записан и распознан; член совета читает запись с
+      сегментами и сохраняет заметку, пайщик вне совета получает отказ
+    expect: >
+      запись с сегментами и заметкой; снаружи не проверить — запись заводит
+      вебхук сервера звонков по комнате реестра Matrix, на стенде их нет
+    test: ~
+    status: missing

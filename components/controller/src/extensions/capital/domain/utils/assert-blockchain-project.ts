@@ -11,10 +11,10 @@ export function assertBlockchainProject(
   actionLabel = t('capital.assertBlockchainProject.actionLabel.default')
 ): asserts project is ProjectDomainEntity {
   if (!project) {
-    throw DomainError.internal('CAPITAL_BLOCKCHAIN_PROJECT_NOT_FOUND');
+    throw DomainError.notFound('CAPITAL_BLOCKCHAIN_PROJECT_NOT_FOUND');
   }
   if (project.origin === ProjectOrigin.LOCAL) {
-    throw DomainError.internal('CAPITAL_PERSONAL_PROJECT_NOT_ALLOWED', { action: actionLabel });
+    throw DomainError.forbidden('CAPITAL_PERSONAL_PROJECT_NOT_ALLOWED', { action: actionLabel });
   }
 }
 

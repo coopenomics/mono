@@ -54,6 +54,18 @@ export class AppendixSyncService
   }
 
   /**
+   * Заявка на допуск, поданная в цепь мимо API
+   */
+  @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.GetClearance.actionName}`)
+  async handleGetClearance(actionData: InnerChainActionRecord): Promise<void> {
+    try {
+      await this.clearanceManagementInteractor.handleGetClearance(actionData);
+    } catch (error: any) {
+      this.logger.error(`Ошибка при обработке заявки на допуск: ${error?.message}`, error?.stack);
+    }
+  }
+
+  /**
    * Обработчик одобрения приложения
    */
   @OnEvent(`action::${CapitalContract.contractName.production}::${CapitalContract.Actions.ConfirmClearance.actionName}`)

@@ -61,7 +61,7 @@ export class ContentRevisionApiService {
     await this.assertCanView(data.entity_type, data.entity_hash, currentUser);
     const target = await this.contentRevisionService.getRevision(data.entity_type, data.entity_hash, data.rev);
     if (!target) {
-      throw DomainError.internal('CAPITAL_CONTENT_REVISION_NOT_FOUND', { rev: data.rev, entityType: data.entity_type, entityHash: data.entity_hash });
+      throw DomainError.notFound('CAPITAL_CONTENT_REVISION_NOT_FOUND', { rev: data.rev, entityType: data.entity_type, entityHash: data.entity_hash });
     }
     const content = { title: target.title, description: normalizeDescription(target.description) };
 
@@ -95,7 +95,7 @@ export class ContentRevisionApiService {
       case ContentEntityType.PROJECT: {
         const project = await this.projectRepository.findByHash(data.entity_hash.toLowerCase());
         if (!project) {
-          throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.entity_hash });
+          throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.entity_hash });
         }
         // restored_from_rev — служебное поле доменного входа, в GraphQL-DTO его нет
         const input: EditProjectInputDTO & { restored_from_rev?: number } = {
@@ -136,7 +136,7 @@ export class ContentRevisionApiService {
       }
     }
     if (!allowed) {
-      throw DomainError.internal('CAPITAL_CONTENT_REVISION_HISTORY_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_CONTENT_REVISION_HISTORY_FORBIDDEN');
     }
   }
 

@@ -21,6 +21,7 @@ import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
 import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
+import { paymentByHash as paymentSeenBy } from '../payments/payments.helpers'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
 
@@ -303,7 +304,7 @@ async function ensureFeePool(need: number): Promise<void> {
     const member = ROLES.member()
     const token = await tokenOf(member)
     // Каталог целиком видит председатель кооператива, пайщику — только витрина.
-    const offer = await pickOffer(await tokenOf(CHAIRMAN), ROLES.supplier().account, KRG, 'Мёд цветочный')
+    const offer = await pickOffer(ROLES.supplier().account, KRG, 'Мёд цветочный')
     const price = amount(offer.price_per_unit)
     const qty = Math.max(1, Math.ceil((need - pool) / (price * rate)) + 1)
     await ensureShare(member, price * qty * 2 + 1_000)
@@ -394,10 +395,7 @@ async function chairPaymentMethod(): Promise<string> {
 export interface GatewayPaymentRow { id: string, hash: string, status: string, quantity: number, type: string, username: string, message: string | null }
 
 export async function paymentByHash(hash: string, type?: string): Promise<GatewayPaymentRow | null> {
-  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($d:PaymentFiltersInput,$o:PaginationInput){
-    getPayments(data:$d, options:$o){ items{ id hash quantity status type username message } }
-  }`, { d: { hash, ...(type ? { type } : {}) }, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
-  return (d.getPayments.items as any[]).find(p => String(p.hash).toLowerCase() === hash.toLowerCase()) ?? null
+  return paymentSeenBy(await tokenOf(CHAIRMAN), hash, type ? { type } : {})
 }
 
 /** Кассир (председатель стенда) подтверждает фактический перевод. */
@@ -456,9 +454,10 @@ export async function payAid(gross: number): Promise<AidPayout> {
       data: {
         registry_id: 1112,
         coopname: COOP,
-        // Генерация документа доступна только от своего имени — протокол
-        // собирает председатель, получатель указан отдельным полем.
-        username: CHAIRMAN.account,
+        // Как рабочий стол (processes/process-decisions/handlers, brnaid):
+        // протокол собирается на имя заявителя. До 25.09.2026 сервер это
+        // запрещал, и вручную утвердить матпомощь было нельзя.
+        username: decision.username ?? chair.account,
         lang: 'ru',
         decision_id: decision.id,
         aid_hash: decision.statementMeta.aid_hash ?? aidHash,

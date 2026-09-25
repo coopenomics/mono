@@ -3,8 +3,10 @@
  *
  * Шаблоны собираются без автоэкранирования, поэтому текст с разметкой
  * становится разметкой документа. Формулировки вопросов повестки собрания —
- * свободный текст, угловые скобки там не запрещены, и через них в документ
- * попадают ссылки на ресурсы. Сборщик PDF обязан загружать только data:.
+ * свободный текст с вёрсткой: исполняемое (в том числе <link>) отсекается на
+ * входе с 25.09.2026 (platform.input.break.04), а ссылки на ресурсы в картинках,
+ * стилях и вложениях проходят в документ. Сборщик PDF обязан загружать только
+ * data: — это вторая линия, она нужна и для данных, пришедших не из повестки.
  *
  * Снаружи это видно по самому PDF и по времени сборки:
  *  - file:// на исполняемый файл node (десятки мегабайт) не вкладывается —
@@ -100,7 +102,7 @@ describe('factory.document-external-resources: сборка PDF без обра�
       `<img src="${blackhole}/a.png">`,
       `<div style="background-image:url(${blackhole}/b.png)">фон</div>`,
       `<style>@import url("${blackhole}/c.css");</style>`,
-      `<link rel="stylesheet" href="${blackhole}/d.css">`,
+      `<style>@import "${blackhole}/d.css";</style>`,
     ].join(' '))
     // Ссылки дошли до документа — проверка не пустая.
     expect(evil.html).toContain(`${blackhole}/a.png`)
@@ -119,7 +121,7 @@ describe('factory.document-external-resources: сборка PDF без обра�
       'Об утверждении отчёта',
       `<img src="${node}">`,
       `<a rel="attachment" href="${node}">приложение</a>`,
-      `<link rel="attachment" href="file:///etc/passwd">`,
+      `<a rel="attachment" href="file:///etc/passwd">passwd</a>`,
     ].join(' '))
     expect(evil.html).toContain(node)
     // Исполняемый файл node весит десятки мегабайт; вложенный, он раздул бы PDF.

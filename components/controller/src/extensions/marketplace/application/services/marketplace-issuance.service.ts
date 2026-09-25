@@ -643,7 +643,7 @@ export class MarketplaceIssuanceService {
   async signAct1(input: MarketplaceIssuanceSignAct1Input): Promise<MarketplaceIssuanceSagaDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
     this.assertOrderer(order, input.member_account);
-    const saga = await this.requireSaga(input.coopname, order.id);
+    const saga = await this.requireSagaOrClosed(input.coopname, order);
     if (saga.stage === MarketplaceIssuanceSagaStages.ACT1_SIGNED || saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
     if (saga.stage !== MarketplaceIssuanceSagaStages.DECISION_AUTHORIZED) {
       throw new ConflictException(saga.awaits_council ? t('marketplace.issuance.councilPendingNote') : t('marketplace.issuance.actSignForbiddenAtStage', { stage: saga.stage }));
@@ -714,7 +714,7 @@ export class MarketplaceIssuanceService {
    */
   async closeIssuance(input: MarketplaceIssuanceCloseInput): Promise<MarketplaceIssuanceSagaDomainEntity> {
     const order = await this.loadOrder(input.coopname, input.order_id);
-    const saga = await this.requireSaga(input.coopname, order.id);
+    const saga = await this.requireSagaOrClosed(input.coopname, order);
     if (saga.stage === MarketplaceIssuanceSagaStages.CLOSED) return saga;
     if (saga.stage !== MarketplaceIssuanceSagaStages.ACT1_SIGNED || !saga.act1_document) {
       throw DomainError.conflict('MARKETPLACE_ISSUANCE_CLOSE_ACT_NOT_SIGNED');
@@ -805,7 +805,11 @@ export class MarketplaceIssuanceService {
   // ── Чтение ───────────────────────────────────────────────────────────
 
   async getSagaByOrder(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
-    return this.sagaRepo.findActiveByOrderId(coopname, order_id) ?? this.sagaRepo.findByOrderHash(coopname, (await this.loadOrder(coopname, order_id)).order_hash);
+    // `??` стоял после Promise, который пуст не бывает, и поиск по хэшу не
+    // вызывался: после закрытия ход выдачи пропадал (до 25.09.2026).
+    const active = await this.sagaRepo.findActiveByOrderId(coopname, order_id);
+    if (active) return active;
+    return this.sagaRepo.findByOrderHash(coopname, (await this.loadOrder(coopname, order_id)).order_hash);
   }
 
   async listSagas(filter: { coopname: string; member_account?: string; braname?: string | string[]; proposal_id?: string; active_only?: boolean }): Promise<MarketplaceIssuanceSagaDomainEntity[]> {
@@ -1160,6 +1164,20 @@ export class MarketplaceIssuanceService {
     const saga = await this.sagaRepo.findActiveByOrderId(coopname, order_id);
     if (!saga) throw DomainError.conflict('MARKETPLACE_ISSUANCE_NOT_STARTED_OPERATOR');
     return saga;
+  }
+
+  /**
+   * Активная сага либо уже закрытая по этому заказу — для идемпотентных
+   * повторов подписи акта и закрытия. `requireSaga` видит только активные, и
+   * проверки «уже закрыто» в этих методах не срабатывали никогда: повтор
+   * закрытия получал «выдача не начата» (до 25.09.2026).
+   */
+  private async requireSagaOrClosed(coopname: string, order: MarketplaceOrderDomainEntity): Promise<MarketplaceIssuanceSagaDomainEntity> {
+    const active = await this.sagaRepo.findActiveByOrderId(coopname, order.id);
+    if (active) return active;
+    const last = await this.sagaRepo.findByOrderHash(coopname, order.order_hash);
+    if (last?.stage === MarketplaceIssuanceSagaStages.CLOSED) return last;
+    throw DomainError.conflict('MARKETPLACE_ISSUANCE_NOT_STARTED_OPERATOR');
   }
 
   private assertOrderer(order: MarketplaceOrderDomainEntity, member_account: string): void {

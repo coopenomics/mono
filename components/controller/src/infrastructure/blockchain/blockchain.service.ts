@@ -21,7 +21,7 @@ import { getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { normalizeAbiFloats } from './abi-float.normalizer';
 import { type ChainFailure, createChainFetch, describeChainFailure } from '@coopenomics/sdk';
 import * as Sentry from '@sentry/nestjs';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, chainRefusalOf } from '@coopenomics/extension-kit';
 
 /**
  * Индекс реестра кооперативов «по оператору». Третий по счёту после первичного:
@@ -203,20 +203,27 @@ export class BlockchainService implements BlockchainPort {
     // транзакций, срезанных лимитами CPU/NET на пике нагрузки (chain-retry.ts).
     // Такая транзакция в блок не попадает, поэтому повтор дублей не даёт, а
     // пайщик вместо красной ошибки получает обычный ответ со второй попытки.
-    const result = await retryOnChainExhaustion(
-      () =>
-        Array.isArray(actionOrActions)
-          ? this.sendActions(session, actionOrActions, broadcast)
-          : this.sendAction(session, actionOrActions, broadcast),
-      {
-        attempts: config.blockchain.txRetryAttempts,
-        delayMs: config.blockchain.txRetryDelayMs,
-        onRetry: ({ attempt, attempts, delayMs, reason }) =>
-          this.logger.warn(
-            `Транзакция не уложилась в лимит цепи (${reason}) — повтор ${attempt}/${attempts} через ${delayMs}мс`
-          ),
-      }
-    );
+    let result: TransactResult;
+    try {
+      result = await retryOnChainExhaustion(
+        () =>
+          Array.isArray(actionOrActions)
+            ? this.sendActions(session, actionOrActions, broadcast)
+            : this.sendAction(session, actionOrActions, broadcast),
+        {
+          attempts: config.blockchain.txRetryAttempts,
+          delayMs: config.blockchain.txRetryDelayMs,
+          onRetry: ({ attempt, attempts, delayMs, reason }) =>
+            this.logger.warn(
+              `Транзакция не уложилась в лимит цепи (${reason}) — повтор ${attempt}/${attempts} через ${delayMs}мс`
+            ),
+        }
+      );
+    } catch (error) {
+      // Отказ контракта уходит пайщику с кодом (CHAIN_ASSERT или код
+      // контракта), а не ошибкой сервера 500.
+      throw chainRefusalOf(error) ?? error;
+    }
     if (broadcast) await this.awaitBlockProcessed(result);
     return result;
   }

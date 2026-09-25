@@ -12,6 +12,12 @@ export interface MeetPreProcessingRepository {
    * @param data Данные нового собрания
    */
   create(data: MeetPreProcessingDomainEntity): Promise<void>;
+
+  /**
+   * Удалить данные собрания, которое цепь не приняла
+   * @param hash Хеш собрания
+   */
+  deleteByHash(hash: string): Promise<void>;
 }
 
 export const MEET_PRE_PROCESSING_REPOSITORY = Symbol('MeetPreProcessingRepository');

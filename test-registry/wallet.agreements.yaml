@@ -13,6 +13,11 @@ title: Кошельки и соглашения пайщика — зеркал�
 # перевода слоя данных на Kysely (C28-81). Пишутся таблицы разбором цепи:
 # через мутации контроллера (sendAgreement/confirmAgreement/declineAgreement),
 # а где мутации нет — действием в цепь в подготовке теста.
+#
+# Таблица программных кошельков старого образца (program_wallets, зеркало
+# soviet::progwallets) пишется синхронизацией и через API не читается: её
+# показывает бухгалтерия, этого достаточно — так задумано, кошельки не
+# трогать (решение владельца 25.09.2026).
 
 sources:
   backend:
@@ -172,30 +177,23 @@ cases:
     api: components/api-tests/src/wallet/wallet.agreements.test.ts
     status: passing
 
-  - id: wal.agr.side.10
-    level: backend
-    kind: side
-    scenario: чтение программных кошельков старого образца (program_wallets, зеркало soviet::progwallets)
-    expect: таблица читается хотя бы одной операцией API — сейчас её пишет только синхронизация, а getProgramWallets собирает ответ из user_agreements и user_wallets
-    test: ~
-    status: missing
-    decision_needed: true
-
   - id: wal.agr.side.11
     level: backend
     kind: side
     scenario: список соглашений пайщика с фильтром по статусу или типу без program_id
-    expect: в выдаче только соглашения нужного статуса/типа (сейчас программные соглашения добавляются в выдачу без учёта statuses и type)
-    test: ~
-    status: missing
+    expect: в выдаче только соглашения нужного статуса/типа (до 25.09.2026 программные соглашения добавлялись в выдачу без учёта statuses и type)
+    test: components/controller/tests/unit/agreement/agreements-filter-programmatic.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
 
   - id: wal.agr.side.12
     level: backend
     kind: side
     scenario: совет читает журнал операций старого плана счетов
-    expect: у операции есть хэш пакета документов и пайщик (сейчас поля объявлены в схеме, но сервис их не передаёт — всегда null)
-    test: ~
-    status: missing
+    expect: у операции есть хэш пакета документов и пайщик (до 25.09.2026 поля были объявлены в схеме, но сервис их не передавал — всегда null)
+    test: components/controller/tests/unit/ledger/ledger-history-fields.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
 
   - id: wal.agr.side.13
     level: backend

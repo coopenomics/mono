@@ -13,7 +13,11 @@
 import { describe, expect, it } from 'vitest'
 import { CHAIRMAN, caseName, freshMember, gql, tokenOf, waitFor } from '../core'
 import { COOP } from '../core/env'
-import { approveContributor, ensureCapitalInitialized, registerContributorViaApi } from './cap-metrics.helpers'
+import {
+  ensureCapitalInitialized,
+  registerContributorViaApi,
+} from './cap-metrics.helpers'
+import { chairmanApprove } from './cap-results.helpers'
 
 const CONTRIBUTOR = 'query($d:GetContributorInput!){ capitalContributor(data:$d){ username coopname blockchain_status energy last_energy_update } }'
 
@@ -23,7 +27,7 @@ describe('Благорост — ежесуточное обновление э�
     const chairman = await tokenOf(CHAIRMAN)
     const who = freshMember({ prefix: 'capgam' })
     const contributorHash = await registerContributorViaApi(who)
-    await approveContributor(contributorHash)
+    await chairmanApprove(contributorHash)
 
     // Одобрение шло в цепь мимо контроллера — ждём, пока участник появится в
     // зеркале активным: планировщик берёт участников из базы контроллера.

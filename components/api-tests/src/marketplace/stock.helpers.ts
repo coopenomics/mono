@@ -9,6 +9,7 @@ import { gql } from '../core/client'
 import { signDocument } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { KRG, SAGA_FIELDS, ensureIdentityVerified, sagaOf } from './flow'
+import { getOffer } from './offer.helpers'
 
 export const INVENTORY_FIELDS = 'id order_id shipment_id braname ownership origin status quantity_per_label arrival_price published_offer_id reserved_order_id return_claim_id'
 
@@ -18,12 +19,29 @@ export async function listStock(operatorToken: string, braname = KRG): Promise<a
   return d.marketplaceListStock
 }
 
-/** Все позиции склада по заказу-происхождению, включая выданные. */
-export async function inventoryOfOrder(operatorToken: string, orderId: string): Promise<any[]> {
-  const d = await gql<any>(operatorToken, `query($d:MarketplaceListInventoryInput){ marketplaceListInventory(data:$d){ ${INVENTORY_FIELDS} } }`, {
-    d: { order_id: orderId, statuses: ['RECEIVED', 'LABELED', 'ISSUED', 'RETURNED', 'WRITTEN_OFF'] },
+export const ALL_INVENTORY_STATUSES = ['RECEIVED', 'LABELED', 'ISSUED', 'RETURNED', 'WRITTEN_OFF']
+
+/**
+ * Позиции склада по заказу-происхождению. По умолчанию — все, включая
+ * выданные; `statuses: null` — отбор сервера по умолчанию. Количество числом.
+ */
+export async function inventoryOfOrder(token: string, orderId: string, statuses: string[] | null = ALL_INVENTORY_STATUSES): Promise<any[]> {
+  const d = await gql<any>(token, `query($d:MarketplaceListInventoryInput){ marketplaceListInventory(data:$d){ ${INVENTORY_FIELDS} } }`, {
+    d: { order_id: orderId, ...(statuses ? { statuses } : {}) },
   })
-  return d.marketplaceListInventory
+  return (d.marketplaceListInventory as any[]).map(r => ({ ...r, quantity_per_label: Number(r.quantity_per_label) }))
+}
+
+/**
+ * Позиция склада участка, зарезервированная под заказ из остатка. Резерв берёт
+ * партию предложения кооператива, а не обязательно ту, что опубликовал тест:
+ * в полном прогоне у участка бывает остаток того же товара от соседних наборов.
+ */
+export async function reservedFor(operatorToken: string, orderId: string, braname = KRG): Promise<any | null> {
+  const d = await gql<any>(operatorToken, `query($d:MarketplaceListInventoryInput){ marketplaceListInventory(data:$d){ ${INVENTORY_FIELDS} } }`, {
+    d: { braname, statuses: ['RECEIVED', 'LABELED', 'ISSUED'] },
+  })
+  return (d.marketplaceListInventory as any[]).find(r => r.reserved_order_id === orderId) ?? null
 }
 
 export const PUBLISH_STOCK = `mutation($d:MarketplacePublishStockInput!){
@@ -34,10 +52,6 @@ export const STOCK_ISSUANCE_PAYLOADS = `query($d:MarketplaceStockIssuancePrepare
   marketplaceStockIssuancePayloads(data:$d){ offer_id quantity order_hash unit_price package_id }
 }`
 
-export async function getOffer(token: string, id: string): Promise<any> {
-  const d = await gql<any>(token, 'query($id:String!){ marketplaceGetOffer(id:$id){ id status stock_braname price_per_unit quantity_available quantity_blocked quantity_consumed warranty_days } }', { id })
-  return d.marketplaceGetOffer
-}
 
 /**
  * Докладка со склада до подписи пайщика: оператор готовит строки и бандл,
@@ -220,3 +234,5 @@ export async function returnAtVisit(args: { operator: Who, member: Who, orderId:
   })
   return { claimId, acceptStatus: acc.marketplaceAcceptReturnAtVisit.claim.status as string }
 }
+
+export { getOffer }

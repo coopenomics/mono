@@ -166,22 +166,15 @@ describe('platform.list-sort-order-by: поле сортировки списк�
     expect(problems).toEqual([])
   })
 
-  it(caseName('platform.sort.break.03', 'направление не ASC/DESC: журнал расширений сортирует по убыванию, строка клиента в запрос не попадает'), async () => {
-    const token = await tokenOf(CHAIRMAN)
-    const LOGS = `query($o:PaginationInput){ getExtensionLogs(options:$o){ items{ id created_at } } }`
-    const evil = await gql<any>(token, LOGS, { o: { page: 1, limit: 20, sortOrder: 'ASC, (select count(*) from pbsortprobe)' } })
-    const desc = await gql<any>(token, LOGS, { o: { page: 1, limit: 20, sortOrder: 'DESC' } })
-    const at = (d: any) => (d.getExtensionLogs.items as any[]).map(i => Date.parse(i.created_at))
-    expect(at(evil)).toEqual([...at(evil)].sort((a, b) => b - a))
-    expect(at(evil).length).toBe(at(desc).length)
-
-    // Во всех остальных списках направление тоже не доходит до SQL.
+  it(caseName('platform.sort.break.03', 'направление не ASC/DESC: ни в одном списке строка не доходит до SQL и не даёт ответа 500'), async () => {
+    // До 25.09.2026 списки Стола заказов пускали направление до ORDER BY и
+    // падали 500, остальные отвечали кодом, но тоже со статусом 500 (C28-80).
     const problems: string[] = []
     const report: string[] = []
     for (const { list, who } of reachable) {
       const r = await callList(who, list, undefined, 'ASC, (select count(*) from pbsortprobe)')
       report.push(`${list.query} sortOrder → ${describeResponse(r)}`)
-      if (r.errors.some(e => SQL_LEAK.test(e.message)))
+      if (r.errors.some(e => SQL_LEAK.test(e.message) || String(e.code) === '500'))
         problems.push(`${list.query}: ${describeResponse(r)}`)
     }
     console.log(report.join('\n'))

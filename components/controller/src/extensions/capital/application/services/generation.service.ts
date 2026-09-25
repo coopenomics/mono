@@ -246,25 +246,25 @@ export class GenerationService {
       // Получаем проект и проверяем права на создание требования
       const project = await this.projectRepository.findByHash(data.project_hash);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+        throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
       }
       const projectPermissions = await this.permissionsService.calculateProjectPermissions(project, currentUser);
       if (!projectPermissions.can_create_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_CREATE_PROJECT_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_CREATE_PROJECT_FORBIDDEN');
       }
     } else if (data.issue_hash) {
       // Получаем задачу и проверяем права на создание требования
       const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
       if (!issue) {
-        throw DomainError.internal('CAPITAL_ISSUE_NOT_FOUND_BY_HASH', { hash: data.issue_hash });
+        throw DomainError.notFound('CAPITAL_ISSUE_NOT_FOUND_BY_HASH', { hash: data.issue_hash });
       }
       const issuePermissions = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
       if (!issuePermissions.can_create_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_CREATE_ISSUE_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_CREATE_ISSUE_FORBIDDEN');
       }
     } else {
       // Если не указан ни проект, ни задача - это ошибка
-      throw DomainError.internal('CAPITAL_REQUIREMENT_TARGET_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_REQUIREMENT_TARGET_REQUIRED');
     }
 
     const contentFormat = data.content_format ?? StoryContentFormat.MARKDOWN;
@@ -506,17 +506,17 @@ export class GenerationService {
     currentUser?: IMonoAccount
   ): Promise<void> {
     if (!currentUser?.username) {
-      throw DomainError.internal('CAPITAL_AUTH_REQUIRED');
+      throw DomainError.unauthorized('CAPITAL_AUTH_REQUIRED');
     }
     const projectHash = anchor.project_hash?.trim();
     if (projectHash) {
       const project = await this.projectRepository.findByHash(projectHash);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
       }
       const perms = await this.permissionsService.calculateProjectPermissions(project, currentUser);
       if (!perms.can_edit_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_EDIT_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_EDIT_FORBIDDEN');
       }
       return;
     }
@@ -524,11 +524,11 @@ export class GenerationService {
     if (issueHash) {
       const issue = await this.issueRepository.findByIssueHash(issueHash);
       if (!issue) {
-        throw DomainError.internal('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
+        throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
       }
       const perms = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
       if (!perms.can_edit_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_EDIT_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_EDIT_FORBIDDEN');
       }
       return;
     }
@@ -546,11 +546,11 @@ export class GenerationService {
     if (projectHash) {
       const project = await this.projectRepository.findByHash(projectHash);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
       }
       const perms = await this.permissionsService.calculateProjectPermissions(project, currentUser);
       if (!perms.can_delete_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_DELETE_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_DELETE_FORBIDDEN');
       }
       return;
     }
@@ -558,11 +558,11 @@ export class GenerationService {
     if (issueHash) {
       const issue = await this.issueRepository.findByIssueHash(issueHash);
       if (!issue) {
-        throw DomainError.internal('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
+        throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
       }
       const perms = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
       if (!perms.can_delete_requirement) {
-        throw DomainError.internal('CAPITAL_REQUIREMENT_DELETE_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_REQUIREMENT_DELETE_FORBIDDEN');
       }
       return;
     }
@@ -582,7 +582,7 @@ export class GenerationService {
     const existingStory = await this.storyRepository.findByStoryHash(data.story_hash);
 
     if (!existingStory) {
-      throw DomainError.internal('CAPITAL_STORY_NOT_FOUND', { hash: data.story_hash });
+      throw DomainError.notFound('CAPITAL_STORY_NOT_FOUND', { hash: data.story_hash });
     }
 
     const mergedProjectHash = data.project_hash !== undefined ? data.project_hash : existingStory.project_hash;
@@ -884,7 +884,7 @@ export class GenerationService {
   async deleteStoryByHash(storyHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const storyEntity = await this.storyRepository.findByStoryHash(storyHash);
     if (!storyEntity) {
-      throw DomainError.internal('CAPITAL_STORY_NOT_FOUND', { hash: storyHash });
+      throw DomainError.notFound('CAPITAL_STORY_NOT_FOUND', { hash: storyHash });
     }
     await this.assertCanDeleteStoryRequirement(storyEntity, currentUser);
     const matrixRefs = storyEntity.matrix_requirement_announcement_events ?? [];
@@ -918,14 +918,14 @@ export class GenerationService {
     if (!isFree) {
       const project = await this.projectRepository.findByHash(projectHash!);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
       }
       const projectPermissions = await this.permissionsService.calculateProjectPermissions(
         project,
         currentUser
       );
       if (!projectPermissions.can_manage_issues) {
-        throw DomainError.internal('CAPITAL_ISSUE_MANAGE_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_ISSUE_MANAGE_FORBIDDEN');
       }
     }
 
@@ -983,7 +983,7 @@ export class GenerationService {
     } else {
       const project = await this.projectRepository.findByHash(projectHash!);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
       }
       const generated = this.issueIdGenerationService.generateIssueId(
         project,
@@ -1032,15 +1032,15 @@ export class GenerationService {
     const targetHash = data.target_project_hash.toLowerCase();
     const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
     if (!issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: data.issue_hash });
+      throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: data.issue_hash });
     }
     if (issue.project_hash === targetHash) {
-      throw DomainError.internal('CAPITAL_ISSUE_ALREADY_IN_COMPONENT');
+      throw DomainError.conflict('CAPITAL_ISSUE_ALREADY_IN_COMPONENT');
     }
 
     const targetProject = await this.projectRepository.findByHash(targetHash);
     if (!targetProject) {
-      throw DomainError.internal('CAPITAL_TARGET_COMPONENT_NOT_FOUND');
+      throw DomainError.notFound('CAPITAL_TARGET_COMPONENT_NOT_FOUND');
     }
     if (!targetProject.isComponent()) {
       throw DomainError.internal('CAPITAL_ISSUE_ASSIGN_COMPONENT_ONLY');
@@ -1058,7 +1058,7 @@ export class GenerationService {
 
     const targetPerms = await this.permissionsService.calculateProjectPermissions(targetProject, currentUser);
     if (!targetPerms.can_manage_issues) {
-      throw DomainError.internal('CAPITAL_ISSUE_MANAGE_TARGET_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_MANAGE_TARGET_FORBIDDEN');
     }
 
     const sourceProjectHash = issue.project_hash?.trim();
@@ -1066,12 +1066,12 @@ export class GenerationService {
       // Свободная задача → назначение компоненту
       const issuePerms = await this.permissionsService.calculateIssuePermissions(issue, currentUser);
       if (!issuePerms.can_edit_issue) {
-        throw DomainError.internal('CAPITAL_ISSUE_ASSIGN_COMPONENT_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_ISSUE_ASSIGN_COMPONENT_FORBIDDEN');
       }
     } else {
       const sourceProject = await this.projectRepository.findByHash(sourceProjectHash);
       if (!sourceProject) {
-        throw DomainError.internal('CAPITAL_SOURCE_PROJECT_NOT_FOUND');
+        throw DomainError.notFound('CAPITAL_SOURCE_PROJECT_NOT_FOUND');
       }
       if (!sourceProject.isComponent()) {
         throw DomainError.internal('CAPITAL_ISSUE_TRANSFER_SAME_PROJECT_ONLY');
@@ -1090,7 +1090,7 @@ export class GenerationService {
 
       const sourcePerms = await this.permissionsService.calculateProjectPermissions(sourceProject, currentUser);
       if (!sourcePerms.can_manage_issues) {
-        throw DomainError.internal('CAPITAL_ISSUE_TRANSFER_MASTER_REQUIRED');
+        throw DomainError.badRequest('CAPITAL_ISSUE_TRANSFER_MASTER_REQUIRED');
       }
     }
 
@@ -1157,7 +1157,7 @@ export class GenerationService {
     const existingIssue = await this.issueRepository.findByIssueHash(data.issue_hash);
 
     if (!existingIssue) {
-      throw DomainError.internal('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: data.issue_hash });
+      throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: data.issue_hash });
     }
 
     const isFree = !existingIssue.project_hash;
@@ -1172,7 +1172,7 @@ export class GenerationService {
     if (!isFree) {
       const project = await this.projectRepository.findByHash(existingIssue.project_hash!);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: existingIssue.project_hash });
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: existingIssue.project_hash });
       }
       const projectPermissions = await this.permissionsService.calculateProjectPermissions(
         project,
@@ -1183,14 +1183,14 @@ export class GenerationService {
 
     // Мастер проекта или право редактировать задачу (для свободных — ответственный/исполнитель)
     if (!canManageViaProject && !issuePermissions.can_edit_issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_EDIT_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_EDIT_FORBIDDEN');
     }
 
     // Проверяем права на назначение ответственного
     if (data.submaster !== undefined && data.submaster !== existingIssue.submaster) {
       if (isFree) {
         if (!issuePermissions.can_assign_creator) {
-          throw DomainError.internal('CAPITAL_ISSUE_ASSIGN_CREATOR_FORBIDDEN');
+          throw DomainError.forbidden('CAPITAL_ISSUE_ASSIGN_CREATOR_FORBIDDEN');
         }
       } else {
         await this.issuePermissionsService.validateSubmasterAssignmentPermission(
@@ -1218,7 +1218,7 @@ export class GenerationService {
     // Завершённая задача: нельзя менять estimate (идемичное значение через hoursAlmostEqual — можно)
     if (existingIssue.status === IssueStatus.DONE && data.estimate !== undefined) {
       if (!hoursAlmostEqual(data.estimate ?? 0, existingIssue.estimate ?? 0)) {
-        throw DomainError.internal('CAPITAL_ISSUE_ESTIMATE_LOCKED_DONE');
+        throw DomainError.badRequest('CAPITAL_ISSUE_ESTIMATE_LOCKED_DONE');
       }
     }
 
@@ -1416,7 +1416,7 @@ export class GenerationService {
   async deleteIssueByHash(issueHash: string): Promise<boolean> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
     if (!issueEntity) {
-      throw DomainError.internal('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
+      throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
     }
     // Снимаем незакоммиченные билеты до удаления задачи — иначе они останутся сиротами
     // и исказят total_uncommitted_hours/pending_hours. Закоммиченные часы уже в экономике,

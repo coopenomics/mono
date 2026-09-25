@@ -136,6 +136,17 @@ describe('кошельки и соглашения пайщика', () => {
     expect(declined.map(a => [a.id, a.type, a.status])).toEqual([[privacy.id, 'privacy', 'DECLINED']])
   })
 
+  it(caseName('wal.agr.side.11', 'фильтр по статусу или типу без program_id не подмешивает соглашение программы'), async () => {
+    // До 25.09.2026 программное соглашение «Кошелёк» (подтверждённое) попадало
+    // в любую выдачу без program_id — и в «отклонённые», и в «тип privacy».
+    const declined = await agreementsOf(chairToken, { username: signer.account, statuses: ['DECLINED'] })
+    expect(declined.every(a => a.status === 'DECLINED')).toBe(true)
+    expect(declined.some(a => a.type === 'wallet')).toBe(false)
+    const privacy = await agreementsOf(chairToken, { username: signer.account, type: 'privacy' })
+    expect(privacy.length).toBeGreaterThan(0)
+    expect(privacy.every(a => a.type === 'privacy')).toBe(true)
+  })
+
   it(caseName('wal.agr.happy.05', 'пайщик переподписывает программное соглашение «Кошелёк» — дата подписи обновляется'), async () => {
     const before = (await agreementsOf(signerToken, { username: signer.account })).find(a => a.type === 'wallet')
     const doc = await generateAgreement(signerToken, signer, 'wallet')
@@ -190,7 +201,7 @@ describe('кошельки и соглашения пайщика', () => {
   it(caseName('wal.agr.happy.06', 'операции старого плана счетов попадают в журнал совета'), async () => {
     // Записи в журнал через API нет: его пишет разбор действий ledger::add/sub.
     // Проводка и сторно на ту же сумму — остаток счёта не меняется. Свои строки
-    // ищем по комментарию: хэш и пайщика журнал наружу не отдаёт (wal.agr.side.12).
+    // ищем по комментарию, хэш и пайщика сверяем отдельно (wal.agr.side.12).
     const comment = `api-tests: журнал ${crypto.randomBytes(6).toString('hex')}`
     const data = { coopname: COOP, account_id: 91, quantity: rub(1.5), comment, hash: crypto.randomBytes(32).toString('hex'), username: signer.account }
     await transact(COOP_SIGNER, [
@@ -205,6 +216,8 @@ describe('кошельки и соглашения пайщика', () => {
     expect(ops.map(o => o.action).sort()).toEqual(['add', 'sub'])
     expect(ops.every(o => Number(o.account_id) === 91 && amount(o.quantity) === 1.5)).toBe(true)
     expect(new Set(ops.map(o => String(o.global_sequence))).size).toBe(2)
+    // wal.agr.side.12: хэш пакета и пайщик в журнале есть (до 25.09.2026 — null).
+    expect(ops.every(o => o.hash?.toLowerCase() === data.hash && o.username === signer.account)).toBe(true)
   })
 
   it(caseName('wal.agr.side.09', 'пайщик не читает журнал операций кооператива'), async () => {
