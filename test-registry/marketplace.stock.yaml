@@ -35,6 +35,11 @@ title: Обезличенный остаток кооператива — пер
 # перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
 # Серверные сценарии и их случаи не менялись.
 
+
+# Правка 2026-09-25 (C28-80): тело строки заказа и докладки считается тем же
+# расчётом стоимости, что контракт (calcCostMinor): дробная мера по весу
+# (1,5 кг) больше не роняет превью и оформление ошибкой 500. Набор случаев
+# не менялся.
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts
