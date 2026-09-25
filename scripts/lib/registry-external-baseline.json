@@ -21,7 +21,7 @@
   "coop.chain-resources": 5,
   "coopid.cardcoop-client": 3,
   "coopid.email-verification": 1,
-  "coopid.recovery": 4,
+  "coopid.recovery": 1,
   "coopid.two-factor-reset": 2,
   "coopid.verification": 2,
   "coopid.verification-review": 1,

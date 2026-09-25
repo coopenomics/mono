@@ -13,7 +13,8 @@
  */
 import crypto from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { caseName, freshMember } from '../core'
+import ecc from 'eosjs-ecc'
+import { caseName, freshMember, latestMail } from '../core'
 import type { Candidate } from './coopid-b.helpers'
 import {
   WF_RECOVERY,
@@ -24,6 +25,7 @@ import {
   registerCandidate,
   requestAndReadCode,
   rest,
+  sealedVault,
   totp,
   uniqueEmail,
   uniqueIp,
@@ -122,6 +124,66 @@ describe('coopid.recovery: запрос ссылки восстановлени�
     const r = await requestRecovery(candidate.email)
     expect(r.status).toBe(202)
     expect((await recoveryLetters(candidate)).totalCount).toBe(0)
+  })
+})
+
+/** Токен из ссылки восстановления в письме — как его получает пайщик. */
+async function recoveryToken(email: string): Promise<string> {
+  const mail = await latestMail(email, '/auth/recover/')
+  const m = `${mail.text}\n${mail.html}`.match(/\/auth\/recover\/([A-Za-z0-9_\-.~%]+)/)
+  if (!m)
+    throw new Error(`в письме на ${email} нет ссылки восстановления`)
+  return decodeURIComponent(m[1])
+}
+
+const context = (token: string) => rest('GET', `/coop/recovery/context/${token}`, { ip: uniqueIp() })
+
+async function confirmBody(token: string) {
+  return {
+    token,
+    public_key: ecc.privateToPublic(await ecc.randomKey()),
+    password: `Api-tests-${crypto.randomBytes(6).toString('hex')}1!`,
+    vault: sealedVault(),
+  }
+}
+
+// До 25.09.2026 на стенде CI не было перехватчика почты: ссылку из письма
+// взять было неоткуда, и эти случаи проверялись только юнит-тестами (C28-80).
+describe('coopid.recovery: ссылка из письма', () => {
+  it(caseName('cid.rec.happy.03', 'открыта ссылка из письма — почта и признак кода; токен не потребляется'), async () => {
+    const candidate = await registerCandidate(uniqueIp(), uniqueEmail('rct'))
+    expect((await requestRecovery(candidate.email)).status).toBe(202)
+    const token = await recoveryToken(candidate.email)
+    for (let i = 0; i < 2; i++) {
+      const r = await context(token)
+      expect(r.status, JSON.stringify(r.body)).toBe(200)
+      expect(r.body).toEqual({ email: candidate.email, two_factor_required: false })
+    }
+  })
+
+  it(caseName('cid.rec.happy.02', 'пайщик без второго фактора подтверждает восстановление по ссылке — ключ сменён, ссылка сгорела'), async () => {
+    const candidate = await registerCandidate(uniqueIp(), uniqueEmail('rcf'))
+    await requestRecovery(candidate.email)
+    const token = await recoveryToken(candidate.email)
+    const r = await rest('POST', '/coop/recovery/confirm', { ip: uniqueIp(), body: await confirmBody(token) })
+    expect(r.status, JSON.stringify(r.body)).toBe(200)
+    expect(r.body.username).toBe(candidate.username)
+    expect((await context(token)).body?.error).toBe('invalid_recovery_token')
+  })
+
+  it(caseName('cid.rec.break.05', 'второй фактор подключён, код не передан — отказ, ссылка не сгорает'), async () => {
+    const candidate = await registerCandidate(uniqueIp(), uniqueEmail('rc2'))
+    const ip = uniqueIp()
+    const enroll = await gqlOkFrom<any>(ip, candidate.token, 'mutation{ enrollTwoFactor{ secret otpauth_uri } }')
+    await gqlOkFrom(ip, candidate.token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: totp(enroll.enrollTwoFactor.secret) } })
+    await requestRecovery(candidate.email)
+    const token = await recoveryToken(candidate.email)
+    expect((await context(token)).body?.two_factor_required).toBe(true)
+
+    const r = await rest('POST', '/coop/recovery/confirm', { ip: uniqueIp(), body: await confirmBody(token) })
+    expect(r.status).toBe(400)
+    expect(r.body?.error).toBe('invalid_2fa_code')
+    expect((await context(token)).status).toBe(200)
   })
 })
 

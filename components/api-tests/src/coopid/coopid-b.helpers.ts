@@ -79,6 +79,15 @@ export interface RestResponse {
   text: string
 }
 
+/**
+ * Зашифрованный блоб хранилища ключа — формы, которую присылает клиент при
+ * переносе и восстановлении. Содержимое случайное: сервер его не расшифровывает.
+ */
+export function sealedVault(): Record<string, string> {
+  const b64 = (n: number) => crypto.randomBytes(n).toString('base64url')
+  return { cipher_version: 'v1', kdf_version: 'v1', salt: b64(16), nonce: b64(12), ciphertext: b64(64), auth_tag: b64(16) }
+}
+
 /** REST-ручка контроллера (CoopID живёт на REST: /coop/...). */
 export async function rest(method: 'GET' | 'POST', route: string, opts: { ip?: string, body?: unknown, headers?: Record<string, string> } = {}): Promise<RestResponse> {
   const headers: Record<string, string> = { ...(opts.headers ?? {}) }

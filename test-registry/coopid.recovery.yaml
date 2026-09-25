@@ -18,6 +18,10 @@ title: Восстановление доступа magic-link'ом по email
 # Правка 25.09.2026 (C28-80): код приложения-аутентификатора принимается один
 # раз — повтор того же кода (подключение, смена способа восстановления, вход)
 # отвергается. До этого один код проходил дважды подряд.
+# Правка 25.09.2026 (C28-80): на стенде CI работает перехватчик почты
+# (Mailpit) — ссылку восстановления внешний слой берёт из письма, как пайщик,
+# и проходит контекст ссылки и подтверждение снаружи.
+
 sources:
   backend:
     - components/controller/src/application/auth-v2/recovery/recovery.service.ts
@@ -118,6 +122,7 @@ cases:
       код не спрашивается и не проверяется, ключ ротируется, в audit — success со
       second_factor=none
     test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.05
@@ -128,6 +133,7 @@ cases:
       отказ invalid_2fa_code, ссылка НЕ сжигается — контур двух каналов для тех,
       кто его завёл, остаётся прежним
     test: components/controller/src/application/auth-v2/recovery/recovery-confirm.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   # ── Контекст ссылки (чем экран собирает форму) ────────────────────────────
@@ -140,6 +146,7 @@ cases:
       возвращаются почта пайщика и признак необходимости кода; токен НЕ потребляется —
       открыть страницу ещё не значит подтвердить
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.break.06

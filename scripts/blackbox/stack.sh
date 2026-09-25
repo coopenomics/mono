@@ -98,6 +98,8 @@ EOF
   set_env "$ctl_env" POSTGRES_PASSWORD "$PG_PASSWORD"
   set_env "$ctl_env" POSTGRES_DATABASE voskhod
   set_env "$ctl_env" MINIO_ENDPOINT "http://minio:9000"
+  set_env "$ctl_env" SMTP_HOST mailpit
+  set_env "$ctl_env" SMTP_PORT 1025
   # Ключи веб-уведомлений обязательны для конфига; одноразовая пара, как в test.yaml.
   local vapid
   vapid="$(cd components/controller && node -e "const k=require('web-push').generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)")"
@@ -135,6 +137,7 @@ cmd_boot() {
 
 cmd_app() {
   load_stack
+  docker compose up -d mailpit
   docker compose up -d parser2
   docker compose up -d coopback
 
@@ -250,7 +253,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit authentik-server authentik-worker; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true

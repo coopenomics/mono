@@ -8,6 +8,7 @@
  * claim'а `verification_types`, как его получает проверяющая сторона.
  */
 import crypto from 'node:crypto'
+import { sealedVault } from './coopid-b.helpers'
 import ecc from 'eosjs-ecc'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
@@ -257,7 +258,6 @@ export async function setPassword(who: Who): Promise<Response> {
   const pwHash = crypto.createHash('sha256').update(password, 'utf8').digest('hex')
   const message = JSON.stringify({ pw_hash: pwHash, purpose: 'coopid-key-migration', ts })
   const signature = ecc.sign(message, who.wif)
-  const b64 = (n: number) => crypto.randomBytes(n).toString('base64url')
   return fetch(`${API_URL.replace(/\/v1\/graphql\/?$/, '')}/coop/migration`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -266,7 +266,7 @@ export async function setPassword(who: Who): Promise<Response> {
       timestamp: ts,
       signature,
       new_password: password,
-      vault: { cipher_version: 'v1', kdf_version: 'v1', salt: b64(16), nonce: b64(12), ciphertext: b64(64), auth_tag: b64(16) },
+      vault: sealedVault(),
     }),
   })
 }

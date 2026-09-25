@@ -8,6 +8,7 @@ export * from './robot'
 export * from './roles'
 export * from './wait'
 export * from './wallet'
+export * from './mailbox'
 
 /**
  * Имя теста со ссылкой на случай реестра (test-registry/<фича>.yaml): по
