@@ -19,6 +19,20 @@ import { AssetUtils } from '@coopenomics/extension-kit';
 import { ProgramType, getProgramId } from '@coopenomics/innercoop';
 import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
 
+/**
+ * Автоматическая регистрация долей держателей Благороста в активных проектах.
+ * Включена всегда; `CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION=off` выключает её
+ * целиком — и по событиям, и по расписанию.
+ *
+ * Выключается только на стенде внешнего слоя, пока идут boot-тесты контракта:
+ * они шлют действия прямо в цепь и считают премии вкладчиков точно, а
+ * автоматика, заводящая доли параллельно, делала их итог зависимым от того,
+ * кто успел раньше (решение владельца 25.09.2026, C28-80). Читается при каждом
+ * вызове: стенд включает автоматику обратно пересозданием контроллера.
+ */
+export function programShareAutoRegistrationEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return (env.CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION ?? 'on').trim().toLowerCase() !== 'off';
+}
 
 /**
  * Сверка баланса программы «Благорост» с долёй в сегментах проектов и вызов regshare при расхождении.
@@ -42,6 +56,7 @@ export class ProgramShareRegistrationService {
    * Обход участников в статусах active/import по active-проектам; при изменении user_shares относительно capital_contributor_shares — regshare.
    */
   async syncProgramSharesForCoop(coopname: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const projects = await this.findActiveProjects(coopname);
     if (projects.length === 0) {
       this.logger.debug(`Синхронизация regshare: нет active-проектов для ${coopname}`);
@@ -66,6 +81,7 @@ export class ProgramShareRegistrationService {
    * нет ни одного active-проекта.
    */
   async syncProgramSharesForUser(coopname: string, username: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const projects = await this.findActiveProjects(coopname);
     if (projects.length === 0) return;
 
@@ -94,6 +110,7 @@ export class ProgramShareRegistrationService {
    * Переиспользует тот же `syncContributor`, что и обход по расписанию.
    */
   async syncProgramSharesForProject(coopname: string, project_hash: string): Promise<void> {
+    if (!programShareAutoRegistrationEnabled()) return;
     const contributors = (await this.contributorRepository.findAll()).filter(
       (c) =>
         c.coopname === coopname &&

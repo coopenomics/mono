@@ -209,6 +209,30 @@ export async function completeCapitalRegistration(who: Who, about = 'Участ�
   })
 }
 
+/** Кошельки пайщика: главный паевой и «Благорост» (доступно + заблокировано). */
+export async function capitalWallets(token: string, username: string): Promise<{ share: number, blago: number }> {
+  const d = await gql<any>(token, 'query($u:String!){ getUserWallets(username:$u){ wallet_name available blocked } }', { u: username })
+  const rows = d.getUserWallets as any[]
+  const share = rows.find(w => w.wallet_name === 'w.wal.share')
+  const blago = rows.find(w => w.wallet_name === 'w.cap.blago')
+  return {
+    share: amount(share?.available),
+    blago: amount(blago?.available) + amount(blago?.blocked),
+  }
+}
+
+/** Паевой взнос в программу «Благорост» — заявление, подпись, отправка, как на столе. */
+export async function programInvest(who: Who, token: string, sum: number): Promise<void> {
+  const value = `${sum.toFixed(4)} RUB`
+  const gen = await gqlPaced<any>(token, `mutation($d:ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput!){
+    capitalGenerateProgramMoneyInvestStatement(data:$d){ full_title html hash meta binary }
+  }`, { d: { coopname: COOP, username: who.account, amount: value } })
+  const statement = await signDocument(who.wif, gen.capitalGenerateProgramMoneyInvestStatement, who.account)
+  await gql(token, `mutation($d:CreateProgramInvestInput!){ capitalCreateProgramInvest(data:$d){ transaction } }`, {
+    d: { coopname: COOP, username: who.account, amount: value, statement },
+  })
+}
+
 // ── Проект ─────────────────────────────────────────────────────────────────
 
 export async function chainProject(hash: string): Promise<any> {
