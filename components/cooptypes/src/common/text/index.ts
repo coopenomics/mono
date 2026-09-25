@@ -96,3 +96,32 @@ export function sanitizeEditorMarkdown(md: string): string {
   out.push(sanitizeProseChunk(md.slice(last)));
   return out.join('');
 }
+
+/**
+ * Исполняемая разметка в тексте, который уходит в подписываемый документ:
+ * повестка собрания, проект решения совета.
+ *
+ * Не очистка, а признак для отказа: документ подписывается по хэшу, и
+ * переписывать присланный текст нельзя — пайщик подписал бы не то, что ввёл.
+ * Поэтому опасное отклоняется на входе, а вёрстка проходит как есть: проекты
+ * решений на утверждение совета несут абзацы, таблицы и стили документа.
+ *
+ * Исполняемым считается то же, что убирает {@link sanitizeEditorMarkdown}, —
+ * скрипты, встраиваемые рамки и объекты, link/base, meta с переадресацией,
+ * обработчики событий,
+ * ссылки со схемами javascript/vbscript и data:text/html — плюс формы. Стиль
+ * (`<style>`, атрибут style) исполняемым не считается: он нужен вёрстке.
+ */
+const EXECUTABLE_MARKUP_RE = [
+  /<\s*\/?\s*(script|iframe|object|embed|link|base|form|frame|frameset|applet)\b/i,
+  // meta опасен переадресацией (http-equiv); кодировка документа безвредна.
+  /<\s*meta\b[^>]*http-equiv/i,
+  /<[a-z][^>]*\son[a-z]+\s*=/i,
+  /(href|src|srcset|action|formaction|xlink:href)\s*=\s*["']?\s*(javascript|vbscript|data:text\/html)/i,
+  /\]\(\s*(javascript|vbscript|data:text\/html)/i,
+];
+
+export function hasExecutableMarkup(text: string | null | undefined): boolean {
+  if (!text) return false;
+  return EXECUTABLE_MARKUP_RE.some((re) => re.test(text));
+}

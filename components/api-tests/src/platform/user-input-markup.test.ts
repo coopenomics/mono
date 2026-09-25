@@ -211,4 +211,84 @@ describe('platform.user-input-markup: разметка в анкете и в о�
       expect(await freeIssue(text)).toBe(text)
     })
   })
+  // Третье правило (решение владельца 25.09.2026, C28-80): повестка собрания и
+  // проект решения совета уходят в подписываемый документ как есть — вёрстка
+  // допускается (проекты решений на утверждение несут HTML документа), а
+  // исполняемое отклоняется на входе. Переписывать нельзя: документ
+  // подписывается по хэшу.
+  describe('тексты документов: вёрстка проходит, исполняемое отклоняется', () => {
+    const EVIL = [
+      '<script>fetch("/steal")</script>Утвердить',
+      'Утвердить <img src=x onerror=alert(1)>',
+      '<a href="javascript:alert(1)">Утвердить</a>',
+      '<iframe src="https://evil.example"></iframe>',
+      '<form action="https://evil.example"><input name=x></form>',
+    ]
+    const LAYOUT = '<style>td{padding:4px}</style><p><b>Утвердить</b> положение:</p><table><tr><td>п. 1</td><td>редакция 2</td></tr></table>'
+
+    let chairman: string
+    let member: string
+    let memberAccount: string
+
+    beforeAll(async () => {
+      chairman = await tokenOf(CHAIRMAN)
+      const who = freshMember({ prefix: 'mkd' })
+      member = await tokenOf(who)
+      memberAccount = who.account
+    })
+
+    function refused(r: { errors: { code: string | null, message: string }[] }, label: string): void {
+      expect(r.errors.length, label).toBeGreaterThan(0)
+      expect(String(r.errors[0].code), label).toBe(INPUT_REFUSAL)
+      expect(r.errors[0].message, label).toMatch(/исполняемую разметку/)
+    }
+
+    const GEN_AGENDA = `mutation($d:AnnualGeneralMeetingAgendaGenerateDocumentInput!){ generateAnnualGeneralMeetAgendaDocument(data:$d){ html } }`
+    const agendaInput = (text: string) => {
+      const openAt = new Date(Date.now() + 16 * 24 * 3600_000)
+      return {
+        coopname: COOP,
+        username: CHAIRMAN.account,
+        is_repeated: false,
+        meet: { type: 'regular', open_at_datetime: openAt.toISOString(), close_at_datetime: new Date(openAt.getTime() + 24 * 3600_000).toISOString() },
+        questions: [{ number: '1', title: 'Вопрос', context: text, decision: text }],
+      }
+    }
+
+    it(caseName('platform.input.break.04', 'повестка общего собрания и собрания участка: скрипт, обработчик, javascript:, рамка, форма — отказ'), async () => {
+      const GEN_KU = `mutation($d:BranchMeetingProposalGenerateDocumentInput!){ kuGenerateMeetingProposal(data:$d){ html } }`
+      for (const text of EVIL) {
+        refused(await gqlRaw(chairman, GEN_AGENDA, { d: agendaInput(text) }), `общее собрание: ${text}`)
+        refused(await gqlRaw(member, GEN_KU, {
+          d: { coopname: COOP, username: memberAccount, hash: crypto.randomBytes(32).toString('hex'), type: 'free', questions: [{ number: '1', title: 'Вопрос', context: '', decision: text }] },
+        }), `участок: ${text}`)
+      }
+    })
+
+    it(caseName('platform.input.break.05', 'проект решения совета и шаги онбординга с исполняемой разметкой — отказ до записи'), async () => {
+      const text = EVIL[1]
+      refused(await gqlRaw(chairman, 'mutation($d:CreateProjectFreeDecisionInput!){ createProjectOfFreeDecision(data:$d){ id } }', {
+        d: { question: 'Вопрос', decision: text },
+      }), 'свободное решение')
+      refused(await gqlRaw(chairman, 'mutation($d:CapitalOnboardingStepInput!){ completeCapitalOnboardingStep(data:$d){ __typename } }', {
+        d: { step: 'blagorost_program', question: 'Утвердить программу', decision: text },
+      }), 'онбординг Благороста')
+      refused(await gqlRaw(chairman, 'mutation($d:ChairmanOnboardingAgendaInput!){ completeChairmanAgendaStep(data:$d){ __typename } }', {
+        d: { step: 'privacy_agreement', question: 'Утвердить положение', decision: text },
+      }), 'онбординг председателя')
+      refused(await gqlRaw(chairman, 'mutation($d:CompleteExtensionOnboardingStepInput!){ completeExtensionOnboardingStep(data:$d){ __typename } }', {
+        d: { extension_name: 'marketplace', step_key: 'api-tests-markup', question: 'Утвердить', decision: text },
+      }), 'онбординг расширения')
+    })
+
+    it(caseName('platform.input.happy.03', 'вёрстка документа — абзацы, таблица, стили — принимается как введена'), async () => {
+      const agenda = await gql<any>(chairman, GEN_AGENDA, { d: agendaInput(LAYOUT) })
+      expect(agenda.generateAnnualGeneralMeetAgendaDocument.html).toContain('<table><tr><td>п. 1</td>')
+
+      const project = await gql<any>(chairman, 'mutation($d:CreateProjectFreeDecisionInput!){ createProjectOfFreeDecision(data:$d){ id decision } }', {
+        d: { question: 'Утвердить положение', decision: LAYOUT },
+      })
+      expect(project.createProjectOfFreeDecision.decision).toBe(LAYOUT)
+    })
+  })
 })

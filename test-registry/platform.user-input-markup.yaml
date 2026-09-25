@@ -21,6 +21,15 @@ title: Разметка во вводе пайщика — запрет в ан�
 # свой класс, и запрет разметки на его полях не срабатывал («Банк <script>»
 # сохранялся). То же у вложенных входов регистрации пайщика, выбора участка,
 # свободного решения и установки системы. Нашёл внешний слой.
+#
+# Правка 25.09.2026 (C28-80, решение владельца): третье правило — тексты,
+# которые уходят в подписываемый документ: повестка общего собрания и собрания
+# участка, проект решения совета, шаги онбординга (Благорост, председатель,
+# расширения). Вёрстка там законна — проекты решений на утверждение несут HTML
+# документа со стилями, — поэтому угловые скобки не запрещаются, а
+# отклоняется только исполняемое (скрипты, рамки, формы, обработчики, ссылки
+# javascript:). Отказ, а не очистка: документ подписывается по хэшу.
+# Определение «исполняемого» одно с очисткой описаний (cooptypes).
 
 sources:
   backend:
@@ -31,6 +40,15 @@ sources:
     - components/controller/src/application/payment-method/dto/*.ts
     - components/cooptypes/src/common/text/index.ts
     - components/extension-kit/src/utils/user-text.utils.ts
+    - components/extension-kit/src/utils/safe-markup.decorator.ts
+    - components/controller/src/application/meet/dto/agenda-meet-point-input.dto.ts
+    - components/controller/src/application/meet/dto/agenda-general-meet-question.dto.ts
+    - components/controller/src/application/free-decision/dto/create-project-free-decision.dto.ts
+    - components/controller/src/application/onboarding/dto/complete-extension-onboarding-step.input.ts
+    - components/controller/src/extensions/capital/application/dto/onboarding.dto.ts
+    - components/controller/src/extensions/chairman/application/dto/onboarding.dto.ts
+    - components/controller/src/extensions/ku/application/dto/ku-action-inputs.dto.ts
+    - components/controller/src/extensions/ku/application/dto/ku-documents.dto.ts
 
 cases:
   - id: platform.input.happy.01
@@ -77,5 +95,32 @@ cases:
     scenario: описание с таблицей, разметкой, схемой BPMN и примером кода в блоке
     expect: сохраняется как введено — очистка не портит уже написанное
     test: components/cooptypes/test/sanitize-editor-text.test.ts
+    api: components/api-tests/src/platform/user-input-markup.test.ts
+    status: passing
+
+  - id: platform.input.break.04
+    level: backend
+    kind: break
+    scenario: в повестку общего собрания или собрания участка вписан скрипт, обработчик события, ссылка javascript:, рамка или форма
+    expect: отказ проверки ввода (422) «исполняемая разметка», документ не собирается
+    test: components/cooptypes/test/executable-markup.test.ts
+    api: components/api-tests/src/platform/user-input-markup.test.ts
+    status: passing
+
+  - id: platform.input.break.05
+    level: backend
+    kind: break
+    scenario: исполняемая разметка в проекте решения совета и в шагах онбординга (Благорост, председатель, расширение)
+    expect: отказ проверки ввода (422) до записи и до повестки совета
+    test: components/cooptypes/test/executable-markup.test.ts
+    api: components/api-tests/src/platform/user-input-markup.test.ts
+    status: passing
+
+  - id: platform.input.happy.03
+    level: backend
+    kind: happy
+    scenario: повестка и проект решения с вёрсткой документа — абзацы, таблица, выделение, стили
+    expect: принимаются и попадают в документ как введены — вёрстка проектов решений на утверждение не ломается
+    test: components/cooptypes/test/executable-markup.test.ts
     api: components/api-tests/src/platform/user-input-markup.test.ts
     status: passing
