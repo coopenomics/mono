@@ -526,7 +526,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
   }
 
   console.log('Инициализируем пользователей в PostgreSQL')
-  await initUsersInPostgres(usersToInit)
+  await initUsersInPostgres(usersToInit, config.provider)
 
   console.log('Инициализируем vault в PostgreSQL')
   await initVaultInPostgres()
@@ -777,7 +777,7 @@ export async function installExtraData(blockchain: Blockchain) {
     role: 'user',
     status: 'joined',
     is_registered: true,
-  }])
+  }], config.provider)
 
   console.log(`=== partner1 (${account.username}) засеян в воскход-coopback (Mongo+Postgres) ===\n`)
 }
