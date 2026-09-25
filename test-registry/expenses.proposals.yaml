@@ -48,9 +48,11 @@ cases:
       Член совета подаёт записку: строка организации (оплата по счёту) и аванс пайщику на его СБП
     expect: >
       зеркало отдаёт записку в статусе CREATED с автором, кошельком-источником, суммой, строками APPROVED и хэшем подписанного документа; протокола решения ещё нет
-    test: ~
-    status: missing
-    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
+    test: components/controller/src/extensions/expenses/application/services/expenses-mutations.service.spec.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+    # До 25.09.2026 снаружи не проверялось: createExpenseProposal всегда падал 500
+    # («toDocument is not a function»).
 
   - id: exp.prop.happy.05
     level: backend
@@ -94,9 +96,11 @@ cases:
       Снимки реквизитов получателей после подачи
     expect: >
       две строки: организация — реквизиты и назначение как введены; пайщик — метод СБП с телефоном и фиксированным назначением «аванс под отчёт»
-    test: ~
-    status: missing
-    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
+    test: components/controller/src/extensions/expenses/application/services/expenses-mutations.service.spec.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
+    # До 25.09.2026 снаружи не проверялось: createExpenseProposal всегда падал 500
+    # («toDocument is not a function»).
 
   - id: exp.req.side.01
     level: backend

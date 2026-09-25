@@ -19,13 +19,12 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
 import {
   CREATE_PROPOSAL,
   PROGRAM_EXPENSE_POOL,
   addSbpMethod,
   approveByCouncil,
-  createInChain,
   createInput,
   hash64,
   signedStatement,
@@ -154,11 +153,29 @@ describe('expenses: служебная записка на расход', () => 
 
   // ── Подача и чтение ──────────────────────────────────────────────────────
 
-  it(caseName('exp.prop.happy.05', 'записка, поданная в цепь, приходит в зеркало: статус CREATED, строки и документ'), async () => {
-    await createInChain(draft, statement)
+  it(caseName('exp.prop.happy.01', 'член совета подаёт записку через API: строка организации и аванс пайщику'), async () => {
+    // До 25.09.2026 createExpenseProposal всегда падал 500 («toDocument is not a
+    // function»), и записку приходилось класть в цепь мимо контроллера.
+    await gql(council, CREATE_PROPOSAL, { d: createInput(draft, statement) })
+    const p = (await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal
+    expect(p?.status).toBe('CREATED')
+    expect(p.username).toBe(COUNCIL.account)
+  })
 
-    // Запись в цепь мимо контроллера — ждём, пока зеркало догонит.
-    const p = await waitFor(async () => (await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal, { label: 'записка в зеркале' })
+  it(caseName('exp.req.happy.01', 'после подачи сняты реквизиты получателей: организации — как введены, пайщику — его СБП'), async () => {
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows).toHaveLength(2)
+    const org = rows.find(r => r.item_hash === orgItem)
+    const adv = rows.find(r => r.item_hash === memberItem)
+    expect(org).toMatchObject({ requisites: ORG_REQUISITES, payment_purpose: ORG_PURPOSE })
+    expect(adv?.recipient).toBe(recipient.account)
+    expect(String(adv?.method_type).toLowerCase()).toBe('sbp')
+    expect(JSON.stringify(adv?.data)).toContain(PHONE)
+    expect(String(adv?.payment_purpose)).toMatch(/аванс/i)
+  })
+
+  it(caseName('exp.prop.happy.05', 'записка, поданная в цепь, приходит в зеркало: статус CREATED, строки и документ'), async () => {
+    const p = (await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal
     expect(p.status).toBe('CREATED')
     expect(p.coopname).toBe(COOP)
     expect(p.username).toBe(COUNCIL.account)
