@@ -6,14 +6,14 @@ jest.mock('~/utils/aes', () => ({
 jest.mock('~/domain/auth-v2/totp/totp', () => ({
   generateTotpSecret: () => 'SECRET32',
   buildOtpauthUri: () => 'otpauth://totp/voskhod:ant?secret=SECRET32',
-  verifyTotp: jest.fn(),
+  matchTotpStep: jest.fn(),
 }));
 
-import { verifyTotp } from '~/domain/auth-v2/totp/totp';
+import { matchTotpStep } from '~/domain/auth-v2/totp/totp';
 import { AuthV2ErrorCode } from '~/domain/auth-v2/errors/auth-v2.error';
 import { TwoFactorService } from './two-factor.service';
 
-const verifyMock = verifyTotp as jest.Mock;
+const verifyMock = matchTotpStep as jest.Mock;
 
 describe('TwoFactorService (Story 3.6 — TOTP)', () => {
   function setup() {
@@ -22,6 +22,7 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
       putPending: jest.fn().mockResolvedValue(undefined),
       enable: jest.fn().mockResolvedValue(undefined),
       remove: jest.fn().mockResolvedValue(undefined),
+      claimStep: jest.fn().mockResolvedValue(true),
     };
     const audit = { record: jest.fn().mockResolvedValue(undefined) };
     const securityEvents = { notify: jest.fn().mockResolvedValue(undefined) };
@@ -42,7 +43,7 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
   it('activate: верный код → enable + audit coopid.2fa.enabled + security-уведомление (3.11)', async () => {
     const { service, repo, audit, securityEvents } = setup();
     repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: false });
-    verifyMock.mockReturnValueOnce(true);
+    verifyMock.mockReturnValueOnce(100);
     await service.activate('u1', '123456', '1.2.3.4');
     expect(verifyMock).toHaveBeenCalledWith('SECRET32', '123456');
     expect(repo.enable).toHaveBeenCalledWith('u1');
@@ -53,7 +54,7 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
   it('activate: неверный код → InvalidTwoFactorCode, без enable', async () => {
     const { service, repo } = setup();
     repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: false });
-    verifyMock.mockReturnValueOnce(false);
+    verifyMock.mockReturnValueOnce(null);
     await expect(service.activate('u1', '000000', null)).rejects.toMatchObject({ code: AuthV2ErrorCode.InvalidTwoFactorCode });
     expect(repo.enable).not.toHaveBeenCalled();
   });
@@ -67,7 +68,7 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
   it('disable: требует enabled + валидный код → remove + audit + security-уведомление (3.11)', async () => {
     const { service, repo, audit, securityEvents } = setup();
     repo.get.mockResolvedValueOnce({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
-    verifyMock.mockReturnValueOnce(true);
+    verifyMock.mockReturnValueOnce(100);
     await service.disable('u1', '123456', null);
     expect(repo.remove).toHaveBeenCalledWith('u1');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ event: 'coopid.2fa.disabled' }));
@@ -84,8 +85,21 @@ describe('TwoFactorService (Story 3.6 — TOTP)', () => {
   it('verify (порт для recovery): enabled + верный код → true', async () => {
     const { service, repo } = setup();
     repo.get.mockResolvedValue({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
-    verifyMock.mockReturnValueOnce(true);
+    verifyMock.mockReturnValueOnce(100);
     expect(await service.verify('u1', '123456')).toBe(true);
+  });
+
+  it('повтор кода: шаг уже занят — activate отказывает, verify отвечает false', async () => {
+    // До 25.09.2026 один код проходил дважды подряд.
+    const { service, repo } = setup();
+    repo.get.mockResolvedValue({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: false });
+    verifyMock.mockReturnValue(100);
+    repo.claimStep.mockResolvedValue(false);
+    await expect(service.activate('u1', '123456', null)).rejects.toMatchObject({ code: AuthV2ErrorCode.InvalidTwoFactorCode });
+    expect(repo.enable).not.toHaveBeenCalled();
+    repo.get.mockResolvedValue({ subjectId: 'u1', secretEnc: 'enc(SECRET32)', enabled: true });
+    expect(await service.verify('u1', '123456')).toBe(false);
+    expect(repo.claimStep).toHaveBeenCalledWith('u1', 100);
   });
 
   it('verify: 2FA не подключён → false (без проверки кода)', async () => {

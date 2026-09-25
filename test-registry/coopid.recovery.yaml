@@ -14,11 +14,18 @@ title: Восстановление доступа magic-link'ом по email
 # почт — отдельный поток; пока он не поедет, восстановление работает и по
 # неподтверждённому адресу, а факт пишется в audit-контекст (`email_verified`).
 
+#
+# Правка 25.09.2026 (C28-80): код приложения-аутентификатора принимается один
+# раз — повтор того же кода (подключение, смена способа восстановления, вход)
+# отвергается. До этого один код проходил дважды подряд.
 sources:
   backend:
     - components/controller/src/application/auth-v2/recovery/recovery.service.ts
     - components/controller/src/application/auth-v2/recovery/recovery.controller.ts
     - components/controller/src/application/auth-v2/recovery/recovery-confirm.service.ts
+    - components/controller/src/application/auth-v2/two-factor/two-factor.service.ts
+    - components/controller/src/domain/auth-v2/totp/totp.ts
+    - components/controller/src/infrastructure/auth-v2/postgres-two-factor.repository.ts
   ui:
     - components/desktop/src/widgets/Registrator/Recover/**
     - components/desktop/src/features/User/RecoverAccess/**
@@ -224,3 +231,11 @@ cases:
     test: null
     status: missing   # сценарий harness не написан
 
+  - id: cid.rec.side.08
+    level: backend
+    kind: side
+    scenario: Тот же код приложения-аутентификатора предъявлен второй раз подряд (подслушан или отправлен повторно)
+    expect: отказ неверным кодом, действие не выполнено; код следующего шага времени проходит
+    test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
+    status: passing

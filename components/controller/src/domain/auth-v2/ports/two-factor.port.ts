@@ -28,6 +28,11 @@ export interface ITwoFactorRepository {
   enable(subjectId: string): Promise<void>;
   /** Снять второй фактор. */
   remove(subjectId: string): Promise<void>;
+  /**
+   * Занять шаг времени принятого кода. true — шаг новее последнего принятого и
+   * теперь занят; false — этот или более поздний шаг уже принимался (повтор).
+   */
+  claimStep(subjectId: string, step: number): Promise<boolean>;
 }
 
 /**

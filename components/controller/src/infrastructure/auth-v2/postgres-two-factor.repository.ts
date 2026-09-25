@@ -54,7 +54,7 @@ export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModu
       `INSERT INTO two_factor (subject_id, secret_enc, enabled, confirmed_at)
        VALUES ($1, $2, false, NULL)
        ON CONFLICT (subject_id) DO UPDATE SET
-         secret_enc = EXCLUDED.secret_enc, enabled = false, confirmed_at = NULL`,
+         secret_enc = EXCLUDED.secret_enc, enabled = false, confirmed_at = NULL, last_used_step = NULL`,
       [subjectId, secretEnc],
     );
   }
@@ -62,6 +62,18 @@ export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModu
   async enable(subjectId: string): Promise<void> {
     const ds = await this.getDataSource();
     await ds.query(`UPDATE two_factor SET enabled = true, confirmed_at = now() WHERE subject_id=$1`, [subjectId]);
+  }
+
+  async claimStep(subjectId: string, step: number): Promise<boolean> {
+    const ds = await this.getDataSource();
+    // Одним условным UPDATE: два одновременных запроса с одним кодом не пройдут оба.
+    const rows: unknown[] = await ds.query(
+      `UPDATE two_factor SET last_used_step = $2
+       WHERE subject_id = $1 AND (last_used_step IS NULL OR last_used_step < $2)
+       RETURNING subject_id`,
+      [subjectId, step],
+    );
+    return rows.length > 0;
   }
 
   async remove(subjectId: string): Promise<void> {

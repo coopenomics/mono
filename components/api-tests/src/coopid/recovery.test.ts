@@ -18,6 +18,7 @@ import type { Candidate } from './coopid-b.helpers'
 import {
   WF_RECOVERY,
   confirmEmailCode,
+  gqlFrom,
   gqlOkFrom,
   outbox,
   registerCandidate,
@@ -103,9 +104,17 @@ describe('coopid.recovery: запрос ссылки восстановлени�
     const ip = uniqueIp()
     const enroll = await gqlOkFrom<any>(ip, candidate.token, 'mutation{ enrollTwoFactor{ secret otpauth_uri } }')
     const secret = enroll.enrollTwoFactor.secret as string
-    await gqlOkFrom(ip, candidate.token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: totp(secret) } })
+    const first = totp(secret)
+    await gqlOkFrom(ip, candidate.token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: first } })
+    // Код принимается один раз: тот же код второй раз — отказ (cid.rec.side.08).
+    const replay = await gqlFrom(ip, candidate.token, 'mutation($d:SetRecoveryStrategyInput!){ setRecoveryStrategy(data:$d) }', {
+      d: { strategy: 'OfflineCode', code: first },
+    })
+    expect(replay.errors.length).toBeGreaterThan(0)
+    expect((await gqlOkFrom<any>(ip, candidate.token, '{ getRecoveryStrategy }')).getRecoveryStrategy).not.toBe('OfflineCode')
+    // Код следующего шага времени (в допуске ±30 с) — новый, проходит.
     await gqlOkFrom(ip, candidate.token, 'mutation($d:SetRecoveryStrategyInput!){ setRecoveryStrategy(data:$d) }', {
-      d: { strategy: 'OfflineCode', code: totp(secret) },
+      d: { strategy: 'OfflineCode', code: totp(secret, Math.floor(Date.now() / 1000) + 30) },
     })
     const strategy = await gqlOkFrom<any>(ip, candidate.token, '{ getRecoveryStrategy }')
     expect(strategy.getRecoveryStrategy).toBe('OfflineCode')
