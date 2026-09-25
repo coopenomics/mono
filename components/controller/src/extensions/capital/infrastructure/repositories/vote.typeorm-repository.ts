@@ -10,7 +10,7 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { IVoteDatabaseData } from '../../domain/interfaces/vote-database.interface';
 import type { IVoteBlockchainData } from '../../domain/interfaces/vote-blockchain.interface';
 import type { VoteFilterInputDTO } from '../../application/dto/voting/vote-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class VoteTypeormRepository
@@ -124,11 +124,10 @@ export class VoteTypeormRepository
 
     // Получаем записи с пагинацией
     const orderBy: any = {};
-    if (validatedOptions.sortBy) {
-      orderBy[validatedOptions.sortBy] = validatedOptions.sortOrder;
-    } else {
-      orderBy._created_at = 'DESC';
-    }
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     const entities = await this.repository.find({
       where,

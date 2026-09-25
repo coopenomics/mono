@@ -10,7 +10,7 @@ import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { ExpenseFilterInputDTO } from '../../application/dto/expenses_management/expense-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ExpenseTypeormRepository
@@ -99,11 +99,10 @@ export class ExpenseTypeormRepository
 
     // Строим параметры сортировки
     const order: any = {};
-    if (validatedOptions.sortBy) {
-      order[validatedOptions.sortBy] = validatedOptions.sortOrder;
-    } else {
-      order.created_at = 'DESC';
-    }
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    order[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     // Выполняем запрос с пагинацией
     const [entities, total] = await this.repository.findAndCount({

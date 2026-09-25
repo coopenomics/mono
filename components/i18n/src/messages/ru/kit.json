@@ -36,7 +36,8 @@
       "dueDateFormat": "Укажите срок исполнения расхода в формате ДД.ММ.ГГГГ"
     },
     "pagination": {
-      "invalidSortField": "Недопустимое поле сортировки"
+      "invalidSortField": "Недопустимое поле сортировки",
+      "invalidSortOrder": "Направление сортировки — ASC или DESC"
     },
     "payments": {
       "insufficientFunds": "Недостаточно средств, поступило: {income}, ожидается: {expected}"

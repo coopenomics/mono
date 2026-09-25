@@ -1,5 +1,5 @@
 import { Field, Int, ObjectType, InputType } from '@nestjs/graphql';
-import { IsOptional, Matches } from 'class-validator';
+import { IsIn, IsOptional, Matches } from 'class-validator';
 import { DomainError, validationMessage } from '../errors/domain-error';
 
 /**
@@ -34,6 +34,10 @@ export class PaginationInputDTO {
     description: 'Направление сортировки ("ASC" или "DESC")',
     defaultValue: 'ASC',
   })
+  // Иное направление отклоняется на входе: до 25.09.2026 оно доходило до
+  // ORDER BY в списках Стола заказов и роняло их ошибкой 500 (C28-80).
+  @IsOptional()
+  @IsIn(['ASC', 'DESC'], { message: validationMessage('kit.pagination.invalidSortOrder') })
   sortOrder!: 'ASC' | 'DESC';
 }
 
@@ -139,19 +143,19 @@ export class PaginationUtils {
     const { page = 1, limit = 10, sortBy, sortOrder = 'ASC' } = options;
 
     if (page < 1) {
-      throw DomainError.internal('KIT_PAGE_NUMBER_INVALID');
+      throw DomainError.badRequest('KIT_PAGE_NUMBER_INVALID');
     }
 
     if (limit < 1 || limit > 1000) {
-      throw DomainError.internal('KIT_PAGE_LIMIT_INVALID');
+      throw DomainError.badRequest('KIT_PAGE_LIMIT_INVALID');
     }
 
     if (sortOrder !== 'ASC' && sortOrder !== 'DESC') {
-      throw DomainError.internal('KIT_SORT_ORDER_INVALID');
+      throw DomainError.badRequest('KIT_SORT_ORDER_INVALID');
     }
 
     if (sortBy !== undefined && sortBy !== null && !SORT_FIELD_PATTERN.test(sortBy)) {
-      throw DomainError.internal('KIT_SORT_FIELD_INVALID');
+      throw DomainError.badRequest('KIT_SORT_FIELD_INVALID');
     }
 
     return {

@@ -15,7 +15,7 @@ import type {
   IKuDecisionBlockchainData,
   IKuDecisionDatabaseData,
 } from '../../domain/interfaces/ku-blockchain-data.interface';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class KuDecisionTypeormRepository
@@ -132,11 +132,10 @@ export class KuDecisionTypeormRepository
     const totalCount = await this.repository.count({ where });
 
     const orderBy: any = {};
-    if (validatedOptions.sortBy) {
-      orderBy[validatedOptions.sortBy] = validatedOptions.sortOrder;
-    } else {
-      orderBy._created_at = 'DESC';
-    }
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     const entities = await this.repository.find({
       where,
