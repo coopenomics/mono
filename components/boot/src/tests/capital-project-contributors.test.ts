@@ -17,7 +17,7 @@ import config from '../configs'
 import { generateRandomSHA256 } from '../utils/randomHash'
 import { fakeDocument } from './shared/fakeDocument'
 import { signAppendix } from './capital/signAppendix'
-import { getSegment } from './capital/getSegment'
+import { getProjectSegments, getSegment } from './capital/getSegment'
 import { ratePerHour } from './capital/consts'
 import { COOP, bootstrapMember, minor, rub, signedBy } from './capital/programInvest'
 import { chainTextDigest } from '../utils/chainTextDigest'
@@ -47,9 +47,14 @@ async function send(name: string, data: Record<string, unknown>) {
   }, { blocksBehind: 3, expireSeconds: 30 })
 }
 
-async function projectSegments(projectHash: string): Promise<any[]> {
-  const rows = await bc.getTableRows(CapitalContract.contractName.production, COOP, 'segments', 1000) as any[]
-  return rows.filter(r => r.project_hash === projectHash)
+/**
+ * Доли участника в проекте. Считаются по имени, а не общим числом: контроллер
+ * при старте проекта сам заводит в нём доли держателей Благороста
+ * (ProgramShareRegistrationOnProjectDeltaListener), и общее число сегментов
+ * растёт параллельно с тестом (C28-80).
+ */
+async function segmentsOf(projectHash: string, username: string): Promise<any[]> {
+  return (await getProjectSegments(bc, COOP, projectHash)).filter(r => r.username === username)
 }
 
 async function getProjectRow(hash: string): Promise<any> {
@@ -120,7 +125,7 @@ describe('Благорост — соавторы проекта (contract, жи
     coauthor = await admittedMember()
 
     const before = await getProjectRow(project)
-    const segmentsBefore = await projectSegments(project)
+    const segmentsBefore = await getProjectSegments(bc, COOP, project)
     expect(await getSegment(bc, COOP, project, coauthor).catch(() => undefined),
       'предусловие: доли у участника ещё нет').toBeFalsy()
 
@@ -132,8 +137,12 @@ describe('Благорост — соавторы проекта (contract, жи
     const after = await getProjectRow(project)
     expect(Number(after.counts.total_authors),
       'счётчик соавторов проекта обязан вырасти на одного').toBe(Number(before.counts.total_authors) + 1)
-    expect((await projectSegments(project)).length,
-      'у участника без доли обязана появиться ровно одна новая доля').toBe(segmentsBefore.length + 1)
+    expect((await segmentsOf(project, coauthor)).length,
+      'у участника без доли обязана появиться ровно одна новая доля').toBe(1)
+    const added = (await getProjectSegments(bc, COOP, project))
+      .filter(r => r.username !== coauthor && !segmentsBefore.some(b => b.username === r.username))
+    expect(added.filter(r => Number(r.is_author) === 1).map(r => r.username),
+      'авторство получает только назначенный соавтор').toEqual([])
   }, 900_000)
 
   it('cap.contrib.happy.01 (вторая половина): если доля уже есть, признак добавляется к ней, вторая доля не создаётся', async () => {
@@ -153,7 +162,6 @@ describe('Благорост — соавторы проекта (contract, жи
     expect(Number(segmentBefore.is_investor), 'предусловие: доля инвестора появилась').toBe(1)
     expect(Number(segmentBefore.is_author), 'предусловие: авторского признака на ней ещё нет').toBe(0)
 
-    const segmentsBefore = await projectSegments(project)
     await addAuthor(investor)
 
     const segmentAfter = await getSegment(bc, COOP, project, investor)
@@ -161,8 +169,8 @@ describe('Благорост — соавторы проекта (contract, жи
       'признак обязан лечь на ТУ ЖЕ долю — идентификатор не меняется').toBe(Number(segmentBefore.id))
     expect(Number(segmentAfter.is_author), 'авторский признак обязан добавиться').toBe(1)
     expect(Number(segmentAfter.is_investor), 'признак инвестора обязан сохраниться').toBe(1)
-    expect((await projectSegments(project)).length,
-      'вторая доля создаваться не должна').toBe(segmentsBefore.length)
+    expect((await segmentsOf(project, investor)).length,
+      'вторая доля создаваться не должна').toBe(1)
   }, 900_000)
 
   it('cap.contrib.side.01: повторное назначение соавтором отклоняется', async () => {
