@@ -46,6 +46,10 @@
     "MARKETPLACE_CELL_NOT_FOUND": "Ячейка не найдена.",
     "MARKETPLACE_CHAIN_NO_TX_HASH": "Не получен tx_hash от блокчейна — повторите действие.",
     "MARKETPLACE_CHECKOUT_BRANCH_REQUIRED": "Не выбран пункт выдачи (КУ) — выберите КУ перед оформлением.",
+    "MARKETPLACE_CHECKOUT_ITEM_FAILED": "Не удалось оформить позицию.",
+    "MARKETPLACE_CHECKOUT_OFFER_NOT_ACTIVE": "Предложение больше не активно.",
+    "MARKETPLACE_CHECKOUT_OFFER_NOT_DELIVERED": "Товар не возят на выбранный пункт выдачи.",
+    "MARKETPLACE_CHECKOUT_ORDER_NOT_RECORDED": "Заказ проведён, но не записан — обратитесь к администратору.",
     "MARKETPLACE_CONTAINERS_NOT_TRUSTEE": "Боксы доступны только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_CONTAINER_BATCH_LIMIT_EXCEEDED": "За один раз можно завести не больше {maxPerBatch} боксов (запрошено {requestedCount}).",
     "MARKETPLACE_CONTAINER_BRANCH_MISMATCH_ITEM": "Бокс «{containerCode}» числится за участком {containerBranch}, а имущество — за {itemBranch}.",
@@ -517,11 +521,7 @@
       "digitalWalletLabel": "Цифровом кошельке",
       "insufficientFunds": "Недостаточно средств на {walletLabel} для оформления: нужно {needed}, доступно {available}. ",
       "insufficientFundsHint": "Заказ не запущен — пополните главный кошелёк или уберите часть позиций.",
-      "itemFailedReason": "Не удалось оформить позицию.",
       "notStartedReason": "Оформление не запущено — не все позиции корзины можно заказать ({reasons}). ",
-      "offerNotActiveReason": "Предложение больше не активно.",
-      "offerNotDeliveredReason": "Товар не возят на выбранный пункт выдачи.",
-      "orderNotRecordedError": "Заказ проведён, но не записан — обратитесь к администратору.",
       "removeItemsHint": "Уберите их из корзины и подпишите заявление заново."
     },
     "container": {

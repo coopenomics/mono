@@ -104,7 +104,7 @@ export const CHECKOUT_MUTATION = `mutation($i:MarketplaceCheckoutCartInput){
   marketplaceCheckoutCart(input:$i){
     checkout_id fully_completed
     created_orders{ ${ORDER_FIELDS} }
-    failed_lines{ offer_id product_name quantity reason }
+    failed_lines{ offer_id product_name quantity reason code }
     cart{ ${CART_FIELDS} }
   }
 }`

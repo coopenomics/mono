@@ -43,7 +43,7 @@ import {
   type FundingLinePlan,
 } from './marketplace-convert.service';
 import type { MarketplaceConvertStatementSignedInputDTO } from '../documents-dto/marketplace-convert-statement-document.dto';
-import { rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import { rethrowChainError, DomainError, domainErrorMessage } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
@@ -120,6 +120,31 @@ interface CheckoutPlan {
   fee_convert_units: bigint;
   /** Сумма заявления с Цифрового кошелька: тела сверх свободного паевого плюс недостающие части взносов. */
   transfer_units: bigint;
+}
+
+/**
+ * Непрошедшая позиция корзины: код причины и текст к нему. Клиент различает
+ * причины по коду, текст — для показа.
+ */
+function failedLine(
+  line: { offer_id: string; quantity: number },
+  product_name: string | null,
+  code: string,
+  reason: string = domainErrorMessage(code)
+): MarketplaceCheckoutFailedLineDTO {
+  return new MarketplaceCheckoutFailedLineDTO({ offer_id: line.offer_id, product_name, quantity: line.quantity, code, reason });
+}
+
+/** Отказ с кодом (DomainError) передаёт свой код; прочий сбой — общий код места. */
+function failedLineFromError(
+  line: { offer_id: string; quantity: number },
+  product_name: string | null,
+  error: unknown,
+  fallbackCode: string
+): MarketplaceCheckoutFailedLineDTO {
+  if (error instanceof DomainError) return failedLine(line, product_name, error.code, error.message);
+  const message = (error as { message?: string } | null)?.message;
+  return failedLine(line, product_name, fallbackCode, message || domainErrorMessage(fallbackCode));
 }
 
 /**
@@ -320,14 +345,7 @@ export class MarketplaceCheckoutService {
         this.logger.warn(
           `MarketplaceCheckoutService: строка не подготовлена (offer=${line.offer_id}, qty=${line.quantity}, checkout=${checkoutId}): ${error.message}`
         );
-        failed.push(
-          new MarketplaceCheckoutFailedLineDTO({
-            offer_id: line.offer_id,
-            product_name: line.offer.product_name,
-            quantity: line.quantity,
-            reason: error?.message ?? t('marketplace.checkout.itemFailedReason'),
-          })
-        );
+        failed.push(failedLineFromError(line, line.offer.product_name, error, 'MARKETPLACE_CHECKOUT_ITEM_FAILED'));
       }
     }
 
@@ -394,12 +412,7 @@ export class MarketplaceCheckoutService {
             `MarketplaceCheckoutService: заказ проведён цепью, но не записан (offer=${p.line.offer_id}, checkout=${checkoutId}, tx=${tx!.tx_hash}): ${error.message}`
           );
           failed.push(
-            new MarketplaceCheckoutFailedLineDTO({
-              offer_id: p.line.offer_id,
-              product_name: p.line.offer.product_name,
-              quantity: p.line.quantity,
-              reason: error?.message ?? t('marketplace.checkout.orderNotRecordedError'),
-            })
+            failedLineFromError(p.line, p.line.offer.product_name, error, 'MARKETPLACE_CHECKOUT_ORDER_NOT_RECORDED')
           );
         }
       }
@@ -500,25 +513,11 @@ export class MarketplaceCheckoutService {
     for (const item of items) {
       const offer = offerById.get(item.offer_id) ?? null;
       if (!offer || offer.status !== MarketplaceOfferStatuses.ACTIVE) {
-        failed.push(
-          new MarketplaceCheckoutFailedLineDTO({
-            offer_id: item.offer_id,
-            product_name: offer?.product_name ?? null,
-            quantity: item.quantity,
-            reason: t('marketplace.checkout.offerNotActiveReason'),
-          })
-        );
+        failed.push(failedLine(item, offer?.product_name ?? null, 'MARKETPLACE_CHECKOUT_OFFER_NOT_ACTIVE'));
         continue;
       }
       if (!offer.delivery_points.some((dp) => dp.braname === deliveryBraname)) {
-        failed.push(
-          new MarketplaceCheckoutFailedLineDTO({
-            offer_id: item.offer_id,
-            product_name: offer.product_name,
-            quantity: item.quantity,
-            reason: t('marketplace.checkout.offerNotDeliveredReason'),
-          })
-        );
+        failed.push(failedLine(item, offer.product_name, 'MARKETPLACE_CHECKOUT_OFFER_NOT_DELIVERED'));
         continue;
       }
       payable.push({ offer_id: item.offer_id, package_id: item.package_id ?? '', quantity: item.quantity, offer });
