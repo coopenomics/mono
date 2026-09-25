@@ -1,0 +1,4954 @@
+{
+  "agreements": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "agreementTemplates": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "buildInitialReportEdits": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "candidates": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCandidates": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCommit": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCommits": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalComponentMetrics": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalContributor": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalContributors": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCycles": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalDeallocationLimit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalDebt": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalDebts": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalExpense": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalExpenses": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalFavorites": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalGetContentRevision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalGetContentRevisions": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalGetOpenTimer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGetProcessInstance": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGetProcessInstances": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGetProcessTemplate": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGetProcessTemplates": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalInvest": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalInvests": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalIssue": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalIssueMetricBindings": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalIssues": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMeasures": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMetricContributions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMetricSeries": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMetricSuperposition": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMetricSuperpositionHistory": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMetricWave": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalProgramExpense": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalProgramExpenses": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalProject": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalProjects": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalProjectWithRelations": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalResult": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalResults": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSegment": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSegments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalState": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalStories": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalStory": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalTimeEntries": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalTimeEntriesByIssues": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalTimeStats": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalVote": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalVotes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cardcoopEntry": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cardcoopEntryAvailable": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cardcoopMyCard": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chairmanApproval": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chairmanApprovals": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopCheckUsernameAvailability": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopGetAccountStatus": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopGetMaxOriginServerTsForRoom": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "chatcoopGetRoomMessagesForUtcDate": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "chatcoopGetTranscription": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopGetTranscriptions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListCalendarEvents": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListCalendarRooms": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListNonProjectCommunicationRooms": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListProjectCommunicationRooms": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListSecretaryRooms": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopListUtcDatesWithNewRoomMessages": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "checkReportReadiness": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "cooperativeAgreements": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cooperativePrograms": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "documentApprovalsSeedPlan": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "documentTemplateBlank": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "documentTemplates": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "documentTemplatesAttention": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseFile": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseFilesByItem": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseFilesByProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseProposal": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseProposalsByCooperative": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseProposalsByMember": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "expenseRequisitesByProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getAccounts": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getActions": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getAgenda": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getAvailableReports": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getBranches": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCandidateIntake": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCapabilitySets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getCapitalIssueLogs": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCapitalOnboardingState": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCapitalProjectLogs": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getChairmanOnboardingState": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getCriticalActionAuditTrail": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCurrentInstance": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getCurrentTableStates": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getDeltas": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getDesktop": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getDocuments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getExtensionLogs": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getExtensionOnboardingState": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getExtensions": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getInboxNotifications": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getInstallationStatus": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedger": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedger2Accounts": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedger2History": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedger2Postings": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedger2Wallets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLedgerHistory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getLoginFactors": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getMeet": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getMeets": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getMyAccess": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getMyCertificate": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getNodeSyncState": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getNotification": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getNotifications": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getParticipantCapabilitySets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getParticipantLoginSecurity": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getPaymentMethods": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getPayments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getProgramWallet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getProgramWallets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getProviderSubscriptionById": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getProviderSubscriptions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getPublicProvision": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getRecoveryStrategy": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getRegistrationAgreements": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getRegistrationConfig": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getReport": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getReportCalendar": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getReportDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getReportHistory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getReportPreview": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getReportRequisites": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getSessions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getSystemInfo": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getUnreadNotificationsCount": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getUserWallets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getUserWebPushSubscriptions": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "getWebPushSubscriptionStats": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getWithheldTaxPayments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "getWithheldTaxState": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "kuDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuDecisions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuTrustRequests": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "listExpensePlans": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "listReportDrafts": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAidStatementSignablePayload": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceAplReceptionChairmanSignablePayloads": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceAplReceptionSupplierSignablePayloads": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceAspectAttributes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceAttributeStats": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCategoryAttributes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCategoryAttributesGrouped": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCategoryOfferCounts": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCheckoutSignablePayloads": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCppStatus": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceDefaultVitrine": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceFindPotentialMatches": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetAvailabilityStats": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetAvailableCategories": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetAvailableCategoryTree": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetBranchEconomy": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetBranchWalletHistory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetCart": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetCategoryById": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetCategoryRules": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetCategoryTree": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetCategoryTreeStats": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetCoopRequests": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetEconomyConfig": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetOffer": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetOrder": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetOutgoingPayment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetPersonalEconomy": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetPersonalWalletHistory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceGetProductTypeById": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetRequest": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetRequestByHash": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetRequestStatistics": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetRootCategories": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetSearchCategories": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceGetShipment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceGetSupplierPaymentSettings": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceGetUserRequests": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceIssuanceActPayload": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceIssuanceClosePayload": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceIssuanceConvertPayload": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceIssuanceSaga": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceIssuanceStatementPayload": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceLedgerInvariants": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListAids": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListAllOffers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListAllOrders": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListAplReceptionsAsSupplier": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListAplReceptionsByBraname": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListAvailableCategories": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListBranchOrders": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListCatalog": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListCategories": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListConsolidatedRequests": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListContainers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListContainerTypes": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListCoopCategories": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListExpressPickupsByBraname": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListInventory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListIssuanceSagas": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListIssuancesByBraname": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListKUDetails": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListModerationLog": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListMyOffers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListMyOrders": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListMyReturnClaims": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListOutgoingPayments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListOutgoingPaymentsAsSupplier": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListPendingOffers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListReturnClaimsByBraname": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListShipments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListShipmentsByBraname": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListStock": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListStockProposals": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListStorageCells": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListSupplierClaims": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListSupplierOrders": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListSupplierPickupOrders": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceListSuppliers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceListWriteoffCandidates": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceListWriteoffProposals": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceMemberWallet": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceMySupplierState": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceOnboardingState": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceOpenWriteoffDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceRegistrationOfferStatus": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceRequiredAttributes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceResolveContainerByCode": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceReturnClaim": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceReturnClaimChairmanSignablePayload": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceReturnClaimSignablePayload": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSearchAttributes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSearchDictionaryValues": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSearchRequests": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceStockIssuancePayloads": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceStockProposalSignablePayloads": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSupplierClaim": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSupplierClaimSummary": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceValidateAttributeValues": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceWhoAmI": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceWriteoffPendingConfirmations": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceWriteoffProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceWriteoffProtocolDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceWriteoffServiceMemoSignablePayload": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceWriteoffStatementSignablePayload": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "membershipExit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "membershipExitReturnPreview": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "participantIdentityForVerification": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "paymentFile": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "paymentProofs": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "process": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "processes": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "searchDocuments": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "searchPrivateAccounts": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotCouncil": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotJournal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotKeys": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "sovietRobotKeyStatus": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotRegistry": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "validateReportEdits": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "verificationReviewPhotos": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "verificationReviews": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "activateTwoFactor": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "addBranchWhitelist": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "addParticipant": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "addPaymentMethod": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "addTrustedAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "applyDocumentApprovalsSeed": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "approveVerification": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "assignCapabilitySet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "authorizeDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "authorizeForceRecovery": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "cancelMembershipExit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalAddAuthor": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalAddFavorite": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalAddWorklog": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalAllocateFunds": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalApproveCommit": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalArchiveComponentMetric": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCalculateVotes": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCloseProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalCompleteProcessStep": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCompleteRegistration": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalCompleteVoting": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalConvertSegment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateCommit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalCreateComponentMetric": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateCycle": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalCreateDebt": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalCreateExpense": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalCreateIssue": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateLocalProject": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateProcessTemplate": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateProgramExpense": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateProgramInvest": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalCreateProgramProperty": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalCreateProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalCreateProjectInvest": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalCreateProjectProperty": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalCreateStory": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalDeallocateFunds": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalDeclineCommit": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalDeleteIssue": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalDeleteProcessTemplate": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalDeleteProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalDeleteStory": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalEditContributor": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalEditProject": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalFinalizeProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalFundProgram": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationMoneyInvestStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationPropertyInvestAct": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationPropertyInvestDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationPropertyInvestStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateCapitalizationToMainWalletConvertStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateComponentGenerationContract": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateExpenseDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateExpenseStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationContract": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationConvertStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationMoneyInvestStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationPropertyInvestAct": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationPropertyInvestDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGenerationPropertyInvestStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGetLoanDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateGetLoanStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateProgramMoneyInvestStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateProjectGenerationContract": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateRegistrationDocuments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateResultContributionAct": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateResultContributionDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalGenerateResultContributionStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalImportContributor": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalLogMetricContribution": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalMakeClearance": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalMoveIssueToComponent": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalOpenProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalPauseTimer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalPushResult": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalRefreshProgram": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalRefreshSegment": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalRegisterContributor": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalRemoveFavorite": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalRestoreContentRevision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalResumeTimer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSetConfig": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalSetIssueMetricBindings": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSetMaster": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalSetPlan": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSetProjectDevelopmentRepositoryUrl": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSetProjectPriority": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSignActAsChairman": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalSignActAsContributor": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalStartProcess": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalStartProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalStartTimer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalStartVoting": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalStopProject": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalStopTimer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalSubmitVote": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "capitalTopupProgramExpensePool": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalUpdateComponentMetric": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalUpdateIssue": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalUpdateMeasure": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "capitalUpdateProcessTemplate": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "capitalUpdateStory": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cardcoopRequestEntryDisclosure": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "cardcoopTakeEntryProfile": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chairmanConfirmApprove": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "chairmanDeclineApprove": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "chatcoopCreateAccount": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopCreateCalendarEvent": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopCreateCalendarIcsSubscription": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopCreateSecretaryRoom": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopDeleteCalendarEvent": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopRemoveSecretaryRoom": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopUpdateCalendarEvent": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "chatcoopUpdateTranscriptionMemo": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "completeCapitalOnboardingStep": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "completeChairmanAgendaStep": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "completeChairmanGeneralMeetStep": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "completeExtensionOnboardingStep": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "confirmAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "confirmCriticalAction": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "confirmEmailVerification": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "confirmMembershipExit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "createAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createBranch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "createDepositPayment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createExpensePlan": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createExpenseProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createInitialPayment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createMembershipExit": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createProjectOfFreeDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createWebPushSubscription": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "createWithdraw": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "deactivateWebPushSubscriptionById": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "declineAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "declineDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteBranch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteBranchWhitelist": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteExpensePlan": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "deletePaymentMethod": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteReportDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "deleteTrustedAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "disableTwoFactor": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "editBranch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "enrollTwoFactor": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateAnnualGeneralMeetAgendaDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateAnnualGeneralMeetDecisionDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateAnnualGeneralMeetNotificationDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateBallotForAnnualGeneralMeetDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "deny"
+  },
+  "generateConvertToAxonStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "generateExpenseProposalDecisionDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "generateExpenseProposalStatementDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateFreeDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateMembershipExitApplication": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateMembershipExitDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateParticipantApplication": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateParticipantApplicationDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generatePrivacyAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateProjectOfFreeDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateRegistrationDocuments": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateReportFromEdits": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "generateReturnByMoneyDecisionDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateReturnByMoneyStatementDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateSelectBranchDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateSignatureAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateSovietDecisionOnAnnualMeetDocument": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateUserAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "generateWalletAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "initiateCriticalAction": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "initSystem": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "installExtension": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "installSystem": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuApproveTrusted": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuCancelDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuCloseDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuCreateDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuDeclineTrusted": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuExecDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateEstablishmentDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateEstablishmentPetition": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateMeetingBallot": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateMeetingDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateMeetingProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateTrustedLiabilityAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateTrustedPowerOfAttorney": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateTrustedStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateTrusteeLiabilityAgreement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuGenerateTrusteePowerOfAttorney": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuJoinDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "kuRequestTrusted": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuStartDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "kuVoteOnDecision": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "login": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "logout": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "markAllNotificationsRead": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceAcceptCpp": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAcceptOrdersBatch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceAcceptReturnAtVisit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceAddAvailableCategories": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAddAvailableCategoryTypes": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAddSupplier": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAddToCart": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceAdmitSupplierClaim": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceApproveOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceApproveReturnVisit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceApproveSupplier": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceAssignInventoryPlacement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceBindInventoryBarcode": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCancelAplReception": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCancelIssuance": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCancelOrder": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCancelStockOrder": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCancelStockProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCancelWriteoffDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCheckoutCart": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceClearAvailableCategories": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceClearCart": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceClearInventoryLabel": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCloseIssuance": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceConfirmWriteoff": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateAid": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCreateAplReception": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateBranchExpense": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCreateContainers": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateContainerType": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCreateCustomCategory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCreateExpressReception": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateRequest": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCreateReturnClaim": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceCreateShipment": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateStockProposal": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceCreateStorageCell": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateStorageGrid": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceCreateWriteoffDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceDeclineOrdersBatch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceDeclineStockProposal": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceDeleteCustomCategory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceDeleteTrusteeWeight": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceDetailKU": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceDistributeBranchFunds": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceFinalizeStockIssuance": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceFixIssuanceFact": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceGenerateInventoryLabel": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceHandBackReturn": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceMoveContainer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplacePublishStock": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceReadyIssue": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceRejectOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceRejectReturnAtVisit": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceRejectReturnRemote": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceRejectSupplier": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceRemoveAvailableCategories": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceRemoveAvailableCategoryTypes": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceRemoveFromCart": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceRenameStorageSection": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceReplaceAvailableItems": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceRepublishOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceRequestSupplier": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceRetireStorageCells": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceRetryKUGeocode": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSetCartDeliveryPoint": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSetKUStatus": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSetMembershipFee": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSetOfferWarranty": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSetSupplierPayoutMethod": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceSetTrusteeWeight": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceSignAplReceptionAsChairman": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceSignAplReceptionAsSupplier": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "pass",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceSignIssuanceAct": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSignIssuanceStatement": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSignOnboardingOffer": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceSplitInventory": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceSubmitWriteoffDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceSwitchSupplierModel": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceUnpublishStock": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceUpdateCartItem": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "marketplaceUpdateContainer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceUpdateOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceUpdateStorageCell": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "pass",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "marketplaceUpdateWriteoffDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "marketplaceWithdrawOffer": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "markNotificationRead": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "markReportPeriod": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "notifyOnAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "overspendExpenseItem": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "payExpenseItem": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "payWithheldTax": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "processConvertToAxonStatement": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "proposeDocumentApproval": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "publishProjectOfFreeDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "refresh": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "registerAccount": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "registerParticipant": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "rejectVerification": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "reportExpenseItem": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "reportNotMe": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "requestEmailVerification": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "requestForceRecoveryConsent": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "resendNotification": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "resetKey": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "resetParticipantTwoFactor": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "resetRegistration": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "restartAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "returnExpenseItem": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "revokeAllSessions": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "revokeCapabilitySet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "revokeParticipantKey": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "revokeSession": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "saveCapitalProgramDocDataHash": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "saveMyPassport": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "saveReportDraft": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "selectBranch": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "deny"
+  },
+  "sendAgreement": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "setBranchPrivate": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "setLoginFactors": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "setPaymentStatus": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "setRecoveryStrategy": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "setWif": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "signByPresiderOnAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "signBySecretaryOnAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotDelegateKey": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "sovietRobotRetryDecision": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "sovietRobotRevokeKey": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "startInstall": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "startResetKey": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "submitExpenseReport": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "triggerNotificationWorkflow": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "uninstallExtension": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "unverifyParticipant": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "updateAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "updateBankAccount": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "updateExtension": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "updateReportRequisites": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "updateSettings": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "updateSystem": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  },
+  "uploadExpenseFile": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "uploadPaymentProof": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "verifyEmail": {
+    "guest": "pass",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "verifyParticipantOnsite": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
+  },
+  "voteOnAnnualGeneralMeet": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "pass",
+    "chairman": "deny"
+  },
+  "walmoveWallets": {
+    "guest": "deny",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
+    "council": "deny",
+    "chairman": "pass"
+  }
+}

@@ -170,12 +170,14 @@ jobs:
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh dbcov snap api
 
-      # Матрица прав — пока отчётом: снимок ожидаемых отказов утверждает
-      # владелец, до этого расхождения прогон не роняют.
+      # Матрица прав сверяется с утверждённым снимком
+      # (components/api-tests/src/rights/snapshot.json, утверждён владельцем
+      # 25.09.2026): новая операция без утверждённых прав или изменившееся
+      # право роняет прогон. Меняешь права намеренно — правь снимок в том же
+      # коммите.
       - name: Матрица прав
         id: rights
         if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
-        continue-on-error: true
         timeout-minutes: 30
         run: bash scripts/blackbox/stack.sh rights
 
