@@ -49,7 +49,7 @@ describe('extensions.availability: доступность расширений �
     const r = await install('soviet', soviet.config ?? {})
     expect(r.errors.length).toBeGreaterThan(0)
     expect(GATE_CODES).not.toContain(r.errors[0].code)
-    expect(r.errors[0].message).toMatch(/already installed/i)
+    expect(r.errors[0].code).toBe('EXTENSION_ALREADY_INSTALLED')
   })
 
   it(caseName('ext.avail.side.02', 'открытое только вне основной сети расширение на тестовом контуре доступно'), async () => {

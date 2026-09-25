@@ -32,6 +32,11 @@ export interface FreshMemberOptions {
   firstName?: string
   lastName?: string
   middleName?: string
+  /**
+   * Без адреса получателя уведомлений: фабрика заводит его той же формулой,
+   * что контроллер, а без секрета узла — не заводит. Для случаев «адреса нет».
+   */
+  withoutNotificationAddress?: boolean
 }
 
 /** Новый пайщик кооператива (role=user) с собственным ключом. */
@@ -44,7 +49,11 @@ export function freshMember(opts: FreshMemberOptions = {}): Who {
       '--filter', '@coopenomics/boot', 'exec', 'esno', 'src/scripts/add-plain-participant.ts',
       account, email, opts.firstName ?? 'Тест', opts.lastName ?? 'Внешнийслой', opts.middleName ?? 'Проверочный',
     ],
-    { cwd: REPO_ROOT, env: { ...process.env, CHAIN_URL }, encoding: 'utf8' },
+    {
+      cwd: REPO_ROOT,
+      env: { ...process.env, CHAIN_URL, ...(opts.withoutNotificationAddress ? { SERVER_SECRET: '' } : {}) },
+      encoding: 'utf8',
+    },
   )
   if (r.status !== 0)
     throw new Error(`add-plain-participant ${account} упал:\n${(r.stderr || r.stdout).slice(-2000)}`)

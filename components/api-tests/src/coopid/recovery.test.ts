@@ -92,8 +92,8 @@ describe('coopid.recovery: запрос ссылки восстановлени�
   })
 
   it(caseName('cid.rec.break.02', 'у пайщика нет адреса Центра уведомлений (subscriber_id): 202, письма нет'), async () => {
-    // Пайщик фабрики стенда заводится мимо регистрации — subscriber_id у него не выпускается.
-    const member = freshMember({ prefix: 'rcs' })
+    // С 25.09.2026 фабрика стенда заводит адрес сразу; здесь — без него.
+    const member = freshMember({ prefix: 'rcs', withoutNotificationAddress: true })
 
     const before = await recoveryLettersTotal()
     const r = await requestRecovery(member.email)
