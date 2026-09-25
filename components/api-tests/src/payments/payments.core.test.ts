@@ -89,6 +89,16 @@ describe('платежи ядра: паевой платёж, статус, че
     expect(own.some(p => p.quantity === 500)).toBe(false)
   })
 
+  it(caseName('pay.core.side.16', 'паевой платёж нулевой или отрицательной суммы — отказ, платёж не заводится'), async () => {
+    // До 25.09.2026 принимались 0 и −100 RUB.
+    for (const quantity of [0, -100]) {
+      const err = await gqlError(payerToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity, symbol: 'RUB' } })
+      expect(err?.code).toBe('GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE')
+    }
+    const own = await listPayments(payerToken, { username: payer.account })
+    expect(own.some(p => p.quantity <= 0)).toBe(false)
+  })
+
   it(caseName('pay.core.side.04', 'платёж в чужой валюте отклоняется'), async () => {
     const err = await gqlError(payerToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity: 700, symbol: 'XYZ' } })
     expect(err?.code).toBe('KIT_SYMBOL_UNSUPPORTED')
@@ -141,7 +151,8 @@ describe('платежи ядра: паевой платёж, статус, че
 
   it(caseName('pay.core.side.08', 'завершённый платёж повторно не меняет статус'), async () => {
     const err = await gqlError(chairToken, SET_STATUS, { d: { id: deposit.id, status: 'CANCELLED' } })
-    expect(err).not.toBeNull()
+    // pay.core.side.17: причина своя, не «платёж не найден» (до 25.09.2026).
+    expect(err?.code).toBe('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN')
     expect((await paymentByHash(payerToken, deposit.hash, payer.account))?.status).toBe('COMPLETED')
   })
 

@@ -231,16 +231,18 @@ cases:
     kind: side
     scenario: паевой платёж нулевой или отрицательной суммы
     expect: отказ, платёж не заводится
-    test: ~
-    status: missing
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
 
   - id: pay.core.side.17
     level: backend
     kind: side
     scenario: повторная смена статуса завершённого платежа — код отказа
-    expect: отказ кодом GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN (сейчас любой сбой setPaymentStatus подменяется кодом GATEWAY_PAYMENT_NOT_FOUND)
-    test: ~
-    status: missing
+    expect: отказ кодом GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN (до 25.09.2026 любой сбой setPaymentStatus подменялся кодом GATEWAY_PAYMENT_NOT_FOUND)
+    test: components/controller/tests/unit/gateway/deposit-and-status.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing
 
   - id: pay.core.side.18
     level: backend
