@@ -362,4 +362,16 @@ describe('экономика участка: общий кошелёк, сетк
     expect(payment.quantity, 'кассиру — сумма за вычетом налога').toBeCloseTo(gross - ndfl(gross), 4)
     expect(payment.quantity, '100 ₽ − 13 ₽ налога').toBeCloseTo(87, 4)
   })
+
+  it(caseName('mkt.eco.side.10', 'сумма не кратна рублю: налог округлён до рубля, платёж кассиру с копейками регистрируется'), async () => {
+    // До 25.09.2026 сумма платежа хранилась целым числом, и выплата 87,50 ₽
+    // падала «invalid input syntax for type integer».
+    const gross = 100.5
+    expect(personalOf(await branchEconomy(krgToken, KRG), chairkrg.account), 'предусловие: персональных средств хватает').toBeGreaterThanOrEqual(gross)
+    const { aidHash } = await submitAid(gross)
+    const payment = await cashierPayment(aidHash)
+    expect(payment, 'платёж материальной помощи в реестре кассира').toBeTruthy()
+    expect(ndfl(gross), 'налог 13,065 ₽ округлён до 13 ₽').toBe(13)
+    expect(payment.quantity, '100,50 ₽ − 13 ₽ налога').toBeCloseTo(87.5, 4)
+  })
 })
