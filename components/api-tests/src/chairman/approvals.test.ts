@@ -128,6 +128,17 @@ describe('одобрения председателя', () => {
     expect(await approvalsOf(chairToken, approvedWho.account, ['PENDING'])).toEqual([])
   })
 
+  it(caseName('chair.appr.side.05', 'одобрение подтверждено — одобренный документ с двумя подписями отдаётся'), async () => {
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a.approved_document).not.toBeNull()
+    expect(a.approved_document.document.signatures).toHaveLength(2)
+  })
+
+  it(caseName('chair.appr.side.06', 'одобрение закрыто — строки в цепи больше нет, признак «в цепи» снят'), async () => {
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a.present).toBe(false)
+  })
+
   it(caseName('chair.appr.happy.03', 'председатель отклоняет одобрение с причиной — статус отклонён'), async () => {
     await registerInCapital(declinedWho, declinedToken)
     const [a] = await approvalsOf(chairToken, declinedWho.account, ['PENDING'])
@@ -137,6 +148,7 @@ describe('одобрения председателя', () => {
     expect(r).toMatchObject({ _id: a._id, status: 'DECLINED' })
     const [after] = await approvalsOf(chairToken, declinedWho.account, ['DECLINED'])
     expect(after?._id).toBe(a._id)
+    expect(after.present).toBe(false)
   })
 
   it(caseName('chair.appr.side.04', 'фильтр по статусу отдаёт только этот статус'), async () => {

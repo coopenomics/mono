@@ -66,6 +66,15 @@ export class ApprovalService {
 
 
   /**
+   * Одобрение, перечитанное после транзакции: дельта своего блока уже сняла
+   * его с цепи (present=false), и объект, прочитанный до транзакции, вернул бы
+   * признак «в цепи» обратно (C28-80).
+   */
+  private async reread(approval: ApprovalDomainEntity): Promise<ApprovalDomainEntity> {
+    return (await this.approvalRepository.findBySyncKey('approval_hash', approval.approval_hash)) ?? approval;
+  }
+
+  /**
    * Получить все одобрения с пагинацией и фильтрацией
    */
   async getApprovals(
@@ -117,14 +126,14 @@ export class ApprovalService {
       approval_hash: input.approval_hash,
       approved_document: input.approved_document,
     };
-    console.log('domainData', domainData)
     // Вызвать блокчейн действие
     const tx = await this.blockchainAdapter.confirmApprove(domainData);
     await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения и сохранить одобренный документ
-    approval.approve(input.approved_document);
-    const updatedApproval = await this.approvalRepository.save(approval);
+    const applied = await this.reread(approval);
+    applied.approve(input.approved_document);
+    const updatedApproval = await this.approvalRepository.save(applied);
 
     this.logger.info('Одобрение успешно подтверждено', { approval_hash: input.approval_hash });
     return await this.toDTO(updatedApproval);
@@ -155,8 +164,9 @@ export class ApprovalService {
     await this.awaitDecisionApplied(tx, approval);
 
     // Обновить статус одобрения
-    approval.decline();
-    const updatedApproval = await this.approvalRepository.save(approval);
+    const applied = await this.reread(approval);
+    applied.decline();
+    const updatedApproval = await this.approvalRepository.save(applied);
 
     this.logger.info('Одобрение успешно отклонено', { approval_hash: input.approval_hash });
     return await this.toDTO(updatedApproval);
