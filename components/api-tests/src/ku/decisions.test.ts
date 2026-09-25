@@ -230,6 +230,24 @@ describe('заявки доверенных лиц участка', () => {
     expect(await trustedOf(branchChairToken, BRANCH_ODN)).toContain(approvedApplicant.account)
   })
 
+  it(caseName('ku.trust.side.05', 'два пакета одного пайщика подряд, подана первая заявка — встречная подпись ложится на её документ'), async () => {
+    // До 25.09.2026 тело договора и блок у двух генераций совпадали, вторая
+    // версия черновика затирала первую, и встречная подпись первой заявки
+    // падала «Хэш метаданных не совпадает» (C28-80).
+    const twice = freshMember({ prefix: 'kuw' })
+    const twiceToken = await login(twice)
+    const firstHash = newHash()
+    const first = await signedTrustPackage(twice, twiceToken, firstHash)
+    await signedTrustPackage(twice, twiceToken, newHash())
+    await gql(twiceToken, REQUEST, { d: { coopname: COOP, braname: BRANCH_ODN, username: twice.account, hash: firstHash, ...first } })
+
+    const r = await trustRequest(branchChairToken, twice.account, firstHash)
+    const countersigned = await signDocument(branchChair.wif, r.document.rawDocument, branchChair.account, 2, [r.document.document])
+    const countersignedAuthority = await signDocument(branchChair.wif, r.authority_document.rawDocument, branchChair.account, 2, [r.authority_document.document])
+    await gql(branchChairToken, APPROVE, { d: { coopname: COOP, hash: firstHash, countersigned, countersigned_authority: countersignedAuthority } })
+    expect(await trustedOf(branchChairToken, BRANCH_ODN)).toContain(twice.account)
+  })
+
   it(caseName('ku.trust.side.03', 'список заявок гостю закрыт'), async () => {
     expectAuthDenied(await gqlError(null, REQUESTS, { f: { username: applicant.account } }))
   })

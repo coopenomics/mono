@@ -6,6 +6,7 @@ import { saveBufferToDisk } from './saveBufferToDisk'
 import { loadBufferFromDisk } from './loadBufferFromDisk'
 import { formatDateTime } from './formatUtils'
 import { isEmpty } from './isEmpty'
+import { documentMetaKey } from './documentMetaKey'
 
 export {
   calculateSha256,
@@ -16,4 +17,5 @@ export {
   loadBufferFromDisk,
   formatDateTime,
   isEmpty,
+  documentMetaKey,
 }

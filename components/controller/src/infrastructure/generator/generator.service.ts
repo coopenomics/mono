@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Generator, UnknownDocumentFactoryError, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { Generator, UnknownDocumentFactoryError, documentMetaKey, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -80,7 +80,14 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
   async getDocument(query: {
     hash: string;
     block_num?: number;
+    meta?: unknown;
   }): Promise<Cooperative.Document.IGeneratedDocument | null> {
+    // Точная версия по meta подписанного документа: у двух генераций в одном
+    // блоке совпадают и тело, и block_num (C28-80).
+    if (query.meta !== undefined && query.meta !== null) {
+      const exact = await this.generator.getDocument({ hash: query.hash, meta_key: documentMetaKey(query.meta) } as never);
+      if (exact) return exact;
+    }
     // Черновики версионируются по (hash + meta.block_num). При наличии
     // block_num тянем точную версию через dot-path mongo-фильтр, иначе —
     // любую версию с этим hash (легаси/превью).

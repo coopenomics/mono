@@ -2,6 +2,7 @@ export * from './Interfaces'
 export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
+export { documentMetaKey } from './Utils/documentMetaKey'
 
 import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'

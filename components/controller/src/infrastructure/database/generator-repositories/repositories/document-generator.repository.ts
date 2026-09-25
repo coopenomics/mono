@@ -8,9 +8,16 @@ import { GENERATOR_PORT, GeneratorPort } from '~/domain/document/ports/generator
 export class DocumentRepositoryImplementation implements DocumentRepository {
   constructor(@Inject(GENERATOR_PORT) private readonly generatorPort: GeneratorPort) {}
 
-  async findByHash(hash: string | null, block_num?: number): Promise<DocumentDomainEntity | null> {
+  async findByHash(hash: string | null, block_num?: number, meta?: unknown): Promise<DocumentDomainEntity | null> {
     if (!hash) return null;
     const normalized = hash.toUpperCase();
+
+    // Точная версия по meta подписанного документа — различает генерации,
+    // совпавшие и телом, и блоком (две заявки одного пайщика за минуту).
+    if (meta !== undefined && meta !== null) {
+      const exact = await this.generatorPort.getDocument({ hash: normalized, meta });
+      if (exact) return new DocumentDomainEntity(exact);
+    }
 
     // Точная версия черновика по (hash + meta.block_num): нужна второму
     // подписанту, чтобы получить ровно ту версию, которую подписал первый
