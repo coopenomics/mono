@@ -1,3 +1,4 @@
+import { rowsOf as rowsOfRaw } from './raw-query-result';
 import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
@@ -31,15 +32,9 @@ export interface ReviewRow {
 
 const VALID_STATUSES = new Set<string>(Object.values(VerificationReviewStatus));
 
-/**
- * TypeORM для UPDATE и DELETE отдаёт из `query` пару `[строки, число задетых]`,
- * а для SELECT и INSERT — сами строки. Приводим к строкам, иначе `RETURNING *`
- * читается как одна запись-массив и любое обращение к её полю падает.
- */
+/** Строки ответа query — общий разбор CoopID-хранилищ (raw-query-result.ts). */
 export function rowsOf(raw: unknown): ReviewRow[] {
-  if (!Array.isArray(raw)) return [];
-  const [first] = raw;
-  return Array.isArray(first) ? (first as ReviewRow[]) : (raw as ReviewRow[]);
+  return rowsOfRaw<ReviewRow>(raw);
 }
 
 function toReview(row: ReviewRow): VerificationReview {

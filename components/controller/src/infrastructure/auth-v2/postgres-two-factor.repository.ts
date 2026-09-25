@@ -1,3 +1,4 @@
+import { affectedRows } from './raw-query-result';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
@@ -67,13 +68,13 @@ export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModu
   async claimStep(subjectId: string, step: number): Promise<boolean> {
     const ds = await this.getDataSource();
     // Одним условным UPDATE: два одновременных запроса с одним кодом не пройдут оба.
-    const rows: unknown[] = await ds.query(
+    const result: unknown = await ds.query(
       `UPDATE two_factor SET last_used_step = $2
        WHERE subject_id = $1 AND (last_used_step IS NULL OR last_used_step < $2)
        RETURNING subject_id`,
       [subjectId, step],
     );
-    return rows.length > 0;
+    return affectedRows(result) > 0;
   }
 
   async remove(subjectId: string): Promise<void> {
