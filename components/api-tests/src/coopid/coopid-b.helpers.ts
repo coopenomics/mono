@@ -20,12 +20,12 @@ import { spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import ecc from 'eosjs-ecc'
 import type { GqlError, GqlResponse } from '../core/client'
-import { ApiError } from '../core/client'
+import { ApiError, gqlRaw } from '../core/client'
 import { API_URL, COOP, REPO_ROOT } from '../core/env'
 import { tokenOf } from '../core/auth'
-import { randomAccount } from '../core/participants'
+import { randomAccount, registerCandidate as registerCoreCandidate, type Candidate } from '../core/participants'
+import { totp } from '../core/totp'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
 
@@ -45,24 +45,7 @@ export function uniqueEmail(prefix = 'ev'): string {
 
 /** GraphQL от имени клиента с заданным адресом (X-Forwarded-For). */
 export async function gqlFrom<T = any>(ip: string, token: string | null, query: string, variables?: unknown): Promise<GqlResponse<T>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'X-Forwarded-For': ip }
-  if (token)
-    headers.Authorization = `Bearer ${token}`
-  const res = await fetch(API_URL, { method: 'POST', headers, body: JSON.stringify({ query, variables }) })
-  const text = await res.text()
-  let payload: any
-  try {
-    payload = JSON.parse(text)
-  }
-  catch {
-    return { status: res.status, data: null, errors: [{ message: `не-JSON ответ: ${text.slice(0, 200)}`, code: 'NON_JSON', path: null }] }
-  }
-  const errors: GqlError[] = (payload.errors ?? []).map((e: any) => ({
-    message: String(e?.message ?? ''),
-    code: e?.extensions?.code ?? null,
-    path: e?.path ?? null,
-  }))
-  return { status: res.status, data: payload.data ?? null, errors }
+  return gqlRaw<T>(token, query, variables, { 'X-Forwarded-For': ip })
 }
 
 /** То же, но без ошибок — иначе ApiError. */
@@ -212,20 +195,7 @@ export function emailSubscriber(email: string): string {
 
 // ── Регистрация кандидата ──────────────────────────────────────────────────
 
-const REGISTER = `mutation($d:RegisterAccountInput!){
-  registerAccount(data:$d){
-    tokens{ access{ token } }
-    account{ username provider_account{ email is_email_verified subscriber_id } }
-  }
-}`
-
-export interface Candidate {
-  username: string
-  email: string
-  token: string
-  subscriberId: string
-  isEmailVerified: boolean
-}
+export type { Candidate }
 
 /**
  * Кандидат в пайщики: учётная запись, созданная открытой регистрацией
@@ -233,32 +203,7 @@ export interface Candidate {
  * адрес Центра уведомлений (subscriber_id) и токен доступа.
  */
 export async function registerCandidate(ip: string, email: string): Promise<Candidate> {
-  const username = randomAccount('cb')
-  const wif = await ecc.randomKey()
-  const d = await gqlOkFrom<any>(ip, null, REGISTER, {
-    d: {
-      email,
-      type: 'individual',
-      username,
-      public_key: ecc.privateToPublic(wif),
-      individual_data: {
-        first_name: 'Тест',
-        last_name: 'Кандидатов',
-        middle_name: 'Проверочный',
-        birthdate: '1990/01/01',
-        phone: '+70000000000',
-        full_address: 'Тестовый адрес',
-      },
-    },
-  })
-  const pa = d.registerAccount.account.provider_account
-  return {
-    username,
-    email: pa.email,
-    token: d.registerAccount.tokens.access.token,
-    subscriberId: pa.subscriber_id,
-    isEmailVerified: pa.is_email_verified,
-  }
+  return registerCoreCandidate({ prefix: 'cb', email, ip })
 }
 
 const ACCOUNT_EMAIL = `query($d:GetAccountInput!){ getAccount(data:$d){ username provider_account{ email is_email_verified } } }`
@@ -271,26 +216,7 @@ export async function isEmailVerified(username: string): Promise<boolean> {
 
 // ── Второй фактор (TOTP, RFC 6238: SHA1, 6 цифр, шаг 30 с) ─────────────────
 
-function base32Decode(secret: string): Buffer {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  let bits = ''
-  for (const ch of secret.toUpperCase().replace(/=+$/, '').replace(/\s/g, ''))
-    bits += alphabet.indexOf(ch).toString(2).padStart(5, '0')
-  const bytes: number[] = []
-  for (let i = 0; i + 8 <= bits.length; i += 8)
-    bytes.push(Number.parseInt(bits.slice(i, i + 8), 2))
-  return Buffer.from(bytes)
-}
 
-/** Текущий код приложения-аутентификатора по секрету. */
-export function totp(secret: string, nowSec = Math.floor(Date.now() / 1000)): string {
-  const buf = Buffer.alloc(8)
-  buf.writeBigUInt64BE(BigInt(Math.floor(nowSec / 30)))
-  const digest = crypto.createHmac('sha1', base32Decode(secret)).update(buf).digest()
-  const offset = digest[digest.length - 1] & 0x0F
-  const binary = ((digest[offset] & 0x7F) << 24) | ((digest[offset + 1] & 0xFF) << 16) | ((digest[offset + 2] & 0xFF) << 8) | (digest[offset + 3] & 0xFF)
-  return (binary % 1_000_000).toString().padStart(6, '0')
-}
 
 // ── Внутренний контур claims ──────────────────────────────────────────────
 
@@ -316,3 +242,5 @@ export function jwtPayload(jwt: string): any {
   const part = jwt.split('.')[1]
   return JSON.parse(Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'))
 }
+
+export { totp }

@@ -17,22 +17,18 @@
  */
 import { spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
-import ecc from 'eosjs-ecc'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
 import { gql, gqlRaw } from '../core/client'
-import { signDocument } from '../core/documents'
-import { COOP, DEFAULT_WIF, REPO_ROOT } from '../core/env'
+import { COOP, REPO_ROOT } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER } from '../core/wallet'
+import { randomHash } from '../core/chain'
+import { ZERO_HASH, chainDoc, chairmanApprove, completeCapitalRegistration } from './cap-results.helpers'
 
-export const ZERO_HASH = '0'.repeat(64)
 
-export function randomHash(): string {
-  return crypto.randomBytes(32).toString('hex')
-}
 
 /** Короткая метка прогона — по ней свои объекты находятся в общих списках. */
 export function tag(prefix: string): string {
@@ -41,25 +37,6 @@ export function tag(prefix: string): string {
 
 // ── Документы ──────────────────────────────────────────────────────────────
 
-/** Подписанный документ цепи (document2) с подписью `signer` его ключом. */
-export function signedDoc(signer: string, wif: string, hash = randomHash()) {
-  return {
-    version: '1.0.0',
-    hash,
-    doc_hash: hash,
-    meta_hash: hash,
-    meta: '{}',
-    signatures: [{
-      id: 1,
-      signed_hash: hash,
-      signer,
-      public_key: ecc.privateToPublic(wif),
-      signature: ecc.signHash(hash, wif),
-      signed_at: new Date().toISOString().slice(0, 19),
-      meta: '{}',
-    }],
-  }
-}
 
 // ── Благорост в цепи ───────────────────────────────────────────────────────
 
@@ -133,16 +110,7 @@ export function ensureCapitalChainReady(): Promise<void> {
  */
 export async function approveAsChairman(approvalHash: string): Promise<void> {
   try {
-    await transact(COOP_SIGNER, [{
-      account: 'soviet',
-      name: 'confirmapprv',
-      data: {
-        coopname: COOP,
-        username: CHAIRMAN.account,
-        approval_hash: approvalHash,
-        approved_document: signedDoc(CHAIRMAN.account, DEFAULT_WIF),
-      },
-    }])
+    await chairmanApprove(approvalHash)
   }
   catch (e: any) {
     const text = JSON.stringify(e?.json ?? e?.message ?? e)
@@ -151,34 +119,13 @@ export async function approveAsChairman(approvalHash: string): Promise<void> {
   }
 }
 
-const REG_DOC = '{ full_title html hash meta binary }'
-
 /**
  * Договор УХД пайщика — как на рабочем столе: контроллер собирает пакет
  * документов, пайщик подписывает его своим ключом, контроллер заводит
  * участника в базе и отправляет договор в цепь. Одобряет председатель.
- *
- * Мимо контроллера (прямым regcontrib) участник в зеркало не ложится: у
- * записи из цепи нет отображаемого имени, и без неё не пишутся ни доли
- * соавторов, ни сам участник.
  */
 export async function registerContributor(who: Who): Promise<void> {
-  const token = await tokenOf(who)
-  const g = await gql<any>(token,
-    `mutation($d:GenerateCapitalRegistrationDocumentsInputDTO!){ capitalGenerateRegistrationDocuments(data:$d){
-      generation_contract ${REG_DOC} storage_agreement ${REG_DOC} blagorost_agreement ${REG_DOC} generator_offer ${REG_DOC}
-    } }`,
-    { d: { coopname: COOP, username: who.account, lang: 'ru' } })
-  const bundle = g.capitalGenerateRegistrationDocuments
-  const signed: Record<string, unknown> = {}
-  let id = 1
-  for (const key of ['generation_contract', 'storage_agreement', 'blagorost_agreement', 'generator_offer']) {
-    if (bundle[key])
-      signed[key] = await signDocument(who.wif, bundle[key], who.account, id++)
-  }
-  await gql(token,
-    'mutation($d:CompleteCapitalRegistrationInputDTO!){ capitalCompleteRegistration(data:$d){ __typename } }',
-    { d: { coopname: COOP, username: who.account, ...signed, about: 'Пайщик внешнего теста', rate_per_hour: '0', hours_per_day: 0 } })
+  await completeCapitalRegistration(who, 'Пайщик внешнего теста')
   const chairmanToken = await tokenOf(CHAIRMAN)
   const c = await gql<any>(chairmanToken,
     'query($d:GetContributorInput!){ capitalContributor(data:$d){ contributor_hash status } }',
@@ -211,14 +158,20 @@ export async function requestClearance(who: Who, projectHash: string): Promise<s
       username: who.account,
       project_hash: projectHash,
       appendix_hash: appendixHash,
-      document: signedDoc(who.account, who.wif),
+      document: chainDoc([who]),
     },
   }])
   return appendixHash
 }
 
 /** Проект (или компонент) в цепи — председатель через API. */
-export async function createChainProject(title: string, parentHash = ZERO_HASH, extra: { description?: string, invite?: string } = {}): Promise<string> {
+export interface ProjectOptions {
+  parent_hash?: string
+  description?: string
+  invite?: string
+}
+
+export async function createChainProject(title: string, opts: ProjectOptions = {}): Promise<string> {
   const hash = randomHash()
   await gql(await tokenOf(CHAIRMAN),
     'mutation($d:CreateProjectInput!){ capitalCreateProject(data:$d){ __typename } }',
@@ -226,10 +179,10 @@ export async function createChainProject(title: string, parentHash = ZERO_HASH, 
       d: {
         coopname: COOP,
         project_hash: hash,
-        parent_hash: parentHash,
+        parent_hash: opts.parent_hash ?? ZERO_HASH,
         title,
-        description: extra.description ?? `Проект внешнего теста «${title}».`,
-        invite: extra.invite ?? '',
+        description: opts.description ?? `Проект внешнего теста «${title}».`,
+        invite: opts.invite ?? '',
         meta: '',
         data: '',
       },
@@ -289,17 +242,17 @@ export async function admitted(who: Who, projectHashes: string[]): Promise<Who> 
 // ── Личные проекты, задачи, требования ─────────────────────────────────────
 
 /** Личный проект (или компонент личного проекта) пайщика — без цепи. */
-export async function createLocalProject(owner: Who, title: string, parentHash = '', extra: { description?: string, invite?: string } = {}): Promise<any> {
+export async function createLocalProject(owner: Who, title: string, opts: ProjectOptions = {}): Promise<any> {
   const d = await gql<any>(await tokenOf(owner),
     `mutation($d:CreateProjectInput!){ capitalCreateLocalProject(data:$d){ ${PROJECT_FIELDS} } }`,
     {
       d: {
         coopname: COOP,
         project_hash: randomHash(),
-        parent_hash: parentHash,
+        parent_hash: opts.parent_hash ?? '',
         title,
-        description: extra.description ?? `Личный проект внешнего теста «${title}».`,
-        invite: extra.invite ?? '',
+        description: opts.description ?? `Личный проект внешнего теста «${title}».`,
+        invite: opts.invite ?? '',
         meta: '',
         data: '',
       },
@@ -486,3 +439,7 @@ export async function deleteProjectAsChairman(projectHash: string): Promise<void
     'mutation($d:DeleteProjectInput!){ capitalDeleteProject(data:$d){ __typename } }',
     { d: { coopname: COOP, project_hash: projectHash } })
 }
+
+export { randomHash }
+
+export { ZERO_HASH }

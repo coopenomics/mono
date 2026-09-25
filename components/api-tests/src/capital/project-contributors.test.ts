@@ -16,7 +16,7 @@ import {
   ensureCapitalProgram,
   segmentOf,
   segmentsOf,
-  setMaster,
+  setMasterInChain,
 } from './cap-results.helpers'
 
 const ADD_AUTHOR = `mutation($d:AddAuthorInput!){ capitalAddAuthor(data:$d){ project_hash } }`
@@ -68,8 +68,8 @@ describe('Благорост: участники проекта', () => {
     await clearance(alice, project)
     await clearance(alice, component)
     await clearance(bob, component)
-    await setMaster(project, alice)
-    await setMaster(component, alice)
+    await setMasterInChain(project, alice)
+    await setMasterInChain(component, alice)
 
     const aliceToken = await tokenOf(alice)
     await waitFor(async () => {

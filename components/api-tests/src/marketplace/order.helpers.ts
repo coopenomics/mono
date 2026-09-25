@@ -15,27 +15,13 @@ import { gql, gqlRaw } from '../core/client'
 import { signDocument } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { amount } from '../core/wallet'
-import { KRG, pickOffer } from './flow'
+import { KRG, ORDER_FIELDS, getOrder, pickOffer } from './flow'
+import { OFFER_FIELDS, getOffer } from './offer.helpers'
 
 /** Метка прогона в названиях предложений — свои строки ищутся по ней. */
 export const RUN_TAG = crypto.randomBytes(3).toString('hex')
 
-export const OFFER_FIELDS = `id status product_name price_per_unit unit_of_measure unlimited_flag supplier_account stock_braname sale_form
-  quantity_available quantity_blocked quantity_consumed
-  packages{ id size price is_default quantity_available quantity_blocked quantity_consumed }`
 
-export const ORDER_FIELDS = `id status order_hash offer_id quantity package_id package_size price_per_unit total_cost membership_fee
-  orderer_account supplier_account delivery_braname cycle_id checkout_id create_tx{ tx_hash block_num }`
-
-export async function getOffer(token: string, id: string): Promise<any> {
-  const d = await gql<any>(token, `query($id:String!){ marketplaceGetOffer(id:$id){ ${OFFER_FIELDS} } }`, { id })
-  return d.marketplaceGetOffer
-}
-
-export async function getOrder(token: string, orderId: string): Promise<any> {
-  const d = await gql<any>(token, `query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ ${ORDER_FIELDS} } }`, { i: { order_id: orderId } })
-  return d.marketplaceGetOrder
-}
 
 /** Поставщик подаёт предложение, председатель одобряет — предложение ACTIVE. */
 export async function createApprovedOffer(supplier: Who, moderator: Who, input: Record<string, unknown>): Promise<any> {
@@ -185,3 +171,4 @@ export function minU(a: bigint, b: bigint): bigint {
   return a < b ? a : b
 }
 
+export { OFFER_FIELDS, ORDER_FIELDS, getOffer, getOrder }

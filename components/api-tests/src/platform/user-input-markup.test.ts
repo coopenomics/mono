@@ -10,7 +10,7 @@ import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, freshMember, gql, gqlRaw, login, randomAccount, tokenOf } from '../core'
 import type { AccountKind } from './platform-b.helpers'
-import { ADD_METHOD, GET_METHODS, UPDATE_BANK, bankAccount as payBankAccount } from '../payments/payments.helpers'
+import { ADD_METHOD, GET_METHODS, UPDATE_BANK } from '../payments/payments.helpers'
 import {
   REGISTER_ACCOUNT,
   bankAccount,
@@ -126,15 +126,15 @@ describe('platform.user-input-markup: разметка в анкете и в о�
     const token = await login(who)
 
     const script = await gqlRaw<any>(token, ADD_METHOD, {
-      d: { username: who.account, is_default: false, bank_transfer_data: payBankAccount('Банк <script>x</script>') },
+      d: { username: who.account, is_default: false, bank_transfer_data: bankAccount({ bank_name: 'Банк <script>x</script>' }) },
     })
     expect(codeOf(script)).toBe(INPUT_REFUSAL)
 
     const clean = (await gql<any>(token, ADD_METHOD, {
-      d: { username: who.account, is_default: false, bank_transfer_data: payBankAccount('Банк Проверочный') },
+      d: { username: who.account, is_default: false, bank_transfer_data: bankAccount({ bank_name: 'Банк Проверочный' }) },
     })).addPaymentMethod
     const img = await gqlRaw<any>(token, UPDATE_BANK, {
-      d: { username: who.account, method_id: clean.method_id, is_default: false, data: payBankAccount('Банк <img src=x onerror=alert(1)>') },
+      d: { username: who.account, method_id: clean.method_id, is_default: false, data: bankAccount({ bank_name: 'Банк <img src=x onerror=alert(1)>' }) },
     })
     expect(codeOf(img)).toBe(INPUT_REFUSAL)
 

@@ -13,13 +13,12 @@ import { signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
+import { randomHash as hash64 } from '../core/chain'
+import { addSbpMethod as addPaymentSbp } from '../payments/payments.helpers'
 
 /** Пул программных расходов «Благороста» — кошелёк-источник шасси (EXPENSE_OPERATION_SETS). */
 export const PROGRAM_EXPENSE_POOL = 'w.cap.pgexp'
 
-export function hash64(): string {
-  return crypto.randomBytes(32).toString('hex')
-}
 
 export interface DraftItem {
   item_hash: string
@@ -115,11 +114,7 @@ export function createInput(draft: Draft, statement: any, over: Record<string, u
 
 /** Реквизиты СБП пайщика: он заводит их сам (самообход RolesGuard по username). */
 export async function addSbpMethod(who: Who, phone: string): Promise<string> {
-  const token = await tokenOf(who)
-  const d = await gql<any>(token, `mutation($d:AddPaymentMethodInput!){ addPaymentMethod(data:$d){ method_id method_type } }`, {
-    d: { username: who.account, is_default: true, sbp_data: { phone } },
-  })
-  return d.addPaymentMethod.method_id
+  return (await addPaymentSbp(await tokenOf(who), who.account, phone)).method_id
 }
 
 /** Вопрос повестки совета по записке — строка soviet::decisions с hash = proposal_hash. */
@@ -191,3 +186,5 @@ export function uniqueFile(mime: 'application/pdf' | 'image/png'): { base64: str
     sha256: crypto.createHash('sha256').update(body).digest('hex'),
   }
 }
+
+export { hash64 }

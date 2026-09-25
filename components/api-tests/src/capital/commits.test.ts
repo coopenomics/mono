@@ -15,7 +15,7 @@ import {
   clearance,
   createProject,
   ensureCapitalProgram,
-  setMaster,
+  setMasterInChain,
   startProject,
 } from './cap-results.helpers'
 
@@ -60,14 +60,14 @@ describe('Благорост: коммит часов через API', () => {
 
     active = await createProject(`Проект коммитов ${tag}`)
     await clearance(member, active)
-    await setMaster(active, member)
+    await setMasterInChain(active, member)
     await startProject(active)
     await masterSeen(active)
 
     // Проект не запущен: контракт откажет в коммите, контроллер — нет.
     idle = await createProject(`Незапущенный проект коммитов ${tag}`)
     await clearance(member, idle)
-    await setMaster(idle, member)
+    await setMasterInChain(idle, member)
     await masterSeen(idle)
   })
 

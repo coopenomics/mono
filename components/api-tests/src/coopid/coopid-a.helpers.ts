@@ -17,12 +17,12 @@ import { signDocument } from '../core/documents'
 import { API_URL, CHAIN_URL, COOP } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
+import { totp } from '../core/totp'
 
 /** Кооперативный участок стенда: председатель — chairkrg. */
 export const BRANCH = 'krg'
 
 /** Коды отказа по входу (гость без токена). */
-export const AUTH_CODES = new Set(['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED'])
 
 // ── Снимки сверки ──────────────────────────────────────────────────────────
 
@@ -170,33 +170,14 @@ export async function onlyReviewOf(username: string): Promise<Review> {
 
 // ── Второй фактор ──────────────────────────────────────────────────────────
 
-const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 
-function base32Decode(secret: string): Buffer {
-  let bits = ''
-  for (const ch of secret.toUpperCase().replace(/=+$/, '').replace(/\s/g, ''))
-    bits += BASE32.indexOf(ch).toString(2).padStart(5, '0')
-  const bytes: number[] = []
-  for (let i = 0; i + 8 <= bits.length; i += 8)
-    bytes.push(Number.parseInt(bits.slice(i, i + 8), 2))
-  return Buffer.from(bytes)
-}
 
-/** Код приложения-аутентификатора (RFC 6238: HMAC-SHA1, шаг 30 с, 6 цифр). */
-export function totpCode(secret: string, nowSec = Math.floor(Date.now() / 1000)): string {
-  const counter = Buffer.alloc(8)
-  counter.writeBigUInt64BE(BigInt(Math.floor(nowSec / 30)))
-  const digest = crypto.createHmac('sha1', base32Decode(secret)).update(counter).digest()
-  const offset = digest[digest.length - 1] & 0x0F
-  const binary = ((digest[offset] & 0x7F) << 24) | (digest[offset + 1] << 16) | (digest[offset + 2] << 8) | digest[offset + 3]
-  return String(binary % 1_000_000).padStart(6, '0')
-}
 
 /** Пайщик подключает приложение-аутентификатор: секрет и первый код. */
 export async function enrollTotp(token: string): Promise<string> {
   const e = await gql<any>(token, 'mutation{ enrollTwoFactor{ secret otpauth_uri } }')
   const secret = e.enrollTwoFactor.secret as string
-  await gql(token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: totpCode(secret) } })
+  await gql(token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: totp(secret) } })
   return secret
 }
 

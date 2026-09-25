@@ -9,9 +9,13 @@
  * управляет метриками, а цепь для мер не нужна. Меры общие для кооператива,
  * поэтому у каждой пары своя метка прогона — чужие файлы стенда их не заденут.
  */
+import type { Who } from '../core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, freshMember, gql, gqlError, login, tokenOf } from '../core'
-import { createLocalProject, runTag } from './cap-metrics.helpers'
+import {
+  runTag,
+} from './cap-metrics.helpers'
+import { createLocalProject } from './cap-access.helpers'
 
 const METRIC_FIELDS = 'metric_hash measure_hash project_hash title unit series_mode target_value fact status created_by'
 const MEASURE_FIELDS = 'measure_hash coopname title unit series_mode status created_by'
@@ -29,6 +33,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 let owner = ''
 let token = ''
+let who: Who
 let project = ''
 let tag = ''
 
@@ -48,11 +53,11 @@ async function measureByHash(hash: string): Promise<any | undefined> {
 
 describe('Благорост — меры кооператива и дневной ряд метрик', () => {
   beforeAll(async () => {
-    const who = freshMember({ prefix: 'capm' })
+    who = freshMember({ prefix: 'capm' })
     owner = who.account
     token = await login(who)
     tag = runTag()
-    project = await createLocalProject(token, { title: `Меры ${tag}`, description: 'Проект внешнего теста мер.' })
+    project = (await createLocalProject(who, `Меры ${tag}`, { description: 'Проект внешнего теста мер.' })).project_hash
   })
 
   // ── Меры ──────────────────────────────────────────────────────────────────
@@ -206,7 +211,7 @@ describe('Благорост — меры кооператива и дневно
     beforeAll(async () => {
       // Отдельный компонент: резонанс считается по всем целям компонента, а
       // здесь нужна ровно одна цель с одним сегодняшним вкладом.
-      seriesProject = await createLocalProject(token, { title: `Ряд ${tag}`, description: 'Проект внешнего теста ряда метрики.' })
+      seriesProject = (await createLocalProject(who, `Ряд ${tag}`, { description: 'Проект внешнего теста ряда метрики.' })).project_hash
       const r = await gql<any>(token, CREATE_METRIC, { d: { coopname: COOP, project_hash: seriesProject, target_value: 30, title: `Ряд ${tag}`, unit: 'шт' } })
       metricHash = r.capitalCreateComponentMetric.metric_hash
       await gql(token, LOG_CONTRIBUTION, { d: { metric_hash: metricHash, delta: DELTA } })

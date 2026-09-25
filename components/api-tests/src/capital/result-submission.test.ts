@@ -40,7 +40,7 @@ import {
   rub,
   runVoting,
   segmentOf,
-  setMaster,
+  setMasterInChain,
   setPlan,
   sha256,
   startProject,
@@ -137,15 +137,15 @@ describe('Благорост: приём РИД — путь результат�
     await clearance(bob, component)
 
     // Компонент запускается только внутри действующего проекта.
-    await setMaster(project, alice)
+    await setMasterInChain(project, alice)
     await startProject(project)
-    await setMaster(component, alice)
+    await setMasterInChain(component, alice)
     await setPlan(component, alice)
     await startProject(component)
     await addAuthorOnChain(component, bob)
     await commitHours(component, alice, alice, 10)
     await commitHours(component, bob, alice, 20)
-    await setMaster(emptyComponent, alice)
+    await setMasterInChain(emptyComponent, alice)
 
     // Голосование распределяет голоса между остальными участниками — их двое.
     await runVoting(component, [alice, bob])

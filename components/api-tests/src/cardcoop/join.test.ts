@@ -12,18 +12,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { caseName, freshMember, login, waitFor } from '../core'
 import {
   type Candidate,
-  type MyCard,
   type NetworkSwitch,
-  UNREACHABLE_NETWORK_URL,
   admitByChain,
-  linkCreated,
-  myCard,
   newCard,
   publishNetworkKey,
   registerCandidate,
   sendAsNetwork,
   switchNetwork,
 } from './cardcoop-entry.helpers'
+import { UNREACHABLE_NETWORK, linkCreated, myCard, type MyCard } from './cardcoop-card.helpers'
 
 /** Вчерашний день UTC и поздний час приёма — ошибка зоны сдвинула бы дату. */
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -36,7 +33,7 @@ describe('cardcoop.join: карта кандидата ждёт решения �
   let admitted: MyCard
 
   beforeAll(async () => {
-    network = await switchNetwork(UNREACHABLE_NETWORK_URL)
+    network = await switchNetwork(UNREACHABLE_NETWORK)
     await publishNetworkKey()
   })
 
@@ -49,7 +46,7 @@ describe('cardcoop.join: карта кандидата ждёт решения �
     // (cardcoopMyCard отвечает кандидату KIT_MEMBERS_ONLY), поэтому связь
     // проверяется тем, что по ней выпускается свидетельство после приёма.
     candidate = await registerCandidate()
-    const res = await sendAsNetwork(linkCreated(card, candidate.subject))
+    const res = await sendAsNetwork(linkCreated(candidate.subject, card.cardId, card.cardNumber))
     expect(res.status, JSON.stringify(res.body)).toBeLessThan(300)
     expect(res.body?.accepted).toBe(true)
 

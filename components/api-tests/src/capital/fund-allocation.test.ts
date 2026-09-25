@@ -13,8 +13,6 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, amount, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
 import {
   chainFreePool,
-  createChainProject,
-  createLocalProject,
   ensureCapitalInitialized,
   fundProgramPool,
   getProject,
@@ -22,6 +20,7 @@ import {
   registerApplicant,
   runTag,
 } from './cap-metrics.helpers'
+import { createChainProject, createLocalProject } from './cap-access.helpers'
 
 const ALLOCATE = 'mutation($d:CapitalAllocateFundsInput!){ capitalAllocateFunds(data:$d){ __typename } }'
 const DEALLOCATE = 'mutation($d:CapitalDeallocateFundsInput!){ capitalDeallocateFunds(data:$d){ __typename } }'
@@ -45,9 +44,9 @@ describe('Благорост — направление средств прог�
     const investor = freshMember({ prefix: 'capinv' })
     await fundProgramPool(investor, PROGRAM_FUNDS)
 
-    const project = await createChainProject({ title: `Направление средств ${tag}`, description: 'Проект внешнего теста денежных мест программы.' })
-    component = await createChainProject({ title: `Компонент под средства ${tag}`, description: 'Компонент, в который направляются средства программы.', parent_hash: project })
-    localProject = await createLocalProject(chairman, { title: `Личный проект председателя ${tag}`, description: 'Персональный проект — не место для денег кооператива.' })
+    const project = await createChainProject(`Направление средств ${tag}`, { description: 'Проект внешнего теста денежных мест программы.' })
+    component = await createChainProject(`Компонент под средства ${tag}`, { description: 'Компонент, в который направляются средства программы.', parent_hash: project })
+    localProject = (await createLocalProject(CHAIRMAN, `Личный проект председателя ${tag}`, { description: 'Персональный проект — не место для денег кооператива.' })).project_hash
   })
 
   it(caseName('cap.alloc.happy.02', 'направление суммы в валюте кооператива доходит до компонента без изменений'), async () => {

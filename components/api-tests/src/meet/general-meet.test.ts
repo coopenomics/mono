@@ -12,18 +12,8 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, gql, gqlError, signDocument, tableRows, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, signDocument, tableRows, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const digest = (text: string): string => text ? crypto.createHash('sha256').update(text, 'utf8').digest('hex') : ''
 

@@ -64,7 +64,7 @@ beforeAll(async () => {
   await ensureCapitalChainReady()
   T = tag('prio')
   P = await createChainProject(`Приоритет ${T}`)
-  K = await createChainProject(`Приоритет ${T} — компонент`, P)
+  K = await createChainProject(`Приоритет ${T} — компонент`, { parent_hash: P })
   Mp = freshMember({ prefix: 'capp' })
   Mk = freshMember({ prefix: 'capk' })
   executor = ROLES.member()
@@ -152,13 +152,13 @@ describe('Благорост — очистка текста проекта на
     const description = `Описание<script>fetch("/steal")</script> проекта\n\n${table}`
     const invite = 'Приглашение<iframe src="https://evil.example"></iframe> в проект'
 
-    const local = await createLocalProject(executor, `Очистка ${T}`, '', { description, invite })
+    const local = await createLocalProject(executor, `Очистка ${T}`, { description, invite })
     expect(local.description).not.toContain('<script')
     expect(local.description).toContain(table)
     expect(local.invite).not.toContain('<iframe')
     expect(local.invite).toContain('Приглашение')
 
-    const chain = await createChainProject(`Очистка в цепи ${T}`, undefined, { description, invite })
+    const chain = await createChainProject(`Очистка в цепи ${T}`, { description, invite })
     const stored = await projectAs(CHAIRMAN, chain)
     expect(stored!.description).not.toContain('<script')
     expect(stored!.description).toContain(table)

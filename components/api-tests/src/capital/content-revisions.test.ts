@@ -11,13 +11,12 @@
  * артефакты персональные: только база контроллера, без цепи. Откат при
  * провале цепи проверяется на кооперативном проекте председателя.
  */
+import type { Who } from '../core'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, freshMember, gql, gqlError, login, tokenOf, transact } from '../core'
 import { COOP_SIGNER } from '../core/wallet'
 import {
   EDIT_PROJECT,
-  createChainProject,
-  createLocalProject,
   editProjectInput,
   ensureCapitalInitialized,
   getProject,
@@ -27,6 +26,7 @@ import {
   randomHash,
   runTag,
 } from './cap-metrics.helpers'
+import { createChainProject, createLocalProject } from './cap-access.helpers'
 
 const BASE_TEXT = [
   '# План работ',
@@ -47,17 +47,18 @@ const CREATE_STORY = 'mutation($d:CreateStoryInput!){ capitalCreateStory(data:$d
 const UPDATE_STORY = 'mutation($d:UpdateStoryInput!){ capitalUpdateStory(data:$d){ story_hash title description content_format content_rev } }'
 
 let token = ''
+let who: Who
 let tag = ''
 
 describe('Благорост — редакции содержимого и слияние правок', () => {
   beforeAll(async () => {
-    const who = freshMember({ prefix: 'caprev' })
+    who = freshMember({ prefix: 'caprev' })
     token = await login(who)
     tag = runTag()
   })
 
   it(caseName('cap.rev.side.05', 'сущность без редакций получает первую запись — сеется rev 1, запись становится rev 2'), async () => {
-    const hash = await createLocalProject(token, { title: `Посев ${tag}`, description: BASE_TEXT })
+    const hash = (await createLocalProject(who, `Посев ${tag}`, { description: BASE_TEXT })).project_hash
     const created = await getProject(token, hash)
     expect(created.content_rev, 'предусловие: проект создан без редакций').toBe(0)
 
@@ -76,7 +77,7 @@ describe('Благорост — редакции содержимого и сл
   })
 
   it(caseName('cap.rev.happy.01', 'две правки разных мест от одной базы сливаются без конфликта'), async () => {
-    const hash = await createLocalProject(token, { title: `Слияние ${tag}`, description: BASE_TEXT })
+    const hash = (await createLocalProject(who, `Слияние ${tag}`, { description: BASE_TEXT })).project_hash
     // Первый автор правит первую строку от исходного текста (rev 1 после посева).
     const first = withLine(BASE_TEXT, 1, 'Первая строка плана — правка первого')
     await gql(token, EDIT_PROJECT, editProjectInput(hash, { title: `Слияние ${tag}`, description: first, base_rev: 1 }))
@@ -94,7 +95,7 @@ describe('Благорост — редакции содержимого и сл
   })
 
   it(caseName('cap.rev.side.01', 'одна строка изменена по-разному — конфликт с маркерами, ничего не потеряно'), async () => {
-    const hash = await createLocalProject(token, { title: `Конфликт ${tag}`, description: BASE_TEXT })
+    const hash = (await createLocalProject(who, `Конфликт ${tag}`, { description: BASE_TEXT })).project_hash
     const theirs = withLine(BASE_TEXT, 3, 'Третья строка — вариант первого')
     await gql(token, EDIT_PROJECT, editProjectInput(hash, { title: `Конфликт ${tag}`, description: theirs, base_rev: 1 }))
 
@@ -117,7 +118,7 @@ describe('Благорост — редакции содержимого и сл
   })
 
   it(caseName('cap.rev.side.02', 'заголовок изменён по-разному двумя авторами — title_conflict'), async () => {
-    const hash = await createLocalProject(token, { title: `Заголовок ${tag}`, description: BASE_TEXT })
+    const hash = (await createLocalProject(who, `Заголовок ${tag}`, { description: BASE_TEXT })).project_hash
     await gql(token, EDIT_PROJECT, editProjectInput(hash, { title: `Заголовок ${tag} — первый`, description: BASE_TEXT, base_rev: 1 }))
 
     const err = await gqlErrorFull(token, EDIT_PROJECT, editProjectInput(hash, { title: `Заголовок ${tag} — второй`, description: BASE_TEXT, base_rev: 1 }))
@@ -127,7 +128,7 @@ describe('Благорост — редакции содержимого и сл
   })
 
   it(caseName('cap.rev.side.04', 'повторное сохранение того же текста не создаёт редакцию'), async () => {
-    const hash = await createLocalProject(token, { title: `Повтор ${tag}`, description: BASE_TEXT })
+    const hash = (await createLocalProject(who, `Повтор ${tag}`, { description: BASE_TEXT })).project_hash
     await gql(token, EDIT_PROJECT, editProjectInput(hash, { title: `Повтор ${tag}`, description: withLine(BASE_TEXT, 2, 'Вторая строка — правка'), base_rev: 0 }))
     const saved = await getProject(token, hash)
     expect(saved.content_rev).toBe(2)
@@ -142,7 +143,7 @@ describe('Благорост — редакции содержимого и сл
   })
 
   it(caseName('cap.rev.side.03', 'BPMN/DRAWIO: параллельные правки схемы — конфликт; правил один — берётся его версия'), async () => {
-    const project = await createLocalProject(token, { title: `Схемы ${tag}`, description: 'Проект со схемой.' })
+    const project = (await createLocalProject(who, `Схемы ${tag}`, { description: 'Проект со схемой.' })).project_hash
     const storyHash = randomHash()
     const xml = (label: string) => `<mxfile><diagram id="d1" name="Схема"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" value="${label}" parent="0"/></root></mxGraphModel></diagram></mxfile>`
     const created = await gql<any>(token, CREATE_STORY, {
@@ -178,7 +179,7 @@ describe('Благорост — редакции содержимого и сл
     await ensureCapitalInitialized()
     const chairman = await tokenOf(CHAIRMAN)
     const title = `Откат ${tag}`
-    const hash = await createChainProject({ title, description: BASE_TEXT })
+    const hash = await createChainProject(title, { description: BASE_TEXT })
 
     const revsBefore = await listRevisions(chairman, 'PROJECT', hash)
     const before = await getProject(chairman, hash)

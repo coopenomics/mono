@@ -11,7 +11,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, caseName, freshMember, gql, gqlError, tableRows, tokenOf, waitFor } from '../core'
-import { registerContributor } from './cap-metrics.helpers'
+import { registerContributorInChain } from './cap-metrics.helpers'
 import { CAPITAL, amount, completeCapitalRegistration, ensureCapitalProgram } from './cap-results.helpers'
 
 const IMPORT = 'mutation($d:ImportContributorInput!){ capitalImportContributor(data:$d){ __typename } }'
@@ -70,7 +70,7 @@ describe('Благорост: участник в зеркале вместе с
 
   it(caseName('cap.cimp.side.08', 'договор УХД отправлен в цепь мимо контроллера — участник попадает в зеркало с именем из аккаунта'), async () => {
     const who = freshMember({ prefix: 'cimp' })
-    await registerContributor(who)
+    await registerContributorInChain(who)
     const c = await waitFor(async () => {
       const row = await contributor(who.account)
       return row?.display_name ? row : null

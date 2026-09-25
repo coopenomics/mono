@@ -10,6 +10,7 @@ import { gql } from '../core/client'
 import { docMeta, signDocument } from '../core/documents'
 import { amount } from '../core/wallet'
 import { KRG, SAGA_FIELDS, acceptToCoop, ensureIdentityVerified, labelInventory, placeOrder } from './flow'
+import { inventoryOfOrder as stockInventoryOfOrder } from './stock.helpers'
 
 export interface PreparedOrder {
   orderId: string
@@ -151,11 +152,9 @@ export interface InventoryRow {
   reserved_order_id: string | null
 }
 
+/** Позиции склада по заказу с отбором сервера по умолчанию. */
 export async function inventoryOfOrder(token: string, orderId: string): Promise<InventoryRow[]> {
-  const d = await gql<any>(token, `query($d:MarketplaceListInventoryInput){
-    marketplaceListInventory(data:$d){ id order_id status ownership origin quantity_per_label arrival_price published_offer_id reserved_order_id }
-  }`, { d: { order_id: orderId } })
-  return (d.marketplaceListInventory as any[]).map(r => ({ ...r, quantity_per_label: Number(r.quantity_per_label) }))
+  return stockInventoryOfOrder(token, orderId, null)
 }
 
 /** Сумма количества строк склада по условию. */

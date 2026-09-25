@@ -11,19 +11,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { caseName, freshMember, gql, login, waitFor } from '../core'
 import { quietWindow } from '../platform/platform-a.helpers'
 import {
-  type MyCard,
   type NetworkSwitch,
   REFUSING_NETWORK_URL,
-  UNREACHABLE_NETWORK_URL,
   cardDeleted,
-  linkCreated,
-  myCard,
   newCard,
   publishNetworkKey,
   sendAsNetwork,
   switchNetwork,
-  tokenSubject,
 } from './cardcoop-entry.helpers'
+import { UNREACHABLE_NETWORK, linkCreated, myCard, subjectOf, type MyCard } from './cardcoop-card.helpers'
 
 const PARTICIPANT = `query($d: GetAccountInput!){ getAccount(data: $d){ username participant_account{ username } } }`
 
@@ -33,7 +29,7 @@ async function memberWithLinkedCard(prefix: string): Promise<{ token: string, us
   const token = await login(member)
   const card = newCard()
 
-  const res = await sendAsNetwork(linkCreated(card, tokenSubject(token)))
+  const res = await sendAsNetwork(linkCreated(subjectOf(token), card.cardId, card.cardNumber))
   expect(res.status, JSON.stringify(res.body)).toBeLessThan(300)
   expect(res.body?.accepted).toBe(true)
 
@@ -49,7 +45,7 @@ describe('cardcoop.membership: журнал свидетельств без се
   let network: NetworkSwitch
 
   beforeAll(async () => {
-    network = await switchNetwork(UNREACHABLE_NETWORK_URL)
+    network = await switchNetwork(UNREACHABLE_NETWORK)
     await publishNetworkKey()
   })
 

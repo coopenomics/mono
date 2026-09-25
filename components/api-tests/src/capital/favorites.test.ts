@@ -46,7 +46,7 @@ beforeAll(async () => {
   T = tag('fav')
   F = freshMember({ prefix: 'capf' })
   project = await createLocalProject(F, `Избранное ${T}`)
-  component = await createLocalProject(F, `Избранное ${T} — компонент`, project.project_hash)
+  component = await createLocalProject(F, `Избранное ${T} — компонент`, { parent_hash: project.project_hash })
 }, 600_000)
 
 describe('Благорост — избранное: добавление и чтение', () => {
@@ -172,7 +172,7 @@ describe('Благорост — избранное: удалённые цели
   it(caseName('cap.fav.side.07', 'удаление проекта и компонента — личного и из цепи — снимает их с избранного у всех'), async () => {
     // Личный проект председателя: мягкое удаление.
     const local = await createLocalProject(CHAIRMAN, `Личный ${T}`)
-    const localComponent = await createLocalProject(CHAIRMAN, `Личный ${T} — компонент`, local.project_hash)
+    const localComponent = await createLocalProject(CHAIRMAN, `Личный ${T} — компонент`, { parent_hash: local.project_hash })
     expect((await addFavoriteAs(CHAIRMAN, 'PROJECT', local.project_hash)).errors).toEqual([])
     expect((await addFavoriteAs(CHAIRMAN, 'COMPONENT', localComponent.project_hash)).errors).toEqual([])
     await deleteProjectAsChairman(localComponent.project_hash)

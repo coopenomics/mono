@@ -9,8 +9,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import { CHAIRMAN, caseName, gql, tokenOf, waitFor } from '../core'
-import { createChainProject } from './cap-metrics.helpers'
-import { capitalMember, clearance, ensureCapitalProgram, setMaster, startProject } from './cap-results.helpers'
+
+import { capitalMember, clearance, ensureCapitalProgram, setMasterInChain, startProject } from './cap-results.helpers'
+import { createChainProject } from './cap-access.helpers'
 
 const PROJECT = 'query($d:GetProjectInput!){ capitalProject(data:$d){ description invite status } }'
 
@@ -20,11 +21,11 @@ describe('Благорост: тексты проекта переживают �
     const master = await capitalMember('ctx')
     const description = `Описание проекта внешнего слоя ${Date.now().toString(36)}`
     const invite = 'Приглашаем разработчиков и аналитиков'
-    const hash = await createChainProject({ title: `Проект с текстами ${Date.now().toString(36)}`, description, invite })
+    const hash = await createChainProject(`Проект с текстами ${Date.now().toString(36)}`, { description, invite })
 
     // Мастером назначается участник проекта — сначала допуск.
     await clearance(master, hash)
-    await setMaster(hash, master)
+    await setMasterInChain(hash, master)
     await startProject(hash)
     const chair = await tokenOf(CHAIRMAN)
     const p = await waitFor(async () => {

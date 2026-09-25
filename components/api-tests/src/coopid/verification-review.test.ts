@@ -12,25 +12,8 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, type Who, caseName, freshMember, gqlRaw, tokenOf, transact } from '../core'
-import {
-  APPROVE,
-  AUTH_CODES,
-  BRANCH,
-  REJECT,
-  REVIEWS,
-  REVIEW_PHOTOS,
-  type Review,
-  certificateLevels,
-  identityFor,
-  onlyReviewOf,
-  photo,
-  photos,
-  reviewsOf,
-  unverify,
-  verifyOk,
-  verifyOnsite,
-} from './coopid-a.helpers'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, caseName, expectAuthDenied, freshMember, gqlRaw, tokenOf, transact, type Who } from '../core'
+import { APPROVE, BRANCH, REJECT, REVIEWS, REVIEW_PHOTOS, type Review, certificateLevels, identityFor, onlyReviewOf, photo, photos, reviewsOf, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
 
 function hasPassport(levels: { type: string }[]): boolean {
   return levels.some(l => l.type === 'passport_onsite' || l.type === 'PassportOnsite')
@@ -244,7 +227,7 @@ describe('coopid.verification-review: снимки сверки и решени�
     it(caseName('cid.vrev.break.06', 'гость получает отказ по входу'), async () => {
       const r = await gqlRaw(null, REVIEWS, { d: { username: who.account } })
       expect(r.data).toBeNull()
-      expect(AUTH_CODES.has(String(r.errors[0]?.code))).toBe(true)
+      expectAuthDenied(r.errors[0] ?? null)
     })
 
     it(caseName('cid.vrev.break.08', 'решение возвращает записанную строку журнала целиком'), async () => {

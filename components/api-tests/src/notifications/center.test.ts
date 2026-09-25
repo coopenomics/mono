@@ -8,33 +8,22 @@
  * контроллера (тик в несколько секунд), поэтому появление строки в инбоксе
  * и смена статуса в журнале ожидаются опросом: это запись мимо мутации.
  *
- * Получатель уведомлений — пайщик, зарегистрированный через контроллер
- * (center.helpers.ts): только регистрация заводит идентификатор подписчика, у
- * участников стенда его нет. Свои строки ищутся по decision_id, счётчик
+ * Получатель уведомлений — кандидат открытой регистрации (registerCandidate
+ * ядра): регистрация заводит идентификатор подписчика, как у человека с формы
+ * вступления. Свои строки ищутся по decision_id, счётчик
  * непрочитанных сверяется с лентой в тот же момент.
  * Роль «пайщик» и веб-пуш подписки проверяются на свежем пайщике.
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, login, tokenOf, waitFor } from '../core'
-import type { GqlError } from '../core'
-import type { Candidate } from './center.helpers'
-import { registerCandidate } from './center.helpers'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, registerCandidate, tokenOf, waitFor } from '../core'
+import type { Candidate } from '../core'
 
 /** Тип уведомления с шагами email + in_app + push (каталог @coopenomics/notifications). */
 const WORKFLOW = 'reshenie-soveta-prinyato'
 const PAGE = { page: 1, limit: 100, sortOrder: 'DESC' }
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const INBOX = `query($c:String!,$p:PaginationInput!){ getInboxNotifications(coopname:$c, pagination:$p){
   totalCount items{ id workflowId title body payload actorSubscriberId isRead readAt createdAt } } }`
@@ -103,16 +92,16 @@ beforeAll(async () => {
   chairToken = await tokenOf(CHAIRMAN)
   councilToken = await tokenOf(COUNCIL)
   otherToken = await tokenOf(ROLES.otherMember())
-  recipient = await registerCandidate('ntf')
+  recipient = await registerCandidate({ prefix: 'ntf' })
   recipientToken = recipient.token
-  const acc = await gql<any>(recipientToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: recipient.account } })
+  const acc = await gql<any>(recipientToken, 'query($d:GetAccountInput!){ getAccount(data:$d){ provider_account{ subscriber_id } } }', { d: { username: recipient.username } })
   subscriberId = acc.getAccount.provider_account.subscriber_id
   expect(subscriberId, 'регистрация завела идентификатор подписчика').toBeTruthy()
 })
 
 describe('центр уведомлений: очередь, журнал, инбокс', () => {
   it(caseName('ntf.center.side.01', 'поставить уведомление может только председатель'), async () => {
-    const data = { d: { name: WORKFLOW, to: [{ username: recipient.account }], payload: { decision_id: 'x' } } }
+    const data = { d: { name: WORKFLOW, to: [{ username: recipient.username }], payload: { decision_id: 'x' } } }
     expectCode(await gqlError(councilToken, TRIGGER, data), 'KIT_INSUFFICIENT_RIGHTS')
     expectCode(await gqlError(memberToken, TRIGGER, data), 'KIT_INSUFFICIENT_RIGHTS')
     expectAuthDenied(await gqlError(null, TRIGGER, data))
@@ -123,7 +112,7 @@ describe('центр уведомлений: очередь, журнал, ин�
     const r = await gql<any>(chairToken, TRIGGER, {
       d: {
         name: WORKFLOW,
-        to: [{ username: recipient.account }],
+        to: [{ username: recipient.username }],
         payload: { userName: 'Тест', decisionTitle, coopname: COOP, decision_id: decisionId },
       },
     })
@@ -148,7 +137,7 @@ describe('центр уведомлений: очередь, журнал, ин�
       const rows = await journal(chairToken, { recipientSubscriberId: subscriberId, workflowId: WORKFLOW, channel: 'IN_APP' })
       return rows.find(r => r.status === 'SENT') ?? null
     }, { timeoutMs: 30_000, intervalMs: 1_000, label: 'строка in_app отмечена доставленной' })
-    expect(inApp.recipientUsername).toBe(recipient.account)
+    expect(inApp.recipientUsername).toBe(recipient.username)
     expect(inApp.attempts).toBe(1)
     inAppOutboxId = inApp.id
 

@@ -11,23 +11,11 @@
  * Доверенное лицо, принятое тестом, — свежий пайщик и больше нигде не
  * участвует; участок krg фикстур Стола заказов не трогается.
  */
-import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, ROLES, caseName, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { COOP, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomHash, signDocument, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
-const newHash = (): string => crypto.randomBytes(32).toString('hex')
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
@@ -116,7 +104,7 @@ beforeAll(async () => {
 })
 
 describe('собрание пайщиков участка', () => {
-  const hash = newHash()
+  const hash = randomHash()
   const meetAt = new Date(Date.now() + 7 * 24 * 3600_000).toISOString()
   const meetPlace = `Красногорск, ул. Тестовая, ${hash.slice(0, 6)}`
 
@@ -177,8 +165,8 @@ describe('собрание пайщиков участка', () => {
 })
 
 describe('заявки доверенных лиц участка', () => {
-  const declinedHash = newHash()
-  const approvedHash = newHash()
+  const declinedHash = randomHash()
+  const approvedHash = randomHash()
 
   it(caseName('ku.trust.side.01', 'подать заявку за другого пайщика нельзя'), async () => {
     const pkg = await signedTrustPackage(joiner, joinerToken, declinedHash)
@@ -203,7 +191,7 @@ describe('заявки доверенных лиц участка', () => {
   it(caseName('ku.trust.side.02', 'решать по заявке может только председатель своего участка'), async () => {
     expectCode(await gqlError(foreignChairToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'чужой участок' } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
     expectCode(await gqlError(applicantToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'сам себе' } }), 'KU_ACTION_BRANCH_CHAIRMAN_ONLY')
-    expectCode(await gqlError(branchChairToken, DECLINE, { d: { coopname: COOP, hash: newHash(), reason: 'нет такой' } }), 'KU_TRUST_REQUEST_NOT_FOUND')
+    expectCode(await gqlError(branchChairToken, DECLINE, { d: { coopname: COOP, hash: randomHash(), reason: 'нет такой' } }), 'KU_TRUST_REQUEST_NOT_FOUND')
     expectAuthDenied(await gqlError(null, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'гость' } }))
     expect((await trustRequest(branchChairToken, applicant.account, declinedHash)).present).toBe(true)
   })
@@ -236,9 +224,9 @@ describe('заявки доверенных лиц участка', () => {
     // падала «Хэш метаданных не совпадает» (C28-80).
     const twice = freshMember({ prefix: 'kuw' })
     const twiceToken = await login(twice)
-    const firstHash = newHash()
+    const firstHash = randomHash()
     const first = await signedTrustPackage(twice, twiceToken, firstHash)
-    await signedTrustPackage(twice, twiceToken, newHash())
+    await signedTrustPackage(twice, twiceToken, randomHash())
     await gql(twiceToken, REQUEST, { d: { coopname: COOP, braname: BRANCH_ODN, username: twice.account, hash: firstHash, ...first } })
 
     const r = await trustRequest(branchChairToken, twice.account, firstHash)

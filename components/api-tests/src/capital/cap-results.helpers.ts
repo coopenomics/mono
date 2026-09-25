@@ -27,6 +27,7 @@ import { CHAIRMAN } from '../core/roles'
 import { signDocument } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, rub } from '../core/wallet'
+import { randomHash } from '../core/chain'
 
 export const GENERATED = 'full_title html hash meta binary'
 
@@ -42,9 +43,6 @@ export function sha256(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex')
 }
 
-export function randomHash(): string {
-  return crypto.randomBytes(32).toString('hex')
-}
 
 export { amount, rub }
 
@@ -174,10 +172,6 @@ const REG_DOCS = ['generation_contract', 'storage_agreement', 'blagorost_agreeme
  * (CapitalRegistrationPage): пакет документов регистрации из генератора,
  * подпись ключом пайщика, отправка договора УХД через API и одобрение
  * председателем. Возвращается, когда контроллер видит договор действующим.
- *
- * Договор, отправленный в цепь мимо контроллера, в зеркало не попадает:
- * строку участника без имени синхронизатор не записывает (display_name
- * обязателен), а имя знает только контроллер.
  */
 export async function capitalMember(prefix = 'cap'): Promise<Who> {
   const who = freshMember({ prefix })
@@ -251,7 +245,8 @@ export async function clearance(who: Who, project: string): Promise<void> {
   await chairmanApprove(appendixHash)
 }
 
-export async function setMaster(project: string, master: Who): Promise<void> {
+/** Ведущий проекта — действием цепи от кооператива, мимо API. */
+export async function setMasterInChain(project: string, master: Who): Promise<void> {
   await coop('setmaster', { project_hash: project, master: master.account })
 }
 
@@ -439,3 +434,5 @@ export const PUSH_RESULT = `mutation($d:PushResultInput!){ capitalPushResult(dat
 export const SIGN_ACT_CONTRIBUTOR = `mutation($d:SignActAsContributorInput!){ capitalSignActAsContributor(data:$d){ ${SEGMENT_FIELDS} } }`
 export const SIGN_ACT_CHAIRMAN = `mutation($d:SignActAsChairmanInput!){ capitalSignActAsChairman(data:$d){ ${SEGMENT_FIELDS} } }`
 export const CONVERT_SEGMENT = `mutation($d:ConvertSegmentInput!){ capitalConvertSegment(data:$d){ ${SEGMENT_FIELDS} } }`
+
+export { randomHash }

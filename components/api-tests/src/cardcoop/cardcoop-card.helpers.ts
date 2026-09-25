@@ -52,7 +52,7 @@ export const MY_CARD = 'query{ cardcoopMyCard{ issued cardNumber state memberSin
 export interface MyCard {
   issued: boolean
   cardNumber: string | null
-  state: string | null
+  state: 'Pending' | 'Active' | 'Revoked' | 'Rejected' | null
   memberSince: string | null
   enterUrl: string
 }
@@ -189,7 +189,9 @@ export async function sendSigned(doc: Record<string, unknown>, key: NetworkKey):
 
 /** Идентификатор пайщика в токене (`sub`) — его сеть присылает как `external_subject`. */
 export function subjectOf(token: string): string {
-  const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'))
+  const payload = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8'))
+  if (!payload?.sub)
+    throw new Error('в токене нет sub')
   return String(payload.sub)
 }
 

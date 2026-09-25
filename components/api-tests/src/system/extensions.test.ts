@@ -11,18 +11,8 @@
  */
 import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, gql, gqlError, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const SETTINGS_FIELDS = 'coopname authorized_default_workspace authorized_default_route non_authorized_default_workspace non_authorized_default_route provider_name is_registration_open updated_at'
 const SYSTEM = `query{ getSystemInfo{ coopname system_status settings{ ${SETTINGS_FIELDS} } } }`

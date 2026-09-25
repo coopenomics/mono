@@ -20,8 +20,8 @@ export interface GqlResponse<T> {
 }
 
 /** Ответ целиком — для проверок, где ошибка и есть ожидаемый исход. */
-export async function gqlRaw<T = any>(token: string | null, query: string, variables?: unknown): Promise<GqlResponse<T>> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+export async function gqlRaw<T = any>(token: string | null, query: string, variables?: unknown, extraHeaders: Record<string, string> = {}): Promise<GqlResponse<T>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extraHeaders }
   if (token)
     headers.Authorization = `Bearer ${token}`
   const res = await fetch(API_URL, { method: 'POST', headers, body: JSON.stringify({ query, variables }) })

@@ -11,7 +11,9 @@
  */
 import { spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
+import ecc from 'eosjs-ecc'
 import type { Who } from './auth'
+import { ApiError, gqlRaw } from './client'
 import { CHAIN_URL, REPO_ROOT } from './env'
 
 /** Имя аккаунта: 12 символов из a-z1-5, начинается с префикса теста. */
@@ -51,4 +53,51 @@ export function freshMember(opts: FreshMemberOptions = {}): Who {
   if (!j.wif)
     throw new Error(`add-plain-participant ${account} не вернул ключ`)
   return { account, email, wif: j.wif }
+}
+
+export interface Candidate {
+  username: string
+  email: string
+  token: string
+  subscriberId: string
+  isEmailVerified: boolean
+}
+
+const REGISTER = `mutation($d:RegisterAccountInput!){ registerAccount(data:$d){
+  tokens{ access{ token } } account{ username provider_account{ email subscriber_id is_email_verified } } } }`
+
+/**
+ * Кандидат открытой регистрации — как с формы вступления: учётная запись и
+ * токен есть, советом пайщик ещё не принят. `ip` — адрес клиента для лимитов
+ * по IP (X-Forwarded-For).
+ */
+export async function registerCandidate(opts: { prefix?: string, email?: string, ip?: string } = {}): Promise<Candidate> {
+  const username = randomAccount(opts.prefix ?? 'cand')
+  const wif = await ecc.randomKey()
+  const r = await gqlRaw<any>(null, REGISTER, {
+    d: {
+      email: opts.email ?? `${username}@api-tests.coop`,
+      type: 'individual',
+      username,
+      public_key: ecc.privateToPublic(wif),
+      individual_data: {
+        first_name: 'Тест',
+        last_name: 'Кандидатов',
+        middle_name: 'Проверочный',
+        birthdate: '1990-01-01',
+        phone: '+70000000000',
+        full_address: 'г. Москва, ул. Тестовая, 1',
+      },
+    },
+  }, opts.ip ? { 'X-Forwarded-For': opts.ip } : {})
+  if (r.errors.length)
+    throw new ApiError(r.errors, r.status)
+  const pa = r.data.registerAccount.account.provider_account
+  return {
+    username,
+    email: pa.email,
+    token: r.data.registerAccount.tokens.access.token,
+    subscriberId: pa.subscriber_id,
+    isEmailVerified: pa.is_email_verified,
+  }
 }

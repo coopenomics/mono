@@ -24,10 +24,10 @@ export async function listPayments(token: string, filters: Record<string, unknow
   return d.getPayments.items
 }
 
-/** Платёж по хэшу глазами того, кто спрашивает (null — не видно). */
-export async function paymentByHash(token: string, hash: string, username?: string): Promise<any | null> {
-  const items = await listPayments(token, username ? { hash, username } : { hash })
-  return items.find(p => p.hash === hash) ?? null
+/** Платёж по хэшу глазами того, кто спрашивает (null — не видно); отбор по пайщику и типу. */
+export async function paymentByHash(token: string, hash: string, filters: { username?: string, type?: string } = {}): Promise<any | null> {
+  const items = await listPayments(token, { hash, ...filters })
+  return items.find(p => String(p.hash).toLowerCase() === hash.toLowerCase()) ?? null
 }
 
 // ── Реквизиты ──────────────────────────────────────────────────────────────
@@ -43,13 +43,18 @@ export function randomPhone(): string {
   return `+79${String(crypto.randomInt(0, 1_000_000_000)).padStart(9, '0')}`
 }
 
-export function bankAccount(bankName: string): Record<string, unknown> {
+/**
+ * Банковские реквизиты: действующие БИК и корсчёт, номер счёта случайный —
+ * у каждого вызова свой. Поля переопределяются аргументом.
+ */
+export function bankAccount(overrides: Record<string, unknown> = {}): Record<string, any> {
   const digits = (n: number) => Array.from({ length: n }, () => crypto.randomInt(0, 10)).join('')
   return {
     account_number: `40817810${digits(12)}`,
-    bank_name: bankName,
+    bank_name: 'ПАО «Сбербанк»',
     currency: 'RUB',
-    details: { bik: `04452${digits(4)}`, corr: `30101810${digits(12)}` },
+    details: { bik: '044525225', corr: '30101810400000000225' },
+    ...overrides,
   }
 }
 

@@ -81,7 +81,7 @@ beforeAll(async () => {
   await ensureCapitalChainReady()
   T = tag('acc')
   P = await createChainProject(`Доступ ${T}`)
-  K = await createChainProject(`Доступ ${T} — компонент`, P)
+  K = await createChainProject(`Доступ ${T} — компонент`, { parent_hash: P })
   Q = await createChainProject(`Чужой ${T}`)
 
   M = freshMember({ prefix: 'capm' })

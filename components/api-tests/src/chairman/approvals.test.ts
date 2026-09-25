@@ -13,18 +13,8 @@
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, caseName, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
-import type { GqlError } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, signDocument, tokenOf } from '../core'
 
-const AUTH_CODES = ['401', 'UNAUTHENTICATED', 'KIT_USER_NOT_AUTHORIZED', 'KIT_SESSION_ENDED']
-function expectAuthDenied(err: GqlError | null): void {
-  expect(err, 'ожидался отказ входа').not.toBeNull()
-  expect(AUTH_CODES, JSON.stringify(err)).toContain(String(err!.code))
-}
-function expectCode(err: GqlError | null, code: string): void {
-  expect(err, `ожидался отказ ${code}`).not.toBeNull()
-  expect(String(err!.code), JSON.stringify(err)).toBe(code)
-}
 
 const DOC = 'full_title html hash meta binary'
 const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'

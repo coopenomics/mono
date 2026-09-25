@@ -21,6 +21,7 @@ import { CHAIRMAN, ROLES } from '../core/roles'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, availableShare, rub } from '../core/wallet'
 import { getOrder, pickOffer, placeOrder } from '../marketplace/flow'
+import { paymentByHash as paymentSeenBy } from '../payments/payments.helpers'
 
 export const TEMPLATE_FIELDS = 'registry_id extension_name kind approval bundle title order current_version approved_version approved_decision_id approved_at effective_version state pending_hash'
 
@@ -394,10 +395,7 @@ async function chairPaymentMethod(): Promise<string> {
 export interface GatewayPaymentRow { id: string, hash: string, status: string, quantity: number, type: string, username: string, message: string | null }
 
 export async function paymentByHash(hash: string, type?: string): Promise<GatewayPaymentRow | null> {
-  const d = await gql<any>(await tokenOf(CHAIRMAN), `query($d:PaymentFiltersInput,$o:PaginationInput){
-    getPayments(data:$d, options:$o){ items{ id hash quantity status type username message } }
-  }`, { d: { hash, ...(type ? { type } : {}) }, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
-  return (d.getPayments.items as any[]).find(p => String(p.hash).toLowerCase() === hash.toLowerCase()) ?? null
+  return paymentSeenBy(await tokenOf(CHAIRMAN), hash, type ? { type } : {})
 }
 
 /** Кассир (председатель стенда) подтверждает фактический перевод. */

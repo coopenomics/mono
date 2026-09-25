@@ -12,9 +12,9 @@
  * свежего пайщика.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, type Who, amount, caseName, ensureShareFunds, freshMember, gqlRaw, login, randomAccount, tokenOf, transact } from '../core'
+import { CHAIRMAN, COOP, COOP_SIGNER, COUNCIL, ROLES, amount, caseName, ensureShareFunds, expectAuthDenied, freshMember, gqlRaw, login, randomAccount, tokenOf, transact, type Who } from '../core'
 import { KRG, acceptToCoop, labelInventory, pickOffer, placeOrder } from '../marketplace/flow'
-import { AUTH_CODES, BRANCH, certificateLevels, chainVerifications, identityFor, joinMarketplace, photo, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
+import { BRANCH, certificateLevels, chainVerifications, identityFor, joinMarketplace, photo, unverify, verifyOk, verifyOnsite } from './coopid-a.helpers'
 
 const FIRST = 'Верификат'
 const LAST = 'Внешнийслой'
@@ -208,7 +208,7 @@ describe('coopid.verification: уровни верификации и данны
     it(caseName('cid.ver.side.13', 'гость не получает данные'), async () => {
       const r = await identityFor(null, probe.account, BRANCH)
       expect(r.data).toBeNull()
-      expect(AUTH_CODES.has(String(r.errors[0]?.code))).toBe(true)
+      expectAuthDenied(r.errors[0] ?? null)
     })
 
     it(caseName('cid.ver.side.13', 'по аккаунту, который не пайщик этого кооператива, — отказ «пайщик не найден»'), async () => {
