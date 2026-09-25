@@ -178,6 +178,19 @@ describe('realtime.chain-changes: лента изменений — сигнал
       expect(after.getSystemInfo.settings.updated_at).toBe(written)
     })
 
+    it(caseName('rt.cc.happy.06', 'корзина Стола заказов — личная таблица: сигнал приходит заказчику с ключом строки'), async () => {
+      // До 25.09.2026 корзина менялась частичным update, сигнал терял владельца
+      // и уходил только совету с пустым ключом — стол заказчика не обновлялся.
+      const orderer = ROLES.member()
+      const ordererToken = await tokenOf(orderer)
+      const CART = { code: 'market', table: 'marketplace_cart' }
+      const sub = chainChangesOf(await open(ordererToken), [CART])
+      await settleSubscriptions()
+      await gql(ordererToken, 'mutation{ marketplaceClearCart{ __typename } }')
+      const sig = await waitSignal(sub, CART)
+      expect(sig.primary_key).not.toBe('')
+    })
+
     it(caseName('rt.cc.happy.04', 'личная таблица базы узла: сигнал о новой строке — её владельцу по ключу строки, чужому — нет'), async () => {
       const ownSub = chainChangesOf(await open(memberToken), [PAYMENTS])
       const otherSub = chainChangesOf(await open(otherToken), [PAYMENTS])

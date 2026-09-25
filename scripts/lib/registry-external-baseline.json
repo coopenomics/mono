@@ -41,7 +41,7 @@
   "platform.i18n": 9,
   "platform.jurisdictions": 4,
   "platform.schema-migrations": 8,
-  "realtime.chain-changes": 7,
+  "realtime.chain-changes": 6,
   "registration.intake-forms": 4,
   "reports.ndfl6": 6,
   "reports.withheld-tax": 5,
