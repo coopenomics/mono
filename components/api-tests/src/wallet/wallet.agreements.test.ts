@@ -136,6 +136,17 @@ describe('кошельки и соглашения пайщика', () => {
     expect(declined.map(a => [a.id, a.type, a.status])).toEqual([[privacy.id, 'privacy', 'DECLINED']])
   })
 
+  it(caseName('wal.agr.side.11', 'фильтр по статусу или типу без program_id не подмешивает соглашение программы'), async () => {
+    // До 25.09.2026 программное соглашение «Кошелёк» (подтверждённое) попадало
+    // в любую выдачу без program_id — и в «отклонённые», и в «тип privacy».
+    const declined = await agreementsOf(chairToken, { username: signer.account, statuses: ['DECLINED'] })
+    expect(declined.every(a => a.status === 'DECLINED')).toBe(true)
+    expect(declined.some(a => a.type === 'wallet')).toBe(false)
+    const privacy = await agreementsOf(chairToken, { username: signer.account, type: 'privacy' })
+    expect(privacy.length).toBeGreaterThan(0)
+    expect(privacy.every(a => a.type === 'privacy')).toBe(true)
+  })
+
   it(caseName('wal.agr.happy.05', 'пайщик переподписывает программное соглашение «Кошелёк» — дата подписи обновляется'), async () => {
     const before = (await agreementsOf(signerToken, { username: signer.account })).find(a => a.type === 'wallet')
     const doc = await generateAgreement(signerToken, signer, 'wallet')

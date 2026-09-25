@@ -185,9 +185,10 @@ cases:
     level: backend
     kind: side
     scenario: список соглашений пайщика с фильтром по статусу или типу без program_id
-    expect: в выдаче только соглашения нужного статуса/типа (сейчас программные соглашения добавляются в выдачу без учёта statuses и type)
-    test: ~
-    status: missing
+    expect: в выдаче только соглашения нужного статуса/типа (до 25.09.2026 программные соглашения добавлялись в выдачу без учёта statuses и type)
+    test: components/controller/tests/unit/agreement/agreements-filter-programmatic.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
 
   - id: wal.agr.side.12
     level: backend

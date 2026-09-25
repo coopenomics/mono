@@ -212,7 +212,19 @@ export class AgreementService {
         flat.push(this.programAgreementToDTO(owner, program, typeByProgramId));
       }
     }
-    return flat;
+    // Остальные условия фильтра действуют и на программные соглашения: до
+    // 25.09.2026 они игнорировались, и запрос «отклонённые» или «тип privacy»
+    // получал в ответ ещё и подтверждённое соглашение программы.
+    return flat.filter((dto) => this.matchesProgrammatic(dto, filter));
+  }
+
+  private matchesProgrammatic(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+    if (filter.statuses?.length && !filter.statuses.includes(dto.status)) return false;
+    if (filter.type && dto.type !== filter.type) return false;
+    const at = dto.updated_at?.getTime();
+    if (filter.created_from && (at === undefined || at < new Date(filter.created_from).getTime())) return false;
+    if (filter.created_to && (at === undefined || at > new Date(filter.created_to).getTime())) return false;
+    return true;
   }
 
   private programAgreementToDTO(
