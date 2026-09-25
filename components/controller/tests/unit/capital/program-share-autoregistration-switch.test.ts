@@ -10,6 +10,7 @@ import {
   ProgramShareRegistrationService,
   programShareAutoRegistrationEnabled,
 } from '~/extensions/capital/application/services/program-share-registration.service';
+import { ProjectStatus } from '~/extensions/capital/domain/enums/project-status.enum';
 
 describe('переключатель автоматической регистрации долей', () => {
   const saved = process.env.CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION;
@@ -26,7 +27,7 @@ describe('переключатель автоматической регистр
 
   function build() {
     const contributors = { findAll: jest.fn(async () => []) };
-    const projects = { findAll: jest.fn(async () => [{ coopname: 'voskhod', status: 'active', project_hash: 'p' }]) };
+    const projects = { findAll: jest.fn(async () => [{ coopname: 'voskhod', status: ProjectStatus.ACTIVE, project_hash: 'p' }]) };
     const chain = { getSegmentByProjectUser: jest.fn(), registerShare: jest.fn() };
     const wallets = { getProgramWallet: jest.fn() };
     const service = new ProgramShareRegistrationService(contributors as any, projects as any, chain as any, wallets as any);

@@ -22,6 +22,12 @@ title: Автоматическая регистрация долей держа
 # автоматикой), проверяет его модульный тест
 # components/controller/tests/unit/capital/program-share-autoregistration-switch.test.ts.
 
+# Правка 25.09.2026 (C28-80): внешний тест cap.areg.happy.02 поймал гонку —
+# слушатель дельты кошелька читал баланс из зеркала, которое ту же дельту пишет
+# параллельно, и получал баланс до взноса; теперь баланс берётся из самой
+# дельты. Личные (локальные) проекты вне цепи из автоматики исключены — прежде
+# каждая попытка завести в них долю кончалась «проект не найден».
+
 sources:
   backend:
     - components/controller/src/extensions/capital/application/services/program-share-registration.service.ts
