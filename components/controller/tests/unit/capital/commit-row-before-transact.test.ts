@@ -81,7 +81,8 @@ describe('коммит Благороста — строка до транзак
     m.chain.createCommit.mockRejectedValueOnce(new Error('assertion failure'));
 
     await expect(m.interactor.createCommit(input as any, {} as any)).rejects.toThrow('assertion failure');
-    expect(m.calls).toEqual(['save', 'chain', 'delete']);
+    expect(m.chain.createCommit).toHaveBeenCalledTimes(1);
+    expect(m.calls).toEqual(['save', 'delete']);
     expect(m.commitRepository.delete).toHaveBeenCalledWith('commit-1');
   });
 });
