@@ -73,8 +73,9 @@ cases:
     kind: side
     scenario: Председатель повторно одобряет закрытое одобрение
     expect: отказ цепи CHAIN_ASSERT, статус APPROVED не меняется
-    # Сейчас отказ приходит без кода — code 500 (транзакция через @wharfkit/session).
-    status: missing
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: passing
 
   - id: chair.appr.side.04
     level: backend

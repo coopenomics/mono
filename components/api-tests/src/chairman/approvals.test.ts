@@ -128,6 +128,17 @@ describe('одобрения председателя', () => {
     expect(await approvalsOf(chairToken, approvedWho.account, ['PENDING'])).toEqual([])
   })
 
+  it(caseName('chair.appr.side.03', 'повторное одобрение закрытого — отказ цепи с кодом, статус прежний'), async () => {
+    // До 25.09.2026 отказ контракта приходил ответом 500 без кода (C28-80).
+    const approved_document = await signDocument(CHAIRMAN.wif, pendingApproval.document.rawDocument, CHAIRMAN.account, 2, [pendingApproval.document.document])
+    const err = await gqlError(chairToken, CONFIRM, {
+      d: { coopname: COOP, approval_hash: pendingApproval.approval_hash.toLowerCase(), approved_document },
+    })
+    expect(err?.code).toBe('CHAIN_ASSERT')
+    const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
+    expect(a?._id).toBe(pendingApproval._id)
+  })
+
   it(caseName('chair.appr.side.05', 'одобрение подтверждено — одобренный документ с двумя подписями отдаётся'), async () => {
     const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
     expect(a.approved_document).not.toBeNull()

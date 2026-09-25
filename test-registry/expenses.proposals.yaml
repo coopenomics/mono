@@ -131,9 +131,9 @@ cases:
       Повторная подача записки с тем же хэшем
     expect: >
       отказ цепи CHAIN_ASSERT «уже существует», снимков реквизитов по-прежнему два
-    test: ~
-    status: missing
-    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
 
   - id: exp.prop.side.03
     level: backend
@@ -164,9 +164,9 @@ cases:
       Кошелёк-источник без набора операций шасси
     expect: >
       отказ цепи CHAIN_ASSERT о source_wallet, записки нет
-    test: ~
-    status: missing
-    # Снаружи не проверить: createExpenseProposal отвечает 500 «input.statement.toDocument is not a function» (expenses-mutations.service.ts, statement приходит в сервис простым объектом) — отчёт ext-misc 24.09.2026.
+    test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing
 
   - id: exp.prop.side.06
     level: backend

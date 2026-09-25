@@ -8,14 +8,10 @@
  * строка свежего пайщика (аванс под отчёт на его СБП). Остальные проверки
  * ищут её по хэшу — стенд общий.
  *
- * Подача идёт прямо в цепь (expense::createexp от кооператива — тем же
- * действием, что шлёт контроллер): мутация createExpenseProposal на стенде
- * отвечает 500 «input.statement.toDocument is not a function» (отчёт ext-misc,
- * 24.09.2026). Зеркало записки после подачи читается через API.
- *
- * Отказы контракта в мутациях шасси приходят без кода (500, текст ассерта):
- * адаптер шасси не превращает ошибку цепи в CHAIN_ASSERT. Поэтому здесь
- * проверяется сам отказ и неизменность записки, а не код — см. тот же отчёт.
+ * Подача идёт через API (createExpenseProposal), как на рабочем столе.
+ * Отказ контракта приходит с кодом (CHAIN_ASSERT или код контракта) и текстом
+ * причины; до 25.09.2026 он приходил ответом 500 без кода, а подача через API
+ * падала вовсе (C28-80).
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
@@ -172,6 +168,25 @@ describe('expenses: служебная записка на расход', () => 
     expect(String(adv?.method_type).toLowerCase()).toBe('sbp')
     expect(JSON.stringify(adv?.data)).toContain(PHONE)
     expect(String(adv?.payment_purpose)).toMatch(/аванс/i)
+  })
+
+  // До 25.09.2026 отказ контракта в мутации приходил ответом 500 без кода:
+  // клиент цепи превращал его в простую ошибку (C28-80).
+  it(caseName('exp.prop.side.02', 'повторная подача записки с тем же хэшем — отказ цепи с кодом, снимков реквизитов по-прежнему два'), async () => {
+    const err = await gqlError(council, CREATE_PROPOSAL, { d: createInput(draft, statement) })
+    expect(err?.code).toBe('CHAIN_ASSERT')
+    expect(err?.message).toContain('уже существует')
+    const rows = (await gql<any>(council, REQUISITES, { c: COOP, h: draft.proposal_hash })).expenseRequisitesByProposal as any[]
+    expect(rows).toHaveLength(2)
+  })
+
+  it(caseName('exp.prop.side.05', 'кошелёк-источник без набора операций шасси — отказ цепи с кодом, записки нет'), async () => {
+    const h = hash64()
+    const items = draft.items.map(it => ({ ...it, item_hash: hash64() }))
+    const err = await gqlError(council, CREATE_PROPOSAL, { d: createInput({ ...draft, proposal_hash: h, items, source_wallet: 'w.cap.blago' }, statement) })
+    expect(err?.code).toBe('CHAIN_ASSERT')
+    expect(err?.message).toMatch(/source_wallet|набор операций/)
+    expect((await gql<any>(chairman, GET, { h })).expenseProposal).toBeNull()
   })
 
   it(caseName('exp.prop.happy.05', 'записка, поданная в цепь, приходит в зеркало: статус CREATED, строки и документ'), async () => {
