@@ -10,6 +10,7 @@ import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, freshMember, gql, gqlRaw, login, randomAccount, tokenOf } from '../core'
 import type { AccountKind } from './platform-b.helpers'
+import { ADD_METHOD, GET_METHODS, UPDATE_BANK, bankAccount as payBankAccount } from '../payments/payments.helpers'
 import {
   REGISTER_ACCOUNT,
   bankAccount,
@@ -116,7 +117,30 @@ describe('platform.user-input-markup: разметка в анкете и в о�
       expect(codeOf(r), `${kind}: ${JSON.stringify(data).slice(0, 160)}`).toBe(INPUT_REFUSAL)
       expect(await notCreated(username)).toBe(true)
     }
+  })
 
+  it(caseName('platform.input.break.02', 'разметка в банковских реквизитах пайщика — отказ при добавлении и при правке, реквизиты не меняются'), async () => {
+    // До 25.09.2026 вложенные реквизиты шли мимо проверки (@ValidateNested
+    // без @Type) и сохранялись со скриптом.
+    const who = freshMember({ prefix: 'mkbank' })
+    const token = await login(who)
+
+    const script = await gqlRaw<any>(token, ADD_METHOD, {
+      d: { username: who.account, is_default: false, bank_transfer_data: payBankAccount('Банк <script>x</script>') },
+    })
+    expect(codeOf(script)).toBe(INPUT_REFUSAL)
+
+    const clean = (await gql<any>(token, ADD_METHOD, {
+      d: { username: who.account, is_default: false, bank_transfer_data: payBankAccount('Банк Проверочный') },
+    })).addPaymentMethod
+    const img = await gqlRaw<any>(token, UPDATE_BANK, {
+      d: { username: who.account, method_id: clean.method_id, is_default: false, data: payBankAccount('Банк <img src=x onerror=alert(1)>') },
+    })
+    expect(codeOf(img)).toBe(INPUT_REFUSAL)
+
+    const methods = (await gql<any>(token, GET_METHODS, { d: { username: who.account } })).getPaymentMethods.items as any[]
+    const names = methods.map(m => m.data?.bank_name).filter(Boolean)
+    expect(names).toEqual(['Банк Проверочный'])
   })
 
   describe('описания проектов и задач', () => {

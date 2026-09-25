@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { Field, InputType } from '@nestjs/graphql';
 import { IsOptional, ValidateNested } from 'class-validator';
 import { VarsInputDTO } from './vars-input.dto';
@@ -10,6 +11,7 @@ export class UpdateDTO {
     nullable: true,
   })
   @ValidateNested()
+  @Type(() => VarsInputDTO)
   @IsOptional()
   vars?: VarsInputDTO;
 
@@ -18,6 +20,7 @@ export class UpdateDTO {
     description: 'Собственные данные кооператива, обслуживающего экземпляр платформы',
   })
   @ValidateNested()
+  @Type(() => UpdateOrganizationDataInputDTO)
   @IsOptional()
   organization_data?: UpdateOrganizationDataInputDTO;
 }

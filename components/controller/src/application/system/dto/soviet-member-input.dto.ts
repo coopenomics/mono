@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { Field, InputType } from '@nestjs/graphql';
 import { validationMessage } from '@coopenomics/extension-kit';
 import { IsIn, ValidateNested } from 'class-validator';
@@ -7,6 +8,7 @@ import { CreateSovietIndividualDataInputDTO } from '~/application/account/dto/cr
 export class SovietMemberInputDTO {
   @Field(() => CreateSovietIndividualDataInputDTO)
   @ValidateNested()
+  @Type(() => CreateSovietIndividualDataInputDTO)
   individual_data!: CreateSovietIndividualDataInputDTO;
 
   @Field(() => String)

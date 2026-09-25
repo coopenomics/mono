@@ -1,5 +1,6 @@
+import { Type } from 'class-transformer';
 // payment-method.dto.ts
-import { IsNotEmpty, IsString, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsString, IsBoolean, ValidateNested } from 'class-validator';
 import { validationMessage } from '@coopenomics/extension-kit';
 import { Field, InputType } from '@nestjs/graphql';
 import { BankAccountInputDTO } from './bank-account-input.dto';
@@ -19,5 +20,9 @@ export class CreateBankAccountInputDTO {
   is_default!: boolean;
 
   @Field(() => BankAccountInputDTO, { description: 'Данные для банковского перевода' })
+  // Без @Type вложенный объект остаётся простым, и проверки его полей
+  // (включая запрет разметки) не запускаются.
+  @ValidateNested()
+  @Type(() => BankAccountInputDTO)
   data!: BankAccountInputDTO;
 }

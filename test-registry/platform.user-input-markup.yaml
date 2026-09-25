@@ -15,6 +15,12 @@ title: Разметка во вводе пайщика — запрет в ан�
 # — там имя, адрес и реквизиты. В описании они законны: там живут таблицы,
 # разметка и схемы BPMN, поэтому текст только очищается от исполняемого.
 # Задача C28-74.
+#
+# Правка 25.09.2026 (C28-80): банковские реквизиты при добавлении способа
+# оплаты и правке счёта шли мимо проверки — вложенный объект не превращался в
+# свой класс, и запрет разметки на его полях не срабатывал («Банк <script>»
+# сохранялся). То же у вложенных входов регистрации пайщика, выбора участка,
+# свободного решения и установки системы. Нашёл внешний слой.
 
 sources:
   backend:
@@ -22,7 +28,7 @@ sources:
     - components/controller/src/application/account/dto/*.ts
     - components/controller/src/application/branch/dto/create-branch-input.dto.ts
     - components/controller/src/application/branch/dto/edit-branch-input.dto.ts
-    - components/controller/src/application/payment-method/dto/bank-account*.ts
+    - components/controller/src/application/payment-method/dto/*.ts
     - components/cooptypes/src/common/text/index.ts
     - components/extension-kit/src/utils/user-text.utils.ts
 
