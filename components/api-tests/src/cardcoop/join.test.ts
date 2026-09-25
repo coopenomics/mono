@@ -9,7 +9,7 @@
  * Проверяется всё через `cardcoopMyCard` — журнал кооператива глазами пайщика.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { admitCandidate, caseName, freshMember, login, waitFor } from '../core'
+import { admitCandidate, caseName, expectCode, freshMember, gqlError, login, waitFor } from '../core'
 import {
   type Candidate,
   type NetworkSwitch,
@@ -19,7 +19,7 @@ import {
   sendAsNetwork,
   switchNetwork,
 } from './cardcoop-entry.helpers'
-import { UNREACHABLE_NETWORK, linkCreated, myCard, type MyCard } from './cardcoop-card.helpers'
+import { MY_CARD, UNREACHABLE_NETWORK, linkCreated, myCard, type MyCard } from './cardcoop-card.helpers'
 
 /** Вчерашний день UTC и поздний час приёма — ошибка зоны сдвинула бы дату. */
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -41,13 +41,17 @@ describe('cardcoop.join: карта кандидата ждёт решения �
   })
 
   it(caseName('cc.join.happy.02', 'цепь записала приём: по ожидавшей связи выпущено свидетельство с датой приёма'), async () => {
-    // Кандидат связал карту до приёма. Свой стол до приёма он не видит
-    // (cardcoopMyCard отвечает кандидату KIT_MEMBERS_ONLY), поэтому связь
-    // проверяется тем, что по ней выпускается свидетельство после приёма.
+    // Кандидат связал карту до приёма. Свой стол до приёма он не видит,
+    // поэтому связь проверяется тем, что по ней выпускается свидетельство
+    // после приёма.
     candidate = await registerCandidate()
     const res = await sendAsNetwork(linkCreated(candidate.subject, card.cardId, card.cardNumber))
     expect(res.status, JSON.stringify(res.body)).toBeLessThan(300)
     expect(res.body?.accepted).toBe(true)
+
+    // cc.card.side.06: кандидат остаётся кандидатом — стола с картой до приёма
+    // у него нет (решение владельца 25.09.2026).
+    expectCode(await gqlError(candidate.token, MY_CARD), 'KIT_MEMBERS_ONLY')
 
     await admitCandidate(candidate.username, ADMITTED_AT)
 

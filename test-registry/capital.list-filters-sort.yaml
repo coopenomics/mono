@@ -121,7 +121,14 @@ cases:
     level: backend
     kind: break
     scenario: в поле сортировки дописан SQL
-    expect: имя отвергается, применяется умолчание
+    expect: >
+      запрос отклоняется проверкой ввода (422) до построения запроса — то же
+      правило, что platform.sort.break.01; выбор колонки такое имя тоже не
+      пропускает и берёт умолчание — второй рубеж, если проверку ввода обойдут
+    # Сведено с platform.list-sort-order-by 25.09.2026 (C28-80): прежде здесь
+    # было «применяется умолчание», а платформенный реестр говорил «отказ».
+    # Посторонние символы — отказ; допустимое имя без колонки — умолчание
+    # (cap.lists.side.02, platform.sort.break.02).
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
     status: written
 

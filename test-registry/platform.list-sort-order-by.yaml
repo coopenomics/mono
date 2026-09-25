@@ -43,7 +43,7 @@ cases:
     level: backend
     kind: break
     scenario: в поле сортировки дописан подзапрос или посторонние символы
-    expect: ввод отклоняется до построения запроса
+    expect: ввод отклоняется проверкой (422) до построения запроса — во всех списках, включая Благорост
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
     api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing

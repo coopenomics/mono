@@ -309,7 +309,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   }
 
   /**
-   * Отзывает все действующие подтверждения пайщика.
+   * Отзывает все подтверждения пайщика: действующие — в сети, невыданные — локально.
    *
    * Подтверждение без идентификатора отозвать нечем: сеть его либо не приняла,
    * либо не назвала. Помечаем такое отозванным локально и говорим об этом —
@@ -317,6 +317,23 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * действующим.
    */
   private async revokeAllFor(apiUrl: string, username: string): Promise<void> {
+    // Невыданное в сеть (ожидает доставки или отвергнуто по существу) закрывается
+    // вместе с членством: в сети его нет, отзывать там нечего, а повтор выпуска
+    // иначе выдал бы свидетельство уже вышедшему пайщику. До 25.09.2026 такие
+    // записи переживали выход (решение владельца 25.09: отзывать, C28-80).
+    const undelivered = await this.attestations.find({
+      where: [
+        { username, state: CardcoopAttestationState.Pending },
+        { username, state: CardcoopAttestationState.Rejected },
+      ],
+    });
+    for (const record of undelivered) {
+      record.state = CardcoopAttestationState.Revoked;
+      record.revokedAt = new Date();
+      record.lastError = null;
+      await this.attestations.save(record);
+    }
+
     const active = await this.attestations.find({
       where: { username, state: CardcoopAttestationState.Active },
     });

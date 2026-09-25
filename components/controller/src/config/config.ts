@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { parseTrustProxy } from './trust-proxy';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'fs';
@@ -46,6 +47,11 @@ const envVarsSchema = z.object({
     // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
     .describe('Публичный базовый URL рабочего стола (SPA); ссылки в письмах и deep links'),
   SERVER_SECRET: z.string(),
+  TRUST_PROXY: z
+    .string()
+    .default('loopback, linklocal, uniquelocal')
+    // i18n-ignore: описание переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+    .describe('От кого принимать X-Forwarded-For (синтаксис Express trust proxy): по умолчанию — только от прокси в частных сетях'),
   LOG_LEVEL: z
     .enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'])
     .optional()
@@ -502,6 +508,7 @@ export default {
   frontend_url: envVars.data.FRONTEND_URL,
   port: envVars.data.PORT,
   server_secret: envVars.data.SERVER_SECRET,
+  trust_proxy: parseTrustProxy(envVars.data.TRUST_PROXY),
   timezone: envVars.data.TIMEZONE,
   coopDomainDb: {
     host: envVars.data.COOP_DOMAIN_DB_HOST,

@@ -119,6 +119,27 @@ describe('Членство пайщика в сети карт', () => {
     expect(exits.store).toHaveLength(0);
   });
 
+  // До 25.09.2026 выход отзывал только действующие подтверждения, а ожидающие
+  // и отвергнутые повтор продолжал выпускать уже вышедшему пайщику (C28-80).
+  it('выход закрывает и невыданные подтверждения — повтор не выпустит их вышедшему пайщику', async () => {
+    const attestations = makeRepo([
+      { username: 'ant', cardId: 'card-1', attestationId: null, state: CardcoopAttestationState.Pending },
+      { username: 'ant', cardId: 'card-2', attestationId: null, state: CardcoopAttestationState.Rejected, lastError: '422' },
+      { username: 'bob', cardId: 'card-3', attestationId: null, state: CardcoopAttestationState.Pending },
+    ]);
+    const exits = makeRepo([{ exitHash: 'exit-1', username: 'ant', coopname: 'voskhod' }]);
+    const revoke = jest.fn();
+
+    await build(attestations, exits, { revoke }).revokeByCompletedExit('https://card.coop', 'exit-1');
+
+    expect(revoke).not.toHaveBeenCalled();
+    const [pending, rejected, foreign] = attestations.store;
+    expect(pending.state).toBe(CardcoopAttestationState.Revoked);
+    expect(rejected.state).toBe(CardcoopAttestationState.Revoked);
+    expect(rejected.lastError).toBeNull();
+    expect(foreign.state).toBe(CardcoopAttestationState.Pending);
+  });
+
   it('выход неизвестного пайщика ничего не отзывает, но попадает в журнал', async () => {
     const revoke = jest.fn();
 
