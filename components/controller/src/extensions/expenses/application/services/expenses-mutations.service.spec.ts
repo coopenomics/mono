@@ -120,16 +120,9 @@ describe('ExpensesMutationsService', () => {
         meta: '',
       },
     ],
-    toDocument(): any {
-      return {
-        version: '1',
-        hash: overrides.hash ?? '0xhash',
-        doc_hash: overrides.doc_hash ?? '0xdoc',
-        meta_hash: overrides.meta_hash ?? '0xmeta',
-        meta: JSON.stringify({ title: 'Заявление', registry_id: 2010 }),
-        signatures: this.signatures,
-      }
-    },
+    // Метода toDocument у входа нет: GraphQL отдаёт простой объект
+    // (ValidationPipe без transform). Прежняя подделка с toDocument прятала
+    // ошибку, из-за которой записку нельзя было подать (до 25.09.2026).
   })
 
   it('createExpenseProposal → chain.createExp с раскладкой items + document2', async () => {
@@ -166,6 +159,8 @@ describe('ExpensesMutationsService', () => {
     expect(call.items[0].recipient_type).toBe(1)
     expect(call.callback).toEqual({ contract: '', action: '', data: '' })
     expect(call.statement.doc_hash).toBe('0xdoc')
+    // В цепь мета уходит строкой (document2).
+    expect(JSON.parse(call.statement.meta)).toEqual({ title: 'Заявление', registry_id: 2010 })
 
     // Реквизиты: валидация до блокчейна, снимок — после.
     expect(requisiteSnapshots.validate).toHaveBeenCalledTimes(1)
