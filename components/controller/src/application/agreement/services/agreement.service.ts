@@ -28,6 +28,26 @@ import { ConfirmAgreementInputDTO } from '../dto/confirm-agreement-input.dto';
 import { DeclineAgreementInputDTO } from '../dto/decline-agreement-input.dto';
 import { config } from '~/config';
 
+/** Условие статусов фильтра соглашений. */
+function matchesStatus(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  return !filter.statuses?.length || filter.statuses.includes(dto.status);
+}
+
+/** Условие типа фильтра соглашений. */
+function matchesType(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  return !filter.type || dto.type === filter.type;
+}
+
+/** Условие дат: соглашение без даты подписи в заданный диапазон не попадает. */
+function matchesDates(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
+  if (!filter.created_from && !filter.created_to) return true;
+  const at = dto.updated_at?.getTime();
+  if (at === undefined) return false;
+  const from = filter.created_from ? new Date(filter.created_from).getTime() : -Infinity;
+  const to = filter.created_to ? new Date(filter.created_to).getTime() : Infinity;
+  return at >= from && at <= to;
+}
+
 @Injectable()
 export class AgreementService {
   constructor(
@@ -219,13 +239,9 @@ export class AgreementService {
   }
 
   private matchesProgrammatic(dto: AgreementDTO, filter: AgreementFilterInput): boolean {
-    if (filter.statuses?.length && !filter.statuses.includes(dto.status)) return false;
-    if (filter.type && dto.type !== filter.type) return false;
-    const at = dto.updated_at?.getTime();
-    if (filter.created_from && (at === undefined || at < new Date(filter.created_from).getTime())) return false;
-    if (filter.created_to && (at === undefined || at > new Date(filter.created_to).getTime())) return false;
-    return true;
+    return matchesStatus(dto, filter) && matchesType(dto, filter) && matchesDates(dto, filter);
   }
+
 
   private programAgreementToDTO(
     owner: UserAgreementDomainEntity,
