@@ -14,7 +14,8 @@ import crypto from 'node:crypto'
 import ecc from 'eosjs-ecc'
 import type { Who } from './auth'
 import { ApiError, gqlRaw } from './client'
-import { CHAIN_URL, REPO_ROOT } from './env'
+import { CHAIN_URL, COOP, DEFAULT_WIF, REPO_ROOT } from './env'
+import { transact } from './chain'
 
 /** Имя аккаунта: 12 символов из a-z1-5, начинается с префикса теста. */
 export function randomAccount(prefix = 'at'): string {
@@ -109,4 +110,28 @@ export async function registerCandidate(opts: { prefix?: string, email?: string,
     subscriberId: pa.subscriber_id,
     isEmailVerified: pa.is_email_verified,
   }
+}
+
+/**
+ * Решение о приёме кандидата в цепи: registrator::adduser от кооператива —
+ * кандидат становится пайщиком цепи (тем путём, каким его принимает совет).
+ */
+export async function admitCandidate(username: string, createdAt = new Date().toISOString().slice(0, 19)): Promise<void> {
+  await transact({ account: COOP, email: '', wif: DEFAULT_WIF }, [{
+    account: 'registrator',
+    name: 'adduser',
+    authorization: [{ actor: COOP, permission: 'active' }],
+    data: {
+      coopname: COOP,
+      referer: '',
+      username,
+      type: 'individual',
+      created_at: createdAt,
+      initial: '100.0000 RUB',
+      minimum: '100.0000 RUB',
+      spread_initial: false,
+      meta: 'api-tests: приём кандидата',
+      registration_hash: crypto.randomBytes(32).toString('hex'),
+    },
+  }])
 }

@@ -179,27 +179,3 @@ export async function registerCandidate(prefix = 'ccj'): Promise<Candidate> {
   return { username: c.username, token: c.token, subject: subjectOf(c.token) }
 }
 
-/**
- * Приём пайщика записью цепи (`registrator::adduser` от кооператива) — тот же
- * путь, что импорт действующего пайщика оператором. Заканчивается inline
- * `soviet::addpartcpnt` с моментом приёма `createdAt` (UTC, без зоны).
- */
-export async function admitByChain(username: string, createdAt: string): Promise<void> {
-  await transact({ account: COOP, email: '', wif: DEFAULT_WIF }, [{
-    account: 'registrator',
-    name: 'adduser',
-    authorization: [{ actor: COOP, permission: 'active' }],
-    data: {
-      coopname: COOP,
-      referer: '',
-      username,
-      type: 'individual',
-      created_at: createdAt,
-      initial: '100.0000 RUB',
-      minimum: '100.0000 RUB',
-      spread_initial: false,
-      meta: 'api-tests: приём кандидата с картой',
-      registration_hash: crypto.randomBytes(32).toString('hex'),
-    },
-  }])
-}

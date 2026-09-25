@@ -190,8 +190,8 @@ export async function addPlainParticipant(args: Args) {
       public_key = EXCLUDED.public_key,
       status = 'active',
       is_registered = true,
-      subscriber_id = COALESCE("users".subscriber_id, EXCLUDED.subscriber_id),
-      subscriber_hash = COALESCE("users".subscriber_hash, EXCLUDED.subscriber_hash),
+      subscriber_id = COALESCE(NULLIF("users".subscriber_id, ''), EXCLUDED.subscriber_id),
+      subscriber_hash = COALESCE(NULLIF("users".subscriber_hash, ''), EXCLUDED.subscriber_hash),
       updated_at = CURRENT_TIMESTAMP
   `, [username, email, publicKey, subscriber.subscriber_id, subscriber.subscriber_hash])
   log('postgres users upserted')

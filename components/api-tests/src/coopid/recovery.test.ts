@@ -14,7 +14,7 @@
 import crypto from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import ecc from 'eosjs-ecc'
-import { caseName, freshMember, latestMail } from '../core'
+import { admitCandidate, caseName, freshMember, latestMail } from '../core'
 import type { Candidate } from './coopid-b.helpers'
 import {
   WF_RECOVERY,
@@ -162,7 +162,9 @@ describe('coopid.recovery: ссылка из письма', () => {
   })
 
   it(caseName('cid.rec.happy.02', 'пайщик без второго фактора подтверждает восстановление по ссылке — ключ сменён, ссылка сгорела'), async () => {
+    // Ключ меняется в цепи (registrator::changekey) — нужен принятый пайщик.
     const candidate = await registerCandidate(uniqueIp(), uniqueEmail('rcf'))
+    await admitCandidate(candidate.username)
     await requestRecovery(candidate.email)
     const token = await recoveryToken(candidate.email)
     const r = await rest('POST', '/coop/recovery/confirm', { ip: uniqueIp(), body: await confirmBody(token) })
@@ -181,7 +183,7 @@ describe('coopid.recovery: ссылка из письма', () => {
     expect((await context(token)).body?.two_factor_required).toBe(true)
 
     const r = await rest('POST', '/coop/recovery/confirm', { ip: uniqueIp(), body: await confirmBody(token) })
-    expect(r.status).toBe(400)
+    expect(r.status).toBe(401)
     expect(r.body?.error).toBe('invalid_2fa_code')
     expect((await context(token)).status).toBe(200)
   })

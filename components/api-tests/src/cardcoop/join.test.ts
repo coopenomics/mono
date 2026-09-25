@@ -9,11 +9,10 @@
  * Проверяется всё через `cardcoopMyCard` — журнал кооператива глазами пайщика.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { caseName, freshMember, login, waitFor } from '../core'
+import { admitCandidate, caseName, freshMember, login, waitFor } from '../core'
 import {
   type Candidate,
   type NetworkSwitch,
-  admitByChain,
   newCard,
   publishNetworkKey,
   registerCandidate,
@@ -50,7 +49,7 @@ describe('cardcoop.join: карта кандидата ждёт решения �
     expect(res.status, JSON.stringify(res.body)).toBeLessThan(300)
     expect(res.body?.accepted).toBe(true)
 
-    await admitByChain(candidate.username, ADMITTED_AT)
+    await admitCandidate(candidate.username, ADMITTED_AT)
 
     // Приём записан в цепь мимо контроллера — ждём, пока событие дойдёт до расширения.
     admitted = await waitFor(async () => {
