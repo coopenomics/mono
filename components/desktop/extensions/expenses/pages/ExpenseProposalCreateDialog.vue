@@ -17,7 +17,7 @@ BaseDialog(
       BaseInput(
         v-model='form.source_wallet',
         :label='$t("expenses.expenseProposalCreateDialog.walletLabel")',
-        placeholder='w.cap.blago / w.cap.gen / …',
+        placeholder='w.cap.pgexp / w.brn.expns',
         required
       )
       BaseInput(
@@ -147,7 +147,10 @@ const { submitProposal } = useExpenseProposalActions();
 
 const form = reactive({
   description: '',
-  source_wallet: 'w.cap.blago',
+  // Источник записки — пул расходов шасси (программные расходы «Благороста»
+  // или расходы участка); w.cap.blago среди них нет, и контракт отверг бы
+  // записку с прежним умолчанием (до 25.09.2026).
+  source_wallet: 'w.cap.pgexp',
   deadline: '',
   items: [] as ICreateProposalDraftItem[],
 });

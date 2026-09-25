@@ -11,7 +11,6 @@ import { tableRows, transact } from '../core/chain'
 import { gql } from '../core/client'
 import { signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
-import { COOP_SIGNER } from '../core/wallet'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
 

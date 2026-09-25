@@ -456,9 +456,10 @@ export async function payAid(gross: number): Promise<AidPayout> {
       data: {
         registry_id: 1112,
         coopname: COOP,
-        // Генерация документа доступна только от своего имени — протокол
-        // собирает председатель, получатель указан отдельным полем.
-        username: CHAIRMAN.account,
+        // Как рабочий стол (processes/process-decisions/handlers, brnaid):
+        // протокол собирается на имя заявителя. До 25.09.2026 сервер это
+        // запрещал, и вручную утвердить матпомощь было нельзя.
+        username: decision.username ?? chair.account,
         lang: 'ru',
         decision_id: decision.id,
         aid_hash: decision.statementMeta.aid_hash ?? aidHash,
