@@ -7,6 +7,9 @@ import http from 'http-status';
 import { LEDGER2_HISTORY_PORT, type ILedger2HistoryPort, type InnerLedger2HistoryResult, EXPENSE_CHASSIS_PORT, type IExpenseChassisPort, DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument } from '@coopenomics/innercoop';
 import { PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { SignedDigitalDocumentInputDTO, PaginationInputDTO, type PaginationResult, rethrowChainError, DomainError } from '@coopenomics/extension-kit';
+import type { MarketplaceUnitOfMeasure } from '../../domain/entities/marketplace-offer.types';
+import { calcCostMinor } from '../shared/cost.util';
+import type { ResolvedSaleUnit } from '../shared/packaging.util';
 import {
   MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT,
   type MarketplaceCanonicalBlockchainPort,
@@ -177,9 +180,21 @@ export class MarketplaceEconomyService {
     return this.toHumanPercent(contractValue);
   }
 
-  /** Тело строки заказа (цена за единицу отпуска × число единиц) в минимальных единицах валюты. */
-  lineBodyUnits(pricePerUnit: string, quantity: number): bigint {
-    return this.toUnits(pricePerUnit, this.assetConfig.decimals) * BigInt(quantity);
+  /**
+   * Тело строки заказа в минимальных единицах валюты — каноническим расчётом
+   * стоимости (`calcCostMinor`, зеркало `Marketplace::calc_cost`): по мере —
+   * базовое количество × цена с округлением половины вверх, упаковкой — число
+   * упаковок × цена упаковки. До 25.09.2026 здесь было `BigInt(количество)`,
+   * и дробная мера (1,5 кг) роняла превью и оформление корзины ошибкой 500.
+   */
+  lineBodyUnits(sale: Pick<ResolvedSaleUnit, 'baseQuantity' | 'unitPrice' | 'packageSize'>, unit: MarketplaceUnitOfMeasure): bigint {
+    return calcCostMinor({
+      quantity: sale.baseQuantity,
+      unit,
+      unitPrice: sale.unitPrice,
+      packageSize: sale.packageSize,
+      decimals: this.assetConfig.decimals,
+    });
   }
 
   private formatAsset(amount: number): string {
@@ -215,20 +230,6 @@ export class MarketplaceEconomyService {
     return (totalCostUnits * BigInt(contractPercent)) / BigInt(HUNDR_PERCENTS);
   }
 
-  /**
-   * Сумма конвертации строки заказа = стоимость + членский взнос,
-   * целочисленно в минимальных единицах валюты той же формулой, что
-   * контракт (`calc_membership_fee`): сумма заявления о конвертации
-   * должна побитово совпадать с фактическим списанием on-chain.
-   */
-  convertAmountForLine(pricePerUnit: string, quantity: number, contractPercent: number): string {
-    const decimals = this.assetConfig.decimals;
-    const totalUnits = this.toUnits(pricePerUnit, decimals) * BigInt(quantity);
-    const units = totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
-    const padded = units.toString().padStart(decimals + 1, '0');
-    return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
-  }
-
   /** Десятичная строка → минимальные единицы валюты (без float-погрешности). */
   private toUnits(value: string, decimals: number): bigint {
     const [int, frac = ''] = String(value).trim().split('.');
@@ -250,12 +251,6 @@ export class MarketplaceEconomyService {
     const decimals = this.assetConfig.decimals;
     const padded = units.toString().padStart(decimals + 1, '0');
     return `${padded.slice(0, padded.length - decimals)}.${padded.slice(-decimals)} ${this.assetConfig.symbol}`;
-  }
-
-  /** Сумма строки заказа (тело + членский взнос) в минимальных единицах валюты. */
-  lineUnits(pricePerUnit: string, quantity: number, contractPercent: number): bigint {
-    const totalUnits = this.toUnits(pricePerUnit, this.assetConfig.decimals) * BigInt(quantity);
-    return totalUnits + this.membershipFeeUnits(totalUnits, contractPercent);
   }
 
   async setMembershipFee(coopname: string, feePercentHuman: number): Promise<number> {

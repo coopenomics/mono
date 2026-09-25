@@ -342,5 +342,16 @@ describe('предложение: остаток по упаковкам', () =>
     expect([litre.quantity_available, litre.quantity_blocked]).toEqual([8, 0])
     expect(p.quantity_blocked).toBeCloseTo(1, 6)
     expect(p.quantity_available).toBeCloseTo(8.5, 6)
+
+    // Дробная мера по весу проходит оформление целиком, сумма точная. До
+    // 25.09.2026 превью и оформление падали 500 («1.5 cannot be converted to a BigInt»).
+    const kg = await createOffer(sup.token, offerInput(name('картофель на развес'), categoryId, { price_per_unit: '600.00', quantity_available: 20 }))
+    await approve(kg.id)
+    await ensureShareFunds(member.account, 3_000, memberToken)
+    const byWeight = await checkoutLines(member, [{ offer_id: kg.id, quantity: 1.5 }])
+    expect(byWeight).toHaveLength(1)
+    expect(Number(byWeight[0].quantity)).toBeCloseTo(1.5, 6)
+    const order = (await gql<any>(memberToken, 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ total_cost } }', { i: { order_id: byWeight[0].id } })).marketplaceGetOrder
+    expect(String(order.total_cost).split(' ')[0]).toBe('900.0000')
   })
 })

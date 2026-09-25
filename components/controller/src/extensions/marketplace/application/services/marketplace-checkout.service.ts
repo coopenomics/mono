@@ -457,8 +457,7 @@ export class MarketplaceCheckoutService {
   ): Promise<CheckoutPlan> {
     const inputs = payable.map((line) => {
       const r = resolveSaleUnit(line.offer, line.quantity, line.package_id || null);
-      const saleUnitCount = r.packageSize > 0 ? r.packageCount! : r.baseQuantity;
-      const body_units = this.economyService.lineBodyUnits(r.unitPrice, saleUnitCount);
+      const body_units = this.economyService.lineBodyUnits(r, line.offer.unit_of_measure);
       return { body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) };
     });
     const balances =

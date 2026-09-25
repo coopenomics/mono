@@ -209,9 +209,8 @@ export class MarketplaceStockProposalService {
     // заказу, поэтому перевод адресуется построчно (см. действие convert).
     const hashes: string[] = [];
     for (const item of proposal.items.filter((i) => !i.order_id)) {
-      const { resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
-      const saleUnitCount = resolved.packageSize > 0 ? resolved.packageCount! : resolved.baseQuantity;
-      const body_units = this.economyService.lineBodyUnits(resolved.unitPrice, saleUnitCount);
+      const { offer, resolved } = await this.validateStockLine(coopname, proposal.braname, item.offer_id, item.quantity, item.package_id);
+      const body_units = this.economyService.lineBodyUnits(resolved, offer.unit_of_measure);
       inputs.push({ body_units, fee_units: this.economyService.membershipFeeUnits(body_units, feePercent) });
       hashes.push(item.order_hash ?? '');
     }

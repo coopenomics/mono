@@ -1,3 +1,4 @@
+import { calcCostMinor } from '../shared/cost.util';
 import { BadRequestException } from '@nestjs/common';
 import { MarketplaceCheckoutService } from './marketplace-checkout.service';
 import { MarketplaceConvertService } from './marketplace-convert.service';
@@ -67,7 +68,10 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
     const cartService = { getCart: jest.fn(async () => ({ items: [] })) };
     const economyService = {
       getMembershipFeeContractPercent: jest.fn(async () => 10),
-      lineBodyUnits: (price: string, count: number) => BigInt(Math.round(Number(price) * 10_000)) * BigInt(count),
+      // Настоящий расчёт стоимости — подделка с BigInt(количество) прятала
+      // падение на дробной мере (до 25.09.2026).
+      lineBodyUnits: (sale: any, unit: any) =>
+        calcCostMinor({ quantity: sale.baseQuantity, unit, unitPrice: sale.unitPrice, packageSize: sale.packageSize, decimals: 4 }),
       membershipFeeUnits: (body: bigint, pct: number) => (body * BigInt(pct)) / 100n,
       unitsToAsset: (u: bigint) => `${(Number(u) / 10_000).toFixed(4)} RUB`,
     };

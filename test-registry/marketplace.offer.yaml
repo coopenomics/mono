@@ -454,7 +454,10 @@ cases:
       репозиторий вызван с упаковкой и числом упаковок, событие изменения остатка несёт
       счётчики каждой упаковки; дробные упаковки — отказ до репозитория
     test: components/controller/tests/unit/marketplace/marketplace-offer-counters-service.test.ts
+    api: components/api-tests/src/marketplace/offer.test.ts
     status: passing
+    # До 25.09.2026 дробная мера по весу (1,5 кг) падала 500 на превью и
+    # оформлении корзины: тело строки считалось BigInt(количество).
 
   - id: mkt.offer.side.33
     level: backend
