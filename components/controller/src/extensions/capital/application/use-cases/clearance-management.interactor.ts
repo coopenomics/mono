@@ -72,7 +72,6 @@ export class ClearanceManagementInteractor {
     appendix.coopname = request.coopname;
     appendix.username = request.username;
     appendix.project_hash = String(request.project_hash).toLowerCase();
-    appendix.appendix = request.document as AppendixDomainEntity['appendix'];
     await this.appendixRepository.save(appendix);
     this.logger.debug(`Заявка на допуск ${appendixHash} заведена по действию цепи`);
   }
