@@ -10,6 +10,7 @@
  * сами, а неизменившаяся установка не стучится в сеть на каждом рестарте.
  */
 import { createHash } from 'node:crypto';
+import { retryWithCurrentApiUrl } from '../infrastructure/current-api-url-retry';
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -71,10 +72,10 @@ export class CardcoopConnectService implements OnModuleDestroy {
    *
    * @param apiUrl — адрес узла сети из конфигурации расширения.
    */
-  startRetries(apiUrl: string): void {
+  startRetries(resolveApiUrl: () => Promise<string>): void {
     if (this.retryTimer) return;
     // timing: schedule — повторное подключение к узлу сети карт
-    this.retryTimer = setInterval(() => void this.connectIfChanged(apiUrl), CONNECT_RETRY_MS);
+    this.retryTimer = setInterval(() => void retryWithCurrentApiUrl(resolveApiUrl, (apiUrl) => this.connectIfChanged(apiUrl), this.logger), CONNECT_RETRY_MS);
     // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
     this.retryTimer.unref();
   }

@@ -9,6 +9,7 @@
  * одно с другим.
  */
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { retryWithCurrentApiUrl } from '../infrastructure/current-api-url-retry';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
@@ -110,6 +111,14 @@ export class CardcoopMembershipService implements OnModuleDestroy {
     await this.attestations.save(record);
 
     const result = await this.attestationService.issueMembership(apiUrl, { username, cardId, memberSince });
+
+    // Пока сеть выдавала свидетельство, держатель мог удалить карту (forgetCard):
+    // сохранение по стёртой строке вставило бы её заново, и удалённая карта
+    // «воскресала» у пайщика (C28-80).
+    if ((await this.attestations.count({ where: { id: record.id } })) === 0) {
+      this.logger.info(`Карта ${cardId} удалена держателем во время выдачи свидетельства — запись не восстанавливается`);
+      return;
+    }
     this.applyOutcome(record, result, username);
 
     await this.attestations.save(record);
@@ -355,10 +364,10 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    *
    * @param apiUrl — адрес сети карт из конфигурации расширения.
    */
-  startRetries(apiUrl: string): void {
+  startRetries(resolveApiUrl: () => Promise<string>): void {
     if (this.retryTimer) return;
     // timing: schedule — повторная доставка недоставленного в сеть карт
-    this.retryTimer = setInterval(() => void this.retryUndelivered(apiUrl), RETRY_SWEEP_MS);
+    this.retryTimer = setInterval(() => void retryWithCurrentApiUrl(resolveApiUrl, (apiUrl) => this.retryUndelivered(apiUrl), this.logger), RETRY_SWEEP_MS);
     // Процесс не держится живым ради повторов: недоставленное подхватится следующим запуском.
     this.retryTimer.unref();
   }

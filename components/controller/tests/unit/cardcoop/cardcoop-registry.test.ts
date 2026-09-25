@@ -100,7 +100,7 @@ describe('Самоподключение кооператива к сети ка
     try {
       deliverDocument.mockResolvedValue({ delivered: false, status: null, reason: 'сеть недоступна' });
       const service = build();
-      service.startRetries('https://card.coop');
+      service.startRetries(async () => 'https://card.coop');
 
       await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
       await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
@@ -116,6 +116,27 @@ describe('Самоподключение кооператива к сети ка
       expect(deliverDocument).toHaveBeenCalledTimes(3);
       await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
       expect(deliverDocument).toHaveBeenCalledTimes(3);
+      service.onModuleDestroy();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  // До 25.09.2026 повтор замыкал адрес первого старта и после смены адреса
+  // председателем бил в старый до перезапуска узла (C28-80).
+  it('повтор берёт адрес сети на момент прохода', async () => {
+    jest.useFakeTimers();
+    try {
+      deliverDocument.mockResolvedValue({ delivered: false, status: null, reason: 'сеть недоступна' });
+      const service = build();
+      let url = 'https://old.card.coop';
+      service.startRetries(async () => url);
+
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+      url = 'https://new.card.coop';
+      await jest.advanceTimersByTimeAsync(15 * 60 * 1000);
+
+      expect(deliverDocument.mock.calls.map((c: any[]) => c[0])).toEqual(['https://old.card.coop/v1/coops/connect', 'https://new.card.coop/v1/coops/connect']);
       service.onModuleDestroy();
     } finally {
       jest.useRealTimers();

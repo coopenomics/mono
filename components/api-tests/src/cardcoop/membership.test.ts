@@ -9,6 +9,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { caseName, freshMember, gql, login, waitFor } from '../core'
+import { quietWindow } from '../platform/platform-a.helpers'
 import {
   type MyCard,
   type NetworkSwitch,
@@ -72,6 +73,12 @@ describe('cardcoop.membership: журнал свидетельств без се
     expect(gone.state).toBeNull()
     expect(gone.cardNumber).toBeNull()
     expect(gone.memberSince).toBeNull()
+
+    // Фоновая выдача свидетельства, начатая до удаления, завершается позже; до
+    // 25.09.2026 она сохраняла запись заново, и карта «воскресала» через ~20 с
+    // (C28-80). Отрицательная проверка — ждём дольше её завершения.
+    await quietWindow(30_000)
+    expect((await myCard(token)).issued).toBe(false)
 
     // Человек остаётся пайщиком, просто без карты.
     const acc = await gql<any>(token, PARTICIPANT, { d: { username } })

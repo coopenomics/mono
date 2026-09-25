@@ -14,12 +14,14 @@ const makeRepo = (rows: any[] = []) => {
     store,
     create: (data: any) => ({ ...data }),
     save: jest.fn(async (row: any) => {
+      row.id ??= `att-row-${store.length + 1}`;
       const index = store.findIndex((r) => r === row || (r.username === row.username && r.cardId === row.cardId));
       if (index >= 0) store[index] = row;
       else store.push(row);
       return row;
     }),
     findOne: jest.fn(async ({ where }: any) => store.find((r) => Object.entries(where).every(([k, v]) => r[k] === v)) ?? null),
+    count: jest.fn(async ({ where }: any) => store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v)).length),
     find: jest.fn(async ({ where }: any) => {
       const clauses = Array.isArray(where) ? where : [where];
       return store.filter((r) => clauses.some((c: any) => Object.entries(c).every(([k, v]) => r[k] === v)));
@@ -57,6 +59,22 @@ describe('Членство пайщика в сети карт', () => {
       attestationId: 'att-1',
       state: CardcoopAttestationState.Active,
     });
+  });
+
+  // До 25.09.2026 итоговое сохранение вставляло стёртую строку заново, и
+  // удалённая карта «воскресала» у пайщика (C28-80).
+  it('держатель удалил карту, пока сеть выдавала свидетельство, — запись не восстанавливается', async () => {
+    const attestations = makeRepo();
+    const service = build(attestations, makeRepo(), {
+      issueMembership: jest.fn(async () => {
+        await service.forgetCard('card-1');
+        return { delivered: true, status: 201, attestationId: 'att-1' };
+      }),
+    });
+
+    await service.issue('https://card.coop', 'ant', 'card-1', '2026-01-15');
+
+    expect(attestations.store).toEqual([]);
   });
 
   it('повторное уведомление о той же связи не порождает второго свидетельства', async () => {
