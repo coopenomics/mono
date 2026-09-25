@@ -1368,6 +1368,7 @@
     "CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP": "Участник {username} не найден в {coopname}",
     "CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOPERATIVE": "Участник {username} не найден в кооперативе {coopname}",
     "CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP_COLON": "Участник не найден: {username} в кооперативе {coopname}",
+    "CAPITAL_CONTRIBUTOR_PRIVATE_DATA_NOT_FOUND": "У аккаунта {username} нет личных данных пайщика",
     "CAPITAL_CONTRIBUTOR_SYNC_AFTER_EDIT_FAILED": "Не удалось синхронизировать данные участника после редактирования",
     "CAPITAL_CONVERSION_PROJECT_HASH_REQUIRED": "project_hash обязателен для генерации заявления о конвертации",
     "CAPITAL_COUNCIL_DECISION_MISSING": "Решение совета не найдено в данных результата",

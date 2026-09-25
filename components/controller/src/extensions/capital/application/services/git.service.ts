@@ -116,9 +116,9 @@ export class GitService {
       case GitSourceType.GITHUB:
         return await this.extractFromGitHub(url, parsed);
       case GitSourceType.GITLAB:
-        throw DomainError.internal('CAPITAL_GIT_SOURCE_GITLAB_UNSUPPORTED');
+        throw DomainError.badRequest('CAPITAL_GIT_SOURCE_GITLAB_UNSUPPORTED');
       case GitSourceType.BITBUCKET:
-        throw DomainError.internal('CAPITAL_GIT_SOURCE_BITBUCKET_UNSUPPORTED');
+        throw DomainError.badRequest('CAPITAL_GIT_SOURCE_BITBUCKET_UNSUPPORTED');
       default:
         throw DomainError.internal('CAPITAL_GIT_SOURCE_UNKNOWN');
     }
@@ -238,11 +238,11 @@ export class GitService {
 
         diff = data as unknown as string;
       } else {
-        throw DomainError.internal('CAPITAL_GIT_LINK_TYPE_UNSUPPORTED', { type: parsed.type });
+        throw DomainError.badRequest('CAPITAL_GIT_LINK_TYPE_UNSUPPORTED', { type: parsed.type });
       }
 
       if (!diff || diff.trim().length === 0) {
-        throw DomainError.internal('CAPITAL_GIT_DIFF_EMPTY');
+        throw DomainError.badRequest('CAPITAL_GIT_DIFF_EMPTY');
       }
 
       this.logger.debug(`Успешно извлечен diff (${diff.length} символов)`);
@@ -262,9 +262,9 @@ export class GitService {
 
       // Улучшенная обработка ошибок
       if (error?.status === 404) {
-        throw DomainError.internal('CAPITAL_GIT_PR_NOT_FOUND');
+        throw DomainError.notFound('CAPITAL_GIT_PR_NOT_FOUND');
       } else if (error?.status === 401 || error?.status === 403) {
-        throw DomainError.internal('CAPITAL_GIT_REPO_ACCESS_DENIED');
+        throw DomainError.forbidden('CAPITAL_GIT_REPO_ACCESS_DENIED');
       } else {
         throw DomainError.internal('CAPITAL_GIT_DIFF_FETCH_FAILED', { message: error?.message });
       }

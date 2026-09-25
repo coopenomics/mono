@@ -65,7 +65,7 @@ export class GenerationInteractor {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(data.username, data.coopname);
 
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP_COLON', { username: data.username, coopname: data.coopname });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP_COLON', { username: data.username, coopname: data.coopname });
     }
 
     // Без положительной ставки себестоимость коммита = 0 — такой взнос потом не отработать.
@@ -81,7 +81,7 @@ export class GenerationInteractor {
     );
 
     if (availableHours <= HOURS_FLOAT_EPSILON) {
-      throw DomainError.internal('CAPITAL_NO_AVAILABLE_COMMIT_TIME');
+      throw DomainError.badRequest('CAPITAL_NO_AVAILABLE_COMMIT_TIME');
     }
 
     // Проверяем что запрошенное количество часов не превышает доступное
@@ -309,7 +309,7 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw DomainError.internal('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
+      throw DomainError.notFound('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
@@ -319,7 +319,7 @@ export class GenerationInteractor {
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw DomainError.internal('CAPITAL_COMMIT_APPROVE_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_COMMIT_APPROVE_FORBIDDEN');
     }
 
     // Создаём данные для блокчейна
@@ -348,7 +348,7 @@ export class GenerationInteractor {
     // Получаем коммит для проверки прав доступа
     const commit = await this.commitRepository.findByCommitHash(data.commit_hash);
     if (!commit) {
-      throw DomainError.internal('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
+      throw DomainError.notFound('CAPITAL_COMMIT_NOT_FOUND', { hash: data.commit_hash });
     }
 
     if (!commit.project_hash) {
@@ -358,7 +358,7 @@ export class GenerationInteractor {
     // Проверяем, что текущий пользователь является мастером проекта или компонента
     const isMaster = await this.permissionsService.isProjectOrComponentMaster(data.master, commit.project_hash);
     if (!isMaster) {
-      throw DomainError.internal('CAPITAL_COMMIT_REJECT_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_COMMIT_REJECT_FORBIDDEN');
     }
 
     // Обновляем статус в базе данных

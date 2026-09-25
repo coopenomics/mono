@@ -38,7 +38,7 @@ export class CalendarEventTypeormRepository implements ChatCoopCalendarEventRepo
   async update(input: UpdateChatCoopCalendarEventDomainInput): Promise<ChatCoopCalendarEventDomainEntity> {
     const existing = await this.repo.findOne({ where: { id: input.id } });
     if (!existing) {
-      throw DomainError.internal('CHATCOOP_CALENDAR_EVENT_NOT_FOUND');
+      throw DomainError.notFound('CHATCOOP_CALENDAR_EVENT_NOT_FOUND');
     }
     const nextSeq = existing.icsSequence + 1;
     await this.repo.update(

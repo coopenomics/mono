@@ -109,7 +109,7 @@ export class ParticipantInteractor {
 
     const verified: boolean = signatureObj.verifyDigest(signed_hash, publicKeyObj);
     if (!verified) {
-      throw DomainError.internal('PARTICIPATION_INVALID_SIGNATURE');
+      throw DomainError.badRequest('PARTICIPATION_INVALID_SIGNATURE');
     }
 
     if (public_key !== doc_public_key) throw DomainError.badRequest('PARTICIPATION_PUBLIC_KEY_MISMATCH');

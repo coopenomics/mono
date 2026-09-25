@@ -98,7 +98,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
-      throw DomainError.internal('DATABASE_CANDIDATE_NOT_FOUND', { username });
+      throw DomainError.notFound('DATABASE_CANDIDATE_NOT_FOUND', { username });
     }
 
     switch (documentType) {
@@ -135,7 +135,7 @@ export class TypeOrmCandidateRepository implements CandidateRepository {
   ): Promise<void> {
     const candidate = await this.candidateRepository.findOneBy({ username });
     if (!candidate) {
-      throw DomainError.internal('DATABASE_CANDIDATE_NOT_FOUND', { username });
+      throw DomainError.notFound('DATABASE_CANDIDATE_NOT_FOUND', { username });
     }
 
     candidate.program_agreements = {

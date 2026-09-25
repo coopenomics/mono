@@ -80,11 +80,11 @@ export class ProjectManagementService {
     if (currentUser.role === 'user') {
       const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
       if (!project) {
-        throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+        throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
       }
       const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
       if (!projectDTO.permissions.can_edit_project) {
-        throw DomainError.internal('CAPITAL_PROJECT_EDIT_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_PROJECT_EDIT_FORBIDDEN');
       }
     }
 
@@ -113,13 +113,13 @@ export class ProjectManagementService {
     // Находим проект для проверки прав
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
 
     // Проверяем права доступа
     const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!projectDTO.permissions.can_set_plan) {
-      throw DomainError.internal('CAPITAL_PROJECT_PLAN_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_PROJECT_PLAN_FORBIDDEN');
     }
 
     // Выполняем операцию установки плана
@@ -193,11 +193,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_set_priority) {
-      throw DomainError.internal('CAPITAL_PROJECT_PRIORITY_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_PROJECT_PRIORITY_FORBIDDEN');
     }
 
     const updated = await this.projectManagementInteractor.setPriority(project.project_hash, data.priority);
@@ -213,11 +213,11 @@ export class ProjectManagementService {
   ): Promise<ProjectOutputDTO> {
     const project = await this.projectManagementInteractor.getProjectByHash(data.project_hash.trim().toLowerCase());
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: data.project_hash });
     }
     const preview = await this.projectMapperService.mapToDTO(project, currentUser);
     if (!preview.permissions.can_edit_project) {
-      throw DomainError.internal('CAPITAL_PROJECT_REPO_URL_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_PROJECT_REPO_URL_FORBIDDEN');
     }
 
     const raw =
@@ -235,7 +235,7 @@ export class ProjectManagementService {
     } else {
       const normalized = normalizeDevelopmentRepositoryUrl(raw);
       if (!normalized) {
-        throw DomainError.internal('CAPITAL_PROJECT_REPO_URL_INVALID');
+        throw DomainError.badRequest('CAPITAL_PROJECT_REPO_URL_INVALID');
       }
       nextNormalizedKey = normalized;
       await this.projectManagementInteractor.setDevelopmentRepositoryUrl(project.project_hash, normalized);

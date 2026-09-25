@@ -309,7 +309,7 @@ export class ContentRevisionService {
       );
     const row = rows[0];
     if (!row) {
-      throw DomainError.internal('CAPITAL_CONTENT_ENTITY_NOT_FOUND', { entityType, entityHash });
+      throw DomainError.notFound('CAPITAL_CONTENT_ENTITY_NOT_FOUND', { entityType, entityHash });
     }
     return {
       title: row.title ?? '',

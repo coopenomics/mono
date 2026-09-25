@@ -116,7 +116,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw DomainError.internal('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
+      throw DomainError.notFound('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия
@@ -148,7 +148,7 @@ export class ApprovalService {
     // Найти одобрение в базе данных
     const approval = await this.approvalRepository.findBySyncKey('approval_hash', input.approval_hash);
     if (!approval) {
-      throw DomainError.internal('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
+      throw DomainError.notFound('CHAIRMAN_APPROVAL_NOT_FOUND', { hash: input.approval_hash });
     }
 
     // Создать доменный объект для блокчейн действия

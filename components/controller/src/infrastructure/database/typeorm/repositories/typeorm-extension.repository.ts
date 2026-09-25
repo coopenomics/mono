@@ -42,7 +42,7 @@ export class TypeOrmExtensionDomainRepository<TConfig = any> implements Extensio
   async update(data: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>> {
     // Поиск существующей записи по name
     const name = data.name;
-    if (!name) throw DomainError.internal('DATABASE_EXTENSION_NAME_REQUIRED');
+    if (!name) throw DomainError.badRequest('DATABASE_EXTENSION_NAME_REQUIRED');
 
     const existingEntity = await this.ormRepo.findOne({ where: { name } });
 

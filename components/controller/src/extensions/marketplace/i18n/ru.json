@@ -38,6 +38,7 @@
     "MARKETPLACE_CART_OFFER_NOT_DELIVERED_TO_BRANCH": "Этот товар не возят на выбранный пункт выдачи. Смените КУ или выберите другой товар.",
     "MARKETPLACE_CATEGORY_BASE_DELETE_FORBIDDEN": "Базовую категорию удалить нельзя",
     "MARKETPLACE_CATEGORY_NAME_REQUIRED": "Название категории не может быть пустым",
+    "MARKETPLACE_CATEGORY_NAME_TAKEN": "Категория с таким названием уже существует",
     "MARKETPLACE_CATEGORY_NOT_AVAILABLE": "Категория «{categoryName}» сейчас недоступна для публикации в этом кооперативе.",
     "MARKETPLACE_CATEGORY_NOT_FOUND": "Категория с номером {categoryId} не найдена в справочнике кооператива. Обновите страницу или обратитесь к администратору.",
     "MARKETPLACE_CELL_BRANCH_MISMATCH_ITEM": "Ячейка «{cellCode}» относится к участку {cellBranch}, а имущество — к {itemBranch}.",
@@ -509,9 +510,6 @@
       "other": "Прочее",
       "readyMeals": "Готовая еда",
       "vegetablesFruits": "Овощи и фрукты"
-    },
-    "categoryConstants": {
-      "categoryNameTaken": "Категория с таким названием уже существует"
     },
     "chainRetryCron": {
       "alreadySettledNote": "По данным цепи взнос по заявлению уже доведён либо заявка закрыта."

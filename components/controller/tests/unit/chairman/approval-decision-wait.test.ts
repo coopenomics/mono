@@ -66,6 +66,17 @@ describe('ApprovalService — ответ после изменения из це
   });
 });
 
+describe('ApprovalService — отказ «не найдено»', () => {
+  // До 25.09.2026 такие отказы объявлялись внутренней ошибкой и уходили 500.
+  it('одобрения нет — отказ 404 с кодом, а не внутренняя ошибка', async () => {
+    const { service, repo } = make({ afterTransact: jest.fn(async () => true) });
+    repo.findBySyncKey.mockResolvedValueOnce(null);
+    const err = await service.confirmApprove({ coopname: 'voskhod', approval_hash: 'nope' } as any, 'ant').catch((e) => e);
+    expect(err.code).toBe('CHAIRMAN_APPROVAL_NOT_FOUND');
+    expect(err.getStatus()).toBe(404);
+  });
+});
+
 describe('ApprovalDomainEntity — поля базы', () => {
   it('одобренный документ переносится из базы (до 25.09.2026 всегда был пуст)', () => {
     const doc = { hash: 'h', doc_hash: 'd', meta_hash: 'm', meta: {}, signatures: [], version: '1' } as any;

@@ -55,19 +55,19 @@ describe('категории кооператива', () => {
     expect((await categories()).some(c => c.id === base!.id)).toBe(true)
   })
 
-  // Резолвер создания перехватывает отказ сервиса и отдаёт его как 400 без
-  // доменного кода — отказ различим только по тексту.
+  // До 25.09.2026 резолвер заворачивал отказ в 400 без кода, и отказ был
+  // различим только по тексту (C28-80).
   it(caseName('mkt.cat.side.02', 'имя, уже занятое базовой или собственной категорией, — отказ, дубликат не создаётся'), async () => {
     const base = (await categories()).find(c => c.mvp_baseline)!
     const likeBase = `  ${base.display_name.toUpperCase()} `
     const e1 = await gqlError(chair, CREATE, { i: { displayName: likeBase } })
-    expect(code(e1)).toBe('400')
+    expect(code(e1)).toBe('MARKETPLACE_CATEGORY_NAME_TAKEN')
     expect(e1!.message).toMatch(/уже существует/i)
     expect(await withName(base.display_name)).toHaveLength(1)
 
     const own = await createCategory(`АТ категория ${TAG}`)
     const e2 = await gqlError(chair, CREATE, { i: { displayName: ` ат КАТЕГОРИЯ ${TAG.toUpperCase()}  ` } })
-    expect(code(e2)).toBe('400')
+    expect(code(e2)).toBe('MARKETPLACE_CATEGORY_NAME_TAKEN')
     expect(e2!.message).toBe(e1!.message)
     const same = await withName(own.display_name)
     expect(same.map(c => c.id)).toEqual([own.id])

@@ -116,7 +116,7 @@ export class SberpollExtension extends PollingProvider {
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw DomainError.internal('SBERPOLL_PAYMENT_NOT_FOUND', { hash });
+      throw DomainError.notFound('SBERPOLL_PAYMENT_NOT_FOUND', { hash });
     }
 
     const amount = payment.quantity;

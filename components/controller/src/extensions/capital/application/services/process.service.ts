@@ -101,13 +101,13 @@ export class ProcessService {
 
   async completeStep(instanceId: string, stepId: string): Promise<ProcessInstanceDomainEntity> {
     const instance = await this.instanceRepo.findById(instanceId);
-    if (!instance) throw DomainError.internal('CAPITAL_PROCESS_INSTANCE_NOT_FOUND');
+    if (!instance) throw DomainError.notFound('CAPITAL_PROCESS_INSTANCE_NOT_FOUND');
 
     const template = await this.templateRepo.findById(instance.template_id);
     if (!template) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
 
     const stepState = instance.step_states.find(s => s.step_id === stepId);
-    if (!stepState) throw DomainError.internal('CAPITAL_PROCESS_STEP_NOT_FOUND');
+    if (!stepState) throw DomainError.notFound('CAPITAL_PROCESS_STEP_NOT_FOUND');
     if (stepState.status === ProcessStepStatus.COMPLETED) return instance;
 
     stepState.status = ProcessStepStatus.COMPLETED;

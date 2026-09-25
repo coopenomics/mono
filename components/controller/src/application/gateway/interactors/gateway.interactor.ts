@@ -624,7 +624,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
 
     if (existingPayment) {
-      throw DomainError.internal('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
+      throw DomainError.conflict('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
     }
 
     // Получаем настройки для определения провайдера

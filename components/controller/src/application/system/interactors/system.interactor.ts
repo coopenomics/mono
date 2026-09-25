@@ -123,7 +123,7 @@ export class SystemInteractor {
     // Проверяем валидность кода установки
     const isValidCode = await this.monoStatusRepository.validateInstallCode(data.install_code);
     if (!isValidCode) {
-      throw DomainError.internal('SYSTEM_INSTALL_CODE_INVALID');
+      throw DomainError.badRequest('SYSTEM_INSTALL_CODE_INVALID');
     }
 
     // Получаем mono документ для получения дополнительных данных
@@ -180,7 +180,7 @@ export class SystemInteractor {
 
     // Проверяем, что статус действительно изменился на активный
     if (systemInfo.system_status !== SystemStatus.active) {
-      throw DomainError.internal('SYSTEM_INSTALL_NOT_ACTIVE');
+      throw DomainError.badRequest('SYSTEM_INSTALL_NOT_ACTIVE');
     }
 
     return systemInfo;

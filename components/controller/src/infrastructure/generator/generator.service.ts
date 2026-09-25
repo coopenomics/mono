@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import { DocumentDomainEntity } from '~/domain/document/entity/document-domain.entity';
 import type { GenerateDocumentDomainInterfaceWithOptions } from '~/domain/document/interfaces/generate-document-domain-with-options.interface';
 import { GeneratorPort } from '~/domain/document/ports/generator.port';
-import { Generator, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
+import { Generator, UnknownDocumentFactoryError, type IGenerateBlank, type IGeneratedBlank, type ISearchResult } from '@coopenomics/factory';
 import type { Cooperative } from 'cooptypes';
 import config from '~/config/config';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -134,6 +134,11 @@ export class GeneratorInfrastructureService implements GeneratorPort, OnModuleIn
       const generated = await this.generate(body.data, body.options);
       return new DocumentDomainEntity(generated);
     } catch (error) {
+      // Документ, для которого нет фабрики, — неверный запрос с понятным кодом;
+      // до 25.09.2026 причина оставалась только в журнале (C28-80).
+      if (error instanceof UnknownDocumentFactoryError) {
+        throw DomainError.badRequest('GENERATOR_DOCUMENT_TYPE_UNKNOWN', { registryId: error.registry_id });
+      }
       console.error('Ошибка при генерации документа:', error);
       // Исходная ошибка фабрики остаётся причиной: по ней вызывающий различает
       // отказы (робот совета так узнаёт отставание индекса голосов). Свойство
