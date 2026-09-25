@@ -1442,6 +1442,7 @@
     "CAPITAL_METRIC_ARCHIVED": "Метрика {hash} в архиве",
     "CAPITAL_METRIC_ARCHIVED_CONTRIBUTION_FORBIDDEN": "Нельзя писать вклад в архивную метрику",
     "CAPITAL_METRIC_ARCHIVED_READONLY": "Нельзя изменять архивную метрику",
+    "CAPITAL_METRIC_FOREIGN_COOPERATIVE": "Метрику можно завести только в своём кооперативе",
     "CAPITAL_METRIC_LINK_SCOPE_INVALID": "Привязки метрик доступны только для задач внутри компонента",
     "CAPITAL_METRIC_MANAGE_FORBIDDEN": "Нет прав на управление метриками компонента",
     "CAPITAL_METRIC_NOT_FOUND": "Метрика {hash} не найдена",

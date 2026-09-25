@@ -64,7 +64,7 @@ import {
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { generateUniqueHash, DomainError } from '@coopenomics/extension-kit';
+import { generateUniqueHash, DomainError, platformSettings } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
 
 /**
@@ -235,6 +235,11 @@ export class ComponentMetricService {
     data: CreateComponentMetricInputDTO,
     currentUser: IMonoAccount
   ): Promise<ComponentMetricOutputDTO> {
+    // Метрика живёт в кооперативе узла: до 25.09.2026 кооператив брался из
+    // ввода как есть, и метрику можно было завести на чужой (C28-80).
+    if (data.coopname !== platformSettings().coopname) {
+      throw DomainError.forbidden('CAPITAL_METRIC_FOREIGN_COOPERATIVE');
+    }
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
       throw DomainError.notFound('CAPITAL_COMPONENT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
@@ -910,7 +915,7 @@ export class ComponentMetricService {
   ): Promise<MeasureDomainEntity> {
     const measure = await this.requireMeasure(measureHash);
     if (measure.coopname !== coopname) {
-      throw DomainError.internal('CAPITAL_MEASURE_FOREIGN_COOPERATIVE');
+      throw DomainError.forbidden('CAPITAL_MEASURE_FOREIGN_COOPERATIVE');
     }
     if (measure.status === MetricStatus.ARCHIVED) {
       measure.status = MetricStatus.ACTIVE;

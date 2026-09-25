@@ -72,6 +72,15 @@ describe('Благорост — меры кооператива и дневно
     expect(bound?.measure_hash, 'цель обязана смотреть на заведённую меру').toBe(metric.measure_hash)
   })
 
+  it(caseName('cap.mm.side.15', 'цель на чужой кооператив — отказ, цель не заводится'), async () => {
+    // До 25.09.2026 кооператив цели брался из ввода как есть (C28-80).
+    const title = `Чужая ${tag}`
+    const err = await gqlError(token, CREATE_METRIC, { d: { coopname: 'othercoop', project_hash: project, target_value: 10, title, unit: 'шт' } })
+    expect(err?.code).toBe('CAPITAL_METRIC_FOREIGN_COOPERATIVE')
+    const onComponent = await gql<any>(token, COMPONENT_METRICS, { d: { project_hash: project } })
+    expect(onComponent.capitalComponentMetrics.map((m: any) => m.title)).not.toContain(title)
+  })
+
   it(caseName('cap.mm.side.01', 'та же пара во второй цели не плодит дубль'), async () => {
     const first = await createMetric({ title: `Звонки ${tag}`, unit: 'шт' })
     const second = await createMetric({ title: `Звонки ${tag}`, unit: 'шт', target_value: 20 })

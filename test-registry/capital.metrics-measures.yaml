@@ -262,3 +262,12 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  - id: cap.mm.side.15
+    level: backend
+    kind: side
+    scenario: Цель компонента заводится с чужим кооперативом во вводе
+    expect: отказ CAPITAL_METRIC_FOREIGN_COOPERATIVE (403), цель не заводится
+    test: components/controller/tests/unit/capital/metric-foreign-coop.test.ts
+    api: components/api-tests/src/capital/metrics-measures.test.ts
+    status: passing
