@@ -26,6 +26,8 @@ cases:
     scenario: Пайщик собирает документ на себя
     expect: документ собран
     test: components/controller/tests/unit/document/generate-document-council-protocol.test.ts
+    # Снаружи — пакет заявки в доверенные (договор 327) собирается на себя.
+    api: components/api-tests/src/ku/decisions.test.ts
     status: passing
 
   - id: doc.gen.side.01
@@ -34,6 +36,8 @@ cases:
     scenario: Пайщик, член совета или председатель собирают на чужое имя документ, который не протокол решения совета
     expect: отказ DOCUMENT_GENERATION_FORBIDDEN
     test: components/controller/tests/unit/document/generate-document-council-protocol.test.ts
+    # Снаружи — матрица прав: generateDocument на чужое имя от каждой роли, отказ в утверждённом снимке.
+    api: components/api-tests/src/rights/matrix.test.ts
     status: passing
 
   - id: doc.gen.side.02
