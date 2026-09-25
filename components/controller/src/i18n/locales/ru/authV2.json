@@ -165,6 +165,8 @@
     "AUTH_V2_VERIFICATION_REVIEW_CHAIRMAN_ONLY": "Проверять сверку личности вправе председатель совета",
     "AUTH_V2_VERIFICATION_REVOKE_CHAIRMAN_ONLY": "Отзывать верификацию личности вправе председатель совета",
     "AUTH_V2_VERIFICATION_SELF_FORBIDDEN": "Свою личность на участке не сверяют — её подтверждает председатель совета",
-    "AUTH_V2_VERIFY_TIMESTAMP_FIELDS_REQUIRED": "Требуются signature, timestamp и binding_token"
+    "AUTH_V2_VERIFY_TIMESTAMP_FIELDS_REQUIRED": "Требуются signature, timestamp и binding_token",
+    "AUTH_V2_VERIFICATION_PHOTO_MIME_NOT_ALLOWED": "Снимок сверки должен быть изображением ({allowed}), получено: {mime}",
+    "AUTH_V2_VERIFICATION_PHOTO_TOO_LARGE": "Снимок сверки больше {maxMegabytes} МБ"
   }
 }

@@ -90,10 +90,12 @@ cases:
     kind: break
     scenario: файл больше десяти мегабайт либо не изображение
     expect: >
-      бакет coopid:verification отклоняет по maxBytes и allowedMime, запись
-      журнала не заводится
-    test: ~
-    status: missing
+      отказ по правилам бакета coopid:verification (maxBytes, allowedMime) до
+      записи в цепь: уровень не выдаётся, запись журнала не заводится. До
+      25.09.2026 уровень выдавался, а запись для совета не заводилась.
+    test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    api: components/api-tests/src/coopid/verification-review.test.ts
+    status: passing
 
   # ── Решение совета ────────────────────────────────────────────────────────
 
