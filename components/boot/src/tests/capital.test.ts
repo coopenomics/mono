@@ -18,7 +18,7 @@ import { fakeDocument, signedDocument } from './shared/fakeDocument'
 import { depositToWallet } from './wallet/depositToWallet'
 import { signCapitalAgreement } from './capital/signCapitalAgreement'
 import { addAuthor } from './capital/addAuthor'
-import { getSegment } from './capital/getSegment'
+import { getProjectSegments, getSegment } from './capital/getSegment'
 import { investInProject } from './capital/investInProject'
 import { processDebt } from './capital/processDebt'
 import { processCreateProjectProperty } from './capital/processCreateProjectProperty'
@@ -2721,12 +2721,21 @@ describe('тест контракта CAPITAL', () => {
     let totalSharePercent = 0
     const segmentsData = []
 
-    for (const p of participants) {
-      const seg = await getSegment(blockchain, 'voskhod', highPrecisionHash, p)
+    // Контроллер при старте проекта сам заводит в нём доли всех держателей
+    // Благороста (ProgramShareRegistrationOnProjectDeltaListener), поэтому
+    // сотня складывается по всем сегментам проекта, а не по четырём участникам
+    // теста. Чужие сегменты обновляются так же, как свои (C28-80).
+    const outsiders = (await getProjectSegments(blockchain, 'voskhod', highPrecisionHash))
+      .map(s => s.username)
+      .filter(u => !participants.includes(u))
+    for (const u of outsiders)
+      await refreshSegment(blockchain, 'voskhod', highPrecisionHash, u)
+
+    for (const seg of await getProjectSegments(blockchain, 'voskhod', highPrecisionHash)) {
       const share = Number(seg.share_percent)
       totalSharePercent += share
       segmentsData.push({
-        user: p,
+        user: seg.username,
         share,
         intellectual_cost: seg.intellectual_cost,
         bonus: seg.contributor_bonus,
