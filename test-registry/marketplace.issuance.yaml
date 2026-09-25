@@ -163,7 +163,10 @@ cases:
     scenario: Повторная фиксация факта по заказу, выдача которого уже идёт
     expect: отказ — вторая сага не рождается; закрытие уже закрытой выдачи — no-op
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
+    # До 25.09.2026 повтор закрытия получал «выдача не начата», а ход выдачи
+    # после закрытия читался как null.
 
   - id: mkt.iss.side.06
     level: backend

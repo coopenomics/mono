@@ -261,6 +261,12 @@ describe('выдача одного заказа по этапам: заказа
     expect(Number(closed.fact.actual_quantity)).toBe(ISSUED)
     expect(amount(closed.fact.fact_cost), 'к оплате — только выданное по цене выдачи').toBeCloseTo(ISSUED * issuePrice, 4)
 
+    // mkt.iss.side.05: повтор закрытия — no-op, ход выдачи читается и после
+    // закрытия (до 25.09.2026 повтор получал «выдача не начата», а ход — null).
+    const again = await gql<any>(operatorToken, CLOSE_WITH_FACT, { d: { order_id: order.orderId, signed_act: closingAct } })
+    expect(again.marketplaceCloseIssuance.stage).toBe('CLOSED')
+    expect((await sagaOf(memberToken, order.orderId))?.stage).toBe('CLOSED')
+
     const rows = await inventoryOfOrder(operatorToken, order.orderId)
     expect(sumQty(rows, r => r.status === 'ISSUED'), 'выдано ровно зафиксированное').toBe(ISSUED)
     expect(sumQty(rows, r => r.ownership === 'COOP' && r.status !== 'ISSUED'), 'невыданное — в обезличенном остатке кооператива').toBe(RECEIVED - ISSUED)
