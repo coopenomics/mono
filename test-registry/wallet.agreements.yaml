@@ -13,6 +13,11 @@ title: Кошельки и соглашения пайщика — зеркал�
 # перевода слоя данных на Kysely (C28-81). Пишутся таблицы разбором цепи:
 # через мутации контроллера (sendAgreement/confirmAgreement/declineAgreement),
 # а где мутации нет — действием в цепь в подготовке теста.
+#
+# Таблица программных кошельков старого образца (program_wallets, зеркало
+# soviet::progwallets) пишется синхронизацией и через API не читается: её
+# показывает бухгалтерия, этого достаточно — так задумано, кошельки не
+# трогать (решение владельца 25.09.2026).
 
 sources:
   backend:
@@ -171,15 +176,6 @@ cases:
     test: components/api-tests/src/wallet/wallet.agreements.test.ts
     api: components/api-tests/src/wallet/wallet.agreements.test.ts
     status: passing
-
-  - id: wal.agr.side.10
-    level: backend
-    kind: side
-    scenario: чтение программных кошельков старого образца (program_wallets, зеркало soviet::progwallets)
-    expect: таблица читается хотя бы одной операцией API — сейчас её пишет только синхронизация, а getProgramWallets собирает ответ из user_agreements и user_wallets
-    test: ~
-    status: missing
-    decision_needed: true
 
   - id: wal.agr.side.11
     level: backend
