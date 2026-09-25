@@ -26,6 +26,18 @@ export async function inventoryOfOrder(operatorToken: string, orderId: string): 
   return d.marketplaceListInventory
 }
 
+/**
+ * Позиция склада участка, зарезервированная под заказ из остатка. Резерв берёт
+ * партию предложения кооператива, а не обязательно ту, что опубликовал тест:
+ * в полном прогоне у участка бывает остаток того же товара от соседних наборов.
+ */
+export async function reservedFor(operatorToken: string, orderId: string, braname = KRG): Promise<any | null> {
+  const d = await gql<any>(operatorToken, `query($d:MarketplaceListInventoryInput){ marketplaceListInventory(data:$d){ ${INVENTORY_FIELDS} } }`, {
+    d: { braname, statuses: ['RECEIVED', 'LABELED', 'ISSUED'] },
+  })
+  return (d.marketplaceListInventory as any[]).find(r => r.reserved_order_id === orderId) ?? null
+}
+
 export const PUBLISH_STOCK = `mutation($d:MarketplacePublishStockInput!){
   marketplacePublishStock(data:$d){ id status stock_braname price_per_unit warranty_days quantity_available quantity_blocked supplier_account }
 }`

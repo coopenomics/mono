@@ -24,6 +24,7 @@ import {
   listStock,
   orderFromStock,
   placePackagedOrder,
+  reservedFor,
   returnAtVisit,
 } from './stock.helpers'
 
@@ -51,6 +52,8 @@ describe('Стол заказов: остаток кооператива', () =>
   let stockRows: any[] = []
   let coopOfferId = ''
   let stockOrder = { orderId: '', orderHash: '' }
+  /** Партия, из которой выдан заказ из остатка: от неё уценка и возврат. */
+  let reservedRow: any = null
 
   beforeAll(async () => {
     operatorToken = await tokenOf(operator)
@@ -144,9 +147,11 @@ describe('Стол заказов: остаток кооператива', () =>
     await ensureShareFunds(buyer.account, TOPUP_QTY * MARKDOWN_PRICE * 2, buyerToken)
     stockOrder = await orderFromStock({ operator, member: buyer, offerId: coopOfferId, quantity: TOPUP_QTY })
 
-    const reserved = (await inventoryOfOrder(operatorToken, originOrderId)).find(r => r.reserved_order_id === stockOrder.orderId)
-    expect(reserved, 'заказ из остатка зарезервировал позицию склада').toBeTruthy()
-    const err = await gqlError(operatorToken, PUBLISH_STOCK, { d: { inventory_ids: [reserved.id] } })
+    // Резерв ищется по всем позициям участка: в полном прогоне предложение
+    // кооператива может держать партию соседнего набора (C28-80).
+    reservedRow = await reservedFor(operatorToken, stockOrder.orderId)
+    expect(reservedRow, 'заказ из остатка зарезервировал позицию склада').toBeTruthy()
+    const err = await gqlError(operatorToken, PUBLISH_STOCK, { d: { inventory_ids: [reservedRow.id] } })
     expect(err?.code).toBe('MARKETPLACE_STOCK_ITEM_RESERVED')
   })
 
@@ -154,7 +159,8 @@ describe('Стол заказов: остаток кооператива', () =>
     expect(stockOrder.orderId, 'заказ из остатка оформлен предыдущим шагом').toBeTruthy()
     await completeIssuance({ operator, member: buyer, orderId: stockOrder.orderId })
 
-    const markdown = (arrivalPrice - MARKDOWN_PRICE) * TOPUP_QTY
+    const reservedArrival = amount(reservedRow.arrival_price)
+    const markdown = (reservedArrival - MARKDOWN_PRICE) * TOPUP_QTY
     // Уценку контроллер отправляет в цепь после закрытия выдачи; журнал
     // ledger2 доходит до API через индексер.
     const rows = await waitFor(async () => {
@@ -164,7 +170,7 @@ describe('Стол заказов: остаток кооператива', () =>
 
     const sumApply = (code: string) => rows.filter(r => r.action === 'apply' && r.operationCode === code).reduce((s, r) => s + amount(r.quantity), 0)
     expect(near(sumApply('o.mkt.loss'), markdown), `уценка ${markdown}`).toBe(true)
-    expect(near(sumApply('o.mkt.consum') + sumApply('o.mkt.loss'), arrivalPrice * TOPUP_QTY), 'со склада выбыла полная стоимость прибытия').toBe(true)
+    expect(near(sumApply('o.mkt.consum') + sumApply('o.mkt.loss'), reservedArrival * TOPUP_QTY), 'со склада выбыла полная стоимость прибытия').toBe(true)
 
     const loss = rows.filter(r => r.operationCode === 'o.mkt.loss')
     expect(loss.some(r => r.action === 'debit' && r.accountId === ACC.OTHER && near(amount(r.quantity), markdown)), 'Дт 91').toBe(true)
@@ -173,7 +179,7 @@ describe('Стол заказов: остаток кооператива', () =>
 
   it(caseName('mkt.stock.side.01', 'возврат по заказу из остатка находит партию через резерв и возвращает имущество кооперативу'), async () => {
     expect(stockOrder.orderId, 'заказ из остатка выдан предыдущим шагом').toBeTruthy()
-    const shipmentId = stockRows[0].shipment_id
+    const shipmentId = reservedRow.shipment_id
     expect(shipmentId).toBeTruthy()
 
     const { claimId } = await returnAtVisit({ operator, member: buyer, orderId: stockOrder.orderId, quantity: TOPUP_QTY })
