@@ -57,7 +57,10 @@ export class CalendarEventTypeormRepository implements ChatCoopCalendarEventRepo
   }
 
   async deleteById(id: string): Promise<void> {
-    await this.repo.delete({ id });
+    // Удаление несуществующего события — отказ, а не молчаливый успех
+    // (решение владельца 25.09.2026, C28-80).
+    const { affected } = await this.repo.delete({ id });
+    if (!affected) throw DomainError.notFound('CHATCOOP_CALENDAR_EVENT_NOT_FOUND');
   }
 
   async findById(id: string): Promise<ChatCoopCalendarEventDomainEntity | null> {

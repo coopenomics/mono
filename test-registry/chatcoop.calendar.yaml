@@ -10,6 +10,9 @@ title: Календарь кооператива в «Чате кооперат�
 # Заведено 24.09.2026 (C28-80). На стенде внешнего слоя сервера Matrix нет,
 # реестр комнат пуст, поэтому создание, правка и удаление событий снаружи не
 # проверяются — только подписка ICS, чтение и отказы.
+#
+# Правка 25.09.2026 (C28-80): удаление несуществующего события — отказ
+# CHATCOOP_CALENDAR_EVENT_NOT_FOUND вместо молчаливого успеха.
 
 sources:
   backend:
@@ -117,11 +120,18 @@ cases:
   - id: chat.cal.side.06
     level: backend
     kind: side
-    scenario: >
-      Событие в зашифрованной комнате реестра либо удаление несуществующего события
+    scenario: Событие в зашифрованной комнате реестра
     expect: >
-      отказ по зашифрованной комнате; удаление несуществующего — не определено
-      (сейчас молча true) — нужен реестр комнат Matrix
+      отказ CHATCOOP_CALENDAR_ROOM_UNAVAILABLE; снаружи не проверить — комнаты
+      реестра заводит сервер Matrix, на стенде его нет
     test: ~
     status: missing
-    decision_needed: true
+
+  - id: chat.cal.side.07
+    level: backend
+    kind: side
+    scenario: Совет удаляет событие, которого нет
+    expect: отказ CHATCOOP_CALENDAR_EVENT_NOT_FOUND (решение владельца 25.09.2026; прежде молча true)
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    api: components/api-tests/src/chatcoop/calendar.test.ts
+    status: passing

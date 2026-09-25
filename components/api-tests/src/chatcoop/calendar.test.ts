@@ -143,4 +143,10 @@ describe('chatcoop: календарь и подписка ICS', () => {
     const list = await gql<any>(council, LIST)
     expect(list.chatcoopListCalendarEvents.some((e: any) => e.matrixRoomId === input.matrixRoomId)).toBe(false)
   })
+
+  // До 25.09.2026 удаление несуществующего события отвечало «успех»
+  // (решение владельца 25.09: должна быть ошибка, C28-80).
+  it(caseName('chat.cal.side.07', 'удаление несуществующего события — отказ «не найдено»'), async () => {
+    expect((await gqlError(council, DELETE, { id: crypto.randomUUID() }))?.code).toBe('CHATCOOP_CALENDAR_EVENT_NOT_FOUND')
+  })
 })

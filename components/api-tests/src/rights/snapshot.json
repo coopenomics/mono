@@ -649,9 +649,9 @@
   },
   "expenseProposalsByMember": {
     "guest": "deny",
-    "member": "pass",
-    "supplier": "pass",
-    "branchChairman": "pass",
+    "member": "deny",
+    "supplier": "deny",
+    "branchChairman": "deny",
     "council": "pass",
     "chairman": "pass"
   },
@@ -1193,8 +1193,8 @@
   },
   "listExpensePlans": {
     "guest": "deny",
-    "member": "pass",
-    "supplier": "pass",
+    "member": "deny",
+    "supplier": "deny",
     "branchChairman": "pass",
     "council": "pass",
     "chairman": "pass"

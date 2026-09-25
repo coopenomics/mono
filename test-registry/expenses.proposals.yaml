@@ -14,6 +14,9 @@ title: Служебная записка на расход — подача, р�
 # expense_proposals, expense_requisite_snapshots и expense_files перед
 # переводом репозиториев на Kysely.
 #
+# Правка 25.09.2026 (C28-80): записка открыта совету, подавшему и получателям
+# строк, список записок пайщика — ему самому и совету; прежде читал любой.
+#
 # На стенде пул программных расходов (w.cap.pgexp) пуст: пополняется только
 # из инвестиций программы «Благорост» (capital::topupprogexp). Поэтому оплата
 # строки, отчёт, возврат и закрытие проверяются до цепи (права) и отказом
@@ -340,9 +343,11 @@ cases:
     level: backend
     kind: side
     scenario: >
-      Список записок пайщика (expenseProposalsByMember) и записка по хэшу
-      (expenseProposal) открыты любому пайщику по чужому имени
-    expect: не определено — видеть ли пайщику записки и строки чужих расходов
-    test: ~
-    status: missing
-    decision_needed: true
+      Пайщик читает чужую записку по хэшу (expenseProposal) и список записок
+      другого пайщика (expenseProposalsByMember)
+    expect: >
+      отказ EXPENSES_PROPOSAL_ACCESS_DENIED; записку видят совет, подавший и
+      получатели строк, список — сам пайщик и совет (решение владельца 25.09.2026)
+    test: components/api-tests/src/expenses/proposals.test.ts
+    api: components/api-tests/src/expenses/proposals.test.ts
+    status: passing

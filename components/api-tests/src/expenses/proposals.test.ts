@@ -252,6 +252,19 @@ describe('expenses: служебная записка на расход', () => 
     expect(String(guest?.code)).toBe('401')
   })
 
+  // До 25.09.2026 записку по хэшу и список записок по чужому имени читал любой
+  // пайщик (решение владельца 25.09: закрыть, C28-80).
+  it(caseName('exp.prop.side.13', 'записку видят совет, подавший и получатель строки; чужому пайщику отказ'), async () => {
+    expect((await gql<any>(recipientToken, GET, { h: draft.proposal_hash })).expenseProposal.proposal_hash).toBe(draft.proposal_hash)
+    expect((await gql<any>(council, GET, { h: draft.proposal_hash })).expenseProposal).not.toBeNull()
+    expect((await gqlError(other, GET, { h: draft.proposal_hash }))?.code).toBe('EXPENSES_PROPOSAL_ACCESS_DENIED')
+
+    const foreignList = await gqlError(other, BY_MEMBER, { c: COOP, u: COUNCIL.account, o: { page: 1, limit: 10, sortOrder: 'DESC' } })
+    expect(foreignList?.code).toBe('EXPENSES_PROPOSAL_ACCESS_DENIED')
+    expect(await findInMemberList(council, COUNCIL.account, draft.proposal_hash)).toBeDefined()
+    expect(await findInMemberList(chairman, COUNCIL.account, draft.proposal_hash)).toBeDefined()
+  })
+
   // ── Права на операции со строками ────────────────────────────────────────
 
   it(caseName('exp.prop.side.07', 'оплата строки — только председателю: пайщик и член совета получают отказ по роли'), async () => {

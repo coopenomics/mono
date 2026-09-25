@@ -138,6 +138,23 @@ describe('expenses: реестр плановых расходов', () => {
     expect(err?.code).toBe('EXPENSES_PLAN_NOT_FOUND')
   })
 
+  // До 25.09.2026 реестр с реквизитами получателей был открыт любому пайщику
+  // (решение владельца 25.09: закрыть, C28-80).
+  it(caseName('exp.plan.side.08', 'реестр с реквизитами видят совет и операторы участка — пайщику и чужому участку отказ'), async () => {
+    const plan = (await gql<any>(branchChair, CREATE, { d: planInput() })).createExpensePlan
+
+    for (const [who, token] of [['пайщик', member], ['председатель чужого участка', foreignChair]] as const) {
+      expect((await gqlError(token, LIST, { d: { braname: KRG } }))?.code, who).toBe('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN')
+    }
+    expect((await gqlError(member, LIST, { d: null }))?.code).toBe('EXPENSES_PLAN_BRANCH_READ_FORBIDDEN')
+
+    // Без участка оператор получает только свои участки.
+    const foreignAll = (await gql<any>(foreignChair, LIST, { d: null })).listExpensePlans
+    expect(foreignAll.every((p: any) => p.braname !== KRG)).toBe(true)
+    expect(await listed(branchChair, plan.id)).toBeDefined()
+    expect(await listed(chairman, plan.id)).toBeDefined()
+  })
+
   it(caseName('exp.plan.side.07', 'гость не читает реестр и не заводит записи'), async () => {
     const list = await gqlError(null, LIST, { d: null })
     expect(list).not.toBeNull()
