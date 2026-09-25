@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { APPENDIX_REPOSITORY, AppendixRepository } from '../../domain/repositories/appendix.repository';
 import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
+import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerChainActionRecord,
 } from '@coopenomics/innercoop';
@@ -43,6 +44,37 @@ export class ClearanceManagementInteractor {
       matrix_room_id: matrixRoomId,
     };
     this.eventEmitter.emit(CHATCOOP_CAPITAL_PROJECT_ROOM_ENSURE_MEMBER_EVENT, payload);
+  }
+
+  /**
+   * Заявка на допуск, поданная в цепь мимо API (capital::getclearance
+   * напрямую). Если председатель одобрил её в том же блоке, строка приложения
+   * в цепи создалась и закрылась внутри блока, дельты по ней нет — и одобрение
+   * не находило допуск вовсе, допуск не появлялся никогда (C28-80). Строка
+   * заводится по действию; поданную через API или пришедшую дельтой не трогаем.
+   * Действия блока выпускаются по порядку, поэтому одобрение её уже найдёт.
+   */
+  async handleGetClearance(actionData: InnerChainActionRecord): Promise<void> {
+    const request = actionData.data as CapitalContract.Actions.GetClearance.IGetClearance;
+    const appendixHash = String(request.appendix_hash).toLowerCase();
+    if (await this.appendixRepository.findByAppendixHash(appendixHash)) return;
+
+    const now = new Date();
+    const appendix = new AppendixDomainEntity({
+      _id: '',
+      block_num: actionData.block_num,
+      present: false,
+      appendix_hash: appendixHash,
+      status: AppendixStatus.CREATED,
+      _created_at: now,
+      _updated_at: now,
+    });
+    appendix.coopname = request.coopname;
+    appendix.username = request.username;
+    appendix.project_hash = String(request.project_hash).toLowerCase();
+    appendix.appendix = request.document as AppendixDomainEntity['appendix'];
+    await this.appendixRepository.save(appendix);
+    this.logger.debug(`Заявка на допуск ${appendixHash} заведена по действию цепи`);
   }
 
   /**

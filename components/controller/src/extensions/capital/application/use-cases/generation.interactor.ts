@@ -17,7 +17,6 @@ import { LOGGER_PORT, type ILoggerPort,
 } from '@coopenomics/innercoop';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { randomUUID } from 'crypto';
-import { CommitSyncService } from '../syncers/commit-sync.service';
 import { HOURS_FLOAT_EPSILON } from '../../domain/utils/hours-float';
 import {
   ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
@@ -46,7 +45,6 @@ export class GenerationInteractor {
     @Inject(PROJECT_REPOSITORY)
     private readonly projectRepository: ProjectRepository,
     private readonly permissionsService: PermissionsService,
-    private readonly commitSyncService: CommitSyncService,
     @Inject(ISSUE_LINKED_GIT_COMMIT_REPOSITORY)
     private readonly issueLinkedGitCommitRepository: IssueLinkedGitCommitRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -250,8 +248,11 @@ export class GenerationInteractor {
       data: enrichedData, // Обогащенные данные (будут сохранены только в БД)
     });
 
-    // Создаём и валидируем сущность (без сохранения) и получаем TypeORM сущность
-    const createdEntity = await this.commitRepository.create(commitEntity);
+    // Строка коммита сохраняется ДО транзакции: transact возвращается, когда
+    // блок уже разобран, и синхронизатор, не найдя строки по дельте своего
+    // блока, заводил её сам — после транзакции здесь вставлялась вторая с тем
+    // же хэшем (C28-80). Цепь отказала — строка удаляется.
+    const savedCommit = await this.commitRepository.saveCreated(await this.commitRepository.create(commitEntity));
 
     // Создаём данные для блокчейна с указанным временем
     // ВАЖНО: data НЕ отправляется в блокчейн, только в БД
@@ -265,13 +266,21 @@ export class GenerationInteractor {
       creator_hours: chainHours,
     };
 
-    // Вызываем блокчейн порт
-    const transactResult = await this.capitalBlockchainPort.createCommit(blockchainData);
-
-    this.logger.debug(`Транзакция выполнена успешно`);
+    try {
+      await this.capitalBlockchainPort.createCommit(blockchainData);
+    } catch (error) {
+      await this.commitRepository.delete(savedCommit._id);
+      throw error;
+    }
 
     // Фиксируем указанное количество времени в коммите
     await this.timeTrackingService.commitTime(contributor.contributor_hash, data.project_hash, chainHours, commitHash);
+
+    // Строка перечитывается: дельта своего блока уже записала в неё данные цепи.
+    const commit = await this.commitRepository.findByCommitHash(commitHash);
+    if (!commit) {
+      throw DomainError.internal('CAPITAL_CREATED_COMMIT_NOT_FOUND', { hash: commitHash });
+    }
 
     // Снимок задач, чьи часы вошли в коммит — для приёмки мастером и сборки результата
     const committedIssues = await this.timeTrackingService.getCommittedIssueSummaries(commitHash);
@@ -280,13 +289,9 @@ export class GenerationInteractor {
         type: 'committed_issues',
         data: { issues: committedIssues },
       };
-      if (!enrichedData) enrichedData = [];
-      enrichedData.push(issuesPayload);
-      createdEntity.data = enrichedData;
+      commit.data = [...(commit.data ?? []), issuesPayload];
+      await this.commitRepository.save(commit);
     }
-
-    // Сохраняем сущность в базу данных после успешной транзакции
-    await this.commitRepository.saveCreated(createdEntity);
 
     if (linkedRowIdsToConsume.length > 0) {
       await this.issueLinkedGitCommitRepository.markConsumed(linkedRowIdsToConsume, commitHash);
@@ -294,23 +299,7 @@ export class GenerationInteractor {
 
     this.logger.debug(`Коммит сохранен в БД с hash: ${commitHash}`);
 
-    // Синхронизируем коммит с блокчейном для получения полных данных (id, amounts и т.д.)
-    const syncedCommit = await this.commitSyncService.syncCommit(data.coopname, commitHash, transactResult);
-
-    if (!syncedCommit) {
-      // Если синхронизация не удалась, возвращаем данные из БД
-      this.logger.warn(`Не удалось синхронизировать коммит ${commitHash} с блокчейном, возвращаем данные из БД`);
-
-      const savedCommit = await this.commitRepository.findByCommitHash(commitHash);
-      if (!savedCommit) {
-        throw DomainError.internal('CAPITAL_CREATED_COMMIT_NOT_FOUND', { hash: commitHash });
-      }
-      return savedCommit;
-    }
-
-    this.logger.debug(`Коммит ${commitHash} успешно синхронизирован с блокчейном`);
-
-    return syncedCommit;
+    return commit;
   }
 
   /**

@@ -1360,7 +1360,6 @@
     "CAPITAL_CONTENT_REVISION_NOT_FOUND": "Редакция {rev} для {entityType} {entityHash} не найдена",
     "CAPITAL_CONTENT_REVISION_STALE": "Редакция {baseRev} клиента новее серверной {currentRev} для {entityType} {entityHash}: обновите данные",
     "CAPITAL_CONTRIBUTOR_ALREADY_REGISTERED": "Участник с именем пользователя {username} уже зарегистрирован в программе",
-    "CAPITAL_CONTRIBUTOR_DATA_AFTER_REGISTRATION_MISSING": "Не удалось получить данные участника {hash} из блокчейна после регистрации",
     "CAPITAL_CONTRIBUTOR_DATA_IN_APPENDIX_MISSING": "Не найдены данные участника в приложении к проекту",
     "CAPITAL_CONTRIBUTOR_HOURLY_RATE_MISSING": "Нельзя зафиксировать коммит: в профиле участника не задана стоимость часа. Укажите ставку и повторите.",
     "CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED": "Необходимо указать хотя бы одно из полей: _id, username или contributor_hash",

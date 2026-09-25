@@ -182,6 +182,22 @@ const REG_DOCS = ['generation_contract', 'storage_agreement', 'blagorost_agreeme
 export async function capitalMember(prefix = 'cap'): Promise<Who> {
   const who = freshMember({ prefix })
   await signCapitalAgreement(who)
+  await completeCapitalRegistration(who)
+  const chairToken = await tokenOf(CHAIRMAN)
+  const pending = await contributorOf(chairToken, who.account)
+  if (!pending?.contributor_hash)
+    throw new Error(`после регистрации у ${who.account} нет договора УХД в зеркале`)
+  await chairmanApprove(pending.contributor_hash)
+  await waitFor(async () => ((await contributorOf(chairToken, who.account))?.status === 'ACTIVE' ? true : null),
+    { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} действует в зеркале` })
+  return who
+}
+
+/**
+ * Пайщик завершает регистрацию в Благоросте, как на рабочем столе: пакет
+ * документов из генератора, подпись своим ключом, отправка через API.
+ */
+export async function completeCapitalRegistration(who: Who, about = 'Участник внешнего слоя тестов'): Promise<void> {
   const token = await tokenOf(who)
   const gen = await gqlPaced<any>(token, `mutation($d:GenerateCapitalRegistrationDocumentsInputDTO!){
     capitalGenerateRegistrationDocuments(data:$d){
@@ -195,16 +211,8 @@ export async function capitalMember(prefix = 'cap'): Promise<Who> {
       signed[key] = await signDocument(who.wif, bundle[key], who.account)
   }
   await gqlPaced(token, `mutation($d:CompleteCapitalRegistrationInputDTO!){ capitalCompleteRegistration(data:$d){ transaction } }`, {
-    d: { coopname: COOP, username: who.account, ...signed, about: 'Участник внешнего слоя тестов', rate_per_hour: '1000', hours_per_day: 8 },
+    d: { coopname: COOP, username: who.account, ...signed, about, rate_per_hour: '1000', hours_per_day: 8 },
   })
-  const chairToken = await tokenOf(CHAIRMAN)
-  const pending = await contributorOf(chairToken, who.account)
-  if (!pending?.contributor_hash)
-    throw new Error(`после регистрации у ${who.account} нет договора УХД в зеркале`)
-  await chairmanApprove(pending.contributor_hash)
-  await waitFor(async () => ((await contributorOf(chairToken, who.account))?.status === 'ACTIVE' ? true : null),
-    { timeoutMs: 120_000, intervalMs: 1_000, label: `договор УХД ${who.account} действует в зеркале` })
-  return who
 }
 
 // ── Проект ─────────────────────────────────────────────────────────────────

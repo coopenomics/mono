@@ -1,0 +1,41 @@
+feature: capital.clearance
+title: Допуск пайщика к проекту Благороста
+
+# Пайщик подаёт заявку на допуск к проекту — приложение к договору УХД
+# (capital::getclearance), председатель её одобряет или отклоняет. Узел
+# ведёт приложения в своей базе: по ним стол решает, видит ли пайщик
+# документы проекта и может ли вносить в него работу.
+#
+# Правка 25.09.2026 (C28-80): заявка, поданная в цепь мимо API, заводит строку
+# приложения по самому действию. Заявка и одобрение подряд часто попадают в
+# один блок: строка приложения в цепи создаётся и закрывается внутри него,
+# дельты нет, и одобрение не находило допуск — у пайщика его не появлялось.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/use-cases/clearance-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/appendix-sync.service.ts
+
+cases:
+  - id: cap.clr.side.01
+    level: backend
+    kind: side
+    scenario: >
+      Заявка на допуск подана в цепь мимо API, председатель одобряет её сразу —
+      в том же блоке.
+    expect: >
+      у пайщика подтверждённый допуск к проекту; строка приложения заведена по
+      действию заявки, одобрение её находит
+    test: components/controller/tests/unit/capital/clearance-direct-chain.test.ts
+    api: components/api-tests/src/capital/clearance.test.ts
+    status: passing
+
+  - id: cap.clr.side.02
+    level: backend
+    kind: side
+    scenario: >
+      Заявка подана через API либо её строка уже пришла дельтой.
+    expect: строка приложения не перезаписывается действием заявки
+    test: components/controller/tests/unit/capital/clearance-direct-chain.test.ts
+    api: components/api-tests/src/capital/clearance.test.ts
+    status: passing

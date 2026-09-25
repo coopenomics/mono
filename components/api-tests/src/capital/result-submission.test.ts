@@ -309,13 +309,17 @@ describe('Благорост: приём РИД — путь результат�
         convert_statement: apiDoc([alice]),
       },
     })
-    // Отметка нашла строку доли: ответ без ошибки и доля завершена. Признак
-    // is_completed в ответе API не проверяется — он теряется при чтении из
-    // базы (конструктор доли его не переносит, см. отчёт), и статус здесь —
-    // единственный честный признак.
+    // Отметка нашла строку доли: ответ без ошибки и доля завершена.
     expect(d.capitalConvertSegment.status).toBe('FINALIZED')
     const after = await segmentOf(aliceToken, component, alice.account)
     expect(after?.status).toBe('FINALIZED')
+  })
+
+  it(caseName('cap.rid.side.92', 'конвертированная доля читается завершённой'), async () => {
+    // До 25.09.2026 признак is_completed терялся при чтении из базы
+    // (конструктор доли его не переносил), и доля всегда была «не завершена».
+    const after = await segmentOf(await tokenOf(alice), component, alice.account)
+    expect(after?.is_completed).toBe(true)
   })
 
   it(caseName('cap.rid.side.39', 'акт не генерируется, если решение совета разошлось с заявлением'), async () => {
