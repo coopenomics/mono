@@ -34,7 +34,7 @@ export class ChainTextService {
     for (const item of items) {
       for (const field of fields) {
         const value = item[field];
-        if (typeof value === 'string' && isChainTextDigest(value)) digests.add(value);
+        if (typeof value === 'string' && isChainTextDigest(value)) digests.add(value.toLowerCase());
       }
     }
     if (digests.size === 0) return items;
@@ -49,8 +49,9 @@ export class ChainTextService {
       const resolved = { ...item };
       for (const field of fields) {
         const value = item[field];
-        if (typeof value === 'string' && texts.has(value)) {
-          (resolved as Record<string, unknown>)[field] = texts.get(value);
+        const digest = typeof value === 'string' ? value.toLowerCase() : undefined;
+        if (digest && texts.has(digest)) {
+          (resolved as Record<string, unknown>)[field] = texts.get(digest);
         }
       }
       return resolved;

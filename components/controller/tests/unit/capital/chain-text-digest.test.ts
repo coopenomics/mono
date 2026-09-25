@@ -17,9 +17,12 @@ describe('тексты проекта в цепи — хешем', () => {
     expect(chainTextDigest(null)).toBe('');
   });
 
-  it('хешем считается только 64 шестнадцатеричных символа в нижнем регистре', () => {
+  // Индексер отдаёт хеши строки цепи заглавными; до 25.09.2026 такой хеш
+  // принимался за текст и затирал описание проекта в базе (C28-80).
+  it('хешем считаются 64 шестнадцатеричных символа в любом регистре', () => {
     expect(isChainTextDigest('a'.repeat(64))).toBe(true);
-    expect(isChainTextDigest('A'.repeat(64))).toBe(false);
+    expect(isChainTextDigest('A'.repeat(64))).toBe(true);
+    expect(isChainTextDigest('g'.repeat(64))).toBe(false);
     expect(isChainTextDigest('a'.repeat(63))).toBe(false);
     expect(isChainTextDigest('Описание')).toBe(false);
     expect(isChainTextDigest('')).toBe(false);
@@ -37,6 +40,9 @@ describe('тексты проекта в цепи — хешем', () => {
     expect(chainTextMismatches(chain, { description: 'описание', invite: '' })).toEqual([]);
     expect(chainTextMismatches(chain, { description: 'другое', invite: '' })).toEqual(['description']);
     expect(chainTextMismatches(chain, { description: 'описание', invite: 'приглашение мимо цепи' })).toEqual(['invite']);
+    const upper = { description: sha('описание').toUpperCase(), invite: '' };
+    expect(chainTextMismatches(upper, { description: 'описание', invite: '' })).toEqual([]);
+    expect(chainTextMismatches(upper, { description: 'другое', invite: '' })).toEqual(['description']);
   });
 
   it('строки со старым текстом в цепи сверке не подлежат', () => {
@@ -55,7 +61,14 @@ describe('тексты проекта в цепи — хешем', () => {
     expect(entity.description).toBe('текст в базе');
     expect(entity.invite).toBe('приглашение в базе');
 
-    entity.updateFromBlockchain({ description: 'текст из цепи', invite: '', status: 'active' } as any, 11);
+    entity.updateFromBlockchain(
+      { description: sha('текст в базе').toUpperCase(), invite: sha('приглашение в базе').toUpperCase(), status: 'active' } as any,
+      11
+    );
+    expect(entity.description).toBe('текст в базе');
+    expect(entity.invite).toBe('приглашение в базе');
+
+    entity.updateFromBlockchain({ description: 'текст из цепи', invite: '', status: 'active' } as any, 12);
     expect(entity.description).toBe('текст из цепи');
     expect(entity.invite).toBe('');
   });
