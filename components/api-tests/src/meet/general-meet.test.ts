@@ -12,7 +12,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, signDocument, tableRows, tokenOf } from '../core'
+import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, randomHash, signDocument, tableRows, tokenOf } from '../core'
 
 
 const digest = (text: string): string => text ? crypto.createHash('sha256').update(text, 'utf8').digest('hex') : ''
@@ -139,5 +139,11 @@ describe('общее собрание: созыв и чтение', () => {
 
     expectAuthDenied(await gqlError(null, LIST, { d: { coopname: COOP } }))
     expectAuthDenied(await gqlError(null, GET, { d: { coopname: COOP, hash: meetHash } }))
+  })
+
+  // До 25.09.2026 чужой или ошибочный хэш давал ответ 500 с внутренним
+  // текстом «Hash для объекта meet не найден» (C28-80).
+  it(caseName('meet.gm.side.04', 'собрания с таким хэшем нет — отказ «не найдено», а не сбой сервера'), async () => {
+    expectCode(await gqlError(memberToken, GET, { d: { coopname: COOP, hash: randomHash() } }), 'MEET_NOT_FOUND')
   })
 })

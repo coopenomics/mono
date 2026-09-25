@@ -6,6 +6,9 @@ title: Общее собрание пайщиков — созыв по подп
 # (фича meet.chain-texts). Внешний тест созывает собрание председателем и
 # читает его пайщиком: это страхует оба репозитория при переводе на Kysely.
 
+# Правка 25.09.2026 (C28-80): собрание, которого нет ни в базе, ни в цепи,
+# отвечает отказом MEET_NOT_FOUND (404), а не ошибкой сервера 500.
+
 sources:
   backend:
     - components/controller/src/application/meet/**
@@ -60,3 +63,12 @@ cases:
     # и остаётся сиротой при отказе цепи. Нужен ответ: откатывать или так задумано.
     status: missing
     decision_needed: true
+
+  - id: meet.gm.side.04
+    level: backend
+    kind: side
+    scenario: Пайщик читает собрание по хешу, которого нет ни в базе, ни в цепи
+    expect: отказ MEET_NOT_FOUND со статусом 404, без внутреннего текста
+    test: components/api-tests/src/meet/general-meet.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
+    status: passing

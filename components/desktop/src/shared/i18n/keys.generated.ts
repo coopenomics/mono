@@ -2544,6 +2544,7 @@ export type MessageKey =
   | 'documentSigning.documentsSignCanvas.clear'
   | 'documentSigning.documentsSignCanvas.emptyError'
   | 'documentSigning.documentsSignCanvas.hint'
+  | 'errors.CHAIN_ACTION_ARGUMENT_INVALID'
   | 'errors.CHAIN_ASSERT'
   | 'errors.CHAIN_ERROR'
   | 'errors.COMMON_BAD_REQUEST'

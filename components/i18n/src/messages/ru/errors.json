@@ -1,5 +1,6 @@
 {
   "errors": {
+    "CHAIN_ACTION_ARGUMENT_INVALID": "Значение поля «{field}» записано неправильно",
     "CHAIN_ASSERT": "{message}",
     "CHAIN_ERROR": "{message}",
     "COMMON_BAD_REQUEST": "Неверный запрос",

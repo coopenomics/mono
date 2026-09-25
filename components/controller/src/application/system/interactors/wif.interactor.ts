@@ -19,8 +19,15 @@ export class WifInteractor {
     // Получаем аккаунт из блокчейна
     const blockchainAccount = await this.accountDomainService.getBlockchainAccount(data.username);
 
-    // Получаем публичный ключ из приватного в PUB_K1_ формате (основной формат)
-    const publicKeyObj = PrivateKey.fromString(data.wif).toPublic();
+    // Получаем публичный ключ из приватного в PUB_K1_ формате (основной формат).
+    // Строка, которая не разбирается как ключ, — неверный ввод, а не сбой
+    // сервера: до 25.09.2026 уходила ответом 500 (C28-80).
+    let publicKeyObj: ReturnType<PrivateKey['toPublic']>;
+    try {
+      publicKeyObj = PrivateKey.fromString(data.wif).toPublic();
+    } catch {
+      throw DomainError.badRequest('AUTH_INVALID_PRIVATE_KEY');
+    }
     const publicKeyK1 = publicKeyObj.toString(); // PUB_K1_... формат
 
     // Проверяем, что ключ есть в активных разрешениях

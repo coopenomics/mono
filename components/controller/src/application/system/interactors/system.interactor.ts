@@ -37,7 +37,6 @@ import {
 } from '~/domain/payment-method/ports/payment-method-domain.port';
 import { LoadContactsInteractor } from './load-contacts.interactor';
 import { isRegistrationOpen } from '~/domain/system/utils/is-registration-open.util';
-import { t } from '~/i18n';
 import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
@@ -68,7 +67,7 @@ export class SystemInteractor {
     // 3. Статус 'initialized' (предустановка через server_secret уже выполнена, теперь устанавливаем ключ)
     if (existingMono && existingMono.status) {
       if (existingMono.status !== SystemStatus.install && existingMono.status !== SystemStatus.initialized) {
-        throw new Error(t('system.systemInteractor.installKeyStatusPrefix') + existingMono.status);
+        throw DomainError.conflict('SYSTEM_INSTALL_KEY_STATUS_INVALID', { status: existingMono.status });
       }
     }
 

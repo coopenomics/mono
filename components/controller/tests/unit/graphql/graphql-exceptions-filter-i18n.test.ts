@@ -8,7 +8,7 @@
  */
 import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
-import { DomainError, HttpApiError, chainErrorCode, rethrowChainError, validationMessage } from '@coopenomics/extension-kit';
+import { DomainError, HttpApiError, chainErrorCode, chainRefusalOf, rethrowChainError, validationMessage } from '@coopenomics/extension-kit';
 
 jest.mock('@sentry/nestjs', () => ({
   withScope: (callback: (scope: unknown) => void) =>
@@ -19,6 +19,7 @@ jest.mock('~/config/logger', () => ({ __esModule: true, default: { warn: jest.fn
 jest.mock('~/config', () => ({ config: { coopname: 'voskhod' } }));
 
 import { GraphQLExceptionFilter } from '~/infrastructure/graphql/filters/graphql-exceptions.filter';
+import { AuthV2Error, AuthV2ErrorCode, authV2HttpStatus } from '~/domain/auth-v2/errors/auth-v2.error';
 
 function gqlHost(headers: Record<string, string> = {}) {
   const req = { headers, user: undefined };
@@ -79,6 +80,18 @@ describe('GraphQLExceptionFilter: коды отказов и перевод', ()
     expect(result.extensions.code).toBe('COMMON_INVALID_VALUE_FORMAT');
     expect(result.extensions.status).toBe(HttpStatus.BAD_REQUEST);
     expect(result.message).not.toContain('uuid');
+  });
+
+  // До 25.09.2026 отказ двухфакторки в GraphQL-мутации уходил ответом 500:
+  // статусы контура CoopID знал только его REST-фильтр (C28-80).
+  it('отказ контура CoopID — статус и код те же, что в REST', () => {
+    const error = new AuthV2Error(AuthV2ErrorCode.TwoFactorNotEnrolled, 'Второй фактор не подключён.');
+    const result = filter.catch(error, gqlHost()) as GraphQLError;
+
+    expect(result.message).toBe('Второй фактор не подключён.');
+    expect(result.extensions.code).toBe('two_factor_not_enrolled');
+    expect(result.extensions.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(result.extensions.status).toBe(authV2HttpStatus(AuthV2ErrorCode.TwoFactorNotEnrolled));
   });
 
   it('прежнее исключение со свободным текстом отвечает как раньше', () => {
@@ -163,6 +176,20 @@ describe('отказ цепи и сообщения валидации', () => {
 
   it('прочий сбой цепи — CHAIN_ERROR с исходным текстом', () => {
     expect(() => rethrowChainError(new Error('ECONNREFUSED'))).toThrow('ECONNREFUSED');
+    expect(chainRefusalOf(new Error('ECONNREFUSED'))).toBeNull();
+  });
+
+  // До 25.09.2026 сумма без символа или текст вместо номера падали при
+  // кодировании действия и уходили ответом 500 с текстом кодировщика (C28-80).
+  it('значение не укладывается в тип поля действия — отказ 400 с именем поля', () => {
+    const refusal = chainRefusalOf(new Error('Encoding error at root<fundprog>.amount<asset>: Invalid asset string'));
+    expect(refusal).toBeInstanceOf(DomainError);
+    expect(refusal!.code).toBe('CHAIN_ACTION_ARGUMENT_INVALID');
+    expect(refusal!.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    expect(refusal!.message).toBe('Значение поля «amount» записано неправильно');
+
+    const nested = chainRefusalOf(new Error('Encoding error at root<act>.doc<document2>.meta<string>: bad'));
+    expect(nested!.params).toEqual({ field: 'doc.meta' });
   });
 
   it('сообщение class-validator переводится в момент проверки', () => {
