@@ -10,6 +10,10 @@ title: Центр уведомлений — очередь доставки, ж
 # Внешний тест ставит уведомление мутацией председателя и ждёт фоновый
 # обработчик очереди опросом — это запись мимо мутации, а не пауза после неё.
 
+#
+# Правка 25.09.2026 (C28-80): подписки на уведомления личные — создать,
+# прочитать и снять подписку можно только свою, в том числе члену совета и
+# председателю; пайщик теперь сам снимает подписку своего устройства.
 sources:
   backend:
     - components/controller/src/application/notification-center/**
@@ -158,19 +162,22 @@ cases:
     kind: side
     scenario: Пайщик (роль user) отписывает своё устройство — рабочий стол зовёт deactivateWebPushSubscriptionById
     expect: подписка деактивирована
-    # Сейчас пайщик получает KIT_INSUFFICIENT_RIGHTS: у мутации роли chairman/member,
-    # аргумент без username, самообход не срабатывает. Отписаться может только совет.
-    status: missing
-    decision_needed: true
+    # До 25.09.2026 пайщик получал KIT_INSUFFICIENT_RIGHTS — отписаться мог
+    # только совет. Владелец подтвердил: каждый управляет своими подписками.
+    test: components/controller/tests/unit/notification/web-push-ownership.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
 
   - id: ntf.push.side.03
     level: backend
     kind: side
     scenario: Член совета подписывает устройство на имя другого пайщика, читает или деактивирует чужие подписки
     expect: отказ — подписка принадлежит пайщику, иначе совет получает чужие пуш-уведомления
-    # Сейчас проходит: роль member открывает все три операции без сверки владельца.
-    status: missing
-    decision_needed: true
+    # До 25.09.2026 проходило: роль member открывала все три операции без
+    # сверки владельца. Чужая подписка при снятии — «не найдена».
+    test: components/controller/tests/unit/notification/web-push-ownership.test.ts
+    api: components/api-tests/src/notifications/center.test.ts
+    status: passing
 
   - id: ntf.center.side.06
     level: backend

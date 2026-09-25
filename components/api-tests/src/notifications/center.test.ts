@@ -257,7 +257,7 @@ describe('веб-пуш подписки', () => {
   })
 
   it(caseName('ntf.push.side.01', 'чужие подписки пайщику закрыты, гостю закрыто всё, статистика — только председателю'), async () => {
-    expectCode(await gqlError(otherToken, SUB_LIST, { d: { username: member.account } }), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(otherToken, SUB_LIST, { d: { username: member.account } }), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
     expectAuthDenied(await gqlError(null, SUB_LIST, { d: { username: member.account } }))
     expectAuthDenied(await gqlError(null, SUB_CREATE, { d: { username: member.account, subscription: { endpoint: `${endpoint}-guest`, keys } } }))
     expectCode(await gqlError(councilToken, SUB_STATS), 'KIT_INSUFFICIENT_RIGHTS')
@@ -268,6 +268,16 @@ describe('веб-пуш подписки', () => {
     expect(stats.total).toBe(stats.active + stats.inactive)
   })
 
+  it(caseName('ntf.push.side.03', 'член совета и председатель не подписывают устройство на чужое имя, не читают и не снимают чужие подписки'), async () => {
+    const foreign = { d: { username: member.account, subscription: { endpoint: `${endpoint}-council`, keys } } }
+    expectCode(await gqlError(councilToken, SUB_CREATE, foreign), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
+    expectCode(await gqlError(chairToken, SUB_LIST, { d: { username: member.account } }), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
+    // чужая подписка — «не найдена»: существование не выдаётся
+    expectCode(await gqlError(councilToken, SUB_OFF, { d: { subscriptionId: subId } }), 'NOTIFICATION_SUBSCRIPTION_NOT_FOUND')
+    const list = (await gql<any>(memberToken, SUB_LIST, { d: { username: member.account } })).getUserWebPushSubscriptions
+    expect(list.map((s: any) => [s.id, s.isActive])).toEqual([[subId, true]])
+  })
+
   it(caseName('ntf.push.happy.02', 'повторная подписка того же устройства обновляет ключи, новой строки нет'), async () => {
     const keys2 = { p256dh: `${keys.p256dh}-2`, auth: `${keys.auth}-2` }
     const r = (await gql<any>(memberToken, SUB_CREATE, { d: { username: member.account, subscription: { endpoint, keys: keys2 } } })).createWebPushSubscription
@@ -276,9 +286,9 @@ describe('веб-пуш подписки', () => {
     expect(list).toHaveLength(1)
   })
 
-  it(caseName('ntf.push.happy.03', 'деактивированная подписка уходит из списка, повторная подписка устройства её возвращает'), async () => {
+  it(caseName('ntf.push.happy.03', 'пайщик сам снимает подписку своего устройства (ntf.push.side.02): она уходит из списка, повторная подписка её возвращает'), async () => {
     const statsBefore = (await gql<any>(chairToken, SUB_STATS)).getWebPushSubscriptionStats
-    expect((await gql<any>(chairToken, SUB_OFF, { d: { subscriptionId: subId } })).deactivateWebPushSubscriptionById).toBe(true)
+    expect((await gql<any>(memberToken, SUB_OFF, { d: { subscriptionId: subId } })).deactivateWebPushSubscriptionById).toBe(true)
     expect((await gql<any>(memberToken, SUB_LIST, { d: { username: member.account } })).getUserWebPushSubscriptions).toEqual([])
     const statsAfter = (await gql<any>(chairToken, SUB_STATS)).getWebPushSubscriptionStats
     expect(statsAfter.total).toBe(statsBefore.total)
@@ -288,7 +298,7 @@ describe('веб-пуш подписки', () => {
     expect(back.subscription).toMatchObject({ id: subId, isActive: true })
 
     // уборка: подписка на несуществующий адрес не должна жить после теста
-    await gql(chairToken, SUB_OFF, { d: { subscriptionId: subId } })
+    await gql(memberToken, SUB_OFF, { d: { subscriptionId: subId } })
     expect((await gql<any>(memberToken, SUB_LIST, { d: { username: member.account } })).getUserWebPushSubscriptions).toEqual([])
   })
 })

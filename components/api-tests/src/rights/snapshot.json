@@ -1140,8 +1140,8 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "pass",
-    "chairman": "pass"
+    "council": "deny",
+    "chairman": "deny"
   },
   "getWebPushSubscriptionStats": {
     "guest": "deny",
@@ -3252,8 +3252,8 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "pass",
-    "chairman": "pass"
+    "council": "deny",
+    "chairman": "deny"
   },
   "createWithdraw": {
     "guest": "deny",
@@ -3265,9 +3265,9 @@
   },
   "deactivateWebPushSubscriptionById": {
     "guest": "deny",
-    "member": "deny",
-    "supplier": "deny",
-    "branchChairman": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
     "council": "pass",
     "chairman": "pass"
   },
