@@ -6,6 +6,7 @@
     "COMMON_CONFLICT": "Конфликт данных",
     "COMMON_FORBIDDEN": "Доступ запрещен",
     "COMMON_INTERNAL": "Внутренняя ошибка сервера",
+    "COMMON_INVALID_VALUE_FORMAT": "Неверный формат значения — идентификатор или число записаны неправильно",
     "COMMON_NOT_FOUND": "Ресурс не найден",
     "COMMON_UNAUTHORIZED": "Не авторизован",
     "GATEWAY_OUTCOME_NOT_FOUND": "Объект возврата не существует с указанным хэшем",

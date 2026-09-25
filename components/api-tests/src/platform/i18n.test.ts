@@ -68,4 +68,15 @@ describe('platform.i18n: отказы доходят до клиента код�
     expect(e.extensions.params).toBeUndefined()
     expect(e.message).toBe('Unauthorized')
   })
+
+  it(caseName('plt.i18n.side.08', 'идентификатор не в формате колонки — отказ 400 с кодом, текст базы наружу не уходит'), async () => {
+    // До 25.09.2026 не-UUID вместо идентификатора давал 500 с текстом
+    // «invalid input syntax for type uuid» — 80 операций матрицы прав (C28-80).
+    const r = await gqlFull(await tokenOf(ROLES.member()), 'query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ id } }', { i: { order_id: 'not-a-uuid' } })
+    expect(r.errors).toHaveLength(1)
+    const e = r.errors[0]
+    expect(e.extensions.code).toBe('COMMON_INVALID_VALUE_FORMAT')
+    expect(e.extensions.status).toBe(400)
+    expect(e.message).not.toMatch(/invalid input syntax|uuid/)
+  })
 })

@@ -67,6 +67,20 @@ describe('GraphQLExceptionFilter: коды отказов и перевод', ()
     expect(error.message).toBe(result.message);
   });
 
+  // До 25.09.2026 не-UUID вместо идентификатора давал ответ 500 с текстом
+  // базы — 80 операций матрицы прав (C28-80).
+  it('значение не разобралось как тип колонки (Postgres 22P02) — отказ 400 с кодом, без текста базы', () => {
+    const dbError = Object.assign(new Error('invalid input syntax for type uuid: "abc"'), {
+      name: 'QueryFailedError',
+      driverError: { code: '22P02' },
+    });
+    const result = filter.catch(dbError, gqlHost()) as GraphQLError;
+
+    expect(result.extensions.code).toBe('COMMON_INVALID_VALUE_FORMAT');
+    expect(result.extensions.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(result.message).not.toContain('uuid');
+  });
+
   it('прежнее исключение со свободным текстом отвечает как раньше', () => {
     const result = filter.catch(new BadRequestException('Старый текст отказа'), gqlHost()) as GraphQLError;
 

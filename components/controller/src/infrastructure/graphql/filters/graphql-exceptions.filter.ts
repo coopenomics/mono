@@ -3,6 +3,7 @@ import { GqlExceptionFilter, GqlExecutionContext } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
 import mongoose from 'mongoose';
 import { RpcError } from 'eosjs';
+import { postgresErrorCode, PG_INVALID_TEXT_REPRESENTATION } from '~/infrastructure/database/postgres-error';
 import * as Sentry from '@sentry/nestjs';
 import logger from '../../../config/logger';
 import { config } from '~/config';
@@ -151,6 +152,13 @@ export class GraphQLExceptionFilter implements GqlExceptionFilter {
       errorCode = parsed.code ?? 'CHAIN_ASSERT';
       errorParams = { message: parsed.text };
       message = runWithLocale(locale, () => domainErrorMessage(errorCode as string, errorParams));
+    } else if (postgresErrorCode(exception) === PG_INVALID_TEXT_REPRESENTATION) {
+      // Значение не разобралось как тип колонки: не-UUID вместо идентификатора,
+      // текст вместо числа. Это неверный ввод, а не сбой сервера; до 25.09.2026
+      // уходило ответом 500 с внутренним текстом базы (C28-80).
+      statusCode = HttpStatus.BAD_REQUEST;
+      errorCode = 'COMMON_INVALID_VALUE_FORMAT';
+      message = tr(`errors.${errorCode}`);
     } else if (exception instanceof mongoose.Error) {
       statusCode = HttpStatus.BAD_REQUEST;
       message = exception.message;
