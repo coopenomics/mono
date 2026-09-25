@@ -21,12 +21,16 @@ title: Восстановление доступа magic-link'ом по email
 # Правка 25.09.2026 (C28-80): на стенде CI работает перехватчик почты
 # (Mailpit) — ссылку восстановления внешний слой берёт из письма, как пайщик,
 # и проходит контекст ссылки и подтверждение снаружи.
+# Правка 25.09.2026 (C28-80): офлайн-коды восстановления не выдаются, поэтому
+# выбрать их способом восстановления нельзя (решение владельца); начнём выдавать
+# — откроем. Прежде выбор проходил через API и оставлял пайщика без способа.
 
 sources:
   backend:
     - components/controller/src/application/auth-v2/recovery/recovery.service.ts
     - components/controller/src/application/auth-v2/recovery/recovery.controller.ts
     - components/controller/src/application/auth-v2/recovery/recovery-confirm.service.ts
+    - components/controller/src/application/auth-v2/recovery/recovery-strategy.service.ts
     - components/controller/src/application/auth-v2/two-factor/two-factor.service.ts
     - components/controller/src/domain/auth-v2/totp/totp.ts
     - components/controller/src/infrastructure/auth-v2/postgres-two-factor.repository.ts
@@ -244,5 +248,16 @@ cases:
     scenario: Тот же код приложения-аутентификатора предъявлен второй раз подряд (подслушан или отправлен повторно)
     expect: отказ неверным кодом, действие не выполнено; код следующего шага времени проходит
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/recovery.test.ts
+    status: passing
+
+  - id: cid.rec.side.09
+    level: backend
+    kind: side
+    scenario: Пайщик выбирает способом восстановления офлайн-коды, которые кооператив не выдаёт
+    expect: >
+      отказ AUTH_V2_RECOVERY_STRATEGY_UNAVAILABLE до проверки второго фактора —
+      код не тратится, способ не меняется (решение владельца 25.09.2026)
+    test: components/controller/src/application/auth-v2/recovery/recovery-strategy.service.spec.ts
     api: components/api-tests/src/coopid/recovery.test.ts
     status: passing

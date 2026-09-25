@@ -31,6 +31,8 @@ import {
   uniqueIp,
 } from './coopid-b.helpers'
 
+const SET_STRATEGY = 'mutation($d:SetRecoveryStrategyInput!){ setRecoveryStrategy(data:$d) }'
+
 async function requestRecovery(email: string, ip = uniqueIp()) {
   return rest('POST', '/coop/recovery/request', { ip, body: { email } })
 }
@@ -109,17 +111,20 @@ describe('coopid.recovery: запрос ссылки восстановлени�
     const first = totp(secret)
     await gqlOkFrom(ip, candidate.token, 'mutation($d:TwoFactorCodeInput!){ activateTwoFactor(data:$d) }', { d: { code: first } })
     // Код принимается один раз: тот же код второй раз — отказ (cid.rec.side.08).
-    const replay = await gqlFrom(ip, candidate.token, 'mutation($d:SetRecoveryStrategyInput!){ setRecoveryStrategy(data:$d) }', {
-      d: { strategy: 'OfflineCode', code: first },
-    })
+    const replay = await gqlFrom(ip, candidate.token, SET_STRATEGY, { d: { strategy: 'Council', code: first } })
     expect(replay.errors.length).toBeGreaterThan(0)
-    expect((await gqlOkFrom<any>(ip, candidate.token, '{ getRecoveryStrategy }')).getRecoveryStrategy).not.toBe('OfflineCode')
+    expect((await gqlOkFrom<any>(ip, candidate.token, '{ getRecoveryStrategy }')).getRecoveryStrategy).not.toBe('Council')
+
+    // cid.rec.side.09: офлайн-коды не выдаются — выбрать их нельзя, код второго
+    // фактора при этом не тратится (решение владельца 25.09.2026).
+    const next = totp(secret, Math.floor(Date.now() / 1000) + 30)
+    const offline = await gqlFrom(ip, candidate.token, SET_STRATEGY, { d: { strategy: 'OfflineCode', code: next } })
+    expect(offline.errors[0]?.code).toBe('AUTH_V2_RECOVERY_STRATEGY_UNAVAILABLE')
+
     // Код следующего шага времени (в допуске ±30 с) — новый, проходит.
-    await gqlOkFrom(ip, candidate.token, 'mutation($d:SetRecoveryStrategyInput!){ setRecoveryStrategy(data:$d) }', {
-      d: { strategy: 'OfflineCode', code: totp(secret, Math.floor(Date.now() / 1000) + 30) },
-    })
+    await gqlOkFrom(ip, candidate.token, SET_STRATEGY, { d: { strategy: 'Council', code: next } })
     const strategy = await gqlOkFrom<any>(ip, candidate.token, '{ getRecoveryStrategy }')
-    expect(strategy.getRecoveryStrategy).toBe('OfflineCode')
+    expect(strategy.getRecoveryStrategy).toBe('Council')
 
     const r = await requestRecovery(candidate.email)
     expect(r.status).toBe(202)
