@@ -264,6 +264,7 @@ cases:
     level: backend
     kind: happy
     scenario: владелец удаляет свои реквизиты
-    expect: реквизиты пропадают из списка (сейчас deletePaymentMethod отвергает любой вызов — method_id строкового поля проверяется как число, 422)
-    test: ~
-    status: missing
+    expect: реквизиты пропадают из списка (до 25.09.2026 deletePaymentMethod отвергал любой вызов — method_id строкового поля проверялся как число, 422)
+    test: components/api-tests/src/payments/payments.core.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: passing

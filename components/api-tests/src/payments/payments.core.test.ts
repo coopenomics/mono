@@ -297,4 +297,14 @@ describe('платежи ядра: паевой платёж, статус, че
     const seenByPayer = await methodsOf(payerToken, payer.account)
     expect(seenByPayer.find(m => m.method_id === added.method_id)?.data?.phone).toBe(phone)
   })
+
+  it(caseName('pay.core.happy.08', 'владелец удаляет свои реквизиты — они пропадают из списка'), async () => {
+    // До 25.09.2026 удаление отвергалось всегда: id способа оплаты — строка,
+    // а проверка входа ждала число (422).
+    const extra = await addSbpMethod(payerToken, payer.account, randomPhone())
+    expect((await gql<any>(payerToken, DELETE_METHOD, { d: { username: payer.account, method_id: extra.method_id } })).deletePaymentMethod).toBe(true)
+    const mine = await methodsOf(payerToken, payer.account)
+    expect(mine.some(m => m.method_id === extra.method_id)).toBe(false)
+    expect(mine.some(m => m.method_id === sbp.method_id)).toBe(true)
+  })
 })
