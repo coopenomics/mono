@@ -113,6 +113,24 @@ describe('отчёты: 6-НДФЛ и уведомление по НДФЛ из 
     expect(report.xml, `строка 02${term + 1}`).toContain(`СумНал${term + 1}Срок="${tax.byTerm[term]}"`)
   })
 
+  // До 25.09.2026 на стенде не были заведены реквизиты отчётов (ОКТМО), и XML
+  // не проходил схему ФНС; реквизиты заводит подготовка стенда (C28-80).
+  it(caseName('rep.ndfl6.break.03', 'квартальный с суммами и годовой со справками проходят схему ФНС'), async () => {
+    const quarter = await generateReport('NDFL6', Y, Q, afterSecond[`ndfl6:${Y}:${Q}`])
+    expect(quarter.errors).toEqual([])
+    expect(quarter.isValid).toBe(true)
+    const annual = await generateReport('NDFL6', Y, 4, afterSecond.annual)
+    expect(annual.errors).toEqual([])
+    expect(annual.isValid).toBe(true)
+  })
+
+  it(caseName('rep.ndfl6.happy.04', 'уведомление за расчётный период: КБК НДФЛ, удержанный налог, проходит схему'), async () => {
+    const uv = await generateReport('UV_NDFL', Y, P, await initialEdits('UV_NDFL', Y, P))
+    expect(uv.errors).toEqual([])
+    expect(uv.isValid).toBe(true)
+    expect(uv.xml).toContain(`КБК="${NDFL_KBK}"`)
+  })
+
   it(caseName('rep.ndfl6.side.03', 'удержание прошлого квартала входит в нарастающий итог следующих кварталов, но не в их сроки'), async () => {
     for (let q = Q + 1; q <= 4; q++) {
       const d = delta(taxOf(afterFirst[`ndfl6:${Y}:${q}`]), taxOf(before[`ndfl6:${Y}:${q}`]))

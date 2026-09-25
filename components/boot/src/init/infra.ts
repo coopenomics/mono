@@ -206,7 +206,7 @@ export async function installInitialData(blockchain: Blockchain, isExtended = fa
       position: 'Председатель',
       based_on: 'Решение общего собрания №1',
     },
-    country: 'Российская Федерация',
+    country: 'Russia',
     city: 'Москва',
     fact_address: '117593 г. Москва, муниципальный округ Ясенево, проезд Соловьиный, дом 1, помещение 1/1',
     full_address:
@@ -738,7 +738,7 @@ export async function installExtraData(blockchain: Blockchain) {
       position: 'Председатель',
       based_on: 'Решение общего собрания №1',
     },
-    country: 'Российская Федерация',
+    country: 'Russia',
     city: 'Москва',
     fact_address: '117593 г. Москва, ул. Тестовая, дом 1',
     full_address: '117593 г. Москва, ул. Тестовая, дом 1',

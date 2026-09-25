@@ -43,7 +43,7 @@
   "platform.schema-migrations": 8,
   "realtime.chain-changes": 6,
   "registration.intake-forms": 4,
-  "reports.ndfl6": 6,
+  "reports.ndfl6": 4,
   "reports.withheld-tax": 5,
   "soviet.robot": 15,
   "sync.write-wait-delta": 11,

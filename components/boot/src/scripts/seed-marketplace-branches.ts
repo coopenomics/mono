@@ -98,7 +98,7 @@ async function main() {
         position: 'председатель кооперативного участка',
         based_on: b.based_on,
       },
-      country: 'Российская Федерация',
+      country: 'Russia',
       city: b.city,
       fact_address: b.fact_address,
       full_address: b.fact_address,

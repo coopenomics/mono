@@ -63,6 +63,9 @@ describe('отчёты: перечисление удержанного НДФЛ
     expect(amount(item.amount)).toBe(1)
     expect(item.status).toBe('PENDING')
     expect(String(item.memo).length, 'назначение платежа').toBeGreaterThan(0)
+    // Реквизиты бюджета — из справочника по стране кооператива; до 25.09.2026
+    // засев стенда писал страну текстом, справочник её не узнавал (C28-80).
+    expect((item.requisite_rows as any[]).map(r => r.label), 'реквизиты бюджета в карточке кассира').toContain('КБК')
   })
 
   it(caseName('rt.cc.happy.08', 'выплата шлюза (перечисление налога кассиру) — сигнал совету по таблице выплат'), async () => {
