@@ -71,5 +71,8 @@ public:
   [[eosio::action]] void createoutpay(CREATEOUTPAY_SIGNATURE);
   [[eosio::action]] void outcomplete(eosio::name coopname, checksum256 outcome_hash);
   [[eosio::action]] void outdecline(eosio::name coopname, checksum256 outcome_hash, std::string reason);
-    
+
+  // Счётчик идентификаторов (get_global_id) живёт в аккаунте шлюза; без
+  // описания в ABI индексер не разбирал его строки и публиковал их пустыми.
+  struct [[eosio::table, eosio::contract(GATEWAY)]] counts : counts_base {};
 };
