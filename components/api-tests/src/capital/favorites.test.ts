@@ -71,6 +71,16 @@ describe('Благорост — избранное: добавление и ч�
     expect(has(await myFavorites(F), ghost)).toBe(false)
   })
 
+  it(caseName('cap.fav.side.10', 'чужой личный проект в избранное не ложится — ответ «не найдено», название не раскрывается'), async () => {
+    // До 25.09.2026 проверялось только существование цели, и через избранное
+    // читалось название чужого личного проекта.
+    const stranger = freshMember({ prefix: 'capfs' })
+    const r = await addFavoriteAs(stranger, 'PROJECT', project.project_hash)
+    expect(r.errors[0]?.code).toBe('CAPITAL_FAVORITE_TARGET_NOT_FOUND')
+    expect(JSON.stringify(r)).not.toContain(project.title)
+    expect(has(await myFavorites(stranger), project.project_hash)).toBe(false)
+  })
+
   it(caseName('cap.fav.side.02', 'повторное добавление той же цели не удваивает запись'), async () => {
     await addFavoriteAs(F, 'PROJECT', project.project_hash)
     const r = await addFavoriteAs(F, 'PROJECT', project.project_hash)

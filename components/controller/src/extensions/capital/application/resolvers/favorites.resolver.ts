@@ -42,7 +42,7 @@ export class FavoritesResolver {
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalFavoriteOutputDTO[]> {
     this.assertSelf(data.username, currentUser);
-    return this.favoritesService.addFavorite(data);
+    return this.favoritesService.addFavorite(data, currentUser);
   }
 
   @Mutation(() => [CapitalFavoriteOutputDTO], {

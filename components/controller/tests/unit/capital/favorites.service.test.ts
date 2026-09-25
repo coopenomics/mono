@@ -30,6 +30,20 @@ function makeRepository(overrides: Partial<FavoriteRepository> = {}): FavoriteRe
   };
 }
 
+const user = { username: 'ant', role: 'chairman' } as any;
+
+/** Репозиторий проектов: по умолчанию цель — кооперативный проект, виден всем. */
+function projects(project: any = { origin: 'blockchain', master: 'someone', local_owner: null }) {
+  return { findByHash: jest.fn().mockResolvedValue(project) } as any;
+}
+
+function generation(issue: any = {}, story: any = {}) {
+  return {
+    getIssueByHash: jest.fn().mockResolvedValue(issue),
+    getStoryByHash: jest.fn().mockResolvedValue(story),
+  } as any;
+}
+
 const input = {
   coopname: 'voskhod',
   username: 'ant',
@@ -44,26 +58,47 @@ describe('FavoritesService', () => {
         { ...input, title: 'Проект 1', parent_hash: null, created_at: CREATED_AT },
       ]),
     });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
-    const result = await service.addFavorite(input);
+    const result = await service.addFavorite(input, user);
 
     expect(repo.add).toHaveBeenCalledWith(input);
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Проект 1');
   });
 
+  it('чужой личный проект — «не найдено»: название через избранное не читается', async () => {
+    // До 25.09.2026 проверялось только существование цели.
+    const repo = makeRepository();
+    const service = new FavoritesService(
+      repo,
+      projects({ origin: 'local', master: 'owner', local_owner: 'owner' }),
+      generation(),
+    );
+    await expect(service.addFavorite(input, { username: 'stranger', role: 'user' } as any)).rejects.toBeInstanceOf(BadRequestException);
+    expect(repo.add).not.toHaveBeenCalled();
+  });
+
+  it('невидимая задача или требование — тоже «не найдено»', async () => {
+    const repo = makeRepository();
+    const service = new FavoritesService(repo, projects(), generation(null, null));
+    for (const target_type of [FavoriteTargetType.ISSUE, FavoriteTargetType.ARTIFACT]) {
+      await expect(service.addFavorite({ ...input, target_type }, user)).rejects.toBeInstanceOf(BadRequestException);
+    }
+    expect(repo.add).not.toHaveBeenCalled();
+  });
+
   it('отклоняет добавление несуществующей цели и ничего не пишет', async () => {
     const repo = makeRepository({ targetExists: jest.fn().mockResolvedValue(false) });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
-    await expect(service.addFavorite(input)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.addFavorite(input, user)).rejects.toBeInstanceOf(BadRequestException);
     expect(repo.add).not.toHaveBeenCalled();
   });
 
   it('удаление не проверяет существование цели — снять звёздочку можно всегда', async () => {
     const repo = makeRepository({ targetExists: jest.fn().mockResolvedValue(false) });
-    const service = new FavoritesService(repo);
+    const service = new FavoritesService(repo, projects(), generation());
 
     await expect(service.removeFavorite(input)).resolves.toEqual([]);
     expect(repo.remove).toHaveBeenCalledWith(input);

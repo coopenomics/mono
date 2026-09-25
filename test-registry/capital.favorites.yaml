@@ -21,6 +21,10 @@ title: Личное избранное — проекты, компоненты,
 # редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
 # случаев не менялись.
 
+#
+# Правка 25.09.2026 (C28-80): в избранное ложится только видимая пайщику цель
+# — по тем же правилам, что в списках. Раньше проверялось лишь существование,
+# и через избранное читалось название чужого личного проекта.
 sources:
   backend:
     - components/controller/src/extensions/capital/application/resolvers/favorites.resolver.ts
@@ -93,6 +97,15 @@ cases:
     api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
+
+  - id: cap.fav.side.10
+    level: backend
+    kind: side
+    scenario: Пайщик добавляет в избранное чужой личный проект (или невидимую ему задачу, требование), зная хэш
+    expect: отказ «не найдено» — тот же, что для несуществующей цели; название цели не раскрывается
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
+    status: passing
   - id: cap.fav.ui.01
     level: ui
     kind: happy
