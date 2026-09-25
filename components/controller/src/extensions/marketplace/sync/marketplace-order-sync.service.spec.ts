@@ -88,6 +88,13 @@ describe('заказ: дельта создания опережает запи�
     expect(adapter.takeEarlyChainState(HASH)).toBeNull();
   });
 
+  it('заказ упаковкой записывается с упаковкой — package_id не теряется', async () => {
+    // До 25.09.2026 persistAfterBlock не передавал package_id в строку заказа.
+    const { adapter, repo } = adapterWith();
+    await adapter.persistAfterBlock({ ...createInput, package_id: 'pkg-half', package_size: 0.5 });
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ package_id: 'pkg-half', package_size: 0.5 }));
+  });
+
   it('без отложенного состояния запись строки ничего из цепи не применяет', async () => {
     const { adapter, repo, order } = adapterWith();
     await adapter.persistAfterBlock(createInput);

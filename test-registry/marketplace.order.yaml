@@ -45,6 +45,9 @@ title: Заказ пайщика — оформление, приём и отк�
 # расчётом стоимости, что контракт (calcCostMinor): дробная мера по весу
 # (1,5 кг) больше не роняет превью и оформление ошибкой 500. Набор случаев
 # не менялся.
+#
+# Правка 2026-09-25 (C28-80): заказ упаковками записывается с упаковкой
+# (package_id терялся в persistAfterBlock).
 sources:
   backend:
     - components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.ts
@@ -155,7 +158,9 @@ cases:
       на цепь и в счётчики предложения уходит базовое количество, в счётчик упаковки — число упаковок;
       в заказе сохраняется упаковка; цена берётся за упаковку
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
+    # До 25.09.2026 упаковка терялась при записи строки заказа (persistAfterBlock).
 
   - id: mkt.order.side.09
     level: backend

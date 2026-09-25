@@ -311,11 +311,8 @@ describe('заказ: остаток предложения и упаковки'
     await clearCart(mt)
   })
 
-  // mkt.order.side.08 целиком не закрыт: заказ упаковками записывается без
-  // package_id (persistAfterBlock его не пишет) — баг платформы, см. отчёт
-  // mkt-order. Здесь — то, что работает, и заказ на предложение ivanpetrov
-  // для проверок поставщика ниже.
-  it('заказ упаковками: базовое количество в заказе и счётчиках, число упаковок у упаковки, цена за упаковку', async () => {
+  // Заказ на предложение ivanpetrov нужен и проверкам поставщика ниже.
+  it(caseName('mkt.order.side.08', 'заказ упаковками: базовое количество в заказе и счётчиках, число упаковок у упаковки, упаковка в заказе, цена за упаковку'), async () => {
     const small = packaged.packages.find((p: any) => p.size === 0.5)
     const big = packaged.packages.find((p: any) => p.size === 1)
     const before = await getOffer(ot, packaged.id)
@@ -328,6 +325,10 @@ describe('заказ: остаток предложения и упаковки'
     expect(o.package_size).toBe(0.5)
     expect(amount(o.price_per_unit)).toBe(50)
     expect(amount(o.total_cost)).toBe(100)
+    // Упаковка сохраняется в заказе (до 25.09.2026 терялась при записи строки).
+    expect(o.package_id).toBe(small.id)
+    const stored = (await gql<any>(mt, `query($i:MarketplaceGetOrderInput!){ marketplaceGetOrder(input:$i){ package_id } }`, { i: { order_id: o.id } })).marketplaceGetOrder
+    expect(stored.package_id).toBe(small.id)
     packagedOrderId = o.id
 
     const after = await getOffer(ot, packaged.id)
