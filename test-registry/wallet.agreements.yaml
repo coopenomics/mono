@@ -194,9 +194,10 @@ cases:
     level: backend
     kind: side
     scenario: совет читает журнал операций старого плана счетов
-    expect: у операции есть хэш пакета документов и пайщик (сейчас поля объявлены в схеме, но сервис их не передаёт — всегда null)
-    test: ~
-    status: missing
+    expect: у операции есть хэш пакета документов и пайщик (до 25.09.2026 поля были объявлены в схеме, но сервис их не передавал — всегда null)
+    test: components/controller/tests/unit/ledger/ledger-history-fields.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: passing
 
   - id: wal.agr.side.13
     level: backend
