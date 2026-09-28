@@ -44,6 +44,8 @@ import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, signContract, type IContract, type IContractDraft } from '../../../entities/Teacher';
 import { buildOfferDocument, fetchOnboardingState, signOffer, type EduOfferKind, type IEduOnboardingState } from '../api';
 import EduGateDocumentStep from './EduGateDocumentStep.vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../../shared/lib/live';
 import { t } from '../../../i18n';
 
 /**
@@ -179,6 +181,10 @@ async function goToDesk(): Promise<void> {
   await desktopStore.loadDesktop();
   void router.replace({ name: props.targetRoute, params: { coopname: route.params.coopname } });
 }
+
+// Договор преподавателя подписывает или отклоняет председатель, пока
+// преподаватель на этой странице: решение приходит по ленте, без перезагрузки.
+useLiveReload([EduLive.teacherContracts], load);
 
 onMounted(load);
 </script>

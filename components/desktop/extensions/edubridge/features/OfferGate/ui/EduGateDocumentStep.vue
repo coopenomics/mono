@@ -85,6 +85,7 @@ async function submit(): Promise<void> {
 }
 
 watch(() => props.stepKey, load);
+// realtime: нет источника — экземпляр документа формируется заново при открытии шага; перечитывание сбросило бы прочитанный текст и отметку согласия.
 onMounted(load);
 </script>
 

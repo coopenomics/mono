@@ -103,3 +103,16 @@ cases:
     test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
+
+  - id: chair.appr.side.07
+    level: backend
+    kind: side
+    scenario: >
+      Одобрение договора преподавателя или приложения к нему на курс (действия
+      edubridge apprvcontr / apprvannex) уходит председателю уведомлением.
+    expect: >
+      у уведомления свой заголовок и описание — «Договор УХД преподавателя»,
+      «Приложение к договору УХД на курс», а не общий «Новый запрос на
+      одобрение»; тип совпадает с действием контракта образования
+    test: components/controller/tests/unit/chairman/approval-types.test.ts
+    status: passing

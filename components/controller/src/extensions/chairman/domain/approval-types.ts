@@ -1,4 +1,4 @@
-import { t, t as i18nT } from '../i18n';
+import { t } from '../i18n';
 /**
  * Маппинг типов одобрений на заголовки и описания для уведомлений
  */
@@ -32,12 +32,12 @@ export const APPROVAL_TYPE_MAP = {
     description: t('chairman.approvalTypes.result.description'),
   },
   apprvcontr: {
-    title: i18nT('chairman.approvalTypes.teacherContract.title'),
-    description: i18nT('chairman.approvalTypes.teacherContract.description'),
+    title: t('chairman.approvalTypes.teacherContract.title'),
+    description: t('chairman.approvalTypes.teacherContract.description'),
   },
   apprvannex: {
-    title: i18nT('chairman.approvalTypes.courseAnnex.title'),
-    description: i18nT('chairman.approvalTypes.courseAnnex.description'),
+    title: t('chairman.approvalTypes.courseAnnex.title'),
+    description: t('chairman.approvalTypes.courseAnnex.description'),
   },
 } as const;
 
