@@ -12,7 +12,6 @@ import {
   DIRECTION_LABELS,
   PLATFORM_CARRIERS,
   createCourse,
-  fetchCourses,
   fetchPlatformCourses,
   fetchTeacherOptions,
   updateCourse,
