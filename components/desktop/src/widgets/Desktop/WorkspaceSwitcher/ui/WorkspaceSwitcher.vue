@@ -4,20 +4,18 @@ button.ws-switcher(
   type='button',
   :aria-haspopup='workspaces.length > 1 ? "menu" : undefined'
 )
-  span.ws-switcher__icon
-    span.ws-switcher__icon-svg(v-html='logoSvg')
-  .ws-switcher__text
-    span.ws-switcher__caption(:title='coopBrand') {{ coopBrand }}
-    span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
-  //- Плашка со стрелкой и словом «Столы» — чтобы в шапке читалась кнопка
+  span.ws-switcher__body
+    span.ws-switcher__icon
+      span.ws-switcher__icon-svg(v-html='logoSvg')
+    span.ws-switcher__text
+      span.ws-switcher__caption(:title='coopBrand') {{ coopBrand }}
+      span.ws-switcher__title-box
+        span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
+  //- Нижняя строка называет действие словами — чтобы в шапке читалась кнопка
   //- выбора стола, а не заголовок.
-  span.ws-switcher__pill(v-if='workspaces.length > 1', aria-hidden='true')
-    q-icon.ws-switcher__chevron(
-      name='expand_more',
-      size='16px',
-      :class='{ "ws-switcher__chevron--open": menuOpen }'
-    )
-    span.ws-switcher__pill-label {{ t('desktop.workspaceSwitcher.switchLabel') }}
+  span.ws-switcher__footer(v-if='workspaces.length > 1')
+    span {{ t('desktop.workspaceSwitcher.switchLabel') }}
+    q-icon.ws-switcher__footer-icon(name='unfold_more', size='18px')
 
   q-menu(
     v-if='workspaces.length > 1',
@@ -109,11 +107,11 @@ function onSelect(name: string): void {
 <style scoped>
 .ws-switcher {
   display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
+  flex-direction: column;
   width: 100%;
-  padding: var(--p-2, 8px);
+  padding: 0;
   margin: 0;
+  overflow: hidden;
   /* Рамка и фон видны всегда: без них шапка в покое выглядит заголовком,
      и неочевидно, что по ней открывается выбор стола. */
   background: var(--p-surface);
@@ -127,6 +125,13 @@ function onSelect(name: string): void {
 }
 .ws-switcher:hover {
   border-color: var(--p-primary-line);
+}
+
+.ws-switcher__body {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  padding: var(--p-2);
 }
 
 .ws-switcher__icon {
@@ -167,8 +172,15 @@ function onSelect(name: string): void {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Title допускает перенос на 3 строки — чтобы «Стол вычислительных ресурсов»
-   полностью помещался. Дальше — ellipsis. */
+/* Под название всегда занято две строки: высота шапки не зависит от длины
+   названия, и меню под ней не прыгает при смене стола. */
+.ws-switcher__title-box {
+  display: flex;
+  align-items: center;
+  height: calc(var(--p-fs-body) * 1.25 * 2);
+  margin-top: 2px;
+}
+/* «Стол вычислительных ресурсов» укладывается в две строки. Дальше — ellipsis. */
 .ws-switcher__title {
   font-size: var(--p-fs-body, 14px);
   line-height: 1.25;
@@ -178,37 +190,33 @@ function onSelect(name: string): void {
      независимо от того, как заведена строка в реестре workspace'ов. */
   text-transform: capitalize;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
-  padding-top: 2px;
 }
 
-.ws-switcher__pill {
-  flex: 0 0 auto;
-  display: inline-flex;
-  flex-direction: column;
+.ws-switcher__footer {
+  display: flex;
   align-items: center;
-  padding: var(--p-1);
-  border-radius: var(--p-r-xs);
-  background: var(--p-primary-soft);
-  color: var(--p-primary);
-}
-.ws-switcher__chevron {
-  transition: transform 0.15s ease;
-}
-.ws-switcher__chevron--open {
-  transform: rotate(180deg);
-}
-/* Подпись мельче подписи кооператива слева: плашке хватает намёка. */
-.ws-switcher__pill-label {
-  font-size: calc(var(--p-fs-eyebrow) - 2px);
+  justify-content: space-between;
+  padding: calc(var(--p-1) * 1.5) var(--p-2) calc(var(--p-1) * 1.5) var(--p-3);
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+  font-size: var(--p-fs-meta);
   line-height: 1;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--p-ink-2);
+  transition: color 0.15s ease;
+}
+.ws-switcher__footer-icon {
+  color: var(--p-ink-3);
+  transition: color 0.15s ease;
+}
+.ws-switcher:hover .ws-switcher__footer,
+.ws-switcher:hover .ws-switcher__footer-icon {
+  color: var(--p-primary);
 }
 
 /* Меню выбора стола: canon-padding по краям, отступы вокруг
