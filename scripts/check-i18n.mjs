@@ -443,6 +443,12 @@ function gateTypes() {
     const path = join(REPO_ROOT, rel);
     const expected = renderKeyTypes(app);
     if (flag('write')) {
+      // Писать только изменившееся: перезапись того же текста будит nodemon
+      // контроллера на стенде, и тот перезапускается без причины.
+      if (existsSync(path) && readFileSync(path, 'utf8') === expected) {
+        console.log(`  без изменений: ${rel}`);
+        continue;
+      }
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, expected);
       console.log(`  записано: ${rel}`);
