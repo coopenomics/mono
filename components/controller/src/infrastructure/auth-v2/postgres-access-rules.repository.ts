@@ -1,3 +1,4 @@
+import { affectedRows } from './raw-query-result';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
@@ -121,15 +122,15 @@ export class PostgresAccessRulesRepository implements IAccessRulesRepository, On
   async deleteExpired(now: Date): Promise<number> {
     const ds = await this.getDataSource();
     // Только истёкшие с непустым TTL: бессрочные (expires_at IS NULL) и ещё
-    // действующие не трогаем. RETURNING → число реально удалённых (детерминированно
-    // по всем драйверам), как в PostgresCapabilitySetsRepository.
-    const rows: { id: unknown }[] = await ds.query(
+    // действующие не трогаем. Число удалённых — из ответа DELETE (пара
+    // [строки, число] у TypeORM; см. raw-query-result.ts).
+    const raw: unknown = await ds.query(
       `DELETE FROM access_rules
         WHERE expires_at IS NOT NULL AND expires_at <= $1
        RETURNING 1 AS id`,
       [now],
     );
-    return rows.length;
+    return affectedRows(raw);
   }
 
   async onModuleDestroy(): Promise<void> {

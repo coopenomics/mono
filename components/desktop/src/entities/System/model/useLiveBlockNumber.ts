@@ -53,6 +53,7 @@ export function useLiveBlockNumber(source: () => number | null | undefined) {
   const start = () => {
     // На сервере таймеров не заводим: рендер там одноразовый.
     if (typeof window === 'undefined' || timer) return;
+    // timing: ui — плавный отсчёт номера блока между сигналами
     timer = setInterval(step, TICK_MS);
   };
 

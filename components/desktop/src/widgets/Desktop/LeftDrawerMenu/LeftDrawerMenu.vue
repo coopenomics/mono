@@ -49,6 +49,8 @@
 
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -216,6 +218,12 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (badgeTimer) clearInterval(badgeTimer);
 });
+
+// Счётчик корзины живёт по ленте: добавление с другой вкладки или устройства,
+// оформление заказа и смена остатков видны в меню сразу.
+useLiveReload(marketLiveTables('cart'), () =>
+  cartInMenu.value ? cartStore.load().catch(() => undefined) : undefined,
+);
 
 // --- Активный пункт через router -------------------------------------------
 

@@ -82,6 +82,7 @@ watch(projectHash, () => {
   void loadProjectPermissions();
 });
 
+// realtime: нет источника на вкладке — проект грузит карточка-родитель, вкладка берёт его для прав и заголовка; живые — её внутренние виджеты.
 onMounted(async () => {
   await loadProjectPermissions();
 });

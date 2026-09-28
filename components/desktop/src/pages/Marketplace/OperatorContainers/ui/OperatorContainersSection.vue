@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import { useFirstLoad } from 'src/shared/lib/composables'
 import QRCode from 'qrcode'
 import { useRoute } from 'vue-router'
@@ -37,6 +38,7 @@ import {
   encodeHandoffToken,
   escapeHtml,
   printLabelSheet,
+  marketLiveTables,
 } from 'src/shared/lib/marketplace'
 import { t as i18nT } from 'src/shared/i18n';
 
@@ -387,6 +389,10 @@ async function retire(container: MarketplaceContainerView): Promise<void> {
     retiringId.value = null
   }
 }
+
+// Боксы и ячейки живут по ленте: раскладка, перемещение и выдача из бокса
+// перечитывают раздел.
+useLiveReload(marketLiveTables('warehouse'), load)
 </script>
 
 <template lang="pug">

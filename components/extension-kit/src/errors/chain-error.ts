@@ -2,6 +2,8 @@ import { DomainError } from './domain-error';
 
 const ASSERT_PREFIX = /assertion failure with message: (.+?)(?:\n|$)/;
 const CODED = /^([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+):\s*(.*)$/s;
+/** Сбой кодирования действия по ABI: `Encoding error at root<fundprog>.amount<asset>: …`. */
+const ENCODING = /^Encoding error at root<[^>]*>((?:\.[^.<:]+<[^>]*>)*):/;
 
 /**
  * Разбор отказа контракта. Контракт пишет причину как `КОД: текст`
@@ -30,6 +32,29 @@ export function chainErrorCode(error: unknown): string | undefined {
 }
 
 /**
+ * Отказ контракта (`eosio::check`) как отказ с кодом; иной сбой цепи — null.
+ *
+ * Отказ контракта — ответ на действие пайщика, а не сбой сервера. Клиент цепи
+ * (@wharfkit/session) превращает его в простой Error, и без перевода он уходил
+ * ответом 500 без кода — в журнал ошибок как поломка (C28-80). Переводит
+ * единственная отправка в цепь, поэтому код получают все мутации сразу.
+ */
+export function chainRefusalOf(error: unknown): DomainError | null {
+  if (error instanceof DomainError) return error;
+  const raw: string = (error as { message?: string })?.message ?? String(error);
+  // Значение, которое не укладывается в тип поля действия (сумма без
+  // символа, текст вместо числа), — неверный ввод, до цепи оно не доходит.
+  const encoding = raw.match(ENCODING);
+  if (encoding) {
+    const field = encoding[1].split('.').filter(Boolean).map((part) => part.replace(/<[^>]*>$/, '')).join('.');
+    return DomainError.badRequest('CHAIN_ACTION_ARGUMENT_INVALID', { field });
+  }
+  if (!ASSERT_PREFIX.test(raw)) return null;
+  const { code, text } = parseChainAssert(raw);
+  return DomainError.badRequest(code ?? 'CHAIN_ASSERT', { message: text });
+}
+
+/**
  * Пробросить отказ цепи человеку.
  *
  * `eosio::check` возвращает сообщение обёрнутым в `assertion failure with
@@ -42,6 +67,8 @@ export function chainErrorCode(error: unknown): string | undefined {
  * прочий сбой цепи — `CHAIN_ERROR`, текст — параметром `message`.
  */
 export function rethrowChainError(error: unknown): never {
+  // Отказ, уже переведённый отправкой в цепь, уходит как есть.
+  if (error instanceof DomainError) throw error;
   const raw: string = (error as { message?: string })?.message ?? String(error);
   const match = raw.match(ASSERT_PREFIX);
   if (!match) throw DomainError.badRequest('CHAIN_ERROR', { message: raw });

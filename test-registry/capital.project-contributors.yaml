@@ -42,6 +42,21 @@ title: Список участников проекта и компонента
 # (1 с перед чтением таблицы цепи после транзакции) снята — transact
 # возвращается после разбора своего блока, строка уже видна.
 
+# Правка 24.09.2026 (C28-83): экраны фичи перечитываются по ленте изменений
+# (таблицы Благороста объявлены расширением, набор на столе —
+# shared/lib/live.ts) вместо опроса useDataPoller раз в 10–30 с. Поведение
+# фичи и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/project_managment/add_author/**
@@ -163,6 +178,7 @@ cases:
       лишь очередным сообщением от парсера — до тех пор список оставался
       без нового соавтора
     test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
   - id: cap.contrib.side.06
@@ -395,6 +411,7 @@ cases:
       (cap.resdesk.break.03). До 10.09.2026 отказ приходил каждому рядовому
       участнику, открывшему страницу, и падал в журнал ошибок
     test: components/controller/tests/unit/capital/segments-role.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
   - id: cap.contrib.break.18
@@ -411,6 +428,7 @@ cases:
       (extension-kit); свои доли по имени кандидат по-прежнему получает
       через самообход
     test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
   - id: capital.pc.side.fact-01
     level: backend
@@ -418,6 +436,7 @@ cases:
     scenario: "После транзакции строка сегмента читается из таблицы цепи."
     expect: "Чтение сразу, без паузы: transact вернулся, когда узел разобрал блок транзакции."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
 
 

@@ -39,6 +39,26 @@ title: Списки Благороста — раздел «Компоненты
 # 2026-08-21: дерево маршрутов (projectTreeChildren.ts) переведено с meta.roles на
 # meta.requires='Capital:access' — канон грантов, см. extensions.narrowing-policies.
 # Поведение фильтров/сортировок не затронуто.
+# Правка 24.09.2026 (C28-83): ленты проектов, компонентов и задач живут по
+# ленте изменений — по сигналу перечитываются все показанные страницы одним
+# запросом (окно liveWindow), тихо, с сохранением позиции прокрутки. Фильтры,
+# сортировка и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 24.09.2026 (C28-83): «развернуть все компоненты» срабатывает, когда
+# включён режим и пришёл список компонентов, — без задержек 200 и 50 мс;
+# искусственный скелетон на 100 мс при раскрытии компонента снят. Набор
+# случаев прежний.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   backend:
     - components/extension-kit/src/utils/sort-column.utils.ts
@@ -79,6 +99,7 @@ cases:
     scenario: список запрашивается с сортировкой по колонке сущности
     expect: сортировка применяется по этой колонке
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.01
@@ -87,6 +108,7 @@ cases:
     scenario: поле сортировки не передано
     expect: список сортируется умолчанием, отказа нет
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.side.02
@@ -95,13 +117,21 @@ cases:
     scenario: клиент прислал имя поля, которого у сущности нет (устаревшая ссылка, опечатка)
     expect: список отдаётся, сортировка падает на умолчание
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   - id: cap.lists.break.01
     level: backend
     kind: break
     scenario: в поле сортировки дописан SQL
-    expect: имя отвергается, применяется умолчание
+    expect: >
+      запрос отклоняется проверкой ввода (422) до построения запроса — то же
+      правило, что platform.sort.break.01; выбор колонки такое имя тоже не
+      пропускает и берёт умолчание — второй рубеж, если проверку ввода обойдут
+    # Сведено с platform.list-sort-order-by 25.09.2026 (C28-80): прежде здесь
+    # было «применяется умолчание», а платформенный реестр говорил «отказ».
+    # Посторонние символы — отказ; допустимое имя без колонки — умолчание
+    # (cap.lists.side.02, platform.sort.break.02).
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
     status: written
 
@@ -183,6 +213,7 @@ cases:
     scenario: задачи запрашиваются без указания компонента пайщиком без допуска к чужому проекту
     expect: чужие задачи не попадают в выборку и не считаются в totalCount
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
 # 2026-08-18: в ComponentListRow исправлено имя события перехода к родительскому

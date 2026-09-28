@@ -40,6 +40,9 @@ import { DOCUMENT_PORT, type IDocumentPort, type InnerGeneratedDocument, ACCOUNT
 import { TransactionDTO, DomainError } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
+/** Роли, которым открыты все заявки в доверенные лица: совет и председатель. */
+const COUNCIL_ROLES = ['member', 'chairman'];
+
 /**
  * Сервис собраний и решений кооперативных участков.
  * Действия отправляются в контракт branch с подписью кооператива;
@@ -87,6 +90,26 @@ export class KuService {
     if (decision.initiator !== currentUser.username) {
       throw DomainError.forbidden('KU_ACTION_INITIATOR_ONLY');
     }
+  }
+
+  /** Фильтр заявок, сужённый до того, что вызывающему положено видеть. */
+  private async scopeTrustRequestFilter(
+    filter: KuTrustRequestFilterInputDTO | undefined,
+    currentUser: IMonoAccount | undefined
+  ): Promise<KuTrustRequestFilterInputDTO> {
+    const scoped: KuTrustRequestFilterInputDTO = { ...(filter ?? {}) };
+    if (!currentUser || COUNCIL_ROLES.includes(currentUser.role)) return scoped;
+
+    // Председательство на участке проверяется по цепи; без кооператива в
+    // фильтре проверять нечего — остаются только свои заявки.
+    if (scoped.braname && scoped.coopname) {
+      const branch = await this.branchBlockchainPort
+        .getBranch(scoped.coopname, scoped.braname)
+        .catch(() => null);
+      if (branch?.trustee === currentUser.username) return scoped;
+    }
+    scoped.username = currentUser.username;
+    return scoped;
   }
 
   private async assertIsBranchTrustee(currentUser: IMonoAccount, requestHash: string): Promise<void> {
@@ -467,11 +490,20 @@ export class KuService {
     return dto;
   }
 
+  /**
+   * Заявки в доверенные лица участка. Заявка несёт договор с паспортом, адресом
+   * и телефоном заявителя, поэтому видят её не все: совет и председатель
+   * кооператива — все заявки, председатель участка — заявки своего участка,
+   * пайщик — только свои. До 25.09.2026 список отдавался любому пайщику
+   * целиком (нашёл внешний слой).
+   */
   async getTrustRequests(
     filter?: KuTrustRequestFilterInputDTO,
-    options?: PaginationInputDTO
+    options?: PaginationInputDTO,
+    currentUser?: IMonoAccount
   ): Promise<PaginationResult<KuTrustRequestDTO>> {
-    const result = await this.trustRequestRepository.findAllPaginated(filter, options);
+    const scoped = await this.scopeTrustRequestFilter(filter, currentUser);
+    const result = await this.trustRequestRepository.findAllPaginated(scoped, options);
 
     const items = await Promise.all(
       result.items.map(async (item) => {

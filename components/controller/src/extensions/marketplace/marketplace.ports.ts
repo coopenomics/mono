@@ -12,6 +12,7 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   AGREEMENT_CATALOG_PORT,
   BRANCH_PORT,
   CHAIN_PORT,
@@ -33,7 +34,6 @@ import {
   PAYMENT_DESK_PORT,
   PAYMENT_METHOD_PORT,
   PROGRAM_AGREEMENT_PORT,
-  REALTIME_CHANNEL_PORT,
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
   SOVIET_ROBOT_PORT,
@@ -69,7 +69,6 @@ export const marketplacePorts = {
     PAYMENT_DESK_PORT,
     PAYMENT_METHOD_PORT,
     PROGRAM_AGREEMENT_PORT,
-    REALTIME_CHANNEL_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     USER_CERTIFICATE_PORT,
     // Верификация личности получателя: гейт выдачи имущества (105-28).
@@ -84,5 +83,7 @@ export const marketplacePorts = {
     // Робот решений совета: без него выдача и гарантийный возврат ждут людей
     // в повестке столько, сколько нужно, — стол заказов работает и так.
     SOVIET_ROBOT_PORT,
+    // Лента изменений: экраны стола обновляются по общей ленте (C28-83).
+    CHAIN_CHANGES_PORT,
   ],
 };

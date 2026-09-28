@@ -14,6 +14,7 @@ import { ReportDraftResolver } from './application/resolvers/report-draft.resolv
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
 import { WithheldTaxResolver } from './application/resolvers/withheld-tax.resolver';
 import { WithheldTaxService } from './application/services/withheld-tax.service';
+import { ReportsLiveFeedService } from './application/services/reports-live-feed.service';
 import { WithheldTaxPayoutSyncService } from './application/services/withheld-tax-payout-sync.service';
 import { WithheldTaxBlockchainAdapter } from './infrastructure/adapters/withheld-tax-blockchain.adapter';
 import { WITHHELD_TAX_BLOCKCHAIN_PORT } from './domain/ports/withheld-tax-blockchain.port';
@@ -46,6 +47,7 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
     ]),
   ],
   providers: [
+    ReportsLiveFeedService,
     ReportRegistryService,
     ReportPreviewService,
     ReportRequisitesService,

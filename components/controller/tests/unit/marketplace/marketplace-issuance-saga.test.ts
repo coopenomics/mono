@@ -311,12 +311,22 @@ describe('Закрывающая подпись оператора (closeIssuanc
   });
 
   it('повторное закрытие уже закрытой саги — no-op', async () => {
+    // Репозиторий как настоящий: закрытой саги среди активных нет. Прежде тест
+    // подменял поиск активных и прятал, что повтор получал «выдача не начата»
+    // (до 25.09.2026).
     const m = buildMocks({ sagas: [buildSaga({ stage: MarketplaceIssuanceSagaStages.CLOSED, act1_document: memberAct })] });
-    m.sagaRepo.findActiveByOrderId.mockResolvedValue(m.sagaStore.get('saga-1')!);
     const service = buildService(m);
     stubSignatureChecks(service);
-    await close(service);
+    const saga = await close(service);
+    expect(saga.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
     expect(m.chainPort.issueAct2).not.toHaveBeenCalled();
+  });
+
+  it('ход выдачи читается и после закрытия', async () => {
+    const m = buildMocks({ sagas: [buildSaga({ stage: MarketplaceIssuanceSagaStages.CLOSED, act1_document: memberAct })] });
+    const service = buildService(m);
+    const saga = await service.getSagaByOrder(COOP, 'order-1');
+    expect(saga?.stage).toBe(MarketplaceIssuanceSagaStages.CLOSED);
   });
 });
 

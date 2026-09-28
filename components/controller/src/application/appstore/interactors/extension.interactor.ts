@@ -86,7 +86,7 @@ export class ExtensionInteractor<TConfig = any> {
 
   // Установка нового приложения
   async uninstallApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<boolean> {
-    if (!appData.name) throw DomainError.internal('APPSTORE_EXTENSION_NAME_REQUIRED');
+    if (!appData.name) throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
 
     // удаление приложения
     const result = await this.extensionDomainService.uninstallApp(appData);
@@ -100,7 +100,7 @@ export class ExtensionInteractor<TConfig = any> {
     const defaultApps = this.extensionDomainService.getDefaultApps();
 
     for (const app of defaultApps) {
-      if (!app.name) throw DomainError.internal('APPSTORE_EXTENSION_NAME_REQUIRED');
+      if (!app.name) throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
       const a = await this.extensionDomainService.getAppByName(app.name);
       if (!a) await this.extensionDomainService.installApp(app);
     }

@@ -68,6 +68,7 @@ const goBack = () => {
   }
 };
 
+// realtime: нет источника — страница расширения держит форму его настроек: живое перечитывание затёрло бы ввод; каталог и список установленных живут по ленте.
 onMounted(async () => {
   if (route.params.name) {
     await extStore.loadExtensions({ name: route.params.name as string });

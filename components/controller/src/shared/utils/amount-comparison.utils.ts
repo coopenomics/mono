@@ -12,14 +12,14 @@ export class AmountComparisonUtils {
   static parseAmountAndCurrency(amountStr: string): { amount: number; currency: string } {
     const parts = amountStr.split(' ');
     if (parts.length !== 2) {
-      throw DomainError.internal('AMOUNT_FORMAT_INVALID', { amountStr });
+      throw DomainError.badRequest('AMOUNT_FORMAT_INVALID', { amountStr });
     }
 
     const [amountPart, currency] = parts;
     const amount = parseFloat(amountPart);
 
     if (isNaN(amount)) {
-      throw DomainError.internal('AMOUNT_VALUE_INVALID', { amountPart });
+      throw DomainError.badRequest('AMOUNT_VALUE_INVALID', { amountPart });
     }
 
     return { amount, currency };

@@ -180,6 +180,7 @@ const handleConfirmRespond = async () => {
 };
 
 // Загружаем родительский проект и инициализируем форму при монтировании компонента
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 onMounted(async () => {
   await loadParentProject();
   initializeForm();

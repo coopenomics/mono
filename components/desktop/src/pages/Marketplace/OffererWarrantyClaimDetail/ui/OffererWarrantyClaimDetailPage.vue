@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard } from 'src/shared/ui/base';
@@ -119,6 +121,9 @@ async function admit(): Promise<void> {
 onMounted(() => {
   void load();
 });
+
+// Претензия живёт по ленте: согласие, возражение и зачёт видны сразу.
+useLiveReload(marketLiveTables('supplier', 'return'), load);
 </script>
 
 <template lang="pug">

@@ -36,7 +36,7 @@ export class PaymentMethodService {
       methodType = 'sbp';
       methodData = data.sbp_data;
     } else {
-      throw DomainError.internal('PAYMENT_METHOD_TYPE_REQUIRED');
+      throw DomainError.badRequest('PAYMENT_METHOD_TYPE_REQUIRED');
     }
 
     const domainData = {

@@ -398,59 +398,50 @@ describe('тест контракта CAPITAL', () => {
     expect(parseFloat(state.config.creators_voting_percent)).toBe(data.config.creators_voting_percent)
   })
 
-  it('импорт вкладчика ПОСЛЕ установки конфига - должен провалиться', async () => {
-    // Создаем еще одного тестового пользователя для импорта
+  // Импорт работает и в кооперативе, который уже активировал контракт: так
+  // старых пайщиков с бумажными договорами вводят в электронный учёт (C28-42,
+  // ccb28a8). Проверка «контракт ещё не активирован» в importcontrib снята
+  // намеренно; прежде тест ждал здесь отказа (решение владельца 24.09.2026).
+  it('импорт вкладчика ПОСЛЕ установки конфига - разрешён', async () => {
     const importUsername2 = generateRandomUsername()
     console.log('importUsername2: ', importUsername2)
     await addUser(importUsername2)
 
-    const contributorHash2 = generateRandomSHA256()
     const contributionAmount2 = '5000.0000 RUB'
-
-    // Пытаемся импортировать вкладчика после установки конфига
     const importData2: CapitalContract.Actions.ImportContributor.IImportContributor = {
       coopname: testCoop,
       username: importUsername2,
-      contributor_hash: contributorHash2,
+      contributor_hash: generateRandomSHA256(),
       contribution_amount: contributionAmount2,
       memo: 'договор №123 от такого то числа',
     }
 
-    // Ожидаем, что транзакция провалится
-    await expect(
-      blockchain.api.transact(
-        {
-          actions: [
-            {
-              account: CapitalContract.contractName.production,
-              name: CapitalContract.Actions.ImportContributor.actionName,
-              authorization: [
-                {
-                  actor: testCoop,
-                  permission: 'active',
-                },
-              ],
-              data: importData2,
-            },
-          ],
-        },
-        {
-          blocksBehind: 3,
-          expireSeconds: 30,
-        },
-      ),
-    ).rejects.toThrow() // Ожидаем ошибку
+    const result = await blockchain.api.transact(
+      {
+        actions: [
+          {
+            account: CapitalContract.contractName.production,
+            name: CapitalContract.Actions.ImportContributor.actionName,
+            authorization: [{ actor: testCoop, permission: 'active' }],
+            data: importData2,
+          },
+        ],
+      },
+      { blocksBehind: 3, expireSeconds: 30 },
+    )
+    expect(result.transaction_id).toBeDefined()
 
-    // Проверяем, что вкладчик НЕ был создан
     const contributorTable = await blockchain.getTableRows(
       CapitalContract.contractName.production,
       testCoop,
       'contributors',
     )
-    expect(contributorTable.length).toBe(1)
+    expect(contributorTable.length, 'второй импортированный участник появился рядом с первым').toBe(2)
+    const contributor = contributorTable.find((c: any) => c.username === importUsername2)
+    expect(contributor, 'запись участника после импорта').toBeDefined()
+    expect(contributor.status).toBe('import')
 
-    // Проверяем, что кошелек программы НЕ был создан
     const wallet = await getUserProgramWalletAmount(blockchain, testCoop, importUsername2, capitalProgramId)
-    expect(wallet).toBe('0.0000 RUB')
+    expect(parseFloat(wallet)).toBe(parseFloat(contributionAmount2))
   })
 })

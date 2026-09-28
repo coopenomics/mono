@@ -1104,7 +1104,7 @@ export type ScalarCoders = {
 	JSONObject?: ScalarResolver;
 	ID?: ScalarResolver;
 }
-type ZEUS_UNIONS = GraphQLTypes["MarketplaceEvent"] | GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
+type ZEUS_UNIONS = GraphQLTypes["PaymentMethodData"] | GraphQLTypes["PrivateAccountSearchData"] | GraphQLTypes["UserCertificateUnion"]
 
 export type ValueTypes = {
     ["AccessGrant"]: AliasType<{
@@ -10085,17 +10085,6 @@ export type ValueTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
-	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
-["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
-	/** Кооперативный участок приёмки. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор акта приёмки. */
-	reception_id?:boolean | `@${string}`,
-	/** Новый статус акта приёмки. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceAplReceptionStatusChangedEvent']?: Omit<ValueTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
-}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -10444,6 +10433,8 @@ export type ValueTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code?:boolean | `@${string}`,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** Название товара (для отображения). */
@@ -10906,25 +10897,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceEconomyConfig']?: Omit<ValueTypes["MarketplaceEconomyConfig"], "...on MarketplaceEconomyConfig">
 }>;
-	["MarketplaceEvent"]: AliasType<{		["...on MarketplaceAplReceptionStatusChangedEvent"]?: ValueTypes["MarketplaceAplReceptionStatusChangedEvent"],
-		["...on MarketplaceIssuanceSagaUpdatedEvent"]?: ValueTypes["MarketplaceIssuanceSagaUpdatedEvent"],
-		["...on MarketplaceOfferModerationEvent"]?: ValueTypes["MarketplaceOfferModerationEvent"],
-		["...on MarketplaceOfferPublishedEvent"]?: ValueTypes["MarketplaceOfferPublishedEvent"],
-		["...on MarketplaceOfferStockChangedEvent"]?: ValueTypes["MarketplaceOfferStockChangedEvent"],
-		["...on MarketplaceOrderReadyToReceiveEvent"]?: ValueTypes["MarketplaceOrderReadyToReceiveEvent"],
-		["...on MarketplaceOrderStatusChangedEvent"]?: ValueTypes["MarketplaceOrderStatusChangedEvent"],
-		["...on MarketplacePaymentStatusChangedEvent"]?: ValueTypes["MarketplacePaymentStatusChangedEvent"],
-		["...on MarketplaceReceptionPendingSignEvent"]?: ValueTypes["MarketplaceReceptionPendingSignEvent"],
-		["...on MarketplaceReturnClaimStatusChangedEvent"]?: ValueTypes["MarketplaceReturnClaimStatusChangedEvent"],
-		["...on MarketplaceStockProposalCreatedEvent"]?: ValueTypes["MarketplaceStockProposalCreatedEvent"],
-		["...on MarketplaceStockProposalResolvedEvent"]?: ValueTypes["MarketplaceStockProposalResolvedEvent"],
-		["...on MarketplaceWriteoffStatusChangedEvent"]?: ValueTypes["MarketplaceWriteoffStatusChangedEvent"]
-		__typename?: boolean | `@${string}`
-}>;
-	["MarketplaceEventsInput"]: {
-	/** Кооперативное имя. */
-	coopname: string | Variable<any, string>
-};
 	["MarketplaceExpressPickupCandidate"]: AliasType<{
 	/** КУ-получатель. */
 	braname?:boolean | `@${string}`,
@@ -11135,25 +11107,6 @@ export type ValueTypes = {
 }>;
 	/** Этап выдачи имущества: факт зафиксирован → заявление подписано → ждём совет → решение принято, ждём подпись акта → акт подписан заказчиком, ждём закрытие → закрыто; либо отказ совета / отмена оператором. */
 ["MarketplaceIssuanceSagaStage"]:MarketplaceIssuanceSagaStage;
-	/** Этап выдачи имущества изменился: подписано заявление, совет решил, подписан акт, выдача закрыта или отменена. Состояние дочитывается запросом саги. */
-["MarketplaceIssuanceSagaUpdatedEvent"]: AliasType<{
-	/** Кооперативный участок выдачи. */
-	braname?:boolean | `@${string}`,
-	/** Как принимается решение совета: роботом, людьми или ещё не известно. */
-	decision_mode?:boolean | `@${string}`,
-	/** Контрольная сумма заказа. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-	/** Бандл выдачи у стойки, если выдача идёт в его составе. */
-	proposal_id?:boolean | `@${string}`,
-	/** Идентификатор саги выдачи. */
-	saga_id?:boolean | `@${string}`,
-	/** Этап саги выдачи. */
-	stage?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceIssuanceSagaUpdatedEvent']?: Omit<ValueTypes["MarketplaceIssuanceSagaUpdatedEvent"], "...on MarketplaceIssuanceSagaUpdatedEvent">
-}>;
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком вместе с текущим ходом выдачи. */
 ["MarketplaceIssuanceStatementPayload"]: AliasType<{
 	saga?:ValueTypes["MarketplaceIssuanceSaga"],
@@ -11487,15 +11440,6 @@ export type ValueTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null | Variable<any, string>
 };
-	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
-["MarketplaceOfferModerationEvent"]: AliasType<{
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-	/** Новый статус предложения. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOfferModerationEvent']?: Omit<ValueTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
-}>;
 	["MarketplaceOfferPackage"]: AliasType<{
 	/** Идентификатор упаковки в каталоге предложения. */
 	id?:boolean | `@${string}`,
@@ -11536,15 +11480,6 @@ export type ValueTypes = {
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number | Variable<any, string>
 };
-	/** Свободный остаток одной упаковки предложения — в упаковках. */
-["MarketplaceOfferPackageStock"]: AliasType<{
-	/** Идентификатор упаковки в каталоге предложения. */
-	package_id?:boolean | `@${string}`,
-	/** Свободно к заказу упаковок. */
-	quantity_available?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOfferPackageStock']?: Omit<ValueTypes["MarketplaceOfferPackageStock"], "...on MarketplaceOfferPackageStock">
-}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -11557,30 +11492,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOfferPaginationResult']?: Omit<ValueTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 }>;
-	/** В каталоге появилось новое предложение. */
-["MarketplaceOfferPublishedEvent"]: AliasType<{
-	/** Категория предложения. */
-	category_id?:boolean | `@${string}`,
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOfferPublishedEvent']?: Omit<ValueTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
-}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
-	/** У предложения в каталоге изменилось доступное количество. */
-["MarketplaceOfferStockChangedEvent"]: AliasType<{
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
-	packages?:ValueTypes["MarketplaceOfferPackageStock"],
-	/** Доступное к заказу количество базовых единиц. */
-	quantity_available?:boolean | `@${string}`,
-	/** Предложение без ограничения по количеству. */
-	unlimited_flag?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOfferStockChangedEvent']?: Omit<ValueTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
-}>;
 	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 ["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
@@ -11745,30 +11658,8 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceOrderPaginationResult']?: Omit<ValueTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
 }>;
-	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
-["MarketplaceOrderReadyToReceiveEvent"]: AliasType<{
-	/** Пункт выдачи, где заказ готов к получению. */
-	braname?:boolean | `@${string}`,
-	/** Контрольная сумма заказа. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOrderReadyToReceiveEvent']?: Omit<ValueTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
-}>;
-	/** Статус заказа в Столе заказов. */
+	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
-	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
-["MarketplaceOrderStatusChangedEvent"]: AliasType<{
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-	/** Предыдущий статус заказа. */
-	previous_status?:boolean | `@${string}`,
-	/** Новый статус заказа. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceOrderStatusChangedEvent']?: Omit<ValueTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
-}>;
 	["MarketplaceOutgoingPaymentCoreRecord"]: AliasType<{
 	/** Когда кассир провёл платёж. */
 	completed_at?:boolean | `@${string}`,
@@ -11856,15 +11747,6 @@ export type ValueTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
-["MarketplacePaymentStatusChangedEvent"]: AliasType<{
-	/** Идентификатор платёжной заявки. */
-	payment_request_id?:boolean | `@${string}`,
-	/** Новый статус выплаты. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplacePaymentStatusChangedEvent']?: Omit<ValueTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
-}>;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: AliasType<{
 	/** Баланс персонального кошелька членских средств. */
@@ -11900,15 +11782,6 @@ export type ValueTypes = {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ValueTypes["ID"] | Variable<any, string>
 };
-	/** Поставка ожидает подписи поставщика на пункте приёмки. */
-["MarketplaceReceptionPendingSignEvent"]: AliasType<{
-	/** Наименование кооперативного участка приёмки. */
-	ku_name?:boolean | `@${string}`,
-	/** Идентификатор приёмки. */
-	reception_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceReceptionPendingSignEvent']?: Omit<ValueTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
-}>;
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
 	/** AGREEMENT_ID (например `marketplace_offer`) */
 	agreement_id?:boolean | `@${string}`,
@@ -12388,17 +12261,6 @@ export type ValueTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика: рассмотрение оператором, приглашение на участок, имущество принято и ждёт решения совета, совет принял (паевой взнос восстановлен) или отказал (имущество ждёт пайщика), выдано обратно. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
-	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
-["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
-	/** Кооперативный участок, рассматривающий возврат. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор заявления на возврат. */
-	claim_id?:boolean | `@${string}`,
-	/** Новый статус заявления. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceReturnClaimStatusChangedEvent']?: Omit<ValueTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
-}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string | Variable<any, string>,
@@ -12822,15 +12684,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceStockProposalAcceptResult']?: Omit<ValueTypes["MarketplaceStockProposalAcceptResult"], "...on MarketplaceStockProposalAcceptResult">
 }>;
-	/** Оператор пункта выдачи предложил пайщику имущество со склада кооператива — требуется решение пайщика. */
-["MarketplaceStockProposalCreatedEvent"]: AliasType<{
-	/** Кооперативный участок, со склада которого предложено имущество. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор предложения докладки. */
-	proposal_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceStockProposalCreatedEvent']?: Omit<ValueTypes["MarketplaceStockProposalCreatedEvent"], "...on MarketplaceStockProposalCreatedEvent">
-}>;
 	["MarketplaceStockProposalItem"]: AliasType<{
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
@@ -12865,15 +12718,6 @@ export type ValueTypes = {
 	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number | Variable<any, string>
 };
-	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
-["MarketplaceStockProposalResolvedEvent"]: AliasType<{
-	/** Кооперативный участок предложения. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор предложения докладки. */
-	proposal_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceStockProposalResolvedEvent']?: Omit<ValueTypes["MarketplaceStockProposalResolvedEvent"], "...on MarketplaceStockProposalResolvedEvent">
-}>;
 	/** Состояние предложения имущества со склада кооператива: отправлено пайщику, принято, отклонено пайщиком либо отозвано оператором. */
 ["MarketplaceStockProposalStatus"]:MarketplaceStockProposalStatus;
 	["MarketplaceStorageCell"]: AliasType<{
@@ -13306,15 +13150,6 @@ export type ValueTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string | Variable<any, string>
 };
-	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
-["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
-	/** Идентификатор проекта списания. */
-	proposal_id?:boolean | `@${string}`,
-	/** Новый статус проекта списания. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on MarketplaceWriteoffStatusChangedEvent']?: Omit<ValueTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
-}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -17526,7 +17361,6 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 };
 	["Subscription"]: AliasType<{
 chainChanges?: [{	input: ValueTypes["ChainChangesInput"] | Variable<any, string>},ValueTypes["ChainChange"]],
-marketplaceEvents?: [{	input: ValueTypes["MarketplaceEventsInput"] | Variable<any, string>},ValueTypes["MarketplaceEvent"]],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState?:ValueTypes["NodeSyncState"],
 walletEvents?: [{	input: ValueTypes["WalletEventsInput"] | Variable<any, string>},ValueTypes["WalletChangedEvent"]],
@@ -27194,16 +27028,6 @@ export type ResolverInputTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
-	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
-["MarketplaceAplReceptionStatusChangedEvent"]: AliasType<{
-	/** Кооперативный участок приёмки. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор акта приёмки. */
-	reception_id?:boolean | `@${string}`,
-	/** Новый статус акта приёмки. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -27535,6 +27359,8 @@ export type ResolverInputTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: AliasType<{
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code?:boolean | `@${string}`,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id?:boolean | `@${string}`,
 	/** Название товара (для отображения). */
@@ -27981,26 +27807,6 @@ export type ResolverInputTypes = {
 	membership_fee_percent?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["MarketplaceEvent"]: AliasType<{
-	MarketplaceAplReceptionStatusChangedEvent?:ResolverInputTypes["MarketplaceAplReceptionStatusChangedEvent"],
-	MarketplaceIssuanceSagaUpdatedEvent?:ResolverInputTypes["MarketplaceIssuanceSagaUpdatedEvent"],
-	MarketplaceOfferModerationEvent?:ResolverInputTypes["MarketplaceOfferModerationEvent"],
-	MarketplaceOfferPublishedEvent?:ResolverInputTypes["MarketplaceOfferPublishedEvent"],
-	MarketplaceOfferStockChangedEvent?:ResolverInputTypes["MarketplaceOfferStockChangedEvent"],
-	MarketplaceOrderReadyToReceiveEvent?:ResolverInputTypes["MarketplaceOrderReadyToReceiveEvent"],
-	MarketplaceOrderStatusChangedEvent?:ResolverInputTypes["MarketplaceOrderStatusChangedEvent"],
-	MarketplacePaymentStatusChangedEvent?:ResolverInputTypes["MarketplacePaymentStatusChangedEvent"],
-	MarketplaceReceptionPendingSignEvent?:ResolverInputTypes["MarketplaceReceptionPendingSignEvent"],
-	MarketplaceReturnClaimStatusChangedEvent?:ResolverInputTypes["MarketplaceReturnClaimStatusChangedEvent"],
-	MarketplaceStockProposalCreatedEvent?:ResolverInputTypes["MarketplaceStockProposalCreatedEvent"],
-	MarketplaceStockProposalResolvedEvent?:ResolverInputTypes["MarketplaceStockProposalResolvedEvent"],
-	MarketplaceWriteoffStatusChangedEvent?:ResolverInputTypes["MarketplaceWriteoffStatusChangedEvent"],
-		__typename?: boolean | `@${string}`
-}>;
-	["MarketplaceEventsInput"]: {
-	/** Кооперативное имя. */
-	coopname: string
-};
 	["MarketplaceExpressPickupCandidate"]: AliasType<{
 	/** КУ-получатель. */
 	braname?:boolean | `@${string}`,
@@ -28205,24 +28011,6 @@ export type ResolverInputTypes = {
 }>;
 	/** Этап выдачи имущества: факт зафиксирован → заявление подписано → ждём совет → решение принято, ждём подпись акта → акт подписан заказчиком, ждём закрытие → закрыто; либо отказ совета / отмена оператором. */
 ["MarketplaceIssuanceSagaStage"]:MarketplaceIssuanceSagaStage;
-	/** Этап выдачи имущества изменился: подписано заявление, совет решил, подписан акт, выдача закрыта или отменена. Состояние дочитывается запросом саги. */
-["MarketplaceIssuanceSagaUpdatedEvent"]: AliasType<{
-	/** Кооперативный участок выдачи. */
-	braname?:boolean | `@${string}`,
-	/** Как принимается решение совета: роботом, людьми или ещё не известно. */
-	decision_mode?:boolean | `@${string}`,
-	/** Контрольная сумма заказа. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-	/** Бандл выдачи у стойки, если выдача идёт в его составе. */
-	proposal_id?:boolean | `@${string}`,
-	/** Идентификатор саги выдачи. */
-	saga_id?:boolean | `@${string}`,
-	/** Этап саги выдачи. */
-	stage?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком вместе с текущим ходом выдачи. */
 ["MarketplaceIssuanceStatementPayload"]: AliasType<{
 	saga?:ResolverInputTypes["MarketplaceIssuanceSaga"],
@@ -28547,14 +28335,6 @@ export type ResolverInputTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
-	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
-["MarketplaceOfferModerationEvent"]: AliasType<{
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-	/** Новый статус предложения. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceOfferPackage"]: AliasType<{
 	/** Идентификатор упаковки в каталоге предложения. */
 	id?:boolean | `@${string}`,
@@ -28594,14 +28374,6 @@ export type ResolverInputTypes = {
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
 };
-	/** Свободный остаток одной упаковки предложения — в упаковках. */
-["MarketplaceOfferPackageStock"]: AliasType<{
-	/** Идентификатор упаковки в каталоге предложения. */
-	package_id?:boolean | `@${string}`,
-	/** Свободно к заказу упаковок. */
-	quantity_available?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceOfferPaginationResult"]: AliasType<{
 	/** Текущая страница */
 	currentPage?:boolean | `@${string}`,
@@ -28613,28 +28385,8 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** В каталоге появилось новое предложение. */
-["MarketplaceOfferPublishedEvent"]: AliasType<{
-	/** Категория предложения. */
-	category_id?:boolean | `@${string}`,
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
-	/** У предложения в каталоге изменилось доступное количество. */
-["MarketplaceOfferStockChangedEvent"]: AliasType<{
-	/** Идентификатор предложения. */
-	offer_id?:boolean | `@${string}`,
-	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
-	packages?:ResolverInputTypes["MarketplaceOfferPackageStock"],
-	/** Доступное к заказу количество базовых единиц. */
-	quantity_available?:boolean | `@${string}`,
-	/** Предложение без ограничения по количеству. */
-	unlimited_flag?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 ["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: AliasType<{
@@ -28794,28 +28546,8 @@ export type ResolverInputTypes = {
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
-["MarketplaceOrderReadyToReceiveEvent"]: AliasType<{
-	/** Пункт выдачи, где заказ готов к получению. */
-	braname?:boolean | `@${string}`,
-	/** Контрольная сумма заказа. */
-	order_hash?:boolean | `@${string}`,
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	/** Статус заказа в Столе заказов. */
+	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
-	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
-["MarketplaceOrderStatusChangedEvent"]: AliasType<{
-	/** Идентификатор заказа. */
-	order_id?:boolean | `@${string}`,
-	/** Предыдущий статус заказа. */
-	previous_status?:boolean | `@${string}`,
-	/** Новый статус заказа. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceOutgoingPaymentCoreRecord"]: AliasType<{
 	/** Когда кассир провёл платёж. */
 	completed_at?:boolean | `@${string}`,
@@ -28899,14 +28631,6 @@ export type ResolverInputTypes = {
 }>;
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
-["MarketplacePaymentStatusChangedEvent"]: AliasType<{
-	/** Идентификатор платёжной заявки. */
-	payment_request_id?:boolean | `@${string}`,
-	/** Новый статус выплаты. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: AliasType<{
 	/** Баланс персонального кошелька членских средств. */
@@ -28940,14 +28664,6 @@ export type ResolverInputTypes = {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ResolverInputTypes["ID"]
 };
-	/** Поставка ожидает подписи поставщика на пункте приёмки. */
-["MarketplaceReceptionPendingSignEvent"]: AliasType<{
-	/** Наименование кооперативного участка приёмки. */
-	ku_name?:boolean | `@${string}`,
-	/** Идентификатор приёмки. */
-	reception_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceRegistrationOfferStatus"]: AliasType<{
 	/** AGREEMENT_ID (например `marketplace_offer`) */
 	agreement_id?:boolean | `@${string}`,
@@ -29415,16 +29131,6 @@ export type ResolverInputTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика: рассмотрение оператором, приглашение на участок, имущество принято и ждёт решения совета, совет принял (паевой взнос восстановлен) или отказал (имущество ждёт пайщика), выдано обратно. */
 ["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
-	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
-["MarketplaceReturnClaimStatusChangedEvent"]: AliasType<{
-	/** Кооперативный участок, рассматривающий возврат. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор заявления на возврат. */
-	claim_id?:boolean | `@${string}`,
-	/** Новый статус заявления. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -29840,14 +29546,6 @@ export type ResolverInputTypes = {
 	sagas?:ResolverInputTypes["MarketplaceIssuanceSaga"],
 		__typename?: boolean | `@${string}`
 }>;
-	/** Оператор пункта выдачи предложил пайщику имущество со склада кооператива — требуется решение пайщика. */
-["MarketplaceStockProposalCreatedEvent"]: AliasType<{
-	/** Кооперативный участок, со склада которого предложено имущество. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор предложения докладки. */
-	proposal_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MarketplaceStockProposalItem"]: AliasType<{
 	/** Предложение кооператива из остатка. */
 	offer_id?:boolean | `@${string}`,
@@ -29881,14 +29579,6 @@ export type ResolverInputTypes = {
 	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
 };
-	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
-["MarketplaceStockProposalResolvedEvent"]: AliasType<{
-	/** Кооперативный участок предложения. */
-	braname?:boolean | `@${string}`,
-	/** Идентификатор предложения докладки. */
-	proposal_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	/** Состояние предложения имущества со склада кооператива: отправлено пайщику, принято, отклонено пайщиком либо отозвано оператором. */
 ["MarketplaceStockProposalStatus"]:MarketplaceStockProposalStatus;
 	["MarketplaceStorageCell"]: AliasType<{
@@ -30303,14 +29993,6 @@ export type ResolverInputTypes = {
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
 };
-	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
-["MarketplaceWriteoffStatusChangedEvent"]: AliasType<{
-	/** Идентификатор проекта списания. */
-	proposal_id?:boolean | `@${string}`,
-	/** Новый статус проекта списания. */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["MatrixAccountStatusResponseDTO"]: AliasType<{
 	hasAccount?:boolean | `@${string}`,
 	iframeUrl?:boolean | `@${string}`,
@@ -34389,7 +34071,6 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 };
 	["Subscription"]: AliasType<{
 chainChanges?: [{	input: ResolverInputTypes["ChainChangesInput"]},ResolverInputTypes["ChainChange"]],
-marketplaceEvents?: [{	input: ResolverInputTypes["MarketplaceEventsInput"]},ResolverInputTypes["MarketplaceEvent"]],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState?:ResolverInputTypes["NodeSyncState"],
 walletEvents?: [{	input: ResolverInputTypes["WalletEventsInput"]},ResolverInputTypes["WalletChangedEvent"]],
@@ -43744,15 +43425,6 @@ export type ModelTypes = {
 	version: string
 };
 	["MarketplaceAplReceptionStatus"]:MarketplaceAplReceptionStatus;
-	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
-["MarketplaceAplReceptionStatusChangedEvent"]: {
-		/** Кооперативный участок приёмки. */
-	braname: string,
-	/** Идентификатор акта приёмки. */
-	reception_id: string,
-	/** Новый статус акта приёмки. */
-	status: ModelTypes["MarketplaceAplReceptionStatus"]
-};
 	["MarketplaceAplReceptionVariant"]:MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
 	offer_id: string,
@@ -44062,7 +43734,9 @@ export type ModelTypes = {
 };
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
-		/** Идентификатор предложения непрошедшей позиции. */
+		/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code: string,
+	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id: string,
 	/** Название товара (для отображения). */
 	product_name?: string | undefined | null,
@@ -44491,11 +44165,6 @@ export type ModelTypes = {
 		/** Ставка членского взноса, проценты (1.5 = 1,5%). 0 — взнос не начисляется. */
 	membership_fee_percent: number
 };
-	["MarketplaceEvent"]:ModelTypes["MarketplaceAplReceptionStatusChangedEvent"] | ModelTypes["MarketplaceIssuanceSagaUpdatedEvent"] | ModelTypes["MarketplaceOfferModerationEvent"] | ModelTypes["MarketplaceOfferPublishedEvent"] | ModelTypes["MarketplaceOfferStockChangedEvent"] | ModelTypes["MarketplaceOrderReadyToReceiveEvent"] | ModelTypes["MarketplaceOrderStatusChangedEvent"] | ModelTypes["MarketplacePaymentStatusChangedEvent"] | ModelTypes["MarketplaceReceptionPendingSignEvent"] | ModelTypes["MarketplaceReturnClaimStatusChangedEvent"] | ModelTypes["MarketplaceStockProposalCreatedEvent"] | ModelTypes["MarketplaceStockProposalResolvedEvent"] | ModelTypes["MarketplaceWriteoffStatusChangedEvent"];
-	["MarketplaceEventsInput"]: {
-	/** Кооперативное имя. */
-	coopname: string
-};
 	["MarketplaceExpressPickupCandidate"]: {
 		/** КУ-получатель. */
 	braname: string,
@@ -44688,23 +44357,6 @@ export type ModelTypes = {
 	updated_at: ModelTypes["DateTime"]
 };
 	["MarketplaceIssuanceSagaStage"]:MarketplaceIssuanceSagaStage;
-	/** Этап выдачи имущества изменился: подписано заявление, совет решил, подписан акт, выдача закрыта или отменена. Состояние дочитывается запросом саги. */
-["MarketplaceIssuanceSagaUpdatedEvent"]: {
-		/** Кооперативный участок выдачи. */
-	braname: string,
-	/** Как принимается решение совета: роботом, людьми или ещё не известно. */
-	decision_mode: string,
-	/** Контрольная сумма заказа. */
-	order_hash: string,
-	/** Идентификатор заказа. */
-	order_id: string,
-	/** Бандл выдачи у стойки, если выдача идёт в его составе. */
-	proposal_id?: string | undefined | null,
-	/** Идентификатор саги выдачи. */
-	saga_id: string,
-	/** Этап саги выдачи. */
-	stage: string
-};
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком вместе с текущим ходом выдачи. */
 ["MarketplaceIssuanceStatementPayload"]: {
 		saga: ModelTypes["MarketplaceIssuanceSaga"],
@@ -45019,13 +44671,6 @@ export type ModelTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
-	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
-["MarketplaceOfferModerationEvent"]: {
-		/** Идентификатор предложения. */
-	offer_id: string,
-	/** Новый статус предложения. */
-	status: ModelTypes["MarketplaceOfferStatus"]
-};
 	["MarketplaceOfferPackage"]: {
 		/** Идентификатор упаковки в каталоге предложения. */
 	id: string,
@@ -45064,13 +44709,6 @@ export type ModelTypes = {
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
 };
-	/** Свободный остаток одной упаковки предложения — в упаковках. */
-["MarketplaceOfferPackageStock"]: {
-		/** Идентификатор упаковки в каталоге предложения. */
-	package_id: string,
-	/** Свободно к заказу упаковок. */
-	quantity_available: number
-};
 	["MarketplaceOfferPaginationResult"]: {
 		/** Текущая страница */
 	currentPage: number,
@@ -45081,25 +44719,7 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
-	/** В каталоге появилось новое предложение. */
-["MarketplaceOfferPublishedEvent"]: {
-		/** Категория предложения. */
-	category_id: number,
-	/** Идентификатор предложения. */
-	offer_id: string
-};
 	["MarketplaceOfferStatus"]:MarketplaceOfferStatus;
-	/** У предложения в каталоге изменилось доступное количество. */
-["MarketplaceOfferStockChangedEvent"]: {
-		/** Идентификатор предложения. */
-	offer_id: string,
-	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
-	packages: Array<ModelTypes["MarketplaceOfferPackageStock"]>,
-	/** Доступное к заказу количество базовых единиц. */
-	quantity_available: number,
-	/** Предложение без ограничения по количеству. */
-	unlimited_flag: boolean
-};
 	["MarketplaceOnboardingSource"]:MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
 		agreement_id?: number | undefined | null,
@@ -45252,25 +44872,7 @@ export type ModelTypes = {
 	/** Общее количество страниц */
 	totalPages: number
 };
-	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
-["MarketplaceOrderReadyToReceiveEvent"]: {
-		/** Пункт выдачи, где заказ готов к получению. */
-	braname: string,
-	/** Контрольная сумма заказа. */
-	order_hash: string,
-	/** Идентификатор заказа. */
-	order_id: string
-};
 	["MarketplaceOrderStatus"]:MarketplaceOrderStatus;
-	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
-["MarketplaceOrderStatusChangedEvent"]: {
-		/** Идентификатор заказа. */
-	order_id: string,
-	/** Предыдущий статус заказа. */
-	previous_status: ModelTypes["MarketplaceOrderStatus"],
-	/** Новый статус заказа. */
-	status: ModelTypes["MarketplaceOrderStatus"]
-};
 	["MarketplaceOutgoingPaymentCoreRecord"]: {
 		/** Когда кассир провёл платёж. */
 	completed_at?: ModelTypes["DateTime"] | undefined | null,
@@ -45349,13 +44951,6 @@ export type ModelTypes = {
 	withheld_amount: string
 };
 	["MarketplaceOutgoingPaymentRequestStatus"]:MarketplaceOutgoingPaymentRequestStatus;
-	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
-["MarketplacePaymentStatusChangedEvent"]: {
-		/** Идентификатор платёжной заявки. */
-	payment_request_id: string,
-	/** Новый статус выплаты. */
-	status: ModelTypes["MarketplaceOutgoingPaymentRequestStatus"]
-};
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: {
 		/** Баланс персонального кошелька членских средств. */
@@ -45386,13 +44981,6 @@ export type ModelTypes = {
 	["MarketplaceReadyIssueInput"]: {
 	/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: ModelTypes["ID"]
-};
-	/** Поставка ожидает подписи поставщика на пункте приёмки. */
-["MarketplaceReceptionPendingSignEvent"]: {
-		/** Наименование кооперативного участка приёмки. */
-	ku_name: string,
-	/** Идентификатор приёмки. */
-	reception_id: string
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 		/** AGREEMENT_ID (например `marketplace_offer`) */
@@ -45845,15 +45433,6 @@ export type ModelTypes = {
 	reason_text?: string | undefined | null
 };
 	["MarketplaceReturnClaimStatus"]:MarketplaceReturnClaimStatus;
-	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
-["MarketplaceReturnClaimStatusChangedEvent"]: {
-		/** Кооперативный участок, рассматривающий возврат. */
-	braname: string,
-	/** Идентификатор заявления на возврат. */
-	claim_id: string,
-	/** Новый статус заявления. */
-	status: ModelTypes["MarketplaceReturnClaimStatus"]
-};
 	["MarketplaceReturnStatementSignedInput"]: {
 	/** Хэш содержимого документа */
 	doc_hash: string,
@@ -46258,13 +45837,6 @@ export type ModelTypes = {
 	/** Ход выдачи по каждому заказу бандла — этап после ответа робота решений совета либо режим ожидания. */
 	sagas: Array<ModelTypes["MarketplaceIssuanceSaga"]>
 };
-	/** Оператор пункта выдачи предложил пайщику имущество со склада кооператива — требуется решение пайщика. */
-["MarketplaceStockProposalCreatedEvent"]: {
-		/** Кооперативный участок, со склада которого предложено имущество. */
-	braname: string,
-	/** Идентификатор предложения докладки. */
-	proposal_id: string
-};
 	["MarketplaceStockProposalItem"]: {
 		/** Предложение кооператива из остатка. */
 	offer_id: string,
@@ -46296,13 +45868,6 @@ export type ModelTypes = {
 	package_id?: string | undefined | null,
 	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
-};
-	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
-["MarketplaceStockProposalResolvedEvent"]: {
-		/** Кооперативный участок предложения. */
-	braname: string,
-	/** Идентификатор предложения докладки. */
-	proposal_id: string
 };
 	["MarketplaceStockProposalStatus"]:MarketplaceStockProposalStatus;
 	["MarketplaceStorageCell"]: {
@@ -46692,13 +46257,6 @@ export type ModelTypes = {
 };
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 	draft_id: string
-};
-	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
-["MarketplaceWriteoffStatusChangedEvent"]: {
-		/** Идентификатор проекта списания. */
-	proposal_id: string,
-	/** Новый статус проекта списания. */
-	status: ModelTypes["MarketplaceWriteoffProposalStatus"]
 };
 	["MatrixAccountStatusResponseDTO"]: {
 		hasAccount: boolean,
@@ -49535,11 +49093,11 @@ export type ModelTypes = {
 	expenseFilesByItem: Array<ModelTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. */
+	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк. */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
 	expenseProposalsByCooperative: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). */
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет. */
 	expenseProposalsByMember: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
 	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
 	expenseRequisitesByProposal: Array<ModelTypes["ExpenseRequisite"]>,
@@ -49674,7 +49232,7 @@ export type ModelTypes = {
 	kuDecisions: ModelTypes["PaginatedKuDecisionsPaginationResult"],
 	/** Получить список заявок доверенных лиц кооперативных участков */
 	kuTrustRequests: ModelTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Совет видит весь реестр, операторы участка — планы своего участка. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
 	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<ModelTypes["ReportDraft"]>,
@@ -51211,8 +50769,6 @@ export type ModelTypes = {
 	["Subscription"]: {
 		/** Изменения данных кооператива в цепи: сигнал к дочитке. Приходит, когда изменение уже в базе узла. */
 	chainChanges: ModelTypes["ChainChange"],
-	/** Поток событий пайщика в Столе заказов: личные и каталог. */
-	marketplaceEvents: ModelTypes["MarketplaceEvent"],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState: ModelTypes["NodeSyncState"],
 	/** Изменения кошельков пайщика: сигнал к дочитке остатка. */
@@ -61043,17 +60599,6 @@ export type GraphQLTypes = {
 };
 	/** Статус АПП приёмки на КУ. */
 ["MarketplaceAplReceptionStatus"]: MarketplaceAplReceptionStatus;
-	/** У акта приёмки сменился статус — стойка оператора и стол поставщика должны перечитать состояние. */
-["MarketplaceAplReceptionStatusChangedEvent"]: {
-	__typename: "MarketplaceAplReceptionStatusChangedEvent",
-	/** Кооперативный участок приёмки. */
-	braname: string,
-	/** Идентификатор акта приёмки. */
-	reception_id: string,
-	/** Новый статус акта приёмки. */
-	status: GraphQLTypes["MarketplaceAplReceptionStatus"],
-	['...on MarketplaceAplReceptionStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"], "...on MarketplaceAplReceptionStatusChangedEvent">
-};
 	/** Вариант приёмки: A — поставщик лично, B — экспедитор с асинхронной подписью. */
 ["MarketplaceAplReceptionVariant"]: MarketplaceAplReceptionVariant;
 	["MarketplaceApproveOfferInput"]: {
@@ -61403,6 +60948,8 @@ export type GraphQLTypes = {
 	/** Позиция корзины, которую не удалось оформить (осталась в корзине для повтора). */
 ["MarketplaceCheckoutFailedLine"]: {
 	__typename: "MarketplaceCheckoutFailedLine",
+	/** Код причины отказа — по нему клиент различает причины, не разбирая текст. */
+	code: string,
 	/** Идентификатор предложения непрошедшей позиции. */
 	offer_id: string,
 	/** Название товара (для отображения). */
@@ -61864,26 +61411,6 @@ export type GraphQLTypes = {
 	membership_fee_percent: number,
 	['...on MarketplaceEconomyConfig']: Omit<GraphQLTypes["MarketplaceEconomyConfig"], "...on MarketplaceEconomyConfig">
 };
-	["MarketplaceEvent"]:{
-        	__typename:"MarketplaceAplReceptionStatusChangedEvent" | "MarketplaceIssuanceSagaUpdatedEvent" | "MarketplaceOfferModerationEvent" | "MarketplaceOfferPublishedEvent" | "MarketplaceOfferStockChangedEvent" | "MarketplaceOrderReadyToReceiveEvent" | "MarketplaceOrderStatusChangedEvent" | "MarketplacePaymentStatusChangedEvent" | "MarketplaceReceptionPendingSignEvent" | "MarketplaceReturnClaimStatusChangedEvent" | "MarketplaceStockProposalCreatedEvent" | "MarketplaceStockProposalResolvedEvent" | "MarketplaceWriteoffStatusChangedEvent"
-        	['...on MarketplaceAplReceptionStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceAplReceptionStatusChangedEvent"];
-	['...on MarketplaceIssuanceSagaUpdatedEvent']: '__union' & GraphQLTypes["MarketplaceIssuanceSagaUpdatedEvent"];
-	['...on MarketplaceOfferModerationEvent']: '__union' & GraphQLTypes["MarketplaceOfferModerationEvent"];
-	['...on MarketplaceOfferPublishedEvent']: '__union' & GraphQLTypes["MarketplaceOfferPublishedEvent"];
-	['...on MarketplaceOfferStockChangedEvent']: '__union' & GraphQLTypes["MarketplaceOfferStockChangedEvent"];
-	['...on MarketplaceOrderReadyToReceiveEvent']: '__union' & GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"];
-	['...on MarketplaceOrderStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceOrderStatusChangedEvent"];
-	['...on MarketplacePaymentStatusChangedEvent']: '__union' & GraphQLTypes["MarketplacePaymentStatusChangedEvent"];
-	['...on MarketplaceReceptionPendingSignEvent']: '__union' & GraphQLTypes["MarketplaceReceptionPendingSignEvent"];
-	['...on MarketplaceReturnClaimStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"];
-	['...on MarketplaceStockProposalCreatedEvent']: '__union' & GraphQLTypes["MarketplaceStockProposalCreatedEvent"];
-	['...on MarketplaceStockProposalResolvedEvent']: '__union' & GraphQLTypes["MarketplaceStockProposalResolvedEvent"];
-	['...on MarketplaceWriteoffStatusChangedEvent']: '__union' & GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"];
-};
-	["MarketplaceEventsInput"]: {
-		/** Кооперативное имя. */
-	coopname: string
-};
 	["MarketplaceExpressPickupCandidate"]: {
 	__typename: "MarketplaceExpressPickupCandidate",
 	/** КУ-получатель. */
@@ -62094,25 +61621,6 @@ export type GraphQLTypes = {
 };
 	/** Этап выдачи имущества: факт зафиксирован → заявление подписано → ждём совет → решение принято, ждём подпись акта → акт подписан заказчиком, ждём закрытие → закрыто; либо отказ совета / отмена оператором. */
 ["MarketplaceIssuanceSagaStage"]: MarketplaceIssuanceSagaStage;
-	/** Этап выдачи имущества изменился: подписано заявление, совет решил, подписан акт, выдача закрыта или отменена. Состояние дочитывается запросом саги. */
-["MarketplaceIssuanceSagaUpdatedEvent"]: {
-	__typename: "MarketplaceIssuanceSagaUpdatedEvent",
-	/** Кооперативный участок выдачи. */
-	braname: string,
-	/** Как принимается решение совета: роботом, людьми или ещё не известно. */
-	decision_mode: string,
-	/** Контрольная сумма заказа. */
-	order_hash: string,
-	/** Идентификатор заказа. */
-	order_id: string,
-	/** Бандл выдачи у стойки, если выдача идёт в его составе. */
-	proposal_id?: string | undefined | null,
-	/** Идентификатор саги выдачи. */
-	saga_id: string,
-	/** Этап саги выдачи. */
-	stage: string,
-	['...on MarketplaceIssuanceSagaUpdatedEvent']: Omit<GraphQLTypes["MarketplaceIssuanceSagaUpdatedEvent"], "...on MarketplaceIssuanceSagaUpdatedEvent">
-};
 	/** Заявление о возврате паевого взноса имуществом к подписи заказчиком вместе с текущим ходом выдачи. */
 ["MarketplaceIssuanceStatementPayload"]: {
 	__typename: "MarketplaceIssuanceStatementPayload",
@@ -62446,15 +61954,6 @@ export type GraphQLTypes = {
 	/** MIME-тип нового изображения (image/jpeg, image/png либо image/webp). */
 	mime_type?: string | undefined | null
 };
-	/** Предложение сменило состояние модерации (поступило на проверку, одобрено или отклонено). */
-["MarketplaceOfferModerationEvent"]: {
-	__typename: "MarketplaceOfferModerationEvent",
-	/** Идентификатор предложения. */
-	offer_id: string,
-	/** Новый статус предложения. */
-	status: GraphQLTypes["MarketplaceOfferStatus"],
-	['...on MarketplaceOfferModerationEvent']: Omit<GraphQLTypes["MarketplaceOfferModerationEvent"], "...on MarketplaceOfferModerationEvent">
-};
 	["MarketplaceOfferPackage"]: {
 	__typename: "MarketplaceOfferPackage",
 	/** Идентификатор упаковки в каталоге предложения. */
@@ -62495,15 +61994,6 @@ export type GraphQLTypes = {
 	/** Содержимое одной упаковки в базовой единице (0,5 л/кг; 12 шт). */
 	size: number
 };
-	/** Свободный остаток одной упаковки предложения — в упаковках. */
-["MarketplaceOfferPackageStock"]: {
-	__typename: "MarketplaceOfferPackageStock",
-	/** Идентификатор упаковки в каталоге предложения. */
-	package_id: string,
-	/** Свободно к заказу упаковок. */
-	quantity_available: number,
-	['...on MarketplaceOfferPackageStock']: Omit<GraphQLTypes["MarketplaceOfferPackageStock"], "...on MarketplaceOfferPackageStock">
-};
 	["MarketplaceOfferPaginationResult"]: {
 	__typename: "MarketplaceOfferPaginationResult",
 	/** Текущая страница */
@@ -62516,30 +62006,8 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOfferPaginationResult']: Omit<GraphQLTypes["MarketplaceOfferPaginationResult"], "...on MarketplaceOfferPaginationResult">
 };
-	/** В каталоге появилось новое предложение. */
-["MarketplaceOfferPublishedEvent"]: {
-	__typename: "MarketplaceOfferPublishedEvent",
-	/** Категория предложения. */
-	category_id: number,
-	/** Идентификатор предложения. */
-	offer_id: string,
-	['...on MarketplaceOfferPublishedEvent']: Omit<GraphQLTypes["MarketplaceOfferPublishedEvent"], "...on MarketplaceOfferPublishedEvent">
-};
 	/** Этап модерации предложения: PENDING_MODERATION — на модерации, ACTIVE — опубликовано, REJECTED — отклонено, WITHDRAWN — снято поставщиком. */
 ["MarketplaceOfferStatus"]: MarketplaceOfferStatus;
-	/** У предложения в каталоге изменилось доступное количество. */
-["MarketplaceOfferStockChangedEvent"]: {
-	__typename: "MarketplaceOfferStockChangedEvent",
-	/** Идентификатор предложения. */
-	offer_id: string,
-	/** Свободный остаток по упаковкам при отпуске упаковкой; пусто при отпуске по мере. */
-	packages: Array<GraphQLTypes["MarketplaceOfferPackageStock"]>,
-	/** Доступное к заказу количество базовых единиц. */
-	quantity_available: number,
-	/** Предложение без ограничения по количеству. */
-	unlimited_flag: boolean,
-	['...on MarketplaceOfferStockChangedEvent']: Omit<GraphQLTypes["MarketplaceOfferStockChangedEvent"], "...on MarketplaceOfferStockChangedEvent">
-};
 	/** Состояние присоединения пайщика к ЦПП «Стол заказов» */
 ["MarketplaceOnboardingSource"]: MarketplaceOnboardingSource;
 	["MarketplaceOnboardingState"]: {
@@ -62704,30 +62172,8 @@ export type GraphQLTypes = {
 	totalPages: number,
 	['...on MarketplaceOrderPaginationResult']: Omit<GraphQLTypes["MarketplaceOrderPaginationResult"], "...on MarketplaceOrderPaginationResult">
 };
-	/** Заказ пайщика собран на пункте и ожидает его подписи получения. */
-["MarketplaceOrderReadyToReceiveEvent"]: {
-	__typename: "MarketplaceOrderReadyToReceiveEvent",
-	/** Пункт выдачи, где заказ готов к получению. */
-	braname: string,
-	/** Контрольная сумма заказа. */
-	order_hash: string,
-	/** Идентификатор заказа. */
-	order_id: string,
-	['...on MarketplaceOrderReadyToReceiveEvent']: Omit<GraphQLTypes["MarketplaceOrderReadyToReceiveEvent"], "...on MarketplaceOrderReadyToReceiveEvent">
-};
-	/** Статус заказа в Столе заказов. */
+	/** Этап жизненного цикла заказа. */
 ["MarketplaceOrderStatus"]: MarketplaceOrderStatus;
-	/** У заказа сменился статус — стол заказчика или поставщика должен перечитать его состояние. */
-["MarketplaceOrderStatusChangedEvent"]: {
-	__typename: "MarketplaceOrderStatusChangedEvent",
-	/** Идентификатор заказа. */
-	order_id: string,
-	/** Предыдущий статус заказа. */
-	previous_status: GraphQLTypes["MarketplaceOrderStatus"],
-	/** Новый статус заказа. */
-	status: GraphQLTypes["MarketplaceOrderStatus"],
-	['...on MarketplaceOrderStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceOrderStatusChangedEvent"], "...on MarketplaceOrderStatusChangedEvent">
-};
 	["MarketplaceOutgoingPaymentCoreRecord"]: {
 	__typename: "MarketplaceOutgoingPaymentCoreRecord",
 	/** Когда кассир провёл платёж. */
@@ -62815,15 +62261,6 @@ export type GraphQLTypes = {
 };
 	/** Статус исходящей выплаты поставщику на стороне marketplace. Подтверждение и отказ выполняет общий стол кассира кооператива; marketplace отображает результат только для истории. */
 ["MarketplaceOutgoingPaymentRequestStatus"]: MarketplaceOutgoingPaymentRequestStatus;
-	/** У выплаты поставщику сменился статус — история выплат должна перечитать состояние. */
-["MarketplacePaymentStatusChangedEvent"]: {
-	__typename: "MarketplacePaymentStatusChangedEvent",
-	/** Идентификатор платёжной заявки. */
-	payment_request_id: string,
-	/** Новый статус выплаты. */
-	status: GraphQLTypes["MarketplaceOutgoingPaymentRequestStatus"],
-	['...on MarketplacePaymentStatusChangedEvent']: Omit<GraphQLTypes["MarketplacePaymentStatusChangedEvent"], "...on MarketplacePaymentStatusChangedEvent">
-};
 	/** Персональные членские средства доверенного кооперативного участка. */
 ["MarketplacePersonalEconomy"]: {
 	__typename: "MarketplacePersonalEconomy",
@@ -62858,15 +62295,6 @@ export type GraphQLTypes = {
 	["MarketplaceReadyIssueInput"]: {
 		/** Заказ, имущество по которому поступило на участок выдачи. */
 	order_id: GraphQLTypes["ID"]
-};
-	/** Поставка ожидает подписи поставщика на пункте приёмки. */
-["MarketplaceReceptionPendingSignEvent"]: {
-	__typename: "MarketplaceReceptionPendingSignEvent",
-	/** Наименование кооперативного участка приёмки. */
-	ku_name: string,
-	/** Идентификатор приёмки. */
-	reception_id: string,
-	['...on MarketplaceReceptionPendingSignEvent']: Omit<GraphQLTypes["MarketplaceReceptionPendingSignEvent"], "...on MarketplaceReceptionPendingSignEvent">
 };
 	["MarketplaceRegistrationOfferStatus"]: {
 	__typename: "MarketplaceRegistrationOfferStatus",
@@ -63347,17 +62775,6 @@ export type GraphQLTypes = {
 };
 	/** Состояние заявления на гарантийный возврат имущества пайщика: рассмотрение оператором, приглашение на участок, имущество принято и ждёт решения совета, совет принял (паевой взнос восстановлен) или отказал (имущество ждёт пайщика), выдано обратно. */
 ["MarketplaceReturnClaimStatus"]: MarketplaceReturnClaimStatus;
-	/** У заявления на гарантийный возврат сменился статус — стол заказчика и стол оператора должны перечитать состояние. */
-["MarketplaceReturnClaimStatusChangedEvent"]: {
-	__typename: "MarketplaceReturnClaimStatusChangedEvent",
-	/** Кооперативный участок, рассматривающий возврат. */
-	braname: string,
-	/** Идентификатор заявления на возврат. */
-	claim_id: string,
-	/** Новый статус заявления. */
-	status: GraphQLTypes["MarketplaceReturnClaimStatus"],
-	['...on MarketplaceReturnClaimStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceReturnClaimStatusChangedEvent"], "...on MarketplaceReturnClaimStatusChangedEvent">
-};
 	["MarketplaceReturnStatementSignedInput"]: {
 		/** Хэш содержимого документа */
 	doc_hash: string,
@@ -63781,15 +63198,6 @@ export type GraphQLTypes = {
 	sagas: Array<GraphQLTypes["MarketplaceIssuanceSaga"]>,
 	['...on MarketplaceStockProposalAcceptResult']: Omit<GraphQLTypes["MarketplaceStockProposalAcceptResult"], "...on MarketplaceStockProposalAcceptResult">
 };
-	/** Оператор пункта выдачи предложил пайщику имущество со склада кооператива — требуется решение пайщика. */
-["MarketplaceStockProposalCreatedEvent"]: {
-	__typename: "MarketplaceStockProposalCreatedEvent",
-	/** Кооперативный участок, со склада которого предложено имущество. */
-	braname: string,
-	/** Идентификатор предложения докладки. */
-	proposal_id: string,
-	['...on MarketplaceStockProposalCreatedEvent']: Omit<GraphQLTypes["MarketplaceStockProposalCreatedEvent"], "...on MarketplaceStockProposalCreatedEvent">
-};
 	["MarketplaceStockProposalItem"]: {
 	__typename: "MarketplaceStockProposalItem",
 	/** Предложение кооператива из остатка. */
@@ -63823,15 +63231,6 @@ export type GraphQLTypes = {
 	package_id?: string | undefined | null,
 	/** Количество, предлагаемое пайщику: базовое количество при отпуске по мере, число упаковок — при отпуске упаковкой. */
 	quantity: number
-};
-	/** Предложение докладки разрешилось: пайщик принял или отказался, либо оператор отозвал его. */
-["MarketplaceStockProposalResolvedEvent"]: {
-	__typename: "MarketplaceStockProposalResolvedEvent",
-	/** Кооперативный участок предложения. */
-	braname: string,
-	/** Идентификатор предложения докладки. */
-	proposal_id: string,
-	['...on MarketplaceStockProposalResolvedEvent']: Omit<GraphQLTypes["MarketplaceStockProposalResolvedEvent"], "...on MarketplaceStockProposalResolvedEvent">
 };
 	/** Состояние предложения имущества со склада кооператива: отправлено пайщику, принято, отклонено пайщиком либо отозвано оператором. */
 ["MarketplaceStockProposalStatus"]: MarketplaceStockProposalStatus;
@@ -64264,15 +63663,6 @@ export type GraphQLTypes = {
 };
 	["MarketplaceWriteoffStatementSignablePayloadInput"]: {
 		draft_id: string
-};
-	/** Проект списания сменил статус (сформирован, в повестке, авторизован, исполнен, отклонён) — повестка совета и склад должны перечитать состояние. */
-["MarketplaceWriteoffStatusChangedEvent"]: {
-	__typename: "MarketplaceWriteoffStatusChangedEvent",
-	/** Идентификатор проекта списания. */
-	proposal_id: string,
-	/** Новый статус проекта списания. */
-	status: GraphQLTypes["MarketplaceWriteoffProposalStatus"],
-	['...on MarketplaceWriteoffStatusChangedEvent']: Omit<GraphQLTypes["MarketplaceWriteoffStatusChangedEvent"], "...on MarketplaceWriteoffStatusChangedEvent">
 };
 	["MatrixAccountStatusResponseDTO"]: {
 	__typename: "MatrixAccountStatusResponseDTO",
@@ -67326,11 +66716,11 @@ export type GraphQLTypes = {
 	expenseFilesByItem: Array<GraphQLTypes["ExpenseFile"]>,
 	/** Список файлов сметы расхода (без read-URL — запрос отдельно по id). */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу. */
+	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк. */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
 	/** Список смет расходов кооператива (paginated). */
 	expenseProposalsByCooperative: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated). */
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет. */
 	expenseProposalsByMember: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
 	/** Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся). */
 	expenseRequisitesByProposal: Array<GraphQLTypes["ExpenseRequisite"]>,
@@ -67465,7 +66855,7 @@ export type GraphQLTypes = {
 	kuDecisions: GraphQLTypes["PaginatedKuDecisionsPaginationResult"],
 	/** Получить список заявок доверенных лиц кооперативных участков */
 	kuTrustRequests: GraphQLTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Совет видит весь реестр, операторы участка — планы своего участка. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям. */
 	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,
 	/** Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией) */
 	listReportDrafts: Array<GraphQLTypes["ReportDraft"]>,
@@ -69101,8 +68491,6 @@ export type GraphQLTypes = {
 	__typename: "Subscription",
 	/** Изменения данных кооператива в цепи: сигнал к дочитке. Приходит, когда изменение уже в базе узла. */
 	chainChanges: GraphQLTypes["ChainChange"],
-	/** Поток событий пайщика в Столе заказов: личные и каталог. */
-	marketplaceEvents: GraphQLTypes["MarketplaceEvent"],
 	/** Ход догона цепи узлом кооператива */
 	nodeSyncState: GraphQLTypes["NodeSyncState"],
 	/** Изменения кошельков пайщика: сигнал к дочитке остатка. */
@@ -70641,7 +70029,7 @@ export enum MarketplaceOrderIssuanceFactDiffState {
 	LESS = "LESS",
 	MORE = "MORE"
 }
-/** Статус заказа в Столе заказов. */
+/** Этап жизненного цикла заказа. */
 export enum MarketplaceOrderStatus {
 	ACCEPTED = "ACCEPTED",
 	ACCEPTED_PENDING_SUPPLIER = "ACCEPTED_PENDING_SUPPLIER",
@@ -71547,7 +70935,6 @@ type ZEUS_VARIABLES = {
 	["MarketplaceDeleteTrusteeWeightInput"]: ValueTypes["MarketplaceDeleteTrusteeWeightInput"];
 	["MarketplaceDetailKUInput"]: ValueTypes["MarketplaceDetailKUInput"];
 	["MarketplaceDistributeBranchFundsInput"]: ValueTypes["MarketplaceDistributeBranchFundsInput"];
-	["MarketplaceEventsInput"]: ValueTypes["MarketplaceEventsInput"];
 	["MarketplaceFinalizeStockIssuanceInput"]: ValueTypes["MarketplaceFinalizeStockIssuanceInput"];
 	["MarketplaceFixIssuanceFactInput"]: ValueTypes["MarketplaceFixIssuanceFactInput"];
 	["MarketplaceGenerateInventoryLabelInput"]: ValueTypes["MarketplaceGenerateInventoryLabelInput"];

@@ -165,6 +165,11 @@ export class DocumentApprovalStateService {
     return map;
   }
 
+  // Сброс по дельте таблицы: её слушатели отрабатывают до ответа мутации и до
+  // сигнала ленты изменений, поэтому стол, перечитав состояние сразу, видит
+  // новое. Действия выпускаются в шину позже дельт того же блока — по ним одним
+  // перечитанное могло прийти из кэша.
+  @OnEvent(`delta::${DraftContract.contractName.production}::${DraftContract.Tables.Drafts.tableName}`)
   @OnEvent(`action::${DraftContract.contractName.production}::${DraftContract.Actions.UpVersion.actionName}`)
   @OnEvent(`action::${DraftContract.contractName.production}::${DraftContract.Actions.EditDraft.actionName}`)
   @OnEvent(`action::${DraftContract.contractName.production}::${DraftContract.Actions.CreateDraft.actionName}`)
@@ -172,6 +177,7 @@ export class DocumentApprovalStateService {
     this.draftsCache = null;
   }
 
+  @OnEvent(`delta::${DraftContract.contractName.production}::${DraftContract.Tables.Approvals.tableName}`)
   @OnEvent(`action::${DraftContract.contractName.production}::${DraftContract.Actions.Approve.actionName}`)
   onApproved(): void {
     this.approvalsCache.clear();

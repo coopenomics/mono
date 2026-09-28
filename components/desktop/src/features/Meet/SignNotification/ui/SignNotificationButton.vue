@@ -13,7 +13,8 @@ q-btn(
 import { computed } from 'vue'
 import { useSignNotification } from '../model'
 import { useSessionStore } from 'src/entities/Session'
-import { useMeetStore } from 'src/entities/Meet'
+import { MEET_LIVE_TABLES, useMeetStore } from 'src/entities/Meet'
+import { useLiveReload } from 'src/shared/lib/realtime'
 import { Zeus } from '@coopenomics/sdk';
 import { t } from 'src/shared/i18n';
 
@@ -51,6 +52,10 @@ const loadMeetData = async () => {
 
 // Загружаем данные при создании компонента
 loadMeetData()
+
+// Статус собрания живёт по ленте: кнопка появляется, когда собрание ждёт
+// открытия, и уходит, когда оно открыто.
+useLiveReload(MEET_LIVE_TABLES, () => meetStore.loadMeet({ coopname: props.coopname, hash: props.meetHash }))
 
 const handleSignNotification = async () => {
   await signNotification({

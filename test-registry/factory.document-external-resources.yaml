@@ -9,6 +9,11 @@ title: Документ не ходит наружу при сборке PDF
 # контейнера, http:// заставлял сервер сходить во внутреннюю сеть от своего
 # имени. Разрешён только data: — так приезжает собственноручная подпись
 # пайщика, она едет внутри самого документа. Задача C28-74.
+#
+# Правка 25.09.2026 (C28-80): <link> в повестке теперь отсекается на входе
+# (platform.input.break.04), поэтому внешний тест подаёт те же угрозы через
+# @import и <a rel="attachment">. Случаи прежние: сборщик PDF по-прежнему
+# загружает только data:.
 
 sources:
   backend:
@@ -21,6 +26,7 @@ cases:
     scenario: в документе ссылки на сетевой адрес — картинка, фон, @import
     expect: ни одного обращения по сети; документ собирается без этих ресурсов
     test: components/factory/test/pdf-external-resources.test.ts
+    api: components/api-tests/src/factory/document-external-resources.test.ts
     status: passing
 
   - id: factory.docext.break.02
@@ -29,6 +35,7 @@ cases:
     scenario: в документе ссылка file:// на файл контейнера
     expect: файл в готовый PDF не попадает — вес документа не растёт на его размер
     test: components/factory/test/pdf-external-resources.test.ts
+    api: components/api-tests/src/factory/document-external-resources.test.ts
     status: passing
 
   - id: factory.docext.happy.01
@@ -37,4 +44,5 @@ cases:
     scenario: собственноручная подпись приезжает внутри документа как data:-картинка
     expect: подпись по-прежнему рисуется, вид документа не меняется
     test: components/factory/test/pdf-external-resources.test.ts
+    api: components/api-tests/src/factory/document-external-resources.test.ts
     status: passing

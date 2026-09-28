@@ -58,6 +58,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { REPORT_DOCS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { FailAlert } from 'src/shared/api'
@@ -177,4 +179,8 @@ onMounted(async () => {
   }
   await loadArchive()
 })
+
+// Архив отчётов живёт по ленте: сформированный отчёт и отметка о сдаче
+// появляются сами.
+useLiveReload(REPORT_DOCS_LIVE_TABLES, loadArchive)
 </script>

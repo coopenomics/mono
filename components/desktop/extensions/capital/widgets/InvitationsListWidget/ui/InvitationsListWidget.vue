@@ -76,6 +76,8 @@
 
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useCandidateStore } from 'app/extensions/capital/entities/Candidate';
 import { useSessionStore } from 'src/entities/Session/model';
 import { useSystemStore } from 'src/entities/System/model';
@@ -183,6 +185,9 @@ const handleInvitationClick = (username: string) => {
 const handleToggleExpand = (username: string) => {
   emit('toggle-expand', username);
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadMyInvitations());
 
 onMounted(async () => {
   await loadMyInvitations();

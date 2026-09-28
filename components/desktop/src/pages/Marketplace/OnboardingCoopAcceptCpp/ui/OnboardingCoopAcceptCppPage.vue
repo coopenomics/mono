@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { CouncilOnboardingCard } from 'src/shared/ui/CouncilOnboarding';
 import { BaseBadge } from 'src/shared/ui/base';
 import type { BaseBadgeVariant } from 'src/shared/ui/base';
@@ -23,7 +25,7 @@ import { t } from 'src/shared/i18n';
  * Сама страница после подключения из меню уходит — она одноразовая.
  */
 
-const { config, loading, submitting, isCompleted, loadState, handleStepSubmit } =
+const { config, loading, submitting, isCompleted, loadState, refreshState, handleStepSubmit } =
   useMarketplaceOnboarding();
 
 const chipVariant = computed<BaseBadgeVariant>(() =>
@@ -36,6 +38,14 @@ const chipLabel = computed(() =>
 onMounted(async () => {
   await loadState();
 });
+
+// Шаг закрывает решение совета: повестка — soviet::decisions, итог —
+// конфигурация расширения в базе узла. Пока подключение не завершено, лента
+// перечитывает состояние шагов.
+useLiveReload(
+  [liveTable(SovietContract, SovietContract.Tables.Decisions), { code: 'core', table: 'extensions' }],
+  refreshState,
+);
 </script>
 
 <template lang="pug">

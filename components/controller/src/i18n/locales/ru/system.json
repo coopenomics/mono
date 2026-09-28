@@ -4,6 +4,7 @@
     "SYSTEM_ALREADY_INITIALIZED": "Инициализация невозможна - установка уже завершена. Система находится в статусе '{status}'. ",
     "SYSTEM_COOPERATIVE_INFO_NOT_FOUND": "Информация о кооперативе не обнаружена",
     "SYSTEM_COOPERATIVE_NOT_FOUND": "Кооператив не найден",
+    "SYSTEM_INSTALL_KEY_STATUS_INVALID": "Установка ключа невозможна. Система находится в статусе: {status}",
     "SYSTEM_INSTALL_CODE_INVALID": "Неверный или истекший код установки",
     "SYSTEM_INSTALL_CODE_INVALID_RESTART": "Неверный или истекший код установки — начните установку заново с ключа кооператива",
     "SYSTEM_INSTALL_INTERRUPTED_AFTER_CHAIN_ACCOUNTS": "Установка прервана после создания аккаунтов на цепи: {errorMessage}. Требуется ручной разбор (статус '{maintenanceStatus}').",
@@ -26,9 +27,6 @@
     },
     "startInstallInput": {
       "wifRequired": "Поле \"wif\" обязательно для заполнения."
-    },
-    "systemInteractor": {
-      "installKeyStatusPrefix": "Установка ключа невозможна. Система находится в статусе: "
     }
   }
 }

@@ -130,6 +130,7 @@ const loadCreators = async (creatorUsernames: string[]) => {
   }
 };
 
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 watch(
   () => props.issue,
   async (newIssue) => {

@@ -15,6 +15,7 @@
  * Логи — в stderr, чтобы stdout остался чисто машиночитаемым.
  */
 import ecc from 'eosjs-ecc'
+import { subscriberIdentity } from '../subscriber-identity'
 import { Client } from 'pg'
 import mongoose from 'mongoose'
 import { Generator } from '@coopenomics/factory'
@@ -174,20 +175,25 @@ export async function addPlainParticipant(args: Args) {
     database: process.env.POSTGRES_DATABASE,
   })
   await pg.connect()
+  const subscriber = subscriberIdentity(coopname)
   await pg.query(`
     INSERT INTO "users" (username, email, type, role, status, is_registered,
                         has_account, is_email_verified, public_key,
+                        subscriber_id, subscriber_hash,
                         created_at, updated_at)
     VALUES ($1, $2, 'individual', 'user', 'active', true,
             true, true, $3,
+            $4, $5,
             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     ON CONFLICT (username) DO UPDATE SET
       email = EXCLUDED.email,
       public_key = EXCLUDED.public_key,
       status = 'active',
       is_registered = true,
+      subscriber_id = COALESCE(NULLIF("users".subscriber_id, ''), EXCLUDED.subscriber_id),
+      subscriber_hash = COALESCE(NULLIF("users".subscriber_hash, ''), EXCLUDED.subscriber_hash),
       updated_at = CURRENT_TIMESTAMP
-  `, [username, email, publicKey])
+  `, [username, email, publicKey, subscriber.subscriber_id, subscriber.subscriber_hash])
   log('postgres users upserted')
   await pg.end()
 

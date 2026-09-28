@@ -18,13 +18,14 @@
  */
 import type Blockchain from '../../blockchain'
 import { processDecision } from '../soviet/processDecision'
-import { type Who, gqlAs, signAs } from './chainHelpers'
+import { type Who, ensureIdentityVerified, gqlAs, signAs } from './chainHelpers'
 
 export interface OfferLike {
   id: string
   product_name: string
   price_per_unit: string
   supplier_account: string
+  unit_of_measure: string
 }
 
 /** Активное предложение поставщика с доставкой на нужный КУ. */
@@ -34,20 +35,30 @@ export async function pickOffer(
   braname: string,
   preferName?: string,
 ): Promise<OfferLike> {
-  const d: any = await gqlAs(token, `query($i:MarketplaceListAllOffersInput){
-    marketplaceListAllOffers(input:$i){ items {
-      id product_name status supplier_account price_per_unit unit_of_measure warranty_days
-      delivery_points { braname min_supply_volume }
-    } }
-  }`, { i: {} })
-  const candidates = (d.marketplaceListAllOffers.items as any[]).filter(
-    o => o.status === 'ACTIVE'
-      && o.supplier_account === supplierAccount
-      && o.delivery_points.some((p: any) => p.braname === braname),
-  )
-  const offer = (preferName && candidates.find(o => o.product_name === preferName)) || candidates[0]
-  if (!offer)
-    throw new Error(`на стенде нет активного предложения ${supplierAccount} с поставкой на КУ «${braname}»`)
+  // Засев одобряет предложения в цепи, а контроллер видит их, когда индексер
+  // донесёт событие: сразу после засева список может быть ещё пуст. Ждём до
+  // трёх минут, а не отвечаем «на стенде нет» по первому запросу.
+  const deadline = Date.now() + 180_000
+  let offer: any
+  while (!offer) {
+    const d: any = await gqlAs(token, `query($i:MarketplaceListAllOffersInput){
+      marketplaceListAllOffers(input:$i){ items {
+        id product_name status supplier_account price_per_unit unit_of_measure warranty_days
+        delivery_points { braname min_supply_volume }
+      } }
+    }`, { i: {} })
+    const candidates = (d.marketplaceListAllOffers.items as any[]).filter(
+      o => o.status === 'ACTIVE'
+        && o.supplier_account === supplierAccount
+        && o.delivery_points.some((p: any) => p.braname === braname),
+    )
+    offer = (preferName && candidates.find(o => o.product_name === preferName)) || candidates[0]
+    if (offer) break
+    if (Date.now() > deadline)
+      throw new Error(`на стенде нет активного предложения ${supplierAccount} с поставкой на КУ «${braname}»`)
+    // timing: backoff — опрос зеркала контроллера, пока индексер не донёс одобрение
+    await new Promise(r => setTimeout(r, 5_000))
+  }
   return offer
 }
 
@@ -218,6 +229,8 @@ export async function issueOrder(args: {
 }): Promise<{ proposalId: string, decisionId: number, orderIds: string[] }> {
   const { blockchain, operatorToken, operator, memberToken, member, orderId, braname, actualQuantity, actualUnitPrice } = args
 
+  // Выдача требует подтверждённой личности получателя (105-28).
+  await ensureIdentityVerified(member.account)
   await labelInventory(operatorToken, orderId)
 
   // 1) Бандл с фактом — подписей оператора нет.

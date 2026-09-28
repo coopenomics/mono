@@ -49,16 +49,6 @@ export {
   type PrintLabelSheetOptions,
 } from './print-sheet';
 export {
-  useMarketplaceRealtime,
-  registerMarketplaceConsumer,
-  dispatchMarketplaceEvent,
-  resyncMarketplaceConsumers,
-  type MarketplaceRealtimeEvent,
-  type MarketplaceRealtimeEventName,
-  type MarketplaceRealtimeHandlers,
-  type MarketplaceRealtimeOptions,
-} from './marketplace-realtime';
-export {
   marketplaceAvailablePackages,
   marketplaceCardPackages,
   marketplacePackageLabel,
@@ -76,3 +66,4 @@ export {
   type TurnoverRow,
   type TurnoverTotals,
 } from './turnover';
+export { marketLiveTables, type MarketLiveKind } from './marketplace-live';

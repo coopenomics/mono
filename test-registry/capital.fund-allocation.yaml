@@ -65,6 +65,20 @@ title: Направление средств программы в проект 
 # пользуется только взнос в программу. Направление средств и набор случаев
 # прежние.
 
+# Правка 24.09.2026 (C28-83): после распределения и снятия средств проекты и
+# состояние программы перечитываются сразу (reloadProgramFunds) — пауза 3,5 с
+# снята: мутация отвечает после разбора своего блока. Набор случаев прежний.
+
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   contract:
     - components/contracts/cpp/capital/app/invests_managment/invest_in_program/allocate/**
@@ -313,6 +327,7 @@ cases:
     scenario: направление средств с суммой в валюте кооператива
     expect: запрос доходит до доменного слоя без изменений по существу
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.01
@@ -323,6 +338,7 @@ cases:
       проект ищется и уходит в цепь в нижнем регистре. Иначе проект не нашёлся
       бы в базе и председатель получил бы «проект не найден» на существующем
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.02
@@ -331,6 +347,7 @@ cases:
     scenario: направление средств в персональный проект пайщика
     expect: отказ до обращения к цепи — деньги кооператива идут только в его проекты
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.03
@@ -339,6 +356,7 @@ cases:
     scenario: направление средств в проект, которого нет в базе
     expect: отказ «Проект не найден» до обращения к цепи
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.04
@@ -347,6 +365,7 @@ cases:
     scenario: сумма указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.side.12
@@ -496,6 +515,7 @@ cases:
       возвращается максимальная сумма и её составляющие — направлено в компонент,
       не израсходовано, удерживается под ссуды — в валюте кооператива
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.09
@@ -514,6 +534,7 @@ cases:
     scenario: возврат средств из персонального проекта пайщика
     expect: отказ до обращения к цепи — операция только для кооперативных проектов
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.11
@@ -522,6 +543,7 @@ cases:
     scenario: сумма возврата указана в валюте, отличной от валюты кооператива
     expect: отказ до доменного слоя
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.dealloc.side.12
@@ -622,6 +644,7 @@ cases:
       регистрации учётной записи, до приёма советом. Правило общее для роли
       `user` в RolesGuard (extension-kit)
     test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 
   - id: cap.alloc.ui.90

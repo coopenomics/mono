@@ -65,7 +65,7 @@ services:
       retries: 12
 
   coopback:
-    build:
+    build: &coopback-build
       context: ./
       dockerfile: components/controller/Dockerfile
     image: coopback
@@ -108,7 +108,13 @@ services:
   # Образ переиспользуем от coopback (node:22-slim) — тот же runtime, что и у
   # node_modules на хосте, поэтому бинарь пакета запускается прямо из bind-mount'а
   # и версия всегда совпадает с той, против которой собран controller.
+  #
+  # Сборка — та же, что у coopback (якорь): на машине, где образа coopback ещё
+  # нет, `up parser2` соберёт его сам, а не пойдёт за ним в Docker Hub. Иначе
+  # стенд с нуля падал — индексер поднимается раньше контроллера и не находил
+  # образа, который собирается только на шаге coopback.
   parser2:
+    build: *coopback-build
     image: coopback
     depends_on:
       - node

@@ -18,11 +18,11 @@ export async function resolveUserBySub(
   if (isValidUuid(sub)) {
     const user = await userRepository.findById(sub);
     if (!user) {
-      throw DomainError.internal('AUTH_JWT_USER_NOT_FOUND');
+      throw DomainError.unauthorized('AUTH_JWT_USER_NOT_FOUND');
     }
     return user;
   }
-  throw DomainError.internal('AUTH_JWT_INVALID_USER_ID_FORMAT');
+  throw DomainError.unauthorized('AUTH_JWT_INVALID_USER_ID_FORMAT');
 }
 
 function isLegacyMongoId(id: string): boolean {

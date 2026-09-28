@@ -35,6 +35,11 @@ title: Доступность расширений в зависимости о�
 # `registerExtensionDatabaseMigrations`. Доступность расширений и набор случаев
 # не менялись.
 
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   backend:
     - components/controller/src/extensions/extensions.registry.ts
@@ -50,6 +55,7 @@ cases:
     expect: >
       расширение отдаётся как доступное и ставится без отказа
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.side.01
@@ -71,6 +77,7 @@ cases:
     expect: >
       расширение доступно к установке
     test: components/controller/tests/unit/extension/extension-availability.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.side.03
@@ -81,6 +88,7 @@ cases:
     expect: >
       расширение остаётся недоступным — тестовый контур не является послаблением
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.break.01
@@ -92,6 +100,7 @@ cases:
     expect: >
       сервер отказывает в установке; скрытая карточка не является защитой
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   - id: ext.avail.break.02
@@ -102,6 +111,7 @@ cases:
     expect: >
       сервер отказывает с сообщением о ненайденном приложении
     test: components/controller/tests/unit/extension/extension-install-gate.test.ts
+    api: components/api-tests/src/extensions/availability.test.ts
     status: passing
 
   # Открытые вопросы, требующие решения человека:

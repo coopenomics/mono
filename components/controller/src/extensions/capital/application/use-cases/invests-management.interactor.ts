@@ -61,7 +61,7 @@ export class InvestsManagementInteractor {
   ): Promise<Cooperative.Registry.GenerationMoneyInvestStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
-      throw DomainError.internal('CAPITAL_INVESTMENT_PROJECT_HASH_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_INVESTMENT_PROJECT_HASH_REQUIRED');
     }
 
     // 1. Находим подтвержденное приложение пользователя по project_hash
@@ -71,7 +71,7 @@ export class InvestsManagementInteractor {
     );
 
     if (!userAppendix) {
-      throw DomainError.internal('CAPITAL_CONFIRMED_AGREEMENT_NOT_FOUND', { username: currentUser.username, projectHash });
+      throw DomainError.notFound('CAPITAL_CONFIRMED_AGREEMENT_NOT_FOUND', { username: currentUser.username, projectHash });
     }
 
     // 2. Получаем contributor_hash и contributor_created_at из приложения к проекту
@@ -93,7 +93,7 @@ export class InvestsManagementInteractor {
     const parentAppendix = await this.appendixRepository.findByAppendixHash(parentAppendixHash);
 
     if (!parentAppendix) {
-      throw DomainError.internal('CAPITAL_PARENT_AGREEMENT_NOT_FOUND', { hash: parentAppendixHash });
+      throw DomainError.notFound('CAPITAL_PARENT_AGREEMENT_NOT_FOUND', { hash: parentAppendixHash });
     }
 
     // 5. Получаем created_at из метаданных родительского документа

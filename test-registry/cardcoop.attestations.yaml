@@ -40,6 +40,21 @@ title: Выпуск подтверждений членства в сеть ка
 # (`migrations/database/*-baseline.ts`, объявлена в `cardcoop.database-
 # migrations.ts`) вместо `synchronize`. Поведение и случаи не менялись.
 
+# Правка 24.09.2026 (C28-83): расширение объявляет в ленте изменений таблицы
+# cardcoop_attestations и cardcoop_pending_links (по username) — страница карты
+# пайщика перечитывается сама, когда вебхук сети карт записал выпуск или
+# привязку. Поведение расширения и набор случаев не менялись.
+
+# Правка 24.09.2026 (C28-83): таймеры этой фичи помечены назначением
+# (// timing: backoff | schedule | timeout | debounce | throttle | ui) — это
+# законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
+# Поведение и набор случаев прежние.
+
+# Правка 25.09.2026 (C28-80): деловые отказы (не найдено, нет прав, уже есть,
+# неверный ввод) отвечают своим статусом — 404, 403, 409, 400, — а не 500
+# «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
+# такие отказы больше не попадают в журнал ошибок сервера как поломки.
+
 sources:
   backend:
     - components/controller/src/extensions/cardcoop/**
@@ -144,6 +159,7 @@ cases:
       `registrator::accounts` — та существует и у кандидата, которого совет ещё
       не принимал, и её `registered_at` — момент создания аккаунта, а не приёма
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.03
@@ -155,6 +171,7 @@ cases:
       отказ во всех трёх случаях, подтверждение не выпускается: принять такое
       значило бы засвидетельствовать членство по чужой команде
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.04
@@ -165,6 +182,7 @@ cases:
     expect: >
       отказ — кооператив свидетельствует только о своих пайщиках
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.05
@@ -178,6 +196,7 @@ cases:
       непроверенное — значит выпускать свидетельства по чужой команде. Ручного
       ввода ключа в настройках нет вовсе — это запрещено архитектурно
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.happy.06
@@ -191,6 +210,7 @@ cases:
       уведомление, подписанное новым ключом, проходит — без простоя и без
       перенастройки кооперативов
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.side.03
@@ -214,6 +234,7 @@ cases:
       идентификатору, который выдавали нам; уведомление об удалении без карты
       ничего не стирает
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/attestations.test.ts
     status: passing
 
   - id: cc.att.break.06

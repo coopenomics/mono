@@ -41,6 +41,9 @@ export class ApprovalDomainEntity extends BaseDomainEntity<IApprovalDatabaseData
 
     // Специфичные поля для approval
     this.approval_hash = databaseData.approval_hash?.toLowerCase() || '';
+    // Одобренный документ живёт только в базе: без переноса стол председателя
+    // всегда видел его пустым (C28-80).
+    this.approved_document = databaseData.approved_document;
 
     // Данные из блокчейна
     if (blockchainData) {

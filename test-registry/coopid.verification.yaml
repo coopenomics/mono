@@ -30,6 +30,15 @@ title: Верификация личности пайщика (уровни на
 # в интерфейсе называется «Целевой членский взнос» вместо «Наценка» (решение
 # владельца). Задет акт выдачи: сменилась одна подпись, случаи слайса не менялись.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+# На выдаче снят цикл повторов с паузой при резолве кода получения: заказ,
+# отставший от кода, догоняет лента, кнопка «Открыть выдачу» появляется в окне.
+
 sources:
   contract:
     - components/contracts/cpp/registrator/src/verification/*.cpp
@@ -139,6 +148,7 @@ cases:
       резолвер отдаёт оба уровня — coop_baseline из членства и passport_onsite
       с attested_by из записи участка
     test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.05
@@ -147,6 +157,7 @@ cases:
     scenario: отозванная (is_verified=false) и незнакомая (online) процедуры в векторе
     expect: уровня не дают — резолвер их игнорирует
     test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.06
@@ -163,6 +174,7 @@ cases:
     scenario: оператор открывает выдачу заказа получателю без базовой верификации
     expect: отказ до подписи акта — «получатель не прошёл верификацию личности»
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.03
@@ -173,6 +185,7 @@ cases:
       начальный из принятого членства, базовый из он-чейн записи passport с
       автором проверки; отозванные и незнакомые процедуры уровня не дают
     test: components/auth/test/certificate.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.09
@@ -191,6 +204,7 @@ cases:
     scenario: запрос данных пайщика, чья личность уже подтверждена
     expect: отказ — повод для выдачи исчерпан, аккаунт даже не читается
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.13
@@ -199,6 +213,7 @@ cases:
     scenario: запрос данных от того, кто не вправе сверять, и по пайщику чужого кооператива
     expect: отказ до чтения персональных данных
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.14
@@ -209,6 +224,7 @@ cases:
       на участке сверяют председатель участка и доверенные лица, без участка —
       председатель совета; остальным отказ, отзыв — только председателю совета
     test: components/controller/src/application/auth-v2/verification/verification-authority.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.happy.07
@@ -219,6 +235,7 @@ cases:
       уровень получает источник «сверка советом», участок пустой; с участком —
       источник «сверка на участке» и имя участка рядом
     test: components/auth/test/certificate.test.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────

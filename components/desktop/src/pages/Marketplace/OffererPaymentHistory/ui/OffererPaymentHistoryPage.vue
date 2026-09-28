@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRouter } from 'vue-router';
@@ -7,7 +8,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseCard, BaseSelect, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import type { BaseBadgeVariant, BaseSelectOption } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useWalletStore } from 'src/entities/Wallet';
@@ -140,13 +141,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplacePaymentStatusChangedEvent: () => reloadLive(),
-    MarketplaceAplReceptionStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('payment', 'reception'), () => reloadLive());
 
 onMounted(() => {
   void load();

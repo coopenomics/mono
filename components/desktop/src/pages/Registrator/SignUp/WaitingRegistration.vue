@@ -53,7 +53,9 @@ div(v-show='store.isStep("WaitingRegistration")')
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session';
 import { useAccountStore } from 'src/entities/Account';
 import { BaseBanner, BaseButton } from 'src/shared/ui/base';
@@ -71,7 +73,6 @@ const isResetting = ref(false);
 
 const currentStep = store.steps.WaitingRegistration;
 const step = computed(() => store.state.step);
-const interval = ref();
 
 const participantAccount = computed(() => session.participantAccount);
 const registrationPayment = computed(() => session.registrationPayment);
@@ -139,13 +140,11 @@ const fixData = async () => {
   }
 };
 
-// Опрос аккаунта: пока пайщик ждёт, подтягиваем актуальный статус платежа и
-// участника, чтобы экран ожидания сам переключился на «отклонено» или «принят».
+// Пока пайщик ждёт, статус платежа и участника приходит по ленте изменений
+// (его учётная запись, заявка кандидата, платёж, запись пайщика в цепи) —
+// экран ожидания сам переключается на «отклонено» или «принят».
 const update = async () => {
-  if (!session.username || participantAccount.value) {
-    clearInterval(interval.value);
-    return;
-  }
+  if (!session.username || participantAccount.value) return;
   try {
     const account = await accountStore.getAccount(session.username);
     session.setCurrentUserAccount(account);
@@ -155,13 +154,18 @@ const update = async () => {
 };
 
 watch(step, (newValue) => {
-  if (newValue === currentStep) {
-    interval.value = setInterval(() => update(), 10000);
-    update();
-  } else if (interval.value) {
-    clearInterval(interval.value);
-  }
+  if (newValue === currentStep) void update();
 });
+
+useLiveReload(
+  [
+    { code: 'core', table: 'users' },
+    { code: 'core', table: 'candidates' },
+    { code: 'core', table: 'payments' },
+    liveTable(SovietContract, SovietContract.Tables.Participants),
+  ],
+  () => (step.value === currentStep ? update() : undefined),
+);
 
 // Совет принял, пока пайщик смотрел на экран ожидания.
 //
@@ -172,19 +176,12 @@ watch(step, (newValue) => {
 // заканчивалось. Смотрим за самой записью пайщика, а не за моментом монтирования.
 watch(participantAccount, (account) => {
   if (account && step.value === currentStep) {
-    if (interval.value) clearInterval(interval.value);
     store.next();
   }
 });
 
 onMounted(() => {
   if (participantAccount.value && step.value === currentStep) store.next();
-});
-
-onBeforeUnmount(() => {
-  if (interval.value) {
-    clearInterval(interval.value);
-  }
 });
 </script>
 

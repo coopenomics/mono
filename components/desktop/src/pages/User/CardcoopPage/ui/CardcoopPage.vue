@@ -79,6 +79,7 @@
 
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { BaseCard, BaseChip, EmptyState } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -221,6 +222,17 @@ const load = async (silent = false): Promise<void> => {
 const onVisible = (): void => {
   if (document.visibilityState === 'visible') void load(true);
 };
+
+// Выпуск карты и привязка приходят из сети карт вебхуком — запись в таблицы
+// расширения даёт сигнал ленты, и страница обновляется сама. Возврат на вкладку
+// остаётся: он подхватывает то, что случилось, пока вкладка лежала в стороне.
+useLiveReload(
+  [
+    { code: 'cardcoop', table: 'cardcoop_attestations' },
+    { code: 'cardcoop', table: 'cardcoop_pending_links' },
+  ],
+  () => load(true),
+);
 
 onMounted(async () => {
   registerAction({ id: 'cardcoop-actions', component: CardcoopHeaderActions, order: 1 });

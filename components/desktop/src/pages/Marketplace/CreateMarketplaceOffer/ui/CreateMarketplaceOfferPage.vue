@@ -1045,7 +1045,7 @@ function saveDraft(): void {
 function scheduleSaveDraft(): void {
   if (isEdit.value) return;
   if (saveTimer) clearTimeout(saveTimer);
-  // Дебаунс: не сериализуем base64-картинки на каждое нажатие клавиши.
+  // timing: debounce — черновик в localStorage: не сериализуем base64-картинки на каждое нажатие клавиши
   saveTimer = setTimeout(saveDraft, 400);
 }
 
@@ -1467,6 +1467,7 @@ async function prefillForEdit(id: string): Promise<void> {
   }
 }
 
+// realtime: нет источника — форма создания и правки предложения: живое перечитывание затёрло бы ввод; справочники (категории, участки, ставка взноса) на время правки не меняются.
 onMounted(async () => {
   // Гейт публикации: тихо в фоне — недоступность настроек не блокирует форму.
   void loadSupplierPaymentSettings()

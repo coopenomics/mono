@@ -16,6 +16,11 @@ title: Тексты проектов Благороста хранятся в б
 # пауза waitAfterTransactBeforeChainTableRead перед чтением проекта из цепи —
 # transact возвращается после разбора своего блока. Хранение текстов хешем и
 # набор случаев не менялись.
+# Правка 25.09.2026 (C28-80): хеш текста узнаётся в любом регистре. Индексер
+# отдаёт хеш из строки цепи заглавными, и дельта любого действия над проектом
+# (назначение мастера, запуск) записывала хеш в базу вместо описания и
+# приглашения.
+
 sources:
   contract:
     - components/contracts/cpp/lib/core/text_digest.hpp
@@ -60,6 +65,7 @@ cases:
     scenario: приходит дельта проекта, где в цепи хеш
     expect: описание и приглашение в базе остаются прежними
     test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    api: components/api-tests/src/capital/project-chain-texts.test.ts
     status: passing
 
   - id: cap.texts.side.02

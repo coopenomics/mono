@@ -32,6 +32,7 @@ const getMeta = (project: any) => {
   }
 }
 
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 watch(() => props.project, (newProject) => {
   if (newProject) {
     const meta = getMeta(newProject)

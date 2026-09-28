@@ -11,6 +11,8 @@
  * кооператива, ПВЗ — любой заказ своего участка.
  */
 import { computed, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
@@ -132,6 +134,9 @@ function goToOffer(): void {
   if (!order.value?.offer_id) return;
   emit('offer-click', order.value.offer_id);
 }
+
+// Карточка заказа живёт по ленте: смена состояния видна сразу.
+useLiveReload(marketLiveTables('order'), load);
 </script>
 
 <template lang="pug">

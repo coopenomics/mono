@@ -20,7 +20,7 @@ import {
   PROJECT_CHAIN_TEXT_FIELDS,
   type ProjectChainTexts,
 } from '../../domain/utils/chain-text-digest';
-import { chainTextDigest, getAppliedBlockNum } from '@coopenomics/extension-kit';
+import { isChainTextOf, getAppliedBlockNum } from '@coopenomics/extension-kit';
 import { CAPITAL_PROJECT_CREATED_EVENT, type ICapitalProjectCreatedPayload } from '@coopenomics/innercoop';
 
 /**
@@ -130,7 +130,7 @@ export class ProjectSyncService
     const row = { ...chainRow };
     for (const field of PROJECT_CHAIN_TEXT_FIELDS) {
       const sent = sentTexts?.[field];
-      if (sent !== undefined && chainTextDigest(sent) === chainRow[field]) row[field] = sent;
+      if (sent !== undefined && isChainTextOf(sent, chainRow[field])) row[field] = sent;
     }
     return row;
   }

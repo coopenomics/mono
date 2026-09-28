@@ -89,6 +89,21 @@ describe('ChainChangesService', () => {
     expect(pubSub.publish).not.toHaveBeenCalled();
   });
 
+  it('принадлежность — по правилу потребителя цепи: coopname в строке и общий реестр шаблонов', async () => {
+    const { service, pubSub } = build();
+    service.declareTables([{ code: 'draft', table: 'drafts' }]);
+
+    // Строка своего кооператива в чужой области — сигнал есть.
+    await service.publish(delta({ scope: 'registrator', value: { coopname: 'voskhod' } }));
+    // Реестр шаблонов платформы (область draft) принадлежит всем кооперативам.
+    await service.publish(delta({ code: 'draft', table: 'drafts', scope: 'draft', value: { registry_id: 1 } }));
+    // Строка чужого кооператива — тишина, даже в области своего.
+    await service.publish(delta({ value: { coopname: 'other' } }));
+
+    const tables = pubSub.publish.mock.calls.map(([, payload]: any) => payload.chainChanges.table);
+    expect(tables).toEqual(['projects', 'drafts']);
+  });
+
   it('кошельки пайщиков ядро объявляет само, как личную таблицу', () => {
     const { service } = build();
 
@@ -118,6 +133,19 @@ describe('ChainChangesService', () => {
     expect(pubSub.publish.mock.calls[0][1]).toEqual({
       chainChanges: { code: 'edubridge', table: 'edubridge_lessons', scope: 'voskhod', primary_key: '42', block_num: 0 },
     });
+  });
+
+  it('несколько владельцев строки (участники звонка): сигнал каждому и персоналу, повторы и пустые — отброшены', async () => {
+    const { service, pubSub } = build();
+    service.declareLocalTables([{ code: 'chatcoop', table: 'chatcoop_call_transcriptions', owner_field: 'participant_usernames' }]);
+
+    await service.publishLocal('chatcoop_call_transcriptions', 't1', { participant_usernames: ['ann', 'bob', 'ann', ''] });
+
+    expect(pubSub.publish.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+      chainChangesOwnerTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions', 'ann'),
+      chainChangesOwnerTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions', 'bob'),
+      chainChangesStaffTopic('voskhod', 'chatcoop', 'chatcoop_call_transcriptions'),
+    ]);
   });
 
   it('служебная таблица — только персоналу; необъявленная таблица базы — тишина', async () => {

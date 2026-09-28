@@ -30,7 +30,7 @@ export class CurrencyValidationUtil {
   static validateCurrencySymbol(amount: string, fieldName = t('kit.currency.defaultFieldName')): void {
     if (!this.hasValidCurrencySymbol(amount)) {
       const expectedSymbol = platformSettings().blockchain.rootGovernSymbol;
-      throw DomainError.internal('KIT_CURRENCY_SYMBOL_INVALID', { fieldName, expectedSymbol });
+      throw DomainError.badRequest('KIT_CURRENCY_SYMBOL_INVALID', { fieldName, expectedSymbol });
     }
   }
 

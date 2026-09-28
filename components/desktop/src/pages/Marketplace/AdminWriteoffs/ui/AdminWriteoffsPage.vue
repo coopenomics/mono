@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t, t as i18nT } from 'src/shared/i18n';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { useRoute, useRouter } from 'vue-router';
@@ -260,10 +261,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceWriteoffStatusChangedEvent: () => reloadLive() },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('writeoff'), () => reloadLive());
 
 onMounted(() => {
   void load();

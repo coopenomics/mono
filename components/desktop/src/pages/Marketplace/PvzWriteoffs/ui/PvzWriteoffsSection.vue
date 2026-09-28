@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import {
@@ -114,10 +115,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceWriteoffStatusChangedEvent: () => reloadLive() },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('writeoff'), () => reloadLive());
 
 onMounted(() => {
   void load();

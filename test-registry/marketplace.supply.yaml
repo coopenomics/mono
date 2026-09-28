@@ -27,6 +27,17 @@ title: Поставка — сборка партии поставщиком, п
 # прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
 # отдельно — test-registry/contracts.ram-payer.yaml.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
+#
+# Правка 2026-09-25 (C28-85): экспресс-приёмка проверяет факт до записи —
+# прежде отказ «факт больше заказа» оставлял заказ в заведённой партии, и
+# повторная экспресс-приёмка его не видела.
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp
@@ -82,8 +93,9 @@ cases:
     level: backend
     kind: side
     scenario: Оператор указывает к приёмке больше единиц, чем было заказано
-    expect: отказ — принять больше заказанного нельзя
+    expect: отказ — принять больше заказанного нельзя; отказ ничего не меняет — партия не заводится, заказ ждёт приёмки
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
 
   - id: mkt.supply.side.03
@@ -92,6 +104,7 @@ cases:
     scenario: Приёмка партии оператором чужого кооперативного участка
     expect: отказ доступа, статус партии не меняется
     test: components/controller/tests/unit/marketplace/marketplace-apl-reception-resolver-scoping.test.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
 
   - id: mkt.supply.side.04
@@ -100,6 +113,7 @@ cases:
     scenario: Код передачи принадлежит пайщику, который не является поставщиком
     expect: приёмка не открывается, состав партии не показывается
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
 
   # Вопрос «что с подписанными актами при пересборке» снят чтением кода
@@ -115,6 +129,7 @@ cases:
     scenario: Повторное формирование акта по партии, где приёмка уже открыта
     expect: отказ «уже сформирована», второй акт не создаётся
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
 
   - id: mkt.supply.side.13
@@ -123,6 +138,7 @@ cases:
     scenario: Формирование акта по партии после отмены прежнего черновика
     expect: партия снова свободна — акт формируется заново
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
     # В интерфейсе у принятой партии есть «Отменить и пересобрать»; из кода не
     # выводится, что происходит с уже подписанными актами при пересборке.
@@ -133,6 +149,7 @@ cases:
     scenario: Закрывающая подпись председателя раньше подписи поставщика
     expect: отказ — порядок подписей нарушать нельзя
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
 
   - id: mkt.supply.side.07
@@ -195,6 +212,7 @@ cases:
     expect: >
       на склад имущество приходуется по цене ПРИЁМКИ; выдача открывается по ней же, поэтому пайщик платит цену приёмки, а разница по отношению к цене заказа возвращается ему как недостача
     test: components/controller/tests/unit/marketplace/marketplace-arrival-price.test.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: passing
     # Решение владельца 2026-08-12: имущество живёт по цене приёмки на всём
     # пути. До правки склад числил цену ЗАКАЗА, а выдача считалась от неё же:
@@ -372,6 +390,7 @@ cases:
     scenario: Оператор принял позицию со скидкой — цена в акте приёмки ниже цены заказа
     expect: сумма выплаты поставщику в проекции равна принятому количеству по цене из акта, а не по цене заказа
     test: components/controller/src/extensions/marketplace/application/services/marketplace-apl-reception.service.spec.ts
+    api: components/api-tests/src/marketplace/supply.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.supply.side.36

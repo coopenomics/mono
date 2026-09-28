@@ -12,7 +12,7 @@
 #   - контейнеры работают под uid раннера (docker-compose.blackbox.yml);
 #   - каждая фаза — отдельный подкоманд, чтобы workflow видел время каждой.
 #
-# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|collect|summary>
+# Использование: scripts/blackbox/stack.sh <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>
 
 set -euo pipefail
 
@@ -98,6 +98,8 @@ EOF
   set_env "$ctl_env" POSTGRES_PASSWORD "$PG_PASSWORD"
   set_env "$ctl_env" POSTGRES_DATABASE voskhod
   set_env "$ctl_env" MINIO_ENDPOINT "http://minio:9000"
+  set_env "$ctl_env" SMTP_HOST mailpit
+  set_env "$ctl_env" SMTP_PORT 1025
   # Ключи веб-уведомлений обязательны для конфига; одноразовая пара, как в test.yaml.
   local vapid
   vapid="$(cd components/controller && node -e "const k=require('web-push').generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)")"
@@ -133,8 +135,17 @@ cmd_boot() {
   set_env components/controller/.env CHAIN_ID "$id"
 }
 
+# Автоматическая регистрация долей держателей Благороста выключена, пока идут
+# boot-тесты контракта: они шлют действия прямо в цепь и считают премии
+# вкладчиков точно, а доли, заведённые контроллером параллельно, делали итог
+# зависимым от гонки. Перед API-тестами автоматика включается обратно
+# (controller_autoreg_on) — там её проверяют (решение владельца 25.09.2026).
+AUTOREG_KEY=CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION
+
 cmd_app() {
   load_stack
+  set_env components/controller/.env "$AUTOREG_KEY" off
+  docker compose up -d mailpit
   docker compose up -d parser2
   docker compose up -d coopback
 
@@ -177,12 +188,95 @@ cmd_tests() {
     ${BLACKBOX_TESTS:-}
 }
 
+# Каркас внешнего слоя components/api-tests: те же адреса, свой отчёт JUnit.
+# Матрица прав (src/rights) идёт отдельной фазой после всех сценариев — она
+# зовёт мутации от лица каждой роли с чужими аргументами.
+api_tests_env() {
+  load_stack
+  CHAIN_ID="$(chain_id)"
+  export CHAIN_ID
+  export API_URL="http://127.0.0.1:${API_PORT}/v1/graphql"
+  export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
+}
+
+# Контроллер с включённой автоматикой: пересоздаётся, только если стенд
+# поднимался с выключенной (повторный запуск фазы ничего не перезапускает).
+controller_autoreg_on() {
+  load_stack
+  grep -q "^${AUTOREG_KEY}=off$" components/controller/.env || return 0
+  set_env components/controller/.env "$AUTOREG_KEY" on
+  echo "▸ Включаем автоматическую регистрацию долей — пересоздаём контроллер..."
+  docker compose up -d --no-deps --force-recreate coopback
+  if ! stack_wait_for "API контроллера" 300 3 api_ready; then
+    docker compose logs --tail 200 coopback
+    exit 1
+  fi
+}
+
+cmd_apitests() {
+  ( controller_autoreg_on )
+  api_tests_env
+  cd components/api-tests
+  pnpm exec vitest run \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-api.xml" \
+    --exclude 'src/rights/**' \
+    ${BLACKBOX_API_TESTS:-}
+}
+
+cmd_rights() {
+  api_tests_env
+  export RIGHTS_OUT="$OUT/rights"
+  mkdir -p "$RIGHTS_OUT"
+  cd components/api-tests
+  pnpm exec vitest run src/rights \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-rights.xml"
+}
+
+# Журнал запросов к базе (pg_stat_statements, включён надстройкой компоуза).
+#   dbcov start       — завести расширение, выписать таблицы, обнулить журнал;
+#   dbcov snap <фаза> — сохранить журнал фазы в $OUT/dbcov/<фаза>.json и обнулить.
+# Разбор — scripts/blackbox/db-coverage.mjs (сводка покрытия таблиц).
+DBCOV_DBS_SQL="SELECT datname FROM pg_database WHERE NOT datistemplate AND datname NOT IN ('postgres','authentik_db')"
+
+pg() { docker compose exec -T postgres psql -U postgres -v ON_ERROR_STOP=1 -tAq "$@"; }
+
+cmd_dbcov() {
+  load_stack
+  mkdir -p "$OUT/dbcov"
+  case "${1:-}" in
+    start)
+      pg -d voskhod -c 'CREATE EXTENSION IF NOT EXISTS pg_stat_statements'
+      local db first=1
+      {
+        echo '['
+        for db in $(pg -d voskhod -c "$DBCOV_DBS_SQL"); do
+          [ $first = 1 ] || echo ','
+          first=0
+          pg -d "$db" -c "SELECT coalesce(json_agg(json_build_object('db', current_database(), 'table', tablename)), '[]') FROM pg_tables WHERE schemaname = 'public'"
+        done
+        echo ']'
+      } > "$OUT/dbcov/tables.json"
+      pg -d voskhod -c 'SELECT pg_stat_statements_reset()' >/dev/null
+      ;;
+    snap)
+      local phase="${2:?фаза}"
+      pg -d voskhod -c "SELECT coalesce(json_agg(json_build_object('db', d.datname, 'query', s.query, 'calls', s.calls, 'rows', s.rows)), '[]')
+        FROM pg_stat_statements s JOIN pg_database d ON d.oid = s.dbid
+        WHERE d.datname IN ($DBCOV_DBS_SQL)" > "$OUT/dbcov/$phase.json"
+      pg -d voskhod -c 'SELECT pg_stat_statements_reset()' >/dev/null
+      ;;
+    *) echo "dbcov: start | snap <фаза>" >&2; exit 2 ;;
+  esac
+}
+
 cmd_collect() {
   load_stack
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit authentik-server authentik-worker; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true
@@ -192,6 +286,12 @@ cmd_collect() {
 cmd_summary() {
   local summary="${GITHUB_STEP_SUMMARY:-$OUT/summary.md}"
   {
+    if [ "${SEED_OUTCOME:-}" = "failure" ]; then
+      echo "> ⚠️ **Засев Стола заказов упал.** Шаг помечен зелёным (continue-on-error),"
+      echo "> но наборы маркетплейса шли на неполном стенде — их падения сначала смотреть"
+      echo "> в логе шага «Стенд — засев Стола заказов»."
+      echo
+    fi
     echo "## Black-box: время фаз"
     echo
     if [ -n "${GITHUB_RUN_ID:-}" ] && command -v gh >/dev/null; then
@@ -211,9 +311,14 @@ for line in sys.stdin:
     echo
     echo "## Black-box: тесты"
     echo
-    if [ -f "$OUT/junit.xml" ]; then
-      python3 - "$OUT/junit.xml" <<'PY'
-import sys, xml.etree.ElementTree as ET
+    local junit found=0
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml"; do
+      # Пустой отчёт — набор не нашёл файлов или упал до старта.
+      [ -s "$junit" ] || continue
+      found=1
+      python3 - "$junit" <<'PY'
+import os, sys, xml.etree.ElementTree as ET
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0
@@ -226,14 +331,23 @@ for s in suites:
         elif c.find("failure") is not None or c.find("error") is not None:
             failed += 1
             fails.append(f"{c.get('classname')} › {c.get('name')}")
-print(f"Всего {total}, прошло {total - failed - skipped}, упало {failed}, пропущено {skipped}.")
+print(f"**{titles.get(os.path.basename(sys.argv[1]), sys.argv[1])}:** всего {total}, прошло {total - failed - skipped}, упало {failed}, пропущено {skipped}.")
 if fails:
     print()
     for f in fails[:60]:
         print(f"- {f}")
+print()
 PY
-    else
-      echo "_junit.xml нет — до тестов прогон не дошёл_"
+    [ $? -eq 0 ] || echo "_отчёт $(basename "$junit") не разобран_"
+    done
+    [ $found = 1 ] || echo "_отчётов JUnit нет — до тестов прогон не дошёл_"
+    echo
+    if [ -f "$OUT/rights/summary.md" ]; then
+      cat "$OUT/rights/summary.md"
+      echo
+    fi
+    if [ -d "$OUT/dbcov" ]; then
+      node scripts/blackbox/db-coverage.mjs "$OUT" || echo "_разбор журнала запросов упал_"
     fi
   } >> "$summary"
 }
@@ -246,7 +360,10 @@ case "${1:-}" in
   app) cmd_app ;;
   seed) cmd_seed ;;
   tests) cmd_tests ;;
+  apitests) cmd_apitests ;;
+  rights) cmd_rights ;;
+  dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|collect|summary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>" >&2; exit 2 ;;
 esac

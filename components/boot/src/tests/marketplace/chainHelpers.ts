@@ -83,6 +83,53 @@ export async function loginAs(who: Who): Promise<string> {
   return d.login.tokens.access.token
 }
 
+/**
+ * Личность получателя подтверждена — без этого выдача заказа отклоняется
+ * (верификация по паспорту, 105-28). Подтверждает председатель кооператива без
+ * указания участка: так сверяет совет, и снимки паспорта не нужны (на участке
+ * они обязательны). Повтор контракт отвергает словами «уже проведена» — это и
+ * есть нужное состояние, поэтому такой ответ принимается.
+ */
+let chairmanToken: string | null = null
+export async function ensureIdentityVerified(username: string): Promise<void> {
+  // Токен председателя переиспользуется: два входа одного пользователя в одну
+  // секунду дают одинаковый токен, и контроллер отвечает 500 на дубле ключа.
+  chairmanToken ??= await loginAs(CHAIRMAN)
+  try {
+    await gqlAs(chairmanToken,
+      'mutation($d:VerifyParticipantOnsiteInput!){ verifyParticipantOnsite(data:$d){ type status } }',
+      { d: { username } })
+  }
+  catch (e: any) {
+    if (!/уже/i.test(String(e?.message))) throw e
+  }
+}
+
+/**
+ * Мета подписываемого документа. GraphQL отдаёт её скаляром JSON — объектом;
+ * прежде это была строка, и наборы разбирали её JSON.parse.
+ */
+export function docMeta(meta: unknown): Record<string, any> {
+  return typeof meta === 'string' ? JSON.parse(meta) : (meta as Record<string, any>)
+}
+
+/**
+ * Количество в единице предложения, как его принимает контракт
+ * (lib/core/marketplace/marketplace.hpp): KG и LTR — три знака (0.500 KG =
+ * 500 г), штука PCS неделима — ноль знаков. Прямые действия заказа с чужой
+ * единицей или точностью контракт отвергает «Недопустимая единица измерения».
+ */
+const UNIT_ASSET: Record<string, { symbol: string, precision: number }> = {
+  KG: { symbol: 'KG', precision: 3 },
+  LITER: { symbol: 'LTR', precision: 3 },
+  PIECE: { symbol: 'PCS', precision: 0 },
+}
+export function unitAsset(unitOfMeasure: string, quantity: number): string {
+  const u = UNIT_ASSET[unitOfMeasure]
+  if (!u) throw new Error(`единица предложения ${unitOfMeasure} тесту неизвестна`)
+  return `${quantity.toFixed(u.precision)} ${u.symbol}`
+}
+
 /** Председатель кооператива стенда (ant) — те же реквизиты, что у shared/apiClient. */
 export const CHAIRMAN: Who = {
   email: process.env.TEST_EMAIL || 'ivanov@example.com',
@@ -92,6 +139,8 @@ export const CHAIRMAN: Who = {
 
 export interface LedgerRow {
   action: string
+  globalSequence: string
+  parentApplyGlobalSequence: string | null
   operationCode: string | null
   processHash: string | null
   username: string | null
@@ -105,7 +154,7 @@ export interface LedgerRow {
 const HISTORY_QUERY = `query($i:GetLedger2HistoryInput!){
   getLedger2History(input:$i){
     totalCount
-    items { action operationCode processHash username accountId walletFrom walletTo quantity memo }
+    items { globalSequence parentApplyGlobalSequence action operationCode processHash username accountId walletFrom walletTo quantity memo }
   }
 }`
 
@@ -124,7 +173,17 @@ export async function historyOfProcess(token: string, processHash: string): Prom
   const d: any = await gqlAs(token, HISTORY_QUERY, {
     i: { coopname: COOP, processHash: processHash.toLowerCase(), limit: 200, page: 1 },
   })
-  return d.getLedger2History.items as LedgerRow[]
+  const rows = d.getLedger2History.items as LedgerRow[]
+  // Код операции в журнале есть только у apply; walletop, debit и credit
+  // ссылаются на свой apply через parentApplyGlobalSequence. Без этой связки
+  // фильтр «walletop с кодом o.mkt.x» всегда пуст, и проверки по нему шли
+  // вхолостую (цикл по пустому списку) либо падали (длина ≥ 1).
+  const codeOf = new Map(rows.filter(r => r.action === 'apply').map(r => [String(r.globalSequence), r.operationCode]))
+  for (const r of rows) {
+    if (!r.operationCode && r.parentApplyGlobalSequence)
+      r.operationCode = codeOf.get(String(r.parentApplyGlobalSequence)) ?? null
+  }
+  return rows
 }
 
 /** Только проводки (`apply`) нитки — по ним ассертятся коды операций и суммы. */
@@ -204,7 +263,7 @@ export async function waitForOrderMirror(
   timeoutMs = 180_000,
 ): Promise<any> {
   const query = `query($i:MarketplaceGetOrderInput!){
-    marketplaceGetOrder(input:$i){ id status order_hash quantity total_cost total_cost_with_fee membership_fee price_per_unit }
+    marketplaceGetOrder(input:$i){ id status order_hash quantity total_cost total_cost_with_fee membership_fee accepted_cost price_per_unit }
   }`
   const deadline = Date.now() + timeoutMs
   let last: any = null
@@ -263,10 +322,24 @@ export async function availableShare(username: string): Promise<number> {
  * Довести паевой остаток пайщика до нужного минимума. Возвращает итоговый
  * остаток. Если средств хватает — ничего не делает.
  */
-export async function ensureShareFunds(username: string, minimumRub: number): Promise<number> {
+export async function ensureShareFunds(username: string, minimumRub: number, memberToken?: string): Promise<number> {
   const have = await availableShare(username)
   if (have >= minimumRub) return have
   const { depositToWallet } = await import('../wallet/depositToWallet')
   await depositToWallet(await chain(), COOP, username, Math.ceil(minimumRub - have) + 10_000)
+  // Пополнение идёт прямо в цепь, а оформление заказа проверяет остаток по
+  // зеркалу контроллера — оно догоняет цепь через индексер. С токеном пайщика
+  // ждём, пока зеркало увидит деньги, иначе checkout отвечает «доступно 0».
+  if (memberToken) {
+    const deadline = Date.now() + 120_000
+    for (;;) {
+      const d: any = await gqlAs(memberToken, 'query{ marketplaceMemberWallet{ wallets{ name available } } }').catch(() => null)
+      const row = d?.marketplaceMemberWallet?.wallets?.find((w: any) => w.name === 'w.wal.share')
+      if (row && amount(row.available) >= minimumRub) break
+      if (Date.now() > deadline) throw new Error(`зеркало контроллера не увидело пополнение ${username} до ${minimumRub} RUB за 120 с`)
+      // timing: backoff — опрос зеркала кошельков, пока индексер не донёс пополнение
+      await new Promise(r => setTimeout(r, 2_000))
+    }
+  }
   return availableShare(username)
 }

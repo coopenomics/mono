@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { Field, InputType } from '@nestjs/graphql';
 import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
@@ -19,6 +20,7 @@ export class PublishProjectFreeDecisionInputDTO implements PublishProjectFreeDec
     description: 'Подписанный электронный документ (generateProjectOfFreeDecision)',
   })
   @ValidateNested()
+  @Type(() => ProjectFreeDecisionSignedDocumentInputDTO)
   document!: ProjectFreeDecisionSignedDocumentInputDTO;
 
   @Field(() => String, {

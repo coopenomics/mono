@@ -238,7 +238,7 @@ export class TimeTrackingInteractor {
   }): Promise<TimeEntryDomainEntity> {
     const hours = Number(input.hours);
     if (!Number.isFinite(hours) || hours <= HOURS_FLOAT_EPSILON) {
-      throw DomainError.internal('CAPITAL_TIME_HOURS_NOT_POSITIVE');
+      throw DomainError.badRequest('CAPITAL_TIME_HOURS_NOT_POSITIVE');
     }
 
     const { issue, contributor } = await this.requireIssueAndCreator(input.username, input.coopname, input.issue_hash);
@@ -319,7 +319,7 @@ export class TimeTrackingInteractor {
   async stopTimer(input: { username: string; coopname: string }): Promise<TimeEntryDomainEntity | null> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) return null;
@@ -333,11 +333,11 @@ export class TimeTrackingInteractor {
   async pauseTimer(input: { username: string; coopname: string }): Promise<TimerSessionDomainEntity> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) {
-      throw DomainError.internal('CAPITAL_TIMER_NOT_ACTIVE');
+      throw DomainError.badRequest('CAPITAL_TIMER_NOT_ACTIVE');
     }
     if (open.isPaused) return open;
     open.paused_at = new Date();
@@ -350,11 +350,11 @@ export class TimeTrackingInteractor {
   async resumeTimer(input: { username: string; coopname: string }): Promise<TimerSessionDomainEntity> {
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(input.username, input.coopname);
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username: input.username, coopname: input.coopname });
     }
     const open = await this.timerSessionRepository.findOpenByContributor(contributor.contributor_hash);
     if (!open) {
-      throw DomainError.internal('CAPITAL_TIMER_NOT_ACTIVE');
+      throw DomainError.badRequest('CAPITAL_TIMER_NOT_ACTIVE');
     }
     if (!open.isPaused || !open.paused_at) return open;
 
@@ -456,7 +456,7 @@ export class TimeTrackingInteractor {
 
     if (hours <= HOURS_FLOAT_EPSILON) {
       if (opts.allowEmpty) return null;
-      throw DomainError.internal('CAPITAL_TIME_SESSION_TOO_SHORT_OR_LIMIT');
+      throw DomainError.badRequest('CAPITAL_TIME_SESSION_TOO_SHORT_OR_LIMIT');
     }
 
     return this.timeEntryRepository.create(
@@ -510,15 +510,15 @@ export class TimeTrackingInteractor {
   ): Promise<{ issue: IssueDomainEntity; contributor: ContributorDomainEntity }> {
     const issue = await this.issueRepository.findByIssueHash(issueHash);
     if (!issue) {
-      throw DomainError.internal('CAPITAL_ISSUE_NOT_FOUND', { hash: issueHash });
+      throw DomainError.notFound('CAPITAL_ISSUE_NOT_FOUND', { hash: issueHash });
     }
     const contributor = await this.contributorRepository.findByUsernameAndCoopname(username, coopname);
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username, coopname });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_IN_COOP', { username, coopname });
     }
     const creators = (issue.creators || []).map((c) => String(c).toLowerCase());
     if (creators.length === 0) {
-      throw DomainError.internal('CAPITAL_ISSUE_ASSIGNEE_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_ISSUE_ASSIGNEE_REQUIRED');
     }
     if (!creators.includes(username.toLowerCase())) {
       throw DomainError.internal('CAPITAL_TIME_ONLY_BY_ASSIGNEE');
@@ -1058,13 +1058,13 @@ export class TimeTrackingInteractor {
     );
 
     if (uncommittedEntries.length === 0) {
-      throw DomainError.internal('CAPITAL_UNCOMMITTED_TIME_ENTRIES_NOT_FOUND');
+      throw DomainError.notFound('CAPITAL_UNCOMMITTED_TIME_ENTRIES_NOT_FOUND');
     }
 
     // Получаем contributor по hash, чтобы получить username
     const contributor = await this.contributorRepository.findOne({ contributor_hash: contributorHash });
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
     }
 
     // Получаем завершённые задачи участника в этом проекте
@@ -1079,7 +1079,7 @@ export class TimeTrackingInteractor {
     const availableEntries = uncommittedEntries.filter((entry) => completedIssueHashes.includes(entry.issue_hash));
 
     if (availableEntries.length === 0) {
-      throw DomainError.internal('CAPITAL_UNCOMMITTED_TIME_ENTRIES_FOR_DONE_ISSUES_NOT_FOUND');
+      throw DomainError.notFound('CAPITAL_UNCOMMITTED_TIME_ENTRIES_FOR_DONE_ISSUES_NOT_FOUND');
     }
 
     // Сортируем по дате (старые сначала)
@@ -1154,7 +1154,7 @@ export class TimeTrackingInteractor {
     // Получаем contributor по hash, чтобы получить username
     const contributor = await this.contributorRepository.findOne({ contributor_hash: contributorHash });
     if (!contributor) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_NOT_FOUND_BY_HASH', { hash: contributorHash });
     }
 
     // Получаем завершённые задачи участника в этом проекте

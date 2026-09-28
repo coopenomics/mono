@@ -149,6 +149,7 @@ const targetProjectHash = computed(
   () => currentProjectHash.value || selectedComponentHash.value || '',
 );
 
+// realtime: нет источника — список для выбора в диалоге загружается при его открытии.
 onMounted(() => {
   if (!currentProjectHash.value) void loadIssueTargets();
 });

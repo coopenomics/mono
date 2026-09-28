@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRoute, useRouter } from 'vue-router';
@@ -12,7 +13,7 @@ import { Map as MapView } from 'src/shared/ui/Map';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
-import { HandoffTokenKind, useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { HandoffTokenKind, marketLiveTables } from 'src/shared/lib/marketplace';
 import { fetchMyOrders } from '../api';
 import type { MarketplaceOrderStatusView, MarketplaceOrderView } from '../types';
 
@@ -277,13 +278,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load(currentPage.value, false);
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    MarketplaceIssuanceSagaUpdatedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('order'), () => reloadLive());
 </script>
 
 <template lang="pug">

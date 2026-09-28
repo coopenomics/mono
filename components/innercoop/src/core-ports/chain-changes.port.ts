@@ -24,9 +24,9 @@ export interface InnerChainChangesTable {
   /** Имя таблицы — `<Contract>.Tables.<Table>.tableName` либо имя из `@Entity`. */
   table: string;
   /**
-   * Поле строки с именем пайщика-владельца (обычно `username`). Задано —
-   * таблица личная: сигнал уходит владельцу и персоналу. Не задано — всем
-   * пайщикам кооператива.
+   * Поле строки с именем пайщика-владельца (обычно `username`) либо со
+   * списком имён — тогда сигнал уходит каждому. Задано — таблица личная:
+   * сигнал уходит владельцам и персоналу. Не задано — всем пайщикам кооператива.
    */
   owner_field?: string;
   /** Только персоналу: совету и назначенным расширением (задачи, настройки). */
@@ -53,6 +53,14 @@ export interface IChainChangesPort {
    * состава расширение передаёт его заново.
    */
   setStaff(code: string, usernames: string[]): void;
+
+  /**
+   * Опубликовать изменение строки объявленной таблицы базы узла, когда запись
+   * прошла мимо подписчика ядра: сырой SQL или своя база расширения (её
+   * расширение наблюдает само — `LocalChangesCollector` из extension-kit).
+   * Звать после фиксации записи; `row` — для владельца личной таблицы.
+   */
+  publishLocal(table: string, primary_key: string, row?: Record<string, unknown>): Promise<void>;
 }
 
 export const CHAIN_CHANGES_PORT = Symbol.for('Innercoop.CorePort.ChainChanges');

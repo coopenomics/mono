@@ -49,7 +49,7 @@ export class DistributionManagementInteractor {
   ): Promise<Cooperative.Registry.GenerationConvertStatement.Action> {
     const projectHash = data.project_hash;
     if (!projectHash) {
-      throw DomainError.internal('CAPITAL_CONVERSION_PROJECT_HASH_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_CONVERSION_PROJECT_HASH_REQUIRED');
     }
 
     const userAppendix = await this.appendixRepository.findConfirmedByUsernameAndProjectHash(
@@ -58,7 +58,7 @@ export class DistributionManagementInteractor {
     );
 
     if (!userAppendix) {
-      throw DomainError.internal('CAPITAL_CONFIRMED_APPENDIX_NOT_FOUND', { username: currentUser.username, projectHash });
+      throw DomainError.notFound('CAPITAL_CONFIRMED_APPENDIX_NOT_FOUND', { username: currentUser.username, projectHash });
     }
 
     return {

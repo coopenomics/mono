@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { uiLocale, t } from 'src/shared/i18n';
 import { useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
@@ -111,6 +113,12 @@ async function onSubmit(): Promise<void> {
 }
 
 onMounted(load);
+
+// Заявка поставщика ждёт решения председателя: одобрение приходит по ленте,
+// и страница сама уводит на стол поставщика.
+useLiveReload(marketLiveTables('supplier'), async () => {
+  if (!redirecting.value) await load();
+});
 </script>
 
 <template lang="pug">

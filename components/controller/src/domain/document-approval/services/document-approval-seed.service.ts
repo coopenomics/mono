@@ -65,6 +65,7 @@ export class DocumentApprovalSeedService implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     if (!config.document_approval.seed_on_start) return;
+    // timing: schedule — разовый перенос утверждений после старта узла; сигнала готовности цепи и реестра деклараций нет
     const timer = setTimeout(() => {
       this.apply(config.coopname).catch((error) => {
         this.logger.error(`Перенос утверждений при старте не удался: ${errorMessage(error)}`);

@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveProposalList } from '../model';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
@@ -160,6 +161,21 @@ function openDetail(hash: string): void {
 
 onMounted(() => {
   void loadPage(1);
+});
+
+// Живой список: записки перечитываются по ленте изменений (model/useLiveProposalList).
+useLiveProposalList({
+  items,
+  currentPage,
+  totalPages,
+  totalCount,
+  pageLimit: PAGE_LIMIT,
+  fetch: (options) => {
+    const coopname = route.params.coopname as string;
+    return coopname
+      ? getExpenseProposalsByCooperative({ coopname, options: { ...options, sortBy: 'created_at', sortOrder: 'ASC' } })
+      : Promise.resolve(null);
+  },
 });
 </script>
 

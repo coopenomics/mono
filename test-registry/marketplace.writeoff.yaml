@@ -22,6 +22,13 @@ title: Списание скоропорта — проект председат
 # списании стояло под чужим номером (1106 — заявление о возврате); номера из
 # описаний убраны. Поведение и набор случаев прежние.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.wroff/confirmwroff.cpp
@@ -75,6 +82,7 @@ cases:
     scenario: Проект списания без указания причины
     expect: отказ — причина обязательна
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.02
@@ -83,6 +91,7 @@ cases:
     scenario: К списанию выбрано имущество чужого кооперативного участка
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.03
@@ -114,6 +123,7 @@ cases:
     scenario: Проведение списания до утверждения советом
     expect: отказ — без протокола совета списание не проводится
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-validation.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
   - id: mkt.wof.side.05
@@ -222,6 +232,7 @@ cases:
       строкой со своим происхождением; партии одного происхождения по-прежнему
       складываются в одну строку с суммарным количеством
     test: components/controller/tests/unit/marketplace/marketplace-writeoff-candidates.test.ts
+    api: components/api-tests/src/marketplace/writeoff.test.ts
     status: passing
 
 # 2026-09-10 (задача 99D-15, решение владельца): списание скоропорта идёт

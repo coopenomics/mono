@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import type { PaginationInputDTO } from '@coopenomics/extension-kit';
+import { resolveSortColumn, type PaginationInputDTO } from '@coopenomics/extension-kit';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
 import { ExpenseProposalMapper } from '../mappers/expense-proposal.mapper';
@@ -84,8 +84,10 @@ export class ExpenseProposalTypeormRepository
   ): Promise<{ items: ExpenseProposalDomainEntity[]; totalCount: number }> {
     const page = Math.max(1, options?.page ?? 1);
     const limit = Math.max(1, Math.min(200, options?.limit ?? 10));
-    const sortBy = options?.sortBy ?? '_created_at';
-    const sortOrder = options?.sortOrder ?? 'DESC';
+    // Имя вне колонок и пустое имя — сортировка по умолчанию: до 25.09.2026 они
+    // уходили в ORDER BY и роняли список ошибкой 500 (C28-80).
+    const sortBy = resolveSortColumn(this.repository, options?.sortBy, '_created_at');
+    const sortOrder = sortBy === options?.sortBy && options?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
     const [entities, totalCount] = await this.repository.findAndCount({
       where,

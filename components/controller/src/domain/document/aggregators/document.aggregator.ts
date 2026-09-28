@@ -41,7 +41,8 @@ export class DocumentAggregator {
     // которую подписал первый, иначе meta_hash не сойдётся.
     const document = await this.getDocumentByHash(
       signedDoc.doc_hash,
-      typeof signedDoc.meta?.block_num === 'number' ? signedDoc.meta.block_num : undefined
+      typeof signedDoc.meta?.block_num === 'number' ? signedDoc.meta.block_num : undefined,
+      signedDoc.meta
     );
 
     // Массив для хранения информации о подписантах
@@ -93,8 +94,8 @@ export class DocumentAggregator {
    * @param hash Хеш документа
    * @returns Документ
    */
-  private async getDocumentByHash(hash: string, block_num?: number): Promise<DocumentDomainEntity | null> {
-    const document = await this.documentRepository.findByHash(hash, block_num);
+  private async getDocumentByHash(hash: string, block_num?: number, meta?: unknown): Promise<DocumentDomainEntity | null> {
+    const document = await this.documentRepository.findByHash(hash, block_num, meta);
     return document;
   }
 }

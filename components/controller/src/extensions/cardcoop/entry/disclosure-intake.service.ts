@@ -210,11 +210,11 @@ export class CardcoopDisclosureIntakeService {
   ): Promise<void> {
     const { payload } = envelope;
 
-    if (payload.type !== 'disclosure_profile') throw DomainError.internal('CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE');
+    if (payload.type !== 'disclosure_profile') throw DomainError.badRequest('CARDCOOP_SOURCE_WRONG_DOCUMENT_TYPE');
     if (payload.coopname !== fromCoopname) throw DomainError.internal('CARDCOOP_SOURCE_SIGNER_MISMATCH');
-    if (payload.grant_jti !== session.disclosureId) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_GRANT');
-    if (payload.card_id !== session.cardId) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_CARD');
-    if (payload.to_coopname !== platformSettings().coopname) throw DomainError.internal('CARDCOOP_PROFILE_WRONG_TARGET_COOP');
+    if (payload.grant_jti !== session.disclosureId) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_GRANT');
+    if (payload.card_id !== session.cardId) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_CARD');
+    if (payload.to_coopname !== platformSettings().coopname) throw DomainError.badRequest('CARDCOOP_PROFILE_WRONG_TARGET_COOP');
 
     await this.verifyByChain(payload, envelope.signature, fromCoopname);
 

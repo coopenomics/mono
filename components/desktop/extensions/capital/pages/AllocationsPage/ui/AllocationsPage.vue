@@ -64,6 +64,8 @@ q-page.allocations-page
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, markRaw } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
@@ -217,6 +219,9 @@ function openComponent(row: AllocationRow): void {
 }
 
 const HEADER_ACTION_ID = 'capital-allocate-funds';
+
+// Распределение средств живёт по ленте изменений Благороста, тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadData());
 
 onMounted(() => {
   // Аллоцировать средства может только председатель; совет видит страницу без кнопки.

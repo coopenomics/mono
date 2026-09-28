@@ -35,6 +35,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { BaseButton, BaseDialog } from 'src/shared/ui/base'
 import { KUSelector } from 'src/widgets/Marketplace/KUSelector'
@@ -106,6 +108,10 @@ onMounted(async () => {
     // Без деталей шапка покажет нейтральную подпись; смена откроется по запросу.
   }
 })
+
+// Пункты выдачи живут по ленте: новый, закрытый или переименованный участок
+// сразу меняет подпись и доступность «Сменить».
+useLiveReload(marketLiveTables('ku'), () => kuStore.load({ coopname: props.coopname, onlyActive: true }))
 </script>
 
 <style scoped lang="scss">

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, MoreThanOrEqual, Repository } from 'typeorm';
 import type {
@@ -75,7 +76,10 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
   constructor(
     @InjectRepository(MarketplaceOfferEntity, 'marketplace')
     private readonly repo: Repository<MarketplaceOfferEntity>,
-    private readonly mapper: MarketplaceOfferMapper
+    private readonly mapper: MarketplaceOfferMapper,
+    // Счётчики оферты меняются сырым SQL (атомарный резерв), мимо подписчика
+    // ленты изменений, — сигнал публикуем сами после записи.
+    @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {}
 
   async findById(id: string): Promise<MarketplaceOfferDomainEntity | null> {
@@ -315,6 +319,8 @@ export class MarketplaceOfferRepositoryAdapter implements MarketplaceOfferDomain
       }
       return { ok: false, reason: failureReason };
     }
+
+    void this.chainChanges?.publishLocal('marketplace_offer', offer_id);
 
     // pg возвращает column-by-column как plain object; нормализуем через
     // повторный findOne для прохода mapper (timestamp coercion, типизация).

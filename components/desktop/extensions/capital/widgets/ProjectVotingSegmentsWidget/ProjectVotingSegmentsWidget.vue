@@ -163,6 +163,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSegmentStore } from 'app/extensions/capital/entities/Segment/model';
 import { SubmitVoteButton } from 'app/extensions/capital/features/Vote/SubmitVote';
@@ -433,6 +435,9 @@ const handleVoteSubmitted = () => {
     voter: props.currentUsername,
   });
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadSegments());
 
 onMounted(async () => {
   await loadSegments();

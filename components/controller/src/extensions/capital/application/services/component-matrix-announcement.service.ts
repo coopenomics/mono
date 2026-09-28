@@ -190,6 +190,7 @@ export class ComponentMatrixAnnouncementService {
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
       if (i > 0) {
+        // timing: throttle — объявления в комнаты Matrix не чаще, чем принимает сервер
         await new Promise((r) => setTimeout(r, 400));
       }
       const eventId = await this.matrixRoomMessaging.sendTextMessage({

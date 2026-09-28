@@ -151,6 +151,7 @@ function finishFlow(step: 'done' | 'pending' | 'declined'): void {
     issuanceFlow.value = null;
     return;
   }
+  // timing: ui — итог подписи на месте показываем несколько секунд и прячем
   flowResultTimer = setTimeout(() => {
     flowResultTimer = null;
     issuanceFlow.value = null;

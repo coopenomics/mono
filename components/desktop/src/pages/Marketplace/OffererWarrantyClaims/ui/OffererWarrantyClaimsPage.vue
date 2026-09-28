@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { useRouter } from 'vue-router';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -91,6 +93,10 @@ function disagree(c: MarketplaceSupplierClaimView): void {
 onMounted(() => {
   void load();
 });
+
+// Претензии поставщику живут по ленте: новая претензия после возврата и
+// решение по ней перечитывают список и сводку.
+useLiveReload(marketLiveTables('supplier', 'return'), load);
 </script>
 
 <template lang="pug">

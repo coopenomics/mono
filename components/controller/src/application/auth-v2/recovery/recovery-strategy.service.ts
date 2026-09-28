@@ -9,6 +9,15 @@ import { SecurityEventKind } from '~/domain/auth-v2/security-events/security-eve
 import { AuditService } from '../audit/audit.service';
 import { SecurityEventNotificationService } from '../security-events/security-event-notification.service';
 import { t } from '~/i18n';
+import { DomainError } from '@coopenomics/extension-kit';
+
+/**
+ * Способы, которые пайщик пока выбрать не может. Офлайн-коды не выдаются нигде,
+ * и выбравший их через API оставался без рабочего способа восстановления
+ * (решение владельца 25.09.2026: запретить, пока коды не выдаём; C28-80).
+ * Начнём выдавать — убрать отсюда.
+ */
+const UNAVAILABLE_STRATEGIES: ReadonlySet<RecoveryStrategy> = new Set([RecoveryStrategy.OfflineCode]);
 
 /**
  * Управление стратегией восстановления (CoopID, Story 3.5). Активна ровно одна
@@ -40,6 +49,10 @@ export class RecoveryStrategyService {
     totpCode: string,
     ip: string | null,
   ): Promise<void> {
+    // До проверки второго фактора: отказ по способу не должен тратить код.
+    if (UNAVAILABLE_STRATEGIES.has(strategy)) {
+      throw DomainError.badRequest('AUTH_V2_RECOVERY_STRATEGY_UNAVAILABLE', { strategy });
+    }
     const enabled = await this.twoFactor.isEnabled(subjectId);
     if (!enabled) {
       throw new AuthV2Error(

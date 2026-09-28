@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy, OnApplicationBootstrap, Inject } from '@nestjs/common';
 import cron from 'node-cron';
 import { generateSubscriberHash } from '~/utils/subscriber-hash.util';
 import config from '~/config/config';
@@ -12,7 +12,7 @@ import { DomainError } from '@coopenomics/extension-kit';
  * адресация Центра уведомлений; внешней синхронизации подписчиков больше нет.
  */
 @Injectable()
-export class NotificationSubscriberSyncService implements OnModuleInit, OnModuleDestroy {
+export class NotificationSubscriberSyncService implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy {
   private readonly logger = new Logger(NotificationSubscriberSyncService.name);
   private isProcessing = false;
   private cronJob: cron.ScheduledTask | null = null;
@@ -26,6 +26,16 @@ export class NotificationSubscriberSyncService implements OnModuleInit, OnModule
     });
 
     this.logger.log('node-cron backfill subscriber_id запущен (каждые 30 минут)');
+  }
+
+  /**
+   * Добор при старте: без него аккаунты, заведённые мимо обычного потока
+   * (засев стенда, перенос), ждали адреса уведомлений до получаса — и всё это
+   * время уведомления им, в том числе председателю, не доходили (C28-80).
+   * Не держит старт: идёт в фоне.
+   */
+  onApplicationBootstrap() {
+    void this.syncNotificationSubscribers();
   }
 
   onModuleDestroy() {

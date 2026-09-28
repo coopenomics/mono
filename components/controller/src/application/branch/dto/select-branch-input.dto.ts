@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { Field, InputType } from '@nestjs/graphql';
 import { validationMessage } from '@coopenomics/extension-kit';
 import { IsNotEmpty, IsString, ValidateNested } from 'class-validator';
@@ -24,5 +25,6 @@ export class SelectBranchInputDTO implements SelectBranchInputDomainInterface {
     description: 'Подписанный электронный документ (generateSelectBranchDocument)',
   })
   @ValidateNested()
+  @Type(() => SelectBranchSignedDocumentInputDTO)
   document!: SelectBranchSignedDocumentInputDTO;
 }

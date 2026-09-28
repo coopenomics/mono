@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { SovietContract, WalletContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
 import { FailAlert, NotifyAlert } from 'src/shared/api';
 import { useRouter } from 'vue-router';
@@ -129,25 +131,34 @@ async function load(): Promise<void> {
 }
 
 /**
- * После подписи `wallet::signagree` уже подтверждён цепочкой (мутация
- * вернулась), но состояние присоединения и гранты завязаны на PG-кеш
- * `wallet::users`, который parser синхронизирует со следующего блока. Коротко
- * поллим состояние, пока подпись не отразится в PG, — тогда и `getDesktop`
- * отдаст полные orderer-права. Так переключение происходит само, без ручного
- * refresh.
- *
- * Подтверждением считаем именно AGREEMENT_SIGNED: снятый `requires_gate` — не
- * доказательство подписи (см. комментарий к состояниям выше).
+ * Подключение ждёт факта из цепи, а не таймера. Мутация подписи отвечает, когда
+ * узел разобрал блок `wallet::signagree`, — состояние и гранты стола обычно уже
+ * свежие. Если узел не успел, форма остаётся в ожидании, и лента изменений по
+ * `wallet::users` / `soviet::agreements3` (личные строки пайщика) перечитывает
+ * состояние и продолжает переход сама.
  */
-async function waitForSignatureSynced(): Promise<boolean> {
-  const deadline = Date.now() + 15000;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    state.value = await fetchOnboardingState();
-    if (alreadySigned.value) return true;
+const awaitingChain = ref(false);
+
+async function reloadLive(): Promise<void> {
+  if (loading.value) return;
+  state.value = await fetchOnboardingState();
+  if (!awaitingChain.value || !alreadySigned.value) return;
+  awaitingChain.value = false;
+  loading.value = true;
+  try {
+    await proceedToDesk();
+  } catch (e) {
+    redirecting.value = false;
+    FailAlert(e);
+  } finally {
+    loading.value = false;
   }
-  return false;
 }
+
+useLiveReload(
+  [liveTable(WalletContract, WalletContract.Tables.Users), liveTable(SovietContract, SovietContract.Tables.Agreements)],
+  reloadLive,
+);
 
 /**
  * Общий финал: пайщик подключён (подпись либо есть, либо только что прошла) —
@@ -178,35 +189,14 @@ async function proceedToDesk(): Promise<void> {
 
   await loadExtensionRoutes('market', router);
 
-  // Гейт оферты (requires_gate) и гранты стола (getDesktop → firstAccessibleRoute)
-  // синхронизируются НЕЗАВИСИМО друг от друга и с разной задержкой: гейт —
-  // быстрый читаемый признак (см. waitForSignatureSynced выше), гранты —
-  // отдельный медленный путь (parser → wallet::users.programs[]). Подтверждённый
-  // requires_gate=false НЕ гарантирует, что уже И loadDesktop() отдаст свежие
-  // orderer-права — инцидент 2026-07-26: однократный loadDesktop() сразу после
-  // подтверждения гейта уводил на маршрут, тут же заворачиваемый навигационным
-  // гвардом («Недостаточно прав доступа»), либо (для случая «оферта уже
-  // подписана при регистрации», где гейт не проверяется вовсе) на тот же
-  // онбординг. Поэтому здесь — свой короткий поллинг: перезапрашиваем
-  // loadDesktop(), пока firstAccessibleRoute не отдаст маршрут, отличный от
-  // самого онбординга, либо не истечёт окно ожидания.
-  const deadline = Date.now() + 15000;
-  let target: { name: string } | null = null;
-  while (Date.now() < deadline) {
-    await desktop.loadDesktop();
-    const candidate = desktop.firstAccessibleRoute('market');
-    if (candidate && candidate.name !== ONBOARDING_ROUTE_NAME) {
-      target = candidate;
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  }
-
-  if (!target) {
-    // Синк не успел за отведённое окно — крайне редко. Не гадаем с fallback-
-    // маршрутом (marketplace-catalog может требовать тот же ещё не выданный
-    // грант) — честно просим обновить страницу чуть позже.
+  // Гранты стола (getDesktop → firstAccessibleRoute) строятся из того же блока,
+  // что и подпись, поэтому к ответу мутации они уже на узле. Не успели — ждём
+  // сигнала ленты (reloadLive), а не повторяем запрос по таймеру.
+  await desktop.loadDesktop();
+  const target = desktop.firstAccessibleRoute('market');
+  if (!target || target.name === ONBOARDING_ROUTE_NAME) {
     redirecting.value = false;
+    awaitingChain.value = true;
     NotifyAlert(t('marketplace.onboardingMemberPickCppPage.syncPendingMessage'));
     return;
   }
@@ -260,15 +250,12 @@ async function onSign(): Promise<void> {
     // Передаём уже прочитанный инстанс оферты (если был сгенерирован при
     // ознакомлении), иначе signOnboardingOffer сгенерирует свежий.
     state.value = await signOnboardingOffer(offerDoc.value ?? undefined);
-    // AGREEMENT_SIGNED сразу — редкий случай (PG уже синхронен); иначе ждём
-    // синк подписи в PG коротким поллингом.
-    const confirmed = alreadySigned.value || (await waitForSignatureSynced());
-    if (confirmed) {
+    // Мутация ответила после разбора блока — подпись обычно уже учтена.
+    // Не учтена — ждём сигнала ленты (reloadLive продолжит переход сам).
+    if (alreadySigned.value) {
       await proceedToDesk();
     } else {
-      // Синк не успел за отведённое окно — крайне редко; даём пользователю
-      // явный сигнал перезагрузить страницу.
-      redirecting.value = false;
+      awaitingChain.value = true;
       NotifyAlert(t('marketplace.onboardingMemberPickCppPage.signSyncingMessage'));
     }
   } catch (e) {
@@ -286,7 +273,7 @@ onMounted(load);
 q-page.mp-role-orderer.mp-member-cpp(role="region", :aria-label="$t('marketplace.onboardingMemberPickCppPage.ariaLabel')")
   //- Спиннер на весь экран — ТОЛЬКО на первичной загрузке состояния и на короткой
   //- фазе перехода (redirecting, после подтверждения подписи). На самой подписи
-  //- (поллинг синка ~15с) оверлея НЕТ — спиннер на кнопке + блокировка полей.
+  //- оверлея НЕТ — спиннер на кнопке + блокировка полей.
   q-inner-loading(:showing="(loading && !state) || redirecting")
     q-spinner(color="primary", size="2em")
 

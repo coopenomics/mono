@@ -59,6 +59,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import {
   useSegmentStore,
   type ISegment,
@@ -176,6 +178,9 @@ const handleSegmentClick = (username: string) => {
 const handleToggleExpand = (username: string) => {
   emit('toggle-expand', username);
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadProjectSegments());
 
 onMounted(async () => {
   await loadProjectSegments();

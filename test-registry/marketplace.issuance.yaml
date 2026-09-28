@@ -37,6 +37,33 @@ title: Выдача заказа на пункте выдачи — заявле
 # отказа в переподключении она не переоткрывалась. Поведение выдачи и набор
 # случаев прежние; случай канала — wallet.realtime.side.06.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+# На выдаче снят цикл повторов с паузой при резолве кода получения: заказ,
+# отставший от кода, догоняет лента, кнопка «Открыть выдачу» появляется в окне.
+
+# Правка 24.09.2026 (C28-83, второй проход): на ленту переведены и экраны
+# Стола заказов, которые раньше не слушали marketplaceEvents, — реестры
+# председателя, экономика стола и участка, выплаты, претензии поставщику,
+# склад участка, онбординг кооператива и поставщика, пункты выдачи, карточки
+# реестров и виджеты процессов. Сбор с оборота (marketplace::config) объявлен в
+# ленте таблицей цепи. Онбординг пайщика ждёт подписи по ленте, а не циклом с
+# паузой. Серверные сценарии и набор случаев прежние.
+
+# Правка 24.09.2026 (C28-83): таймеры этой фичи помечены назначением
+# (// timing: backoff | schedule | timeout | debounce | throttle | ui) — это
+# законные повторы, расписания и пределы ожидания, а не паузы перед чтением.
+# Поведение и набор случаев прежние.
+
+
+# Правка 2026-09-25 (C28-80): тело строки заказа и докладки считается тем же
+# расчётом стоимости, что контракт (calcCostMinor): дробная мера по весу
+# (1,5 кг) больше не роняет превью и оформление ошибкой 500. Набор случаев
+# не менялся.
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/readyissue.cpp
@@ -102,6 +129,7 @@ cases:
     scenario: Заявление или акт по заказу подписывает другой пайщик, а не его владелец
     expect: отказ — чужую выдачу двигать нельзя, на цепь ничего не уходит
     test: components/controller/tests/unit/marketplace/marketplace-issuance-ownership.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.03
@@ -110,6 +138,7 @@ cases:
     scenario: Оператор фиксирует к выдаче больше единиц, чем принято на складе
     expect: отказ — выдать больше принятого нельзя, сага не рождается
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.04
@@ -119,6 +148,7 @@ cases:
     expect: >
       невыданное отделяется в обезличенный остаток кооператива по выданному количеству, к оплате идёт только выданное
     test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
     # Денежная сторона недовыдачи закрыта отдельно
     # (marketplace-discrepancy-matrix), здесь — имущественная: остаток обязан
@@ -133,7 +163,10 @@ cases:
     scenario: Повторная фиксация факта по заказу, выдача которого уже идёт
     expect: отказ — вторая сага не рождается; закрытие уже закрытой выдачи — no-op
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
+    # До 25.09.2026 повтор закрытия получал «выдача не начата», а ход выдачи
+    # после закрытия читался как null.
 
   - id: mkt.iss.side.06
     level: backend
@@ -141,6 +174,7 @@ cases:
     scenario: Заказчик подписывает акт, который ему не адресован
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.07
@@ -296,6 +330,7 @@ cases:
       решения; обратный вызов совета доводит сагу до акта в том же ответе —
       пайщик подписывает акт без второго нажатия
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.40
@@ -336,6 +371,7 @@ cases:
       подменена, либо без своей подписи
     expect: отказ — закрывающая подпись ставится поверх подписи заказчика
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
 # Правка 2026-09-06 (99D-7, вечернее решение владельца): довзнос членского
@@ -372,6 +408,7 @@ cases:
       и продаётся кооперативом; недопоставка (1) возвращается поставщику в свободное — этот товар
       остался у него. Полная поставка не возвращает ничего
     test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.46
@@ -384,6 +421,7 @@ cases:
       выданное становится выданным (7), освобождённый резерв возвращается в свободное того же
       предложения (3) — позиции остались опубликованными
     test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: passing
 
   - id: mkt.iss.side.47
@@ -420,6 +458,7 @@ cases:
       отказ «цену при выдаче можно только снизить» с потолком, заявление не формируется;
       без цены прибытия на складе потолок — цена заказа; снижение принимается
     test: components/controller/tests/unit/marketplace/marketplace-issuance-price-ceiling.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.iss.side.49
@@ -432,6 +471,7 @@ cases:
       разница стоимости прибытия ВЫДАННОГО и суммы выдачи уходит уценкой; по цене прибытия
       уценки нет; упаковки считаются по цене за упаковку; без цены прибытия уценка не шлётся
     test: components/controller/tests/unit/marketplace/marketplace-issuance-price-ceiling.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.iss.side.50
@@ -490,6 +530,7 @@ cases:
       остальные; ошибка возвращается после всех, по нескольким сбоям — с числом
       и названиями позиций; бандл не принимается; порядок саг в ответе — как в бандле
     test: components/controller/tests/unit/marketplace/marketplace-stock-finalize-parallel.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: mkt.iss.side.55

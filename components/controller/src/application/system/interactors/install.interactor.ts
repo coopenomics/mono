@@ -248,7 +248,7 @@ export class InstallInteractor {
         const inviteEmail = normalizeUserEmail(member.individual_data.email);
         const user = await this.userDomainService.getUserByEmail(inviteEmail);
         if (!user) {
-          throw DomainError.internal('SYSTEM_INVITE_USER_NOT_FOUND', { email: inviteEmail });
+          throw DomainError.notFound('SYSTEM_INVITE_USER_NOT_FOUND', { email: inviteEmail });
         }
         const subscriberId = user.subscriber_id?.trim();
         if (!subscriberId) {

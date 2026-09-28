@@ -16,6 +16,15 @@ title: Личное избранное — проекты, компоненты,
 # с `present = false`, и без этого условия удалённая цель продолжала
 # показываться звёздочкой и вести на страницу, которая грузится бесконечно.
 
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
+#
+# Правка 25.09.2026 (C28-80): в избранное ложится только видимая пайщику цель
+# — по тем же правилам, что в списках. Раньше проверялось лишь существование,
+# и через избранное читалось название чужого личного проекта.
 sources:
   backend:
     - components/controller/src/extensions/capital/application/resolvers/favorites.resolver.ts
@@ -40,6 +49,7 @@ cases:
     scenario: пользователь добавляет существующий проект в избранное
     expect: запись создана, ответ содержит обновлённый список с живым наименованием
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.01
@@ -48,6 +58,7 @@ cases:
     scenario: добавление цели, которой нет ни в одной таблице (опечатка/удалена)
     expect: BadRequest, запись не создаётся
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.02
@@ -56,6 +67,7 @@ cases:
     scenario: повторное добавление той же четвёрки (двойной клик)
     expect: идемпотентно — дубль гасится уникальным индексом (insert orIgnore)
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.03
@@ -64,6 +76,7 @@ cases:
     scenario: снятие звёздочки с уже удалённой сущности
     expect: удаление проходит без проверки существования цели
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.break.01
@@ -72,6 +85,7 @@ cases:
     scenario: председатель запрашивает или правит избранное другого пайщика
     expect: отказ «Избранное доступно только своему владельцу», сервис не вызывается
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.04
@@ -80,8 +94,18 @@ cases:
     scenario: в избранном есть запись, чья цель удалена из своей таблицы
     expect: выдача отфильтровывает её (join не нашёл цели), список не падает
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
+
+  - id: cap.fav.side.10
+    level: backend
+    kind: side
+    scenario: Пайщик добавляет в избранное чужой личный проект (или невидимую ему задачу, требование), зная хэш
+    expect: отказ «не найдено» — тот же, что для несуществующей цели; название цели не раскрывается
+    test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
+    status: passing
   - id: cap.fav.ui.01
     level: ui
     kind: happy
@@ -102,6 +126,7 @@ cases:
     scenario: цель удалена, но её строка осталась в проекции с present = false
     expect: за целями идёт запрос только за живыми (present = true), запись в выдачу не попадает
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.09
@@ -110,6 +135,7 @@ cases:
     scenario: в избранном задача и артефакт — офчейн-сущности, у которых present никто не выставляет
     expect: фильтр по present к ним не применяется, обе записи возвращаются с актуальными наименованиями
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.06
@@ -118,6 +144,7 @@ cases:
     scenario: снятие цели с избранного у всех пайщиков по хэшу в верхнем регистре
     expect: удаление идёт по хэшу, приведённому к нижнему регистру (канон хранения)
     test: components/controller/tests/unit/capital/favorites.service.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.07
@@ -126,6 +153,7 @@ cases:
     scenario: удаляется проект или компонент — персональный (мягко) и из цепи
     expect: обе ветки снимают цель с избранного у всех пайщиков
     test: components/controller/tests/unit/capital/favorites-cascade-on-delete.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.side.08
@@ -134,6 +162,7 @@ cases:
     scenario: удаляется задача или артефакт
     expect: цель снимается с избранного у всех пайщиков
     test: components/controller/tests/unit/capital/favorites-cascade-on-delete.test.ts
+    api: components/api-tests/src/capital/favorites.test.ts
     status: written
 
   - id: cap.fav.ui.03

@@ -49,6 +49,7 @@ const handleSuccess = () => {
   emit('actionCompleted');
 };
 
+// realtime: нет источника — список для выбора в диалоге загружается при его открытии.
 onMounted(() => {
   void loadEditableProjects();
   props.exposeOpen?.(() => dialogRef.value?.openDialog());

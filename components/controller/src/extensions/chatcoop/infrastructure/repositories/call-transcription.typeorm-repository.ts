@@ -1,17 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CallTranscriptionRepository } from '../../domain/repositories/call-transcription.repository';
 import { CallTranscriptionDomainEntity, TranscriptionStatus } from '../../domain/entities/call-transcription.entity';
 import { CallTranscriptionTypeormEntity } from '../entities/call-transcription.typeorm-entity';
 import { CallTranscriptionMapper } from '../mappers/call-transcription.mapper';
+import { ChatcoopLiveFeedService } from '../realtime/chatcoop-live-feed.service';
 
 // TypeORM адаптер репозитория транскрипций звонков
 @Injectable()
 export class CallTranscriptionTypeormRepository implements CallTranscriptionRepository {
   constructor(
     @InjectRepository(CallTranscriptionTypeormEntity)
-    private readonly repository: Repository<CallTranscriptionTypeormEntity>
+    private readonly repository: Repository<CallTranscriptionTypeormEntity>,
+    // Участникам звонка сигнал ленты шлётся отсюда: владельцы транскрипции —
+    // имена пайщиков, а в строке хранятся идентификаторы Matrix.
+    @Optional() @Inject(ChatcoopLiveFeedService) private readonly live: ChatcoopLiveFeedService | null = null
   ) {}
 
   async create(
@@ -19,6 +23,7 @@ export class CallTranscriptionTypeormRepository implements CallTranscriptionRepo
   ): Promise<CallTranscriptionDomainEntity> {
     const entity = this.repository.create(CallTranscriptionMapper.toEntity(data));
     const savedEntity = await this.repository.save(entity);
+    void this.live?.publishTranscription(savedEntity.id);
     return CallTranscriptionMapper.toDomain(savedEntity);
   }
 
@@ -55,6 +60,7 @@ export class CallTranscriptionTypeormRepository implements CallTranscriptionRepo
     if (!updatedEntity) {
       throw new Error('Call transcription not found after update');
     }
+    void this.live?.publishTranscription(id);
 
     return CallTranscriptionMapper.toDomain(updatedEntity);
   }

@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { readFileForUpload } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -116,6 +117,10 @@ watch(pendingProof, (file) => {
 });
 
 onMounted(refresh);
+
+// Подтверждения платежа живут по ленте: приложенный чек и оплата видны
+// сразу.
+useLiveReload([{ code: 'core', table: 'payment_files' }, { code: 'core', table: 'payments' }], refresh);
 </script>
 
 <style lang="scss" scoped>

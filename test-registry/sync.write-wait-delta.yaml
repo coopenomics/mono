@@ -22,6 +22,10 @@ title: Ответ мутации после факта из цепи — ожи�
 # Изнутри разбора цепи транзакции не ждут (взаимная блокировка с барьером
 # слушателей). afterTransact для уже разобранного блока отвечает сразу.
 
+# Правка 25.09.2026 (C28-80): решение председателя по одобрению сохраняет
+# одобрение, перечитанное после транзакции, — ожидание блока прежнее, случаи
+# этой фичи не менялись; перечитывание покрыто в chairman.approvals.
+
 sources:
   backend:
     - components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.ts
@@ -96,6 +100,7 @@ cases:
     scenario: "Любая мутация отправляет транзакцию через BlockchainService.transact."
     expect: "Ответ уходит, когда узел разобрал блок транзакции (событие следующего блока или простой потока), не дольше BLOCKCHAIN_WRITE_WAIT_DELTA_MS; уже разобранный блок — сразу."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    api: components/api-tests/src/platform/sync.write-wait-delta.test.ts
     status: passing
   - id: sync.wwd.side.04
     level: backend

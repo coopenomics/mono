@@ -59,15 +59,24 @@ function hotp(key: Buffer, counter: number): string {
  * `nowSec` инъектируется для тестов; по умолчанию — системное время.
  */
 export function verifyTotp(secret: string, code: string, window = 1, nowSec = Math.floor(Date.now() / 1000)): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
+  return matchTotpStep(secret, code, window, nowSec) !== null;
+}
+
+/**
+ * Шаг времени (номер 30-секундного окна), на котором код совпал, или null.
+ * Нужен защите от повтора: один и тот же код годится на весь шаг и соседние,
+ * поэтому сервис запоминает последний принятый шаг и не принимает его снова.
+ */
+export function matchTotpStep(secret: string, code: string, window = 1, nowSec = Math.floor(Date.now() / 1000)): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
   const key = base32Decode(secret);
   const counter = Math.floor(nowSec / TOTP_STEP_SEC);
   const expected = Buffer.from(code);
   for (let i = -window; i <= window; i++) {
     const candidate = Buffer.from(hotp(key, counter + i));
-    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) return true;
+    if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) return counter + i;
   }
-  return false;
+  return null;
 }
 
 /** otpauth://-URI для QR-кода в приложении-аутентификаторе. */

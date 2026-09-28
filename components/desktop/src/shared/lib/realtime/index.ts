@@ -16,3 +16,4 @@ export {
   type LiveReloadHandle,
   type LiveReloadOptions,
 } from './live-reload';
+export { liveWindow, type LiveWindow } from './live-window';

@@ -125,10 +125,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { storeToRefs } from 'pinia';
-import { useExpandableState, useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
+import { useExpandableState } from 'src/shared/lib/composables';
 import { WalletCard } from 'src/shared/ui/domain/WalletCard';
 import { PageTabs } from 'src/shared/ui/layout';
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
@@ -350,10 +351,9 @@ const reloadCommitsData = async () => {
   }
 };
 
-const { start: startCommitsPoll, stop: stopCommitsPoll } = useDataPoller(
-  reloadCommitsData,
-  { interval: POLL_INTERVALS.MEDIUM, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadCommitsData);
 
 watch(activeTab, (tab) => {
   if (tab === 'review' && !canReview.value) {
@@ -366,11 +366,6 @@ onMounted(async () => {
   loadProjectsExpandedState();
   loadIssuesExpandedState();
   await resolveCanReview();
-  startCommitsPoll();
-});
-
-onBeforeUnmount(() => {
-  stopCommitsPoll();
 });
 </script>
 

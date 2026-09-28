@@ -80,6 +80,7 @@ function onSearch(query: string | number | null) {
   }
 
   loading.value = true
+  // timing: debounce — поиск после паузы в наборе
   searchTimeout = setTimeout(async () => {
     try {
       const response = await client.Query({

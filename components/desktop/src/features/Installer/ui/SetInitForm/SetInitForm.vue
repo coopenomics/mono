@@ -239,6 +239,7 @@ const saveAndNext = async () => {
   }
 };
 
+// realtime: нет источника — форма установки кооператива: до установки ленты нет, данные вводит сам установщик.
 onMounted(async () => {
   // Инициализируем данные организации в store, если их нет
   if (!installStore.organization_data) {

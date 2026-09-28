@@ -32,6 +32,13 @@ title: Гарантийный возврат имущества — заявле
 # в той же транзакции, transact ждёт разбора блока); ожидание робота у стойки —
 # подпиской на событие решения совета (waitForEvent), а не опросом базы.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.return/accretrn.cpp
@@ -60,6 +67,7 @@ cases:
       Заявление на возврат по заказу, у предложения которого гарантийный срок нулевой.
     expect: отказ — по такому заказу гарантия не предусмотрена, заявление не заводится
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.happy.01
@@ -120,6 +128,7 @@ cases:
     scenario: Заявление на возврат по чужому заказу
     expect: отказ доступа
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.04
@@ -128,6 +137,7 @@ cases:
     scenario: Возвращается больше единиц, чем было получено
     expect: отказ — вернуть больше полученного нельзя
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   # Решение заказчика (2026-08-08): частичный возврат серией заявлений
@@ -184,6 +194,7 @@ cases:
     expect: >
       отказ с конкретным сообщением; заказ не читается, состояние не меняется
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.09
@@ -194,6 +205,7 @@ cases:
     expect: >
       отказ с конкретным сообщением; допустимая граница (ровно предел) проходит
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   # ── Контрактный уровень: денежные места гарантийного возврата (598-51) ────
@@ -373,6 +385,7 @@ cases:
       позиция остатка создаётся по цене выдачи из снапшота заказа; без снапшота
       — по цене прибытия исходной партии
     test: components/controller/tests/unit/marketplace/marketplace-return-restock.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
 # 2026-09-10 (задача 99D-15, решение владельца): решение совета не падает
@@ -453,6 +466,7 @@ cases:
     scenario: "Робот совета решает заявление, пока мутация ждёт у стойки."
     expect: "Ответ по событию решения совета сразу, без опроса базы раз в 500 мс; по пределу — заявление как есть, подписка снята."
     test: components/controller/tests/unit/shared/wait-for-event.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из

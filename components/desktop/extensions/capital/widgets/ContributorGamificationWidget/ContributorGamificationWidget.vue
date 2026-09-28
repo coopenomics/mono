@@ -108,10 +108,11 @@ const nextLevelRequirement = computed(() => {
 });
 
 // Запуск таймера при монтировании
+// realtime: нет источника — энергия считается по часам из данных живой страницы (CapitalProfilePage).
 onMounted(() => {
   updateCurrentEnergy(); // Первичное обновление
 
-  // Обновление каждую секунду
+  // timing: ui — энергия убывает со временем, тик раз в секунду.
   energyUpdateTimer = setInterval(() => {
     updateCurrentEnergy();
   }, 1000);

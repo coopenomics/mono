@@ -14,6 +14,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { KU_LIVE_TABLES } from 'src/entities/Ku/model';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { findChairedBranch } from 'src/entities/Branch/lib';
@@ -46,6 +48,12 @@ const myBraname = computed(() => {
   if (selected) return selected;
   return findChairedBranch(branchStore.publicBranches, session.username)?.braname ?? '';
 });
+
+// Свой участок живёт по ленте изменений: участки — здесь, прикрепление к
+// участку — через учётную запись, которую держит сессия (userContextLive).
+useLiveReload(KU_LIVE_TABLES, () =>
+  branchStore.loadPublicBranches({ coopname: system.info.coopname }).catch((e) => console.warn('[ku] фоновое перечитывание не удалось', e)),
+);
 
 onMounted(async () => {
   loading.value = true;

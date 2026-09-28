@@ -1,6 +1,7 @@
 {
   "errors": {
     "GENERATOR_BLANK_ASSEMBLY_FAILED": "Ошибка при сборке бланка документа",
-    "GENERATOR_DOCUMENT_GENERATION_FAILED": "Ошибка при генерации документа"
+    "GENERATOR_DOCUMENT_GENERATION_FAILED": "Ошибка при генерации документа",
+    "GENERATOR_DOCUMENT_TYPE_UNKNOWN": "Документа с номером {registryId} в реестре нет — собрать его нельзя"
   }
 }

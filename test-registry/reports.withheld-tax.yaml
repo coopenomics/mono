@@ -38,6 +38,11 @@ title: Перечисление удержанного налога — разд
 # прежние, набор случаев этой фичи не менялся. Правило плательщика покрыто
 # отдельно — test-registry/contracts.ram-payer.yaml.
 
+# Правка 24.09.2026 (C28-83): стол удержанного НДФЛ живёт по ленте изменений —
+# заявки на перечисление (soviet::taxes), общекооперативный кошелёк
+# (ledger2::wallets) и оплата кассиром (payments) перечитывают остаток и список
+# без перезагрузки. Серверные сценарии и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/reports/application/services/withheld-tax.service.ts
@@ -63,6 +68,7 @@ cases:
       платёж до 22-го числа включительно попадает в первую половину месяца,
       с 23-го — во вторую; подпись периода совпадает с календарём отчётности
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.happy.02
@@ -100,6 +106,7 @@ cases:
     scenario: Кассир не смог заплатить и указал причину
     expect: состояние платежа и причина отказа доходят до стола бухгалтера как есть
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.side.04
@@ -120,6 +127,7 @@ cases:
       отказ — платить больше удержанного налоговый агент не вправе; доступная
       сумма уменьшена на то, что уже у кассира; на цепь ничего не уходит
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.break.01
@@ -138,6 +146,7 @@ cases:
     scenario: История запрашивается постранично
     expect: страницы идут от новых платежей к старым
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.ui.01

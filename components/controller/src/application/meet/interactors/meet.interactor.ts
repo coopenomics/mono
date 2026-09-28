@@ -59,11 +59,16 @@ export class MeetInteractor {
       details: detailsNormalized,
     });
 
-    // Сохраняем данные в репозиторий
+    // Строка заводится до транзакции: её читают обработчики блока созыва.
+    // Цепь отказала — строка удаляется, сирот в базе не остаётся (решение
+    // владельца 25.09.2026, C28-80; образец 7DD-22).
     await this.meetPreRepository.create(preProcessing);
-
-    // Вызов блокчейн порта для создания собрания
-    await this.meetBlockchainPort.createMeet({ ...data, hash });
+    try {
+      await this.meetBlockchainPort.createMeet({ ...data, hash });
+    } catch (error) {
+      await this.meetPreRepository.deleteByHash(hash);
+      throw error;
+    }
 
     // Транзакция вернулась после разбора своего блока — строка собрания уже в цепи.
     // Получаем обновленные данные из блокчейна

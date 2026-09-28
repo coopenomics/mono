@@ -148,6 +148,8 @@ div.processes-page
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { PROCESSES_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
@@ -377,6 +379,10 @@ onMounted(async () => {
     FailAlert(e)
   }
 })
+
+// Процессы живут по ленте: операции учёта, решения совета и платежи
+// перечитывают показанную страницу.
+useLiveReload(PROCESSES_LIVE_TABLES, load)
 </script>
 
 <style scoped>

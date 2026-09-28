@@ -44,6 +44,7 @@ const rawCheckoutFailedLineSelector = {
   product_name: true,
   quantity: true,
   reason: true,
+  code: true,
 }
 
 const _validateFailedLine: MakeAllFieldsRequired<ValueTypes['MarketplaceCheckoutFailedLine']> =

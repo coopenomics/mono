@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 // add-payment-method-input.dto.ts
 import {
   IsNotEmpty,
@@ -58,6 +59,7 @@ export class AddPaymentMethodInputDTO {
   })
   @IsOptional()
   @ValidateNested()
+  @Type(() => BankAccountInputDTO)
   bank_transfer_data?: BankAccountInputDTO;
 
   @Field(() => SBPDataInputDTO, {
@@ -66,6 +68,7 @@ export class AddPaymentMethodInputDTO {
   })
   @IsOptional()
   @ValidateNested()
+  @Type(() => SBPDataInputDTO)
   sbp_data?: SBPDataInputDTO;
 
   @IsOnlyOnePaymentMethod()

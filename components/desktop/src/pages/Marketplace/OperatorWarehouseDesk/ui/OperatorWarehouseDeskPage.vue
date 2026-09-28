@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { useRoute, useRouter } from 'vue-router'
 import { OperatorBranchBar } from 'src/entities/OperatorBranch'
 import { useDesktopStore } from 'src/entities/Desktop'
@@ -204,6 +206,10 @@ watch(
   },
   { immediate: true },
 )
+
+// Счётчики разделов живут по ленте: приёмка на склад, остаток, списания и
+// боксы пересчитываются сами, даже когда раздел не открыт.
+useLiveReload(marketLiveTables('warehouse', 'stock', 'writeoff'), () => Promise.all([loadWriteoffCount(), loadSectionCounts()]))
 </script>
 
 <template lang="pug">

@@ -41,13 +41,13 @@ export class UvVznosyGenerator implements IReportGenerator {
     const kodNO = getTaxOfficeCode(organization.kpp);
     const month = header.period ?? 1;
     if (!Number.isInteger(month) || month < 1 || month > 12) {
-      throw DomainError.internal('REPORTS_UV_VZNOSY_PERIOD_INVALID', { period: header.period });
+      throw DomainError.badRequest('REPORTS_UV_VZNOSY_PERIOD_INVALID', { period: header.period });
     }
     const quarter = Math.ceil(month / 3);
     const periodByQuarter: Record<number, string> = { 1: '21', 2: '31', 3: '33', 4: '34' };
     const periodCode = periodByQuarter[quarter];
     if (!periodCode) {
-      throw DomainError.internal('REPORTS_UV_VZNOSY_PERIOD_CODE_NOT_FOUND', { month });
+      throw DomainError.notFound('REPORTS_UV_VZNOSY_PERIOD_CODE_NOT_FOUND', { month });
     }
     const monthInQuarter = ((month - 1) % 3) + 1;
 

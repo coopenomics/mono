@@ -98,6 +98,7 @@ const handleInvitationClick = (username: string) => {
   toggleInvitationExpanded(username);
 };
 
+// realtime: нет источника на странице — при открытии читается только раскрытие строк из браузера, данные грузит живой виджет списка.
 onMounted(() => {
   loadInvitationsExpandedState();
 });

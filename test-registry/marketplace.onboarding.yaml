@@ -26,6 +26,22 @@ title: Онбординг Стола заказов — приём ЦПП коо
 # desktop берёт из реестра cooptypes по имени, а не числами. Поведение и
 # набор случаев прежние.
 
+# Правка 24.09.2026 (C28-83): экраны Стола заказов живут по общей ленте
+# изменений (chainChanges), отдельная подписка marketplaceEvents снята вместе с
+# серверным мостом и резолвером. Таблицы расширения объявлены в ленте через
+# CHAIN_CHANGES_PORT (MarketplaceLiveFeedSubscriber на базе marketplace), стол
+# перечитывает экран по сигналу их изменений (useLiveReload + marketLiveTables).
+# Серверные сценарии и их случаи не менялись.
+# Гейт подписи на месте перечитывает ожидающие подписи по ленте (onsiteGateLive.ts).
+
+# Правка 24.09.2026 (C28-83, второй проход): на ленту переведены и экраны
+# Стола заказов, которые раньше не слушали marketplaceEvents, — реестры
+# председателя, экономика стола и участка, выплаты, претензии поставщику,
+# склад участка, онбординг кооператива и поставщика, пункты выдачи, карточки
+# реестров и виджеты процессов. Сбор с оборота (marketplace::config) объявлен в
+# ленте таблицей цепи. Онбординг пайщика ждёт подписи по ленте, а не циклом с
+# паузой. Серверные сценарии и набор случаев прежние.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/onboarding/**
@@ -72,6 +88,7 @@ cases:
     expect: >
       статус ЦПП становится «принята», в конфигурации расширения сохраняются решение совета и дата принятия
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   # Самоинициализация программы ЦПП в цепи. Механика общая с Благоростом —
@@ -84,6 +101,7 @@ cases:
     expect: >
       программа открывается автоматически ключом кооператива; шаблон оферты назначает контракт, а не вызывающая сторона
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.13
@@ -142,6 +160,7 @@ cases:
     expect: >
       не отказ: ЦПП остаётся принятой, реквизиты нового решения совета перезаписывают прежние, дубликата записи не появляется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
     # Решение заказчика (2026-08-08): текущее поведение (перезапись) устраивает.
     # Из кода не выводится: повторный accept не отбивается явной проверкой.
@@ -165,6 +184,7 @@ cases:
     scenario: Пайщик уже подписал программную оферту ЦПП
     expect: гейт не требуется, источник «подписано», проставлена дата подписи
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.side.06
@@ -208,6 +228,7 @@ cases:
     scenario: Подпись оферты запрашивается не пайщиком этого кооператива
     expect: отказ доступа, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-offer-access.test.ts
+    api: components/api-tests/src/marketplace/onboarding.test.ts
     status: passing
 
   - id: mkt.onb.break.01

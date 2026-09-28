@@ -82,19 +82,19 @@ export class ResultSubmissionService {
   async pushResult(data: PushResultInputDTO, currentUser: IMonoAccount): Promise<SegmentOutputDTO> {
     // Проверяем, что пользователь может вносить результаты только для себя
     if (data.username !== currentUser.username) {
-      throw DomainError.internal('CAPITAL_RESULT_SUBMIT_FOR_SELF_ONLY');
+      throw DomainError.forbidden('CAPITAL_RESULT_SUBMIT_FOR_SELF_ONLY');
     }
 
     // Находим существующий Result по project_hash и username
     const result = await this.resultRepository.findByProjectHashAndUsername(data.project_hash, data.username);
     if (!result || !result.result_hash) {
-      throw DomainError.internal('CAPITAL_RESULT_NOT_FOUND_FOR_PROJECT_USER', { projectHash: data.project_hash, username: data.username });
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND_FOR_PROJECT_USER', { projectHash: data.project_hash, username: data.username });
     }
 
     // Получаем сгенерированный документ из репозитория по doc_hash
     const generatedDocument = await this.documentPort.getByHash(data.statement.doc_hash);
     if (!generatedDocument) {
-      throw DomainError.internal('CAPITAL_GENERATED_DOCUMENT_NOT_FOUND', { hash: data.statement.doc_hash });
+      throw DomainError.notFound('CAPITAL_GENERATED_DOCUMENT_NOT_FOUND', { hash: data.statement.doc_hash });
     }
 
     // Выполняем глубокую сверку подписанного и сгенерированного документов через SDK
@@ -121,7 +121,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw DomainError.internal('CAPITAL_SEGMENT_NOT_FOUND', { username: data.username, projectHash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: data.username, projectHash: data.project_hash });
     }
 
     // Суммы живут в блокчейн-части сегмента. Если её нет, сегмент не
@@ -334,7 +334,7 @@ export class ResultSubmissionService {
     // Находим проект
     const project = await this.projectRepository.findByHash(projectHash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: projectHash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: projectHash });
     }
 
     // Находим родительский проект
@@ -349,7 +349,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw DomainError.internal('CAPITAL_SEGMENT_NOT_FOUND', { username, projectHash });
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username, projectHash });
     }
 
     // Находим все коммиты
@@ -580,7 +580,7 @@ export class ResultSubmissionService {
     // Находим проект по project_hash
     const project = await this.projectRepository.findByHash(data.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
 
     // Находим родительский проект по parent_hash
@@ -595,7 +595,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw DomainError.internal('CAPITAL_SEGMENT_NOT_FOUND', { username: currentUser.username, projectHash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: currentUser.username, projectHash: data.project_hash });
     }
 
     // Извлекаем данные
@@ -627,7 +627,7 @@ export class ResultSubmissionService {
 
     const factTotalAmount = parseFloat(project.fact.total);
     if (factTotalAmount <= 0) {
-      throw DomainError.internal('CAPITAL_PROJECT_AMOUNT_NOT_POSITIVE');
+      throw DomainError.badRequest('CAPITAL_PROJECT_AMOUNT_NOT_POSITIVE');
     }
 
     if (!segment.share_percent) {
@@ -674,7 +674,7 @@ export class ResultSubmissionService {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
-      throw DomainError.internal('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
     }
 
     // Находим заявление по result_hash (должно быть в блокчейн данных)
@@ -694,7 +694,7 @@ export class ResultSubmissionService {
     }
     const project = await this.projectRepository.findByHash(result.project_hash);
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: result.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: result.project_hash });
     }
 
     // Находим родительский проект
@@ -712,7 +712,7 @@ export class ResultSubmissionService {
     });
 
     if (!segment) {
-      throw DomainError.internal('CAPITAL_SEGMENT_NOT_FOUND', { username: result.username, projectHash: result.project_hash });
+      throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND', { username: result.username, projectHash: result.project_hash });
     }
 
     // Сверяем данные из заявления с текущими данными
@@ -790,7 +790,7 @@ export class ResultSubmissionService {
     // Находим результат по result_hash
     const result = await this.resultRepository.findByResultHash(data.result_hash);
     if (!result) {
-      throw DomainError.internal('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
+      throw DomainError.notFound('CAPITAL_RESULT_NOT_FOUND', { hash: data.result_hash });
     }
     if (!result.username) {
       throw DomainError.internal('CAPITAL_RESULT_USERNAME_MISSING');

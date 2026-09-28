@@ -70,6 +70,7 @@ const confirmAll = ref(false);
 
 const hasOthers = computed(() => sessions.value.some((s) => !s.current));
 
+// realtime: нет источника — сессии это ключи обновления входа: они переписываются при каждом обновлении ключа, сигнал по ним шёл бы непрерывно; экран перечитывает список после каждого своего действия.
 onMounted(() => {
   void load();
 });

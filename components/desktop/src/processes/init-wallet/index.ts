@@ -11,6 +11,7 @@ const WALLET_INIT_TIMEOUT_MESSAGE = 'WALLET_INIT_TIMEOUT';
 
 function walletInitTimeoutPromise(): Promise<never> {
   return new Promise((_resolve, reject) => {
+    // timing: timeout — запуск приложения не ждёт контекст пайщика дольше предела
     setTimeout(() => {
       reject(new Error(WALLET_INIT_TIMEOUT_MESSAGE));
     }, WALLET_INIT_TIMEOUT_MS);

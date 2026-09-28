@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
@@ -10,7 +11,7 @@ import { BaseBadge, BaseButton, CardListSkeleton, EmptyState } from 'src/shared/
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ScannerDialog } from 'src/widgets/Marketplace/ScannerDialog';
-import { useMarketplaceRealtime, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
+import { marketLiveTables, decodeReturnClaimCode } from 'src/shared/lib/marketplace';
 import { marketplaceOrderSaleUnitLabel } from 'src/shared/lib/consts/marketplace-units';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { returnClaimStatusLabel, returnClaimStatusVariant } from '../../OrdererReturnClaims';
@@ -164,14 +165,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceReturnClaimStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('return'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value);

@@ -36,4 +36,8 @@ public:
     [[eosio::action]] void revokeagree(eosio::name coopname, eosio::name username, uint64_t program_id);
     [[eosio::action]] void migrate3(eosio::name coopname, eosio::name username, uint64_t program_id, checksum256 doc_hash, uint16_t version, uint64_t draft_id, time_point signed_at);
     [[eosio::action]] void importagree(eosio::name coopname, eosio::name username, uint64_t program_id);
+
+    // Счётчик идентификаторов (get_global_id) живёт в аккаунте кошелька; без
+    // описания в ABI индексер не разбирал его строки и публиковал их пустыми.
+    struct [[eosio::table, eosio::contract(WALLET)]] counts : counts_base {};
 };

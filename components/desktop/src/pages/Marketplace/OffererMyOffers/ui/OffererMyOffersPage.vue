@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { SuccessAlert, FailAlert } from 'src/shared/api';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   getMembershipFeePercent,
   marketplaceCardPackages,
   offerCardUnitCost,
@@ -255,16 +256,7 @@ const reloadLive = debounce(() => {
   void load(1, false);
 }, 400);
 
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferPublishedEvent: () => reloadLive(),
-    MarketplaceOfferStockChangedEvent: () => reloadLive(),
-    // Вердикт модерации (одобрено/отклонено) приходит в персональный канал
-    // поставщика — статус-бейдж карточки обновляется сразу, без поллинга.
-    MarketplaceOfferModerationEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('offer'), () => reloadLive());
 </script>
 
 <template lang="pug">

@@ -605,6 +605,14 @@ export class MarketplaceAplReceptionService {
       byCycle.set(cid, arr);
     }
 
+    // Факт оператора проверяется до любой записи: прежде партия создавалась и
+    // заказы к ней привязывались раньше проверки в create(), и отказ (факт
+    // больше заказа) оставлял заказы в подготовленной партии — повторная
+    // экспресс-приёмка их уже не видела (до 25.09.2026).
+    for (const cycleOrders of byCycle.values()) {
+      this.buildFactQuantity(input.fact_quantity_per_order ?? [], cycleOrders);
+    }
+
     const receptions: MarketplaceAplReceptionDomainEntity[] = [];
     for (const [cycle_id, cycleOrders] of byCycle) {
       const total = sumMoney(

@@ -176,6 +176,7 @@ const statusColor = computed(() => {
   }
 })
 
+// realtime: нет источника — справочник шаблонов процессов меняется выпуском платформы, а не действиями пайщиков.
 onMounted(async () => {
   await loadTemplates()
 })

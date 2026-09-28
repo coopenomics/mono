@@ -37,10 +37,12 @@ on:
     # ci/tests — ветка-полигон: рабочая ветка пушится сюда, чтобы получить
     # вердикт по типам до слияния. Локальные прогоны tsc/vue-tsc запрещены —
     # они вешают машину разработчика, — поэтому других точек контроля нет.
-    branches: [testnet, main, ci/tests]
+    branches: [testnet, main, ci/tests, 'ci/tests-*']
   workflow_call:
   workflow_dispatch:
 
+# ci/tests-<имя> — личный полигон агента: параллельные починки не перетирают
+# чужую проверку в общем ci/tests.
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
 # нескольких агентов, и отмена прежнего прогона новым пушем обрывала чужую
 # проверку. Каждый пуш доводится до исхода.
@@ -144,5 +146,18 @@ jobs:
 
       - name: tsc --noEmit (innercoop)
         run: pnpm --filter @coopenomics/innercoop run typecheck
+      - name: tsc --noEmit (api-tests)
+        run: pnpm --filter @coopenomics/api-tests run typecheck
+
       - name: tsc --noEmit (i18n)
         run: pnpm --filter @coopenomics/i18n run typecheck
+
+      # Каркас и контракты расширений. До 23.09.2026 их не проверял никто:
+      # при переносе проверки валюты в extension-kit осталась ссылка на `config`
+      # контроллера, пакет собрался без единого предупреждения, и сверка суммы
+      # подписанного заявления падала на стенде «config is not defined».
+      - name: tsc --noEmit (extension-kit)
+        run: pnpm --filter @coopenomics/extension-kit run typecheck
+
+      - name: tsc --noEmit (innercoop)
+        run: pnpm --filter @coopenomics/innercoop run typecheck

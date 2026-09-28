@@ -41,6 +41,7 @@ export class YandexGeocoderAdapter implements GeocoderPort {
     url.searchParams.set('results', '1');
 
     const controller = new AbortController();
+    // timing: timeout — предел ожидания ответа геокодера
     const timeoutTimer = setTimeout(() => controller.abort(), this.settings.timeout_ms);
 
     try {
@@ -88,6 +89,7 @@ export class YandexGeocoderAdapter implements GeocoderPort {
       const oldest = this.slotTimestamps[0]!;
       const waitMs = 1000 - (now - oldest);
       if (waitMs > 0) {
+        // timing: throttle — лимит запросов в секунду тарифа геокодера
         await new Promise((resolve) => setTimeout(resolve, waitMs));
       }
       this.slotTimestamps.shift();

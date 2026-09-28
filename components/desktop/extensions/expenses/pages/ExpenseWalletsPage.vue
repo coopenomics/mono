@@ -32,6 +32,8 @@ q-page.expense-wallets-page
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { Ledger2Contract } from 'cooptypes';
+import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
 import { useRouter } from 'vue-router';
 import { Queries } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
@@ -51,9 +53,9 @@ const entries = listExpenseWallets();
 const balances = ref<Record<string, string>>({});
 const loading = ref(false);
 
-onMounted(async () => {
+async function loadBalances(silent = false): Promise<void> {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     const { [Queries.Ledger2.GetLedger2Wallets.name]: wallets } = await client.Query(
       Queries.Ledger2.GetLedger2Wallets.query,
       { variables: { coopname: system.info.coopname } },
@@ -66,7 +68,13 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(() => loadBalances());
+
+// Балансы пулов — кошельки кооператива в ledger2: движение по ним приходит
+// по ленте изменений, суммы обновляются сами.
+useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets)], () => loadBalances(true));
 
 function splitAsset(asset?: string): { amount: string; symbol: string } {
   const fallbackSymbol = system.info?.symbols?.root_govern_symbol ?? 'RUB';

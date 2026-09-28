@@ -260,19 +260,19 @@ export class NotificationInteractor {
    */
   private validateSubscriptionData(data: CreateSubscriptionInputDomainInterface): void {
     if (!data.username || typeof data.username !== 'string') {
-      throw DomainError.internal('NOTIFICATION_USERNAME_REQUIRED');
+      throw DomainError.badRequest('NOTIFICATION_USERNAME_REQUIRED');
     }
 
     if (!data.subscription || typeof data.subscription !== 'object') {
-      throw DomainError.internal('NOTIFICATION_SUBSCRIPTION_REQUIRED');
+      throw DomainError.badRequest('NOTIFICATION_SUBSCRIPTION_REQUIRED');
     }
 
     if (!data.subscription.endpoint || typeof data.subscription.endpoint !== 'string') {
-      throw DomainError.internal('NOTIFICATION_ENDPOINT_REQUIRED');
+      throw DomainError.badRequest('NOTIFICATION_ENDPOINT_REQUIRED');
     }
 
     if (!data.subscription.keys || typeof data.subscription.keys !== 'object') {
-      throw DomainError.internal('NOTIFICATION_KEYS_REQUIRED');
+      throw DomainError.badRequest('NOTIFICATION_KEYS_REQUIRED');
     }
 
     if (!data.subscription.keys.p256dh || typeof data.subscription.keys.p256dh !== 'string') {

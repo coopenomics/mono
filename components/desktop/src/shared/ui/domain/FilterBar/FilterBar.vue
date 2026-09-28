@@ -89,6 +89,7 @@ function onSearchInput(value: string | number | null): void {
   const str = value == null ? '' : String(value);
   searchLocal.value = str;
   if (searchTimer) clearTimeout(searchTimer);
+  // timing: debounce — поиск после паузы в наборе
   searchTimer = setTimeout(() => {
     emit('update:search', str);
   }, props.searchDebounce);

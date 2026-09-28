@@ -22,16 +22,15 @@ span
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onBeforeUnmount } from 'vue';
-import { useSystemStore } from 'src/entities/System/model';
+import { computed, ref } from 'vue';
 import { useWindowSize } from 'src/shared/hooks';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
+import { reloadProgramFunds } from '../../reloadProgramFunds';
 import { useConfigStore } from 'app/extensions/capital/entities/Config/model';
 import AllocateFundsDialog from './AllocateFundsDialog.vue';
 
-const system = useSystemStore();
 const projectStore = useProjectStore();
 const configStore = useConfigStore();
 const { isMobile } = useWindowSize();
@@ -59,27 +58,6 @@ const allocationTargets = computed<BaseSelectOption[]>(() =>
   ),
 );
 
-/** Parser → PG обычно отстаёт от блока на 1–3с; ранний refetch вернёт прежние суммы. */
-const POST_CHAIN_REFETCH_MS = 3500;
-
-let refetchTimer: ReturnType<typeof setTimeout> | undefined;
-
-/**
- * Перечитываем сторы молча: страница читает их реактивно и обновит суммы сама,
- * не подменяя готовую таблицу заглушкой загрузки.
- */
-function onAllocated(): void {
-  refetchTimer = setTimeout(() => {
-    const coopname = system.info.coopname;
-    void projectStore.loadProjects({
-      filter: { coopname, is_component: false },
-      options: { page: 1, limit: 100, sortOrder: 'ASC' },
-    });
-    void configStore.loadState({ coopname });
-  }, POST_CHAIN_REFETCH_MS);
-}
-
-onBeforeUnmount(() => {
-  if (refetchTimer) clearTimeout(refetchTimer);
-});
+// Суммы перечитываются сразу после ответа мутации (reloadProgramFunds).
+const onAllocated = reloadProgramFunds;
 </script>

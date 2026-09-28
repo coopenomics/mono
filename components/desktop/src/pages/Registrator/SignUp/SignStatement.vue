@@ -49,7 +49,7 @@ let canvasClass: Classes.Canvas | null = null;
  * Инициализация Canvas с задержкой
  */
 const initCanvas = () => {
-  // Ждём 200ms, чтобы Quasar завершил рендеринг
+  // timing: animation — холст берёт размер контейнера, ждём, пока Quasar завершит рендеринг шага
   setTimeout(() => {
     if (around.value) {
       canvasClass = new Classes.Canvas(around.value, {
@@ -75,6 +75,7 @@ const initCanvas = () => {
  * Следим за текущим шагом
  * Используем immediate: true вместо отдельного onMounted
  */
+// realtime: нет источника — холст рукописной подписи заявления, данных с сервера не читает.
 watch(
   () => store.state.step,
   (newStep) => {

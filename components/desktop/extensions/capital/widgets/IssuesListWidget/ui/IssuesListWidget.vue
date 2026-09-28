@@ -84,6 +84,8 @@
 </template>
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch, nextTick } from 'vue';
+import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import {
   type IIssue,
   useIssueStore,
@@ -180,6 +182,13 @@ watch([() => props.statuses, () => props.priorities, () => props.creators, () =>
   loadIssues(1, false);
 }, { deep: true });
 
+// Живой список задач: создание, смена статуса, исполнителя и оценки приходят
+// по ленте изменений Благороста — показанное перечитывается тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => {
+  if (!props.projectHash || !issues.value) return;
+  return loadIssues(1, false, liveWindow(nextPage.value - 1, pageSize.value));
+});
+
 // Функция обработки виртуального скролла
 const onScroll = ({ to, ref }) => {
   if (!issues.value) {
@@ -199,6 +208,7 @@ const onScroll = ({ to, ref }) => {
     nextPage.value += 1;
     onLoading.value = true;
 
+    // timing: ui — подгрузка следующей страницы после остановки виртуальной прокрутки.
     setTimeout(() => {
       if (pageToLoad > lastPage.value || loading.value) {
         nextPage.value -= 1;
@@ -242,8 +252,12 @@ const columns = [
 ];
 
 // Загрузка задач компонента
-const loadIssues = async (page = 1, append = false) => {
-  if (!append) {
+// `window` — перечитывание по ленте изменений: все уже загруженные страницы
+// одним запросом, тихо, с сохранением позиции ленты.
+const loadIssues = async (page = 1, append = false, window?: LiveWindow) => {
+  if (window) {
+    // тихо: индикаторы не трогаем
+  } else if (!append) {
     loading.value = true;
   } else {
     onLoading.value = true;
@@ -272,24 +286,28 @@ const loadIssues = async (page = 1, append = false) => {
     await issueStore.loadIssues({
       filter,
       options: {
-        page,
-        limit: pageSize.value, // В компактном режиме загружаем больше, в полноэкранном — постранично
+        page: window ? 1 : page,
+        limit: window ? window.options.limit : pageSize.value, // В компактном режиме загружаем больше, в полноэкранном — постранично
         sortBy: props.sortBy || '_created_at',
         sortOrder: props.sortOrder || 'DESC',
       },
     }, props.projectHash, append); // Передаем projectHash и флаг append для объединения результатов
 
     if (issues.value) {
-      lastPage.value = issues.value.totalPages || 1;
+      lastPage.value = window
+        ? Math.max(1, Math.ceil(issues.value.totalCount / pageSize.value))
+        : issues.value.totalPages || 1;
       pagination.value.rowsNumber = issues.value.totalCount;
 
-      if (!append) {
+      if (window) {
+        nextPage.value = window.pages + 1;
+      } else if (!append) {
         nextPage.value = 2;
       }
     }
   } catch (error) {
     console.error('Ошибка при загрузке задач компонента:', error);
-    FailAlert(t('capital.issuesListWidget.loadError'));
+    if (!window) FailAlert(t('capital.issuesListWidget.loadError'));
   } finally {
     loading.value = false;
     onLoading.value = false;

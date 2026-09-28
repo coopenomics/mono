@@ -35,6 +35,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
@@ -117,6 +119,9 @@ const goToIssue = (row: { project_hash: string; issue_hash: string }) => {
     },
   });
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadTimeIssues());
 
 onMounted(() => {
   loadTimeIssues();

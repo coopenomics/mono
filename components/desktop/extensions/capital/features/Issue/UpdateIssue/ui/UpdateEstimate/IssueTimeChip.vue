@@ -150,6 +150,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute } from 'vue-router';
 import { useUpdateIssue } from '../../model';
@@ -450,6 +452,9 @@ const saveEstimate = async () => {
 
 // Идущий таймер видно прямо в строке списка. Запрос один на всё приложение:
 // сессия у участника одна, стор дедуплицирует одновременные обращения.
+// Таймер задачи живёт по ленте изменений: запуск и остановка на другом устройстве видны сразу.
+useLiveReload(CAPITAL_LIVE_TABLES, () => refreshOpenTimer(false));
+
 onMounted(() => {
   void refreshOpenTimer(false);
 });

@@ -1,0 +1,158 @@
+feature: ku.decisions
+title: Кооперативный участок — собрания пайщиков участка и заявки доверенных лиц
+
+# Действия уходят в контракт branch подписью кооператива; таблицы узла
+# ku_decisions, ku_decision_questions и ku_trust_requests заполняет разбор
+# дельт цепи, приватные данные собрания (место, время, признак отмены) пишет
+# сервис. Внешний тест проходит собрание от объявления до отмены и заявку
+# доверенного через отказ и одобрение встречной подписью.
+
+#
+# Правка 25.09.2026 (C28-80): список заявок в доверенные лица больше не
+# отдаётся любому пайщику — в заявке договор с паспортом, адресом и телефоном.
+# Совет и председатель кооператива видят все, председатель участка — своего
+# участка, пайщик — свои.
+# Правка 25.09.2026 (C28-80): версия черновика различается по meta. Две
+# генерации договора 327 одного пайщика за минуту совпадали телом и блоком,
+# вторая затирала первую, и встречная подпись падала на сверке meta_hash.
+
+sources:
+  backend:
+    - components/controller/src/extensions/ku/**
+
+cases:
+  - id: ku.dec.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик генерирует предложение повестки, подписывает и объявляет собрание участка
+    expect: собрание открыто, организатор — единственный участник, место и время сохранены, вопросы по порядку; собрание находится в списке по организатору
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.happy.02
+    level: backend
+    kind: happy
+    scenario: Пайщик присоединяется к собранию; присоединяет другого
+    expect: участник добавлен; за другого — KU_ACTION_SELF_ONLY
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.happy.03
+    level: backend
+    kind: happy
+    scenario: Организатор отменяет собрание
+    expect: собрание остаётся в истории со статусом CANCELLED и без вопросов повестки
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик объявляет собрание от имени другого пайщика
+    expect: KU_ACTION_SELF_ONLY, собрания нет (KU_DECISION_NOT_FOUND)
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.02
+    level: backend
+    kind: side
+    scenario: Участник, не организатор, открывает голосование или отменяет; организатор назначает председателем не участника; гость читает
+    expect: KU_ACTION_INITIATOR_ONLY, KU_CHAIRMAN_MUST_BE_PARTICIPANT, отказ входа гостю; собрание остаётся открытым
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.dec.side.03
+    level: backend
+    kind: side
+    scenario: Повторное присоединение к собранию, повторная отмена собрания, повторное отклонение заявки доверенного
+    expect: отказ цепи с кодом CHAIN_ASSERT, состояние не меняется
+    # Сейчас отказ цепи приходит без кода — code 500 («assertion failure with message: …»):
+    # транзакции идут через @wharfkit/session, фильтр GraphQL узнаёт только RpcError eosjs.
+    status: missing
+
+  - id: ku.dec.happy.04
+    level: backend
+    kind: happy
+    scenario: Собрание проходит голосование, протокол и заявление в совет
+    expect: счётчики голосов в вопросах, протокол и решение совета на странице собрания
+    # Полный путь собрания участка во внешнем слое пока не заведён.
+    status: missing
+
+  - id: ku.trust.happy.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подаёт заявку в доверенные лица участка с подписанными договором и доверенностью
+    expect: председатель участка видит заявку с документами (исходник и подпись заявителя) для встречной подписи
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.happy.02
+    level: backend
+    kind: happy
+    scenario: Председатель участка отклоняет заявку
+    expect: заявка закрыта, пайщик не в доверенных
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.happy.03
+    level: backend
+    kind: happy
+    scenario: Заявка одобряется встречной подписью председателя участка
+    expect: заявка закрыта, пайщик в доверенных лицах участка
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.01
+    level: backend
+    kind: side
+    scenario: Пайщик подаёт заявку от имени другого
+    expect: KU_ACTION_SELF_ONLY, заявки нет
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.02
+    level: backend
+    kind: side
+    scenario: По заявке решает председатель чужого участка, сам заявитель, гость; заявки нет
+    expect: KU_ACTION_BRANCH_CHAIRMAN_ONLY, отказ входа гостю, KU_TRUST_REQUEST_NOT_FOUND; заявка остаётся открытой
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.03
+    level: backend
+    kind: side
+    scenario: Гость читает список заявок
+    expect: отказ входа
+    test: components/api-tests/src/ku/decisions.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.04
+    level: backend
+    kind: side
+    scenario: Посторонний пайщик читает список заявок доверенных лиц
+    expect: договор о материальной ответственности и доверенность заявителя (паспорт, адрес, телефон) видят только заявитель, председатель участка и совет
+    # До 25.09.2026 kuTrustRequests отдавал список любому пайщику целиком;
+    # владелец подтвердил починку, выборка сужается по роли и участку.
+    test: components/controller/tests/unit/ku/ku.service.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing
+
+  - id: ku.trust.side.05
+    level: backend
+    kind: side
+    scenario: Пайщик подаёт две заявки (или пакет перегенерирован) в одну и ту же минуту, председатель одобряет вторую
+    expect: встречная подпись ложится на документ именно этой заявки
+    test: components/controller/tests/unit/document/document-version-by-meta.test.ts
+    api: components/api-tests/src/ku/decisions.test.ts
+    status: passing

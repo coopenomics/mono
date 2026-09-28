@@ -93,6 +93,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
@@ -253,6 +255,9 @@ const onTogglePause = async () => {
     FailAlert(error)
   }
 }
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => reload());
 
 onMounted(async () => {
   if (!contributorStore.contributors?.items?.length) {

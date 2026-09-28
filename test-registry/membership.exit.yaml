@@ -12,6 +12,10 @@ title: Выход пайщика из кооператива с аннулиро
 # ЦПП «Образование» возвратен по п. 4.2.5 его Положения, членский взнос «Стола
 # заказов» остаётся кооперативу. Незакрытый подотчёт и резерв под заказы держат
 # выход.
+#
+# Внешний слой (C28-80, 24.09.2026): сервис выхода ходит в TypeORM напрямую —
+# таблица membership_exit_requests прикрыта внешним тестом до перевода на
+# Kysely (C28-81).
 
 sources:
   backend:
@@ -24,6 +28,8 @@ sources:
     - components/cooptypes/src/ledger2/wallets.ts
     - components/factory/src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
     - components/factory/src/Templates/190.ProgramAgreementsAnnulmentStatement.ts
+    - components/controller/src/infrastructure/database/typeorm/entities/membership-exit-request.entity.ts
+    - components/controller/src/application/document/documents-dto/membership-exit-*.ts
   contract:
     - components/contracts/cpp/lib/core/ledger2/exit_policy.hpp
     - components/contracts/cpp/lib/core/registrator/exit.hpp
@@ -129,5 +135,119 @@ cases:
     kind: happy
     scenario: Диалог выхода и сводная страница участия в программах.
     expect: Таблица программ с суммами, два документа под одну подпись, запреты баннером с причинами.
+    test: ~
+    status: missing
+
+  - id: mem.exit.side.01
+    level: backend
+    kind: side
+    scenario: пайщик без реквизитов для возврата подаёт заявление на выход
+    expect: отказ MEMBERSHIP_EXIT_PAYMENT_METHOD_REQUIRED, заявления нет
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик с реквизитами подаёт подписанное заявление на выход
+    expect: заявление AWAITING_CONFIRMATION с хэшем выхода, платежа возврата нет; пайщик и совет видят статус
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.side.02
+    level: backend
+    kind: side
+    scenario: второе заявление, пока первое ждёт подтверждения
+    expect: отказ MEMBERSHIP_EXIT_PENDING_CONFIRMATION, в силе первое
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.side.03
+    level: backend
+    kind: side
+    scenario: чужой пайщик подаёт, читает и отменяет выход пайщика; гость подаёт заявление
+    expect: отказы MEMBERSHIP_EXIT_SELF_ONLY / MEMBERSHIP_EXIT_STATUS_SELF_ONLY / MEMBERSHIP_EXIT_CANCEL_SELF_ONLY, 401 гостю; заявление пайщика не тронуто
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.side.04
+    level: backend
+    kind: side
+    scenario: подтверждение выхода негодной ссылкой
+    expect: отказ 401, заявление остаётся ожидающим
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.happy.02
+    level: backend
+    kind: happy
+    scenario: пайщик отменяет заявление до подтверждения
+    expect: отмена подтверждена, активного выхода нет
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.side.05
+    level: backend
+    kind: side
+    scenario: повторная отмена, когда заявления нет
+    expect: отказ MEMBERSHIP_EXIT_NO_PENDING_REQUEST
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель подаёт заявление за пайщика и отменяет его
+    expect: заявление пайщика AWAITING_CONFIRMATION видно пайщику, после отмены выхода нет
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.happy.04
+    level: backend
+    kind: happy
+    scenario: превью возврата паевого взноса до и после пополнения паевого кошелька
+    expect: итог равен сумме w.reg.minshr + w.wal.share + w.cap.blago, целевой и минимальный — остаткам своих кошельков; пополнение прибавляется к целевому и к итогу
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.side.06
+    level: backend
+    kind: side
+    scenario: чужой пайщик запрашивает превью возврата пайщика; совет запрашивает его
+    expect: отказ MEMBERSHIP_EXIT_CALCULATION_SELF_ONLY пайщику, совет получает тот же расчёт, что пайщик
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: passing
+
+  - id: mem.exit.happy.05
+    level: backend
+    kind: happy
+    scenario: пайщик подтверждает выход по ссылке из письма
+    expect: заявление уходит в цепь (registrator::exitcoop), черновик и токен удаляются, статус PENDING
+    test: ~
+    status: missing
+
+  - id: mem.exit.side.07
+    level: backend
+    kind: side
+    scenario: вышедший пайщик (аккаунт blocked) подаёт заявление снова
+    expect: отказ MEMBERSHIP_EXIT_ALREADY_EXITED
+    test: ~
+    status: missing
+
+  - id: mem.exit.side.08
+    level: backend
+    kind: side
+    scenario: заявление подаётся, когда выход уже в цепи
+    expect: отказ MEMBERSHIP_EXIT_ALREADY_SUBMITTED
     test: ~
     status: missing

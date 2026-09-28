@@ -150,6 +150,7 @@ async function fetchIssue(hash: string): Promise<void> {
   }
 }
 
+// realtime: нет источника — редактор: живое перечитывание затёрло бы ввод; чужие правки ловит проверка версии при сохранении.
 watch(
   overlay.value,
   async (hash) => {

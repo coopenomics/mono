@@ -113,6 +113,7 @@ export function useReportDraft<TEdits>(
 
   function scheduleSave(): void {
     if (saveTimer) clearTimeout(saveTimer);
+    // timing: debounce — сохранение черновика отчёта после паузы в правке
     saveTimer = setTimeout(() => {
       void saveNow();
     }, debounceMs);
@@ -120,6 +121,7 @@ export function useReportDraft<TEdits>(
 
   function scheduleValidate(): void {
     if (validateTimer) clearTimeout(validateTimer);
+    // timing: debounce — проверка черновика отчёта после паузы в правке
     validateTimer = setTimeout(() => {
       void validateNow();
     }, debounceMs);

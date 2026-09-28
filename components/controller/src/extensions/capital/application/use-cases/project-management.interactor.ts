@@ -95,13 +95,13 @@ export class ProjectManagementInteractor {
     currentUser: IMonoAccount
   ): Promise<ProjectDomainEntity> {
     if (!currentUser?.username) {
-      throw DomainError.internal('CAPITAL_AUTH_REQUIRED');
+      throw DomainError.unauthorized('CAPITAL_AUTH_REQUIRED');
     }
 
     const projectHash = data.project_hash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(projectHash);
     if (existing) {
-      throw DomainError.internal('CAPITAL_PROJECT_ALREADY_EXISTS', { hash: projectHash });
+      throw DomainError.conflict('CAPITAL_PROJECT_ALREADY_EXISTS', { hash: projectHash });
     }
 
     const emptyHash = DomainToBlockchainUtils.getEmptyHash().toLowerCase();
@@ -118,7 +118,7 @@ export class ProjectManagementInteractor {
         throw DomainError.internal('CAPITAL_PERSONAL_COMPONENT_REQUIRES_PERSONAL_PROJECT');
       }
       if (parent.master !== currentUser.username && parent.local_owner !== currentUser.username) {
-        throw DomainError.internal('CAPITAL_COMPONENT_CREATE_FORBIDDEN');
+        throw DomainError.forbidden('CAPITAL_COMPONENT_CREATE_FORBIDDEN');
       }
       inheritedDevUrl = parent.development_repository_url ?? null;
     }
@@ -168,7 +168,7 @@ export class ProjectManagementInteractor {
   async editProject(data: EditProjectDomainInput, author = 'system'): Promise<InnerTransactResult> {
     const project = await this.projectRepository.findByHash(data.project_hash.toLowerCase());
     if (!project) {
-      throw DomainError.internal('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: data.project_hash });
     }
     // Серверное слияние с параллельными правками + новая редакция (см. ContentRevisionService).
     // Слитый текст уже записан в БД; для блокчейн-проекта он же уходит в цепь, при провале — откат.
@@ -468,7 +468,7 @@ export class ProjectManagementInteractor {
     const h = projectHash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(h);
     if (!existing) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     await this.projectRepository.setPriority(h, priority);
     const updated = await this.projectRepository.findByHash(h);
@@ -485,7 +485,7 @@ export class ProjectManagementInteractor {
     const h = projectHash.trim().toLowerCase();
     const existing = await this.projectRepository.findByHash(h);
     if (!existing) {
-      throw DomainError.internal('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
+      throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     await this.projectRepository.setDevelopmentRepositoryUrl(h, url);
     const updated = await this.projectRepository.findByHash(h);

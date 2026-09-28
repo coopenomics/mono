@@ -129,6 +129,8 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { Ledger2Contract, SovietContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { uiLocale, t } from 'src/shared/i18n';
 import { useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
@@ -278,7 +280,7 @@ async function copyText(text: string | null | undefined) {
 // Утилита доступна для расширения (копирование произвольных значений детали).
 void copyText
 
-onMounted(async () => {
+async function load(): Promise<void> {
   try {
     // Документы + операции + проводки одного процесса грузим параллельно.
     const [view, history, post] = await Promise.all([
@@ -305,7 +307,22 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(load)
+
+// Процесс живёт по ленте: новый документ, решение совета, операция и проводка
+// учёта появляются в карточке сами.
+useLiveReload(
+  [
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.Accounts),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.Wallets),
+    liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets),
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+    { code: 'core', table: 'signed_documents' },
+  ],
+  load,
+)
 </script>
 
 <style scoped>

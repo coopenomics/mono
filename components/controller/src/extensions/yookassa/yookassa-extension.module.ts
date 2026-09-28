@@ -305,7 +305,7 @@ export class YookassaExtension extends IPNProvider {
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw DomainError.internal('YOOKASSA_PAYMENT_NOT_FOUND', { hash });
+      throw DomainError.notFound('YOOKASSA_PAYMENT_NOT_FOUND', { hash });
     }
 
     // Используем QuantityUtils для парсинга quantity

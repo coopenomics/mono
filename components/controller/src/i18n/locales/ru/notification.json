@@ -6,7 +6,9 @@
     "NOTIFICATION_P256DH_KEY_REQUIRED": "p256dh ключ обязателен и должен быть строкой",
     "NOTIFICATION_RECIPIENT_BUILD_FAILED": "Не удалось сформировать получателя для {username}: нет subscriber_id в профиле",
     "NOTIFICATION_SUBSCRIPTION_REQUIRED": "subscription обязателен и должен быть объектом",
-    "NOTIFICATION_USERNAME_REQUIRED": "username обязателен и должен быть строкой"
+    "NOTIFICATION_USERNAME_REQUIRED": "username обязателен и должен быть строкой",
+    "NOTIFICATION_SUBSCRIPTION_SELF_ONLY": "Подписками на уведомления пайщик управляет только своими",
+    "NOTIFICATION_SUBSCRIPTION_NOT_FOUND": "Подписка на уведомления не найдена"
   },
   "notification": {
     "subscriptionService": {

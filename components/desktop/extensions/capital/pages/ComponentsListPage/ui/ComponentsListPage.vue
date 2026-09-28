@@ -131,6 +131,7 @@ function registerListHeaderActions(): void {
   });
 }
 
+// realtime: нет источника на странице — при открытии читается только раскрытие строк из браузера, данные грузит живой виджет списка.
 onMounted(() => {
   loadExpandedState();
   if (isListRoot.value) registerListHeaderActions();

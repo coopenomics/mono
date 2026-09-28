@@ -87,6 +87,7 @@ const onKeydown = (e: KeyboardEvent) => {
 
 useUnsavedGuard(hasChanges);
 
+// realtime: нет источника — редактор приглашения: живое перечитывание затёрло бы ввод; чужие правки ловит проверка версии при сохранении.
 onMounted(async () => {
   window.addEventListener('keydown', onKeydown);
   await loadProject();

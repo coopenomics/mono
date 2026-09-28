@@ -46,7 +46,7 @@ export class BuhotchGenerator implements IReportGenerator {
     // от прямых вызовов generator'а в обход API.
     const corrRaw = header.correctionNumber ?? 0;
     if (!Number.isInteger(corrRaw) || corrRaw < 0 || corrRaw > 999) {
-      throw DomainError.internal('REPORTS_BUHOTCH_CORRECTION_NUMBER_INVALID', { value: corrRaw });
+      throw DomainError.badRequest('REPORTS_BUHOTCH_CORRECTION_NUMBER_INVALID', { value: corrRaw });
     }
     const correctionNumber = String(corrRaw);
     const prPodp = signer.type === 'representative' ? '2' : '1';

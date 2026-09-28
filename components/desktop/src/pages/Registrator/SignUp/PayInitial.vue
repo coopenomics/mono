@@ -16,7 +16,8 @@ div(v-show='store.isStep("PayInitial")')
 </template>
 
 <script lang="ts" setup>
-import { computed, watch, ref, onBeforeUnmount } from 'vue';
+import { computed, watch, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useCreateUser } from 'src/features/User/CreateUser';
 import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
@@ -40,12 +41,11 @@ const step = computed(() => store.state.step);
 const coop = useCooperativeStore();
 const isCreatingPayment = ref(false);
 
-// Поллинг приёма оплаты. Провайдер QR (Bank) не эмитит success-колбэк, а деньги
-// подтверждаются вебхуком на бэке асинхронно — без поллинга экран висит на форме
-// оплаты до перезагрузки. Каждые 10с подтягиваем аккаунт; как только вступительный
-// платёж покинул статус PENDING (принят/отклонён) — уходим на шаг ожидания решения
-// совета, который сам показывает «платёж принят» либо причину отказа.
-const pollInterval = ref();
+// Приём оплаты. Провайдер QR (Bank) не эмитит success-колбэк, а деньги
+// подтверждаются вебхуком на бэке асинхронно. Запись платежа приходит пайщику
+// сигналом ленты изменений — подтягиваем аккаунт; как только вступительный
+// платёж покинул статус PENDING (принят/отклонён) — уходим на шаг ожидания
+// решения совета, который сам показывает «платёж принят» либо причину отказа.
 
 const POLL_TERMINAL_STATUSES = [
   Zeus.PaymentStatus.PAID,
@@ -62,7 +62,6 @@ const pollPaymentStatus = async () => {
     session.setCurrentUserAccount(account);
     const status = session.registrationPayment?.status;
     if (status && POLL_TERMINAL_STATUSES.includes(status)) {
-      clearInterval(pollInterval.value);
       store.goTo('WaitingRegistration');
     }
   } catch (e) {
@@ -107,18 +106,16 @@ const createInitialPayment = async () => {
 
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(step, (newValue) => {
-  if (newValue === currentStep) {
-    createInitialPayment();
-    clearInterval(pollInterval.value);
-    pollInterval.value = setInterval(() => pollPaymentStatus(), 10000);
-  } else {
-    clearInterval(pollInterval.value);
-  }
+  if (newValue === currentStep) createInitialPayment();
 }, { immediate: true });
 
-onBeforeUnmount(() => {
-  clearInterval(pollInterval.value);
-});
+useLiveReload(
+  [
+    { code: 'core', table: 'payments' },
+    { code: 'core', table: 'users' },
+  ],
+  () => (step.value === currentStep ? pollPaymentStatus() : undefined),
+);
 
 watch(
   () => store.state.is_paid,

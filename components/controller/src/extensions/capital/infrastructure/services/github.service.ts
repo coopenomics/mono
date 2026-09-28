@@ -532,5 +532,6 @@ export class GitHubService {
 }
 
 function sleepMs(ms: number): Promise<void> {
+  // timing: backoff — повтор запроса к GitHub после 429/5xx с растущей паузой
   return new Promise((r) => setTimeout(r, ms));
 }

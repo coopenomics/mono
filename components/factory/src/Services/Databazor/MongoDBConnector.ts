@@ -3,6 +3,7 @@ import type { Collection, Db, Filter } from 'mongodb'
 import type { IGeneratedDocument } from '../../Interfaces'
 import type { IFilterDocuments } from '../../Interfaces/Storage'
 import type { IDocument } from './DataService'
+import { documentMetaKey } from '../../Utils/documentMetaKey'
 
 export class MongoDBConnector {
   public client: MongoClient
@@ -61,9 +62,14 @@ export class MongoDBConnector {
     // черновик по doc_hash, получал чужую meta → meta_hash не совпадал с
     // подписью первого подписанта, и подпись падала. Компаунд-ключ хранит
     // все версии: каждая остаётся доступной по своему block_num.
+    //
+    // Внутри одного блока совпадает и block_num: две заявки одного пайщика в
+    // доверенные за минуту затирали друг друга, и встречная подпись второй
+    // падала (C28-80). Поэтому версию различает ключ по самой meta.
+    const meta_key = documentMetaKey(document.meta)
     await this.documents.updateOne(
-      { hash: document.hash, 'meta.block_num': document.meta.block_num },
-      { $set: { ...document } },
+      { hash: document.hash, meta_key },
+      { $set: { ...document, meta_key } },
       { upsert: true },
     )
   }

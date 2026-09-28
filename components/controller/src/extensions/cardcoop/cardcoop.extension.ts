@@ -104,4 +104,15 @@ export class CardcoopExtension extends BaseExtensionModule {
   public get config(): IConfig {
     return this.extension.config;
   }
+
+  /**
+   * Параметры установки, перечитанные из базы. Фоновым повторам: председатель мог
+   * сменить адрес сети после старта, а повтор с адресом первого старта бил бы в
+   * старый до перезапуска узла (C28-80).
+   */
+  async freshConfig(): Promise<IConfig> {
+    const extensionData = await this.extensionRepository.findByName(this.name);
+    if (extensionData) this.extension = extensionData;
+    return this.config;
+  }
 }

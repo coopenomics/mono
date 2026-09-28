@@ -14,6 +14,11 @@ title: Приём результата интеллектуальной деят
 # Вызовы ledger2::apply в этих операциях передают имя нитки процесса
 # (см. test-registry/ledger2.process-naming.yaml) — поведение самой фичи
 # не меняется.
+# Правка 24.09.2026 (C28-83), экраны: страницы, виджеты и панели фичи живут по
+# ленте изменений Благороста (CAPITAL_LIVE_TABLES); формы, диалоги выбора и
+# редакторы помечены «realtime: нет источника» с причиной. Поведение и набор
+# случаев не менялись.
+
 sources:
   contract:
     - components/contracts/cpp/capital/p.cap.rid.standard.yaml
@@ -28,6 +33,9 @@ sources:
     - components/desktop/extensions/capital/features/Result/**
     - components/desktop/extensions/capital/features/Project/ConvertSegment/**
     - components/desktop/extensions/capital/widgets/ResultSubmissionActionsWidget/**
+
+# Правка 25.09.2026 (C28-80): признак «доля завершена» читается из базы —
+# конструктор доли его терял, и стол всегда видел долю незавершённой.
 
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────
@@ -220,6 +228,7 @@ cases:
       в домен уходят суммы из сегмента (intellectual_cost, debt_amount) и
       result_hash из БД, а не из клиентского ввода
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.23
@@ -228,6 +237,7 @@ cases:
     scenario: pushResult с чужим data.username
     expect: отказ «Вы можете вносить результаты только для себя»
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.24
@@ -236,6 +246,7 @@ cases:
     scenario: pushResult, когда результат по проекту и пользователю ещё не создан
     expect: отказ с указанием сначала сгенерировать заявление
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.25
@@ -244,6 +255,7 @@ cases:
     scenario: pushResult с doc_hash, которого нет в репозитории документов
     expect: отказ — подписан документ, который сервер не генерировал
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.26
@@ -254,6 +266,7 @@ cases:
       отказ с перечислением расхождений по полям и указанием на возможную
       подмену документа
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.27
@@ -296,6 +309,7 @@ cases:
       username в доменный вход берётся из сессии, а не из DTO (в DTO поля нет);
       цепь отвергнет чужой result_hash по result.username == username
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.32
@@ -304,6 +318,7 @@ cases:
     scenario: signActAsContributor по result_hash, которого нет в БД
     expect: отказ «Результат с хэшем … не найден или не содержит project_hash»
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.33
@@ -312,6 +327,7 @@ cases:
     scenario: signActAsContributor с актом, подписанным не тем пользователем
     expect: assertDocumentSignatures вызывается со списком [username из сессии] и отклоняет
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.34
@@ -322,6 +338,7 @@ cases:
       chairman в доменный вход подставляется из currentUser, в DTO поля нет;
       цепь сверит его с реальным председателем совета
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.35
@@ -330,6 +347,7 @@ cases:
     scenario: signActAsChairman с актом без подписи участника
     expect: assertDocumentSignatures вызывается с [result.username, chairman] и отклоняет
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.36
@@ -338,6 +356,7 @@ cases:
     scenario: signActAsChairman по результату без username
     expect: отказ «Результат с хэшем … не найден или не содержит username»
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.37
@@ -361,6 +380,7 @@ cases:
       Прежде сверялось data.username, не влияющее на содержимое документа,
       и чужие суммы с долей попадали в сгенерированный акт
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.39
@@ -371,6 +391,7 @@ cases:
       отказ по каждому из полей component_name, project_name, total_amount,
       percent_of_result, result_hash
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.40
@@ -379,6 +400,7 @@ cases:
     scenario: generateResultContributionAct — вычисление result_act_hash
     expect: sha256(result_hash + decision_id), детерминирован при тех же входных
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.41
@@ -399,6 +421,7 @@ cases:
     scenario: generateResultContributionStatement при project.fact.total ≤ 0
     expect: отказ «Сумма проекта не может быть меньше или равна 0» — иначе доля неисчислима
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.43
@@ -419,6 +442,7 @@ cases:
     scenario: generateResultContributionStatement по несуществующему проекту или проекту без родителя
     expect: отказ с хэшем проекта; название проекта берётся у родителя и обязательно
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.49
@@ -439,6 +463,7 @@ cases:
       отказ с хэшем результата; сегмент для сверки ищется по данным результата,
       а не по данным запроса
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.51
@@ -449,6 +474,7 @@ cases:
       или мета-данные заявления либо решения
     expect: отказ на каждом из трёх звеньев до обращения к генератору документов
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.52
@@ -475,6 +501,19 @@ cases:
       (checksum256 регистр не различает), а markAsCompleted искал по исходному
       регистру и не находил — пайщик получал ошибку на успешной операции
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
+    status: passing
+
+  - id: cap.rid.side.92
+    level: backend
+    kind: side
+    scenario: доля конвертирована и отмечена завершённой; пайщик открывает её снова
+    expect: >
+      доля отдаётся с is_completed=true — признак читается из базы (до
+      25.09.2026 конструктор доли его терял, и доля всегда выглядела
+      незавершённой)
+    test: components/controller/tests/unit/capital/segment-mapper-context.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.54

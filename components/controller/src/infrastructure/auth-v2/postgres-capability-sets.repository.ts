@@ -1,4 +1,6 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { affectedRows } from './raw-query-result';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
+import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import { DataSource } from 'typeorm';
 import config from '~/config/config';
 import {
@@ -30,10 +32,23 @@ interface AssignmentRow {
  * DataSource (как `PostgresAccessRulesRepository`). Сами правила наборов лежат в
  * `access_rules` (subject_type='capability_set') — читаются access-rules-репо.
  */
+/** Назначения персонала в ленте изменений — объявлены в `chain-changes.service.ts`. */
+const PARTICIPANT_CAPABILITY_SETS_TABLE = 'participant_capability_sets';
+
 @Injectable()
 export class PostgresCapabilitySetsRepository implements ICapabilitySetsRepository, OnModuleDestroy {
   private ds: DataSource | null = null;
   private initializing: Promise<DataSource> | null = null;
+
+  constructor(
+    // Назначения живут в отдельной базе на сыром SQL — подписчик базы узла их
+    // не видит, поэтому сигнал ленты изменений публикуется здесь, после записи.
+    @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null,
+  ) {}
+
+  private signal(username: string, setKey: string): void {
+    void this.feed?.publishLocal(PARTICIPANT_CAPABILITY_SETS_TABLE, `${username}:${setKey}`, { username });
+  }
 
   private getDataSource(): Promise<DataSource> {
     if (this.ds?.isInitialized) {
@@ -119,18 +134,22 @@ export class PostgresCapabilitySetsRepository implements ICapabilitySetsReposito
                      expires_at = EXCLUDED.expires_at, revoked_at = NULL`,
       [input.username, input.setKey, input.grantedBy, input.expiresAt ?? null],
     );
+    this.signal(input.username, input.setKey);
   }
 
   async revoke(username: string, setKey: string): Promise<boolean> {
     const ds = await this.getDataSource();
-    // RETURNING → строки реально затронутых (детерминированно по всем драйверам).
-    const rows: { username: string }[] = await ds.query(
+    // Отозвано ли что-то — по числу затронутых строк (у UPDATE TypeORM отдаёт
+    // пару [строки, число]; см. raw-query-result.ts).
+    const raw: unknown = await ds.query(
       `UPDATE participant_capability_sets SET revoked_at = now()
         WHERE username = $1 AND set_key = $2 AND revoked_at IS NULL
        RETURNING username`,
       [username, setKey],
     );
-    return rows.length > 0;
+    const revoked = affectedRows(raw) > 0;
+    if (revoked) this.signal(username, setKey);
+    return revoked;
   }
 
   async onModuleDestroy(): Promise<void> {

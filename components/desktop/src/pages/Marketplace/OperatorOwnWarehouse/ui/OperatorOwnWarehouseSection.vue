@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables'
 import { debounce } from 'quasar'
 import { useRoute } from 'vue-router'
@@ -22,7 +23,7 @@ import type {
 import { AccountBadge, PageHint } from 'src/shared/ui/domain'
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates'
 import { marketplaceOrderSaleUnit } from 'src/shared/lib/consts/marketplace-units'
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace'
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useQueryOverlay } from 'src/shared/lib/navigation'
 import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverlay'
 import { CoopStockSection } from 'src/widgets/Marketplace/CoopStockSection'
@@ -208,17 +209,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return
   void load()
 }, 400)
-useMarketplaceRealtime(
-  {
-    MarketplaceAplReceptionStatusChangedEvent: (event) => {
-      if (event.braname === braname.value.trim()) reloadLive()
-    },
-    MarketplaceOrderStatusChangedEvent: () => reloadLive(),
-    // Исполненное списание тоже опустошает полки склада.
-    MarketplaceWriteoffStatusChangedEvent: () => reloadLive(),
-  },
-  { onResync: () => reloadLive() },
-)
+useLiveReload(marketLiveTables('reception', 'order', 'writeoff'), () => reloadLive());
 
 onMounted(async () => {
   await store.ensureLoaded(coopname.value)

@@ -127,7 +127,7 @@ export class TypeOrmWebPushSubscriptionRepository implements NotificationPort {
     const existingEntity = await this.ormRepo.findOne({ where: { endpoint } });
 
     if (!existingEntity) {
-      throw DomainError.internal('DATABASE_WEB_PUSH_SUBSCRIPTION_NOT_FOUND');
+      throw DomainError.notFound('DATABASE_WEB_PUSH_SUBSCRIPTION_NOT_FOUND');
     }
 
     // Обновляем только переданные поля

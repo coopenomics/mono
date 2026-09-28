@@ -6,6 +6,7 @@ import type {
   PaymentDetailsDomainInterface,
 } from '~/domain/gateway/interfaces/payment-domain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import { numericColumnTransformer } from '@coopenomics/extension-kit';
 
 /**
  * Унифицированная сущность платежа для TypeORM
@@ -25,7 +26,9 @@ export class PaymentEntity implements PaymentDomainInterface {
   @Column()
   username!: string;
 
-  @Column()
+  // Сумма с копейками: до 25.09.2026 колонка была integer, и любая выплата с
+  // копейками (матпомощь после налога, выплата поставщику) не регистрировалась.
+  @Column({ type: 'numeric', precision: 20, scale: 4, transformer: numericColumnTransformer })
   quantity!: number;
 
   @Column()

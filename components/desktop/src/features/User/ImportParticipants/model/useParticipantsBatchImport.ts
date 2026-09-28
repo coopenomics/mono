@@ -58,6 +58,7 @@ export function useParticipantsBatchImport() {
       }
 
       importProgress.value = i + 1;
+      // timing: throttle — пакетный импорт пайщиков не всплеском запросов, а по одному
       await delay(120);
     }
 

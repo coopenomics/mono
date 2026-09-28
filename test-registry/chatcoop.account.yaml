@@ -1,0 +1,56 @@
+feature: chatcoop.account
+title: Учётная запись «Чата кооператива» — статус, заведение, проверка имени
+
+# Статус говорит, привязана ли к пайщику учётная запись Matrix и куда
+# открывать клиент чата; при отсутствии локальной записи сервер ищет
+# пользователя Matrix по почте и привязывает найденного.
+#
+# Заведено 24.09.2026 (C28-80). Сервера Matrix на стенде внешнего слоя нет:
+# заведение записи, проверка имени и привязка по почте снаружи не проверяются.
+
+sources:
+  backend:
+    - components/controller/src/extensions/chatcoop/application/resolvers/chatcoop.resolver.ts
+    - components/controller/src/extensions/chatcoop/application/services/chatcoop-application.service.ts
+    - components/controller/src/extensions/chatcoop/domain/services/matrix-user-management.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.typeorm-repository.ts
+
+cases:
+  - id: chat.acc.happy.01
+    level: backend
+    kind: happy
+    scenario: Новый пайщик без учётной записи чата запрашивает статус
+    expect: hasAccount=false, без имени и адреса клиента
+    test: components/api-tests/src/chatcoop/account.test.ts
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: passing
+
+  - id: chat.acc.side.01
+    level: backend
+    kind: side
+    scenario: Гость запрашивает статус учётной записи чата
+    expect: отказ 401
+    test: components/api-tests/src/chatcoop/account.test.ts
+    api: components/api-tests/src/chatcoop/account.test.ts
+    status: passing
+
+  - id: chat.acc.happy.02
+    level: backend
+    kind: happy
+    scenario: >
+      Пайщик заводит учётную запись чата с именем и паролем; повторное заведение
+    expect: >
+      статус hasAccount=true с именем; повтор — CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS;
+      снаружи не проверить — нужен сервер Matrix
+    test: ~
+    status: missing
+
+  - id: chat.acc.happy.03
+    level: backend
+    kind: happy
+    scenario: >
+      У пайщика уже есть пользователь Matrix с той же почтой — статус привязывает его
+    expect: >
+      hasAccount=true, запись появляется в реестре; снаружи не проверить — нужен сервер Matrix
+    test: ~
+    status: missing

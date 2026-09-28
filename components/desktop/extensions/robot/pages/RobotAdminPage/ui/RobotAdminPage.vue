@@ -47,6 +47,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useSessionStore } from 'src/entities/Session';
@@ -205,4 +207,19 @@ onMounted(async () => {
     loadingJournal.value = false;
   }
 });
+
+// Админка робота живёт по ленте: выданный или отозванный ключ члена совета,
+// решения робота и повестка совета перечитываются сами.
+useLiveReload(
+  [
+    { code: 'robot', table: 'soviet_robot_keys' },
+    { code: 'robot', table: 'soviet_robot_decisions' },
+    liveTable(SovietContract, SovietContract.Tables.Decisions),
+  ],
+  () =>
+    Promise.all([
+      robotStore.loadKeys(),
+      robotStore.loadJournal({ options: { page: 1, limit: 100, sortBy: 'decision_id', sortOrder: 'DESC' } }),
+    ]),
+);
 </script>

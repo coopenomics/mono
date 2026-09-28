@@ -91,6 +91,26 @@ export class ParticipationManagementInteractor {
   }
 
   /**
+   * Строка участника заводится ДО транзакции: transact возвращается, когда блок
+   * уже разобран, и дельта участника приходит раньше, чем управление вернётся
+   * сюда. Без строки синхронизатор заводил участника сам, без имени и данных
+   * базы, — и зеркало навсегда расходилось с цепью (класс 7DD-22, C28-80).
+   * Цепь отказала — строка удаляется, повтор не упирается в «уже есть».
+   */
+  private async createContributorBeforeTransact(
+    contributor: ContributorDomainEntity,
+    send: () => Promise<InnerTransactResult>
+  ): Promise<InnerTransactResult> {
+    const saved = await this.contributorRepository.create(contributor);
+    try {
+      return await send();
+    } catch (error) {
+      await this.contributorRepository.delete(saved._id);
+      throw error;
+    }
+  }
+
+  /**
    * Импорт участника в CAPITAL контракт
    */
   async importContributor(
@@ -138,11 +158,9 @@ export class ParticipationManagementInteractor {
       memo: data.memo ?? '',
     };
 
-    // Вызываем блокчейн порт
-    const result = await this.capitalBlockchainPort.importContributor(blockchainData);
-
-    // Создаем участника в репозитории
-    await this.contributorRepository.create(contributor);
+    const result = await this.createContributorBeforeTransact(contributor, () =>
+      this.capitalBlockchainPort.importContributor(blockchainData)
+    );
 
     // Сохраняем параметры договора в UData через публичный метод сервиса
     await this.udataDocumentParametersService.saveContributorContractParameters(
@@ -256,31 +274,10 @@ export class ParticipationManagementInteractor {
       blagorost_agreement: createEmptyDocument(),
     };
 
-    // Вызываем блокчейн порт для регистрации - получаем транзакцию
-    const result = await this.capitalBlockchainPort.registerContributor(
-      blockchainAction
+    // Данные цепи строка получит из дельты своего же блока.
+    return await this.createContributorBeforeTransact(new ContributorDomainEntity(databaseData), () =>
+      this.capitalBlockchainPort.registerContributor(blockchainAction)
     );
-
-    // Получаем данные участника из блокчейна после регистрации
-    const blockchainData = await this.capitalBlockchainPort.getContributor(
-      data.coopname,
-      data.username
-    );
-
-    if (!blockchainData) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_DATA_AFTER_REGISTRATION_MISSING', { hash: databaseData.contributor_hash });
-    }
-
-    // Создаем полный объект участника, объединяя данные базы и блокчейна
-    const fullContributor = new ContributorDomainEntity(
-      databaseData,
-      blockchainData
-    );
-
-    // Сохраняем полный объект в репозиторий
-    await this.contributorRepository.create(fullContributor);
-
-    return result;
   }
 
   /**
@@ -823,8 +820,7 @@ export class ParticipationManagementInteractor {
         blagorost_agreement_hash: undefined,
       };
 
-      contributor = new ContributorDomainEntity(contributorData);
-      await this.contributorRepository.create(contributor);
+      contributor = await this.contributorRepository.create(new ContributorDomainEntity(contributorData));
 
       this.logger.log(`Создан новый Contributor для участника ${data.username} при регистрации в Capital расширении`);
     }
@@ -906,6 +902,11 @@ export class ParticipationManagementInteractor {
       blagorost_agreement: blockchainBlagorostAgreement,
       generator_agreement: blockchainGeneratorAgreement,
     });
+
+    // Строка перечитывается: пока транзакция ждала свой блок, дельта уже
+    // записала в неё данные цепи, и объект, прочитанный до транзакции, их бы
+    // затёр (C28-80).
+    contributor = (await this.contributorRepository.findByUsername(data.username)) ?? contributor;
 
     // Обновляем Contributor с хешами документов и данными формы
     // GenerationContract обновляем только если он был предоставлен

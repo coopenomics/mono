@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { postgresErrorCode, PG_UNIQUE_VIOLATION } from '~/infrastructure/database/postgres-error';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, Equal } from 'typeorm';
 import type { ActionRepositoryPort } from '~/domain/parser/ports/action-repository.port';
@@ -38,7 +39,7 @@ export class TypeOrmActionRepository implements ActionRepositoryPort {
       // цепи. Дубль (23505) означает повторную доставку того же действия
       // (re-scan/replay стрима) — оно уже сохранено. Идемпотентно: не бросаем,
       // иначе consumer не ACK'ает сообщение и зацикливает recoverOwnPending.
-      if (err?.code === '23505' || err?.driverError?.code === '23505') {
+      if (postgresErrorCode(err) === PG_UNIQUE_VIOLATION) {
         const existing = await this.actionRepository.findOne({
           where: { global_sequence: actionData.global_sequence },
         });

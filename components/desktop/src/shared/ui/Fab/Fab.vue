@@ -84,6 +84,7 @@ const onActionsLeave = () => {
 const scheduleHide = () => {
   // Скрываем только если курсор не над FAB и не над действиями
   if (!isHoveringFab && !isHoveringActions) {
+    // timing: ui — меню кнопки прячется, когда курсор ушёл
     hideTimeout = setTimeout(() => {
       fabRef.value?.hide()
       hideTimeout = null

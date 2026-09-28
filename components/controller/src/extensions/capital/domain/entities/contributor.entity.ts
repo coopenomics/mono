@@ -79,7 +79,9 @@ export class ContributorDomainEntity
 
     // Специфичные поля для contributor
     this.contributor_hash = databaseData.contributor_hash.toLowerCase();
-    this.display_name = databaseData.display_name;
+    // Участник, заведённый в цепи мимо контроллера, приходит из дельты без
+    // имени; синхронизатор допишет его из аккаунта (C28-80).
+    this.display_name = databaseData.display_name ?? '';
     this.about = databaseData.about ?? '';
 
     // Поля для отслеживания пути регистрации

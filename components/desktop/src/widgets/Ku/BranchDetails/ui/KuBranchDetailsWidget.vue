@@ -128,7 +128,8 @@ CollectPassportDialog(v-model='passportDialogOpen', @saved='onPassportSaved')
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useBranchStore } from 'src/entities/Branch/model';
-import { useKuStore } from 'src/entities/Ku/model';
+import { useKuStore, KU_LIVE_TABLES } from 'src/entities/Ku/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import type { IKuTrustRequest } from 'src/entities/Ku/model';
 import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { useKuTrustedFlow } from 'src/features/Ku/TrustedFlow/model';
@@ -244,17 +245,6 @@ const canRequest = computed(() => {
   return !isTrusted && !hasActiveRequest && trusted.length < 3;
 });
 
-/**
- * Проекции наполняются из блокчейна асинхронно (parser → PG) —
- * после транзакции опрашиваем данные до выполнения предиката.
- */
-async function poll(predicate: () => boolean, attempts = 8): Promise<void> {
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    await load();
-    if (predicate()) return;
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-  }
-}
 
 // доверенное лицо подписывает договор матответственности (327) и доверенность (330) —
 // если паспорта в реестре ещё нет, сначала собираем его; затем генерируем документы с
@@ -282,9 +272,8 @@ async function confirmRequest() {
   try {
     await flow.requestTrusted({ braname: trustedInput.value.braname }, trustedPrepared.value);
     SuccessAlert(t('ku.kuBranchDetailsWidget.successRequestSubmitted'));
-    await poll(() =>
-      branchRequests.value.some((request) => request.username === session.username && request.present),
-    );
+    // Заявка отвечает после разбора своего блока — перечитываем сразу.
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   } finally {
@@ -312,7 +301,7 @@ async function onApprove(request: IKuTrustRequest) {
   try {
     await flow.approveTrusted(request);
     SuccessAlert(t('ku.kuBranchDetailsWidget.successTrustedApproved'));
-    await poll(() => !branchRequests.value.some((item) => item.hash === request.hash && item.present));
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   }
@@ -331,13 +320,13 @@ async function onDecline() {
     await flow.declineTrusted(target, declineReason.value);
     isDeclineOpen.value = false;
     SuccessAlert(t('ku.kuBranchDetailsWidget.successRequestDeclined'));
-    await poll(() => !branchRequests.value.some((item) => item.hash === target.hash && item.present));
+    await load(true);
   } catch (e: unknown) {
     FailAlert(e);
   }
 }
 
-async function load() {
+async function load(silent = false) {
   try {
     await Promise.all([
       branchStore.loadPublicBranches({ coopname: system.info.coopname }),
@@ -347,11 +336,15 @@ async function load() {
       }),
     ]);
   } catch (e: unknown) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loading.value = false;
   }
 }
+
+// Участок и заявки на доверенность живут по ленте изменений — подача, одобрение
+// и отказ видны сразу у заявителя и у председателя участка.
+useLiveReload(KU_LIVE_TABLES, () => load(true));
 
 watch(
   () => props.braname,
@@ -361,7 +354,7 @@ watch(
   },
 );
 
-onMounted(load);
+onMounted(() => load());
 </script>
 
 <style scoped>

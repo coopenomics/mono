@@ -19,6 +19,8 @@ div
 
 <script lang="ts" setup>
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { WindowLoader } from 'src/shared/ui/Loader';
@@ -148,6 +150,13 @@ const redirectToRegistration = () => {
     router.replace({ name: 'capital-registration' });
   }
 };
+
+// Свой статус участника и состояние программы живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, async () => {
+  await contributorStore.loadSelf({ username: session.username });
+  await configStore.loadState({ coopname: system.info.coopname });
+  await loadState();
+});
 
 onMounted(async () => {
   // Отказ сервера здесь раньше уходил из onMounted необработанным: в журнал

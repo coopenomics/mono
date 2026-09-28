@@ -1,0 +1,56 @@
+feature: capital.program-share-registration
+title: Автоматическая регистрация долей держателей Благороста в активных проектах
+
+# Как только проект (или компонент) становится активным, контроллер сам
+# заводит в нём доли всех действующих вкладчиков по их балансу Благороста
+# (capital::regshare), а изменение баланса переносит в доли активных проектов.
+# Три пути: дельта проекта, дельта кошелька w.cap.blago и фоновая сверка по
+# расписанию (program_share_registration_interval_minutes).
+#
+# Решение владельца 16.06.2026: окно между запуском проекта и переходом к
+# результату бывает короче минуты, отката нет — не успевший вкладчик терял долю.
+#
+# Заведено 25.09.2026 (C28-80). До починки зеркала вкладчиков (display_name)
+# автоматика на стенде молчала — вкладчиков, заведённых мимо контроллера, в
+# зеркале не было. Когда заработала, boot-тесты контракта Благороста стали
+# зависеть от гонки с ней: они шлют действия прямо в цепь и считают премии
+# вкладчиков точно. Решение владельца 25.09: переключатель окружения
+# CAPITAL_PROGRAM_SHARE_AUTOREGISTRATION (по умолчанию включено, off —
+# выключено целиком); стенд внешнего слоя выключает автоматику на время
+# boot-тестов и включает перед API-тестами. Переключатель — настройка стенда,
+# а не поведение фичи: снаружи его не видно (API-тесты идут с включённой
+# автоматикой), проверяет его модульный тест
+# components/controller/tests/unit/capital/program-share-autoregistration-switch.test.ts.
+
+# Правка 25.09.2026 (C28-80): внешний тест cap.areg.happy.02 поймал гонку —
+# слушатель дельты кошелька читал баланс из зеркала, которое ту же дельту пишет
+# параллельно, и получал баланс до взноса; теперь баланс берётся из самой
+# дельты. Личные (локальные) проекты вне цепи из автоматики исключены — прежде
+# каждая попытка завести в них долю кончалась «проект не найден».
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/services/program-share-registration.service.ts
+    - components/controller/src/extensions/capital/application/listeners/program-share-registration-on-project-delta.listener.ts
+    - components/controller/src/extensions/capital/application/listeners/program-share-registration-on-user-wallet-delta.listener.ts
+    - components/controller/src/extensions/capital/infrastructure/services/program-share-registration-scheduler.service.ts
+    - scripts/blackbox/stack.sh
+
+cases:
+  - id: cap.areg.happy.01
+    level: backend
+    kind: happy
+    scenario: проект запущен; у действующего вкладчика есть баланс Благороста, к проекту он не допускался
+    expect: контроллер сам заводит ему долю в проекте, равную балансу (доступно + заблокировано)
+    test: components/api-tests/src/capital/program-share-registration.test.ts
+    api: components/api-tests/src/capital/program-share-registration.test.ts
+    status: passing
+
+  - id: cap.areg.happy.02
+    level: backend
+    kind: happy
+    scenario: баланс Благороста вкладчика вырос после паевого взноса в программу
+    expect: доля в активном проекте догоняет новый баланс
+    test: components/api-tests/src/capital/program-share-registration.test.ts
+    api: components/api-tests/src/capital/program-share-registration.test.ts
+    status: passing

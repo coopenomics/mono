@@ -15,6 +15,7 @@ import {
   EXPENSE_PROPOSAL_REPOSITORY,
   type ExpenseProposalRepository,
 } from '../../domain/repositories/expense-proposal.repository';
+import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 
 const EXTENSION_BY_MIME: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -41,24 +42,11 @@ export class ExpenseFilesService {
     @Inject(EXPENSE_PROPOSAL_REPOSITORY) private readonly proposals: ExpenseProposalRepository
   ) {}
 
-  /**
-   * Кому доступны файлы сметы: совету, подавшему смету и получателю строки
-   * (для файла уровня сметы — любому её получателю). Роль в guard'е этого
-   * не различает: по ней проходит любой принятый пайщик, а платёжки и чеки
-   * чужого расхода ему не принадлежат.
-   */
+  /** Файлы открыты тем же, кому открыта записка (`mayReadExpenseProposal`). */
   private async assertMayAccess(user: IMonoAccount, proposalHash: string, itemHash: string | null): Promise<void> {
     if (user.role === 'chairman' || user.role === 'member') return;
     const proposal = await this.proposals.findByProposalHash(proposalHash.toLowerCase());
-    if (proposal) {
-      if (proposal.username === user.username) return;
-      const items = proposal.items ?? [];
-      const own = itemHash
-        ? items.some((i) => i.item_hash?.toLowerCase() === itemHash.toLowerCase() && i.recipient === user.username)
-        : items.some((i) => i.recipient === user.username);
-      if (own) return;
-    }
-    throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
+    if (!mayReadExpenseProposal(user, proposal, itemHash)) throw DomainError.forbidden('EXPENSES_FILE_ACCESS_DENIED');
   }
 
   async uploadFile(

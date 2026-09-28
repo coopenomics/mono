@@ -127,6 +127,7 @@ async function loadWallets(): Promise<void> {
 
 // Кошелёк в каталоге открывают чаще, чем стол пайщика, — данные тянем сами,
 // не полагаясь на то, что их уже загрузил другой стол.
+// realtime: нет источника в кнопке — кошелёк живёт по ленте для всего приложения (registerWalletLive), здесь только первая загрузка.
 onMounted(() => void loadWallets());
 
 function openDialog(): void {

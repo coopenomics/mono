@@ -90,7 +90,22 @@ export class VerificationReviewService {
       throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTOS_LIMIT', { max: VERIFICATION_PHOTOS_MAX });
     }
     return photos.map((photo) => {
+      // Тип и размер — те же правила, что у бакета снимков. Проверяем здесь, до
+      // записи в цепь: прежде их проверял только bucket.put уже после выдачи
+      // уровня, сбой глушился журналом, и уровень оставался без записи на
+      // проверку совета — отклонить такую сверку было нечем (до 25.09.2026).
+      if (!(VERIFICATION_BUCKET.allowedMime as readonly string[]).includes(photo.mime_type)) {
+        throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_MIME_NOT_ALLOWED', {
+          mime: photo.mime_type,
+          allowed: VERIFICATION_BUCKET.allowedMime.join(', '),
+        });
+      }
       const body = Buffer.from(photo.content_base64, 'base64');
+      if (body.byteLength > VERIFICATION_BUCKET.maxBytes) {
+        throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_TOO_LARGE', {
+          maxMegabytes: Math.floor(VERIFICATION_BUCKET.maxBytes / (1024 * 1024)),
+        });
+      }
       if (body.byteLength !== photo.size_bytes) {
         throw DomainError.badRequest('AUTH_V2_VERIFICATION_PHOTO_SIZE_MISMATCH', { declaredSize: photo.size_bytes, actualSize: body.byteLength });
       }

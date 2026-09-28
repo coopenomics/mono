@@ -83,7 +83,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
   async deactivateRule(id: string): Promise<void> {
     const rule = await this.repository.findById(id);
     if (!rule) {
-      throw DomainError.internal('DECISION_TRACKING_RULE_NOT_FOUND', { id });
+      throw DomainError.notFound('DECISION_TRACKING_RULE_NOT_FOUND', { id });
     }
 
     rule.active = false;

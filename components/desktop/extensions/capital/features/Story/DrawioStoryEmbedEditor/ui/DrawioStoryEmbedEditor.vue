@@ -110,6 +110,7 @@ function postLoadXml(xml: string): void {
   suppressXmlEmit = true;
   internalXml.value = xml;
   win.postMessage(JSON.stringify(payload), targetOrigin);
+  // timing: ui — следующий тик: эхо загруженной схемы от редактора не считаем правкой
   window.setTimeout(() => {
     suppressXmlEmit = false;
   }, 0);
@@ -168,6 +169,7 @@ function clearSafetyTimer(): void {
 
 function startSafetyRevealTimer(): void {
   clearSafetyTimer();
+  // timing: timeout — редактор draw.io мог не прислать сигнал готовности, схему показываем по сроку
   safetyRevealTimer = window.setTimeout(() => {
     if (!diagramVisible.value) {
       diagramVisible.value = true;

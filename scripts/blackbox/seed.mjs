@@ -21,5 +21,5 @@ for (const name of Object.keys(KNOWN_FIXTURES)) {
 }
 
 console.log('▸ Фазы засева Стола заказов')
-runSeedPhase('all', { log })
+runSeedPhase('all', { log, echo: true })
 console.log('  ✅ засев завершён')

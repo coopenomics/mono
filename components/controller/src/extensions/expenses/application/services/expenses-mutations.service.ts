@@ -26,7 +26,7 @@ import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotsService } from './expense-requisite-snapshots.service'
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
-import { QuantityUtils, generateHashFromString, generateUniqueHash, ExpenseProposalStatementGenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
+import { QuantityUtils, generateHashFromString, generateUniqueHash, ExpenseProposalStatementGenerateDocumentInputDTO, DomainError, SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection,
   type InnerTransactResult,
   DOCUMENT_PORT,
@@ -146,7 +146,10 @@ export class ExpensesMutationsService {
       status: 0,
     }))
 
-    const statement = input.statement.toDocument()
+    // Вход приходит простым объектом (ValidationPipe без transform), поэтому
+    // методов DTO у него нет: до 25.09.2026 здесь падало «toDocument is not a
+    // function», и служебную записку через API подать было нельзя вовсе.
+    const statement = new SignedDigitalDocumentInputDTO(input.statement).toDocument()
 
     const result = await this.chain.createExp({
       coopname: input.coopname,

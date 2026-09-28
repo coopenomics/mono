@@ -27,6 +27,6 @@ export class GetContributorInputDTO {
    */
   @ValidateIf((o: GetContributorInputDTO) => !o._id && !o.username && !o.contributor_hash)
   validateAtLeastOneField(): boolean {
-    throw DomainError.internal('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
+    throw DomainError.badRequest('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
   }
 }

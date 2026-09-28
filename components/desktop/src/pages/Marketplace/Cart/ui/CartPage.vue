@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { uiLocale, t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce, Dialog } from 'quasar';
@@ -16,7 +17,7 @@ import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { formatAssetsInText } from 'src/shared/lib/utils/formatAsset2Digits';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   getMembershipFeePercent,
   applyMembershipFee,
   saleQuantityStep,
@@ -222,14 +223,7 @@ const reloadLive = debounce(() => {
   if (cartStore.loading) return;
   void cartStore.load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOfferStockChangedEvent: (event) => {
-      if (cartStore.items.some((it) => it.offer_id === event.offer_id)) reloadLive();
-    },
-  },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('cart', 'offer'), () => reloadLive());
 
 // requirement b6: членский взнос входит в общую стоимость заказа. В каталоге и
 // в строках корзины — одной цифрой, с учётом взноса (непривычно и избыточно

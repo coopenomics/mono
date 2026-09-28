@@ -35,9 +35,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { uiLocale, t } from 'src/shared/i18n';
-import { useProcessStore, type IProcessSnapshot } from 'src/entities/Process'
+import { useLiveProcessSnapshot } from 'src/entities/Process'
+import { marketLiveTables } from 'src/shared/lib/marketplace'
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits'
 import { Loader } from 'src/shared/ui/Loader'
 
@@ -48,9 +49,10 @@ interface Props {
 }
 const props = defineProps<Props>()
 
-const processStore = useProcessStore()
-const loading = ref(true)
-const snapshot = ref<IProcessSnapshot | null>(null)
+const { loading, snapshot } = useLiveProcessSnapshot(
+  () => ({ coopname: props.coopname, hash: props.processHash }),
+  marketLiveTables('writeoff'),
+)
 
 function field(name: string): string {
   const v = snapshot.value?.[name]
@@ -93,17 +95,6 @@ const deepLink = computed(() => ({
   params: { coopname: props.coopname },
   query: { process_hash: props.processHash },
 }))
-
-onMounted(async () => {
-  try {
-    snapshot.value = await processStore.loadLatestSnapshot({
-      coopname: props.coopname,
-      hash: props.processHash,
-    })
-  } finally {
-    loading.value = false
-  }
-})
 </script>
 
 <style lang="scss" scoped>

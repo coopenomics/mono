@@ -78,7 +78,7 @@ export class ExtensionOnboardingService {
   private async loadExtension(extension_name: string) {
     const extension = await this.extensionRepository.findByName(extension_name);
     if (!extension) {
-      throw DomainError.internal('ONBOARDING_EXTENSION_NOT_FOUND', { extensionName: extension_name });
+      throw DomainError.notFound('ONBOARDING_EXTENSION_NOT_FOUND', { extensionName: extension_name });
     }
     const extensionConfig: Record<string, unknown> = { ...extension.config };
     let needUpdate = false;

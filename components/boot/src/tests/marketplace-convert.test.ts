@@ -18,14 +18,16 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import Blockchain from '../blockchain'
 import config from '../configs'
 import { pickOffer, placeOrder } from './marketplace/orderFlow'
-import { amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps } from './marketplace/chainHelpers'
+import { CHAIRMAN, amount, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, signAs, sumOf, waitForOps, docMeta, unitAsset } from './marketplace/chainHelpers'
 
 const BRANAME = 'krg'
 const COOPNAME = 'voskhod'
 
 const sidorov = fromState('sidorov')
 const ekaterina = fromState('ekaterina')
-const chairman = fromState('ant')
+// Председатель кооператива стенда — канон chainHelpers (как в соседних наборах);
+// файла ant.json docs-harness не создаёт, на dev-стенде его клали руками.
+const chairman = CHAIRMAN
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -56,9 +58,9 @@ async function createOrderDirect(orderHash: string, quantity: number): Promise<a
       offer_hash: sha256Hex(`offer:${offer.id}`),
       offerer: sidorov.account,
       delivery_braname: BRANAME,
-      quantity: `${quantity.toFixed(3)} PCS`,
+      quantity: unitAsset(offer.unit_of_measure, quantity),
       unit_price: `${unitPrice.toFixed(4)} RUB`,
-      package_size: '0.000 PCS',
+      package_size: unitAsset(offer.unit_of_measure, 0),
       warranty_period_secs: 0,
       batch_hash: '0'.repeat(64),
     },
@@ -70,9 +72,11 @@ describe('Стол заказов: заявление 1110 и внутренни
     await bc.update_pass_instance()
     ekaterinaToken = await loginAs(ekaterina)
     chairmanToken = await loginAs(chairman)
-    offer = await pickOffer(ekaterinaToken, sidorov.account, BRANAME, 'Мёд цветочный')
+    // Весь список предложений — право администратора Стола заказов
+    // (Offer:read:all); покупатель видит только витрину.
+    offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
-    await ensureShareFunds(ekaterina.account, unitPrice * 6)
+    await ensureShareFunds(ekaterina.account, unitPrice * 6, ekaterinaToken)
   }, 180_000)
 
   it('mkt.order.side.33: createorder без покрытого членским кошельком взноса отвергается — контракт велит сначала подать заявление', async () => {
@@ -109,7 +113,7 @@ describe('Стол заказов: заявление 1110 и внутренни
     expect(amount(preview.convert.amount), 'заявление — только на то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
     expect(amount(preview.convert.membership_fee), 'членская часть — взнос за вычетом остатка кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
     expect(amount(preview.convert.membership_fee), 'кошелька на взнос не хватало — членская часть больше нуля').toBeGreaterThan(0)
-    const meta = JSON.parse(preview.convert.document.meta)
+    const meta = docMeta(preview.convert.document.meta)
     expect(meta.registry_id).toBe(1110)
     expect(preview.convert.document.html, 'текст заявления — слова владельца').toMatch(/Прошу перевести с баланса моего Цифрового кошелька/)
     expect(preview.convert.document.html).not.toMatch(/ставк|зачит/i)
@@ -132,8 +136,9 @@ describe('Стол заказов: заявление 1110 и внутренни
   it('mkt.stock.side.08: заказ из остатка без покрытого взноса отвергается так же, как обычный', async () => {
     // Пайщица только что выбрала членский кошелёк до нуля; свободный паевой
     // Стола заказов у неё может быть — но взнос идёт только с членского.
-    const stock: any = await gqlAs(ekaterinaToken, `query($i:MarketplaceListAllOffersInput){
-      marketplaceListAllOffers(input:$i){ items { id status supplier_account stock_braname price_per_unit } }
+    // Весь список предложений — право администратора Стола заказов (Offer:read:all).
+    const stock: any = await gqlAs(chairmanToken, `query($i:MarketplaceListAllOffersInput){
+      marketplaceListAllOffers(input:$i){ items { id status supplier_account stock_braname price_per_unit unit_of_measure } }
     }`, { i: {} })
     const stockOffer = (stock.marketplaceListAllOffers.items as any[]).find(o => o.status === 'ACTIVE' && o.stock_braname === BRANAME)
     if (!stockOffer) {
@@ -151,9 +156,9 @@ describe('Стол заказов: заявление 1110 и внутренни
         order_hash: orderHash,
         offer_hash: sha256Hex(`offer:${stockOffer.id}`),
         delivery_braname: BRANAME,
-        quantity: '1.000 PCS',
+        quantity: unitAsset(stockOffer.unit_of_measure, 1),
         unit_price: `${amount(stockOffer.price_per_unit).toFixed(4)} RUB`,
-        package_size: '0.000 PCS',
+        package_size: unitAsset(stockOffer.unit_of_measure, 0),
         warranty_period_secs: 0,
         batch_hash: '0'.repeat(64),
       },

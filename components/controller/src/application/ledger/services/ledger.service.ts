@@ -40,6 +40,10 @@ export class LedgerService {
         coopname: operation.coopname,
         action: operation.action,
         created_at: operation.created_at,
+        // Поля есть в схеме и в журнале, но до 25.09.2026 сюда не передавались и
+        // всегда приходили пустыми — по ним совет находит операцию пайщика.
+        hash: operation.hash,
+        username: operation.username,
       };
 
       if (operation.action === 'transfer') {

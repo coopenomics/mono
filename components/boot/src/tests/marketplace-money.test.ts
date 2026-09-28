@@ -40,26 +40,8 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import { GatewayContract } from 'cooptypes'
 import Blockchain from '../blockchain'
 import config from '../configs'
-import { issueOrder } from './marketplace/orderFlow'
-import {
-  ACC,
-  CHAIRMAN,
-  COOP,
-  type LedgerRow,
-  amount,
-  applyOpsOfProcess,
-  ensureShareFunds,
-  fromState,
-  gqlAs,
-  historyOfProcess,
-  loginAs,
-  opsCodes,
-  processTypeByOperation,
-  signAs,
-  sumOf,
-  waitForOps,
-  waitForOrderMirror,
-} from './marketplace/chainHelpers'
+import { issueOrder, pickOffer } from './marketplace/orderFlow'
+import { ACC, CHAIRMAN, COOP, type LedgerRow, amount, applyOpsOfProcess, ensureShareFunds, fromState, gqlAs, historyOfProcess, loginAs, opsCodes, processTypeByOperation, signAs, sumOf, waitForOps, waitForOrderMirror, docMeta } from './marketplace/chainHelpers'
 
 const bc = new Blockchain(config.network, config.private_keys)
 
@@ -97,6 +79,9 @@ function postingsFor(rows: LedgerRow[], action: 'debit' | 'credit', accountId: n
 
 describe('стол заказов — денежные места поставки и выдачи (contract, живая цепь)', () => {
   beforeAll(async () => {
+    // Клиент подписи создаёт update_pass_instance: без него bc.api пуст, и
+    // подтверждение выплаты кассиром падало на undefined.transact.
+    await bc.update_pass_instance()
     chairmanToken = await loginAs(CHAIRMAN)
     sidorovToken = await loginAs(sidorov)
     ekaterinaToken = await loginAs(ekaterina)
@@ -105,26 +90,15 @@ describe('стол заказов — денежные места поставк
     // Берём любое активное предложение фонового поставщика с поставкой на наш
     // КУ: суммы теста считаются от заказа, поэтому конкретный товар не важен —
     // важно лишь, что предложение sidorov'а живое и доставляется на krg.
-    const d: any = await gqlAs(chairmanToken, `query($i:MarketplaceListAllOffersInput){
-      marketplaceListAllOffers(input:$i){ items {
-        id product_name status supplier_account price_per_unit unit_of_measure warranty_days
-        delivery_points { braname min_supply_volume }
-      } }
-    }`, { i: {} })
-    const candidates = (d.marketplaceListAllOffers.items as any[]).filter(
-      o => o.status === 'ACTIVE'
-        && o.supplier_account === sidorov.account
-        && o.delivery_points.some((p: any) => p.braname === BRANAME),
-    )
-    offer = candidates.find(o => o.product_name === 'Мёд цветочный') ?? candidates[0]
-    expect(offer, `на стенде нет активного предложения ${sidorov.account} с поставкой на КУ «${BRANAME}»`).toBeTruthy()
+    // Общий помощник ждёт, пока индексер донесёт одобрение засева до контроллера.
+    offer = await pickOffer(chairmanToken, sidorov.account, BRANAME, 'Мёд цветочный')
     unitPrice = amount(offer.price_per_unit)
 
     // Каждый прогон списывает с паевого заказчицы тело заказа и членский взнос.
     // Без дозаправки тест повторяем лишь пока не иссякнет остаток из сида, а
     // потом падает на «Недостаточно средств» — и это выглядит как регресс,
     // хотя это исчерпание фикстуры. Запас — двукратный от тела заказа.
-    await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2)
+    await ensureShareFunds(ekaterina.account, ORDER_QTY * unitPrice * 2, ekaterinaToken)
   }, 180_000)
 
   it('оформление заказа: перевод по заявлению (o.mkt.conv), взнос с членского кошелька (o.mkt.fee) и тело паевым резервом (o.mkt.lock) — одной ниткой заказа', async () => {
@@ -152,10 +126,14 @@ describe('стол заказов — денежные места поставк
     expect(!!preview.convert, 'заявление приходит только на недостающее').toBe(amount(line.from_wallet) > 0.005)
     expectedConvert = preview.convert ? amount(preview.convert.membership_fee) : 0
     if (preview.convert) {
-      const stmtMeta = JSON.parse(preview.convert.document.meta)
+      const stmtMeta = docMeta(preview.convert.document.meta)
       expect(amount(stmtMeta.amount), 'в заявлении — только то, чего не хватило в кошельках программы').toBeCloseTo(amount(line.from_wallet), 2)
       expect(amount(stmtMeta.membership_fee), 'членская часть — взнос за вычетом остатка членского кошелька').toBeCloseTo(amount(line.membership_fee) - amount(line.from_member), 2)
-      expect(Object.keys(stmtMeta).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
+      // Общие поля меты любого документа фабрики (версия шаблона, генератор,
+      // блок, часовой пояс и пр.) — не данные заявления; «лишним» считается
+      // только доменное поле сверх перечня.
+      const BASE_META = new Set(['block_num', 'generator', 'links', 'timezone', 'title', 'version'])
+      expect(Object.keys(stmtMeta).filter(k => !BASE_META.has(k)).sort(), 'в мете заявления нет лишних полей').toEqual(['amount', 'coopname', 'created_at', 'lang', 'membership_fee', 'order_hash', 'registry_id', 'skip_save', 'username'].filter(k => k in stmtMeta).sort())
       convertHash = preview.convert.document.hash
     }
 
@@ -305,6 +283,10 @@ describe('стол заказов — денежные места поставк
     const rows = await historyOfProcess(chairmanToken, orderHash)
     expect(postingsFor(rows, 'debit', ACC.MATERIALS, arrivalCost).length, 'приёмка обязана лечь Дт 10').toBeGreaterThan(0)
     expect(postingsFor(rows, 'credit', ACC.SETTLEMENTS, arrivalCost).length, 'приёмка обязана лечь Кт 76 — это закупка у поставщика').toBeGreaterThan(0)
+
+    // Зеркало заказа знает принятую стоимость — по ней считается выплата
+    // поставщику. До 24.09.2026 контроллер не записывал это поле вовсе.
+    await waitForOrderMirror(ekaterinaToken, orderId, o => Math.abs(amount(o.accepted_cost) - arrivalCost) < 0.005, 30_000)
   }, 300_000)
 
   it('выдача 3 из 4 списывает выданное по цене прибытия (o.mkt.consum) и разблокирует недовыдачу (o.mkt.unlock)', async () => {
@@ -415,6 +397,9 @@ describe('стол заказов — денежные места поставк
       'o.mkt.refund',
       'o.brn.common',
     ])
+    // Перевод по заявлению живёт в нитке заказа (уточнение владельца 08.09.2026,
+    // проверка оформления выше) — он запланирован, если заявление было.
+    if (expectedConvert > 0) expected.add('o.mkt.conv')
     const unexpected = [...codes].filter(c => !expected.has(c))
     expect(unexpected, `в нитке заказа появились незапланированные проводки: ${unexpected.join(', ')}`).toEqual([])
     // Оплата поставщику — отдельное ленивое действие кассира (payout), в

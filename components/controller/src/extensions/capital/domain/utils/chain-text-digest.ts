@@ -1,4 +1,4 @@
-import { chainTextDigest, isChainTextDigest } from '@coopenomics/extension-kit';
+import { isChainTextDigest, isChainTextOf } from '@coopenomics/extension-kit';
 
 /**
  * Тексты проекта (описание, приглашение) в цепи хранятся хешем — общее правило в
@@ -22,6 +22,6 @@ export function chainTextMismatches(
   return PROJECT_CHAIN_TEXT_FIELDS.filter((field) => {
     const chainValue = chain[field] ?? '';
     if (!isChainTextDigest(chainValue) && chainValue !== '') return false;
-    return chainTextDigest(texts[field]) !== chainValue;
+    return !isChainTextOf(texts[field], chainValue);
   });
 }

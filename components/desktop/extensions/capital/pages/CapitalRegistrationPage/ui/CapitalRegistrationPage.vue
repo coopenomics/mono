@@ -68,7 +68,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter } from 'vue-router';
 import { useGenerateCapitalRegistrationDocuments } from 'app/extensions/capital/features/Contributor/GenerateCapitalRegistrationDocuments/model';
 import { useCompleteCapitalRegistration } from 'app/extensions/capital/features/Contributor/CompleteCapitalRegistration/model';
@@ -76,8 +78,6 @@ import { useContributorStore } from 'app/extensions/capital/entities/Contributor
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { useSessionStore } from 'src/entities/Session';
 import { t } from '../../../i18n';
 
@@ -183,14 +183,12 @@ const reloadRegistrationData = async () => {
   }
 };
 
-const { start: startRegistrationPoll, stop: stopRegistrationPoll } = useDataPoller(
-  reloadRegistrationData,
-  { interval: POLL_INTERVALS.SLOW, immediate: false },
-);
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadRegistrationData);
 
 onMounted(() => {
   redirectIfRegistered();
-  startRegistrationPoll();
 
   if (!shouldShowTemporaryStub.value && !contributorStore.isContributorActiveOrPending) {
     generateCapitalDocuments().catch((error) => {
@@ -198,10 +196,6 @@ onMounted(() => {
       FailAlert(t('capital.capitalRegistrationPage.generateError'));
     });
   }
-});
-
-onBeforeUnmount(() => {
-  stopRegistrationPoll();
 });
 
 const signAndCompleteRegistration = async () => {

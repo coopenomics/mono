@@ -93,6 +93,8 @@ DetailsDrawer(
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { marketplaceQuantityLabel } from 'src/shared/lib/consts';
@@ -158,6 +160,12 @@ watch(
   },
   { immediate: true },
 );
+
+// Открытая выплата живёт по ленте: заявка, оплата кассиром и её проводка
+// обновляют карточку.
+useLiveReload([...marketLiveTables('payment'), { code: 'core', table: 'payments' }], async () => {
+  if (overlay.value.value) await load(overlay.value.value);
+});
 </script>
 
 <style scoped lang="scss">

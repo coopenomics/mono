@@ -17,12 +17,12 @@ export class AmountFormatterUtils {
    */
   static formatAmount(amountStr: string): string {
     if (!amountStr || typeof amountStr !== 'string') {
-      throw DomainError.internal('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
+      throw DomainError.badRequest('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
     }
 
     const parts = amountStr.trim().split(/\s+/);
     if (parts.length < 1 || !parts[0]) {
-      throw DomainError.internal('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
+      throw DomainError.badRequest('KIT_AMOUNT_FORMAT_INVALID', { amount: amountStr });
     }
 
     const amountPart = parts[0].replace(',', '.');
@@ -30,7 +30,7 @@ export class AmountFormatterUtils {
     const amount = parseFloat(amountPart);
 
     if (isNaN(amount)) {
-      throw DomainError.internal('KIT_AMOUNT_NUMBER_INVALID', { value: parts[0] });
+      throw DomainError.badRequest('KIT_AMOUNT_NUMBER_INVALID', { value: parts[0] });
     }
 
     const formattedAmount = amount.toLocaleString('ru-RU', {

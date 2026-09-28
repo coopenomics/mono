@@ -1,4 +1,5 @@
 import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
+import { DomainError } from '@coopenomics/extension-kit';
 import { OnEvent } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort, type InnerAccount } from '@coopenomics/innercoop';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
@@ -68,7 +69,7 @@ export class ContributorAccountSyncService implements OnModuleInit {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw new Error(`Private account not found for user ${account.username}`);
+      throw DomainError.notFound('CAPITAL_CONTRIBUTOR_PRIVATE_DATA_NOT_FOUND', { username: account.username });
     }
 
     // Определяем тип аккаунта и извлекаем соответствующее имя

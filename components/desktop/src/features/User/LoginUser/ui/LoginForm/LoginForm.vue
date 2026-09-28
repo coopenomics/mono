@@ -109,7 +109,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { LocalStorage } from 'quasar';
 import { Queries } from '@coopenomics/sdk';
@@ -156,6 +156,7 @@ const secret = ref('');
 // запрос публичный, а молчаливый отказ означает «кнопки нет» — экран входа не должен падать
 // из-за расширения.
 const cardcoopEntryAvailable = ref(false);
+// realtime: нет источника — форма входа открыта гостю, лента доступна только вошедшему пайщику; доступность входа по карте читается один раз.
 onMounted(async () => {
   try {
     const { [Queries.Cardcoop.GetEntryAvailable.name]: available } = await client.Query(
@@ -204,6 +205,7 @@ const currentFactorLabel = computed(() =>
 function startResendCooldown(): void {
   resendCooldown.value = 60;
   if (resendTimer) clearInterval(resendTimer);
+  // timing: ui — обратный отсчёт до повторной отправки кода
   resendTimer = setInterval(() => {
     resendCooldown.value -= 1;
     if (resendCooldown.value <= 0 && resendTimer) {
@@ -257,6 +259,20 @@ function navigateToSavedUrl(): boolean {
   return true;
 }
 
+function untilLoadComplete(): Promise<void> {
+  if (session.loadComplete) return Promise.resolve();
+  return new Promise((resolve) => {
+    const stop = watch(
+      () => session.loadComplete,
+      (done) => {
+        if (!done) return;
+        stop();
+        resolve();
+      },
+    );
+  });
+}
+
 /** Общий пост-логин: трекер, переход к регистрации/дашборду, диалог уведомлений. */
 async function finishLogin(): Promise<void> {
   const desktops = useDesktopStore();
@@ -270,12 +286,10 @@ async function finishLogin(): Promise<void> {
     desktops.setWorkspaceChanging(false);
     void router.push({ name: 'signup' });
   } else {
-    let attempts = 0;
-    const maxAttempts = 50;
-    while (!session.loadComplete && attempts < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      attempts++;
-    }
+    // Стол читаем, когда контекст пайщика поднят: init-wallet ставит
+    // loadComplete в любом исходе (успех, сбой, свой таймаут) — ждём факта,
+    // а не опрашиваем флаг по таймеру.
+    await untilLoadComplete();
     try {
       await desktops.loadDesktop();
     } catch (e) {
@@ -291,6 +305,7 @@ async function finishLogin(): Promise<void> {
   }
 
   loading.value = false;
+  // timing: ui — диалог разрешения уведомлений открываем, когда переход на стол отрисован, а не поверх него
   setTimeout(() => {
     showDialog();
   }, 1000);

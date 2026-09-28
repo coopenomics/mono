@@ -24,6 +24,7 @@ import { PaymentProviderForm } from 'app/extensions/chairman/features/PaymentPro
 const saving = ref(false);
 const systemStore = useSystemStore();
 
+// realtime: нет источника на странице — сведения о кооперативе живут по ленте для всего приложения (registerSystemInfoLive), здесь только форма правки.
 onMounted(async () => {
   if (!systemStore.info) {
     await systemStore.loadSystemInfo();

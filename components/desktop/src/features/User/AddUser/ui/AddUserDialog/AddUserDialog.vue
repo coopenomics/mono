@@ -267,6 +267,7 @@ watch(minimum, (newValue) => {
 const { addUser, emailIsValid } = useAddUser();
 const coop = useCooperativeStore();
 
+// realtime: нет источника — форма добавления пайщика: взносы кооператива подставляются в поля при открытии, перечитывание затёрло бы ввод.
 onMounted(async () => {
   await coop.loadPublicCooperativeData(info.coopname);
 

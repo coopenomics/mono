@@ -3,9 +3,39 @@
 // Настройки контура — раньше реестра: расширения читают их уже при импорте.
 import '~/config/platform-bootstrap';
 import '~/extensions/extensions.registry';
-import { DataSource } from 'typeorm';
+import { DataSource, type Logger } from 'typeorm';
 import logger from '~/config/logger';
 import { mainDataSourceOptions } from '~/infrastructure/database/typeorm/data-source.options';
+
+/**
+ * Прогресс наката: TypeORM сообщает о каждой применённой миграции через
+ * `logSchemaBuild`, и по нему видно, где накат сейчас, а не только итог в конце.
+ * Остальные сообщения (запросы и прочее) здесь не нужны.
+ */
+class MigrationProgressLogger implements Logger {
+  private total = 0;
+  private done = 0;
+
+  logSchemaBuild(message: string): void {
+    const pending = message.match(/^(\d+) migrations are new migrations/);
+    if (pending) {
+      this.total = Number(pending[1]);
+      logger.info(`Миграции схемы: к применению ${this.total}`);
+      return;
+    }
+    const executed = message.match(/^Migration (\S+) has been .*executed successfully/);
+    if (executed) logger.info(`Миграция схемы [${++this.done}/${this.total}]: ${executed[1]}`);
+  }
+
+  logMigration(message: string): void {
+    logger.warn(`Миграции схемы: ${message}`);
+  }
+
+  logQuery(): void {}
+  logQueryError(): void {}
+  logQuerySlow(): void {}
+  log(): void {}
+}
 
 /**
  * Применить непринятые миграции схемы (таблицы, колонки, индексы).
@@ -19,11 +49,10 @@ import { mainDataSourceOptions } from '~/infrastructure/database/typeorm/data-so
  * @returns Имена применённых миграций (пусто, если нечего применять).
  */
 export async function runDatabaseMigrations(database?: string): Promise<string[]> {
-  const dataSource = new DataSource(mainDataSourceOptions(database));
+  const dataSource = new DataSource({ ...mainDataSourceOptions(database), logger: new MigrationProgressLogger() });
   await dataSource.initialize();
   try {
     const applied = await dataSource.runMigrations({ transaction: 'each' });
-    for (const migration of applied) logger.info(`Миграция схемы применена: ${migration.name}`);
     if (!applied.length) logger.info('Миграции схемы: применять нечего');
     return applied.map((migration) => migration.name);
   } finally {

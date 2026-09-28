@@ -61,15 +61,15 @@ router-view(v-if='!isResultsRoot')
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { PageTabs } from 'src/shared/ui/layout';
 import type { PageTab } from 'src/shared/ui/layout/PageTabs';
-import { useDataPoller } from 'src/shared/lib/composables';
-import { POLL_INTERVALS } from 'src/shared/lib/consts';
 import { ContributorResultsListWidget } from 'app/extensions/capital/widgets';
 import { api as SegmentApi } from 'app/extensions/capital/entities/Segment/api';
 import type { ISegment } from 'app/extensions/capital/entities/Segment/model';
@@ -289,10 +289,9 @@ const reloadAll = async () => {
   ]);
 };
 
-const { start: startPoll, stop: stopPoll } = useDataPoller(reloadAll, {
-  interval: POLL_INTERVALS.MEDIUM,
-  immediate: false,
-});
+// Живой экран: перечитывается по ленте изменений Благороста вместо опроса по
+// таймеру (набор таблиц — shared/lib/live).
+useLiveReload(CAPITAL_LIVE_TABLES, reloadAll);
 
 onMounted(async () => {
   await reloadAll();
@@ -301,11 +300,6 @@ onMounted(async () => {
   if (!route.query.tab && !mySegments.value.length && canSeeAll.value) {
     selectTab('all');
   }
-  startPoll();
-});
-
-onBeforeUnmount(() => {
-  stopPoll();
 });
 </script>
 

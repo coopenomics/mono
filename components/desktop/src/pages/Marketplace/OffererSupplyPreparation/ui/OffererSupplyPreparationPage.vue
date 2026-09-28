@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute } from 'vue-router';
@@ -10,7 +11,7 @@ import type { BaseBadgeVariant, BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { EntityIdBadge } from 'src/shared/ui/EntityIdBadge';
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails';
-import { useMarketplaceRealtime } from 'src/shared/lib/marketplace';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { ShipmentDetailsDrawer } from 'src/widgets/Marketplace/ShipmentDetailsDrawer';
 import { formatAsset2Digits } from 'src/shared/lib/utils';
 import { TTNPrintPreview, type TTNData } from 'src/widgets/Marketplace/TTNPrintPreview';
@@ -230,10 +231,7 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceOrderStatusChangedEvent: () => reloadLive() },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('order'), () => reloadLive());
 
 onMounted(() => {
   void load();

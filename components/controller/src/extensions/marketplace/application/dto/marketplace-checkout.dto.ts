@@ -155,6 +155,11 @@ export class MarketplaceCheckoutFailedLineDTO {
   @Field(() => String, { description: 'Причина, по которой позиция не оформлена.' })
   public readonly reason!: string;
 
+  @Field(() => String, {
+    description: 'Код причины отказа — по нему клиент различает причины, не разбирая текст.',
+  })
+  public readonly code!: string;
+
   constructor(init: Partial<MarketplaceCheckoutFailedLineDTO>) {
     Object.assign(this, init);
   }

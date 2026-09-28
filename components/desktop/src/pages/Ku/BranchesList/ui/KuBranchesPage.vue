@@ -63,6 +63,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { KU_LIVE_TABLES } from 'src/entities/Ku/model';
 import { useRouter } from 'vue-router';
 import { useBranchStore } from 'src/entities/Branch/model';
 import { useSystemStore } from 'src/entities/System/model';
@@ -122,6 +124,12 @@ function trustedNames(branch: any): string[] {
 function openDetails(braname: string) {
   router.push({ name: 'ku-branch-details', params: { coopname: system.info.coopname, braname } });
 }
+
+// Участки живут по ленте изменений: новый участок, смена председателя и
+// прикрепление пайщиков видны сразу.
+useLiveReload(KU_LIVE_TABLES, () =>
+  branchStore.loadPublicBranches({ coopname: system.info.coopname }).catch((e) => console.warn('[ku] фоновое перечитывание не удалось', e)),
+);
 
 onMounted(async () => {
   loading.value = true;

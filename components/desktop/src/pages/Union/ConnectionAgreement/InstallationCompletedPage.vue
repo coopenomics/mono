@@ -70,6 +70,8 @@ div.row.q-pa-md
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { RegistratorContract } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { useRouter } from 'vue-router'
 import { useCooperativeStore } from 'src/entities/Cooperative'
 import { useSessionStore } from 'src/entities/Session'
@@ -80,6 +82,9 @@ const session = useSessionStore()
 
 // Загружаем данные кооператива при монтировании
 coop.loadPublicCooperativeData(session.username)
+
+// Карточка кооператива в реестре сети живёт по ленте.
+useLiveReload([liveTable(RegistratorContract, RegistratorContract.Tables.Cooperatives)], () => coop.loadPublicCooperativeData(session.username))
 
 const cooperativeDomain = computed(() => {
   const domain = coop?.publicCooperativeData?.announce

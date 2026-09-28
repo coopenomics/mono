@@ -39,6 +39,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { Zeus } from '@coopenomics/sdk';
 import { BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { MetricSeriesPanel } from '../../ViewMetricSeries';
@@ -74,6 +76,9 @@ const progressValue = (metric: { fact: number; target_value: number }) => {
   if (!metric.target_value) return 0;
   return Math.min(metric.fact / metric.target_value, 1);
 };
+
+// Метрики компонента живут по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadMetrics());
 
 onMounted(async () => {
   await loadMetrics();

@@ -56,6 +56,7 @@ const state = ref<'pending' | 'done' | 'error'>('pending');
 const revoked = ref(0);
 const errorMessage = ref('');
 
+// realtime: нет источника — разовое действие по ссылке из письма «это был не я», открывается без входа.
 onMounted(async () => {
   const token = String(route.params.token ?? '');
   try {

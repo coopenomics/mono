@@ -149,6 +149,7 @@ export const useReportStore = defineStore(namespace, () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    // timing: ui — ссылку на файл освобождаем, когда браузер уже забрал скачивание
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 

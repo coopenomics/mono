@@ -79,7 +79,7 @@ export class ContributorTypeormRepository
   }): Promise<ContributorDomainEntity | null> {
     // Проверяем наличие хотя бы одного критерия поиска
     if (!criteria._id && !criteria.username && !criteria.contributor_hash) {
-      throw DomainError.internal('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
+      throw DomainError.badRequest('CAPITAL_CONTRIBUTOR_LOOKUP_FIELD_REQUIRED');
     }
 
     // Строим query builder для поиска с AND условиями

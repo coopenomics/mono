@@ -144,7 +144,7 @@ export class IssuePermissionsService {
       this.projectRepository.findByHash(projectHash)
     );
     if (!project) {
-      throw DomainError.internal('CAPITAL_ISSUE_PROJECT_NOT_FOUND', { hash: projectHash });
+      throw DomainError.notFound('CAPITAL_ISSUE_PROJECT_NOT_FOUND', { hash: projectHash });
     }
 
     // Проверяем, является ли пользователь мастером текущего проекта
@@ -187,7 +187,7 @@ export class IssuePermissionsService {
   async validateSubmasterAssignmentPermission(username: string, coopname: string, projectHash: string): Promise<void> {
     const isMaster = await this.isProjectMaster(username, coopname, projectHash);
     if (!isMaster) {
-      throw DomainError.internal('CAPITAL_ISSUE_ASSIGN_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_ASSIGN_FORBIDDEN');
     }
   }
 
@@ -279,19 +279,19 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.CHANGE_STATUS)) {
-      throw DomainError.internal('CAPITAL_ISSUE_STATUS_CHANGE_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_STATUS_CHANGE_FORBIDDEN');
     }
 
     if (!this.canTransitionStatus(roles, currentStatus, newStatus)) {
-      throw DomainError.internal('CAPITAL_ISSUE_STATUS_TRANSITION_FORBIDDEN', { currentStatus, newStatus });
+      throw DomainError.forbidden('CAPITAL_ISSUE_STATUS_TRANSITION_FORBIDDEN', { currentStatus, newStatus });
     }
 
     if (newStatus === IssueStatus.DONE && !this.hasPermission(roles, IssueAction.SET_DONE)) {
-      throw DomainError.internal('CAPITAL_ISSUE_SET_DONE_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_SET_DONE_FORBIDDEN');
     }
 
     if (newStatus === IssueStatus.ON_REVIEW && !this.hasPermission(roles, IssueAction.SET_ON_REVIEW)) {
-      throw DomainError.internal('CAPITAL_ISSUE_SET_ON_REVIEW_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_SET_ON_REVIEW_FORBIDDEN');
     }
   }
 
@@ -317,7 +317,7 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.SET_ESTIMATE)) {
-      throw DomainError.internal('CAPITAL_ISSUE_SET_ESTIMATE_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_SET_ESTIMATE_FORBIDDEN');
     }
   }
 
@@ -348,7 +348,7 @@ export class IssuePermissionsService {
     const roles = await this.getUserRoleForIssue(username, coopname, projectHash, issueSubmaster, issueCreators, userRole);
 
     if (!this.hasPermission(roles, IssueAction.SET_PRIORITY)) {
-      throw DomainError.internal('CAPITAL_ISSUE_SET_PRIORITY_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_ISSUE_SET_PRIORITY_FORBIDDEN');
     }
   }
 

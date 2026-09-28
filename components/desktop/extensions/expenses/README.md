@@ -112,7 +112,7 @@ Mutations.Capital.CreateProgramExpenseProposal.mutation
 
 Каждая страница-stub расшивается по списку:
 
-1. **`ExpensesRegistryPage`** — `BaseTable` с фильтр-баром `<FilterBar>`, polling через `useDataPoller(POLL_INTERVALS.MEDIUM)`, статусы через `<BaseBadge variant>`, низ — `.table-foot` с «Загрузить ещё».
+1. **`ExpensesRegistryPage`** — `BaseTable` с фильтр-баром `<FilterBar>`, живое обновление по ленте изменений (`useLiveReload`), статусы через `<BaseBadge variant>`, низ — `.table-foot` с «Загрузить ещё».
 2. **`ExpenseDetailPage`** — `<PageHead>` + статус-чип, секции: проект-карточка → item-table → цепочка артефактов (`<DocumentRow>` 2010/2011 + `<FileUploader>`-показ файлов) → `<VerticalStepper>` lifecycle.
 3. **`ExpensesAdminApprovePage`** / **`ExpensesAdminAuthorizePage`** — canon-таблицы со столбцом действий (одобрить/отклонить/авторизовать/декланировать). Decline-модалка: `<BaseDialog>` с `<BaseInput textarea>` для reason.
 4. **`CashierPage`** — `<PageTabs>` с 4 вкладками; каждая = `BaseTable`. Действие «Оплатил, приложить чек» = `<BaseDialog>` с `<FileUploader>` (multipart → MinIO через `Mutations.Expenses.UploadExpenseFile` → следом `Mutations.Expenses.PayExpenseItem`).

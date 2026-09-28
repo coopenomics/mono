@@ -71,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useSessionStore } from 'src/entities/Session';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -270,6 +271,10 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+// По ленте живёт только статус ключа (выдан, передан, отозван): реестр
+// автоматизаций на этом экране правится черновиком, перечитывание его затёрло бы.
+useLiveReload([{ code: 'robot', table: 'soviet_robot_keys' }], () => robotStore.loadKeyStatus());
 </script>
 
 <style scoped>

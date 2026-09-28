@@ -117,6 +117,7 @@ const back = () => {
   }
 }
 
+// realtime: нет источника — заявление и документы собираются из данных, введённых на прошлых шагах; перечитывание сбросило бы согласие.
 // Используем только watch с immediate: true вместо onMounted + watch
 watch(() => registratorStore.state.step, (value: number) => {
   if (value === registratorStore.steps.ReadStatement) {

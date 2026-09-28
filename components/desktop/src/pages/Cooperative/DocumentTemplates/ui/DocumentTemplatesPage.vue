@@ -99,6 +99,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { api } from '../api';
+import { DOCUMENT_TEMPLATES_LIVE_TABLES } from '../model';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import {
   DocumentApprovalState,
   DocumentKind,
@@ -185,13 +187,13 @@ const formatApprovedAt = (value: string | null | undefined): string => {
   return date.toLocaleDateString(uiLocale());
 };
 
-const load = async () => {
+const load = async (silent = false) => {
   if (!info.coopname) return;
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     templates.value = await api.loadDocumentTemplates(info.coopname);
   } catch (e: unknown) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loading.value = false;
   }
@@ -231,7 +233,11 @@ const goToAgenda = () => {
   router.push({ name: 'agenda', params: { coopname: info.coopname } });
 };
 
-onMounted(load);
+onMounted(() => load());
+
+// Новая редакция платформы, вынос на совет и утверждение приходят по ленте
+// изменений — реестр шаблонов перечитывается сам.
+useLiveReload(DOCUMENT_TEMPLATES_LIVE_TABLES, () => load(true));
 </script>
 
 <style lang="scss" scoped>

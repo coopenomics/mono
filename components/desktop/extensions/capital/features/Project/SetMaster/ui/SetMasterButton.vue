@@ -98,6 +98,7 @@ const loadMaster = async (masterUsername: string) => {
 };
 
 // Обновляем входные данные при изменении проекта
+// realtime: нет источника — данные приходят свойством от живого родителя и перечитываются здесь по watch.
 watch(
   () => props.project,
   async (newProject) => {

@@ -354,6 +354,7 @@ function onValidationError() {
   FailAlert(new Error(t('reports.error.requisitesValidationFailed')))
 }
 
+// realtime: нет источника — форма реквизитов отчётности: живое перечитывание затёрло бы ввод, меняет их только этот экран.
 onMounted(async () => {
   await loadRequisites()
   if (route.query.focus) {

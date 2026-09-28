@@ -155,6 +155,7 @@ export async function retryOnChainExhaustion<T>(send: () => Promise<T>, options:
 
       const delayMs = options.delayMs * 2 ** retry;
       options.onRetry?.({ attempt: retry + 1, attempts: options.attempts, delayMs, reason });
+      // timing: backoff — повтор отправки в цепь после временного отказа
       await sleep(delayMs);
     }
   }

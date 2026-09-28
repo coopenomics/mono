@@ -116,7 +116,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
 
       // Проверяем можно ли изменить статус
       if (!paymentEntity.canChangeStatus()) {
-        throw DomainError.internal('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN', { status: payment.status });
+        throw DomainError.conflict('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN', { status: payment.status });
       }
 
       const result = await this.paymentRepository.setPaymentStatus(data.id, statusEnum);
@@ -147,8 +147,10 @@ export class GatewayInteractor implements GatewayInteractorPort {
 
       return new PaymentDomainEntity(result);
     } catch (error: any) {
+      // Настоящую причину отдаём как есть: до 25.09.2026 любой сбой, в том числе
+      // отказ сменить статус проведённого платежа, выдавался за «платёж не найден».
       this.logger.error(`Не удалось обновить статус платежа: ${error.message}`);
-      throw DomainError.notFound('GATEWAY_PAYMENT_NOT_FOUND', { id: data.id });
+      throw error;
     }
   }
 
@@ -508,6 +510,12 @@ export class GatewayInteractor implements GatewayInteractorPort {
    * Создать депозитный платеж
    */
   async createDeposit(data: CreateDepositPaymentInputDomainInterface): Promise<PaymentDomainEntity> {
+    // Взнос — положительная сумма. До 25.09.2026 принимались 0 и −100 RUB, и в
+    // реестре кассира появлялся ожидающий платёж на отрицательную сумму.
+    if (!Number.isFinite(data.quantity) || data.quantity <= 0) {
+      throw DomainError.badRequest('GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE');
+    }
+
     // Обновляем истекшие платежи перед созданием нового
     await this.paymentRepository.expireOutdatedPayments();
 
@@ -616,7 +624,7 @@ export class GatewayInteractor implements GatewayInteractorPort {
     const existingPayment = await this.paymentRepository.findByHash(data.payment_hash);
 
     if (existingPayment) {
-      throw DomainError.internal('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
+      throw DomainError.conflict('GATEWAY_PAYMENT_HASH_DUPLICATE', { hash: data.payment_hash });
     }
 
     // Получаем настройки для определения провайдера

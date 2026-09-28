@@ -2,7 +2,8 @@ name: Blackbox
 
 # Внешний слой тестов (C28-80): поднимает стенд целиком — цепь, индексер,
 # контроллер, базы, файловое хранилище, CoopID — и гоняет тесты, которые
-# разговаривают с платформой только через API (components/boot/src/tests).
+# разговаривают с платформой только через API (components/boot/src/tests и
+# components/api-tests).
 # Он дополняет юнит-тесты, а не заменяет их: юнит-тесты проверяют правила
 # изнутри, этот слой — что правила доходят до клиента и что сценарии проходят
 # целиком. От языка сервера он не зависит, поэтому переживёт и уход с TypeORM,
@@ -16,7 +17,11 @@ name: Blackbox
 # сводке было видно время каждой.
 on:
   push:
-    branches: [ci/blackbox]
+    # ci/blackbox — полный прогон. ci/blackbox-fast-<имя> — быстрый полигон
+    # для параллельной работы над API-тестами: стенд целиком, но без прежних
+    # наборов boot и без матрицы прав (их гоняет полный прогон). Имя после
+    # префикса — чья это работа, у каждой ветки свой прогон.
+    branches: [ci/blackbox, 'ci/blackbox-fast-*']
   workflow_dispatch:
 
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
@@ -56,16 +61,19 @@ jobs:
       - name: Install workspace
         run: pnpm install --frozen-lockfile
 
-      # Компиляция контрактов — около одиннадцати минут. Кеш по содержимому
-      # исходников: пока контракты не менялись, берём готовые wasm/abi.
-      # restore и save раздельно: actions/cache сохраняет только при зелёном
-      # job, а стенд на полигоне падает часто — собранное терялось бы.
+      # Контракты — около одиннадцати минут с нуля. Кешируется весь каталог
+      # build (объектники + манифест хэшей исходников), а не готовые wasm:
+      # build_contracts_cdt.sh сверяет исходники с манифестом и отдаёт make
+      # только изменившиеся, так что правка одного контракта пересобирает его
+      # (и зависящих по общим заголовкам), а не все. Ключ — хэш исходников;
+      # промах откатывается на последний сохранённый build (restore-keys).
       - name: Контракты — кеш
         id: contracts
         uses: actions/cache/restore@v4
         with:
-          path: components/contracts/build/contracts
-          key: blackbox-contracts-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          path: components/contracts/build
+          key: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-${{ hashFiles('components/contracts/**', '!components/contracts/build/**', '!components/contracts/docs/**') }}
+          restore-keys: blackbox-contracts-build-${{ env.CONTRACTS_MODE }}-
 
       # Как в release.yaml: CDT из .deb, /cdt/build — симлинк на его каталог.
       - name: Контракты — CDT
@@ -82,16 +90,24 @@ jobs:
           sudo mkdir -p /cdt
           sudo ln -sfn /usr/opt/cdt/4.2.0 /cdt/build
 
+      # checkout ставит всем исходникам время «сейчас», и восстановленные
+      # объектники оказались бы старше каждого — make пересобрал бы всё.
+      # Делаем build свежее исходников; изменившиеся исходники скрипт затем
+      # сам пометит по манифесту, и make возьмёт только их.
       - name: Контракты — компиляция
         if: steps.contracts.outputs.cache-hit != 'true'
         working-directory: components/contracts
-        run: ./build_contracts_cdt.sh "$CONTRACTS_MODE"
+        env:
+          MAKEFLAGS: -j4
+        run: |
+          if [ -d build ]; then find build -type f -exec touch {} +; fi
+          ./build_contracts_cdt.sh "$CONTRACTS_MODE"
 
       - name: Контракты — сохранить в кеш
         if: steps.contracts.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: components/contracts/build/contracts
+          path: components/contracts/build
           key: ${{ steps.contracts.outputs.cache-primary-key }}
 
       - name: Build all workspace packages
@@ -111,19 +127,64 @@ jobs:
         run: bash scripts/blackbox/stack.sh boot
 
       - name: Стенд — индексер и контроллер
+        id: app
         timeout-minutes: 20
         run: bash scripts/blackbox/stack.sh app
 
       # Засев нужен только наборам Стола заказов: если он упал, остальные наборы
       # всё равно должны пройти, а маркетплейс покажет понятное «нет фикстуры».
       - name: Стенд — засев Стола заказов
+        id: seed
         timeout-minutes: 20
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh seed
 
+      # Журнал запросов к базе снимается по фазам тестов: после прогона видно,
+      # какие таблицы внешний слой читал и писал (карта готовности к уходу с
+      # TypeORM, C28-81). Сбой журнала тесты не останавливает.
+      - name: База — журнал запросов
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov start
+
       - name: Внешние тесты
+        id: tests
+        if: ${{ !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh tests
+
+      # Следующие наборы идут и после красного предыдущего: падение одного
+      # набора не должно прятать состояние другого. Условие — живой стенд.
+      - name: База — снимок после boot
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap boot
+
+      - name: API-тесты (components/api-tests)
+        id: apitests
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 60
+        run: bash scripts/blackbox/stack.sh apitests
+
+      - name: База — снимок после API-тестов
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap api
+
+      # Матрица прав сверяется с утверждённым снимком
+      # (components/api-tests/src/rights/snapshot.json, утверждён владельцем
+      # 25.09.2026): новая операция без утверждённых прав или изменившееся
+      # право роняет прогон. Меняешь права намеренно — правь снимок в том же
+      # коммите.
+      - name: Матрица прав
+        id: rights
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh rights
+
+      - name: База — снимок после матрицы прав
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap rights
 
       - name: Логи стенда
         if: always()
@@ -139,8 +200,11 @@ jobs:
           include-hidden-files: true
           retention-days: 14
 
+      # continue-on-error красит упавший засев зелёным (conclusion=success),
+      # настоящий исход — steps.seed.outcome; сводка выносит его наверх.
       - name: Сводка
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
+          SEED_OUTCOME: ${{ steps.seed.outcome }}
         run: bash scripts/blackbox/stack.sh summary

@@ -1,7 +1,7 @@
 // domain/appstore/services/appstore-domain.service.ts
 
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { Injectable, Inject } from '@nestjs/common';
+import { DomainError, EXTENSION_REPOSITORY, ExtensionDomainRepository, ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { isExtensionAvailable } from '@coopenomics/extension-kit';
 import { AppRegistry } from '~/extensions/extensions.registry';
 import { defaultConfig as builtinDefaultConfig } from '~/extensions/builtin/builtin-extension.module';
@@ -23,7 +23,7 @@ export class ExtensionDomainService<TConfig = any> {
 
   async updateApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>> {
     if (!appData.name) {
-      throw new BadRequestException('Application name is required');
+      throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
     }
 
     return await this.extensionDomainRepository.update(appData);
@@ -31,13 +31,13 @@ export class ExtensionDomainService<TConfig = any> {
 
   async installApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>> {
     if (!appData.name) {
-      throw new BadRequestException('Application name is required');
+      throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
     }
 
     const existingApp = await this.getAppByName(appData.name);
 
     if (existingApp) {
-      throw new Error('Application is already installed.');
+      throw DomainError.conflict('EXTENSION_ALREADY_INSTALLED', { name: appData.name });
     }
 
     return this.extensionDomainRepository.create(appData);
@@ -45,7 +45,7 @@ export class ExtensionDomainService<TConfig = any> {
 
   async uninstallApp(appData: Partial<ExtensionDomainEntity<TConfig>>): Promise<boolean> {
     if (!appData.name) {
-      throw new BadRequestException('Application name is required');
+      throw DomainError.badRequest('APPSTORE_EXTENSION_NAME_REQUIRED');
     }
 
     return this.extensionDomainRepository.deleteByName(appData.name);

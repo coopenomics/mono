@@ -14,11 +14,11 @@ import { capitalProgramId, circulationAccountId, sourceProgramId } from './capit
 import { commitToResult } from './capital/commitToResult'
 import { refreshSegment } from './capital/refreshSegment'
 import { signWalletAgreement } from './wallet/signWalletAgreement'
-import { fakeDocument } from './shared/fakeDocument'
+import { fakeDocument, signedDocument } from './shared/fakeDocument'
 import { depositToWallet } from './wallet/depositToWallet'
 import { signCapitalAgreement } from './capital/signCapitalAgreement'
 import { addAuthor } from './capital/addAuthor'
-import { getSegment } from './capital/getSegment'
+import { getProjectSegments, getSegment } from './capital/getSegment'
 import { investInProject } from './capital/investInProject'
 import { processDebt } from './capital/processDebt'
 import { processCreateProjectProperty } from './capital/processCreateProjectProperty'
@@ -2061,12 +2061,65 @@ describe('тест контракта CAPITAL', () => {
     console.log(`✅ Повторный regshare идемпотентен: ${segmentAfter.capital_contributor_shares}`)
   }, 60_000)
 
-  it.skip('проверяем что повторная регистрация вкладчика невозможна', async () => {
-    await sleep(1000)
-    // NOTE: Тест пропущен - ручная регистрация через processAddContributor больше не используется
-    // Регистрация теперь происходит автоматически при одобрении допуска председателем
-    console.log('Тест пропущен: ручная регистрация через processAddContributor больше не используется')
-  })
+  // Договор УХД заключается через capital::regcontrib (registerContributor выше):
+  // пайщик с подписанным договором второй раз не регистрируется, а хэш
+  // вкладчика не может достаться другому пайщику. Восстановлено 24.09.2026 —
+  // прежде здесь стояла пустая заглушка it.skip.
+  it('проверяем что повторная регистрация вкладчика невозможна', async () => {
+    const tryRegister = (username: string, contributorHash: string) => {
+      // Документы подписаны ключом стенда от имени пайщика: контракт сверяет и
+      // подписанта, и ключ (verify_signer_keys_or_fail).
+      const signedBy = (doc: ReturnType<typeof signedDocument>) => {
+        doc.signatures[0].signer = username
+        return doc
+      }
+      const data: CapitalContract.Actions.RegisterContributor.IRegisterContributor = {
+        coopname: 'voskhod',
+        username,
+        contributor_hash: contributorHash,
+        rate_per_hour: '1000.0000 RUB',
+        hours_per_day: 8,
+        is_external_contract: false,
+        contract: signedBy(signedDocument(generateRandomSHA256())),
+        storage_agreement: signedBy(signedDocument(generateRandomSHA256())),
+        blagorost_agreement: signedBy(signedDocument(generateRandomSHA256())),
+        generator_agreement: signedBy(signedDocument(generateRandomSHA256())),
+      }
+      return blockchain.api.transact({
+        actions: [{
+          account: CapitalContract.contractName.production,
+          name: CapitalContract.Actions.RegisterContributor.actionName,
+          authorization: [{ actor: 'voskhod', permission: 'active' }],
+          data,
+        }],
+      }, { blocksBehind: 3, expireSeconds: 30 })
+    }
+    const contributorOf = async (username: string) => (await blockchain.getTableRows(
+      CapitalContract.contractName.production,
+      'voskhod',
+      'contributors',
+      1,
+      username,
+      username,
+      2,
+      'i64',
+    ))[0]
+
+    // 1. Действующий вкладчик с подписанным договором — повтор отклоняется,
+    // запись вкладчика остаётся прежней.
+    const before = await contributorOf(tester1)
+    expect(before.status).toBe('active')
+    await expect(tryRegister(tester1, generateRandomSHA256())).rejects.toThrow(/уже обладает подписанным договором УХД/)
+    const after = await contributorOf(tester1)
+    expect(after.contributor_hash).toBe(before.contributor_hash)
+    expect(after.status).toBe('active')
+
+    // 2. Хэш вкладчика уникален: другому пайщику он не достаётся.
+    const newcomer = generateRandomUsername()
+    await addUser(newcomer)
+    await expect(tryRegister(newcomer, before.contributor_hash)).rejects.toThrow(/с данным хэшем уже зарегистрирован/)
+    expect(await contributorOf(newcomer)).toBeUndefined()
+  }, 120_000)
 
   it('добавляем мастера к новому проекту', async () => {
     const data: CapitalContract.Actions.SetMaster.ISetMaster = {
@@ -2668,12 +2721,21 @@ describe('тест контракта CAPITAL', () => {
     let totalSharePercent = 0
     const segmentsData = []
 
-    for (const p of participants) {
-      const seg = await getSegment(blockchain, 'voskhod', highPrecisionHash, p)
+    // Контроллер при старте проекта сам заводит в нём доли всех держателей
+    // Благороста (ProgramShareRegistrationOnProjectDeltaListener), поэтому
+    // сотня складывается по всем сегментам проекта, а не по четырём участникам
+    // теста. Чужие сегменты обновляются так же, как свои (C28-80).
+    const outsiders = (await getProjectSegments(blockchain, 'voskhod', highPrecisionHash))
+      .map(s => s.username)
+      .filter(u => !participants.includes(u))
+    for (const u of outsiders)
+      await refreshSegment(blockchain, 'voskhod', highPrecisionHash, u)
+
+    for (const seg of await getProjectSegments(blockchain, 'voskhod', highPrecisionHash)) {
       const share = Number(seg.share_percent)
       totalSharePercent += share
       segmentsData.push({
-        user: p,
+        user: seg.username,
         share,
         intellectual_cost: seg.intellectual_cost,
         bonus: seg.contributor_bonus,

@@ -223,6 +223,7 @@ async function load(): Promise<void> {
 function startPolling(): void {
   if (pollTimer) return;
   pollStartedAt = Date.now();
+  // timing: schedule — решение держателя карты принимается в другом кооперативе сети, гость ещё не вошёл и ленты у него нет; опрос ограничен сроком запроса
   pollTimer = setInterval(() => {
     if (Date.now() - pollStartedAt > POLL_LIMIT_MS) {
       // Сервер закроет сессию по тому же сроку; перестаём спрашивать и показываем исход.
@@ -296,6 +297,7 @@ function goSignUp(): void {
   void router.push({ name: 'signup' });
 }
 
+// realtime: нет источника — вход по карте кооператора делает гость до входа, лента доступна только вошедшему пайщику; ход переноса он узнаёт опросом с пределом (см. startPolling).
 onMounted(() => void load());
 onUnmounted(() => stopPolling());
 </script>

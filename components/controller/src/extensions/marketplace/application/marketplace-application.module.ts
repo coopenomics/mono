@@ -195,9 +195,6 @@ import {
   MarketplaceConvertService,
   MARKETPLACE_CONVERT_SERVICE,
 } from './services/marketplace-convert.service';
-// Фаза 2: realtime-подписка marketplace (GraphQL subscription поверх graphql-ws).
-import { MarketplaceEventsResolver } from './resolvers/marketplace-events.resolver';
-import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridge';
 
 /**
  * Модуль приложения marketplace
@@ -227,7 +224,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
     // крон-закрытие выданных заказов — marketplace_orders
     TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
-    // Фаза 2: общий PubSub (@Global) для realtime-канала событий пайщика.
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
     // импортировать сюда нельзя (цикл AppModule → →
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
@@ -278,10 +274,6 @@ import { MarketplaceRealtimeBridge } from './realtime/marketplace-realtime.bridg
     MarketplaceSupplierClaimResolver,
     // Эпик 16 — корзина заказчика
     MarketplaceCartResolver,
-    // Фаза 2 — realtime-подписка персонального канала пайщика + мост из
-    // доменных событий (EventEmitter2) в PubSub.
-    MarketplaceEventsResolver,
-    MarketplaceRealtimeBridge,
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,

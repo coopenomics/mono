@@ -95,6 +95,7 @@ export function useProviderSubscriptions() {
   const startAutoRefresh = (intervalMs = 60000) => { // 1 минута по умолчанию
     loadSubscriptions(); // Первая загрузка
 
+    // timing: schedule — подписки кооператива ведёт сервер провайдера (другой узел), сигнала в ленте кооператива нет
     const interval = setInterval(() => {
       loadSubscriptions();
     }, intervalMs);

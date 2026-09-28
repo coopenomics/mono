@@ -1,5 +1,5 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
-import { Injectable, Inject, UseGuards, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, UseGuards } from '@nestjs/common';
 import {
   AvailableCategoryDomainService,
   AVAILABLE_CATEGORY_DOMAIN_SERVICE,
@@ -74,17 +74,15 @@ export class AvailableCategoryAdminResolver {
     @Args('input', { type: () => CreateCustomCategoryInput })
     input: CreateCustomCategoryInput
   ): Promise<MarketplaceCategoryDTO> {
-    try {
-      const c = await this.categoryService.createCustom(platformSettings().coopname, input.displayName);
-      return new MarketplaceCategoryDTO({
-        id: c.id,
-        display_name: c.display_name,
-        sort_order: c.sort_order,
-        mvp_baseline: c.mvp_baseline,
-      });
-    } catch (e) {
-      throw new BadRequestException((e as Error).message);
-    }
+    // Отказы сервиса приходят с кодом (DomainError); прежняя обёртка в
+    // BadRequestException код теряла (C28-80).
+    const c = await this.categoryService.createCustom(platformSettings().coopname, input.displayName);
+    return new MarketplaceCategoryDTO({
+      id: c.id,
+      display_name: c.display_name,
+      sort_order: c.sort_order,
+      mvp_baseline: c.mvp_baseline,
+    });
   }
 
   /**

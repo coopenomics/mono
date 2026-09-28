@@ -6,6 +6,7 @@
  */
 import {
   ACCOUNT_PORT,
+  CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   DOCUMENT_PORT,
@@ -29,5 +30,7 @@ export const sovietRobotPorts = {
   ],
   optional: [
     NOTIFICATION_PORT,
+    // Лента изменений: журнал робота обновляется на столе сам.
+    CHAIN_CHANGES_PORT,
   ],
 };

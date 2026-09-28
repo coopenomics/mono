@@ -234,7 +234,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
+        throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
       const trx_id = await this.blockchainPort.powerUp(username, quantity);
@@ -327,7 +327,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
       const account = await this.blockchainPort.getAccount(username);
 
       if (!account) {
-        throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
+        throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
       }
 
       // Получаем текущие значения квот
@@ -372,7 +372,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
         const updatedAccount = await this.blockchainPort.getAccount(username);
 
         if (!updatedAccount) {
-          throw DomainError.internal('POWERUP_ACCOUNT_NOT_FOUND');
+          throw DomainError.notFound('POWERUP_ACCOUNT_NOT_FOUND');
         }
 
         // Журнал аренды ведётся по факту: строка появляется только после того,

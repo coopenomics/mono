@@ -7,7 +7,7 @@
 //
 //   useLiveReload([liveTable(CapitalContract, CapitalContract.Tables.Contributors)], reload)
 //
-// (или useMarketplaceRealtime у Стола заказов). Иначе экран показывает то,
+// (у Стола заказов — useLiveReload(marketLiveTables(...), reload)). Иначе экран показывает то,
 // что было на момент открытия, и пайщик узнаёт об изменении перезагрузкой.
 //
 // Нет источника (данные только из localStorage, статичный справочник) —
@@ -27,12 +27,18 @@ import { readFileSync } from 'node:fs';
 import { REPO_ROOT, listFiles, splitLines, verdict } from './lib/fact-gates.mjs';
 
 const ROOTS = ['components/desktop/src', 'components/desktop/extensions'];
-const SCREEN = /\/(pages|widgets)\//;
+// Экраны и их части: страницы, виджеты и фичи с собственной загрузкой.
+const SCREEN = /\/(pages|widgets|features)\//;
 const EXCLUDE = [/\/_dev\//];
 
 const LOAD = /\b(load|fetch|refresh|reload|init|get)[A-Za-z0-9_]*\s*\(|\bclient\.Query\b|\.Query\(/;
+// Хук, которому загрузчик передан ссылкой: onMounted(load), onMounted(loadAll).
+const LOAD_REF = /^\(\s*(load|fetch|refresh|reload|init)[A-Za-z0-9_]*\s*\)$/;
+// Загрузка прямо на верхнем уровне <script setup>: loadX(), store.loadX({...}).
+const TOP_LEVEL_LOAD = /^(?:void\s+|await\s+)?(?:[\w$]+\.)*(load|fetch|refresh|reload)[A-Za-z0-9_]*\s*\(/;
 const POLL = /\b(setInterval|useDataPoller)\s*\(/;
-const MIRROR = /\b(useLiveReload|useMarketplaceRealtime|registerLiveReload)\s*\(/;
+// Зеркало — useLiveReload и обёртки над ним с именем useLive* (useLiveProposalList…).
+const MIRROR = /\b(useLive[A-Z]\w*|registerLiveReload)\s*\(/;
 const HOOK = /\b(onMounted|onBeforeMount|onActivated)\s*\(/g;
 const WATCH = /\bwatch(Effect)?\s*\(/g;
 
@@ -57,7 +63,7 @@ function lineOf(code, index) {
 function findLoader(code) {
   for (const m of code.matchAll(HOOK)) {
     const body = callBody(code, m.index + m[0].length - 1);
-    if (LOAD.test(body)) return { index: m.index, text: m[0] };
+    if (LOAD.test(body) || LOAD_REF.test(body)) return { index: m.index, text: m[0] };
   }
   for (const m of code.matchAll(WATCH)) {
     const body = callBody(code, m.index + m[0].length - 1);
@@ -66,6 +72,11 @@ function findLoader(code) {
   }
   const poll = code.match(POLL);
   if (poll) return { index: poll.index, text: poll[0] };
+  let offset = 0;
+  for (const line of code.split('\n')) {
+    if (TOP_LEVEL_LOAD.test(line)) return { index: offset, text: `${line.trim().slice(0, 40)} — загрузка на верхнем уровне` };
+    offset += line.length + 1;
+  }
   return null;
 }
 

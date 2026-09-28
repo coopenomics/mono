@@ -18,6 +18,9 @@ export interface GeneratorPort {
     /** Точная версия черновика по meta.block_num (черновики версионируются
      * по hash+block_num). Не передан — вернётся любая версия с этим hash. */
     block_num?: number;
+    /** Meta подписанного документа: точная версия, когда тело и блок у двух
+     * генераций совпали. */
+    meta?: unknown;
   }): Promise<Cooperative.Document.IGeneratedDocument | null>;
   constructCooperative(username: string, block_num?: number): Promise<Cooperative.Model.ICooperativeData | null>;
   get<T = any>(collection: string, query: Record<string, any>): Promise<T | null>;

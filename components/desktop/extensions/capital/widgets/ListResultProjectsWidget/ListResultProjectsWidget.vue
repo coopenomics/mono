@@ -41,6 +41,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { api as ProjectApi } from '../../entities/Project/api';
 import type { IProject } from '../../entities/Project/model';
@@ -139,6 +141,9 @@ const loadProjects = async () => {
     loading.value = false;
   }
 };
+
+// Виджет живёт по ленте изменений Благороста.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadProjects());
 
 onMounted(() => {
   loadProjects();

@@ -13,6 +13,8 @@ q-page(padding)
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from 'vue'
+import { useLiveReload } from 'src/shared/lib/realtime'
+import { CHAT_CALENDAR_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live'
 import { DeleteCalendarEventDialog } from '../../../features/Calendar/DeleteEvent'
 import { SaveCalendarEventDialog } from '../../../features/Calendar/SaveEvent'
 import { useChatCoopCalendarStore } from '../../../entities/ChatCoopCalendar/model/store'
@@ -52,4 +54,8 @@ function onDelete(row: IChatCoopCalendarEvent): void {
 onMounted(() => {
   void calendarStore.loadAll()
 })
+
+// Календарь живёт по ленте: событие, созданное или перенесённое советом,
+// появляется у всех пайщиков сразу.
+useLiveReload(CHAT_CALENDAR_LIVE_TABLES, () => calendarStore.loadAll())
 </script>

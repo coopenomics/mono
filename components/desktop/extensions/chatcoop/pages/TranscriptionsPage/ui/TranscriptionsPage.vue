@@ -55,6 +55,8 @@ q-page.transcriptions-page(padding)
 
 <script lang="ts" setup>
 import { onMounted, computed, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_TRANSCRIPTIONS_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useRouter } from 'vue-router';
 import {
   formatDateTime,
@@ -124,6 +126,10 @@ async function loadMore(): Promise<void> {
 onMounted(async () => {
   await transcriptionStore.loadTranscriptions(pageSize, 0);
 });
+
+// Список транскрипций живёт по ленте: перечитываем всё показанное одним
+// запросом, подгруженный хвост остаётся.
+useLiveReload(CHAT_TRANSCRIPTIONS_LIVE_TABLES, () => transcriptionStore.loadTranscriptions(currentOffset + pageSize, 0));
 </script>
 
 <style scoped>

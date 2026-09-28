@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { FailAlert } from 'src/shared/api';
@@ -9,7 +10,7 @@ import { OfferRegistryOverlay } from 'src/widgets/Marketplace/OfferRegistryOverl
 import { fetchCategories } from '../../MarketplaceCatalog/api';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import {
-  useMarketplaceRealtime,
+  marketLiveTables,
   getMembershipFeePercent,
   marketplaceCardPackages,
   offerCardUnitCost,
@@ -148,10 +149,7 @@ const reloadLive = debounce(() => {
   currentPage.value = 1;
   void loadPage(false);
 }, 400);
-useMarketplaceRealtime(
-  { MarketplaceOfferModerationEvent: () => reloadLive() },
-  { onResync: () => reloadLive() },
-);
+useLiveReload(marketLiveTables('offer'), () => reloadLive());
 
 onMounted(async () => {
   await Promise.all([loadPage(false), loadCategories()]);

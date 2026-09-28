@@ -60,6 +60,7 @@ onMounted(async () => {
   const SAFETY_REMOVE_LOADER_MS = 60_000;
   let safetyTimerId: ReturnType<typeof setTimeout> | undefined;
   if (typeof window !== 'undefined') {
+    // timing: timeout — страховка: снять заставку, если загрузка зависла
     safetyTimerId = setTimeout(() => {
       if (!isLoaded.value) {
         console.warn(
@@ -100,6 +101,7 @@ onMounted(async () => {
     clearSafetyTimer();
 
     // Показываем диалог разрешения уведомлений после загрузки
+    // timing: ui — диалог открываем, когда первый экран отрисован, а не поверх заставки
     setTimeout(() => {
       showDialog();
     }, 1000);

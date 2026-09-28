@@ -40,6 +40,9 @@ importers:
       '@coopenomics/factory':
         specifier: workspace:*
         version: link:components/factory
+      '@coopenomics/i18n':
+        specifier: workspace:*
+        version: link:components/i18n
       '@coopenomics/innercoop':
         specifier: workspace:*
         version: link:components/innercoop
@@ -89,6 +92,31 @@ importers:
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
+
+  components/api-tests:
+    dependencies:
+      '@coopenomics/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      cooptypes:
+        specifier: workspace:*
+        version: link:../cooptypes
+    devDependencies:
+      '@types/node':
+        specifier: ^20.12.12
+        version: 20.19.37
+      eosjs:
+        specifier: ^22.1.0
+        version: 22.1.0
+      eosjs-ecc:
+        specifier: ^4.0.7
+        version: 4.0.7
+      typescript:
+        specifier: ^5.4.5
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.37)(lightningcss@1.32.0)(sass-embedded@1.98.0)(sass@1.98.0)(terser@5.46.1)
 
   components/auth:
     dependencies:
@@ -939,6 +967,9 @@ importers:
       '@headlessui/vue':
         specifier: ^1.7.22
         version: 1.7.23(vue@3.5.31(typescript@5.9.3))
+      '@intlify/message-compiler':
+        specifier: ^11.4.12
+        version: 11.4.12
       '@milkdown/crepe':
         specifier: ^7.18.0
         version: 7.20.0(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.7)(typescript@5.9.3)

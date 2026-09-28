@@ -72,6 +72,8 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch, computed } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { uiLocale } from 'src/shared/i18n';
 import { useResultStore } from 'app/extensions/capital/entities/Result/model';
 import type { IResult } from 'app/extensions/capital/entities/Result/model';
@@ -212,6 +214,9 @@ const loadResult = async () => {
     loading.value = false;
   }
 };
+
+// Результат живёт по ленте изменений: подача, голосование и утверждение видны сразу.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadResult());
 
 onMounted(async () => {
   await loadResult();

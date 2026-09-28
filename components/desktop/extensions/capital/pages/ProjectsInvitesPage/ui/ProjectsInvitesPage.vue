@@ -30,6 +30,8 @@
 </template>
 <script lang="ts" setup>
   import { ref, onMounted } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
   import { useRouter } from 'vue-router';
   import { useSystemStore } from 'src/entities/System/model';
   import { FailAlert } from 'src/shared/api';
@@ -82,6 +84,9 @@ import { t } from '../../../i18n';
 
 
   // Инициализация
+  // Проекты с приглашениями живут по ленте изменений Благороста.
+  useLiveReload(CAPITAL_LIVE_TABLES, () => loadProjectsWithInvites());
+
   onMounted(async () => {
     await loadProjectsWithInvites();
   });

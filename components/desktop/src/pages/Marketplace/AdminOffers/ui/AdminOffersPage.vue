@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useLiveReload } from 'src/shared/lib/realtime';
 /**
  * Реестр всех предложений кооператива (стол администратора).
  * Backend: marketplaceListAllOffers (Offer:read:all) — все предложения любого
@@ -12,7 +13,7 @@ import { uiLocale, t } from 'src/shared/i18n';
 import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { MarketplaceSaleForm, marketplaceQuantityLabel } from 'src/shared/lib/consts/marketplace-units';
-import { applyMembershipFee, getMembershipFeePercent, marketplacePackageStockLabel } from 'src/shared/lib/marketplace';
+import { applyMembershipFee, getMembershipFeePercent, marketplacePackageStockLabel, marketLiveTables } from 'src/shared/lib/marketplace';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { BaseBadge, BaseTable, EmptyState, TablePager } from 'src/shared/ui/base';
@@ -174,6 +175,10 @@ onMounted(async () => {
   }
   void load();
 });
+
+// Реестр предложений живёт по ленте: модерация, остатки и публикации
+// перечитывают показанную страницу.
+useLiveReload(marketLiveTables('offer'), load);
 </script>
 
 <template lang="pug">

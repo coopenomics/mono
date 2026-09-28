@@ -2,8 +2,9 @@ import { Injectable, OnModuleInit, Inject } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort,
   type InnerTransactResult,
+  ACCOUNT_PORT, type IAccountPort,
 } from '@coopenomics/innercoop';
-import { AbstractEntitySyncService } from '@coopenomics/extension-kit/sync';
+import { AbstractEntitySyncService, type ISyncResult } from '@coopenomics/extension-kit/sync';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorRepository, CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
 import { ContributorDeltaMapper } from '../../infrastructure/blockchain/mappers/contributor-delta.mapper';
@@ -31,9 +32,36 @@ export class ContributorSyncService
     @Inject(LOGGER_PORT) logger: ILoggerPort,
     private readonly eventEmitter: EventEmitter2,
     @Inject(CAPITAL_BLOCKCHAIN_PORT)
-    private readonly capitalBlockchainPort: CapitalBlockchainPort
+    private readonly capitalBlockchainPort: CapitalBlockchainPort,
+    @Inject(ACCOUNT_PORT)
+    private readonly accountPort: IAccountPort
   ) {
     super(contributorRepository, contributorDeltaMapper, logger);
+  }
+
+  /**
+   * Участник, заведённый в цепи мимо контроллера (regcontrib), приходит без
+   * строки в базе, и дельта создаёт её сама — без имени. Имя обязательно, и
+   * без него участник не попадал в зеркало вовсе; теперь оно дописывается из
+   * аккаунта пайщика (C28-80).
+   */
+  public override async handleSyncDelta(
+    syncKey: string,
+    syncValue: string,
+    blockchainData: IContributorBlockchainData,
+    blockNum: number,
+    present = true
+  ): Promise<ISyncResult> {
+    const result = await super.handleSyncDelta(syncKey, syncValue, blockchainData, blockNum, present);
+    if (result.created) await this.fillMissingDisplayName(syncKey, syncValue);
+    return result;
+  }
+
+  private async fillMissingDisplayName(syncKey: string, syncValue: string): Promise<void> {
+    const contributor = await this.repository.findBySyncKey(syncKey, syncValue);
+    if (!contributor || contributor.display_name) return;
+    contributor.display_name = await this.accountPort.getDisplayName(contributor.username);
+    await this.repository.update(contributor);
   }
 
   async onModuleInit() {

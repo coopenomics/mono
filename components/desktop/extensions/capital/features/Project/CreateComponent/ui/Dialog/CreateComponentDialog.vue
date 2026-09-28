@@ -106,6 +106,7 @@ const clear = () => {
   titleError.value = '';
 };
 
+// realtime: нет источника — список для выбора в диалоге загружается при его открытии.
 onMounted(() => {
   if (!props.project) void loadEditableProjects();
 });

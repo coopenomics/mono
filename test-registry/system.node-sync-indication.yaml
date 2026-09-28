@@ -36,6 +36,7 @@ cases:
     expect: >
       узел считается рабочим, отставание нулевое, состояние уходит подписчикам
     test: components/controller/tests/unit/system/node-sync-health.test.ts
+    api: components/api-tests/src/platform/system.node-sync-indication.test.ts
     status: passing
 
   - id: sync.ind.side.01

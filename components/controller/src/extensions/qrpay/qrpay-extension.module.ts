@@ -71,7 +71,7 @@ export class QrPayExtension extends PaymentProvider {
     const payment = await this.payments.findByHash(hash);
 
     if (!payment) {
-      throw DomainError.internal('QRPAY_PAYMENT_NOT_FOUND', { hash });
+      throw DomainError.notFound('QRPAY_PAYMENT_NOT_FOUND', { hash });
     }
 
     const amount = payment.quantity;

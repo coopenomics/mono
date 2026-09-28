@@ -1,6 +1,8 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, DomainError, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 import { ExpensesManagementService } from '../services/expenses-management.service';
 import { ExpenseRequisiteSnapshotsService } from '../services/expense-requisite-snapshots.service';
 import { ExpenseProposalOutputDTO } from '../dto/expense-proposal.output';
@@ -48,16 +50,20 @@ export class ExpenseProposalResolver {
 
   @Query(() => ExpenseProposalOutputDTO, {
     name: 'expenseProposal',
-    description: 'Получить смету расхода по хешу.',
+    description: 'Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк.',
     nullable: true,
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getExpenseProposal(
-    @Args('proposal_hash', { type: () => String }) proposalHash: string
+    @Args('proposal_hash', { type: () => String }) proposalHash: string,
+    @CurrentUser() user: IMonoAccount
   ): Promise<ExpenseProposalOutputDTO | null> {
     const entity = await this.expenses.getProposalByHash(proposalHash);
     if (!entity) return null;
+    // Чужая записка несёт реквизиты получателей; до 25.09.2026 её читал
+    // любой пайщик (C28-80).
+    if (!mayReadExpenseProposal(user, entity)) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
     const aggregates = await this.expenses.buildProposalDocumentAggregates(entity);
     return ExpenseProposalOutputDTO.fromDomain(entity, aggregates);
   }
@@ -78,15 +84,19 @@ export class ExpenseProposalResolver {
 
   @Query(() => paginatedExpenseProposalsResult, {
     name: 'expenseProposalsByMember',
-    description: 'Список смет расходов пайщика (свои/созданные им, paginated).',
+    description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async listByMember(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string,
+    @CurrentUser() user: IMonoAccount,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
   ): Promise<PaginationResult<ExpenseProposalOutputDTO>> {
+    // Записки пайщика видят он сам и совет.
+    const council = user.role === 'chairman' || user.role === 'member';
+    if (!council && user.username !== username) throw DomainError.forbidden('EXPENSES_PROPOSAL_ACCESS_DENIED');
     const result = await this.expenses.listProposalsByMemberPaginated(coopname, username, options);
     return { ...result, items: await this.mapItemsWithDocuments(result.items) };
   }

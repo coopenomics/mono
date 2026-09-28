@@ -144,6 +144,7 @@ function resyncActive(reason: string): void {
   if (isBrowserOffline()) return;
 
   if (resyncTimer) clearTimeout(resyncTimer);
+  // timing: debounce — одна дочитка на пачку поводов (фокус, сеть, реконнект)
   resyncTimer = setTimeout(() => {
     resyncTimer = null;
     if (!isAuthed() || !isForeground() || isBrowserOffline()) return;
@@ -219,6 +220,7 @@ export function startRealtimeChannel(opts?: { isAuthed?: () => boolean }): void 
 
   // Страховка от зомби-сокета (ws «жив», но публикацию пропустил). Это НЕ
   // возврат к частому поллингу — при здоровом канале дочитка ничего не меняет.
+  // timing: schedule — страховка от зомби-сокета, при здоровом канале дочитка ничего не меняет
   setInterval(() => {
     // i18n-ignore: внутренний технический тег причины ресинхронизации, не текст интерфейса
     reopenDeadSubscriptions('страховка');

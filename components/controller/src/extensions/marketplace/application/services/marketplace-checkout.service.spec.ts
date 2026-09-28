@@ -1,4 +1,6 @@
+import { calcCostMinor } from '../shared/cost.util';
 import { BadRequestException } from '@nestjs/common';
+import { DomainError } from '@coopenomics/extension-kit';
 import { MarketplaceCheckoutService } from './marketplace-checkout.service';
 import { MarketplaceConvertService } from './marketplace-convert.service';
 import { MarketplaceCheckoutOrderActionKind } from '../../domain/ports/marketplace-canonical-blockchain.port';
@@ -67,7 +69,10 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
     const cartService = { getCart: jest.fn(async () => ({ items: [] })) };
     const economyService = {
       getMembershipFeeContractPercent: jest.fn(async () => 10),
-      lineBodyUnits: (price: string, count: number) => BigInt(Math.round(Number(price) * 10_000)) * BigInt(count),
+      // Настоящий расчёт стоимости — подделка с BigInt(количество) прятала
+      // падение на дробной мере (до 25.09.2026).
+      lineBodyUnits: (sale: any, unit: any) =>
+        calcCostMinor({ quantity: sale.baseQuantity, unit, unitPrice: sale.unitPrice, packageSize: sale.packageSize, decimals: 4 }),
       membershipFeeUnits: (body: bigint, pct: number) => (body * BigInt(pct)) / 100n,
       unitsToAsset: (u: bigint) => `${(Number(u) / 10_000).toFixed(4)} RUB`,
     };
@@ -91,7 +96,7 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
       chainPort as any,
       logger as any
     );
-    return { service, cartRepo, orderCreateService, stockService, chainPort, convertService };
+    return { service, cartRepo, offerRepo, orderCreateService, stockService, chainPort, convertService };
   }
 
   const withStatement = { member: 0n, share: 0n }; // кошельков программы нет — нужен перевод
@@ -178,5 +183,33 @@ describe('MarketplaceCheckoutService — одна транзакция на вс
     expect(m.chainPort.checkout).not.toHaveBeenCalled();
     expect(result.created_orders).toEqual([]);
     expect(result.failed_lines).toHaveLength(2);
+  });
+
+  // До 25.09.2026 непрошедшая позиция приходила только текстом: клиент не мог
+  // отличить «кончился остаток» от «сняли с продажи», не разбирая фразу.
+  it('непрошедшая позиция несёт код причины: код отказа подготовки, общий код для прочего сбоя, свой код для снятого предложения', async () => {
+    const m = build(withoutStatement);
+    m.orderCreateService.prepare.mockRejectedValue(
+      DomainError.badRequest('MARKETPLACE_ORDER_QUANTITY_UNAVAILABLE', { available: 0, unitLabel: 'шт', requested: 2 })
+    );
+    m.stockService.prepareStockOrder.mockRejectedValue(new Error('сбой базы'));
+
+    const result = await m.service.execute(scope, {});
+
+    expect(result.failed_lines.map((f) => [f.offer_id, f.code])).toEqual([
+      ['offer-a', 'MARKETPLACE_ORDER_QUANTITY_UNAVAILABLE'],
+      ['offer-b', 'MARKETPLACE_CHECKOUT_ITEM_FAILED'],
+    ]);
+    expect(result.failed_lines[1].reason).toBe('сбой базы');
+
+    const withdrawn = build(withoutStatement);
+    withdrawn.offerRepo.findByIds.mockResolvedValue([
+      { ...supplierOffer, status: MarketplaceOfferStatuses.WITHDRAWN },
+      stockOffer,
+    ]);
+    const second = await withdrawn.service.execute(scope, {});
+    expect(second.failed_lines).toEqual([
+      expect.objectContaining({ offer_id: 'offer-a', code: 'MARKETPLACE_CHECKOUT_OFFER_NOT_ACTIVE' }),
+    ]);
   });
 });

@@ -84,7 +84,9 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
   }
 
   async setDeliveryBraname(cart_id: string, delivery_braname: string | null): Promise<void> {
-    await this.cartRepo.update({ id: cart_id }, { delivery_braname });
+    await this.saveCart(cart_id, (cart) => {
+      cart.delivery_braname = delivery_braname;
+    });
   }
 
   // ── private ──
@@ -97,8 +99,26 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
     return this.mapper.toDomain(cart, items);
   }
 
-  /** Обновить updated_at корзины при изменении состава (для индикатора/сортировки). */
+  /**
+   * Обновить updated_at корзины при изменении состава (для индикатора/сортировки).
+   *
+   * Строка загружается и сохраняется целиком: корзина — личная таблица ленты
+   * изменений (владелец — orderer_account), и сигнал адресуется по строке.
+   * Частичный update(criteria, partial) давал подписчику только updated_at —
+   * сигнал уходил совету с пустым ключом, а заказчик его не получал вовсе, и
+   * корзина на его столе не обновлялась (до 25.09.2026).
+   */
   private async touchCart(cart_id: string): Promise<void> {
-    await this.cartRepo.update({ id: cart_id }, { updated_at: new Date() });
+    await this.saveCart(cart_id, (cart) => {
+      cart.updated_at = new Date();
+    });
+  }
+
+  /** Изменить корзину целой строкой — так подписчик ленты видит её владельца. */
+  private async saveCart(cart_id: string, change: (cart: MarketplaceCartEntity) => void): Promise<void> {
+    const cart = await this.cartRepo.findOneBy({ id: cart_id });
+    if (!cart) return;
+    change(cart);
+    await this.cartRepo.save(cart);
   }
 }

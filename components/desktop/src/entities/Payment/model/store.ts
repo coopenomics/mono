@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { Ref, ref } from 'vue';
 import { api } from '../api';
+import { liveWindow } from 'src/shared/lib/realtime';
 import type {
   IGetPaymentsInputData,
   IGetPaymentsInputOptions,
@@ -18,9 +19,17 @@ interface IPaymentStore {
     data?: IGetPaymentsInputData,
     options?: IGetPaymentsInputOptions,
   ) => Promise<void>;
+  reloadLoaded: (
+    data: IGetPaymentsInputData | undefined,
+    options: IPaymentSortOptions,
+    pageSize: number,
+  ) => Promise<void>;
   updateSinglePayment: (updatedPayment: IPayment) => void;
   clear: () => void;
 }
+
+/** Сортировка списка — всё, кроме страницы: окно перечитывания задаёт её само. */
+type IPaymentSortOptions = Pick<NonNullable<IGetPaymentsInputOptions>, 'sortBy' | 'sortOrder'>;
 
 const namespace = 'payments';
 
@@ -96,5 +105,22 @@ export const usePaymentStore = defineStore(namespace, (): IPaymentStore => {
     }
   };
 
-  return { payments, loadPayments, updatePayments, updateSinglePayment, clear };
+  // Перечитать уже показанные страницы одним запросом и заменить список
+  // целиком: новые платежи встают на своё место в сортировке, изменённые
+  // обновляются, удалённые уходят. Так живёт список по ленте изменений.
+  const reloadLoaded = async (
+    data: IGetPaymentsInputData | undefined,
+    options: IPaymentSortOptions,
+    pageSize: number,
+  ): Promise<void> => {
+    const window = liveWindow(payments.value?.currentPage, pageSize);
+    const response = await api.loadPayments(data, { ...options, ...window.options });
+    payments.value = {
+      ...response,
+      currentPage: window.pages,
+      totalPages: Math.max(1, Math.ceil(response.totalCount / pageSize)),
+    };
+  };
+
+  return { payments, loadPayments, updatePayments, reloadLoaded, updateSinglePayment, clear };
 });

@@ -8,7 +8,11 @@ import { createHash } from 'crypto';
  * пустая строка. Контракт принимает только такие значения (lib/core/text_digest.hpp),
  * поэтому хеш одной и той же строки совпадает на обеих сторонах.
  */
-const DIGEST_RE = /^[0-9a-f]{64}$/;
+// Регистр не различается: индексер отдаёт любые 64-символьные hex-строки
+// строки цепи в верхнем регистре, и хеш в дельте приходит заглавными. Пока
+// проверка знала только нижний, хеш из дельты принимался за текст и затирал
+// описание проекта в базе (C28-80).
+const DIGEST_RE = /^[0-9a-f]{64}$/i;
 
 /** sha256 текста в UTF-8; пустой текст остаётся пустой строкой. */
 export function chainTextDigest(text: string | null | undefined): string {
@@ -19,6 +23,11 @@ export function chainTextDigest(text: string | null | undefined): string {
 /** Значение из цепи — хеш текста, а не сам текст. */
 export function isChainTextDigest(value: string | null | undefined): value is string {
   return typeof value === 'string' && DIGEST_RE.test(value);
+}
+
+/** Хеш в цепи — хеш именно этого текста (регистр хеша не важен). */
+export function isChainTextOf(text: string | null | undefined, chainValue: string | null | undefined): boolean {
+  return chainTextDigest(text) === (chainValue ?? '').toLowerCase();
 }
 
 /**

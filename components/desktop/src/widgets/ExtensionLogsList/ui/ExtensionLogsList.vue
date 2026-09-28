@@ -64,6 +64,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue'
+import { liveWindow, useLiveReload, type LiveWindow } from 'src/shared/lib/realtime'
 import { useExtensionStore, type IExtensionLogsResult } from 'src/entities/Extension/model/store'
 import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import { BaseInput } from 'src/shared/ui/base/BaseInput'
@@ -120,7 +121,12 @@ const loadMore = () => {
   loadLogs(currentPage.value + 1)
 }
 
-const loadLogs = async (page = 1) => {
+/**
+ * `page` — какую страницу дочитать; `window` — перечитать уже показанные
+ * страницы одним запросом (живое обновление): новые записи встают сверху,
+ * прокрутка и подгруженный хвост остаются.
+ */
+const loadLogs = async (page = 1, window?: LiveWindow) => {
   loading.value = true
   try {
     const filter: any = {}
@@ -136,8 +142,7 @@ const loadLogs = async (page = 1) => {
     }
 
     const options = {
-      page,
-      limit: LIMIT,
+      ...(window ? window.options : { page, limit: LIMIT }),
       sortBy: 'created_at',
       sortOrder: 'DESC'
     }
@@ -145,9 +150,9 @@ const loadLogs = async (page = 1) => {
     const result: IExtensionLogsResult = await extensionStore.loadExtensionLogs({ data: filter, options })
 
     // Первая страница — замена, последующие — дозагрузка.
-    logs.value = page === 1 ? result.items : [...logs.value, ...result.items]
+    logs.value = window || page === 1 ? result.items : [...logs.value, ...result.items]
     totalCount.value = result.totalCount
-    currentPage.value = result.currentPage
+    currentPage.value = window ? window.pages : result.currentPage
   } catch (error) {
     console.error('Error loading extension logs:', error)
   } finally {
@@ -158,6 +163,9 @@ const loadLogs = async (page = 1) => {
 onMounted(() => {
   loadLogs(1)
 })
+
+// Журнал живёт по ленте: новые записи появляются сверху без перезагрузки.
+useLiveReload([{ code: 'core', table: 'extensions_logs' }], () => loadLogs(1, liveWindow(currentPage.value, LIMIT)))
 </script>
 
 <style lang="scss" scoped>

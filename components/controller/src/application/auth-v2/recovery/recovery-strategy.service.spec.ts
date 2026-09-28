@@ -28,17 +28,28 @@ describe('RecoveryStrategyService (Story 3.5)', () => {
     const { service, repo, twoFactor, audit, securityEvents } = setup();
     twoFactor.isEnabled.mockResolvedValueOnce(true);
     twoFactor.verify.mockResolvedValueOnce(true);
-    await service.setStrategy('u1', RecoveryStrategy.OfflineCode, '123456', '1.2.3.4');
+    await service.setStrategy('u1', RecoveryStrategy.EmailMagicLink, '123456', '1.2.3.4');
     expect(twoFactor.verify).toHaveBeenCalledWith('u1', '123456');
-    expect(repo.set).toHaveBeenCalledWith('u1', RecoveryStrategy.OfflineCode);
+    expect(repo.set).toHaveBeenCalledWith('u1', RecoveryStrategy.EmailMagicLink);
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({
         event: 'coopid.recovery.strategy_changed',
         result: 'success',
-        context: { strategy: RecoveryStrategy.OfflineCode },
+        context: { strategy: RecoveryStrategy.EmailMagicLink },
       }),
     );
     expect(securityEvents.notify).toHaveBeenCalledWith({ subjectId: 'u1', kind: 'recovery_strategy_changed', ip: '1.2.3.4' });
+  });
+
+  // Офлайн-коды не выдаются — выбрать их нельзя (решение владельца 25.09.2026, C28-80).
+  it('setStrategy: офлайн-коды недоступны — отказ до проверки второго фактора, без set', async () => {
+    const { service, repo, twoFactor, audit } = setup();
+    await expect(service.setStrategy('u1', RecoveryStrategy.OfflineCode, '123456', null)).rejects.toMatchObject({
+      code: 'AUTH_V2_RECOVERY_STRATEGY_UNAVAILABLE',
+    });
+    expect(twoFactor.verify).not.toHaveBeenCalled();
+    expect(repo.set).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
   });
 
   it('setStrategy: нет 2FA → TwoFactorNotEnrolled, без set', async () => {

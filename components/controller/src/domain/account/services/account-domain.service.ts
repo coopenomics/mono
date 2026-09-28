@@ -351,7 +351,7 @@ export class AccountDomainService {
     const privateAccount = account.private_account;
 
     if (!privateAccount) {
-      throw new Error(`Private account not found for user ${username}`);
+      throw DomainError.notFound('ACCOUNT_PRIVATE_DATA_NOT_FOUND', { username });
     }
 
     // Определяем тип аккаунта и извлекаем соответствующее имя

@@ -6,7 +6,8 @@ import { useAccountStore } from 'src/entities/Account/model'
 import { useBranchStore } from 'src/entities/Branch/model'
 import { DigitalDocument } from 'src/shared/lib/document'
 import { SuccessAlert, FailAlert } from 'src/shared/api'
-import { Cooperative } from 'cooptypes'
+import { BranchContract, Cooperative } from 'cooptypes'
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
 import { t } from 'src/shared/i18n';
 
 export function useSelectBranchProcess() {
@@ -51,6 +52,12 @@ export function useSelectBranchProcess() {
       }
     },
     { immediate: true }
+  )
+
+  // Участки к выбору живут по ленте, пока оверлей открыт: новый, закрытый
+  // или открытый для пайщика участок появляется в списке сам.
+  useLiveReload([liveTable(BranchContract, BranchContract.Tables.Branches)], () =>
+    isVisible.value ? loadBranches() : undefined,
   )
 
   // Перезагрузка при переходе в мажоритарный режим или показе оверлея

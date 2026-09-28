@@ -245,6 +245,7 @@ async function saveParams() {
   }
 }
 
+// realtime: нет источника — редактор: живое перечитывание затёрло бы ввод; чужие правки ловит проверка версии при сохранении.
 watch(activeTab, (registryId) => {
   persistDraftToStorage();
   if (!previews[registryId]) {

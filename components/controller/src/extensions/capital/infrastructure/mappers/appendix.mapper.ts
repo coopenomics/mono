@@ -53,7 +53,15 @@ export class AppendixMapper {
         appendix: entity.appendix,
       };
     }
-    return new AppendixDomainEntity(databaseData, blockchainData);
+    const domain = new AppendixDomainEntity(databaseData, blockchainData);
+    // Заявка, заведённая по действию цепи, ещё без номера строки из цепи
+    // (C28-80): пайщик и проект известны из самого действия.
+    if (!blockchainData) {
+      domain.coopname = entity.coopname ?? undefined;
+      domain.username = entity.username ?? undefined;
+      domain.project_hash = entity.project_hash ?? undefined;
+    }
+    return domain;
   }
 
   /**
@@ -88,6 +96,15 @@ export class AppendixMapper {
       };
     }
 
-    return { ...dbPart, ...blockchainPart };
+    // Пайщик, проект и кооператив пишутся, как только известны: у заявки,
+    // заведённой по действию цепи, номера строки из цепи ещё нет, а без этих
+    // полей подтверждённый допуск не находился (C28-80).
+    const known = {
+      ...(domain.coopname ? { coopname: domain.coopname } : {}),
+      ...(domain.username ? { username: domain.username } : {}),
+      ...(domain.project_hash ? { project_hash: domain.project_hash } : {}),
+    };
+
+    return { ...dbPart, ...known, ...blockchainPart };
   }
 }

@@ -132,7 +132,7 @@ function toChainDocument(signed: any) {
 
 /** Свежий заказ пайщицы, принятый кооперативом целиком по цене предложения. */
 async function acceptedOrder(): Promise<{ orderId: string, orderHash: string, acceptedCost: number }> {
-  await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2)
+  await ensureShareFunds(ekaterina.account, QTY * unitPrice * 2, ekaterinaToken)
   const { orderId, orderHash } = await placeOrder({
     token: ekaterinaToken,
     who: ekaterina,
@@ -156,6 +156,9 @@ async function acceptedOrder(): Promise<{ orderId: string, orderHash: string, ac
 
 describe('стол заказов — отказ после приёмки и цена при выдаче (contract, живая цепь)', () => {
   beforeAll(async () => {
+    // Клиент подписи создаёт update_pass_instance: без него bc.api пуст, и
+    // голосование совета по выдаче падало на undefined.transact.
+    await bc.update_pass_instance()
     chairmanToken = await loginAs(CHAIRMAN)
     sidorovToken = await loginAs(sidorov)
     ekaterinaToken = await loginAs(ekaterina)

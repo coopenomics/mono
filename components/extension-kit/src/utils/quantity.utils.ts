@@ -28,7 +28,7 @@ export class QuantityUtils {
     } else if (symbol === rootGovernSymbol) {
       return rootGovernPrecision;
     } else {
-      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
+      throw DomainError.badRequest('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
   }
 
@@ -39,7 +39,7 @@ export class QuantityUtils {
   static validateSymbol(symbol: string): void {
     if (!this.isSupportedSymbol(symbol)) {
       const { rootSymbol, rootGovernSymbol } = platformSettings().blockchain;
-      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
+      throw DomainError.badRequest('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
   }
 
@@ -53,7 +53,7 @@ export class QuantityUtils {
     this.validateSymbol(symbol);
 
     if (isNaN(amount) || amount < 0) {
-      throw DomainError.internal('KIT_NUMBER_INVALID', { value: amount });
+      throw DomainError.badRequest('KIT_NUMBER_INVALID', { value: amount });
     }
 
     const precision = this.getPrecisionForSymbol(symbol);
@@ -72,7 +72,7 @@ export class QuantityUtils {
     this.validateSymbol(symbol);
 
     if (isNaN(amount) || amount < 0) {
-      throw DomainError.internal('KIT_NUMBER_INVALID', { value: amount });
+      throw DomainError.badRequest('KIT_NUMBER_INVALID', { value: amount });
     }
 
     return `${amount} ${symbol}`;
@@ -86,14 +86,14 @@ export class QuantityUtils {
   static parseQuantityString(quantity: string): { amount: number; symbol: string } {
     const parts = quantity.split(' ');
     if (parts.length !== 2) {
-      throw DomainError.internal('KIT_QUANTITY_FORMAT_INVALID', { quantity });
+      throw DomainError.badRequest('KIT_QUANTITY_FORMAT_INVALID', { quantity });
     }
 
     const [amountStr, symbol] = parts;
     const amount = parseFloat(amountStr);
 
     if (isNaN(amount)) {
-      throw DomainError.internal('KIT_QUANTITY_AMOUNT_INVALID', { amount: amountStr });
+      throw DomainError.badRequest('KIT_QUANTITY_AMOUNT_INVALID', { amount: amountStr });
     }
 
     this.validateSymbol(symbol);

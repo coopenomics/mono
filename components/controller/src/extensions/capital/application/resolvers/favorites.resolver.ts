@@ -42,7 +42,7 @@ export class FavoritesResolver {
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<CapitalFavoriteOutputDTO[]> {
     this.assertSelf(data.username, currentUser);
-    return this.favoritesService.addFavorite(data);
+    return this.favoritesService.addFavorite(data, currentUser);
   }
 
   @Mutation(() => [CapitalFavoriteOutputDTO], {
@@ -62,7 +62,7 @@ export class FavoritesResolver {
   // Избранное строго личное: даже председатель не читает и не правит чужое
   private assertSelf(username: string, currentUser: IMonoAccount): void {
     if (username !== currentUser.username) {
-      throw DomainError.internal('CAPITAL_FAVORITES_ACCESS_FORBIDDEN');
+      throw DomainError.forbidden('CAPITAL_FAVORITES_ACCESS_FORBIDDEN');
     }
   }
 }

@@ -81,6 +81,8 @@ div.transcription-detail-page
 
 <script lang="ts" setup>
 import { computed, onMounted, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { CHAT_TRANSCRIPTIONS_LIVE_TABLES } from 'app/extensions/chatcoop/shared/lib/live';
 import { useRouter, useRoute } from 'vue-router';
 import { WindowLoader } from 'src/shared/ui/Loader';
 import {
@@ -128,6 +130,10 @@ watch(
     }
   }
 );
+
+// Транскрипция живёт по ленте: новые фрагменты идущего звонка и его
+// завершение появляются сами.
+useLiveReload(CHAT_TRANSCRIPTIONS_LIVE_TABLES, loadData);
 </script>
 
 <style scoped>

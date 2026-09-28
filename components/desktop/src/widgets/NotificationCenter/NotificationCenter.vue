@@ -125,11 +125,11 @@ async function onPushAction(): Promise<void> {
 }
 
 onMounted(() => {
-  if (process.env.CLIENT) store.startPolling();
+  if (process.env.CLIENT) store.startWatching();
 });
 
 onBeforeUnmount(() => {
-  store.stopPolling();
+  store.stopWatching();
 });
 </script>
 

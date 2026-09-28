@@ -33,6 +33,8 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { useLiveReload, liveWindow, type LiveWindow } from 'src/shared/lib/realtime';
+import { CAPITAL_LIVE_TABLES } from 'app/extensions/capital/shared/lib/live';
 import { useSystemStore } from 'src/entities/System/model';
 import { FailAlert } from 'src/shared/api';
 import { useProjectStore } from 'app/extensions/capital/entities/Project/model';
@@ -105,35 +107,31 @@ const isInitialLoading = computed(
 
 const hasMorePages = computed(() => nextPage.value <= lastPage.value);
 
-const loadComponents = async (page = 1, append = false) => {
-  loading.value = true;
+/** Фильтр ленты компонентов по свойствам виджета. */
+function componentsFilter(): IProjectsFilter {
+  const filter: IProjectsFilter = {
+    coopname: props.coopname || info.coopname,
+    // Плоский список: только компоненты, без первого уровня проектов
+    is_component: true,
+  };
+  if (props.statuses?.length) filter.statuses = props.statuses as IProjectsFilter['statuses'];
+  if (props.priorities?.length) filter.priorities = props.priorities as IProjectsFilter['priorities'];
+  if (props.master) filter.master = props.master;
+  if (props.origin) filter.origin = props.origin;
+  return filter;
+}
+
+// `window` — перечитывание по ленте изменений: все уже загруженные страницы
+// одним запросом, тихо, с сохранением позиции ленты.
+const loadComponents = async (page = 1, append = false, window?: LiveWindow) => {
+  if (!window) loading.value = true;
 
   try {
-    const filter: IProjectsFilter = {
-      coopname: props.coopname || info.coopname,
-      // Плоский список: только компоненты, без первого уровня проектов
-      is_component: true,
-    };
-
-    if (props.statuses?.length) {
-      filter.statuses = props.statuses as IProjectsFilter['statuses'];
-    }
-    if (props.priorities?.length) {
-      filter.priorities = props.priorities as IProjectsFilter['priorities'];
-    }
-    if (props.master) {
-      filter.master = props.master;
-    }
-    if (props.origin) {
-      filter.origin = props.origin;
-    }
-
     await projectStore.loadComponents(
       {
-        filter,
+        filter: componentsFilter(),
         options: {
-          page,
-          limit: PAGE_SIZE,
+          ...(window?.options ?? { page, limit: PAGE_SIZE }),
           sortBy: props.sortBy || '_created_at',
           sortOrder: props.sortOrder || 'DESC',
         },
@@ -141,8 +139,9 @@ const loadComponents = async (page = 1, append = false) => {
       append,
     );
 
-    lastPage.value = projectStore.components.totalPages || 1;
-    nextPage.value = page + 1;
+    // Страницы считаем в размере ленты: окно перечитывания грузит их разом.
+    lastPage.value = Math.max(1, Math.ceil(projectStore.components.totalCount / PAGE_SIZE));
+    nextPage.value = (window?.pages ?? page) + 1;
 
     emit(
       'dataLoaded',
@@ -150,11 +149,14 @@ const loadComponents = async (page = 1, append = false) => {
     );
   } catch (error) {
     console.error('Ошибка при загрузке компонентов:', error);
-    FailAlert(t('capital.componentsTreeWidget.loadError'));
+    if (!window) FailAlert(t('capital.componentsTreeWidget.loadError'));
   } finally {
     loading.value = false;
   }
 };
+
+// Живой список компонентов — по ленте изменений Благороста, тихо.
+useLiveReload(CAPITAL_LIVE_TABLES, () => loadComponents(1, false, liveWindow(nextPage.value - 1, PAGE_SIZE)));
 
 const loadNextPage = () => {
   if (loading.value || !hasMorePages.value) return;

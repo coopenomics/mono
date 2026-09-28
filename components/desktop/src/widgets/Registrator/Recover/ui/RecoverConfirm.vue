@@ -128,6 +128,7 @@ const isValid = computed(
     passwordsMatch.value,
 );
 
+// realtime: нет источника — восстановление доступа по разовой ссылке, открывается без входа.
 onMounted(async () => {
   try {
     const ctx = await loadRecoveryContext(props.token);

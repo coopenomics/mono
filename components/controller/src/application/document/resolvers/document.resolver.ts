@@ -10,6 +10,17 @@ import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.
 import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-provision.dto';
 import { PublicProvisionService } from '../services/public-provision.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { Cooperative } from 'cooptypes';
+
+/**
+ * Протоколы решений совета: их собирает председатель (или член совета) на имя
+ * заявителя, чьё заявление рассматривает совет. Список — из единого реестра
+ * решений (decisionTypesRegistry), отдельно его нигде не ведём.
+ */
+const DECISION_PROTOCOL_REGISTRY_IDS = new Set<number>(
+  Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => Number(info.protocol_registry_id))
+);
+const COUNCIL_ROLES = ['chairman', 'member'];
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 
@@ -54,8 +65,16 @@ export class DocumentResolver {
       throw DomainError.unauthorized('DOCUMENT_USER_NOT_AUTHORIZED');
     }
 
-    // Проверяем, что username в input.data соответствует текущему пользователю
-    if (!input.data.username || input.data.username !== currentUser.username) {
+    // Документ собирается на себя. Исключение — протокол решения совета: его
+    // председатель и члены совета собирают на имя заявителя. Без исключения
+    // (ужесточение 17.09.2026) рабочий стол не мог утвердить вручную ни одно
+    // решение по чужому заявлению — например, материальную помощь (до 25.09.2026).
+    const forSelf = !!input.data.username && input.data.username === currentUser.username;
+    const councilProtocol =
+      !!input.data.username &&
+      COUNCIL_ROLES.includes(currentUser.role) &&
+      DECISION_PROTOCOL_REGISTRY_IDS.has(Number(input.data.registry_id));
+    if (!forSelf && !councilProtocol) {
       throw DomainError.unauthorized('DOCUMENT_GENERATION_FORBIDDEN');
     }
 

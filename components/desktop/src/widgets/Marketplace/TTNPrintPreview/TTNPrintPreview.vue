@@ -288,6 +288,7 @@ function print() {
       iframe.contentWindow?.focus()
       iframe.contentWindow?.print()
     } finally {
+      // timing: ui — фрейм печати убираем, когда браузер уже забрал документ
       setTimeout(() => iframe.remove(), 1000)
     }
   }

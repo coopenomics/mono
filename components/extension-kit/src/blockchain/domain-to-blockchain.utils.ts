@@ -70,14 +70,14 @@ export class DomainToBlockchainUtils {
   formatQuantityWithPrecision(quantity: string): string {
     const parts = quantity.split(' ');
     if (parts.length !== 2) {
-      throw DomainError.internal('KIT_QUANTITY_FORMAT_INVALID', { quantity });
+      throw DomainError.badRequest('KIT_QUANTITY_FORMAT_INVALID', { quantity });
     }
 
     const [amount, symbol] = parts;
     const numericAmount = parseFloat(amount);
 
     if (isNaN(numericAmount)) {
-      throw DomainError.internal('KIT_QUANTITY_AMOUNT_INVALID', { amount });
+      throw DomainError.badRequest('KIT_QUANTITY_AMOUNT_INVALID', { amount });
     }
 
     const { rootSymbol, rootPrecision, rootGovernSymbol, rootGovernPrecision } = platformSettings().blockchain;
@@ -88,7 +88,7 @@ export class DomainToBlockchainUtils {
     } else if (symbol === rootGovernSymbol) {
       precision = rootGovernPrecision;
     } else {
-      throw DomainError.internal('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
+      throw DomainError.badRequest('KIT_SYMBOL_UNSUPPORTED', { symbol, rootSymbol, rootGovernSymbol });
     }
 
     return `${numericAmount.toFixed(precision)} ${symbol}`;
@@ -99,11 +99,11 @@ export class DomainToBlockchainUtils {
     const numericValue = parseFloat(numericString);
 
     if (isNaN(numericValue)) {
-      throw DomainError.internal('KIT_NUMBER_INVALID', { value: numericString });
+      throw DomainError.badRequest('KIT_NUMBER_INVALID', { value: numericString });
     }
 
     if (numericValue < 0) {
-      throw DomainError.internal('KIT_NUMBER_NEGATIVE', { value: numericString });
+      throw DomainError.badRequest('KIT_NUMBER_NEGATIVE', { value: numericString });
     }
 
     return `${numericValue.toFixed(precision)} ${symbol}`;

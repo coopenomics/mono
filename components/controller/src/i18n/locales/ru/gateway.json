@@ -17,7 +17,8 @@
     "GATEWAY_REFUND_PAYMENT_MISSING_HASH": "У платежа возврата {hash} нет proposal_hash/item_hash в blockchain_data",
     "GATEWAY_SURCHARGE_PAYMENT_MISSING_HASH": "У платежа доплаты {hash} нет proposal_hash/item_hash в blockchain_data",
     "GATEWAY_SYSTEM_PAYMENT_CREATE_MISSING_ID": "createSystemOutgoingPayment: не удалось создать платёж — отсутствует ID",
-    "GATEWAY_UPDATED_PAYMENT_NOT_FOUND": "Не удалось найти обновленный платеж с ID {id}"
+    "GATEWAY_UPDATED_PAYMENT_NOT_FOUND": "Не удалось найти обновленный платеж с ID {id}",
+    "GATEWAY_DEPOSIT_AMOUNT_NOT_POSITIVE": "Сумма паевого взноса должна быть больше нуля"
   },
   "gateway": {
     "createDepositPaymentInput": {

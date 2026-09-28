@@ -7,6 +7,8 @@
  * участка; на неё же ведёт ссылка из движения в «Экономике участка».
  */
 import { computed, onMounted, ref, watch } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useRoute } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
 import { OperatorBranchBar, useOperatorBranchStore } from 'src/entities/OperatorBranch';
@@ -102,6 +104,10 @@ onMounted(async () => {
 });
 
 watch(braname, () => void load());
+
+// Заказы участка живут по ленте: смена состояния заказа перечитывает
+// показанную страницу.
+useLiveReload(marketLiveTables('order'), load);
 </script>
 
 <template lang="pug">

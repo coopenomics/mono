@@ -62,6 +62,7 @@ function useTimerClock(
     stopTick();
     tickNow.value = Date.now();
     if (!activeHere.value || isPaused.value) return;
+    // timing: ui — секундный счётчик идущего учёта времени
     tickTimer = setInterval(() => {
       tickNow.value = Date.now();
     }, 1000);

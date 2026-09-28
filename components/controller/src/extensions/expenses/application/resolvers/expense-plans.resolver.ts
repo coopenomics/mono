@@ -32,14 +32,15 @@ export class ExpensePlansResolver {
   @Query(() => [ExpensePlanDTO], {
     name: 'listExpensePlans',
     description:
-      'Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.',
+      'Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Совет видит весь реестр, операторы участка — планы своего участка. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async listExpensePlans(
+    @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { nullable: true }) data?: ListExpensePlansInputDTO
   ): Promise<ExpensePlanDTO[]> {
-    const plans = await this.plansService.listPlans(platformSettings().coopname, data?.braname ?? null);
+    const plans = await this.plansService.listPlansFor(platformSettings().coopname, currentUser, data?.braname ?? null);
     return plans.map(toExpensePlanDTO);
   }
 

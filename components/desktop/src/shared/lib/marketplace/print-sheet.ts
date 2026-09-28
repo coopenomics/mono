@@ -57,6 +57,7 @@ export function printLabelSheet(options: PrintLabelSheetOptions): void {
     win.print()
     win.addEventListener('afterprint', () => iframe.remove())
     // Страховка: `afterprint` не приходит, если диалог печати закрыли иначе.
+    // timing: timeout — страховка, если afterprint не пришёл
     window.setTimeout(() => iframe.remove(), 60000)
   }
   document.body.appendChild(iframe)

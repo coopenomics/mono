@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { useLiveReload } from 'src/shared/lib/realtime';
 import { useRoute, useRouter } from 'vue-router';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
@@ -12,7 +13,7 @@ import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
 import {
   HandoffTokenKind,
-  useMarketplaceRealtime,
+  marketLiveTables,
   applyMembershipFee,
   getMembershipFeePercent,
 } from 'src/shared/lib/marketplace';
@@ -338,17 +339,10 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useMarketplaceRealtime(
-  {
-    MarketplaceOrderStatusChangedEvent: (event) => {
-      if (event.order_id === orderId.value) reloadLive();
-    },
-    // Председатель решил по заявлению (в т.ч. пока пайщик стоит у стойки на
-    // очном осмотре) — вердикт обновляется сразу, без перезахода на страницу.
-    MarketplaceReturnClaimStatusChangedEvent: () => void loadReturnClaims(),
-  },
-  { onResync: () => reloadLive() }
-);
+useLiveReload(marketLiveTables('order', 'return'), async () => {
+    await reloadLive();
+    await loadReturnClaims();
+  });
 </script>
 
 <template lang="pug">
