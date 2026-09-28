@@ -92,7 +92,7 @@ tags:
 | 701 | Протокол решения совета о форме и стоимости имущества | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateAssetContributionDecision") }} | {{ get_graphql_doc("Mutation.generateAssetContributionDecision") }} |
 | 702 | Акт приёма-передачи имущества | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateAssetContributionAct") }} | {{ get_graphql_doc("Mutation.generateAssetContributionAct") }} |
 | 800 | Заявление на возврат паевого взноса имуществом | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateReturnByAssetStatement") }} | {{ get_graphql_doc("Mutation.generateReturnByAssetStatement") }} |
-| 801 | Протокол решения совета о возврате паевого взноса имуществом по соглашению новации | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateReturnByAssetDecision") }} | {{ get_graphql_doc("Mutation.generateReturnByAssetDecision") }} |
+| 801 | Протокол решения совета о возврате паевого взноса имуществом | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateReturnByAssetDecision") }} | {{ get_graphql_doc("Mutation.generateReturnByAssetDecision") }} |
 | 802 | Акт приёмки-передачи имущества | {{ get_sdk_doc("Mutations", "Cooplace", "GenerateReturnByAssetAct") }} | {{ get_graphql_doc("Mutation.generateReturnByAssetAct") }} |
 | 900 | Заявление на возврат паевого взноса денежными средствами | {{ get_sdk_doc("Mutations", "Wallet", "GenerateReturnByMoneyStatementDocument") }} | {{ get_graphql_doc("Mutation.generateReturnByMoneyStatementDocument") }} |
 | 901 | Решение совета о возврате паевого взноса | {{ get_sdk_doc("Mutations", "Wallet", "GenerateReturnByMoneyDecisionDocument") }} | {{ get_graphql_doc("Mutation.generateReturnByMoneyDecisionDocument") }} |
