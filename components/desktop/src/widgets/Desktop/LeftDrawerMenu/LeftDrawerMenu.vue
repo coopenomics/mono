@@ -5,14 +5,11 @@
     :active-key='activeKey',
     :coop-name='coopShortName',
     :coop-meta='coopMeta',
-    :show-cmdk='true',
-    :cmdk-label='$t("desktop.leftDrawerMenu.searchLabel")',
-    :cmdk-hint='$t("desktop.leftDrawerMenu.searchHint")',
-    @select='onSelect',
-    @cmdk='onCmdk'
+    @select='onSelect'
   )
-    //- Переопределяем стандартный brand-row на WorkspaceSwitcher:
-    //- кооп + текущий стол + меню переключения столов.
+    //- Переопределяем стандартный brand-row на WorkspaceSwitcher: кооп, текущий
+    //- стол и вход в единое окно столов и страниц. Отдельной кнопки поиска в
+    //- меню нет — её роль выполняет нижняя строка переключателя.
     template(#brand)
       WorkspaceSwitcher.left-drawer-menu__ws
 
@@ -59,7 +56,6 @@ import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { NodeSyncIndicator } from 'src/entities/System/ui';
 import { useWalletStore } from 'src/entities/Wallet';
-import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import { useActionsStore } from 'src/shared/lib/stores/actions.store';
 import { useLogoutUser } from 'src/features/User/Logout';
 import { useDepositDialog, DepositButton } from 'src/features/Wallet/DepositToWallet';
@@ -83,7 +79,6 @@ const systemStore = useSystemStore();
 const { info } = systemStore;
 const walletStore = useWalletStore();
 const actionsStore = useActionsStore();
-const palette = useCommandPaletteStore();
 const { subItemsFor } = useMenuSubItemsReader();
 const cartStore = useMarketplaceCartStore();
 
@@ -247,11 +242,6 @@ function onSelect(item: RailItem): void {
     params: { coopname: info.coopname },
   });
   desktop.closeLeftDrawerOnMobile();
-}
-
-function onCmdk(): void {
-  // Открываем canon-палитру команд через её store; диалог mount'ится в layout.
-  palette.open();
 }
 
 // --- Шапка рейла (бренд) ---------------------------------------------------

@@ -16,7 +16,11 @@ export interface CommandPaletteWorkspace {
   title: string;
   /** Иконка стола */
   icon: string;
-  /** Этот стол сейчас активен (sticky-баннер сверху + бейдж «Активный») */
+  /** Техническое имя приложения, которому принадлежит стол */
+  appName?: string;
+  /** Название приложения: заголовок группы и подпись стола */
+  appTitle?: string;
+  /** Этот стол сейчас активен (отметка в списке + бейдж «Активный») */
   isActive?: boolean;
   /** Страницы стола */
   pages: CommandPalettePage[];

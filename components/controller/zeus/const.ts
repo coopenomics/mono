@@ -5330,6 +5330,7 @@ export const ReturnTypes: Record<string,any> = {
 	DesktopWorkspace:{
 		defaultRoute:"String",
 		extension_name:"String",
+		extension_title:"String",
 		grants:"String",
 		icon:"String",
 		name:"String",

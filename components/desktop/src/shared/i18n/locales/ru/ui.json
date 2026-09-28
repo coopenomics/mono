@@ -75,11 +75,15 @@
       "closeHint": "для закрытия",
       "emptyBody": "Попробуйте другой запрос",
       "emptyTitle": "Ничего не найдено",
+      "goToWorkspace": "Перейти на стол",
       "navigateHint": "для навигации",
+      "noPagesTitle": "У стола нет доступных страниц",
+      "pagesHint": "к страницам стола",
+      "pagesSection": "Страницы",
       "searchAriaLabel": "Поиск рабочих столов и страниц",
-      "searchPlaceholder": "Поиск рабочих столов и страниц…",
+      "searchPlaceholder": "Стол, страница или приложение…",
       "selectHint": "для выбора",
-      "workspaceKeyword": "стол"
+      "workspacesSection": "Столы"
     },
     "complexDocument": {
       "decisionLabel": "Решение",

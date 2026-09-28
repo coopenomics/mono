@@ -6620,6 +6620,8 @@ export type ValueTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title?:boolean | `@${string}`,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
@@ -22350,6 +22352,8 @@ export type ResolverInputTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title?:boolean | `@${string}`,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
@@ -37621,6 +37625,8 @@ export type ModelTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title: string,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
@@ -45810,7 +45816,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	expenseFilesByProposal: Array<ModelTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу.
+	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк.
 
 Требуемые роли: chairman, member, user.  */
 	expenseProposal?: ModelTypes["ExpenseProposal"] | undefined | null,
@@ -45818,7 +45824,7 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	expenseProposalsByCooperative: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated).
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.
 
 Требуемые роли: chairman, member, user.  */
 	expenseProposalsByMember: ModelTypes["PaginatedExpenseProposalsPaginationResult"],
@@ -46058,7 +46064,7 @@ export type ModelTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuTrustRequests: ModelTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Совет видит весь реестр, операторы участка — планы своего участка. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
 
 Требуемые роли: chairman, member, user.  */
 	listExpensePlans: Array<ModelTypes["ExpensePlan"]>,
@@ -53999,6 +54005,8 @@ export type GraphQLTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title: string,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
@@ -62768,7 +62776,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member, user.  */
 	expenseFilesByProposal: Array<GraphQLTypes["ExpenseFile"]>,
-	/** Получить смету расхода по хешу.
+	/** Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк.
 
 Требуемые роли: chairman, member, user.  */
 	expenseProposal?: GraphQLTypes["ExpenseProposal"] | undefined | null,
@@ -62776,7 +62784,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	expenseProposalsByCooperative: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
-	/** Список смет расходов пайщика (свои/созданные им, paginated).
+	/** Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.
 
 Требуемые роли: chairman, member, user.  */
 	expenseProposalsByMember: GraphQLTypes["PaginatedExpenseProposalsPaginationResult"],
@@ -63016,7 +63024,7 @@ export type GraphQLTypes = {
 
 Требуемые роли: user, member, chairman.  */
 	kuTrustRequests: GraphQLTypes["PaginatedKuTrustRequestsPaginationResult"],
-	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
+	/** Плановые расходы кооператива: предстоящие траты с суммой, сроком и реквизитами. Совет видит весь реестр, операторы участка — планы своего участка. Неоплаченные расходы со сроком в ближайшие 30 дней образуют резерв средств, недоступный другим использованиям.
 
 Требуемые роли: chairman, member, user.  */
 	listExpensePlans: Array<GraphQLTypes["ExpensePlan"]>,

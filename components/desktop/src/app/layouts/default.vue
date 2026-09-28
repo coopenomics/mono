@@ -221,6 +221,8 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
       name: ws.workspaceName,
       title: ws.title,
       icon: ws.icon,
+      appName: ws.extensionName,
+      appTitle: ws.extensionTitle,
       isActive: ws.workspaceName === desktop.activeWorkspaceName,
       pages,
     };

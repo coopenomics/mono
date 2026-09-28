@@ -1,9 +1,6 @@
 <template lang="pug">
-button.ws-switcher(
-  v-bind='$attrs',
-  type='button',
-  :aria-haspopup='workspaces.length > 1 ? "menu" : undefined'
-)
+//- Шапка левого меню открывает единое окно столов и страниц — то же, что ⌘K.
+button.ws-switcher(type='button', aria-haspopup='dialog', @click='palette.open()')
   span.ws-switcher__body
     span.ws-switcher__icon
       span.ws-switcher__icon-svg(v-html='logoSvg')
@@ -13,58 +10,26 @@ button.ws-switcher(
         span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
   //- Нижняя строка называет действие словами — чтобы в шапке читалась кнопка
   //- выбора стола, а не заголовок.
-  span.ws-switcher__footer(v-if='workspaces.length > 1')
-    span {{ t('desktop.workspaceSwitcher.switchLabel') }}
-    q-icon.ws-switcher__footer-icon(name='unfold_more', size='18px')
-
-  q-menu(
-    v-if='workspaces.length > 1',
-    v-model='menuOpen',
-    anchor='bottom left',
-    self='top left',
-    :offset='[0, 6]',
-    class='ws-switcher__menu'
-  )
-    q-list(padding)
-      q-item.ws-switcher__item(
-        v-for='ws in workspaces',
-        :key='ws.workspaceName',
-        clickable,
-        v-close-popup,
-        :active='ws.workspaceName === activeWorkspaceName',
-        @click='onSelect(ws.workspaceName)'
-      )
-        q-item-section(avatar)
-          q-icon(:name='ws.icon || "desktop_windows"', size='18px')
-        q-item-section
-          q-item-label {{ ws.title }}
-
-//- Затемнение фона при открытом меню — рендерим в body чтобы overlay
-//- покрывал всё, включая контент за drawer'ом.
-Teleport(to='body')
-  .ws-switcher__scrim(v-if='menuOpen', aria-hidden='true')
+  span.ws-switcher__footer
+    span {{ workspaces.length > 1 ? t('desktop.workspaceSwitcher.switchLabel') : t('desktop.workspaceSwitcher.searchLabel') }}
+    span.ws-switcher__keys(aria-hidden='true')
+      span.kbd {{ modKey }}
+      span.kbd K
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import logoSvg from 'src/assets/logo.svg?raw';
 import { t } from 'src/shared/i18n';
 
-// Шаблон двухкорневой (кнопка + Teleport для затемнения), поэтому
-// автонаследование атрибутов отключаем и вручную направляем class и
-// прочие внешние атрибуты на корневую кнопку — иначе Vue ругается, что
-// class некуда применить.
-defineOptions({ inheritAttrs: false });
-
-const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
+const palette = useCommandPaletteStore();
 
 const activeWorkspaceName = computed(() => desktop.activeWorkspaceName);
-const menuOpen = ref<boolean>(false);
 
 // Видимость столов — единый канон авторизации (grants) с fallback на legacy
 // roles, инкапсулированный в DesktopStore.isWorkspaceVisible. Не дублируем
@@ -97,11 +62,13 @@ const currentTitle = computed<string>(() => {
   return active?.title || t('desktop.workspaceSwitcher.defaultDesktopTitle');
 });
 
-function onSelect(name: string): void {
-  if (name === activeWorkspaceName.value) return;
-  desktop.selectWorkspace(name);
-  desktop.goToDefaultPage(router);
-}
+// На Mac сочетание показываем знаком ⌘, на остальных системах — Ctrl.
+// Платформу узнаём после монтирования: на сервере она неизвестна, и разный
+// текст на сервере и в браузере дал бы расхождение при гидрации.
+const modKey = ref<string>('⌘');
+onMounted(() => {
+  if (!/Mac|iPhone|iPad/i.test(navigator.platform)) modKey.value = 'Ctrl';
+});
 </script>
 
 <style scoped>
@@ -210,46 +177,11 @@ function onSelect(name: string): void {
   color: var(--p-ink-2);
   transition: color 0.15s ease;
 }
-.ws-switcher__footer-icon {
-  color: var(--p-ink-3);
-  transition: color 0.15s ease;
+.ws-switcher__keys {
+  display: inline-flex;
+  gap: 2px;
 }
-.ws-switcher:hover .ws-switcher__footer,
-.ws-switcher:hover .ws-switcher__footer-icon {
+.ws-switcher:hover .ws-switcher__footer {
   color: var(--p-primary);
-}
-
-/* Меню выбора стола: canon-padding по краям, отступы вокруг
-   иконки и текста чтобы они не упирались в края. */
-.ws-switcher__menu :deep(.q-list) {
-  min-width: 240px;
-  padding: var(--p-1, 4px);
-}
-.ws-switcher__item {
-  padding: var(--p-2, 8px) var(--p-3, 12px);
-  border-radius: var(--p-r-sm);
-  min-height: 0;
-}
-.ws-switcher__item :deep(.q-item__section--avatar) {
-  min-width: 32px;
-  padding-right: var(--p-2, 8px);
-}
-/* Тот же единый регистр для подписей пунктов списка. */
-.ws-switcher__item :deep(.q-item__label) {
-  text-transform: capitalize;
-}
-
-/* Затемнение фона за menu — не сливаемся с контентом за drawer'ом. */
-.ws-switcher__scrim {
-  position: fixed;
-  inset: 0;
-  background: rgba(9, 9, 11, 0.32);
-  z-index: 5999; /* q-menu = 6000 — scrim чуть ниже */
-  pointer-events: none;
-  animation: ws-switcher-scrim-in 0.15s ease;
-}
-@keyframes ws-switcher-scrim-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 </style>

@@ -1324,11 +1324,11 @@
         <span class="dev-ui__sect-num">37</span>
         <h2 class="dev-ui__sect-title">Палитра команд (CommandPalette)</h2>
         <p class="dev-ui__sect-sub">
-          ⌘K / Ctrl+K. Иерархия <strong>рабочих столов</strong> и их страниц.
-          Активный стол sticky сверху с бейджем «Активный». Пустой запрос — иерархия,
-          с запросом — плоский список (со столом-префиксом у каждой страницы).
-          Стол отдельной строкой появляется только если запрос явно начинается
-          с его имени или содержит «стол»/«workspace».
+          ⌘K / Ctrl+K и кнопка «Сменить стол». Слева <strong>рабочие столы</strong>:
+          сначала столы приложений с одним столом, ниже приложения с несколькими
+          столами под своим заголовком. Справа страницы стола, выбранного слева.
+          С запросом справа идут найденные столы и страницы, у каждой строки
+          подписаны стол и приложение.
         </p>
       </div>
       <div class="dev-ui__stage">
@@ -2036,6 +2036,8 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'chairman',
     title: 'Стол Председателя',
     icon: 'person',
+    appName: 'chairman',
+    appTitle: 'Стол Председателя',
     isActive: true,
     pages: [
       { name: 'chairman-onboarding', title: 'Онбординг', icon: 'rocket_launch' },
@@ -2052,6 +2054,8 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'member',
     title: 'Стол пайщика',
     icon: 'account_circle',
+    appName: 'participant',
+    appTitle: 'Стол пайщика',
     pages: [
       { name: 'member-dashboard', title: 'Главная', icon: 'home' },
       { name: 'member-wallet', title: 'Кошелёк', icon: 'account_balance_wallet', shortcut: '⌘W' },
@@ -2064,9 +2068,41 @@ const commandWorkspacesDemo: CommandPaletteWorkspace[] = [
     name: 'reports',
     title: 'Стол отчётности',
     icon: 'analytics',
+    appName: 'reports',
+    appTitle: 'Стол отчётности',
     pages: [
       { name: 'reports-kpi', title: 'KPI кооператива', icon: 'insights' },
       { name: 'reports-export', title: 'Выгрузка реестров', icon: 'download' },
+    ],
+  },
+  {
+    name: 'capital',
+    title: 'Стол благороста',
+    icon: 'trending_up',
+    appName: 'capital',
+    appTitle: 'Благорост',
+    pages: [{ name: 'capital-projects', title: 'Проекты', icon: 'rocket_launch' }],
+  },
+  {
+    name: 'market',
+    title: 'Стол заказчика',
+    icon: 'shopping_cart',
+    appName: 'market',
+    appTitle: 'Стол заказов',
+    pages: [
+      { name: 'market-catalog', title: 'Каталог', icon: 'storefront' },
+      { name: 'market-orders', title: 'Мои заказы', icon: 'receipt_long' },
+    ],
+  },
+  {
+    name: 'market-admin',
+    title: 'Стол администратора',
+    icon: 'admin_panel_settings',
+    appName: 'market',
+    appTitle: 'Стол заказов',
+    pages: [
+      { name: 'market-admin-orders', title: 'Реестр заказов', icon: 'list_alt' },
+      { name: 'market-admin-stock', title: 'Склад', icon: 'inventory_2' },
     ],
   },
 ];
