@@ -32,7 +32,8 @@
     },
     "workspaceSwitcher": {
       "defaultCoopName": "Кооператив",
-      "defaultDesktopTitle": "Рабочий стол"
+      "defaultDesktopTitle": "Рабочий стол",
+      "switchLabel": "Столы"
     }
   }
 }

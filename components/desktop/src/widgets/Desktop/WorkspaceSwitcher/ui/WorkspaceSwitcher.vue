@@ -9,7 +9,15 @@ button.ws-switcher(
   .ws-switcher__text
     span.ws-switcher__caption(:title='coopBrand') {{ coopBrand }}
     span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
-  q-icon.ws-switcher__chevron(v-if='workspaces.length > 1', name='expand_more', size='18px')
+  //- Плашка со стрелкой и словом «Столы» — чтобы в шапке читалась кнопка
+  //- выбора стола, а не заголовок.
+  span.ws-switcher__pill(v-if='workspaces.length > 1', aria-hidden='true')
+    q-icon.ws-switcher__chevron(
+      name='expand_more',
+      size='16px',
+      :class='{ "ws-switcher__chevron--open": menuOpen }'
+    )
+    span.ws-switcher__pill-label {{ t('desktop.workspaceSwitcher.switchLabel') }}
 
   q-menu(
     v-if='workspaces.length > 1',
@@ -29,7 +37,7 @@ button.ws-switcher(
         @click='onSelect(ws.workspaceName)'
       )
         q-item-section(avatar)
-          q-icon(:name='ws.icon || "fa-solid fa-desktop"', size='18px')
+          q-icon(:name='ws.icon || "desktop_windows"', size='18px')
         q-item-section
           q-item-label {{ ws.title }}
 
@@ -106,9 +114,11 @@ function onSelect(name: string): void {
   width: 100%;
   padding: var(--p-2, 8px);
   margin: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--p-radius-md, 8px);
+  /* Рамка и фон видны всегда: без них шапка в покое выглядит заголовком,
+     и неочевидно, что по ней открывается выбор стола. */
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-sm);
   color: var(--p-ink);
   cursor: pointer;
   text-align: left;
@@ -116,8 +126,7 @@ function onSelect(name: string): void {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .ws-switcher:hover {
-  background: var(--p-surface);
-  border-color: var(--p-line);
+  border-color: var(--p-primary-line);
 }
 
 .ws-switcher__icon {
@@ -127,9 +136,9 @@ function onSelect(name: string): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--p-primary-soft, rgba(13, 148, 136, 0.12));
+  background: var(--p-primary-soft);
   color: var(--p-primary);
-  border-radius: var(--p-radius-md, 8px);
+  border-radius: var(--p-r-sm);
 }
 .ws-switcher__icon-svg {
   display: inline-flex;
@@ -149,7 +158,7 @@ function onSelect(name: string): void {
   flex: 1;
 }
 .ws-switcher__caption {
-  font-size: var(--p-fs-caption, 11px);
+  font-size: var(--p-fs-eyebrow);
   line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -177,11 +186,29 @@ function onSelect(name: string): void {
   padding-top: 2px;
 }
 
+.ws-switcher__pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--p-1);
+  border-radius: var(--p-r-xs);
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+}
 .ws-switcher__chevron {
-  flex: 0 0 18px;
-  color: var(--p-ink-3, var(--p-ink-2));
-  align-self: flex-start;
-  margin-top: var(--p-1, 4px);
+  transition: transform 0.15s ease;
+}
+.ws-switcher__chevron--open {
+  transform: rotate(180deg);
+}
+/* Подпись мельче подписи кооператива слева: плашке хватает намёка. */
+.ws-switcher__pill-label {
+  font-size: calc(var(--p-fs-eyebrow) - 2px);
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 /* Меню выбора стола: canon-padding по краям, отступы вокруг
@@ -192,7 +219,7 @@ function onSelect(name: string): void {
 }
 .ws-switcher__item {
   padding: var(--p-2, 8px) var(--p-3, 12px);
-  border-radius: var(--p-radius-md, 8px);
+  border-radius: var(--p-r-sm);
   min-height: 0;
 }
 .ws-switcher__item :deep(.q-item__section--avatar) {

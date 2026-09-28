@@ -2522,6 +2522,7 @@ export type MessageKey =
   | 'desktop.setupMenu.requisitesItem'
   | 'desktop.workspaceSwitcher.defaultCoopName'
   | 'desktop.workspaceSwitcher.defaultDesktopTitle'
+  | 'desktop.workspaceSwitcher.switchLabel'
   | 'document.chairmanApprovalActions.awaitingChairman'
   | 'document.chairmanApprovalActions.cancel'
   | 'document.chairmanApprovalActions.decline'
