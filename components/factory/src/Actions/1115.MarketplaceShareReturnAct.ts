@@ -73,6 +73,7 @@ export class Factory extends DocFactory<MarketplaceShareReturnAct.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: MarketplaceShareReturnAct.Model = {

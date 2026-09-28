@@ -4,6 +4,7 @@ import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
 import type { ExternalOrganizationData } from '../Models'
+import { splitCreatedAt } from '../Utils/documentCreatedAt'
 
 export { MarketplaceAplReception as Template } from '../Templates'
 
@@ -70,8 +71,7 @@ export class Factory extends DocFactory<MarketplaceAplReception.Action> {
     // приёмки decision не используется).
     const decision = {
       id: 0,
-      date: meta.created_at.split(' ')[0] ?? '',
-      time: meta.created_at.split(' ')[1] ?? '',
+      ...splitCreatedAt(meta.created_at, meta.timezone),
       votes_for: 0,
       votes_against: 0,
       votes_abstained: 0,

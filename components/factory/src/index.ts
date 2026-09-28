@@ -3,6 +3,7 @@ export * from './DataSource'
 export * from './Templates'
 export * from './Schema'
 export { documentMetaKey } from './Utils/documentMetaKey'
+export { formatCreatedAt, isIsoCreatedAt, isLegacyCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from './Utils/documentCreatedAt'
 
 import type { Filter, InsertOneResult, UpdateResult } from 'mongodb'
 import type { Cooperative as CooperativeModel } from 'cooptypes'

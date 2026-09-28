@@ -44,7 +44,7 @@ padding-top: 30px;
 {% if type == 'individual' %}
 <h1 class="header">{% trans 'application_exit_individual' %}</h1>
 <p style="text-align: center" class="subheader">{% trans 'of_consumer_cooperative' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
+<p style="text-align: right">{{ created_at }}, {{ coop.city }}</p>
 <p>{% trans 'to_council_of' %} {{ coop.full_name }} {% trans 'from' %} {{ individual.last_name }} {{ individual.first_name }} {{ individual.middle_name }}, {% trans 'birthdate' %} {{ individual.birthdate }}, {% trans 'registration_address' %} {{ individual.full_address }}, {% trans 'phone_and_email_notice', individual.phone, individual.email %}{% if vars.passport_request == 'yes' %} {% trans 'passport' %} № {{ individual.passport.series }} {{ individual.passport.number }}, {% trans 'passport_code' %} {{ individual.passport.code }}, {% trans 'passport_issued' %} {{ individual.passport.issued_by }} {% trans 'passport_from' %} {{ individual.passport.issued_at }}.{% endif %}</p>
 <p>{% trans 'request_to_exit', coop.full_name, coop.details.ogrn, coop.details.inn, coop.details.kpp %}</p>
 <p>{% trans 'obligation_to_settle_individual' %}</p>
@@ -56,7 +56,7 @@ padding-top: 30px;
 {% elif type == 'entrepreneur' %}
 <h1 class="header">{% trans 'application_exit_entrepreneur' %}</h1>
 <p style="text-align: center" class="subheader">{% trans 'of_consumer_cooperative' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
+<p style="text-align: right">{{ created_at }}, {{ coop.city }}</p>
 <p>{% trans 'to_council_of' %} {{ coop.full_name }} {% trans 'from_entrepreneur' %} {{ entrepreneur.last_name }} {{ entrepreneur.first_name }} {{ entrepreneur.middle_name }}, {% trans 'birthdate' %} {{ entrepreneur.birthdate }}, {% trans 'registration_address' %} {{ entrepreneur.full_address }}, {% trans 'entrepreneur_details', entrepreneur.details.inn, entrepreneur.details.ogrn %}, {% trans 'phone_and_email_notice', entrepreneur.phone, entrepreneur.email %}</p>
 <p>{% trans 'request_to_exit', coop.full_name, coop.details.ogrn, coop.details.inn, coop.details.kpp %}</p>
 <p>{% trans 'obligation_to_settle_individual' %}</p>
@@ -68,7 +68,7 @@ padding-top: 30px;
 {% elif type == 'organization' %}
 <h1 class="header">{% trans 'application_exit_legal_entity' %}</h1>
 <p style="text-align: center" class="subheader">{% trans 'of_consumer_cooperative' %} {{ coop.full_name }}<p>
-<p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
+<p style="text-align: right">{{ created_at }}, {{ coop.city }}</p>
 <p>{% trans 'to_council_of' %} {{ coop.full_name }} {% trans 'from_legal_entity' %} {{ organization.full_name }}, {% trans 'legal_address' %}: {{ organization.full_address }}, {% trans 'fact_address' %}: {{ organization.fact_address }}, {% trans 'legal_entity_details', organization.details.inn, organization.details.ogrn, organization.details.kpp %}, {% trans 'phone_and_email_notice', organization.phone, organization.email %}</p>
 <p>{% trans 'request_to_exit_legal_entity', organization.represented_by.position, organization.represented_by.last_name, organization.represented_by.first_name, organization.represented_by.middle_name, organization.represented_by.based_on, organization.full_name, coop.full_name %}</p>
 <p>{% trans 'obligation_to_settle_legal_entity' %}</p>

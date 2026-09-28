@@ -25,7 +25,7 @@ export interface Model {
 
 export const title = 'Заявление о приёме доверенным лицом кооперативного участка'
 export const description = 'Форма заявления пайщика о приёме доверенным лицом кооперативного участка'
-export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;}.digital-document {padding: 20px;white-space: pre-wrap;}.signature {padding-top: 30px;}</style><div class="digital-document"><h1 class="header">{% trans 'STATEMENT_TITLE' %}</h1><p style="text-align: center">{{vars.full_abbr_genitive}} «{{vars.name}}»</p><p style="text-align: right">{{ coop.city }}, {{ meta.created_at }}</p><p>{% trans 'TO_CHAIRMAN' %} «{{ braname }}» {% trans 'FROM_PARTICIPANT' %} {{ user.full_name_or_short_name }}.</p><p>{% trans 'REQUEST_TEXT', braname %}</p><div class="signature"><p>{% trans 'PARTICIPANT_LABEL' %} {{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
+export const context = `<style>.digital-document h1 {margin: 0px;text-align:center;}.digital-document {padding: 20px;white-space: pre-wrap;}.signature {padding-top: 30px;}</style><div class="digital-document"><h1 class="header">{% trans 'STATEMENT_TITLE' %}</h1><p style="text-align: center">{{vars.full_abbr_genitive}} «{{vars.name}}»</p><p style="text-align: right">{{ coop.city }}, {{ created_at }}</p><p>{% trans 'TO_CHAIRMAN' %} «{{ braname }}» {% trans 'FROM_PARTICIPANT' %} {{ user.full_name_or_short_name }}.</p><p>{% trans 'REQUEST_TEXT', braname %}</p><div class="signature"><p>{% trans 'PARTICIPANT_LABEL' %} {{ user.full_name_or_short_name }}</p><p>{% trans 'SIGNED_DIGITALLY' %}</p></div></div>`
 
 export const translations = {
   ru: {

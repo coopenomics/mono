@@ -37,7 +37,7 @@ export class Factory extends DocFactory<MarketplaceReturnCancelDecision.Action> 
     const commonUser = this.getCommonUser(await this.getUser(data.username, data.block_num))
     const operatorUser = this.getCommonUser(await this.getUser(data.operator, data.block_num))
 
-    const decision: Cooperative.Document.IDecisionData = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at)
+    const decision: Cooperative.Document.IDecisionData = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at, meta.timezone)
 
     const cleanNum = (s: string): string => {
       const n = Number.parseFloat(s)
