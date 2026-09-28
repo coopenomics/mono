@@ -1,12 +1,12 @@
 <template lang="pug">
-div(v-html="renderedHtml").statement
+div(v-html="renderedHtml" :data-doc-scope="scope").statement
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import type { PropType } from 'vue';
 import DOMPurify from 'dompurify';
-import { sanitizeDocumentHtml } from 'src/shared/lib/utils';
+import { sanitizeDocumentHtml, scopeDocumentStyles } from 'src/shared/lib/utils';
 
 const props = defineProps({
   html: {
@@ -28,8 +28,14 @@ const props = defineProps({
   },
 });
 
+// Стили документа действуют только внутри его контейнера: два документа на
+// одном экране иначе перекрашивали бы друг друга (см. scopeDocumentStyles).
+const scope = useId();
+
 const renderedHtml = computed(() =>
-  props.profile === 'document' ? sanitizeDocumentHtml(props.html) : DOMPurify.sanitize(props.html)
+  props.profile === 'document'
+    ? scopeDocumentStyles(sanitizeDocumentHtml(props.html), scope)
+    : DOMPurify.sanitize(props.html)
 );
 </script>
 
