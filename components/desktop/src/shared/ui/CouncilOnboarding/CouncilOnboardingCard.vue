@@ -23,13 +23,6 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
       q-card-section
         div.text-h5 {{ title }}
         div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
-        //- Несколько вопросов ждут объявления — одно окно со всеми документами
-        //- и одна отправка по очереди вместо кнопки на каждом шаге.
-        div.council-onboarding__bulk(v-if="pendingSteps.length > 1")
-          BaseButton(variant="primary", size="sm", :disabled="busy", @click="openBulk")
-            template(#icon-left)
-              q-icon.q-mr-xs(name="playlist_add_check", size="18px")
-            span {{ $t('ui.councilOnboardingCard.announceAllLabel') }}
         div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
           q-chip(
             v-if="countdownLabel",
@@ -66,6 +59,15 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
               :disabled="busy",
               @click="() => handleStepClick(step)"
             ) {{ $t('ui.councilOnboardingCard.announceMeetLabel') }}
+
+        //- Несколько вопросов ждут объявления — под списком шагов, чтобы не
+        //- стоять рядом с кнопкой первого шага: одно окно со всеми документами
+        //- и одна отправка по очереди.
+        div.council-onboarding__bulk(v-if="pendingSteps.length > 1")
+          BaseButton(variant="primary", size="sm", :disabled="busy", @click="openBulk")
+            template(#icon-left)
+              q-icon.q-mr-xs(name="playlist_add_check", size="18px")
+            span {{ $t('ui.councilOnboardingCard.announceAllLabel') }}
 
       div.council-onboarding__step(v-for="(step, i) in extraStepsList", :key="step.id")
         div.council-onboarding__step-head
@@ -123,24 +125,24 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
     :close-on-backdrop='false',
     :close-on-escape='false'
   )
-    div.council-onboarding__bulk-head
-      div.text-caption.text-grey-7 {{ $t('ui.councilOnboardingCard.announceAllHint') }}
-      BaseButton(variant='ghost', size='sm', @click='toggleAllExpanded')
-        | {{ allExpanded ? $t('ui.councilOnboardingCard.collapseAllLabel') : $t('ui.councilOnboardingCard.expandAllLabel') }}
+    div.text-caption.text-grey-7 {{ $t('ui.councilOnboardingCard.announceAllHint') }}
     div.council-onboarding__bulk-list
       q-expansion-item.council-onboarding__bulk-item(
         v-for="step in bulkSteps",
         :key="step.id",
         v-model="expanded[step.id]",
-        switch-toggle-side
+        :class="`council-onboarding__bulk-item--${bulkState[step.id]}`"
       )
         template(#header)
           div.council-onboarding__bulk-item-head
-            q-spinner(v-if="bulkState[step.id] === 'sending'", color="primary", size="20px")
-            q-icon(v-else, :name="bulkIcon(step)", :color="bulkIconColor(step)", size="20px")
-            div
-              div.text-subtitle2 {{ stepNumber(step) }}. {{ step.title }}
+            div.council-onboarding__bulk-num
+              q-icon(v-if="bulkState[step.id] === 'done'", name="check", size="16px")
+              q-icon(v-else-if="bulkState[step.id] === 'failed'", name="priority_high", size="16px")
+              span(v-else) {{ stepNumber(step) }}
+            div.council-onboarding__bulk-item-text
+              div.council-onboarding__bulk-item-title {{ step.title }}
               div.text-caption.text-grey-7 {{ step.description }}
+            q-spinner(v-if="bulkState[step.id] === 'sending'", color="primary", size="18px")
         div.council-onboarding__bulk-body
           div.text-subtitle2 {{ $t('ui.councilOnboardingCard.agendaQuestionLabel') }}
           div.q-mt-xs.text-body2 {{ step.question }}
@@ -325,33 +327,13 @@ const bulkSteps = computed(() =>
 const bulkReady = computed(
   () => !busy.value && bulkSteps.value.length > 0 && bulkSteps.value.every((s) => Boolean(s.decision)) && bulkSteps.value.some((s) => bulkState.value[s.id] !== 'done'),
 );
-const allExpanded = computed(() => bulkSteps.value.length > 0 && bulkSteps.value.every((s) => expanded.value[s.id]));
 const stepNumber = (step: ICouncilOnboardingStep) => steps.value.findIndex((s) => s.id === step.id) + 1;
 
 const openBulk = () => {
   bulkIds.value = pendingSteps.value.map((s) => s.id);
   bulkState.value = Object.fromEntries(bulkIds.value.map((id) => [id, 'waiting' as BulkState]));
-  expanded.value = Object.fromEntries(bulkIds.value.map((id, i) => [id, i === 0]));
+  expanded.value = {};
   bulkOpen.value = true;
-};
-
-const toggleAllExpanded = () => {
-  const open = !allExpanded.value;
-  expanded.value = Object.fromEntries(bulkIds.value.map((id) => [id, open]));
-};
-
-const bulkIcon = (step: ICouncilOnboardingStep) => {
-  const state = bulkState.value[step.id];
-  if (state === 'done') return 'task_alt';
-  if (state === 'failed') return 'error_outline';
-  return 'radio_button_unchecked';
-};
-
-const bulkIconColor = (step: ICouncilOnboardingStep) => {
-  const state = bulkState.value[step.id];
-  if (state === 'done') return 'positive';
-  if (state === 'failed') return 'negative';
-  return 'grey-6';
 };
 
 // Вопросы уходят в совет строго по очереди: следующий шаг объявляется, когда
@@ -418,14 +400,10 @@ const submitAll = async () => {
 }
 
 .council-onboarding__bulk {
-  margin-top: var(--p-3);
-}
-
-.council-onboarding__bulk-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-3);
+  justify-content: flex-end;
+  padding: 16px 0;
+  border-top: 1px solid var(--p-line);
 }
 
 .council-onboarding__bulk-list {
@@ -436,6 +414,8 @@ const submitAll = async () => {
 }
 
 .council-onboarding__bulk-item {
+  overflow: hidden;
+  background: var(--p-surface-2);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
 }
@@ -445,10 +425,49 @@ const submitAll = async () => {
   flex: 1;
   align-items: center;
   gap: var(--p-3);
+  padding: var(--p-1) 0;
 }
 
+.council-onboarding__bulk-item-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.council-onboarding__bulk-item-title {
+  color: var(--p-ink);
+  font-weight: 600;
+}
+
+// Номер вопроса в мягкой плашке: цвет смысла — у плашки, а не полосой.
+// Отправленный вопрос — зелёная с галочкой, ошибка — красная.
+.council-onboarding__bulk-num {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--p-r-pill);
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+  font-weight: 600;
+}
+
+.council-onboarding__bulk-item--done .council-onboarding__bulk-num {
+  background: var(--p-pos-soft);
+  color: var(--p-pos);
+}
+
+.council-onboarding__bulk-item--failed .council-onboarding__bulk-num {
+  background: var(--p-neg-soft);
+  color: var(--p-neg);
+}
+
+// Раскрытый документ — на белом листе внутри цветной плашки вопроса.
 .council-onboarding__bulk-body {
-  padding: 0 var(--p-4) var(--p-4);
+  padding: var(--p-4);
+  background: var(--p-surface);
+  border-top: 1px solid var(--p-line);
 }
 
 .council-onboarding__steps {
