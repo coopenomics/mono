@@ -12,7 +12,10 @@ BaseDialog(
     h1.sign-agreement__title {{ title }}
     .sign-agreement__ghost(v-if='isLoading', aria-busy='true', :aria-label='$t(`agreementer.signAgreementDialog.loadingText`)')
       q-skeleton(v-for='(w, i) in ghostLines', :key='i', type='text', :width='w')
-    slot(v-else)
+    //- Слот монтируется сразу и только прячется: документ формирует читатель в
+    //- слоте, и под v-else он не появился бы никогда — скелетон висел вечно.
+    div(v-show='!isLoading')
+      slot
   template(#footer)
     .sign-agreement__actions
       BaseButton(
