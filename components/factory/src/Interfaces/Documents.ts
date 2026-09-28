@@ -35,6 +35,8 @@ export interface ICombinedData {
   entrepreneur?: ExternalEntrepreneurData
   coop?: CooperativeData
   meta: IMetaDocument
+  /** Дата документа для человека («ДД.ММ.ГГГГ ЧЧ:ММ»); подставляет фабрика при рендере из `meta.created_at`. */
+  created_at?: string
 }
 
 export type Numbers = keyof typeof Registry

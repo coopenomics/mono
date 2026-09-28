@@ -7,8 +7,15 @@ import { loadBufferFromDisk } from './loadBufferFromDisk'
 import { formatDateTime } from './formatUtils'
 import { isEmpty } from './isEmpty'
 import { documentMetaKey } from './documentMetaKey'
+import { formatCreatedAt, isIsoCreatedAt, isLegacyCreatedAt, nowCreatedAt, parseCreatedAt, splitCreatedAt } from './documentCreatedAt'
 
 export {
+  formatCreatedAt,
+  isIsoCreatedAt,
+  isLegacyCreatedAt,
+  nowCreatedAt,
+  parseCreatedAt,
+  splitCreatedAt,
   calculateSha256,
   getCurrentBlock,
   getFetch,

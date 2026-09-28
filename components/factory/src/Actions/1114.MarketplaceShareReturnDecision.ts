@@ -34,7 +34,7 @@ export class Factory extends DocFactory<MarketplaceShareReturnDecision.Action> {
     const user = await this.getUser(data.username, data.block_num)
     const commonUser = this.getCommonUser(user)
 
-    const decision: Cooperative.Document.IDecisionData = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at)
+    const decision: Cooperative.Document.IDecisionData = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at, meta.timezone)
 
     const cleanNum = (s: string): string => {
       const n = Number.parseFloat(s)

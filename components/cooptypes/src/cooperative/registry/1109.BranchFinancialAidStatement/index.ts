@@ -73,7 +73,7 @@ export const context = `<style>
   margin: 4px 0 0 !important;
 }
 </style>
-<div class="digital-document"><div style="text-align: right; margin-bottom: 24px"><p style="margin: 0px !important">{% trans 'to_chairman' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p><p style="margin: 0px !important">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center; margin-bottom: 24px"><h1 class="header">{% trans 'statement_title' %}</h1><p class="subheader">{% trans 'statement_subheader' %}</p></div><p>{% trans 'body', amount %}</p><p>{% trans 'tax_note' %}</p><div class="signature" style="margin-top: 24px"><p style="margin: 0px !important">{% trans 'signature' %}</p><p style="margin: 0px !important">{{ user.full_name_or_short_name }}</p><p style="margin: 0px !important">{{ meta.created_at }}</p></div></div>
+<div class="digital-document"><div style="text-align: right; margin-bottom: 24px"><p style="margin: 0px !important">{% trans 'to_chairman' %} {{ vars.full_abbr_genitive }} "{{ vars.name }}"</p><p style="margin: 0px !important">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center; margin-bottom: 24px"><h1 class="header">{% trans 'statement_title' %}</h1><p class="subheader">{% trans 'statement_subheader' %}</p></div><p>{% trans 'body', amount %}</p><p>{% trans 'tax_note' %}</p><div class="signature" style="margin-top: 24px"><p style="margin: 0px !important">{% trans 'signature' %}</p><p style="margin: 0px !important">{{ user.full_name_or_short_name }}</p><p style="margin: 0px !important">{{ created_at }}</p></div></div>
 `
 
 export const translations = {

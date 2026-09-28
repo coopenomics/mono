@@ -33,6 +33,7 @@ import { DocumentRow, type DocumentRowDoc } from 'src/shared/ui/domain/DocumentR
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model/types'
 import type { IDocumentAggregate } from 'src/entities/Document/model'
 import { t } from 'src/shared/i18n';
+import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates';
 
 const props = defineProps({
   documents: {
@@ -54,11 +55,11 @@ interface IPackageItem {
 
 // Отметку «Подписано» строке не ставим: в пакете решения подписано всё.
 const toRow = (aggregate: IDocumentAggregate, fallbackTitle: string): DocumentRowDoc => {
-  const meta = (aggregate.rawDocument?.meta ?? {}) as { title?: string; created_at?: string }
+  const meta = (aggregate.rawDocument?.meta ?? {}) as { title?: string; created_at?: string; timezone?: string }
   return {
     type: 'html',
     title: meta.title || fallbackTitle,
-    date: meta.created_at,
+    date: formatDocumentCreatedAt(meta) || undefined,
   }
 }
 

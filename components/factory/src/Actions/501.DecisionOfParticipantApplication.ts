@@ -48,6 +48,7 @@ export class Factory extends DocFactory<DecisionOfParticipantApplication.Action>
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: DecisionOfParticipantApplication.Model = {

@@ -53,6 +53,7 @@ import {
 import { DocumentModel } from 'src/entities/Document';
 import type { IDocumentPackageAggregate } from 'src/entities/Document/model';
 import { t } from 'src/shared/i18n';
+import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates';
 
 interface IPagination {
   totalCount: number;
@@ -94,7 +95,7 @@ function getDocumentTitle(row: IDocumentPackageAggregate): string {
 }
 
 function getDocumentDate(row: IDocumentPackageAggregate): string {
-  return getMeta(row)?.created_at || '';
+  return formatDocumentCreatedAt(getMeta(row));
 }
 
 // block_num монотонно растёт со временем — надёжный ключ хронологической сортировки.
