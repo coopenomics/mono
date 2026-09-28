@@ -244,6 +244,17 @@ export async function computeDraftsPlan(blockchain: Blockchain): Promise<IDrafts
 
     let touched = false
 
+    // Версия поднимается раньше правки текста. Кооператив, пока его совет не
+    // утвердил новую редакцию, получает текст последнего блока утверждённой
+    // версии; правка, записанная до `upversion`, попала бы в этот блок, и новый
+    // текст дошёл бы до пайщиков под старым утверждением.
+    const versionChanged = planVersion(
+      plan,
+      local.registry_id,
+      Number(onchain.version),
+      local.version,
+    )
+
     const contentChanged
       = onchain.title !== local.title
         || onchain.description !== local.description
@@ -299,13 +310,6 @@ export async function computeDraftsPlan(blockchain: Blockchain): Promise<IDrafts
         touched = true
       }
     }
-
-    const versionChanged = planVersion(
-      plan,
-      local.registry_id,
-      Number(onchain.version),
-      local.version,
-    )
 
     if (!touched && !versionChanged)
       plan.unchanged.push(local.registry_id)
