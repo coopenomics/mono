@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { Cooperative } from 'cooptypes';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import type {
@@ -70,7 +70,6 @@ export const useMarketplaceOnboarding = () => {
 
   const onboardingState = ref<MarketplaceOnboardingState | null>(null);
   const loading = ref(false);
-  const submitting = ref(false);
   // HTML документов по step_key — рендерим заранее, чтобы карточка показала
   // содержимое в диалоге «Проект решения».
   const documentsHtml = ref<Record<string, string>>({});
@@ -165,32 +164,24 @@ export const useMarketplaceOnboarding = () => {
     onboardingState.value = await fetchOnboardingState();
   };
 
-  const handleStepSubmit = async (step: ICouncilOnboardingStep) => {
-    try {
-      submitting.value = true;
-      const state = await completeStep({
-        extension_name: 'market',
-        step_key: step.id,
-        title: step.title,
-        question: step.question,
-        decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
-      });
-      onboardingState.value = state;
-      SuccessAlert(t('marketplace.composable.draftSentMessage'));
-    } catch (error) {
-      FailAlert(error);
-    } finally {
-      submitting.value = false;
-    }
+  // Загрузку и сообщения показывает карточка; ошибка уходит к ней — по ней
+  // останавливается очередь «Объявить все».
+  const submitStep = async (step: ICouncilOnboardingStep) => {
+    onboardingState.value = await completeStep({
+      extension_name: 'market',
+      step_key: step.id,
+      title: step.title,
+      question: step.question,
+      decision: documentsHtml.value[step.id] || step.decisionPrefix || '',
+    });
   };
 
   return {
     config,
     loading,
-    submitting,
     isCompleted,
     loadState,
     refreshState,
-    handleStepSubmit,
+    submitStep,
   };
 };

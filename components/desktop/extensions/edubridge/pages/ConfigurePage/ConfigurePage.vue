@@ -3,12 +3,11 @@ q-page.edu-onboarding(role="region" :aria-label="$t('edubridge.configurePage.ari
   CouncilOnboardingCard(
     :config="config"
     :loading="initialLoading"
-    :submitting="submitting"
     :title="$t('edubridge.configurePage.title')"
     :subtitle="$t('edubridge.configurePage.subtitle')"
     :completion-title="config.completionTitle"
     :completion-message="config.completionMessage"
-    @step-submit="handleStepSubmit"
+    :submit-step="submitStep"
   )
 </template>
 
@@ -18,7 +17,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Queries, Zeus } from '@coopenomics/sdk';
 import { Cooperative } from 'cooptypes';
 import { client } from 'src/shared/api/client';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useExtensionCooperativeOnboarding } from 'src/features/CooperativeOnboarding';
@@ -86,7 +84,6 @@ const { isLoading, allDone } = onboarding;
 // содержимое целиком — страница мигала бы при каждом действии.
 const initialLoading = computed(() => isLoading.value && !onboarding.steps.value.length);
 
-const submitting = ref(false);
 const documentsHtml = ref<Record<string, string>>({});
 const documentErrors = ref<Record<string, string>>({});
 
@@ -130,22 +127,16 @@ async function renderDocument(registryId: number): Promise<string> {
   return blank?.html || '';
 }
 
-async function handleStepSubmit(step: ICouncilOnboardingStep): Promise<void> {
-  submitting.value = true;
-  try {
-    await onboarding.completeStep({
-      extension_name: EXTENSION_NAME,
-      step_key: step.id,
-      title: step.title,
-      question: step.question,
-      decision: documentsHtml.value[step.id] || '',
-    });
-    SuccessAlert(t('edubridge.configurePage.draftSentSuccess'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    submitting.value = false;
-  }
+// Загрузку и сообщения показывает карточка; ошибка уходит к ней — по ней
+// останавливается очередь «Объявить все».
+async function submitStep(step: ICouncilOnboardingStep): Promise<void> {
+  await onboarding.completeStep({
+    extension_name: EXTENSION_NAME,
+    step_key: step.id,
+    title: step.title,
+    question: step.question,
+    decision: documentsHtml.value[step.id] || '',
+  });
 }
 
 onMounted(async () => {

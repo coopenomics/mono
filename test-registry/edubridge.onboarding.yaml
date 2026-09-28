@@ -20,6 +20,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-onboarding.service.ts
   ui:
     - components/desktop/extensions/edubridge/pages/ConfigurePage/**
+    - components/desktop/src/shared/ui/CouncilOnboarding/**
     - components/desktop/extensions/edubridge/pages/MemberOnboardingPage/**
     - components/desktop/extensions/edubridge/pages/TeacherOnboardingPage/**
     - components/desktop/extensions/edubridge/features/OfferGate/**
@@ -74,4 +75,17 @@ cases:
     expect: "Страница уходит на рабочую страницу стола сама, без перезагрузки: переход вызывается функцией подписи, а не событием шага, который к этому моменту уже снят со страницы."
     test: ~
     status: missing
-
+  - id: edu.onb.happy.06
+    level: ui
+    kind: happy
+    scenario: >
+      Председатель на подключении ЦПП (образование, Стол заказов — общий виджет
+      CouncilOnboardingCard) жмёт «Объявить все»: в одном окне все вопросы,
+      ждущие объявления, каждый раскрывается до проекта решения.
+    expect: >
+      «Объявить все (N)» доступна, когда сформированы все документы; вопросы
+      уходят в совет по порядку одной отправкой, у каждого видна отметка;
+      ошибка останавливает очередь на своём вопросе, повтор продолжает с
+      неотправленных; одиночные кнопки шагов работают как раньше
+    test: ~
+    status: missing

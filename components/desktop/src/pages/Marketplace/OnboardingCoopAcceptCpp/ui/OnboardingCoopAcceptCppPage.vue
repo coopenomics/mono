@@ -25,7 +25,7 @@ import { t } from 'src/shared/i18n';
  * Сама страница после подключения из меню уходит — она одноразовая.
  */
 
-const { config, loading, submitting, isCompleted, loadState, refreshState, handleStepSubmit } =
+const { config, loading, isCompleted, loadState, refreshState, submitStep } =
   useMarketplaceOnboarding();
 
 const chipVariant = computed<BaseBadgeVariant>(() =>
@@ -53,12 +53,11 @@ q-page.onboarding-l1(role="region", :aria-label="$t('marketplace.onboardingCoopA
   CouncilOnboardingCard(
     :config="config",
     :loading="loading",
-    :submitting="submitting",
     :title="$t('marketplace.onboardingCoopAcceptCppPage.pageTitle')",
     :subtitle="$t('marketplace.onboardingCoopAcceptCppPage.pageSubtitle')",
     :completion-title="config.completionTitle",
     :completion-message="config.completionMessage",
-    @step-submit="handleStepSubmit"
+    :submit-step="submitStep"
   )
     template(#status)
       BaseBadge(:variant="chipVariant", dot) {{ chipLabel }}

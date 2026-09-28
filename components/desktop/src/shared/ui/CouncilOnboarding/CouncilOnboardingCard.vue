@@ -23,6 +23,13 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
       q-card-section
         div.text-h5 {{ title }}
         div.text-caption.text-grey-7.q-mt-xs(v-if="subtitle") {{ subtitle }}
+        //- Несколько вопросов ждут объявления — одно окно со всеми документами
+        //- и одна отправка по очереди вместо кнопки на каждом шаге.
+        div.council-onboarding__bulk(v-if="pendingSteps.length > 1")
+          BaseButton(variant="primary", size="sm", :disabled="busy", @click="openBulk")
+            template(#icon-left)
+              q-icon.q-mr-xs(name="playlist_add_check", size="18px")
+            span {{ $t('ui.councilOnboardingCard.announceAllLabel') }}
         div.council-onboarding__status-row(v-if="countdownLabel || hasStatusSlot")
           q-chip(
             v-if="countdownLabel",
@@ -55,7 +62,8 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
             BaseButton(
               variant="primary",
               size="sm",
-              :loading="submitting",
+              :loading="busy && currentStepId === step.id",
+              :disabled="busy",
               @click="() => handleStepClick(step)"
             ) {{ $t('ui.councilOnboardingCard.announceMeetLabel') }}
 
@@ -103,12 +111,59 @@ q-card.council-onboarding(flat, :class="{ 'council-onboarding--loading': loading
         q-skeleton(v-for="(w, i) in ghostLines" :key="i" type="text" :width="w")
 
     template(#footer)
-      BaseButton(variant='ghost' :disabled='submitting' @click='closeDialog') {{ $t('common.action.cancel') }}
-      BaseButton(variant='primary' :disabled='!dialogDecision' :loading='submitting' @click='submitStep') {{ $t('ui.councilOnboardingCard.announceButton') }}
+      BaseButton(variant='ghost' :disabled='busy' @click='closeDialog') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary' :disabled='!dialogDecision' :loading='busy' @click='submitCurrent') {{ $t('ui.councilOnboardingCard.announceButton') }}
+
+  //- Все вопросы, ждущие объявления, одним окном: каждый раскрывается до
+  //- проекта решения, отправка — одна, вопросы уходят в совет по порядку.
+  BaseDialog(
+    v-model='bulkOpen',
+    :title="$t('ui.councilOnboardingCard.announceAllTitle')",
+    size='xl',
+    :close-on-backdrop='false',
+    :close-on-escape='false'
+  )
+    div.council-onboarding__bulk-head
+      div.text-caption.text-grey-7 {{ $t('ui.councilOnboardingCard.announceAllHint') }}
+      BaseButton(variant='ghost', size='sm', @click='toggleAllExpanded')
+        | {{ allExpanded ? $t('ui.councilOnboardingCard.collapseAllLabel') : $t('ui.councilOnboardingCard.expandAllLabel') }}
+    div.council-onboarding__bulk-list
+      q-expansion-item.council-onboarding__bulk-item(
+        v-for="step in bulkSteps",
+        :key="step.id",
+        v-model="expanded[step.id]",
+        switch-toggle-side
+      )
+        template(#header)
+          div.council-onboarding__bulk-item-head
+            q-spinner(v-if="bulkState[step.id] === 'sending'", color="primary", size="20px")
+            q-icon(v-else, :name="bulkIcon(step)", :color="bulkIconColor(step)", size="20px")
+            div
+              div.text-subtitle2 {{ stepNumber(step) }}. {{ step.title }}
+              div.text-caption.text-grey-7 {{ step.description }}
+        div.council-onboarding__bulk-body
+          div.text-subtitle2 {{ $t('ui.councilOnboardingCard.agendaQuestionLabel') }}
+          div.q-mt-xs.text-body2 {{ step.question }}
+          div.text-subtitle2.q-mt-md {{ $t('ui.councilOnboardingCard.draftDecisionLabel') }}
+          div.q-mt-xs(v-if="step.decisionPrefix") {{ step.decisionPrefix }}
+          DocumentHtmlReader(v-if="step.decision" :html="step.decision" profile="document")
+          BaseBanner.q-mt-sm(v-else-if="step.decisionError" variant="neg") {{ step.decisionError }}
+          div.council-onboarding__decision-ghost(v-else aria-busy="true")
+            div.text-caption.text-grey-7 {{ $t('ui.councilOnboardingCard.generatingDocumentText') }}
+            q-skeleton(v-for="(w, i) in ghostLines" :key="i" type="text" :width="w")
+
+    template(#footer)
+      BaseButton(variant='ghost' :disabled='busy' @click='bulkOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(
+        variant='primary',
+        :disabled='!bulkReady',
+        :loading='busy',
+        @click='submitAll'
+      ) {{ $t('ui.councilOnboardingCard.announceAllButton', { count: bulkSteps.length }) }}
 </template>
 
 <script setup lang="ts">
-import { ref, computed, useSlots, watch } from 'vue';
+import { ref, computed, useSlots } from 'vue';
 import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -120,13 +175,17 @@ import type {
   ICouncilOnboardingExtraStep,
 } from './types';
 import { t } from 'src/shared/i18n';
+import { FailAlert, SuccessAlert } from 'src/shared/api';
 
 interface Props {
   config: ICouncilOnboardingConfig;
   loading?: boolean;
-  // Идёт отправка проекта решения в Совет (async в родителе). Пока true —
-  // кнопка «Объявить» крутит лоадер, диалог не закрывается.
-  submitting?: boolean;
+  /**
+   * Отправить проект решения шага в Совет. Отвечает, когда вопрос объявлен, и
+   * бросает ошибку, если нет, — по ней очередь «Объявить все» останавливается.
+   * Загрузку и сообщения показывает карточка.
+   */
+  submitStep: (step: ICouncilOnboardingStep) => Promise<unknown>;
   loadingText?: string;
   title?: string;
   subtitle?: string;
@@ -140,7 +199,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  submitting: false,
   loadingText: t('ui.councilOnboardingCard.loadingText'),
   title: t('ui.councilOnboardingCard.subtitleText'),
   completionTitle: t('ui.councilOnboardingCard.completedTitle'),
@@ -149,7 +207,6 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: 'step-submit', step: ICouncilOnboardingStep): void;
   (e: 'extra-action', step: ICouncilOnboardingExtraStep): void;
 }>();
 
@@ -232,25 +289,100 @@ const closeDialog = () => {
   currentStepId.value = null;
 };
 
-const submitStep = () => {
+// Одна отправка за раз: и одиночная кнопка, и очередь «Объявить все».
+const busy = ref(false);
+
+const submitCurrent = async () => {
   // Без документа в совет ушло бы решение из одной вводной фразы.
-  if (!currentStep.value || !dialogDecision.value) return;
-  // Диалог здесь НЕ закрываем: реальная отправка проекта решения в Совет —
-  // async-операция в родителе (handleStepSubmit). Пока она идёт, prop
-  // `submitting` = true → кнопка «Объявить» крутит лоадер, диалог открыт и
-  // некликабелен. Закрытие — по watcher'у ниже, когда submitting вернётся
-  // в false (успех или ошибка). Иначе диалог схлопывался мгновенно и юзер
-  // не видел, что транзакция ещё идёт.
-  emit('step-submit', currentStep.value);
+  const step = currentStep.value;
+  if (!step || !dialogDecision.value) return;
+  busy.value = true;
+  try {
+    await props.submitStep(step);
+    SuccessAlert(t('ui.councilOnboardingCard.draftSentText'));
+    closeDialog();
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    busy.value = false;
+  }
 };
 
-// Закрываем диалог по завершении async-отправки (submitting: true → false).
-watch(
-  () => props.submitting,
-  (now, prev) => {
-    if (prev && !now && dialogOpen.value) closeDialog();
-  },
+// Вопросы, ждущие объявления, по порядку шагов.
+const pendingSteps = computed(() => steps.value.filter((s) => s.status === 'pending'));
+
+type BulkState = 'waiting' | 'sending' | 'done' | 'failed';
+const bulkOpen = ref(false);
+// Состав окна снимается при открытии: шаги, объявленные по ходу очереди,
+// меняют статус и ушли бы из списка, а их отметку «отправлен» надо видеть.
+const bulkIds = ref<string[]>([]);
+const bulkState = ref<Record<string, BulkState>>({});
+const expanded = ref<Record<string, boolean>>({});
+
+const bulkSteps = computed(() =>
+  bulkIds.value.map((id) => steps.value.find((s) => s.id === id)).filter((s): s is ICouncilOnboardingStep => Boolean(s)),
 );
+const bulkReady = computed(
+  () => !busy.value && bulkSteps.value.length > 0 && bulkSteps.value.every((s) => Boolean(s.decision)) && bulkSteps.value.some((s) => bulkState.value[s.id] !== 'done'),
+);
+const allExpanded = computed(() => bulkSteps.value.length > 0 && bulkSteps.value.every((s) => expanded.value[s.id]));
+const stepNumber = (step: ICouncilOnboardingStep) => steps.value.findIndex((s) => s.id === step.id) + 1;
+
+const openBulk = () => {
+  bulkIds.value = pendingSteps.value.map((s) => s.id);
+  bulkState.value = Object.fromEntries(bulkIds.value.map((id) => [id, 'waiting' as BulkState]));
+  expanded.value = Object.fromEntries(bulkIds.value.map((id, i) => [id, i === 0]));
+  bulkOpen.value = true;
+};
+
+const toggleAllExpanded = () => {
+  const open = !allExpanded.value;
+  expanded.value = Object.fromEntries(bulkIds.value.map((id) => [id, open]));
+};
+
+const bulkIcon = (step: ICouncilOnboardingStep) => {
+  const state = bulkState.value[step.id];
+  if (state === 'done') return 'task_alt';
+  if (state === 'failed') return 'error_outline';
+  return 'radio_button_unchecked';
+};
+
+const bulkIconColor = (step: ICouncilOnboardingStep) => {
+  const state = bulkState.value[step.id];
+  if (state === 'done') return 'positive';
+  if (state === 'failed') return 'negative';
+  return 'grey-6';
+};
+
+// Вопросы уходят в совет строго по очереди: следующий шаг объявляется, когда
+// предыдущий уже объявлен, — тот же порядок, что у кнопок шагов. Ошибка
+// останавливает очередь, окно остаётся открытым с отметкой, где она случилась;
+// повторное нажатие продолжит с неотправленных.
+const submitAll = async () => {
+  if (!bulkReady.value) return;
+  busy.value = true;
+  let sent = 0;
+  try {
+    for (const step of bulkSteps.value) {
+      if (bulkState.value[step.id] === 'done') continue;
+      bulkState.value = { ...bulkState.value, [step.id]: 'sending' };
+      try {
+        await props.submitStep(step);
+        bulkState.value = { ...bulkState.value, [step.id]: 'done' };
+        sent += 1;
+      } catch (e) {
+        bulkState.value = { ...bulkState.value, [step.id]: 'failed' };
+        expanded.value = { ...expanded.value, [step.id]: true };
+        FailAlert(e);
+        return;
+      }
+    }
+    SuccessAlert(t('ui.councilOnboardingCard.draftsSentText', { count: sent }));
+    bulkOpen.value = false;
+  } finally {
+    busy.value = false;
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -283,6 +415,40 @@ watch(
   flex-direction: column;
   gap: var(--p-2);
   padding-top: var(--p-2);
+}
+
+.council-onboarding__bulk {
+  margin-top: var(--p-3);
+}
+
+.council-onboarding__bulk-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+}
+
+.council-onboarding__bulk-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+  margin-top: var(--p-3);
+}
+
+.council-onboarding__bulk-item {
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+}
+
+.council-onboarding__bulk-item-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--p-3);
+}
+
+.council-onboarding__bulk-body {
+  padding: 0 var(--p-4) var(--p-4);
 }
 
 .council-onboarding__steps {
