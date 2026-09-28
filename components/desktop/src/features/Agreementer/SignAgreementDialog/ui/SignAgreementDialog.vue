@@ -1,15 +1,16 @@
 <template lang="pug">
-//- Окно без собственной шапки: заголовок стоит в колонке документа, чтобы у
-//- страницы был один край — колонка текста — и никаких полос поверх него.
+//- Заголовок — в шапке окна, а не в колонке документа: иначе он читается как
+//- первая строка самого документа. Шапка и подвал — серая рамка окна, между
+//- ними белый лист; заголовок, текст и кнопка стоят по одной колонке.
 BaseDialog(
   v-model='show',
+  :title='title',
   :maximized='true',
   :hide-close-button='true',
   :close-on-backdrop='false',
   :close-on-escape='false'
 )
   .sign-agreement
-    h1.sign-agreement__title {{ title }}
     .sign-agreement__ghost(v-if='isLoading', aria-busy='true', :aria-label='$t(`agreementer.signAgreementDialog.loadingText`)')
       q-skeleton(v-for='(w, i) in ghostLines', :key='i', type='text', :width='w')
     //- Слот монтируется сразу и только прячется: документ формирует читатель в
@@ -95,13 +96,26 @@ const sign = async () => {
 </script>
 
 <style>
-/* Панель с кнопкой — серым холстом под белой страницей документа, чтобы низ
-   окна читался отдельно от текста. Без scoped: подвал рисует BaseDialog в
-   портале; :has ограничивает правило этим окном. */
+/* Шапка и панель с кнопкой — серым холстом вокруг белой страницы документа,
+   чтобы заголовок и кнопка читались рамкой окна, а не частью текста. Без
+   scoped: шапку и подвал рисует BaseDialog в портале; :has ограничивает
+   правило этим окном. */
 .base-dialog__foot:has(.sign-agreement__actions) {
   padding: var(--p-4);
   background: var(--p-canvas);
   border-top-color: var(--p-line-2);
+}
+
+.base-dialog:has(.sign-agreement) .base-dialog__head {
+  padding: var(--p-4);
+  background: var(--p-canvas);
+  border-bottom: 1px solid var(--p-line-2);
+}
+
+.base-dialog:has(.sign-agreement) .base-dialog__title {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
 }
 </style>
 
@@ -112,15 +126,6 @@ const sign = async () => {
   max-width: 760px;
   margin: 0 auto;
   padding: var(--p-8) 0 var(--p-9);
-}
-
-.sign-agreement__title {
-  margin: 0 0 var(--p-7);
-  color: var(--p-ink);
-  font-size: var(--p-fs-h1);
-  font-weight: 600;
-  line-height: var(--p-lh-h1);
-  letter-spacing: var(--p-ls-h1);
 }
 
 .sign-agreement__ghost {
@@ -142,11 +147,6 @@ const sign = async () => {
 @media (max-width: 700px) {
   .sign-agreement {
     padding: var(--p-5) 0 var(--p-7);
-  }
-  .sign-agreement__title {
-    margin-bottom: var(--p-5);
-    font-size: var(--p-fs-h2);
-    line-height: var(--p-lh-h2);
   }
   .sign-agreement__actions :deep(.base-btn) {
     width: 100%;
