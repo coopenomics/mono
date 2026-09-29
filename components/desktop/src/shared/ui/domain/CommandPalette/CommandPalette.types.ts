@@ -26,6 +26,19 @@ export interface CommandPaletteWorkspace {
   pages: CommandPalettePage[];
 }
 
+/** Команда стола: «Добавить задачу», «Создать предложение». */
+export interface CommandPaletteCommand {
+  id: string;
+  title: string;
+  icon: string;
+  /** Приложение команды — подпись справа */
+  subtitle?: string;
+  /** Слова, по которым команда ещё находится */
+  keywords?: string[];
+  /** Клавиши сочетания по порядку: ['N', 'T'] */
+  shortcut?: readonly string[];
+}
+
 /** Находка единого поиска: пайщик, документ, запись приложения. */
 export interface CommandPaletteHit {
   /** Отличает находку от других в той же группе */
@@ -56,6 +69,8 @@ export interface CommandPaletteProps {
   placeholder?: string;
   /** Подпись бейджа активного стола (default «Активный») */
   activeLabel?: string;
+  /** Команды столов; окно показывает их, когда запрос совпал с названием */
+  commands?: CommandPaletteCommand[];
   /** Находки единого поиска по текущему запросу — приходят от владельца окна */
   searchGroups?: CommandPaletteSearchGroup[];
   /** Единый поиск ещё отвечает */

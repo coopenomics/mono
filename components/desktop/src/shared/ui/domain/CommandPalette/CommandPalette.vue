@@ -97,6 +97,8 @@ q-dialog(
                 q-icon.command-palette__flat-icon(:name='entryIcon(entry)', size='18px')
                 span.command-palette__flat-title {{ entryTitle(entry) }}
                 span.command-palette__flat-crumb {{ crumb(entry) }}
+                span.command-palette__keys(v-if='entry.kind === "command" && entry.command.shortcut')
+                  kbd(v-for='key in entry.command.shortcut', :key='key') {{ key }}
             //- Источник не успел ответить: поиск по нему неполон, но остальное
             //- уже показано.
             li.command-palette__note(v-for='group in incompleteGroups', :key='`incomplete:${group.key}`')
@@ -130,6 +132,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { t } from 'src/shared/i18n';
 import type {
+  CommandPaletteCommand,
   CommandPaletteHit,
   CommandPalettePage,
   CommandPaletteProps,
@@ -146,6 +149,7 @@ const emit = defineEmits<{
   /** Запрос изменился — владелец окна ищет по нему находки */
   'update:query': [query: string];
   'select-hit': [groupKey: string, hitKey: string];
+  'run-command': [commandId: string];
 }>();
 
 const query = ref('');
@@ -228,10 +232,33 @@ interface FlatEntryHit {
   group: CommandPaletteSearchGroup;
   hit: CommandPaletteHit;
 }
-type FlatEntry = FlatEntryWorkspace | FlatEntryPage | FlatEntryHit;
+interface FlatEntryCommand {
+  kind: 'command';
+  key: string;
+  command: CommandPaletteCommand;
+}
+type FlatEntry = FlatEntryWorkspace | FlatEntryPage | FlatEntryHit | FlatEntryCommand;
 
-/** Результаты поиска: сначала столы, затем страницы, затем находки источников */
-const searchResults = computed<FlatEntry[]>(() => [...localResults.value, ...hitResults.value]);
+/** Результаты поиска: команды, столы, страницы, затем находки источников */
+const searchResults = computed<FlatEntry[]>(() => [
+  ...commandResults.value,
+  ...localResults.value,
+  ...hitResults.value,
+]);
+
+// Команды показываются только по запросу: без него окно — навигация по
+// столам, и команды не мешают обычной работе.
+const commandResults = computed<FlatEntry[]>(() => {
+  const q = query.value.toLowerCase().trim();
+  if (!q) return [];
+  return (props.commands ?? [])
+    .filter((command) =>
+      [command.title, command.subtitle ?? '', ...(command.keywords ?? [])].some((text) =>
+        text.toLowerCase().includes(q),
+      ),
+    )
+    .map((command) => ({ kind: 'command' as const, key: `cmd:${command.id}`, command }));
+});
 
 const hitResults = computed<FlatEntry[]>(() =>
   (props.searchGroups ?? []).flatMap((group) =>
@@ -276,23 +303,27 @@ function isSectionStart(index: number): boolean {
 
 function sectionTitle(entry: FlatEntry): string {
   if (entry.kind === 'hit') return entry.group.title;
+  if (entry.kind === 'command') return t('ui.commandPalette.commandsSection');
   return entry.kind === 'workspace' ? t('ui.commandPalette.workspacesSection') : t('ui.commandPalette.pagesSection');
 }
 
 function entryIcon(entry: FlatEntry): string {
   if (entry.kind === 'hit') return entry.hit.icon ?? entry.group.icon;
+  if (entry.kind === 'command') return entry.command.icon;
   if (entry.kind === 'workspace') return entry.workspace.icon;
   return entry.page.icon ?? entry.workspace.icon;
 }
 
 function entryTitle(entry: FlatEntry): string {
   if (entry.kind === 'hit') return entry.hit.title;
+  if (entry.kind === 'command') return entry.command.title;
   return entry.kind === 'workspace' ? entry.workspace.title : entry.page.title;
 }
 
 /** Подпись справа от найденной строки: чей это стол и чья страница */
 function crumb(entry: FlatEntry): string {
   if (entry.kind === 'hit') return entry.hit.subtitle ?? '';
+  if (entry.kind === 'command') return entry.command.subtitle ?? '';
   const app = appLabel(entry.workspace);
   if (entry.kind === 'workspace') return app;
   return app ? `${entry.workspace.title} · ${app}` : entry.workspace.title;
@@ -417,6 +448,9 @@ function executeEntry(entry: FlatEntry): void {
     selectWorkspace(entry.workspace);
   } else if (entry.kind === 'page') {
     selectPage(entry.workspace, entry.page);
+  } else if (entry.kind === 'command') {
+    emit('update:modelValue', false);
+    emit('run-command', entry.command.id);
   } else {
     emit('update:modelValue', false);
     emit('select-hit', entry.group.key, entry.hit.key);
@@ -735,6 +769,22 @@ function onHide(): void {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-3);
   list-style: none;
+}
+
+.command-palette__keys {
+  display: inline-flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.command-palette__keys kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-xs);
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-eyebrow);
+  font-weight: 500;
 }
 
 .command-palette__flat-crumb {

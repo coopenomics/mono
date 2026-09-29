@@ -48,6 +48,7 @@ import {
   COMPONENTS_TREE_OPTIONS,
 } from './routes/projectTreeChildren';
 import { t } from './i18n';
+import { CreateIssueDialog } from './features/Issue/CreateIssue/ui/Dialog';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
   // Регистрируем обработчики решений для расширения capital
@@ -476,6 +477,19 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             children: [],
           },
         ],
+      },
+    ],
+    // Команды стола: окно столов (⌘K) и сочетания клавиш с любой страницы.
+    commands: [
+      {
+        id: 'capital.create-issue',
+        title: t('capital.install.createIssueCommandTitle'),
+        icon: 'add_task',
+        keywords: t('capital.install.createIssueCommandKeywords').split(','),
+        shortcut: 'N T',
+        // Диалог сам берёт проект из адреса страницы, а вне проекта
+        // предлагает выбрать компонент или завести свободную задачу.
+        dialog: markRaw(CreateIssueDialog),
       },
     ],
   }];

@@ -475,6 +475,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           ],
         },
       ],
+      // Команды стола: окно столов (⌘K) и сочетания клавиш с любой страницы.
+      commands: [
+        {
+          id: 'market.create-offer',
+          title: t('market.install.createOfferTitle'),
+          icon: 'add_business',
+          keywords: t('market.install.createOfferCommandKeywords').split(','),
+          shortcut: 'N O',
+          requires: 'Offer:create:own',
+          route: { name: 'marketplace-create-offer' },
+        },
+      ],
     },
 
     // ──────────────────────────── Стол ПВЗ ────────────────────────────

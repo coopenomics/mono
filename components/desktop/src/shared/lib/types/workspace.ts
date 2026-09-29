@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export interface IWorkspaceRouteMeta {
   title: string
   // Иконка пункта меню. Необязательна: hidden-роуты (deep-link страницы вроде
@@ -42,6 +44,40 @@ export interface IWorkspaceRoute {
   [key: string]: any
 }
 
+/**
+ * Команда стола: действие, которое запускается из окна столов и страниц
+ * (⌘K) или сочетанием клавиш с любой страницы — «Добавить задачу»,
+ * «Создать предложение». Объявляется в install.ts рядом с маршрутами, поэтому
+ * появляется вместе с приложением и уходит вместе с ним.
+ *
+ * Видимость — те же `requires`/`roles`, что у страниц, и видимость самого
+ * стола: команда доступна, только если пайщик вправе открыть её результат.
+ */
+export interface IWorkspaceCommand {
+  /** Уникальный ключ: `<расширение>.<действие>` */
+  id: string
+  title: string
+  /** Значок Material Icons */
+  icon: string
+  /** Слова, по которым команда ещё находится в окне: «задача», «issue» */
+  keywords?: string[]
+  /**
+   * Сочетание — ведущая клавиша и буква через пробел: `N T`. Ведущие клавиши
+   * и правила — src/shared/lib/shortcuts. Сочетание, занятое другой командой,
+   * у второй команды снимается (она остаётся в окне).
+   */
+  shortcut?: string
+  requires?: string
+  roles?: string[]
+  /** Перейти на страницу — имя маршрута стола */
+  route?: { name: string }
+  /**
+   * Открыть диалог: компонент (markRaw) с методом `openDialog()` в
+   * defineExpose. Монтирует его хост команд рабочего стола.
+   */
+  dialog?: Component
+}
+
 export interface IWorkspaceConfig {
   workspace: string // Уникальное имя workspace (например: 'soviet', 'chairman')
   extension_name: string // Имя расширения, которому принадлежит этот workspace
@@ -49,4 +85,6 @@ export interface IWorkspaceConfig {
   icon?: string // Иконка для меню
   defaultRoute?: string // Имя маршрута для перехода по умолчанию
   routes: IWorkspaceRoute[]
+  /** Команды стола — см. IWorkspaceCommand */
+  commands?: IWorkspaceCommand[]
 }

@@ -1,0 +1,62 @@
+feature: platform.desk-commands
+title: Команды столов — запуск из окна столов и сочетаниями клавиш
+
+# Приложение объявляет команды своего стола в install.ts рядом с маршрутами:
+# «Добавить задачу» (Благорост, N T, диалог), «Создать предложение» (Стол
+# заказов, N O, страница). Команды появляются в окне столов при наборе
+# запроса и запускаются сочетанием с любой страницы. Видимость — права стола и
+# requires/roles команды, как у страниц. Задача C28-86.
+#
+# Сочетание — ведущая клавиша (N — создать, G — перейти) и буква. Одиночные
+# буквы остаются страницам; вторая клавиша сочетания до них не доходит.
+# Занятое сочетание у второй команды снимается с ошибкой в консоли.
+
+sources:
+  ui:
+    - components/desktop/src/shared/lib/shortcuts/**
+    - components/desktop/src/entities/Command/**
+    - components/desktop/src/widgets/Desktop/CommandHost/**
+    - components/desktop/src/processes/init-installed-extensions/index.ts
+
+cases:
+  - id: plat.cmd.ui.01
+    level: ui
+    kind: happy
+    scenario: в окне столов набрано «задача», выбрана команда «Добавить задачу»
+    expect: открывается диалог создания задачи; вне проекта в нём выбирается компонент
+    status: missing
+
+  - id: plat.cmd.ui.02
+    level: ui
+    kind: happy
+    scenario: на любой странице нажаты N, затем O пайщиком с правом создавать предложения
+    expect: открывается страница создания предложения, стол переключается на стол поставщика
+    status: missing
+
+  - id: plat.cmd.ui.03
+    level: ui
+    kind: side
+    scenario: пайщик без права создавать предложения ищет команду и нажимает N O
+    expect: команды нет в окне, сочетание ничего не делает
+    status: missing
+
+  - id: plat.cmd.ui.04
+    level: ui
+    kind: side
+    scenario: на странице проекта Благороста нажаты N, затем T
+    expect: срабатывает команда стола, одиночная клавиша страницы T второй раз диалог не открывает
+    status: missing
+
+  - id: plat.cmd.ui.05
+    level: ui
+    kind: side
+    scenario: сочетание набрано в поле ввода или с зажатым Ctrl или ⌘
+    expect: команда не запускается, ввод не теряет буквы
+    status: missing
+
+  - id: plat.cmd.ui.06
+    level: ui
+    kind: break
+    scenario: два приложения объявили одно сочетание
+    expect: у второй команды сочетание снято, в консоли ошибка; обе команды есть в окне
+    status: missing

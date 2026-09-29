@@ -73,6 +73,7 @@
     "commandPalette": {
       "activeLabel": "Активный",
       "closeHint": "для закрытия",
+      "commandsSection": "Команды",
       "emptyBody": "Попробуйте другой запрос",
       "emptyTitle": "Ничего не найдено",
       "goToWorkspace": "Перейти на стол",
