@@ -105,7 +105,7 @@ q-dialog(
         kbd ↑
         kbd ↓
         | {{ $t('ui.commandPalette.navigateHint') }}
-      span.command-palette__hint.command-palette__hint--wide
+      span.command-palette__hint
         kbd →
         | {{ $t('ui.commandPalette.pagesHint') }}
       span.command-palette__hint
@@ -393,6 +393,9 @@ function onHide(): void {
   display: flex;
   flex-direction: column;
   width: min(820px, 94vw);
+  /* Quasar ограничивает содержимое диалога шириной 560px — снимаем предел,
+     иначе две колонки ужимаются и название стола обрезается. */
+  max-width: none !important;
   height: min(620px, calc(100vh - 128px));
   margin-top: 64px;
   background: var(--p-surface);
@@ -702,6 +705,7 @@ function onHide(): void {
   display: inline-flex;
   align-items: center;
   gap: var(--p-1);
+  white-space: nowrap;
 }
 
 /* На узком экране колонка одна: без запроса — столы, с запросом — результаты. */
@@ -711,9 +715,10 @@ function onHide(): void {
     width: auto;
     border-right: 0;
   }
+  /* Подсказки про клавиши на телефоне лишние: клавиатуры там нет. */
   .command-palette__pane,
   .command-palette__columns.is-search .command-palette__desks,
-  .command-palette__hint--wide {
+  .command-palette__footer {
     display: none;
   }
   .command-palette__columns.is-search .command-palette__pane {
