@@ -7,6 +7,9 @@
       "structureInvalid": "Документ \"{id}\" не прошел структурную валидацию",
       "unknownError": "Неизвестная ошибка",
       "validationErrorWithMessage": "Ошибка валидации документа \"{id}\": {errorMessage}"
+    },
+    "globalSearch": {
+      "documentsGroup": "Документы"
     }
   },
   "errors": {

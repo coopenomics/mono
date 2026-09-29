@@ -94,6 +94,7 @@ import { MembershipExitModule } from './application/membership-exit/membership-e
 import { OnboardingApplicationModule } from './application/onboarding/onboarding-application.module';
 import { DocumentApprovalApplicationModule } from './application/document-approval/document-approval-application.module';
 import { SearchModule } from './application/search/search.module';
+import { GlobalSearchRegistryModule } from './application/search/global-search.registry';
 import { SignedDocumentsModule } from './application/signed-documents/signed-documents.module';
 import { MutationLoggingInterceptor } from './application/common/interceptors/mutation-logging.interceptor';
 import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace-extension.module';
@@ -181,6 +182,7 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     AppStoreModule,
     AuthModule,
     ExtensionGrantsModule,
+    GlobalSearchRegistryModule,
     DesktopModule,
     SsrContextModule,
     BranchModule,

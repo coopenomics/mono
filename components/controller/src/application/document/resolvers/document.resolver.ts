@@ -10,6 +10,7 @@ import { GenerateAnyDocumentInputDTO } from '../dto/generate-any-document-input.
 import { GetPublicProvisionInputDTO, PublicProvisionDTO } from '../dto/public-provision.dto';
 import { PublicProvisionService } from '../services/public-provision.service';
 import type { IMonoAccount } from '@coopenomics/innercoop';
+import { isCouncilRole } from '~/shared/utils/council-roles';
 import { Cooperative } from 'cooptypes';
 
 /**
@@ -20,7 +21,6 @@ import { Cooperative } from 'cooptypes';
 const DECISION_PROTOCOL_REGISTRY_IDS = new Set<number>(
   Object.values(Cooperative.Document.decisionTypesRegistry).map((info) => Number(info.protocol_registry_id))
 );
-const COUNCIL_ROLES = ['chairman', 'member'];
 
 const paginationResultAggregate = createPaginationResult(DocumentPackageAggregateDTO, 'DocumentsAggregate');
 
@@ -72,7 +72,7 @@ export class DocumentResolver {
     const forSelf = !!input.data.username && input.data.username === currentUser.username;
     const councilProtocol =
       !!input.data.username &&
-      COUNCIL_ROLES.includes(currentUser.role) &&
+      isCouncilRole(currentUser.role) &&
       DECISION_PROTOCOL_REGISTRY_IDS.has(Number(input.data.registry_id));
     if (!forSelf && !councilProtocol) {
       throw DomainError.unauthorized('DOCUMENT_GENERATION_FORBIDDEN');

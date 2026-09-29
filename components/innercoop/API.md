@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 292.
+Всего экспортов: 298.
 
 ## ACCOUNT_PORT
 
@@ -224,6 +224,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.FreeDecision')`
+
+## GLOBAL_SEARCH_REGISTRY_PORT
+
+`const` · hooks
+
+- `Symbol.for('Innercoop.CorePort.GlobalSearchRegistry')`
 
 ## IAccountPort
 
@@ -471,6 +477,23 @@
 - `options?: Record<string, any>`
 - `): Promise<InnerFreeDecisionDocument>`
 - `publishProjectOfFreeDecision(data: InnerPublishProjectFreeDecisionInput): Promise<boolean>`
+
+## IGlobalSearchHook
+
+`interface` · hooks
+
+- `readonly extensionName: string`
+- `readonly key: string`
+- `readonly title: string`
+- `readonly icon: string`
+- `readonly order: number`
+- `search(query: string, context: InnerGlobalSearchContext, limit: number): Promise<InnerGlobalSearchHit[]>`
+
+## IGlobalSearchRegistryPort
+
+`interface` · hooks
+
+- `register(provider: IGlobalSearchHook): void`
 
 ## IIndividualPort
 
@@ -1264,6 +1287,33 @@
 
 - `coopname: string`
 - `username?: string`
+
+## InnerGlobalSearchContext
+
+`interface` · hooks
+
+- `coopname: string`
+- `username: string`
+- `userRole?: string`
+- `userStatus?: string`
+
+## InnerGlobalSearchHit
+
+`interface` · hooks
+
+- `key: string`
+- `title: string`
+- `subtitle?: string`
+- `icon?: string`
+- `route: InnerGlobalSearchRoute`
+
+## InnerGlobalSearchRoute
+
+`interface` · hooks
+
+- `name: string`
+- `params?: Record<string, string>`
+- `query?: Record<string, string>`
 
 ## InnerIndividual
 

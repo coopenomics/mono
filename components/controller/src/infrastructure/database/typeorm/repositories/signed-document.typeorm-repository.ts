@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { SignedDocumentEntity } from '../entities/signed-document.entity';
 import { SignedDocumentStatus } from '~/domain/document/enums/signed-document-status.enum';
 import type { DocumentPackageAggregateDomainInterface } from '~/domain/document/interfaces/document-package-aggregate-domain.interface';
+import { personFullName } from '~/shared/utils/person-name';
 import type {
   SignedDocumentAggregateUpdate,
   SignedDocumentListParams,
@@ -145,7 +146,7 @@ export class SignedDocumentTypeormRepository implements SignedDocumentRepository
     if (!cert) return '';
     if ('short_name' in cert && cert.short_name) return String(cert.short_name);
     if ('last_name' in cert) {
-      return [cert.last_name, cert.first_name, cert.middle_name].filter(Boolean).join(' ');
+      return personFullName(cert);
     }
     return '';
   }

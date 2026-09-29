@@ -7,3 +7,4 @@
  */
 export * from './registration-document-parameters.hook';
 export * from './desktop-grants.hook';
+export * from './global-search.hook';

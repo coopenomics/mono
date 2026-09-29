@@ -15,6 +15,7 @@ import {
 import { PUB_SUB } from '~/infrastructure/pubsub/pubsub.module';
 import { config } from '~/config';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
+import { isCouncilRole } from '~/shared/utils/council-roles';
 import { isDeltaOwnedByCoop } from './delta-ownership';
 
 /** Сигнал ленты: где и в каком блоке изменилась строка. Данных строки нет. */
@@ -153,7 +154,6 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
 ];
 
 /** Роли совета: персонал любого расширения. */
-const COUNCIL_ROLES = ['chairman', 'member'];
 
 /** Канал таблицы, открытой всем пайщикам кооператива. */
 export function chainChangesTopic(coopname: string, code: string, table: string): string {
@@ -224,7 +224,7 @@ export class ChainChangesService implements IChainChangesPort {
 
   /** Получает ли пайщик все строки таблиц расширения: совет — всегда. */
   isStaff(code: string, user: { username?: string; role?: string }): boolean {
-    if (COUNCIL_ROLES.includes(String(user.role))) return true;
+    if (isCouncilRole(user.role)) return true;
     return Boolean(user.username && this.staff.get(code)?.has(user.username));
   }
 

@@ -14,6 +14,7 @@ import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
+  GLOBAL_SEARCH_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
   SOVIET_ROBOT_PORT,
@@ -108,6 +109,7 @@ import { ChainResourcesInnercoopAdapter } from '~/infrastructure/innercoop/chain
 import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
+import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
@@ -431,6 +433,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ExtensionGrantsRegistry,
     },
     {
+      // Реестр единого поиска — так же: расширение кладёт своего поставщика,
+      // опрашивает ядро. `GlobalSearchRegistryModule` глобальный.
+      provide: GLOBAL_SEARCH_REGISTRY_PORT,
+      useExisting: GlobalSearchRegistry,
+    },
+    {
       // Реестр оферт ядра совпадает с портом по форме, промежуточный адаптер
       // ничего бы не добавил; `RegistrationDomainModule` глобальный.
       provide: REGISTRATION_REGISTRY_PORT,
@@ -516,6 +524,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
+    GLOBAL_SEARCH_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
     ONBOARDING_STEP_REGISTRY_PORT,
