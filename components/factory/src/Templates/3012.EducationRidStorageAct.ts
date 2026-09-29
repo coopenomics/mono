@@ -32,8 +32,11 @@ export const Schema: JSONSchemaType<Model> = {
     duration_minutes: { type: 'number' },
     materials: { type: 'array', items: { type: 'string' } },
     hold_until: { type: 'string' },
+    contract_number: { type: 'string' },
+    contract_created_at: { type: 'string' },
+    rid_type_human: { type: 'string' },
   },
-  required: [
+  required: ['contract_number', 'contract_created_at', 'rid_type_human', 
     'meta', 'coop', 'vars', 'user', 'program',
     'rid_hash', 'rid_short_hash', 'amount', 'rid_type',
     'course_title', 'lesson_number', 'lesson_topic', 'held_at',

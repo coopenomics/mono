@@ -841,6 +841,8 @@ export class EdubridgeTeacherService {
       rid_hash: c.rid_hash,
       amount: c.amount,
       rid_type: c.rid_type,
+      // Акт называет протокол совета, которым принят взнос.
+      ...(c.council_decision_id ? { decision_id: Number(c.council_decision_id), decision_date: formatDate(c.decided_at ?? new Date()) } : {}),
       skip_save: false,
     };
     return this.documents.generate({ data: action });
@@ -886,9 +888,10 @@ export class EdubridgeTeacherService {
       data: {
         registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
         coopname,
-        username: await this.chairman(coopname),
+        username: c.teacher_username,
         lang: 'ru',
         rid_hash: c.rid_hash,
+        rid_type: c.rid_type,
         amount: c.amount,
         decision_id: Number(c.council_decision_id ?? 0),
         skip_save: false,
@@ -932,9 +935,10 @@ export class EdubridgeTeacherService {
         data: {
           registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
           coopname,
-          username: await this.chairman(coopname),
+          username: c.teacher_username,
           lang: 'ru',
           rid_hash: c.rid_hash,
+          rid_type: c.rid_type,
           amount: c.amount,
           decision_id: Number(c.council_decision_id),
           skip_save: false,

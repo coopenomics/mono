@@ -26,8 +26,12 @@ export const Schema: JSONSchemaType<Model> = {
     amount: { type: 'string' },
     rid_type: { type: 'string' },
     links: { type: 'array', items: { type: 'string' } },
+    contract_number: { type: 'string' },
+    contract_created_at: { type: 'string' },
+    rid_type_human: { type: 'string' },
+    rid_short_hash: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'rid_hash', 'assignment_id', 'amount', 'rid_type', 'links'],
+  required: ['contract_number', 'contract_created_at', 'rid_type_human', 'rid_short_hash', 'meta', 'coop', 'vars', 'user', 'program', 'rid_hash', 'assignment_id', 'amount', 'rid_type', 'links'],
   additionalProperties: true,
 }
 

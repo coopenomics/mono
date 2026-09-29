@@ -279,6 +279,12 @@ describe('EdubridgeTeacherService', () => {
     const accepted = await service.acceptContribution('voskhod', 'ant', c.id, bothSigned);
     expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, act: expect.objectContaining({ hash: 'ACT' }) }));
     expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id && x[0].data.decision_id === 17)).toBe(true);
+    // Протокол называет пайщиком преподавателя, а не председателя, и несёт вид результата.
+    const protocol = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)![0].data;
+    expect(protocol).toMatchObject({ username: c.teacher_username, rid_type: c.rid_type });
+    // Акт ссылается на протокол совета, которым принят взнос.
+    const actData = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id)![0].data;
+    expect(actData.decision_id).toBe(17);
     expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
     // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
     expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1', '1000.0000 RUB');

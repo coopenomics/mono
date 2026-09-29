@@ -25,8 +25,13 @@ export const Schema: JSONSchemaType<Model> = {
     rid_short_hash: { type: 'string' },
     amount: { type: 'string' },
     rid_type: { type: 'string' },
+    contract_number: { type: 'string' },
+    contract_created_at: { type: 'string' },
+    rid_type_human: { type: 'string' },
+    decision_id: { type: 'number', nullable: true },
+    decision_date: { type: 'string', nullable: true },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'program', 'rid_hash', 'rid_short_hash', 'amount', 'rid_type'],
+  required: ['contract_number', 'contract_created_at', 'rid_type_human', 'meta', 'coop', 'vars', 'user', 'program', 'rid_hash', 'rid_short_hash', 'amount', 'rid_type'],
   additionalProperties: true,
 }
 

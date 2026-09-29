@@ -3,6 +3,7 @@ import { EducationCourseAnnex } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { getEducationContractRef } from '../Utils/educationContractRef'
 
 export { EducationCourseAnnex as Template } from '../Templates'
 
@@ -30,6 +31,7 @@ export class Factory extends DocFactory<EducationCourseAnnex.Action> {
     const vars = await this.getVars(data.coopname, data.block_num)
     const userData = await this.getUser(data.username, data.block_num)
     const common_user = this.getCommonUser(userData)
+    const contract = await getEducationContractRef(this.storage, data)
 
     const combinedData: EducationCourseAnnex.Model = {
       meta,
@@ -37,6 +39,7 @@ export class Factory extends DocFactory<EducationCourseAnnex.Action> {
       vars,
       common_user,
       contract_number: data.contract_number,
+      contract_created_at: contract.contract_created_at,
       course_title: data.course_title,
       schedule: data.schedule,
       expected_result: data.expected_result,

@@ -1,5 +1,11 @@
 import type { IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonUser, ICooperativeData, IVars } from '../../model'
+import {
+  EDUCATION_ANNEX_HEAD_HTML,
+  EDUCATION_DOC_STYLE,
+  educationContractDocExample,
+  educationContractDocTranslations,
+} from '../educationContractDocs'
 
 export const registry_id = 3012
 
@@ -57,127 +63,50 @@ export interface Model {
   duration_minutes: number
   materials: string[]
   hold_until: string
+  /** Номер договора УХД преподавателя — фабрика берёт из Udata. */
+  contract_number: string
+  /** Дата договора УХД (дд.мм.гггг). */
+  contract_created_at: string
+  /** Вид результата словами. */
+  rid_type_human: string
 }
 
 export const title = 'Акт передачи материалов занятия на ответственное хранение'
-export const description = 'Акт передачи преподавателем материалов проведённого занятия кооперативу на ответственное хранение на срок гарантии по ЦПП «Образование»'
+export const description = 'Акт приема-передачи Имущества преподавателя на ответственное хранение по договору УХД ЦПП «ОБРАЗОВАНИЕ»'
 
-export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-.digital-document { padding: 20px; }
-.digital-document p { margin: 0 0 6px; }
-.subheader { padding-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
-ul { margin: 0; padding-left: 20px; }
-</style>
-
-<div class="digital-document">
-  <div style="text-align: center">
-    <h1 class="header">{% trans 'act_title', rid_short_hash %}</h1>
-    <p class="subheader">{% trans 'act_subtitle', program.name %}</p>
-  </div>
-  <p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
-
-  <p>{% trans 'act_intro', vars.full_abbr, vars.name, coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name, user.full_name_or_short_name %}</p>
-
-  <table>
-    <tbody>
-      <tr>
-        <th>{% trans 'course_label' %}</th>
-        <td>{{ course_title }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'lesson_label' %}</th>
-        <td>{% trans 'lesson_value', lesson_number, lesson_topic %}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'held_at_label' %}</th>
-        <td>{% trans 'held_at_value', held_at, duration_minutes %}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'rid_type_label' %}</th>
-        <td>{{ rid_type }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'materials_label' %}</th>
-        <td>
-          <ul>
-            {% for material in materials %}<li>{{ material }}</li>{% endfor %}
-          </ul>
-        </td>
-      </tr>
-      <tr>
-        <th>{% trans 'rid_hash_label' %}</th>
-        <td>{{ rid_hash }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'amount_label' %}</th>
-        <td>{{ amount }}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <p>{% trans 'storage_note', hold_until %}</p>
-  <p>{% trans 'contribution_note' %}</p>
-  <p>{% trans 'guarantee_note' %}</p>
-
-  <table>
-    <tbody>
-      <tr>
-        <th>{% trans 'transferred' %}</th>
-        <td>{% trans 'teacher_label' %} {{ user.full_name_or_short_name }}</td>
-        <td>{% trans 'signature_placeholder' %}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-`
+export const context = `<div class="digital-document">${EDUCATION_ANNEX_HEAD_HTML}<div style="text-align: center; padding-top: 15px"><h1 class="header">{% trans 'act_title', rid_short_hash %}</h1><p class="subheader">{% trans 'act_subtitle', contract_number, contract_created_at %}</p></div><p style="margin: 0px !important">{% trans 'city', coop.city %}</p><p>{% trans 'date', meta.created_at %}</p><p>{% trans 'act_intro', vars.full_abbr, vars.name, coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name, user.full_name_or_short_name, contract_number, contract_created_at %}</p><table><tbody><tr><th style="width: 5%">{% trans 'row_number' %}</th><th style="width: 25%">{% trans 'row_name' %}</th><th style="width: 20%">{% trans 'row_form' %}</th><th style="width: 8%">{% trans 'row_unit' %}</th><th style="width: 13%">{% trans 'row_quantity' %}</th><th style="width: 14%">{% trans 'row_unit_price' %}</th><th style="width: 15%">{% trans 'row_total' %}</th></tr><tr><td>1</td><td>{% trans 'property_name', rid_type_human, rid_short_hash %}</td><td>{% trans 'property_form' %}</td><td>{% trans 'unit_piece' %}</td><td>1</td><td>{{ amount }}</td><td>{{ amount }}</td></tr><tr><td></td><td>{% trans 'total' %}</td><td></td><td></td><td>1</td><td></td><td>{{ amount }}</td></tr></tbody></table><table><tbody><tr><th>{% trans 'course_label' %}</th><td>{{ course_title }}</td></tr><tr><th>{% trans 'lesson_label' %}</th><td>{% trans 'lesson_value', lesson_number, lesson_topic %}</td></tr><tr><th>{% trans 'held_at_label' %}</th><td>{% trans 'held_at_value', held_at, duration_minutes %}</td></tr><tr><th>{% trans 'materials_label' %}</th><td><ul>{% for material in materials %}<li>{{ material }}</li>{% endfor %}</ul></td></tr></tbody></table><p>{% trans 'storage_note', hold_until %}</p><p>{% trans 'contribution_note' %}</p><p>{% trans 'guarantee_note' %}</p><table><tbody><tr><th>{% trans 'transferred' %}</th><td>{% trans 'member' %}: {{ user.full_name_or_short_name }}</td><td>{% trans 'signed_electronically' %}</td></tr></tbody></table></div>${EDUCATION_DOC_STYLE}`
 
 export const translations = {
   ru: {
-    act_title: 'АКТ № ОХ-{0}',
-    act_subtitle: 'передачи материалов занятия на ответственное хранение по Целевой Потребительской Программе «{0}»',
-    act_intro: '{0} «{1}» (далее Общество) в лице Председателя Совета {2} {3} {4}, действующего на основании Устава, с одной стороны, и пайщик Общества {5} (далее Преподаватель), с другой стороны, составили настоящий Акт о том, что Преподаватель передал, а Общество приняло на ответственное хранение материалы проведённого занятия:',
+    ...educationContractDocTranslations,
+    act_title: 'АКТ № АППИОХ-{0}',
+    act_subtitle: 'приема-передачи Имущества в соответствии с дополнительными условиями по ответственному хранению Имущества согласно Договора об участии в хозяйственной деятельности № {0} от {1}',
+    city: 'г. {0}',
+    date: 'Дата: {0}',
+    act_intro: '{0} «{1}» (далее «Общество») в лице Председателя Совета Общества {2} {3} {4}, и Пайщик {5}, составили настоящий Акт о том, что Пайщик передал, а Общество получило от Пайщика, в соответствии с дополнительными условиями по ответственному хранению Имущества согласно Договора об участии в хозяйственной деятельности № {6} от {7}, следующее Имущество:',
+    property_name: 'Имущество — {0}, запись на электронном носителе № {1}',
     course_label: 'Курс',
     lesson_label: 'Занятие',
     lesson_value: '№ {0}, {1}',
     held_at_label: 'Дата и длительность',
     held_at_value: '{0}, {1} минут',
-    rid_type_label: 'Вид результата',
-    materials_label: 'Состав материалов',
-    rid_hash_label: 'Идентификатор материалов',
-    amount_label: 'Оценка материалов',
-    storage_note: 'Общество принимает материалы на ответственное хранение до {0} включительно и обеспечивает их сохранность в течение этого срока.',
-    contribution_note: 'Право собственности на материалы сохраняется за Преподавателем. Паевым взносом материалы становятся по заявлению Преподавателя и решению Совета, принятому по истечении срока хранения, и оформляются отдельным актом приёма-передачи.',
-    guarantee_note: 'Гарантийный случай, подтверждённый в течение срока хранения, прекращает хранение: материалы возвращаются Преподавателю, паевой взнос по ним не оформляется.',
-    transferred: 'ПЕРЕДАЛ',
-    teacher_label: 'Преподаватель',
-    signature_placeholder: 'Подписано электронной подписью',
+    materials_label: 'Состав материалов (ссылки на фото, видео и аудиоматериалы)',
+    storage_note: 'Общество принимает Имущество на ответственное хранение на срок действия Гарантийных условий — до {0} включительно — и обеспечивает его сохранность в течение этого срока (п. 3.1.7.1. Договора).',
+    contribution_note: 'По окончании срока действия Гарантийных условий Пайщик направляет в Общество заявление на внесение Паевого взноса Имуществом, высвобождаемым из ответственного хранения; Паевой взнос оформляется решением Совета Общества и Актом приема-передачи Имущества (пп. 3.1.7.2., 3.1.8. и 3.1.9. Договора).',
+    guarantee_note: 'При наступлении Гарантийного случая, подтвержденного в течение срока хранения, Имущество высвобождается из ответственного хранения и возвращается Пайщику; Паевой взнос по нему не оформляется (п. 4.1. Договора).',
+    transferred: 'ПЕРЕДАНО:',
   },
 }
 
 export const exampleData = {
+  ...educationContractDocExample,
   meta: { created_at: '12.06.2026 12:00' },
-  coop: {
-    city: 'Москва',
-    chairman: {
-      last_name: 'Муравьев',
-      first_name: 'Алексей',
-      middle_name: 'Николаевич',
-    },
-  },
-  vars: {
-    name: 'ВОСХОД',
-    full_abbr: 'Потребительский Кооператив',
-    short_abbr: 'ПК',
-  },
-  user: { full_name_or_short_name: 'Петров Пётр Петрович' },
   program: { name: 'ОБРАЗОВАНИЕ' },
   rid_hash: '0000abcd...',
   rid_short_hash: '0000ABCD',
   amount: '1500.00 RUB',
-  rid_type: 'lesson',
+  rid_type: 'lesson_recording',
+  rid_type_human: 'Запись занятия',
   course_title: 'Математика, 7 класс',
   lesson_number: 3,
   lesson_topic: 'Линейные уравнения',

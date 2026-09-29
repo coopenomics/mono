@@ -1,9 +1,9 @@
-import type { Cooperative } from 'cooptypes'
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationRidDecision } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { getEducationContractRef } from '../Utils/educationContractRef'
 
 export { EducationRidDecision as Template } from '../Templates'
 
@@ -37,6 +37,7 @@ export class Factory extends DocFactory<EducationRidDecision.Action> {
     })
 
     const user = this.getCommonUser(userData)
+    const contract = await getEducationContractRef(this.storage, data)
     const program: EducationRidDecision.Model['program'] = { name: 'Образование' }
 
     const meta: IMetaDocument = await this.getMeta({ title: template.title, ...data })
@@ -55,6 +56,9 @@ export class Factory extends DocFactory<EducationRidDecision.Action> {
       decision,
       user,
       program,
+      ...contract,
+      rid_short_hash: this.getShortHash(data.rid_hash),
+      rid_type_human: Cooperative.Registry.educationRidTypeLabel(data.rid_type ?? 'other'),
       rid_hash: data.rid_hash,
       // Сумма в документ идёт человеческим форматом (2 знака), не сырым ассетом.
       amount: this.formatAsset(data.amount),

@@ -1,5 +1,11 @@
 import type { IGenerate, IMetaDocument } from '../../document'
 import type { ICommonProgram, ICommonUser, ICooperativeData, IVars } from '../../model'
+import {
+  EDUCATION_ANNEX_HEAD_HTML,
+  EDUCATION_DOC_STYLE,
+  educationContractDocExample,
+  educationContractDocTranslations,
+} from '../educationContractDocs'
 
 export const registry_id = 3010
 
@@ -22,6 +28,10 @@ export interface Action extends IGenerate {
   amount: string
   /** Тип РИД (eosio::name). */
   rid_type: string
+  /** Номер протокола совета, которым принят взнос. */
+  decision_id?: number
+  /** Дата протокола совета (дд.мм.гггг). */
+  decision_date?: string
 }
 
 export type Meta = IMetaDocument & Action
@@ -36,103 +46,47 @@ export interface Model {
   rid_short_hash: string
   amount: string
   rid_type: string
+  /** Номер договора УХД преподавателя — фабрика берёт из Udata. */
+  contract_number: string
+  /** Дата договора УХД (дд.мм.гггг). */
+  contract_created_at: string
+  /** Вид результата словами. */
+  rid_type_human: string
+  decision_id?: number
+  decision_date?: string
 }
 
 export const title = 'Акт приёма-передачи паевого взноса результатом интеллектуальной деятельности'
-export const description = 'Акт приёма-передачи паевого взноса преподавателя результатом интеллектуальной деятельности по ЦПП «Образование» (подписывают преподаватель и председатель)'
+export const description = 'Акт приёма-передачи Имущества преподавателя паевым взносом по договору УХД ЦПП «ОБРАЗОВАНИЕ» (подписывают преподаватель и председатель)'
 
-export const context = `<style>
-h1 { margin: 0px; text-align: center; }
-.digital-document { padding: 20px; }
-.digital-document p { margin: 0 0 6px; }
-.subheader { padding-bottom: 20px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border: 1px solid currentColor; padding: 8px; text-align: left; word-wrap: break-word; overflow-wrap: break-word; }
-</style>
-
-<div class="digital-document">
-  <div style="text-align: center">
-    <h1 class="header">{% trans 'act_title', rid_short_hash %}</h1>
-    <p class="subheader">{% trans 'act_subtitle', program.name %}</p>
-  </div>
-  <p style="text-align: right">{{ meta.created_at }}, {{ coop.city }}</p>
-
-  <p>{% trans 'act_intro', vars.full_abbr, vars.name, coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name, user.full_name_or_short_name %}</p>
-
-  <table>
-    <tbody>
-      <tr>
-        <th>{% trans 'rid_type_label' %}</th>
-        <td>{{ rid_type }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'rid_hash_label' %}</th>
-        <td>{{ rid_hash }}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'amount_label' %}</th>
-        <td>{{ amount }}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <p>{% trans 'no_claims' %}</p>
-  <p>{% trans 'accounting_note', amount %}</p>
-
-  <table>
-    <tbody>
-      <tr>
-        <th>{% trans 'transferred' %}</th>
-        <td>{% trans 'teacher_label' %} {{ user.full_name_or_short_name }}</td>
-        <td>{% trans 'signature_placeholder' %}</td>
-      </tr>
-      <tr>
-        <th>{% trans 'received' %}</th>
-        <td>{% trans 'chairman_label' %} {{ coop.chairman.last_name }} {{ coop.chairman.first_name }} {{ coop.chairman.middle_name }}</td>
-        <td>{% trans 'signature_placeholder' %}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-`
+export const context = `<div class="digital-document">${EDUCATION_ANNEX_HEAD_HTML}<div style="text-align: center; padding-top: 15px"><h1 class="header">{% trans 'act_title', rid_short_hash %}</h1><p class="subheader">{% trans 'act_subtitle', contract_number, contract_created_at %}</p></div><p style="margin: 0px !important">{% trans 'city', coop.city %}</p><p>{% trans 'date', meta.created_at %}</p><p>{% trans 'act_intro', vars.full_abbr, vars.name, coop.chairman.last_name, coop.chairman.first_name, coop.chairman.middle_name, user.full_name_or_short_name, contract_number, contract_created_at %}{% if decision_id %}{% trans 'act_intro_protocol', decision_id, decision_date %}{% endif %} {% trans 'act_intro_property' %}</p><table><tbody><tr><th style="width: 5%">{% trans 'row_number' %}</th><th style="width: 25%">{% trans 'row_name' %}</th><th style="width: 20%">{% trans 'row_form' %}</th><th style="width: 8%">{% trans 'row_unit' %}</th><th style="width: 13%">{% trans 'row_quantity' %}</th><th style="width: 14%">{% trans 'row_unit_price' %}</th><th style="width: 15%">{% trans 'row_total' %}</th></tr><tr><td>1</td><td>{% trans 'property_name', rid_type_human, rid_short_hash %}</td><td>{% trans 'property_form' %}</td><td>{% trans 'unit_piece' %}</td><td>1</td><td>{{ amount }}</td><td>{{ amount }}</td></tr><tr><td></td><td>{% trans 'total' %}</td><td></td><td></td><td>1</td><td></td><td>{{ amount }}</td></tr></tbody></table><p>{% trans 'no_claims' %}</p><table><tbody><tr><th>{% trans 'transferred' %}</th><td>{% trans 'member' %}: {{ user.full_name_or_short_name }}</td><td>{% trans 'signed_electronically' %}</td></tr><tr><th>{% trans 'received' %}</th><td>{% trans 'chairman_label' %} {{ vars.short_abbr }} «{{ vars.name }}» {{ coop.chairman.last_name }} {{ coop.chairman.first_name }} {{ coop.chairman.middle_name }}</td><td>{% trans 'signed_electronically' %}</td></tr></tbody></table></div>${EDUCATION_DOC_STYLE}`
 
 export const translations = {
   ru: {
-    act_title: 'АКТ № АПП-{0}',
-    act_subtitle: 'приёма-передачи паевого взноса результатом интеллектуальной деятельности по Целевой Потребительской Программе «{0}»',
-    act_intro: '{0} «{1}» (далее Общество) в лице Председателя Совета {2} {3} {4}, действующего на основании Устава, с одной стороны, и пайщик Общества {5} (далее Преподаватель), с другой стороны, составили настоящий Акт о том, что Преподаватель передал, а Общество приняло в качестве паевого взноса результат интеллектуальной деятельности:',
-    rid_type_label: 'Тип результата',
-    rid_hash_label: 'Идентификатор взноса',
-    amount_label: 'Стоимость',
-    no_claims: 'Претензий по составу и качеству переданного результата Общество не имеет.',
-    accounting_note: 'Паевой взнос в размере {0} учитывается на лицевом счёте Преподавателя с момента подписания настоящего Акта обеими сторонами.',
-    transferred: 'ПЕРЕДАЛ',
-    received: 'ПРИНЯЛ',
-    teacher_label: 'Преподаватель',
-    chairman_label: 'Председатель Совета',
-    signature_placeholder: 'Подписано электронной подписью',
+    ...educationContractDocTranslations,
+    act_title: 'АКТ № АППИ-{0}',
+    act_subtitle: 'приема-передачи Имущества в соответствии с условиями Договора об участии в хозяйственной деятельности № {0} от {1}',
+    city: 'г. {0}',
+    date: 'Дата: {0}',
+    act_intro: '{0} «{1}» (далее «Общество») в лице Председателя Совета Общества {2} {3} {4}, и Пайщик {5}, составили настоящий Акт о том, что Пайщик передал, а Общество получило от Пайщика, в соответствии с условиями Договора об участии в хозяйственной деятельности № {6} от {7}',
+    act_intro_protocol: ' и Протоколом Совета № {0} от {1}',
+    act_intro_property: 'следующее Имущество:',
+    property_name: 'Имущество — {0}, запись на электронном носителе № {1}',
+    no_claims: 'Претензий по качеству Имущества Общество не имеет.',
+    transferred: 'ПЕРЕДАНО:',
+    received: 'ПОЛУЧЕНО:',
   },
 }
 
 export const exampleData = {
+  ...educationContractDocExample,
   meta: { created_at: '12.06.2026 12:00' },
-  coop: {
-    city: 'Москва',
-    chairman: {
-      last_name: 'Муравьев',
-      first_name: 'Алексей',
-      middle_name: 'Николаевич',
-    },
-  },
-  vars: {
-    name: 'ВОСХОД',
-    full_abbr: 'Потребительский Кооператив',
-    short_abbr: 'ПК',
-  },
-  user: { full_name_or_short_name: 'Петров Пётр Петрович' },
   program: { name: 'ОБРАЗОВАНИЕ' },
   rid_hash: '0000abcd...',
   rid_short_hash: '0000ABCD',
   amount: '15000.00 RUB',
-  rid_type: 'lesson',
+  rid_type: 'lesson_recording',
+  rid_type_human: 'Запись занятия',
+  decision_id: 43,
+  decision_date: '12.06.2026',
 }

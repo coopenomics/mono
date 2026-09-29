@@ -25,8 +25,12 @@ export const Schema: JSONSchemaType<Model> = {
     program: CommonProgramSchema,
     rid_hash: { type: 'string' },
     amount: { type: 'string' },
+    contract_number: { type: 'string' },
+    contract_created_at: { type: 'string' },
+    rid_type_human: { type: 'string' },
+    rid_short_hash: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'decision', 'user', 'program', 'rid_hash', 'amount'],
+  required: ['contract_number', 'contract_created_at', 'rid_type_human', 'rid_short_hash', 'meta', 'coop', 'vars', 'decision', 'user', 'program', 'rid_hash', 'amount'],
   additionalProperties: true,
 }
 

@@ -1,8 +1,9 @@
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationRidAct } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { getEducationContractRef } from '../Utils/educationContractRef'
 
 export { EducationRidAct as Template } from '../Templates'
 
@@ -40,6 +41,7 @@ export class Factory extends DocFactory<EducationRidAct.Action> {
 
     const userData = await this.getUser(data.username, data.block_num)
     const user = this.getCommonUser(userData)
+    const contract = await getEducationContractRef(this.storage, data)
 
     // Имя ЦПП фиксировано (как в 1110).
     const program: EducationRidAct.Model['program'] = { name: 'Образование' }
@@ -50,6 +52,9 @@ export class Factory extends DocFactory<EducationRidAct.Action> {
       vars,
       user,
       program,
+      ...contract,
+      rid_type_human: Cooperative.Registry.educationRidTypeLabel(data.rid_type),
+      ...(data.decision_id ? { decision_id: data.decision_id, decision_date: data.decision_date ?? '' } : {}),
       rid_hash: data.rid_hash,
       rid_short_hash: this.getShortHash(data.rid_hash),
       amount: this.formatAsset(data.amount),

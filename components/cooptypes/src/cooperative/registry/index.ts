@@ -96,6 +96,7 @@ export * as AnnualGeneralMeetingVotingBallot from './303.AnnualGeneralMeetingVot
 export * as AnnualGeneralMeetingDecision from './304.AnnualGeneralMeetingDecision'
 
 export * from './capitalProgramPrivateData'
+export * from './educationContractDocs'
 // самоорганизация кооперативных участков
 export * as BranchMeetingProposal from './320.BranchMeetingProposal'
 export * as BranchMeetingBallot from './322.BranchMeetingBallot'

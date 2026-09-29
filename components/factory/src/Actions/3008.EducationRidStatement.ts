@@ -1,8 +1,9 @@
-import { DraftContract } from 'cooptypes'
+import { Cooperative, DraftContract } from 'cooptypes'
 import { EducationRidStatement } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
+import { getEducationContractRef } from '../Utils/educationContractRef'
 
 export { EducationRidStatement as Template } from '../Templates'
 
@@ -39,6 +40,7 @@ export class Factory extends DocFactory<EducationRidStatement.Action> {
 
     const userData = await this.getUser(data.username, data.block_num)
     const user = this.getCommonUser(userData)
+    const contract = await getEducationContractRef(this.storage, data)
 
     // Имя ЦПП фиксировано (как в 1110).
     const program: EducationRidStatement.Model['program'] = { name: 'Образование' }
@@ -49,6 +51,9 @@ export class Factory extends DocFactory<EducationRidStatement.Action> {
       vars,
       user,
       program,
+      ...contract,
+      rid_short_hash: this.getShortHash(data.rid_hash),
+      rid_type_human: Cooperative.Registry.educationRidTypeLabel(data.rid_type),
       rid_hash: data.rid_hash,
       assignment_id: data.assignment_id,
       // Сумма в документ идёт человеческим форматом (2 знака), не сырым ассетом.

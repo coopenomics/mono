@@ -25,8 +25,9 @@ export const Schema: JSONSchemaType<Model> = {
     expected_result: { type: 'string' },
     period_from: { type: 'string' },
     period_to: { type: 'string' },
+    contract_created_at: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'common_user', 'contract_number', 'course_title', 'schedule', 'expected_result', 'period_from', 'period_to'],
+  required: ['contract_created_at', 'meta', 'coop', 'vars', 'common_user', 'contract_number', 'course_title', 'schedule', 'expected_result', 'period_from', 'period_to'],
   additionalProperties: true,
 }
 
