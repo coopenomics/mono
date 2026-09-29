@@ -26,6 +26,27 @@ export interface CommandPaletteWorkspace {
   pages: CommandPalettePage[];
 }
 
+/** Находка единого поиска: пайщик, документ, запись приложения. */
+export interface CommandPaletteHit {
+  /** Отличает находку от других в той же группе */
+  key: string;
+  title: string;
+  /** Уточнение справа: аккаунт, подписант, номер */
+  subtitle?: string;
+  /** Значок находки; без него берётся значок группы */
+  icon?: string;
+}
+
+/** Группа находок одного источника поиска. */
+export interface CommandPaletteSearchGroup {
+  key: string;
+  title: string;
+  icon: string;
+  /** Источник не успел ответить или упал — поиск по нему неполон */
+  incomplete?: boolean;
+  hits: CommandPaletteHit[];
+}
+
 export interface CommandPaletteProps {
   /** Управляющий v-model — palette открыто/закрыто */
   modelValue: boolean;
@@ -35,4 +56,8 @@ export interface CommandPaletteProps {
   placeholder?: string;
   /** Подпись бейджа активного стола (default «Активный») */
   activeLabel?: string;
+  /** Находки единого поиска по текущему запросу — приходят от владельца окна */
+  searchGroups?: CommandPaletteSearchGroup[];
+  /** Единый поиск ещё отвечает */
+  searching?: boolean;
 }

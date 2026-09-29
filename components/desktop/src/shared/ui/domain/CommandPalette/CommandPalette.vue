@@ -77,12 +77,12 @@ q-dialog(
           .command-palette__empty(v-else)
             EmptyState(:title='$t("ui.commandPalette.noPagesTitle")')
 
-        //- с запросом — столы и страницы, у каждой строки подписаны стол и приложение
-        template(v-else-if='searchResults.length')
+        //- с запросом — столы и страницы (у каждой строки подписаны стол и
+        //- приложение), ниже находки единого поиска группами по источникам
+        template(v-else-if='searchResults.length || incompleteGroups.length || searching')
           ul.command-palette__flat(role='listbox')
             template(v-for='(entry, index) in searchResults', :key='entry.key')
-              li.command-palette__group-title(v-if='isSectionStart(index)')
-                | {{ entry.kind === 'workspace' ? $t('ui.commandPalette.workspacesSection') : $t('ui.commandPalette.pagesSection') }}
+              li.command-palette__group-title(v-if='isSectionStart(index)') {{ sectionTitle(entry) }}
               li.command-palette__flat-item(
                 :class='{ "is-selected": activeKey === entry.key }',
                 role='option',
@@ -90,12 +90,17 @@ q-dialog(
                 @click='executeEntry(entry)',
                 @mouseenter='activeKey = entry.key'
               )
-                q-icon.command-palette__flat-icon(
-                  :name='entry.kind === "workspace" ? entry.workspace.icon : entry.page.icon ?? entry.workspace.icon',
-                  size='18px'
-                )
-                span.command-palette__flat-title {{ entry.kind === 'workspace' ? entry.workspace.title : entry.page.title }}
+                q-icon.command-palette__flat-icon(:name='entryIcon(entry)', size='18px')
+                span.command-palette__flat-title {{ entryTitle(entry) }}
                 span.command-palette__flat-crumb {{ crumb(entry) }}
+            //- Источник не успел ответить: поиск по нему неполон, но остальное
+            //- уже показано.
+            li.command-palette__note(v-for='group in incompleteGroups', :key='`incomplete:${group.key}`')
+              q-icon(name='schedule', size='16px')
+              span {{ $t('ui.commandPalette.incompleteGroup', { title: group.title }) }}
+            li.command-palette__note(v-if='searching')
+              q-spinner(size='16px')
+              span {{ $t('ui.commandPalette.searching') }}
 
         .command-palette__empty(v-else)
           EmptyState(:title='$t("ui.commandPalette.emptyTitle")', :body='$t("ui.commandPalette.emptyBody")')
@@ -119,9 +124,12 @@ q-dialog(
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { t } from 'src/shared/i18n';
 import type {
+  CommandPaletteHit,
   CommandPalettePage,
   CommandPaletteProps,
+  CommandPaletteSearchGroup,
   CommandPaletteWorkspace,
 } from './CommandPalette.types';
 
@@ -131,6 +139,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   'select-workspace': [workspaceName: string];
   'select-page': [workspaceName: string, pageName: string];
+  /** Запрос изменился — владелец окна ищет по нему находки */
+  'update:query': [query: string];
+  'select-hit': [groupKey: string, hitKey: string];
 }>();
 
 const query = ref('');
@@ -207,10 +218,26 @@ interface FlatEntryPage {
   workspace: CommandPaletteWorkspace;
   page: CommandPalettePage;
 }
-type FlatEntry = FlatEntryWorkspace | FlatEntryPage;
+interface FlatEntryHit {
+  kind: 'hit';
+  key: string;
+  group: CommandPaletteSearchGroup;
+  hit: CommandPaletteHit;
+}
+type FlatEntry = FlatEntryWorkspace | FlatEntryPage | FlatEntryHit;
 
-/** Результаты поиска: сначала столы, затем страницы */
-const searchResults = computed<FlatEntry[]>(() => {
+/** Результаты поиска: сначала столы, затем страницы, затем находки источников */
+const searchResults = computed<FlatEntry[]>(() => [...localResults.value, ...hitResults.value]);
+
+const hitResults = computed<FlatEntry[]>(() =>
+  (props.searchGroups ?? []).flatMap((group) =>
+    group.hits.map((hit) => ({ kind: 'hit' as const, key: `hit:${group.key}:${hit.key}`, group, hit })),
+  ),
+);
+
+const incompleteGroups = computed(() => (props.searchGroups ?? []).filter((g) => g.incomplete));
+
+const localResults = computed<FlatEntry[]>(() => {
   const q = query.value.toLowerCase().trim();
   if (!q) return [];
 
@@ -233,13 +260,35 @@ const searchResults = computed<FlatEntry[]>(() => {
   return [...desks, ...pages];
 });
 
+/** Раздел выдачи: столы, страницы или группа источника поиска */
+function sectionOf(entry: FlatEntry): string {
+  return entry.kind === 'hit' ? `hit:${entry.group.key}` : entry.kind;
+}
+
 function isSectionStart(index: number): boolean {
   const list = searchResults.value;
-  return index === 0 || list[index - 1].kind !== list[index].kind;
+  return index === 0 || sectionOf(list[index - 1]) !== sectionOf(list[index]);
+}
+
+function sectionTitle(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.group.title;
+  return entry.kind === 'workspace' ? t('ui.commandPalette.workspacesSection') : t('ui.commandPalette.pagesSection');
+}
+
+function entryIcon(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.icon ?? entry.group.icon;
+  if (entry.kind === 'workspace') return entry.workspace.icon;
+  return entry.page.icon ?? entry.workspace.icon;
+}
+
+function entryTitle(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.title;
+  return entry.kind === 'workspace' ? entry.workspace.title : entry.page.title;
 }
 
 /** Подпись справа от найденной строки: чей это стол и чья страница */
 function crumb(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.subtitle ?? '';
   const app = appLabel(entry.workspace);
   if (entry.kind === 'workspace') return app;
   return app ? `${entry.workspace.title} · ${app}` : entry.workspace.title;
@@ -251,6 +300,15 @@ function resetBrowse(): void {
   focusedName.value =
     deskList.value.find((ws) => ws.isActive)?.name ?? deskList.value[0]?.name ?? '';
 }
+
+watch(query, (next) => emit('update:query', next));
+
+// Находки приходят позже локальных строк: курсор не прыгает, пока выбранная
+// строка на месте, и встаёт на первую, если выбранной больше нет.
+watch(searchResults, (list) => {
+  if (!isSearchMode.value) return;
+  if (!list.some((e) => e.key === activeKey.value)) activeKey.value = list[0]?.key ?? '';
+});
 
 watch(query, () => {
   if (isSearchMode.value) {
@@ -353,8 +411,11 @@ function executeActive(): void {
 function executeEntry(entry: FlatEntry): void {
   if (entry.kind === 'workspace') {
     selectWorkspace(entry.workspace);
-  } else {
+  } else if (entry.kind === 'page') {
     selectPage(entry.workspace, entry.page);
+  } else {
+    emit('update:modelValue', false);
+    emit('select-hit', entry.group.key, entry.hit.key);
   }
 }
 
@@ -660,6 +721,16 @@ function onHide(): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.command-palette__note {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  padding: var(--p-2) var(--p-3);
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
+  list-style: none;
 }
 
 .command-palette__flat-crumb {

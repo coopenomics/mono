@@ -68,8 +68,12 @@ q-layout(view='lHh LpR fff')
   CommandPalette(
     v-model='paletteOpen',
     :workspaces='paletteWorkspaces',
+    :search-groups='paletteSearchGroups',
+    :searching='globalSearch.loading.value',
     @select-workspace='onSelectWorkspace',
-    @select-page='onSelectPage'
+    @select-page='onSelectPage',
+    @update:query='globalSearch.setQuery',
+    @select-hit='onSelectHit'
   )
 
   //- Универсальный сканер стола ПВЗ: невидимый держатель всплывающего сканера,
@@ -86,7 +90,8 @@ import { storeToRefs } from 'pinia';
 import { Header } from 'src/widgets/Header/CommonHeader';
 import { LeftDrawerMenu } from 'src/widgets/Desktop/LeftDrawerMenu';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
-import type { CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import type { CommandPaletteSearchGroup, CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import { useGlobalSearch } from 'src/features/GlobalSearch';
 import { ContactsFooter } from 'src/shared/ui/Footer';
 import { UniversalScannerHost } from 'src/widgets/Marketplace/UniversalScanner';
 
@@ -228,6 +233,40 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
     };
   });
 });
+
+// Находки единого поиска: пайщики, документы, записи приложений. Окно получает
+// их готовыми группами; стол при переходе переключит навигационный гард.
+const globalSearch = useGlobalSearch();
+
+const paletteSearchGroups = computed<CommandPaletteSearchGroup[]>(() =>
+  globalSearch.groups.value.map((group) => ({
+    key: group.key,
+    title: group.title,
+    icon: group.icon,
+    incomplete: group.status !== Zeus.GlobalSearchGroupStatus.OK,
+    hits: group.hits.map((hit) => ({
+      key: hit.key,
+      title: hit.title,
+      subtitle: hit.subtitle ?? undefined,
+      icon: hit.icon ?? undefined,
+    })),
+  })),
+);
+
+function onSelectHit(groupKey: string, hitKey: string): void {
+  const hit = globalSearch.groups.value
+    .find((group) => group.key === groupKey)
+    ?.hits.find((item) => item.key === hitKey);
+  palette.close();
+  globalSearch.reset();
+  if (!hit) return;
+  desktop.closeLeftDrawerOnMobile();
+  void router.push({
+    name: hit.route.name,
+    params: (hit.route.params ?? {}) as Record<string, string>,
+    query: (hit.route.query ?? {}) as Record<string, string>,
+  });
+}
 
 function onSelectWorkspace(workspaceName: string): void {
   palette.close();

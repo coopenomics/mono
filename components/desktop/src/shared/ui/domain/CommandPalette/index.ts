@@ -3,4 +3,6 @@ export type {
   CommandPaletteProps,
   CommandPaletteWorkspace,
   CommandPalettePage,
+  CommandPaletteHit,
+  CommandPaletteSearchGroup,
 } from './CommandPalette.types';
