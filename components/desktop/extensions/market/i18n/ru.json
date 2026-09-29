@@ -36,6 +36,7 @@
       "pvzTitle": "Стол ПВЗ",
       "pvzWarehouseTitle": "Склад",
       "returnClaimDetailTitle": "Гарантийный возврат",
+      "scanQrCommandKeywords": "сканер,qr,код,приёмка,выдача",
       "scanQrTitle": "Сканировать QR",
       "shipQrTitle": "Показать QR",
       "supplierOnboardingTitle": "Подключение к Столу поставщика",

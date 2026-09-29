@@ -277,8 +277,10 @@ function onSelectHit(groupKey: string, hitKey: string): void {
   });
 }
 
-// Команды столов: видны, если виден стол и пайщик вправе открыть результат
-// команды — те же `requires`/`roles`, что у страниц.
+// Команды столов. Права — только серверные: право команды должно быть в
+// грантах стола (стол без грантов команд не показывает), а шлюз стола
+// (онбординг, допуск) — пройден. Тот же канон, что у страниц: фронт лишь
+// сверяет выданное сервером.
 const commandStore = useCommandStore();
 const commandHost = ref<InstanceType<typeof CommandHost> | null>(null);
 
@@ -287,8 +289,8 @@ const availableCommands = computed<IRegisteredCommand[]>(() => {
   return commandStore.commands.filter((entry) => {
     const ws = desktop.workspaceMenus.find((w) => w.workspaceName === entry.workspace);
     if (!ws || !desktop.isWorkspaceVisible(ws)) return false;
-    const { requires, roles } = entry.command;
-    return desktop.isPageVisible({ requires, roles } as never, entry.workspace);
+    if (!desktop.hasGrant(entry.workspace, entry.command.requires)) return false;
+    return desktop.gateRouteFor(entry.workspace) === null;
   });
 });
 
@@ -313,6 +315,10 @@ function runCommand(entry: IRegisteredCommand): void {
     desktop.closeLeftDrawerOnMobile();
     // Стол переключит навигационный гард — по маршруту.
     void router.push({ name: command.route.name, params: { coopname: system.info.coopname } });
+    return;
+  }
+  if (command.action) {
+    actionsStore.executeAction(command.action);
     return;
   }
   void commandHost.value?.open(command);

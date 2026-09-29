@@ -700,6 +700,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           ],
         },
       ],
+      // Команды стола: окно столов (⌘K) и сочетания клавиш с любой страницы.
+      commands: [
+        {
+          id: 'market.scan-qr',
+          title: t('market.install.scanQrTitle'),
+          icon: 'qr_code_scanner',
+          keywords: t('market.install.scanQrCommandKeywords').split(','),
+          shortcut: 'G Q',
+          requires: 'Warehouse:read:own-KU',
+          action: 'marketplaceUniversalScan',
+        },
+      ],
     },
 
     // ──────────────────────── Стол администратора ─────────────────────

@@ -25,6 +25,11 @@ export const useCommandStore = defineStore(namespace, () => {
 
   function register(workspace: string, list: IWorkspaceCommand[] = []): void {
     for (const command of list) {
+      // Без серверного права команда открыла бы действие любому пайщику стола.
+      if (!command.requires) {
+        console.error(`[Commands] У команды «${command.id}» нет права requires — команда не зарегистрирована.`);
+        continue;
+      }
       const existing = commands.value.findIndex((c) => c.command.id === command.id);
       // Повторная установка того же приложения обновляет его команды.
       const others = commands.value.filter((_, i) => i !== existing);
