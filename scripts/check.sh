@@ -162,6 +162,10 @@ gate_schema_migrations() {
   node "$REPO_ROOT/scripts/check-schema-migrations.mjs"
 }
 
+gate_legacy_rights() {
+  node "$REPO_ROOT/scripts/check-legacy-rights.mjs"
+}
+
 gate_desk_commands() {
   node "$REPO_ROOT/scripts/check-desk-commands.mjs"
 }
@@ -187,6 +191,7 @@ case "$MODE" in
     run_gate "схема базы — только миграциями" gate_schema_migrations
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "команды столов" gate_desk_commands
+    run_gate "права на ролях" gate_legacy_rights
     ;;
   ledger2)
     run_gate "реестры процессов ledger2" gate_ledger2_processes
@@ -223,6 +228,7 @@ case "$MODE" in
     run_gate "факт: экран без зеркала" gate_live_mirror
     run_gate "текст в словарях i18n" gate_i18n
     run_gate "команды столов" gate_desk_commands
+    run_gate "права на ролях" gate_legacy_rights
     run_gate "канон: изменённые файлы" gate_changed
     run_gate "реестр тестов" gate_registry
     run_gate "реестр тестов: внешний слой" gate_registry_external
