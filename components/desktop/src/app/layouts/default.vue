@@ -301,6 +301,7 @@ const paletteCommands = computed<CommandPaletteCommand[]>(() =>
       icon: command.icon,
       subtitle: ws?.extensionTitle || ws?.title,
       keywords: command.keywords,
+      workspace,
       shortcut: keys ?? undefined,
     };
   }),

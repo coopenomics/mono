@@ -78,7 +78,24 @@ q-dialog(
                 q-icon.command-palette__page-icon(:name='page.icon ?? "circle"', size='18px')
                 span.command-palette__page-title {{ page.title }}
                 kbd.command-palette__page-shortcut(v-if='page.shortcut') {{ page.shortcut }}
-          .command-palette__empty(v-else)
+          //- Команды стола — после его страниц, за разделителем: так их видно,
+          //- даже если название команды неизвестно.
+          template(v-if='deskCommands.length')
+            .command-palette__divider(v-if='focusedWorkspace.pages.length')
+            .command-palette__group-title {{ $t('ui.commandPalette.commandsSection') }}
+            ul.command-palette__pages
+              li(v-for='command in deskCommands', :key='command.id')
+                button.command-palette__page(
+                  type='button',
+                  :class='{ "is-selected": column === "pages" && activeKey === commandKey(command) }',
+                  @click='runCommand(command)',
+                  @mouseenter='onPaneHover(commandKey(command))'
+                )
+                  q-icon.command-palette__page-icon(:name='command.icon', size='18px')
+                  span.command-palette__page-title {{ command.title }}
+                  span.command-palette__keys(v-if='command.shortcut')
+                    kbd(v-for='key in command.shortcut', :key='key') {{ key }}
+          .command-palette__empty(v-if='!focusedWorkspace.pages.length && !deskCommands.length')
             EmptyState(:title='$t("ui.commandPalette.noPagesTitle")')
 
         //- с запросом — столы и страницы (у каждой строки подписаны стол и
@@ -257,7 +274,26 @@ const commandResults = computed<FlatEntry[]>(() => {
         text.toLowerCase().includes(q),
       ),
     )
-    .map((command) => ({ kind: 'command' as const, key: `cmd:${command.id}`, command }));
+    .map((command) => ({ kind: 'command' as const, key: commandKey(command), command }));
+});
+
+function commandKey(command: CommandPaletteCommand): string {
+  return `cmd:${command.id}`;
+}
+
+/** Команды стола, выбранного слева: в правой колонке после его страниц. */
+const deskCommands = computed<CommandPaletteCommand[]>(() =>
+  (props.commands ?? []).filter((c) => c.workspace && c.workspace === focusedWorkspace.value?.name),
+);
+
+/** Строки правой колонки по порядку: страницы стола, затем его команды. */
+const paneEntries = computed<FlatEntry[]>(() => {
+  const ws = focusedWorkspace.value;
+  if (!ws) return [];
+  return [
+    ...ws.pages.map((page) => ({ kind: 'page' as const, key: pageKey(ws, page), workspace: ws, page })),
+    ...deskCommands.value.map((command) => ({ kind: 'command' as const, key: commandKey(command), command })),
+  ];
 });
 
 const hitResults = computed<FlatEntry[]>(() =>
@@ -376,11 +412,11 @@ function moveSelection(delta: number): void {
     // На верхней и нижней позиции курсор остаётся на месте, как в нативных списках.
     const next = current === -1 ? (delta > 0 ? 0 : list.length - 1) : clamp(current + delta, list.length);
     activeKey.value = list[next].key;
-  } else if (column.value === 'pages' && focusedWorkspace.value) {
-    const ws = focusedWorkspace.value;
-    if (!ws.pages.length) return;
-    const current = ws.pages.findIndex((p) => pageKey(ws, p) === activeKey.value);
-    activeKey.value = pageKey(ws, ws.pages[clamp(current + delta, ws.pages.length)]);
+  } else if (column.value === 'pages') {
+    const list = paneEntries.value;
+    if (!list.length) return;
+    const current = list.findIndex((e) => e.key === activeKey.value);
+    activeKey.value = list[clamp(current + delta, list.length)].key;
   } else {
     const list = deskList.value;
     if (!list.length) return;
@@ -394,11 +430,11 @@ function moveSelection(delta: number): void {
 // при наборе запроса они двигают каретку в поле, как обычно.
 function onArrowRight(event: KeyboardEvent): void {
   if (isSearchMode.value || column.value === 'pages') return;
-  const ws = focusedWorkspace.value;
-  if (!ws?.pages.length) return;
+  const first = paneEntries.value[0];
+  if (!first) return;
   event.preventDefault();
   column.value = 'pages';
-  activeKey.value = pageKey(ws, ws.pages[0]);
+  activeKey.value = first.key;
 }
 
 function onArrowLeft(event: KeyboardEvent): void {
@@ -416,8 +452,17 @@ function onDeskHover(ws: CommandPaletteWorkspace): void {
 }
 
 function onPageHover(ws: CommandPaletteWorkspace, page: CommandPalettePage): void {
+  onPaneHover(pageKey(ws, page));
+}
+
+function onPaneHover(key: string): void {
   column.value = 'pages';
-  activeKey.value = pageKey(ws, page);
+  activeKey.value = key;
+}
+
+function runCommand(command: CommandPaletteCommand): void {
+  emit('update:modelValue', false);
+  emit('run-command', command.id);
 }
 
 function scrollActiveIntoView(): void {
@@ -437,9 +482,9 @@ function executeActive(): void {
   }
   const ws = focusedWorkspace.value;
   if (!ws) return;
-  const page =
-    column.value === 'pages' ? ws.pages.find((p) => pageKey(ws, p) === activeKey.value) : undefined;
-  if (page) selectPage(ws, page);
+  const entry =
+    column.value === 'pages' ? paneEntries.value.find((e) => e.key === activeKey.value) : undefined;
+  if (entry) executeEntry(entry);
   else selectWorkspace(ws);
 }
 
@@ -449,8 +494,7 @@ function executeEntry(entry: FlatEntry): void {
   } else if (entry.kind === 'page') {
     selectPage(entry.workspace, entry.page);
   } else if (entry.kind === 'command') {
-    emit('update:modelValue', false);
-    emit('run-command', entry.command.id);
+    runCommand(entry.command);
   } else {
     emit('update:modelValue', false);
     emit('select-hit', entry.group.key, entry.hit.key);
@@ -769,6 +813,12 @@ function onHide(): void {
   font-size: var(--p-fs-meta);
   color: var(--p-ink-3);
   list-style: none;
+}
+
+.command-palette__divider {
+  height: 1px;
+  margin: var(--p-2) var(--p-2) 0;
+  background: var(--p-line);
 }
 
 .command-palette__keys {

@@ -35,6 +35,8 @@ export interface CommandPaletteCommand {
   subtitle?: string;
   /** Слова, по которым команда ещё находится */
   keywords?: string[];
+  /** Стол команды: в правой колонке она стоит после его страниц */
+  workspace?: string;
   /** Клавиши сочетания по порядку: ['N', 'T'] */
   shortcut?: readonly string[];
 }
