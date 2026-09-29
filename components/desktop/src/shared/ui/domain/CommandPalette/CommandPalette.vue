@@ -1,6 +1,10 @@
 <template lang="pug">
+//- no-refocus: после выбора окно уводит на другую страницу, и возвращать
+//- фокус кнопке, которая его открыла, незачем — после Enter браузер обводил
+//- её рамкой фокуса, будто её выбрали.
 q-dialog(
   :model-value='modelValue',
+  no-refocus,
   position='top',
   transition-show='slide-down',
   transition-hide='slide-up',
