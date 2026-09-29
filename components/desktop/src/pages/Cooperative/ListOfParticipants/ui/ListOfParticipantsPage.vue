@@ -34,18 +34,14 @@ q-page.participants-page
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { FilterBar, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain/FilterBar';
-import type { VerificationNaming } from 'src/shared/lib/verification';
-import { useBranchStore } from 'src/entities/Branch/model';
-import { useSystemStore } from 'src/entities/System/model';
-import { getName } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useSessionStore } from 'src/entities/Session';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
 import { ImportParticipantsButton } from 'src/features/User/ImportParticipants';
-import { ParticipantsTable } from 'src/widgets/Participants';
+import { ParticipantsTable, PARTICIPANT_LIVE_TABLES, useVerificationNaming } from 'src/widgets/Participants';
 import { VerificationsJournal } from 'src/widgets/Verifications';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout/PageTabs';
 import { useHeaderActions } from 'src/shared/hooks';
@@ -58,56 +54,15 @@ import {
   type IGetAccounts,
 } from 'src/entities/Account/types';
 import { t } from 'src/shared/i18n';
-import { SovietContract } from 'cooptypes';
-import { useLiveReload, liveTable } from 'src/shared/lib/realtime';
+import { useLiveReload } from 'src/shared/lib/realtime';
 
 const accountStore = useAccountStore();
 const session = useSessionStore();
-const branchStore = useBranchStore();
-const systemStore = useSystemStore();
 const onLoading = ref(false);
 
-// Подписи уровней верификации — человеческими именами: кто сверил личность
-// и на каком участке. Служебные account-id и имена участков в цепи остаются
-// запасным вариантом, когда человеческого имени нет.
-//
-// Реестр приходит страницами, и сверявший (председатель, доверенное лицо
-// участка) может оказаться на другой странице. Поэтому имена берём из
-// загруженной страницы, а недостающие дочитываем по одному и запоминаем.
-const knownNames = reactive(new Map<string, string>());
-const requestedNames = new Set<string>();
-const resolveName = (username: string): string => {
-  const known = knownNames.get(username);
-  if (known !== undefined) return known;
-  if (username && !requestedNames.has(username)) {
-    requestedNames.add(username);
-    void accountStore
-      .fetchAccount(username)
-      .then((account) => knownNames.set(username, (account && getName(account)) || ''))
-      .catch(() => knownNames.set(username, ''));
-  }
-  return '';
-};
-watch(
-  () => accountStore.accounts.items,
-  (items) => {
-    for (const account of items) knownNames.set(account.username, getName(account) || '');
-  },
-  { immediate: true },
-);
-
-const verificationNaming = computed((): VerificationNaming => {
-  const branches = new Map(
-    branchStore.publicBranches.map((branch) => [
-      branch.braname,
-      branch.short_name || branch.full_name || branch.braname,
-    ]),
-  );
-  return {
-    attestorName: resolveName,
-    branchName: (braname: string) => branches.get(braname) || '',
-  };
-});
+// Подписи уровней верификации: имена берём из загруженной страницы реестра,
+// недостающих сверявших composable дочитывает сам.
+const verificationNaming = useVerificationNaming(() => accountStore.accounts.items);
 
 // Фильтр по уровню верификации: совету важно видеть, кого ещё предстоит
 // верифицировать на кооперативных участках (без базового уровня — нужен паспорт).
@@ -197,11 +152,6 @@ const loadParticipants = async (silent = false) => {
         sortOrder: sortDescending.value ? 'DESC' : 'ASC',
       },
     });
-    // Названия участков нужны только для подписи «где сверили» — грузим их
-    // один раз и не роняем реестр, если участков в кооперативе нет.
-    if (!branchStore.publicBranches.length) {
-      await branchStore.loadPublicBranches({ coopname: systemStore.info.coopname }).catch(() => undefined);
-    }
   } catch (e: any) {
     // Фоновое перечитывание не пугает отказом: следующий сигнал повторит.
     if (!silent) FailAlert(e);
@@ -212,18 +162,7 @@ const loadParticipants = async (silent = false) => {
 
 // Живой реестр: вступление, регистрационный взнос, блокировка, выход и сверка
 // личности меняют эти таблицы — страница перечитывается сама, без скелетона.
-useLiveReload(
-  [
-    liveTable(SovietContract, SovietContract.Tables.Participants),
-    { code: 'core', table: 'users' },
-    { code: 'core', table: 'candidates' },
-    { code: 'core', table: 'payments' },
-    { code: 'core', table: 'verification_reviews' },
-    // Личные данные пайщиков (ФИО, реквизиты) — в генераторе, сигнал шлёт его сервис.
-    { code: 'core', table: 'private_accounts' },
-  ],
-  () => loadParticipants(true),
-);
+useLiveReload(PARTICIPANT_LIVE_TABLES, () => loadParticipants(true));
 
 const changeSort = (sort: { sortBy: string; descending: boolean }) => {
   sortBy.value = SORT_FIELDS[sort.sortBy] ? sort.sortBy : 'created_at';
