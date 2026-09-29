@@ -1,6 +1,6 @@
 import { boot } from 'quasar/wrappers';
 import * as Sentry from '@sentry/vue';
-import { env } from 'src/shared/config';
+import { APP_VERSION, env } from 'src/shared/config';
 
 export default boot(({ app, router }) => {
   // Sentry (@sentry/vue + browserTracing) — браузерный SDK, работает только на клиенте.
@@ -26,6 +26,10 @@ export default boot(({ app, router }) => {
       ],
       tracesSampleRate: 0.01,
       environment: env.NODE_ENV || 'development',
+      // Сборка кабинета, давшая событие (версия запекается в бандл при сборке):
+      // без неё не понять, доехало ли исправление до браузера пайщика.
+      release: APP_VERSION,
+      initialScope: { tags: { app_version: APP_VERSION } },
       // Обрыв связи и таймаут запроса — не ошибка кабинета, а состояние сети:
       // во время обновления узла бэкенд недоступен минуту-другую, и пайщик в это
       // время видит заглушку «Техническое обслуживание» или «Синхронизация».

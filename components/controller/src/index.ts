@@ -14,6 +14,7 @@ import { formatSchemaReport, reportSchema } from './migrator/schema-report';
 import { ValidationPipe } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSensitiveDataFromSentryEvent } from './shared/utils/sentry-scrub-event';
+import { appVersion } from './shared/utils/app-version';
 // Настройки контура и секрет межсервисного обхода передаются каркасу в
 // './config/platform-bootstrap' — он импортирован первой строкой app.module.ts,
 // то есть раньше любого расширения. См. комментарий в самом файле.
@@ -76,6 +77,9 @@ async function bootstrap() {
     Sentry.init({
       dsn: config.sentry.dsn,
       environment: config.env,
+      // Сборка, давшая событие: без неё не понять, доехало ли исправление.
+      release: appVersion(),
+      initialScope: { tags: { app_version: appVersion(), coopname: config.coopname } },
       // Отправляем ошибки только в production
       beforeSend: (event) => {
         scrubSensitiveDataFromSentryEvent(event);
@@ -225,7 +229,7 @@ async function bootstrap() {
 
   // Запуск сервера
   await nestApp.listen(config.port, () => {
-    logger.info(`NestJS app with Express routes running on port ${config.port}`);
+    logger.info(`NestJS app with Express routes running on port ${config.port}; версия ${appVersion()}`);
   });
 
   // Завершение работы приложения при неожиданных ошибках

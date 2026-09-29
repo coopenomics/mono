@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { APP_VERSION } from 'src/shared/config';
 
 /**
  * Отслеживание версий и оповещение об обновлении.
@@ -14,7 +15,7 @@ import { ref, computed } from 'vue';
  */
 
 // Запечённая при сборке версия клиента (CalVer, lockstep через lerna).
-const LOCAL_VERSION = (process.env.APP_VERSION as string) || 'dev';
+const LOCAL_VERSION = APP_VERSION;
 
 // Та же каденция, что у SW-троттла обновления: раз в 5 минут + при возврате на вкладку.
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
