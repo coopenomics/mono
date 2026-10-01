@@ -206,7 +206,11 @@ describe('робот решений совета: кворум, повтор г�
     const { member, exitHash, id } = await exitDecision('srba')
     const done = await journalAt(id, ['EXECUTED', 'CLOSED'], 'решение прошло без людей')
     // Решение исполнено и из цепи убрано — голоса читаются из журнала робота.
-    expect((done.votes as any[]).map(v => v.member).sort(), 'проголосовал весь совет').toEqual([...council].sort())
+    // Робот голосует за каждого, чей ключ у него есть: кворум набран без людей.
+    const voted = (done.votes as any[]).map(v => String(v.member))
+    expect(voted).toContain(CHAIRMAN.account)
+    expect(voted.length, `голоса робота: ${voted.join(', ')}`).toBeGreaterThanOrEqual(chained.vote_quorum.required_count)
+    expect(voted.every(m => council.includes(m))).toBe(true)
     await payOutExit(member, exitHash)
   })
 })

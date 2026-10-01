@@ -170,6 +170,16 @@ jobs:
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh dbcov snap api
 
+      # Отказы стенда — после всех сценариев, но до матрицы прав: наборы ставят
+      # чтение цепи на паузу и останавливают цепь, под что не должен попасть ни
+      # один другой сценарий, а матрица прав зовёт мутации с чужими аргументами
+      # и оставляет стенд непригодным для сценариев Стола заказов.
+      - name: Отказы стенда (пауза чтения цепи, остановка цепи)
+        id: faults
+        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        timeout-minutes: 15
+        run: bash scripts/blackbox/stack.sh faults
+
       # Матрица прав сверяется с утверждённым снимком
       # (components/api-tests/src/rights/snapshot.json, утверждён владельцем
       # 25.09.2026): новая операция без утверждённых прав или изменившееся
@@ -185,14 +195,6 @@ jobs:
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
         continue-on-error: true
         run: bash scripts/blackbox/stack.sh dbcov snap rights
-
-      # Отказы стенда — последней фазой: наборы ставят чтение цепи на паузу,
-      # и ни один другой сценарий под эту паузу попасть не должен.
-      - name: Отказы стенда (пауза чтения цепи)
-        id: faults
-        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
-        timeout-minutes: 15
-        run: bash scripts/blackbox/stack.sh faults
 
       - name: Логи стенда
         if: always()
