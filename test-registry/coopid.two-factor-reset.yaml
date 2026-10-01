@@ -30,6 +30,7 @@ cases:
       секрет удалён без проверки кода, настройка «код при входе» погашена,
       пайщик уведомлён
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.happy.02

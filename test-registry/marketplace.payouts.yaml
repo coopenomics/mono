@@ -50,6 +50,8 @@ cases:
       ответ null, заказ и кассирский порт не опрашиваются — чужой идентификатор
       не должен подтверждаться ни ответом, ни отказом по праву
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; выплату другого кооператива через API не завести"
     status: passing
 
   - id: mkt.payouts.side.02
@@ -71,6 +73,8 @@ cases:
       разворот отдаётся без предмета поставки (order = null) — выплата и её
       реквизиты совету видны в любом случае
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "заказ выплаты в базе узла не удаляется; состояние «заказ не нашёлся» через API не создать"
     status: passing
 
   - id: mkt.payouts.break.01
@@ -82,6 +86,8 @@ cases:
       разворот остаётся живым, core_payment пуст — marketplace-статус
       самодостаточен, отказ соседнего стола не должен гасить карточку
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "отказ кассирского порта через API стенда не вызвать"
     status: passing
 
   - id: mkt.payouts.side.04
@@ -91,6 +97,8 @@ cases:
       Выплата заведена, но платёж кассиру ещё не создан (core_payment_id пуст).
     expect: core_payment = null, разворот отдаётся
     test: components/controller/tests/unit/marketplace/marketplace-outgoing-payment-detail.test.ts
+    external: unreachable
+    external_reason: "выплата без платежа кассиру — промежуточное состояние внутри одной операции, снаружи не наблюдается"
     status: passing
 
   - id: mkt.payouts.side.05

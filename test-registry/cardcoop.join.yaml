@@ -38,6 +38,7 @@ cases:
       связь запоминается, а не теряется; свидетельство не выпускается — совет
       ещё не принял решения
     test: components/controller/tests/unit/cardcoop/cardcoop-link-webhook.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.join.happy.02
@@ -72,6 +73,8 @@ cases:
     expect: >
       игнорируется — свидетельствовать о чужом пайщике мы не вправе
     test: components/controller/tests/unit/cardcoop/cardcoop-join-events.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив: действие выхода или приёма по чужому кооперативу в его цепи создать нечем"
     status: passing
 
   - id: cc.join.break.01

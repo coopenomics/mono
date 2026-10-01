@@ -208,6 +208,7 @@ cases:
     scenario: Цепь недоступна в момент подписи заявления или закрывающей подписи акта
     expect: сага не двигается, причина сохранена, повторная попытка возможна; имущество не передаётся
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
     status: passing
 
   - id: mkt.iss.happy.03
@@ -343,6 +344,7 @@ cases:
       режиме — ничего подписывать не нужно; решение людей приходит обратным
       вызовом совета, акт формируется, уходит push «подпишите акт»
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.41
@@ -353,6 +355,7 @@ cases:
       сага закрыта отказом, заказ снова «готов к выдаче», паевой взнос остаётся
       на месте — движений по средствам нет
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.42
@@ -361,6 +364,7 @@ cases:
     scenario: Оператор снимает выдачу, пока совет рассматривает заявление
     expect: отказ — снять можно до заявления или после ответа совета
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.43
@@ -508,6 +512,8 @@ cases:
       сумму, пока цепь не отзеркалит проведённую уценку; закрытие такого
       заказа по выходу гарантии откладывается
     test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    external: unreachable
+    external_reason: "повтор шага выплаты идёт по расписанию (cron); запустить его через API нельзя"
     status: written   # прогон не подтверждён локально — гоняет CI; ветка отложенного закрытия покрыта только кодом крона закрытия
 
   - id: mkt.iss.side.53

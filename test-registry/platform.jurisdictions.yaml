@@ -41,6 +41,7 @@ cases:
       КБК единого налогового платежа 18201061201010000510; НДФЛ — ставка 13 %,
       КБК 18210102010011000110, код материальной помощи 2710
     test: components/jurisdictions/src/index.test.ts
+    api: components/api-tests/src/platform/jurisdictions.test.ts
     status: passing
 
   - id: plt.jur.side.01

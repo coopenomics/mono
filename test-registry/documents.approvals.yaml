@@ -146,6 +146,8 @@ cases:
     scenario: Один шаблон объявляют два расширения
     expect: ошибка конфигурации на старте, второй владелец отвергнут
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    external: unreachable
+    external_reason: "ошибка конфигурации на старте узла (два владельца одного шаблона) через API не создаётся"
     status: written
 
   - id: doc.appr.side.06
@@ -189,6 +191,8 @@ cases:
     scenario: Состояние запрашивают часто, события контракта draft приходят редко
     expect: таблицы цепи читаются один раз до события upversion/editdraft/approve или истечения TTL
     test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    external: unreachable
+    external_reason: "число чтений таблиц цепи — внутреннее свойство кэша, снаружи не наблюдается"
     status: written
 
   - id: doc.appr.happy.07
@@ -294,6 +298,7 @@ cases:
     scenario: Оператор поднял редакцию документа, объявленного в кооперативе
     expect: председатель получает уведомление с названием документа, номером редакции и ссылкой на вкладку «Шаблоны документов»
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.12
@@ -302,6 +307,7 @@ cases:
     scenario: Совет отклонил утверждение или решение снято как просроченное
     expect: председатель получает уведомление с названиями документов и причиной
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.13
@@ -310,6 +316,8 @@ cases:
     scenario: Периодическое напоминание о документах без утверждённой текущей редакции
     expect: одно напоминание с числом и названиями документов; когда всё утверждено — молчание
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    external: unreachable
+    external_reason: "напоминание уходит по расписанию (cron); запустить его через API нельзя"
     status: written
 
   - id: doc.appr.side.15
@@ -318,6 +326,7 @@ cases:
     scenario: Поднята редакция шаблона, не объявленного ни одним приложением кооператива, либо в области кооператива, а не сети
     expect: уведомления нет
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.16
@@ -326,6 +335,8 @@ cases:
     scenario: У кооператива нет председателя или у него нет подписки на уведомления
     expect: предупреждение в журнале, ошибки нет
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    external: unreachable
+    external_reason: "кооператив стенда — оператор платформы с председателем и подпиской; состояние без них через API не создать"
     status: written
 
   - id: doc.appr.happy.14
@@ -400,6 +411,8 @@ cases:
     scenario: Реестр шаблонов кооператива, не являющегося оператором платформы
     expect: оферта о присоединении к платформе (50) в реестре отсутствует — её утверждает совет оператора, остальные кооперативы её только принимают
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    external: unreachable
+    external_reason: "кооператив стенда — оператор платформы с председателем и подпиской; состояние без них через API не создать"
     status: written
 
   - id: doc.appr.happy.20

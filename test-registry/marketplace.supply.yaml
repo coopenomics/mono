@@ -403,6 +403,7 @@ cases:
       сверка показывает расхождение остатка счёта 76 с открытыми расчётами;
       приёмка без выплаты и признанный, но не удержанный долг сходятся
     test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    api: components/api-tests/src/marketplace/ledger-invariants.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
 # 2026-09-10 (задача 99D-15, замкнутость учёта): удержание признанного долга
@@ -449,6 +450,8 @@ cases:
       зеркало заказа не показывает выплату на цепи, платёж — если его нет в
       реестре; стёртый заказ и завершённая выплата повтора не получают
     test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    external: unreachable
+    external_reason: "повтор шага выплаты идёт по расписанию (cron); запустить его через API нельзя"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.supply.side.40
@@ -462,6 +465,7 @@ cases:
       расчёт, закрытый одним удержанием, сходятся; перевод на сумму выдачи,
       двойное удержание, выплата без приёмки и повторная выплата — нарушения
     test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    api: components/api-tests/src/marketplace/ledger-invariants.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.supply.side.41
@@ -478,6 +482,7 @@ cases:
       паевого выдачей без резерва; I7 берёт принятую стоимость из истории и
       вычитает удержанное при инициации
     test: components/controller/src/extensions/marketplace/application/invariants/marketplace-ledger2-invariants.spec.ts
+    api: components/api-tests/src/marketplace/ledger-invariants.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.supply.side.42
@@ -561,6 +566,8 @@ cases:
       уведомление; заказы моложе 48 часов и с подписью поставщика на акте не
       трогаются; отказ цепи по одному заказу не останавливает остальные
     test: components/controller/tests/unit/marketplace/marketplace-undelivered-order-cron.test.ts
+    external: unreachable
+    external_reason: "крон непоставки срабатывает через 48 часов после акцепта; время стенда через API не перемотать"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.supply.side.49

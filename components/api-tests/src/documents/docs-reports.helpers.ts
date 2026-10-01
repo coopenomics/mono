@@ -15,6 +15,7 @@ import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
 import { gql } from '../core/client'
+import { voteOnDecision } from '../core/council'
 import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
@@ -167,22 +168,9 @@ export async function agendaAll(token: string): Promise<{ id: number, hash: stri
   return (d.getAgenda as any[]).map(a => ({ id: Number(a.table.id), hash: String(a.table.hash ?? ''), meta: String(a.table.meta ?? '') }))
 }
 
-/** Голоса членов совета ключом стенда — так, как голосует рабочий стол. */
+/** Голоса членов совета ключом стенда — общий помощник совета (core/council). */
 export async function vote(decision: AgendaRow, side: 'for' | 'against'): Promise<void> {
-  const { Classes } = await import('@coopenomics/sdk')
-  const signer: any = new Classes.Vote(DEFAULT_WIF)
-  for (const voter of VOTERS) {
-    if (decision.votes_for.includes(voter) || decision.votes_against.includes(voter))
-      continue
-    const data = side === 'for'
-      ? await signer.voteFor(COOP, voter, decision.id)
-      : await signer.voteAgainst(COOP, voter, decision.id)
-    await transact({ account: voter, email: '', wif: DEFAULT_WIF }, [{
-      account: 'soviet',
-      name: side === 'for' ? 'votefor' : 'voteagainst',
-      data,
-    }])
-  }
+  await voteOnDecision(decision.id, side, VOTERS)
 }
 
 /**

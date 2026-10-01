@@ -75,6 +75,8 @@ cases:
     scenario: Удержание прошло с 23-го числа месяца, а не до 22-го включительно
     expect: сумма попадает во второй срок месяца, а не в первый
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.ndfl6.side.02
@@ -85,6 +87,8 @@ cases:
       по UTC ещё предыдущие
     expect: срок считается по московскому времени
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
     # Граница суток на 23-м числе разделяет два срока перечисления, поэтому
     # трёхчасовой сдвиг переносит сумму в соседнюю строку отчёта.

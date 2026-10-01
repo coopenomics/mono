@@ -16,7 +16,8 @@
  */
 import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, gql, gqlError, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, gql, gqlError, tableRows, tokenOf, waitFor } from '../core'
+import { quietWindow } from '../platform/platform-a.helpers'
 import {
   PROPOSE,
   agendaAll,
@@ -27,6 +28,7 @@ import {
   draftRow,
   editDraftContext,
   ensureProposable,
+  inbox,
   plain,
   propose,
   templateOf,
@@ -43,6 +45,10 @@ const SERVICE_DOC = 599
 const TWINS = [995, 997, 999, 1101]
 const WORKING_OFFERS = [996, 1000, 1001, 1102]
 const HEX64 = /^[0-9a-f]{64}$/i
+
+/** Уведомления председателю о редакциях документов (Центр уведомлений). */
+const EDITION_AVAILABLE = 'vyshla-novaya-redaktsiya-dokumenta-kooperativa'
+const APPROVAL_DECLINED = 'utverzhdenie-redaktsii-dokumenta-ne-prinyato-sovetom'
 
 
 const ATTENTION = 'query($c:String!){ documentTemplatesAttention(coopname:$c) }'
@@ -265,6 +271,17 @@ describe('документы: фабрика утверждений редакц
     }
   })
 
+  it(caseName('doc.appr.happy.12', 'совет отклонил утверждение — председатель получает уведомление с названием документа и причиной'), async () => {
+    const { title } = await templateOf(chair, MARKET_FORM)
+    const note = await waitFor(async () =>
+      (await inbox(chair)).find(n => n.workflowId === APPROVAL_DECLINED && String(n.payload?.documentTitles ?? '').includes(title)) ?? null,
+    { timeoutMs: 60_000, intervalMs: 1_500, label: 'уведомление об отклонённом утверждении' })
+    expect(note.payload.documentTitles).toBe(`«${title}»`)
+    expect(String(note.payload.reasonText).length).toBeGreaterThan(0)
+    expect(Number(note.payload.decision_id)).toBeGreaterThan(0)
+    expect(note.payload.templatesUrl).toMatch(new RegExp(`/${COOP}/documents/templates$`))
+  })
+
   it(caseName('doc.appr.happy.09', 'совет принял решение: каждой форме пакета записано утверждение с редакцией, номером и датой решения'), async () => {
     const agenda = await agendaByHash(chair, bundleHash)
     expect(agenda, 'решение пакета ещё в повестке').not.toBeNull()
@@ -326,6 +343,28 @@ describe('документы: фабрика утверждений редакц
     const approvedHtml = (await blank(chair, RETURN_BY_MONEY, 'Approved')).html
     expect(approvedHtml, 'утверждённая редакция с правкой без смены номера').toContain(`${marker}-A`)
     expect(approvedHtml, 'текст неутверждённой редакции пайщикам не предъявляется').not.toContain(`${marker}-B`)
+  })
+
+  it(caseName('doc.appr.happy.11', 'оператор поднял редакцию объявленного документа — председатель получает уведомление с названием, номером редакции и ссылкой на реестр шаблонов'), async () => {
+    const template = await templateOf(chair, RETURN_BY_MONEY)
+    const note = await waitFor(async () =>
+      (await inbox(chair)).find(n => n.workflowId === EDITION_AVAILABLE
+        && n.payload?.documentTitle === template.title
+        && String(n.payload?.version) === String(template.current_version)) ?? null,
+    { timeoutMs: 60_000, intervalMs: 1_500, label: 'уведомление о новой редакции документа' })
+    expect(note.payload.templatesUrl).toMatch(new RegExp(`/${COOP}/documents/templates$`))
+  })
+
+  it(caseName('doc.appr.side.15', 'поднята редакция шаблона, не объявленного ни одним приложением кооператива, — уведомления нет'), async () => {
+    const declared = new Set((await templates(chair)).map(t => t.registry_id))
+    const drafts = await tableRows<any>('draft', 'draft', 'drafts')
+    const undeclared = drafts.map(d => Number(d.registry_id)).find(id => !declared.has(id))
+    expect(undeclared, 'в сети есть шаблон вне реестра кооператива').toBeDefined()
+
+    const before = (await inbox(chair)).filter(n => n.workflowId === EDITION_AVAILABLE).length
+    await upversion(undeclared!)
+    await quietWindow(8_000)
+    expect((await inbox(chair)).filter(n => n.workflowId === EDITION_AVAILABLE)).toHaveLength(before)
   })
 
   it(caseName('doc.appr.side.07', 'переходы состояния: служебный — не требуется, новая редакция — устарело, вынесено — в повестке'), async () => {

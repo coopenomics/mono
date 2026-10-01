@@ -51,6 +51,7 @@ cases:
       запись переходит в «действующее» и хранит идентификатор — по нему потом
       выполняется отзыв
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.happy.02
@@ -64,6 +65,7 @@ cases:
       локально — в сети отзывать нечего, а повтор иначе выпустил бы их вышедшему
       пайщику (с 25.09.2026); чужие не трогаются; запись о процессе удаляется
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.side.01
@@ -74,6 +76,7 @@ cases:
     expect: >
       второго свидетельства не выпускается — иначе один пайщик оброс бы дублями
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.side.02
@@ -85,6 +88,7 @@ cases:
       членство сохраняется, подтверждение остаётся действующим, запись о процессе
       забывается
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.side.03
@@ -121,6 +125,7 @@ cases:
       запись метится отозванной локально с явной причиной и громкой записью в
       журнал: автоматически отозвать нечем, нужен ручной разбор
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.break.03
@@ -132,6 +137,7 @@ cases:
       подтверждение остаётся действующим, причина сохранена: в сети членство ещё
       не прекращено, и делать вид, что прекращено, нельзя
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.mbr.side.04
@@ -142,6 +148,8 @@ cases:
     expect: >
       обработчик его игнорирует — иначе чужой выход отозвал бы наше подтверждение
     test: components/controller/tests/unit/cardcoop/cardcoop-exit-events.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив: действие выхода или приёма по чужому кооперативу в его цепи создать нечем"
     status: passing
 
   - id: cc.mbr.happy.03
@@ -169,6 +177,8 @@ cases:
       проход глотает ошибку с записью в журнал: вызов приходит из setInterval,
       где необработанный отказ промиса убивает node целиком
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    external: unreachable
+    external_reason: "отказ базы узла посреди фоновой операции через API стенда не вызвать"
     status: passing
 
   - id: cc.mbr.break.05
@@ -201,6 +211,8 @@ cases:
     scenario: База недоступна в момент забывания удалённой карты.
     expect: приём уведомления не роняется, причина остаётся в журнале кооператива
     test: components/controller/tests/unit/cardcoop/cardcoop-membership.test.ts
+    external: unreachable
+    external_reason: "отказ базы узла посреди фоновой операции через API стенда не вызвать"
     status: passing
 
 

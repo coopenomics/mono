@@ -11,6 +11,14 @@
 // Юнит-тесты остаются: они быстро проверяют правила изнутри. Внешний тест
 // добавляется к случаю полем `api` (или сам `test` лежит во внешнем слое).
 //
+// Часть случаев снаружи недостижима в принципе: отказ базы или цепи, сбой
+// посреди операции, состояние, которого у настроенного кооператива не бывает.
+// Через API стенда их условие не создать, и держать их вечным долгом значит
+// обесценить храповик. Такой случай помечается `external: unreachable` с
+// обязательной причиной в `external_reason` — в долг он не идёт, а число
+// таких случаев печатается отдельно (цель владельца 01.10.2026: каждый
+// случай либо проверен снаружи, либо назван недостижимым с причиной).
+//
 // Храповик. Долг — backend-случаи с тестом, но без внешнего теста — снят по
 // фичам в scripts/lib/registry-external-baseline.json. Вердикт роняет только
 // рост: новый backend-случай, закрытый одним юнит-тестом, или долг у новой
@@ -23,7 +31,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadRegistry, hasExternalTest } from './lib/registry.mjs';
+import { loadRegistry, hasExternalTest, isExternallyUnreachable } from './lib/registry.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const BASELINE = join(REPO_ROOT, 'scripts/lib/registry-external-baseline.json');
@@ -38,6 +46,7 @@ if (errors.length) {
 const debt = {};
 const debtCases = {};
 let external = 0;
+let unreachable = 0;
 let backendCovered = 0;
 for (const f of features) {
   for (const c of f.cases) {
@@ -45,6 +54,11 @@ for (const f of features) {
     backendCovered++;
     if (hasExternalTest(c)) {
       external++;
+      continue;
+    }
+    // Осознанно вне внешнего слоя: условие случая через API стенда не создать.
+    if (isExternallyUnreachable(c)) {
+      unreachable++;
       continue;
     }
     debt[f.feature] = (debt[f.feature] || 0) + 1;
@@ -87,7 +101,7 @@ if (grown.length) {
   process.exit(1);
 }
 
-console.log(`  внешний слой: ${external} из ${backendCovered} покрытых backend-случаев; долг ${total} (в снимке ${baseTotal}), роста нет`);
+console.log(`  внешний слой: ${external} из ${backendCovered} покрытых backend-случаев; снаружи недостижимо (с причиной) ${unreachable}; долг ${total} (в снимке ${baseTotal}), роста нет`);
 if (total < baseTotal) {
   console.log('  долг снизился — обновите снимок: node scripts/check-registry-external.mjs --update');
 }

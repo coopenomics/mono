@@ -193,6 +193,7 @@ cases:
     scenario: Кворум без ручных голосов недостижим
     expect: робот голосует за делегировавших и ждёт ручных голосов, дожимает протокол после кворума
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   - id: sov.rob.side.11
@@ -201,6 +202,8 @@ cases:
     scenario: Процесс упал между голосами и протоколом
     expect: сторож завершает решение с ограничением попыток, ошибка видна администратору
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    external: unreachable
+    external_reason: "сбой процесса между голосами и протоколом через API стенда не вызвать"
     status: passing
 
   - id: sov.rob.break.05
@@ -225,6 +228,7 @@ cases:
     scenario: Ведомый ещё не проголосовал по решению делегированного типа
     expect: робот не голосует за повторяющих, этап «ждёт голоса», в записи — кого ждут
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   - id: sov.rob.happy.12
@@ -233,6 +237,7 @@ cases:
     scenario: Ведомый проголосовал «за» и «против»
     expect: повторяющие голосуют тем же знаком одной транзакцией; режимы «сразу» и повтор уживаются в одной транзакции
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   - id: sov.rob.side.13
@@ -241,6 +246,7 @@ cases:
     scenario: Цепочка повтора A как B, B как C
     expect: после голоса C голосует только B, A ждёт B; следующий голос двигает цепочку дальше
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   - id: sov.rob.side.14
@@ -249,6 +255,7 @@ cases:
     scenario: Реестр с двумя режимами — группы по ведомым, достижимость кворума, предупреждения
     expect: кворум «сразу» и «вслед за» считаются раздельно; замкнутый круг и ведомый без права голоса помечены предупреждениями; повтор без ключа в кворум не идёт
     test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   - id: sov.rob.happy.13
@@ -265,6 +272,8 @@ cases:
     scenario: Несколько событий голосов по одному решению приходят разом
     expect: одно решение обрабатывается одним проходом плюс одним добавочным; второй голос и второй протокол не подаются; проход берёт свежую запись
     test: components/controller/tests/unit/soviet-robot/robot-watchdog.service.test.ts
+    external: unreachable
+    external_reason: "одновременный приход нескольких событий голосов — гонка внутри узла; снаружи её не поставить, виден только итог (один голос, один протокол)"
     status: passing
 
   - id: sov.rob.break.06
@@ -273,6 +282,8 @@ cases:
     scenario: Ключ записан в старой форме EOS…, а узел отдаёт PUB_K1_…
     expect: обе записи одного ключа приводятся к одному виду, состояние ключа не показывается как несовпадающее; разные ключи остаются разными
     test: components/controller/tests/unit/soviet-robot/robot-key.normalize.test.ts
+    external: unreachable
+    external_reason: "написание ключа (EOS… против PUB_K1_…) — свойство чистой функции сравнения; на стенде ключи робота одного написания"
     status: passing
 
   - id: sov.rob.happy.20
@@ -302,6 +313,8 @@ cases:
     scenario: Контракт стал выносить на совет новый тип решения, а реестр решений не обновили
     expect: гейт падает и называет тип — единственный список автоматизируемых решений не расходится с контрактами
     test: components/controller/tests/unit/soviet-robot/decision-types-registry.test.ts
+    external: unreachable
+    external_reason: "гейт сверяет реестр решений с исходниками контрактов при сборке — это проверка кода, а не поведения стенда"
     status: passing
 
   - id: sov.rob.side.16
@@ -310,6 +323,8 @@ cases:
     scenario: Кооператив без Благороста открывает реестр действий автоматизации
     expect: решений Благороста в реестре нет; ядровые и решения установленных расширений на месте
     test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    external: unreachable
+    external_reason: "на стенде Благорост установлен и нужен остальным наборам; кооператив без расширения не воспроизводится"
     status: passing
 
   - id: sov.rob.break.08
@@ -339,6 +354,7 @@ cases:
     scenario: Председатель голосует роботом «сразу», остальные повторяют за ним
     expect: все голоса цепочки считаются гарантированными — кворум набран, ожидания живого голоса нет
     test: components/controller/tests/unit/soviet-robot/robot-registry.service.test.ts
+    api: components/api-tests/src/soviet/robot.test.ts
     status: passing
 
   # ── Порт для других расширений (Стол заказов, компонент 68) ──────────────
@@ -381,6 +397,8 @@ cases:
       исполняется без отсрочки и без ответа «pending» инициатору; если индекс не
       догнал или ошибка другая — обычная ошибка с отсрочкой повтора
     test: components/controller/tests/unit/soviet-robot/robot-decision.service.test.ts
+    external: unreachable
+    external_reason: "отставание индекса действий от голосов робота — гонка внутри узла, снаружи не ставится"
     status: written   # прогон не подтверждён локально — гоняет CI
   - id: soviet.robot.side.fact-01
     level: backend
@@ -388,6 +406,8 @@ cases:
     scenario: "Робот голосует изнутри разбора цепи и сразу собирает протокол."
     expect: "Его транзакции не ждут разбора блока (иначе взаимная блокировка), сборка протокола повторяется только на отказе «голосов нет в индексе»."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    external: unreachable
+    external_reason: "отставание индекса действий от голосов робота — гонка внутри узла, снаружи не ставится"
     status: passing
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
