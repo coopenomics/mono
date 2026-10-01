@@ -120,6 +120,8 @@ cases:
     scenario: Заявление подано после истечения гарантийного срока
     expect: отказ с указанием, что срок истёк
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    external: unreachable
+    external_reason: "гарантийный срок считается сутками по времени цепи; перемотать время стенда через API нельзя"
     status: passing
 
   - id: mkt.ret.side.03
@@ -142,13 +144,17 @@ cases:
 
   # Решение заказчика (2026-08-08): частичный возврат серией заявлений
   # допустим — заявление не закрывает позицию целиком.
+  # Решение владельца (2026-09-28): отказ по заявлению окончателен — повторное
+  # заявление по тому же заказу после отказа не принимается (так ведёт себя
+  # цепь: отметка возврата с заказа отказом не снимается).
   - id: mkt.ret.side.05
     level: backend
     kind: side
     scenario: Новое заявление по заказу, у которого прежнее уже закрыто
     expect: >
-      заявление принимается, пока по заказу остаётся невозвращённый остаток; одновременно открытым может быть только одно заявление
+      после отказа по прежнему заявлению новое не принимается; одновременно открытым может быть только одно заявление
     test: components/controller/tests/unit/marketplace/marketplace-return-claim-validation.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.19
@@ -348,6 +354,7 @@ cases:
     scenario: С претензией пытается согласиться не тот поставщик, либо согласие даётся повторно
     expect: отказ до обращения к цепи; по заказу из остатка кооператива претензия не заводится
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.51
@@ -359,6 +366,7 @@ cases:
       кошелька долга; пустой кошелёк даёт ноль; несогласие в цепь не пишется,
       автоматических решений нет
     test: components/controller/tests/unit/marketplace/marketplace-supplier-claim.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: mkt.ret.side.52
@@ -417,6 +425,8 @@ cases:
       крон повторяет payretfee, пока участок не пополнил кошелёк; отказ
       «не ожидает довнесения» снимает отметку без повтора
     test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    external: unreachable
+    external_reason: "повтор взноса идёт по расписанию (cron) после решения совета; запустить его через API нельзя"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.ret.side.56
@@ -430,6 +440,8 @@ cases:
       миграция v22 переводит их в ACCEPTED_BY_COUNCIL, список заявлений отдаётся
       целиком; повторный запуск миграции ничего не меняет
     test: components/controller/tests/unit/marketplace/marketplace-bootstrap-v22.migration.test.ts
+    external: unreachable
+    external_reason: "заявления в снятом статусе — наследие прежней версии; через API такую строку не завести, миграция проверяется юнит-тестом"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: mkt.retrn.sign.01

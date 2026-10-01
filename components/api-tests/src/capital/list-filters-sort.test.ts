@@ -58,6 +58,19 @@ describe('Благорост — сортировка списков: закры
   })
 })
 
+describe('Благорост — сортировка списков: SQL в поле сортировки', () => {
+  it(caseName('cap.lists.break.01', 'в поле сортировки дописан SQL — запрос отклонён проверкой ввода, до запроса к базе не дошёл'), async () => {
+    for (const sortBy of ['title; DROP TABLE capital_issues', '(select 1)', 'title\' --', 'created_at, (select count(*) from users)']) {
+      const r = await issuesAs(CHAIRMAN, { project_hash: Q }, { page: 1, limit: 50, sortBy, sortOrder: 'ASC' })
+      expect(r.errors.length, sortBy).toBeGreaterThan(0)
+      expect(['422', 'KIT_SORT_FIELD_INVALID'], `${sortBy}: ${JSON.stringify(r.errors[0])}`).toContain(String(r.errors[0].code))
+      expect(r.errors[0].message, sortBy).not.toMatch(/syntax error|QueryFailedError|SELECT |relation "/i)
+    }
+    // Список после этого цел и отвечает как прежде.
+    expect(await order({ sortBy: 'title', sortOrder: 'ASC' })).toEqual([titles.A, titles.B, titles.C])
+  })
+})
+
 describe('Благорост — что попадает в списки', () => {
   it(caseName('cap.lists.side.05', 'задачи чужого проекта не попадают в выборку и не считаются'), async () => {
     const outsider = ROLES.otherMember()

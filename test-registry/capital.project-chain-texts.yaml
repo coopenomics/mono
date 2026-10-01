@@ -74,6 +74,8 @@ cases:
     scenario: приходит дельта строки, записанной до выноса текстов
     expect: текст из цепи копируется в базу, как раньше
     test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: cap.texts.side.03
@@ -82,6 +84,8 @@ cases:
     scenario: текст в базе не даёт хеш, который лежит в цепи
     expect: расхождение по полю попадает в журнал ошибок
     test: components/controller/tests/unit/capital/chain-text-digest.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: cap.texts.side.04

@@ -166,6 +166,8 @@ cases:
     scenario: дубликат типа из двух источников верификации
     expect: схлопывается — выигрывает более ранний источник в наборе
     test: components/controller/src/application/auth-v2/verification/verification-types.service.spec.ts
+    external: unreachable
+    external_reason: "цепь не даёт провести вторую верификацию той же процедурой; два источника одного уровня через API не получить"
     status: passing
 
   - id: cid.ver.side.07
@@ -196,6 +198,7 @@ cases:
       отдаются ФИО, дата рождения и паспорт целиком с адресом регистрации;
       выдача пишется в аудит
     test: components/controller/src/application/auth-v2/verification/verification-identity.service.spec.ts
+    api: components/api-tests/src/coopid/verification.test.ts
     status: passing
 
   - id: cid.ver.side.12
