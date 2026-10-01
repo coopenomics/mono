@@ -16,6 +16,7 @@ import type { Who } from './auth'
 import { ApiError, gqlRaw } from './client'
 import { CHAIN_URL, COOP, DEFAULT_WIF, REPO_ROOT } from './env'
 import { transact } from './chain'
+import { chainDoc } from './documents'
 
 /** Имя аккаунта: 12 символов из a-z1-5, начинается с префикса теста. */
 export function randomAccount(prefix = 'at'): string {
@@ -133,5 +134,33 @@ export async function admitCandidate(username: string, createdAt = new Date().to
       meta: 'api-tests: приём кандидата',
       registration_hash: crypto.randomBytes(32).toString('hex'),
     },
+  }])
+}
+
+/**
+ * Ключ принятого пайщика в цепи. `adduser` заводит аккаунт без ключа пайщика —
+ * им управляет кооператив; документ, подписанный пайщиком, цепь примет только
+ * после выдачи ключа (так же делает boot-скрипт add-plain-participant).
+ */
+export async function grantMemberKey(username: string, publicKey: string): Promise<void> {
+  await transact({ account: COOP, email: '', wif: DEFAULT_WIF }, [{
+    account: 'registrator',
+    name: 'changekey',
+    authorization: [{ actor: COOP, permission: 'active' }],
+    data: { coopname: COOP, changer: COOP, username, public_key: publicKey },
+  }])
+}
+
+/**
+ * Соглашение пайщика с программой кошелька (wallet::signagree). Без него цепь
+ * не проводит операции по паевому кошельку пайщика — в том числе выплату
+ * паевого при выходе. Принятым через `adduser` его подписывает кооператив.
+ */
+export async function signWalletAgreement(who: Who): Promise<void> {
+  await transact({ account: COOP, email: '', wif: DEFAULT_WIF }, [{
+    account: 'wallet',
+    name: 'signagree',
+    authorization: [{ actor: COOP, permission: 'active' }],
+    data: { coopname: COOP, username: who.account, program_id: 1, document: chainDoc([who]), draft_id: 1 },
   }])
 }

@@ -24,6 +24,10 @@ cd "$ROOT"
 PG_PASSWORD='postgres!23!23' # тот же, что в docker-compose.yaml у сервиса postgres
 API_PORT=2998
 CHAIN_PORT=8888
+# Клиент card.coop в CoopID кооператива стенда — несекретная часть реквизитов;
+# наборы сверяют с ней документ подключения к сети карт.
+CARDCOOP_CLIENT_ID=blackbox-cardcoop-client
+CARDCOOP_OIDC_ISSUER="http://127.0.0.1:${API_PORT}/coopid/application/o/cardcoop/"
 
 # Заменяет значение ключа в .env-файле или дописывает ключ, если его нет.
 set_env() {
@@ -100,6 +104,11 @@ EOF
   set_env "$ctl_env" MINIO_ENDPOINT "http://minio:9000"
   set_env "$ctl_env" SMTP_HOST mailpit
   set_env "$ctl_env" SMTP_PORT 1025
+  # Реквизиты клиента card.coop: с ними кооператив подключается к сети карт
+  # (на стенде — к подставному узлу) и получает вход по карте.
+  set_env "$ctl_env" CARDCOOP_CLIENT_ID "$CARDCOOP_CLIENT_ID"
+  set_env "$ctl_env" CARDCOOP_CLIENT_SECRET "blackbox-$(head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  set_env "$ctl_env" CARDCOOP_OIDC_ISSUER "$CARDCOOP_OIDC_ISSUER"
   # Ключи веб-уведомлений обязательны для конфига; одноразовая пара, как в test.yaml.
   local vapid
   vapid="$(cd components/controller && node -e "const k=require('web-push').generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)")"
@@ -146,6 +155,7 @@ cmd_app() {
   load_stack
   set_env components/controller/.env "$AUTOREG_KEY" off
   docker compose up -d mailpit
+  docker compose up -d stub
   docker compose up -d parser2
   docker compose up -d coopback
 
@@ -197,6 +207,8 @@ api_tests_env() {
   export CHAIN_ID
   export API_URL="http://127.0.0.1:${API_PORT}/v1/graphql"
   export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
+  export BLACKBOX_CARDCOOP_CLIENT_ID="$CARDCOOP_CLIENT_ID"
+  export BLACKBOX_CARDCOOP_OIDC_ISSUER="$CARDCOOP_OIDC_ISSUER"
 }
 
 # Контроллер с включённой автоматикой: пересоздаётся, только если стенд
@@ -220,7 +232,7 @@ cmd_apitests() {
   pnpm exec vitest run \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit-api.xml" \
-    --exclude 'src/rights/**' \
+    --exclude 'src/{rights,faults}/**' \
     ${BLACKBOX_API_TESTS:-}
 }
 
@@ -232,6 +244,28 @@ cmd_rights() {
   pnpm exec vitest run src/rights \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit-rights.xml"
+}
+
+# Отказы стенда: наборы src/faults ставят сервисы стенда на паузу (чтение
+# цепи) и смотрят, что узел показывает снаружи. Идут отдельной фазой после
+# остальных наборов — пауза не должна попасть на чужой сценарий, а узел, не
+# оправившийся от отказа, не должен ронять остальной прогон.
+cmd_faults() {
+  api_tests_env
+  export BLACKBOX_FAULTS=1
+  export BLACKBOX_ROOT="$ROOT"
+  cd components/api-tests
+  # Остановка цепи — отдельным запуском и последней: если цепь после неё не
+  # поднимется, наборы с паузой чтения уже отработали.
+  local failed=0
+  pnpm exec vitest run src/faults \
+    --exclude 'src/faults/chain-down.test.ts' \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-faults.xml" || failed=1
+  pnpm exec vitest run src/faults/chain-down.test.ts \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-faults-chain.xml" || failed=1
+  return $failed
 }
 
 # Журнал запросов к базе (pg_stat_statements, включён надстройкой компоуза).
@@ -276,7 +310,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio mailpit authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true
@@ -312,13 +346,13 @@ for line in sys.stdin:
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0
@@ -362,8 +396,9 @@ case "${1:-}" in
   tests) cmd_tests ;;
   apitests) cmd_apitests ;;
   rights) cmd_rights ;;
+  faults) cmd_faults ;;
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|rights|dbcov|collect|summary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|rights|faults|dbcov|collect|summary>" >&2; exit 2 ;;
 esac

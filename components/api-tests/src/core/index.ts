@@ -11,6 +11,10 @@ export * from './wallet'
 export * from './mailbox'
 export * from './expect'
 export * from './totp'
+export * from './stub'
+export * from './council'
+export * from './membership-exit'
+export * from './faults'
 
 /**
  * Имя теста со ссылкой на случай реестра (test-registry/<фича>.yaml): по

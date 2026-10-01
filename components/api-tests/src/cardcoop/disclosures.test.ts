@@ -7,35 +7,16 @@
  * главное свойство двери снаружи: что бы ни предъявили, отказ один и тот же и
  * причины не выдаёт.
  */
-import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, tokenOf } from '../core'
 import { DISCLOSURE_URL, isolateFromNetwork, postJson } from './cardcoop-card.helpers'
+import { grantClaims, grantKey, mintGrant } from './fake-network'
 
 const REJECTED = 'CARDCOOP_DISCLOSURE_GRANT_REJECTED'
 
-/** Грант в формате card.coop (compact JWS, ES256K), подписанный посторонним ключом. */
-function grant(claims: Record<string, unknown>): string {
-  const { privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'secp256k1' })
-  const head = Buffer.from(JSON.stringify({ alg: 'ES256K', typ: 'cardcoop-grant+jws', kid: crypto.randomUUID() })).toString('base64url')
-  const body = Buffer.from(JSON.stringify(claims)).toString('base64url')
-  const signature = crypto.sign('sha256', Buffer.from(`${head}.${body}`), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url')
-  return `${head}.${body}.${signature}`
-}
-
-function claims(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  const now = Math.floor(Date.now() / 1000)
-  return {
-    iss: 'card.coop',
-    sub: crypto.randomUUID(),
-    aud: 'othercoop',
-    from: COOP,
-    jti: crypto.randomUUID(),
-    iat: now,
-    exp: now + 300,
-    ...overrides,
-  }
-}
+/** Грант, подписанный посторонним ключом: сеть такого ключа не объявляла. */
+const grant = (c: Record<string, unknown>): string => mintGrant(grantKey(), c)
+const claims = grantClaims
 
 describe('карта кооператора: выдача анкеты по гранту', () => {
   beforeAll(async () => {

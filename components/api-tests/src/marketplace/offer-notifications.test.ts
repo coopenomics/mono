@@ -9,7 +9,8 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { CHAIRMAN, COOP, caseName, gql, tokenOf, waitFor } from '../core'
 import type { Supplier } from './offer.helpers'
-import { REJECT_OFFER, approve, availableCategoryId, createOffer, freshSupplier, offerInput } from './offer.helpers'
+import { quietWindow } from '../platform/platform-a.helpers'
+import { REJECT_OFFER, REPUBLISH_OFFER, WITHDRAW_OFFER, approve, availableCategoryId, createOffer, freshSupplier, offerInput } from './offer.helpers'
 
 const INBOX = `query($c:String!,$p:PaginationInput!){ getInboxNotifications(coopname:$c, pagination:$p){
   items{ id workflowId title body payload createdAt } } }`
@@ -24,6 +25,12 @@ async function notificationAbout(token: string, text: string): Promise<any> {
     const d = await gql<any>(token, INBOX, { c: COOP, p: { page: 1, limit: 50, sortOrder: 'DESC' } })
     return (d.getInboxNotifications.items as any[]).find(i => JSON.stringify(i).includes(text)) ?? null
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `уведомление о «${text}»` })
+}
+
+/** Сколько уведомлений во входящих упоминают текст. */
+async function countAbout(token: string, text: string): Promise<number> {
+  const d = await gql<any>(token, INBOX, { c: COOP, p: { page: 1, limit: 50, sortOrder: 'DESC' } })
+  return (d.getInboxNotifications.items as any[]).filter(i => JSON.stringify(i).includes(text)).length
 }
 
 describe('Стол заказов: уведомления о модерации предложения', () => {
@@ -52,5 +59,24 @@ describe('Стол заказов: уведомления о модерации 
     const offer = await createOffer(supplier.token, offerInput(name, categoryId))
     await gql(await tokenOf(CHAIRMAN), REJECT_OFFER, { i: { offer_id: offer.id, reason } })
     await notificationAbout(supplier.token, reason)
+  })
+
+  it(caseName('mkt.offer.side.28', 'одобренное предложение вернули на публикацию — администратора не тревожат, поставщик получает сигнал о публикации'), async () => {
+    const name = `Уведомление о возврате ${tag}`
+    const chairman = await tokenOf(CHAIRMAN)
+    const offer = await createOffer(supplier.token, offerInput(name, categoryId))
+    await notificationAbout(chairman, name)
+    await approve(offer.id)
+    await notificationAbout(supplier.token, name)
+    const moderationBefore = await countAbout(chairman, name)
+    const publishedBefore = await countAbout(supplier.token, name)
+
+    await gql(supplier.token, WITHDRAW_OFFER, { i: { id: offer.id } })
+    const back = await gql<any>(supplier.token, REPUBLISH_OFFER, { i: { id: offer.id } })
+    expect(back.marketplaceRepublishOffer.status, 'повторная модерация не нужна').toBe('ACTIVE')
+
+    await waitFor(async () => (await countAbout(supplier.token, name)) > publishedBefore, { timeoutMs: 90_000, intervalMs: 1_500, label: 'сигнал поставщику о возврате на публикацию' })
+    await quietWindow(5_000)
+    expect(await countAbout(chairman, name), 'уведомления о модерации администратору нет').toBe(moderationBefore)
   })
 })

@@ -24,7 +24,19 @@ export async function gqlRaw<T = any>(token: string | null, query: string, varia
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extraHeaders }
   if (token)
     headers.Authorization = `Bearer ${token}`
-  const res = await fetch(API_URL, { method: 'POST', headers, body: JSON.stringify({ query, variables }) })
+  const send = () => fetch(API_URL, { method: 'POST', headers, body: JSON.stringify({ query, variables }) })
+  let res: Response
+  try {
+    res = await send()
+  }
+  catch (e: any) {
+    // Простаивавшее соединение сервер закрыл, пока тест был занят синхронной
+    // работой (запуск boot-скрипта): запрос ушёл в закрытый сокет и до сервера
+    // не дошёл. Повторяем один раз на новом соединении.
+    if (e?.cause?.code !== 'UND_ERR_SOCKET')
+      throw e
+    res = await send()
+  }
   const text = await res.text()
   let payload: any
   try {

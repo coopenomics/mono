@@ -106,6 +106,8 @@ cases:
     scenario: Заказ по предложению другого кооператива
     expect: отказ доступа «Предложение принадлежит другому кооперативу»
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; предложение другого кооператива через API не завести"
     status: passing
 
   - id: mkt.order.side.03
@@ -151,6 +153,7 @@ cases:
     scenario: Итоговая сумма заказа получается нулевой
     expect: отказ с требованием проверить количество и цену
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   - id: mkt.order.side.08
@@ -220,6 +223,8 @@ cases:
       Массовый приём, где ни один заказ не удалось принять
     expect: отказ «Не удалось принять ни одного заказа», частичного эффекта нет
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-supplier-action.service.spec.ts
+    external: unreachable
+    external_reason: "отказ цепи по каждому заказу партии при проходных проверках узла через API не вызвать; пустой выбор отклоняется раньше своим отказом"
     status: passing
 
   # Решение заказчика (2026-08-08): массовое действие атомарно.
@@ -300,6 +305,8 @@ cases:
     expect: >
       явный отказ с предложением повторить; заказ не остаётся в полусозданном состоянии
     test: components/controller/src/extensions/marketplace/application/services/marketplace-order-create.service.spec.ts
+    external: unreachable
+    external_reason: "ответ цепи без хэша транзакции через API стенда не вызвать"
     status: passing
 
   - id: mkt.order.happy.03
@@ -432,6 +439,8 @@ cases:
       9,5 л из 3 × 0,5 и 8 × 1; нехватка считается по упаковке; заказ без упаковки до счётчика
       упаковки не доходит; снятие уменьшает упаковку по содержимому не ниже нуля
     test: components/controller/src/extensions/marketplace/application/shared/packaging.util.spec.ts
+    external: unreachable
+    external_reason: "чистые помощники счёта остатка по упаковкам; их итог снаружи виден в случаях остатка упаковками, отдельные ветви — юнит-тестом"
     status: passing
 
   - id: mkt.order.side.37

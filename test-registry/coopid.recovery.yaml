@@ -100,6 +100,8 @@ cases:
       ручка не падает — исход остаётся константным 202, иначе код ответа сам
       выдал бы, что адрес существует; сбой журнала уходит в logger.error
     test: components/controller/src/application/auth-v2/recovery/recovery.service.spec.ts
+    external: unreachable
+    external_reason: "остановка базы узла остановила бы весь узел, а не одну запись журнала"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cid.rec.side.02

@@ -120,6 +120,7 @@ describe('Благорост: приём РИД — путь результат�
   let aliceSegmentBeforePush: any
   let decisionId = 0
   let aliceActDoc: any
+  let limitWhileVoting: any
   const tag = Date.now().toString(36)
 
   beforeAll(async () => {
@@ -148,7 +149,16 @@ describe('Благорост: приём РИД — путь результат�
     await setMasterInChain(emptyComponent, alice)
 
     // Голосование распределяет голоса между остальными участниками — их двое.
-    await runVoting(component, [alice, bob])
+    // Пока оно идёт, снимается предел возврата средств компонента.
+    const council = await tokenOf(CHAIRMAN)
+    await runVoting(component, [alice, bob], async () => {
+      limitWhileVoting = await waitFor(async () => {
+        const d = await gql<any>(council, `query($d:CapitalDeallocationLimitInput!){
+          capitalDeallocationLimit(data:$d){ max_amount program_invest_pool unspent outstanding_debt is_allowed_by_status }
+        }`, { d: { coopname: COOP, project_hash: component } })
+        return d.capitalDeallocationLimit.is_allowed_by_status === false ? d.capitalDeallocationLimit : null
+      }, { timeoutMs: 90_000, intervalMs: 1_000, label: 'статус голосования компонента в зеркале узла' })
+    })
 
     // Обновление доли через API: цепь переводит долю в готовность, контроллер
     // собирает документ результата (без него внести результат нельзя).
@@ -166,6 +176,46 @@ describe('Благорост: приём РИД — путь результат�
     expect(bobResult, 'предусловие: документ результата участника собран').toMatch(/^[0-9a-f]{64}$/)
   })
 
+  it(caseName('l2.pnam.side.09', 'коммиты проекта показаны отдельным процессом с якорем на проекте, хотя цепь называет нитку приёмом РИД'), async () => {
+    const council = await tokenOf(CHAIRMAN)
+    const view = await waitFor(async () => {
+      const d = await gql<any>(council, `query($h:String!,$c:String!){
+        process(hash:$h, coopname:$c){ process_type process_hash actions{ account name data } delta_history{ code table } }
+      }`, { h: component, c: COOP })
+      const applies = (d.process?.actions as any[] ?? []).filter(a => a.account === 'ledger2' && a.name === 'apply')
+      return applies.length >= 2 ? d.process : null
+    }, { timeoutMs: 120_000, intervalMs: 1_000, label: 'коммиты компонента в реестре процессов' })
+
+    const applies = (view.actions as any[]).filter(a => a.account === 'ledger2' && a.name === 'apply')
+    // Цепь эмитит имя нитки приёма РИД — бэкенд показывает жизнь коммитов.
+    expect(new Set(applies.map(a => a.data?.process_type))).toEqual(new Set(['p.cap.rid']))
+    expect(view.process_type).toBe('p.cap.commit')
+    // Сущность находится по якорю — строке проекта в Благоросте.
+    expect((view.delta_history as any[]).some(d => d.code === 'capital' && d.table === 'projects')).toBe(true)
+  })
+
+  it(caseName('l2.pnam.side.10', 'фильтр «жизнь коммитов проекта» находит коммиты, фильтр «Приём РИД» их не втягивает'), async () => {
+    const council = await tokenOf(CHAIRMAN)
+    const listed = async (processType: string): Promise<any[]> => {
+      const d = await gql<any>(council, `query($f:ProcessesFilter!,$p:PaginationInput!){
+        processes(filter:$f, pagination:$p){ items{ processType processHash } }
+      }`, { f: { coopname: COOP, processType, processHash: component }, p: { page: 1, limit: 10 } })
+      return d.processes.items
+    }
+    const commits = await listed('p.cap.commit')
+    expect(commits.map(i => i.processHash)).toEqual([component])
+    expect(commits[0].processType).toBe('p.cap.commit')
+    expect(await listed('p.cap.rid')).toEqual([])
+  })
+
+  it(caseName('cap.dealloc.side.09', 'предел возврата по компоненту в голосовании — ноль, признак разрешённости отрицательный'), () => {
+    expect(limitWhileVoting.is_allowed_by_status).toBe(false)
+    expect(limitWhileVoting.max_amount).toMatch(/^0\.0000 [A-Z]+$/)
+    // Интерфейсу есть что показать: составляющие отданы суммами, а не пустотой.
+    for (const field of ['program_invest_pool', 'unspent', 'outstanding_debt'])
+      expect(limitWhileVoting[field], field).toMatch(/^\d+\.\d{4} [A-Z]+$/)
+  })
+
   it(caseName('cap.rid.side.48', 'заявление по проекту без родителя не генерируется: название проекта берётся у родителя'), async () => {
     const err = await gqlErrorPaced(await tokenOf(alice), GEN_STATEMENT, { d: { project_hash: project, username: alice.account } })
     expect(err?.code).toBe('CAPITAL_PROJECT_TITLE_MISSING')
@@ -174,6 +224,13 @@ describe('Благорост: приём РИД — путь результат�
   it(caseName('cap.rid.side.42', 'заявление по компоненту с нулевой суммой не генерируется: доля неисчислима'), async () => {
     const err = await gqlErrorPaced(await tokenOf(alice), GEN_STATEMENT, { d: { project_hash: emptyComponent, username: alice.account } })
     expect(err?.code).toBe('CAPITAL_PROJECT_AMOUNT_NOT_POSITIVE')
+  })
+
+  it(caseName('cap.rid.side.49', 'заявление собирается по пайщику из сессии: чужое имя во входе чужой сегмент не открывает'), async () => {
+    const err = await gqlErrorPaced(await tokenOf(alice), GEN_STATEMENT, { d: { project_hash: component, username: bob.account } })
+    // Чужое имя отсекается раньше сборки: проверкой прав на чужие данные либо
+    // правилом «только для себя» — до сегмента участника дело не доходит.
+    expect(['KIT_INSUFFICIENT_RIGHTS', 'CAPITAL_DOCUMENT_GENERATION_FOR_SELF_ONLY']).toContain(String(err?.code))
   })
 
   it(caseName('cap.rid.side.38', 'акт по чужому результату со своим именем во входе не генерируется'), async () => {

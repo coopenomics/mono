@@ -105,6 +105,8 @@ cases:
       ошибка отправки, действующий прежний код НЕ затирается неотправленным
       (иначе сбой почты обесценивал бы уже полученное пайщиком письмо)
     test: components/controller/src/application/auth/email-verification/email-verification.service.spec.ts
+    external: unreachable
+    external_reason: "письмо ставится в очередь уведомлений внутри узла; отказ постановки ни через API, ни остановкой почтового сервиса не вызвать"
     status: passing
 
   - id: cid.ev.break.04
