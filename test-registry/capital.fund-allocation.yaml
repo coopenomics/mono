@@ -526,6 +526,7 @@ cases:
       максимум равен нулю, признак разрешённости по статусу отрицательный —
       интерфейсу есть что показать вместо пустого поля
     test: components/controller/tests/unit/capital/fund-allocation.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.dealloc.side.10

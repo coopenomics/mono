@@ -46,6 +46,7 @@ cases:
       адрес авторизации с нашим клиентом, PKCE S256 и скоупами карты и членств;
       адрес возврата — приёмник расширения, заявленный сети при подключении
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.happy.02
@@ -58,6 +59,7 @@ cases:
       сессии стола не возникает — человеку показывается его учётная запись и
       штатные вход либо восстановление доступа
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.happy.03
@@ -70,6 +72,7 @@ cases:
       выбирается источник анкеты; свой кооператив и прекращённые членства
       источниками не предлагаются
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.happy.04
@@ -83,6 +86,7 @@ cases:
       по гранту анкета немедленно забирается у источника напрямую и проверяется
       ключом его заверения из цепи
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.side.04
@@ -94,6 +98,7 @@ cases:
       cardcoopEntryAvailable отвечает false даже при реквизитах клиента от сети —
       кнопка на форме входа исчезает, остаётся вход по паролю и ключу
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.side.01
@@ -119,6 +124,7 @@ cases:
       отказ в каждом случае: подпись и принадлежность проверяются до всякого
       использования, ошибка проверки не превращает сессию в анкету
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.break.02
@@ -130,6 +136,7 @@ cases:
       анкета читается ровно один раз и стирается при прочтении; повтор получает
       отказ, а не персональные данные
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.ui.01
@@ -157,6 +164,7 @@ cases:
       нельзя; отозванное свидетельство при этом означает выход и кандидатом
       человека делает справедливо
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.break.03
@@ -169,6 +177,8 @@ cases:
       ожидание кончается собственным сроком (тем же, что и у запроса в сети), и
       сессия переходит в «согласия не было»; свежее ожидание не гасится
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    external: unreachable
+    external_reason: "собственный срок ожидания согласия — четверть часа, жизнь сессии — сутки; время стенда через API не перемотать"
     status: passing
 
   - id: cc.entry.break.04
@@ -179,6 +189,7 @@ cases:
       сессия заканчивается состоянием «перенести не удалось» — прежде она висела
       в ожидании, и страница опрашивала сервер до закрытия вкладки
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.side.03
@@ -187,6 +198,7 @@ cases:
     scenario: Сеть сообщила, что запрос погас без ответа держателя.
     expect: сессия закрывается как «согласия не было», регистрация продолжается вручную
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.break.05
@@ -197,6 +209,8 @@ cases:
       отказ, а не ответ как у живой: чистка идёт при новом входе, а его может не
       быть сутками — просроченная сессия с анкетой отвечать не должна
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    external: unreachable
+    external_reason: "собственный срок ожидания согласия — четверть часа, жизнь сессии — сутки; время стенда через API не перемотать"
     status: passing
 
   - id: cc.entry.break.06
@@ -207,6 +221,7 @@ cases:
       оба случая отклоняются наравне с чужим издателем: срок — такое же
       утверждение токена, как адресат, а начатый вход живёт десять минут
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.entry.break.07
@@ -217,6 +232,7 @@ cases:
       анкета не принимается: истёкшее заверение означает, что подписывать сейчас
       источник не вправе; сессия заканчивается «перенести не удалось»
     test: components/controller/tests/unit/cardcoop/cardcoop-entry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
 

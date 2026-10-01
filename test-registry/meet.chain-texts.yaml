@@ -76,6 +76,8 @@ cases:
     scenario: строка вопроса записана до выноса текстов или хеш неизвестен контроллеру
     expect: старый текст проходит как есть, неизвестный хеш остаётся хешем и пишется в журнал
     test: components/controller/tests/unit/meet/chain-text.service.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: meet.texts.side.02
@@ -100,6 +102,8 @@ cases:
     scenario: закрытое собрание прежней версии ещё лежит в цепи
     expect: в списке одно собрание, журнал его не дублирует
     test: components/controller/tests/unit/meet/meet-history.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: meet.texts.side.05

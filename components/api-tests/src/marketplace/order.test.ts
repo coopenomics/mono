@@ -191,6 +191,30 @@ describe('заказ: границы оформления', () => {
     expect((await getCart(mt)).items).toHaveLength(0)
   })
 
+  it(caseName('mkt.order.side.07', 'сумма заказа округляется до нуля — заказ не создаётся'), async () => {
+    // Десятитысячная рубля за килограмм, заказан грамм: цена и количество
+    // положительны, а сумма меньше младшего разряда рубля.
+    const dust = await createApprovedOffer(other, CHAIRMAN, {
+      product_name: `Тест ${RUN_TAG} пыль`,
+      price_per_unit: '0.0001',
+      unit_of_measure: 'KG',
+      unlimited_flag: true,
+    })
+    await clearCart(mt)
+    const added = await gqlRaw(mt, ADD_TO_CART, { i: { offer_id: dust.id, quantity: 0.001, delivery_braname: KRG } })
+    const codes: string[] = added.errors.map(e => String(e.code))
+    if (added.errors.length === 0) {
+      const r = await checkoutRaw(mt, {})
+      codes.push(...r.errors.map((e: any) => String(e.code)))
+      const res = r.data?.marketplaceCheckoutCart
+      expect(res?.created_orders ?? [], 'заказ с нулевой суммой не создан').toHaveLength(0)
+      codes.push(...(res?.failed_lines ?? []).map((f: any) => String(f.code)))
+    }
+    expect(codes, 'отказ называет нулевую сумму').toContain('MARKETPLACE_ORDER_TOTAL_ZERO')
+    expect(await myOrdersOfOffer(mt, dust.id)).toHaveLength(0)
+    await clearCart(mt)
+  })
+
   it(caseName('mkt.order.side.06', 'пункт получения не указан — отказ, корзина остаётся на прежнем КУ'), async () => {
     const err = await gqlError(mt, SET_POINT, { i: { delivery_braname: '' } })
     expect(err?.code).toBe('MARKETPLACE_CART_BRANCH_REQUIRED')
@@ -387,6 +411,14 @@ describe('заказ: остаток предложения и упаковки'
         expect(err?.code).toBe(code)
         expect((await getOrder(mt, potatoOrderId)).status).toBe('ACTIVE')
       }
+    })
+
+    it(caseName('mkt.order.side.14', 'массовый приём без единого принятого заказа — отказ, партия не собирается'), async () => {
+      const err = await gqlError(st, ACCEPT, { i: { order_ids: [] } })
+      expect(err?.code).toBe('MARKETPLACE_ORDER_ACCEPT_NONE_SUCCEEDED')
+      const o = await getOrder(mt, potatoOrderId)
+      expect(o.status).toBe('ACTIVE')
+      expect(o.cycle_id).toBeNull()
     })
 
     it(caseName('mkt.order.side.10', 'приём заказа, уже принятого в партию либо не активного, — отказ'), async () => {

@@ -357,6 +357,7 @@ cases:
     expect: >
       уведомление о модерации НЕ отправляется, поставщик получает только сигнал о публикации — иначе администратора дёргали бы на каждый возврат в каталог
     test: components/controller/tests/unit/marketplace/marketplace-offer-republish.test.ts
+    api: components/api-tests/src/marketplace/offer-notifications.test.ts
     status: passing
 
   - id: mkt.offer.break.03
@@ -366,6 +367,8 @@ cases:
     expect: >
       уведомление о модерации пропускается с записью в журнал, публикация предложения не срывается
     test: components/controller/tests/unit/marketplace/marketplace-offer-moderation-notifications.test.ts
+    external: unreachable
+    external_reason: "в кооперативе стенда администратор есть всегда; состояние без него через API не создать"
     status: passing
 
   - id: mkt.offer.break.04
@@ -376,6 +379,8 @@ cases:
     expect: >
       предложение читается, вид упаковки пуст и не выдумывается; каталог и стол поставщика не пустеют целиком из-за одной старой упаковки, а назвать тару поставщик обязан при первой же правке
     test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    external: unreachable
+    external_reason: "предложения прежней версии (без вида упаковки и счётчиков упаковок) через API не завести — новые всегда создаются полными"
     status: passing
 
   - id: mkt.offer.ui.01
@@ -468,6 +473,8 @@ cases:
     scenario: Предложение, заведённое до учёта по упаковкам, читается из хранилища без счётчиков упаковок
     expect: в ответе счётчики упаковки — нули, а не пустые значения, каталог не падает
     test: components/controller/tests/unit/marketplace/marketplace-offer-legacy-package-type.test.ts
+    external: unreachable
+    external_reason: "предложения прежней версии (без вида упаковки и счётчиков упаковок) через API не завести — новые всегда создаются полными"
     status: passing
 
   - id: mkt.offer.ui.04
