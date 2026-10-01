@@ -130,6 +130,7 @@ cases:
     # Посторонние символы — отказ; допустимое имя без колонки — умолчание
     # (cap.lists.side.02, platform.sort.break.02).
     test: components/controller/tests/unit/capital/list-sort-column.test.ts
+    api: components/api-tests/src/capital/list-filters-sort.test.ts
     status: written
 
   # ── Что попадает в списки ─────────────────────────────────────────────────

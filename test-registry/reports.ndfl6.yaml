@@ -75,6 +75,8 @@ cases:
     scenario: Удержание прошло с 23-го числа месяца, а не до 22-го включительно
     expect: сумма попадает во второй срок месяца, а не в первый
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.ndfl6.side.02
@@ -85,6 +87,8 @@ cases:
       по UTC ещё предыдущие
     expect: срок считается по московскому времени
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
     # Граница суток на 23-м числе разделяет два срока перечисления, поэтому
     # трёхчасовой сдвиг переносит сумму в соседнюю строку отчёта.
@@ -148,6 +152,7 @@ cases:
     scenario: У получателя серия паспорта начинается с нуля
     expect: ведущий ноль восстанавливается — в справку уходит «0405 123456»
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
     status: passing
     # Серия и номер хранятся числами, поэтому «0405» лежит в базе как 405.
 
@@ -159,6 +164,7 @@ cases:
       отчёт формируется, справка выходит с пустыми полями — пробел виден
       бухгалтеру до отправки, а не роняет генерацию
     test: components/controller/tests/unit/reports/ndfl6-data.service.test.ts
+    api: components/api-tests/src/reports/ndfl6.test.ts
     status: passing
 
   - id: rep.ndfl6.break.02

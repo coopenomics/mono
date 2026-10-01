@@ -144,6 +144,12 @@ describe('registration.intake-forms: анкеты при вступлении', 
     }
   })
 
+  it(caseName('reg.intake.side.09', 'подключение Благороста завершено — анкета письма объявлена и привязана только к «Генератору»'), () => {
+    const holders = (config.programs as any[]).filter(p => (p.intake_forms as any[]).some(f => f.id === GENERATOR_FORM)).map(p => String(p.key).toLowerCase())
+    expect(holders).toEqual(['generation'])
+    expect((config.intake_forms as any[]).map(f => f.id)).not.toContain(GENERATOR_FORM)
+  })
+
   it(caseName('reg.intake.side.06', 'анкета приходит только через программу: заявителю Благороста письмо не требуется'), async () => {
     const capitalization = (config.programs as any[]).find(p => /capitalization/i.test(p.key))
     expect(capitalization).toBeDefined()

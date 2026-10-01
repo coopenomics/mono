@@ -156,6 +156,8 @@ cases:
     scenario: выдача снимков председателю
     expect: пишется в аудит — смотреть чужой паспорт молча нельзя
     test: components/controller/src/application/auth-v2/verification/verification-review.service.spec.ts
+    external: unreachable
+    external_reason: "журнал безопасности (события доступа и снятия защиты) через API не читается"
     status: passing
 
   - id: cid.vrev.side.03

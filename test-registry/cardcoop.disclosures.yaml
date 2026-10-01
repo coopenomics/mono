@@ -44,6 +44,7 @@ cases:
       цепочкой признания — получатель проверяет её по реестру, не обращаясь ни к
       нам, ни к card.coop
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.happy.02
@@ -56,6 +57,7 @@ cases:
       идентификатором согласия — держатель видит в журнале, чем кончилось его
       «разрешаю»
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.happy.03
@@ -68,6 +70,7 @@ cases:
       тем самым способом, который и порождает расхождения), а внутреннее учётное
       имя пайщика в нашем кооперативе наружу не уходит
     test: components/controller/tests/unit/cardcoop/cardcoop-identity.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.side.01
@@ -81,6 +84,7 @@ cases:
       подписанный новым ключом, проходит — без простоя и перенастройки
       кооперативов
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.side.02
@@ -92,6 +96,7 @@ cases:
       JWKS читается один раз и живёт в кэше: card.coop не должен оказаться в
       критическом пути обмена, который задуман идущим мимо него
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.side.03
@@ -103,6 +108,7 @@ cases:
       отказ, при этом согласие НЕ считается израсходованным: держатель ни при чём,
       и переспрашивать его из-за нашего отказа незачем
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.01
@@ -114,6 +120,7 @@ cases:
       отказ; допуск на расхождение часов — полминуты, и он не продлевает жизнь
       согласия сверх этого
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.02
@@ -125,6 +132,7 @@ cases:
       отказ: предъявитель принёс настоящее согласие не в ту дверь, и выдача по
       нему означала бы раскрытие без согласия на нас
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.03
@@ -136,6 +144,7 @@ cases:
       отказ: согласие даётся на один обмен, а не на доступ к анкете на все
       минуты жизни гранта
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.04
@@ -146,6 +155,7 @@ cases:
     expect: >
       отказ в обоих случаях: подпись накрывает содержимое, а не факт отправки
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.05
@@ -158,6 +168,7 @@ cases:
       отказ по типу документа: иначе подписанное для одного назначения
       предъявлялось бы для другого
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.06
@@ -168,6 +179,7 @@ cases:
     expect: >
       отказ, а не выдача без проверки: проверять нечем — значит не выдаём
     test: components/controller/tests/unit/cardcoop/cardcoop-disclosure.test.ts
+    api: components/api-tests/src/cardcoop/disclosures-network.test.ts
     status: passing
 
   - id: cc.disclose.break.07
@@ -206,6 +218,8 @@ cases:
       доходит. Предел объявлен на самой ручке, а считает его общий ограничитель
       контура — до 17.09.2026 он стоял только здесь и больше нигде
     test: components/controller/tests/unit/graphql/gql-throttler-guard.test.ts
+    external: unreachable
+    external_reason: "общий ограничитель частоты на стенде выключен (режим разработки); предел ручки проверяется юнит-тестом"
     status: passing
 
 

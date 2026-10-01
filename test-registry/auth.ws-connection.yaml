@@ -83,6 +83,8 @@ cases:
     scenario: Соединение пришло раньше, чем стратегия зарегистрировала опознание.
     expect: отказ, а не пропуск всех
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    external: unreachable
+    external_reason: "гонка старта узла: соединение раньше регистрации опознания через API не поставить"
     status: passing
 
   - id: auth.ws.side.02
@@ -95,4 +97,6 @@ cases:
       судят так же, как на HTTP: RolesGuard пускает председателя и отказывает
       пайщику без роли
     test: components/controller/src/infrastructure/graphql/ws-auth.registry.spec.ts
+    external: unreachable
+    external_reason: "подписки с гардом ролей в узле нет; правило проверяется юнит-тестом на пробной подписке"
     status: passing

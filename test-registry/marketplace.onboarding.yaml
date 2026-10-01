@@ -113,6 +113,8 @@ cases:
     scenario: Повторный старт расширения, когда программа ЦПП уже открыта
     expect: транзакция не отправляется, ключ кооператива не запрашивается, старт продолжается
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    external: unreachable
+    external_reason: "повторный старт расширения снаружи виден только отсутствием транзакции — наблюдать нечем; правило проверяет юнит-тест"
     status: passing
 
   - id: mkt.onb.side.14
@@ -121,6 +123,8 @@ cases:
     scenario: В кооперативе открыта другая ЦПП, своей нет
     expect: чужая программа не засчитывается за свою — открывается собственная
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    external: unreachable
+    external_reason: "в кооперативе стенда своя программа открыта при загрузке; состояние «открыта только чужая ЦПП» через API не создать"
     status: passing
 
   - id: mkt.onb.break.04
@@ -130,6 +134,7 @@ cases:
     expect: >
       расширение всё равно поднимается, ошибка уходит в лог, следующий старт повторяет попытку; на столе пайщик видит, что подключение ЦПП не завершено
     test: components/controller/tests/unit/blockchain/soviet-ensure-program.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
     status: passing
 
   - id: mkt.onb.side.01
@@ -138,6 +143,8 @@ cases:
     scenario: Запрос статуса ЦПП, когда расширение не установлено в кооперативе
     expect: NotFound с указанием, что расширение не установлено
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "расширение Стола заказов на стенде установлено и нужно остальным наборам; состояние «не установлено» не воспроизводится"
     status: passing
 
   - id: mkt.onb.side.02
@@ -146,6 +153,8 @@ cases:
     scenario: Приём ЦПП с датой принятия в будущем (более чем на минуту вперёд)
     expect: BadRequest, приём не выполняется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "дата принятия ЦПП во вход API не входит — её ставит сервер; неверную дату через API не передать"
     status: passing
 
   - id: mkt.onb.side.03
@@ -154,6 +163,8 @@ cases:
     scenario: Приём ЦПП с неразбираемой датой принятия
     expect: BadRequest, приём не выполняется
     test: components/controller/tests/unit/marketplace/marketplace-coop-acceptance-service.test.ts
+    external: unreachable
+    external_reason: "дата принятия ЦПП во вход API не входит — её ставит сервер; неверную дату через API не передать"
     status: passing
 
   - id: mkt.onb.side.04
@@ -197,6 +208,8 @@ cases:
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.07
@@ -205,6 +218,8 @@ cases:
     scenario: Соглашение ЦПП настроено, но у него нет программного кошелька
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.08
@@ -214,6 +229,8 @@ cases:
     expect: >
       чтение состояния — гейт не требуется, источник «не настроено»; попытка подписать — BadRequest
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.09
@@ -223,6 +240,8 @@ cases:
       Запись пайщика в кошельке помечена как отсутствующая (удалена в цепи), хотя программа в ней когда-то была.
     expect: гейт снова требуется — подпись не засчитывается
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "запись пайщика в кошельке помечается отсутствующей только удалением строки в цепи контрактом; действия для этого у стенда нет"
     status: passing
 
   - id: mkt.onb.side.10
@@ -241,6 +260,7 @@ cases:
     expect: >
       пайщику показывается ошибка, состояние не считается подписанным, повторная попытка возможна
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
     status: passing
 
   # ── Незавершённое подключение ЦПП кооперативом (инцидент 2026-08-10) ──────
@@ -255,6 +275,8 @@ cases:
     expect: >
       права заказчика НЕ выдаются — остаётся страница подключения; выбор пункта выдачи сам по себе стол не открывает
     test: components/controller/tests/unit/marketplace/marketplace-desktop-grants-provider.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.break.03
@@ -265,6 +287,8 @@ cases:
     expect: >
       отказ с указанием, чего не хватает; подпись на цепь не отправляется и оферта не объявляется подписанной
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
     # Переведён с ui на backend по той же причине, что и mkt.onb.happy.02:
     # фазы подготовки принимают ЦПП один раз до всех сценариев, поэтому
@@ -282,6 +306,8 @@ cases:
     expect: >
       подписывается шаблон программы — иначе цепь отклоняет подпись как несовпадающую с программой
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.side.12
@@ -290,6 +316,8 @@ cases:
     scenario: Соглашение ЦПП есть, но самой программы в кооперативе не существует
     expect: подписание отклоняется с BadRequest, on-chain действие не отправляется
     test: components/controller/tests/unit/marketplace/marketplace-onboarding-service.test.ts
+    external: unreachable
+    external_reason: "стенд загружается с настроенным соглашением, программой, кошельком и шаблоном оферты; сломанную настройку ЦПП через API не создать"
     status: passing
 
   - id: mkt.onb.ui.01

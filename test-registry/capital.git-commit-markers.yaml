@@ -37,6 +37,8 @@ cases:
     scenario: маркированный коммит фича-ветки индексируется сразу
     expect: строка создана с patch_id, first_seen_branch = ветка, in_default_branch = false
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.01
@@ -45,6 +47,8 @@ cases:
     scenario: тот же SHA приходит второй раз (merge фича-ветки в базовую без переписывания)
     expect: строка не дублируется; привязка помечается канонической (in_default_branch = true)
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.02
@@ -53,6 +57,8 @@ cases:
     scenario: новый SHA с той же правкой (rebase/amend уже учтённого коммита)
     expect: SHA-алиас к существующей строке, вторая строка не создаётся, consumed не трогается
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.03
@@ -61,6 +67,8 @@ cases:
     scenario: merge-коммит с маркерами в сообщении
     expect: пропускается (FR5), ничего не пишется
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.05
@@ -69,6 +77,8 @@ cases:
     scenario: первый заход на небазовую ветку
     expect: индексируются только коммиты впереди базовой (compare), не вся история репозитория
     test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.06
@@ -77,6 +87,8 @@ cases:
     scenario: patch_id стабилен при сдвиге номеров строк, дрейфе контекста и хвостовых пробелах; различает содержимое, файл и знак правки; пустой дифф даёт null (фолбэк на SHA)
     expect: одинаковая правка — один идентификатор, разная — разные
     test: components/controller/tests/unit/capital/git-patch-id.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: passing
 
   - id: cap.gitmark.side.07
@@ -85,6 +97,8 @@ cases:
     scenario: в репозитории проекта нет ветки из настройки «Ветка GitHub для синхронизации» (у mono `dev`, у отдельного продукта только `main`)
     expect: обходится ветка репозитория по умолчанию; если и её нет — репозиторий пропускается, а не синкается вслепую
     test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cap.gitmark.side.08
@@ -93,6 +107,8 @@ cases:
     scenario: тик по репозиторию с сотнями веток
     expect: HEAD каждой ветки берётся из листинга веток; отдельный запрос на ветку не делается (иначе один кооператив выбирает часовой лимит GitHub API целиком)
     test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cap.gitmark.break.02
@@ -101,6 +117,8 @@ cases:
     scenario: листинг веток не удался (лимит GitHub API, сеть)
     expect: тик деградирует до настроенной ветки и сам запрашивает её HEAD; ошибка не роняет опрос остальных репозиториев
     test: components/controller/tests/unit/capital/github-sync-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "опрос GitHub: адрес API GitHub в узле задан жёстко, подставной узел стенда на его место не встаёт"
     status: written   # прогон не подтверждён локально — гоняет CI
 
   - id: cap.gitmark.break.01
