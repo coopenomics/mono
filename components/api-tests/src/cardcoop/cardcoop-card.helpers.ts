@@ -100,14 +100,20 @@ export async function newKey(): Promise<NetworkKey> {
   return { wif, pub: ecc.privateToPublic(wif) }
 }
 
-/** Ключи разрешения `ano@cardcoop` в цепи; null — разрешения нет. */
-export async function webhookPermissionKeys(): Promise<string[] | null> {
-  const acc: any = await rpc.get_account(NETWORK_ACCOUNT)
-  const perm = (acc.permissions ?? []).find((p: any) => p.perm_name === WEBHOOK_PERMISSION)
+/** Ключи разрешения аккаунта в цепи в одном написании; null — разрешения нет. */
+export async function permissionKeys(account: string, permission: string): Promise<string[] | null> {
+  const acc: any = await rpc.get_account(account)
+  const perm = (acc.permissions ?? []).find((p: any) => p.perm_name === permission)
   return perm ? (perm.required_auth.keys as any[]).map(k => normalizeKey(k.key)) : null
 }
 
-function normalizeKey(key: string): string {
+/** Ключи разрешения `ano@cardcoop` в цепи; null — разрешения нет. */
+export async function webhookPermissionKeys(): Promise<string[] | null> {
+  return permissionKeys(NETWORK_ACCOUNT, WEBHOOK_PERMISSION)
+}
+
+/** Ключ в одном написании: цепь отдаёт `EOS…`, сеть и SDK — `PUB_K1_…`. */
+export function normalizeKey(key: string): string {
   return Numeric.publicKeyToString(Numeric.stringToPublicKey(key))
 }
 

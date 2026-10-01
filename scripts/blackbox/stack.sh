@@ -146,6 +146,7 @@ cmd_app() {
   load_stack
   set_env components/controller/.env "$AUTOREG_KEY" off
   docker compose up -d mailpit
+  docker compose up -d stub
   docker compose up -d parser2
   docker compose up -d coopback
 
@@ -276,7 +277,7 @@ cmd_collect() {
   mkdir -p "$OUT/logs"
   docker compose ps -a > "$OUT/logs/ps.txt" 2>&1 || true
   local svc
-  for svc in node parser2 coopback postgres mongo monoredis minio mailpit authentik-server authentik-worker; do
+  for svc in node parser2 coopback postgres mongo monoredis minio mailpit stub authentik-server authentik-worker; do
     docker compose logs --no-color --timestamps "$svc" > "$OUT/logs/$svc.log" 2>&1 || true
   done
   docker stats --no-stream > "$OUT/logs/stats.txt" 2>&1 || true

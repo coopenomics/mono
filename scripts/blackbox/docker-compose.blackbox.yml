@@ -31,3 +31,14 @@ services:
     ports:
       - "127.0.0.1:8025:8025"
 
+  # Подставной внешний узел: играет сеть карт кооператора и другие чужие узлы,
+  # с которыми платформа разговаривает по HTTP. Контроллер ходит на stub:8090,
+  # тест управляет им с хоста через 127.0.0.1:8091 (scripts/blackbox/http-stub.mjs).
+  # Образ — уже собранный образ контроллера: в нём есть node, отдельный не нужен.
+  stub:
+    image: coopback
+    entrypoint: ["node", "/stub/http-stub.mjs"]
+    volumes:
+      - ./scripts/blackbox/http-stub.mjs:/stub/http-stub.mjs:ro
+    ports:
+      - "127.0.0.1:8091:8091"
