@@ -110,6 +110,8 @@ cases:
     expect: >
       процесс называется поставкой, а субъектом показан заказчик, а не участок
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.side.04
@@ -121,6 +123,8 @@ cases:
       имя процесса не меняется — от порядка операций и алфавита кодов оно не
       зависит
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "порядок прихода операций в разбор задаёт цепь; переставить блоки через API нельзя"
     status: passing
 
   - id: l2.pnam.side.05
@@ -132,6 +136,8 @@ cases:
     expect: >
       процесс называется гарантийным возвратом
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.side.06
@@ -143,6 +149,7 @@ cases:
       в выборку попадают только нитки экономики участка; поставки, внутри
       которых взнос зачислялся в общий кошелёк, не попадают
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: l2.pnam.side.07
@@ -166,6 +173,8 @@ cases:
       строка реестра остаётся видимой с пустым типом, а не исчезает из
       списка процессов
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "нитки без эмитированного имени — наследие прежних версий контрактов; цепь стенда их не порождает"
     status: passing
 
   - id: l2.pnam.break.03
@@ -178,6 +187,8 @@ cases:
       берётся первое имя по блоку и global_sequence, а не минимум по алфавиту
       кода операции; в лог пишется предупреждение — процесс не теряет название
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    external: unreachable
+    external_reason: "разные имена под одним хэшем нитки — ошибка контракта-инициатора; действующие контракты так не эмитят"
     status: passing
 
   - id: l2.pnam.side.09
@@ -190,6 +201,7 @@ cases:
       процесс называется жизнью коммитов проекта, и сущность проекта находится
       по якорю — бэкенд-оверрайд сильнее имени из цепи
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: l2.pnam.side.10
@@ -202,6 +214,7 @@ cases:
       коммиты попадают в выборку по коду операции, а фильтр «Приём РИД» их,
       наоборот, не втягивает
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: l2.pnam.side.11
@@ -214,6 +227,7 @@ cases:
       нитки возврата в выборку не попадают — иначе процесс числится в списке
       поставкой, а при раскрытии называется возвратом
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
     status: passing
 
   - id: l2.pnam.side.12
@@ -271,6 +285,7 @@ cases:
       действие без документа записи не даёт; поиск ограничен окном блоков
       процесса, кооперативом и хэшем, операции ledger2 не просматриваются
     test: components/controller/tests/unit/process-registry/process-registry.service.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
     status: passing
 
   # ── Длина memo проводки (мердж ветки UI-сюиты, 2026-08-11) ────────────────

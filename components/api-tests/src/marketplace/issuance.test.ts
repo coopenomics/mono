@@ -189,6 +189,15 @@ describe('выдача одного заказа по этапам: заказа
 
     const act = await actPayload(memberToken, order.orderId)
     expect(act.hash, 'акт к подписи отдаётся без второго нажатия').toBeTruthy()
+
+    // sov.rob.happy.91: робота позвал Стол заказов по номеру решения сразу
+    // после повестки, а событие повестки пришло следом — запись журнала по
+    // решению одна, решение доведено до протокола.
+    const j = await gql<any>(chairmanToken, `query($o:PaginationInput){ sovietRobotJournal(options:$o){ items{ decision_id decision_type stage } } }`,
+      { o: { page: 1, limit: 100, sortOrder: 'DESC' } })
+    const entries = (j.sovietRobotJournal.items as any[]).filter(e => Number(e.decision_id) === Number(saga.decision_id))
+    expect(entries.map(e => e.decision_type), 'по решению одна запись журнала робота').toEqual(['mktissue'])
+    expect(['EXECUTED', 'CLOSED', 'AWAITING_PROTOCOL']).toContain(entries[0].stage)
   })
 
   it(caseName('mkt.iss.side.06', 'акт по чужому заказу — отказ доступа, выдача не двигается'), async () => {

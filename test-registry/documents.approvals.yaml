@@ -138,6 +138,7 @@ cases:
     scenario: Расширение остановлено
     expect: его декларации сняты, документы ядра остаются
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    api: components/api-tests/src/faults/extension-stop.test.ts
     status: written
 
   - id: doc.appr.side.05
@@ -146,6 +147,8 @@ cases:
     scenario: Один шаблон объявляют два расширения
     expect: ошибка конфигурации на старте, второй владелец отвергнут
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    external: unreachable
+    external_reason: "ошибка конфигурации на старте узла (два владельца одного шаблона) через API не создаётся"
     status: written
 
   - id: doc.appr.side.06
@@ -154,6 +157,7 @@ cases:
     scenario: Расширение перезапустилось и объявило тот же шаблон заново
     expect: запись заменена, дублей нет
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    api: components/api-tests/src/faults/extension-stop.test.ts
     status: written
 
   - id: doc.appr.happy.05
@@ -189,6 +193,8 @@ cases:
     scenario: Состояние запрашивают часто, события контракта draft приходят редко
     expect: таблицы цепи читаются один раз до события upversion/editdraft/approve или истечения TTL
     test: components/controller/tests/unit/document-approval/document-approval-state.service.test.ts
+    external: unreachable
+    external_reason: "число чтений таблиц цепи — внутреннее свойство кэша, снаружи не наблюдается"
     status: written
 
   - id: doc.appr.happy.07
@@ -295,6 +301,10 @@ cases:
     expect: председатель получает уведомление с названием документа, номером редакции и ссылкой на вкладку «Шаблоны документов»
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
     status: written
+    # ДЕФЕКТ ПРОДУКТА, находка 53 (01.10.2026, отчёт C28-85): внешнего теста нет,
+    # потому что уведомление не уходит вовсе — узел отбрасывает действие
+    # draft::upversion как «чужой кооператив» (в его данных нет coopname), и
+    # обработчик уведомления не вызывается. Юнит-тест зовёт обработчик напрямую.
 
   - id: doc.appr.happy.12
     level: backend
@@ -302,6 +312,7 @@ cases:
     scenario: Совет отклонил утверждение или решение снято как просроченное
     expect: председатель получает уведомление с названиями документов и причиной
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.happy.13
@@ -310,6 +321,8 @@ cases:
     scenario: Периодическое напоминание о документах без утверждённой текущей редакции
     expect: одно напоминание с числом и названиями документов; когда всё утверждено — молчание
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    external: unreachable
+    external_reason: "напоминание уходит по расписанию (cron); запустить его через API нельзя"
     status: written
 
   - id: doc.appr.side.15
@@ -318,6 +331,7 @@ cases:
     scenario: Поднята редакция шаблона, не объявленного ни одним приложением кооператива, либо в области кооператива, а не сети
     expect: уведомления нет
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.16
@@ -326,6 +340,8 @@ cases:
     scenario: У кооператива нет председателя или у него нет подписки на уведомления
     expect: предупреждение в журнале, ошибки нет
     test: components/controller/tests/unit/document-approval/document-approval-notification.service.test.ts
+    external: unreachable
+    external_reason: "кооператив стенда — оператор платформы с председателем и подпиской; состояние без них через API не создать"
     status: written
 
   - id: doc.appr.happy.14
@@ -358,6 +374,8 @@ cases:
     scenario: Председатель проходит шаг подключения приложения из его карточки
     expect: шаг с объявленными документами уходит на совет через фабрику одним решением с текстом из цепи; шаги без документов (вступление в союз, собрание) идут прежним путём
     test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    external: unreachable
+    external_reason: "шаги подключения приложений на стенде пройдены при засеве; непройденного шага с объявленными документами нет, пройденный повторно на совет не выносится (doc.appr.happy.17)"
     status: written
 
   - id: doc.appr.happy.17
@@ -375,6 +393,8 @@ cases:
     scenario: Шаг закрывается только когда утверждены все документы пакета; повторное прохождение шага при документах в повестке
     expect: частично утверждённый пакет не закрывает шаг; повторное прохождение возвращает хэш повестки без нового решения
     test: components/controller/tests/unit/document-approval/document-approval-onboarding.adapter.test.ts
+    external: unreachable
+    external_reason: "шаги подключения приложений на стенде пройдены при засеве; непройденного шага с объявленными документами нет, пройденный повторно на совет не выносится (doc.appr.happy.17)"
     status: written
 
   - id: doc.appr.happy.18
@@ -400,6 +420,8 @@ cases:
     scenario: Реестр шаблонов кооператива, не являющегося оператором платформы
     expect: оферта о присоединении к платформе (50) в реестре отсутствует — её утверждает совет оператора, остальные кооперативы её только принимают
     test: components/controller/tests/unit/document-approval/document-declarations-registry.test.ts
+    external: unreachable
+    external_reason: "кооператив стенда — оператор платформы с председателем и подпиской; состояние без них через API не создать"
     status: written
 
   - id: doc.appr.happy.20
@@ -408,6 +430,7 @@ cases:
     scenario: Бланк оферты ЦПП (Благорост, Генератор) для совета с хэшем параметров программы
     expect: параметры программы подставлены из приватных данных по хэшу, поля пайщика и дата — прочерк; без хэша параметры остаются прочерком
     test: components/factory/test/blagorost.test.ts
+    api: components/api-tests/src/documents/approvals.test.ts
     status: written
 
   - id: doc.appr.side.20

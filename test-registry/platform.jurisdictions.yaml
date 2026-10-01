@@ -41,6 +41,7 @@ cases:
       КБК единого налогового платежа 18201061201010000510; НДФЛ — ставка 13 %,
       КБК 18210102010011000110, код материальной помощи 2710
     test: components/jurisdictions/src/index.test.ts
+    api: components/api-tests/src/platform/jurisdictions.test.ts
     status: passing
 
   - id: plt.jur.side.01
@@ -51,6 +52,8 @@ cases:
       31.03.2026 действует «Единый налоговый платеж», 01.04.2026 — уже «ЕНП»;
       порядок записей в таблице на результат не влияет
     test: components/jurisdictions/src/index.test.ts
+    external: unreachable
+    external_reason: "реквизиты берутся на текущую дату сервера, страна кооператива задана при засеве; ни дату, ни страну через API не сменить"
     status: passing
 
   - id: plt.jur.side.02
@@ -61,6 +64,8 @@ cases:
       возвращается пусто, а не ближайшее значение — подставлять сегодняшние
       реквизиты в прошлый период нельзя
     test: components/jurisdictions/src/index.test.ts
+    external: unreachable
+    external_reason: "реквизиты берутся на текущую дату сервера, страна кооператива задана при засеве; ни дату, ни страну через API не сменить"
     status: passing
 
   - id: plt.jur.break.01
@@ -71,6 +76,8 @@ cases:
       заявка на перечисление налога всё равно создаётся, но без реквизитов и с
       нейтральным назначением платежа — кассир заполняет платёжку сам
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "реквизиты берутся на текущую дату сервера, страна кооператива задана при засеве; ни дату, ни страну через API не сменить"
     status: passing
 
   - id: plt.jur.break.02

@@ -51,6 +51,22 @@ export function hasExternalTest(c) {
   return isExternalTest(c?.api) || isExternalTest(c?.test);
 }
 
+/**
+ * Случай снаружи недостижим: его условие нельзя создать через API поднятого
+ * стенда — отказ инфраструктуры (база или цепь недоступны), сбой посреди
+ * операции, состояние, которого у настроенного кооператива не бывает
+ * (расширение не установлено, программа не открыта), свойство самого кода.
+ * Такой случай остаётся за юнит-тестом осознанно: в поле `external` стоит
+ * `unreachable`, в `external_reason` — почему. Отметка — не лазейка: без
+ * причины реестр не проходит валидацию, а число таких случаев гейт печатает
+ * отдельной строкой.
+ */
+export const EXTERNAL_UNREACHABLE = 'unreachable';
+
+export function isExternallyUnreachable(c) {
+  return c?.external === EXTERNAL_UNREACHABLE;
+}
+
 const FEATURE_RE = /^[a-z0-9]+(\.[a-z0-9-]+)+$/;
 
 /** glob → RegExp. Поддерживаются `**` (любая глубина) и `*` (в пределах сегмента). */
@@ -145,6 +161,17 @@ export function loadRegistry(repoRoot) {
           errors.push(`${where}: api='${c.api}' — внешний тест живёт в ${EXTERNAL_TEST_ROOTS.join(' | ')}`);
         } else if (!existsSync(join(repoRoot, c.api))) {
           errors.push(`${where}: внешний тест '${c.api}' не существует`);
+        }
+      }
+      if (c?.external !== undefined) {
+        if (c.external !== EXTERNAL_UNREACHABLE) {
+          errors.push(`${where}: external='${c.external}' — допустимо только ${EXTERNAL_UNREACHABLE}`);
+        } else if (!String(c.external_reason ?? '').trim()) {
+          errors.push(`${where}: external=${EXTERNAL_UNREACHABLE} требует причины в поле external_reason`);
+        } else if (hasExternalTest(c)) {
+          errors.push(`${where}: случай закрыт внешним тестом и помечен недостижимым — одно из двух`);
+        } else if (c.level !== 'backend') {
+          errors.push(`${where}: external относится только к случаям уровня backend`);
         }
       }
       list.push({ ...c, __file: rel });

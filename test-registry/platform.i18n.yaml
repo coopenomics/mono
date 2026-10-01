@@ -36,6 +36,8 @@ cases:
       «Привет, Мир!», «1 из 2»; 1 день, 3 дня, 25 дней, для нуля — отдельная
       форма, если она объявлена
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.side.01
@@ -45,6 +47,8 @@ cases:
     expect: >
       11, 12, 14, 111 — форма «дней»; 21, 101 — «день»; 22 — «дня»; 1,5 — «дня»
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.side.02
@@ -53,6 +57,8 @@ cases:
     scenario: Служебный символ и ссылка на другое сообщение
     expect: литерал {'@'} даёт «@», ссылка @:key подставляет текст другого сообщения
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.break.01
@@ -61,6 +67,8 @@ cases:
     scenario: Ключа нет в словаре
     expect: возвращается сам ключ, пропуск записывается для отчёта
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.break.02
@@ -69,6 +77,8 @@ cases:
     scenario: Два словаря объявляют одно сообщение
     expect: слияние отказывает с именем ключа, повторная регистрация того же источника игнорируется
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.side.03
@@ -88,6 +98,8 @@ cases:
     scenario: Псевдолокаль
     expect: каждая форма обрамлена «[!! … !!]», плейсхолдеры и ссылки нетронуты, сообщение компилируется
     test: components/i18n/src/index.test.ts
+    external: unreachable
+    external_reason: "чистая библиотека сообщений (формы по числу, ссылки, слияние словарей, псевдолокаль); снаружи виден только готовый текст отказа — plt.i18n.happy.02"
     status: written
 
   - id: plt.i18n.happy.02
@@ -121,6 +133,7 @@ cases:
       отказ контракта — код CHAIN_ASSERT и текст контракта без обёртки виртуальной
       машины; сбой без отказа — CHAIN_ERROR с исходным текстом
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
     status: written
 
   - id: plt.i18n.break.03
@@ -129,6 +142,8 @@ cases:
     scenario: Код отказа без сообщения в словаре
     expect: текстом становится ключ errors.<КОД> — пропуск виден сразу, гейт каталога ловит его до слияния
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    external: unreachable
+    external_reason: "код без сообщения в словаре ловит гейт каталога до слияния; на стенде таких кодов нет"
     status: written
 
   - id: plt.i18n.side.07
@@ -140,6 +155,8 @@ cases:
       нет — текст контракта; код читается и из сырой ошибки цепи, отказ без кода
       остаётся CHAIN_ASSERT; сервер различает отказы контракта по коду, а не по фразе
     test: components/controller/tests/unit/graphql/graphql-exceptions-filter-i18n.test.ts
+    external: unreachable
+    external_reason: "отказы с кодом контракта (GATEWAY_OUTCOME_NOT_FOUND, REGISTRATOR_VERIFICATION_NOT_OURS) узел перехватывает сам, до ответа API они не доходят"
     status: written
 
   - id: plt.i18n.side.08

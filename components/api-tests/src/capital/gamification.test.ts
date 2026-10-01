@@ -22,12 +22,18 @@ import { chairmanApprove } from './cap-results.helpers'
 const CONTRIBUTOR = 'query($d:GetContributorInput!){ capitalContributor(data:$d){ username coopname blockchain_status energy last_energy_update } }'
 
 describe('Благорост — ежесуточное обновление энергии участников', () => {
-  it(caseName('cap.gam.happy.02', 'планировщик обновляет энергию участника с активным договором УХД'), async () => {
+  it(caseName('cap.gam.happy.02', 'планировщик обновляет энергию участника с активным договором УХД и пропускает участника без него'), async () => {
     await ensureCapitalInitialized()
     const chairman = await tokenOf(CHAIRMAN)
     const who = freshMember({ prefix: 'capgam' })
     const contributorHash = await registerContributorViaApi(who)
     await chairmanApprove(contributorHash)
+    // cap.gam.break.02: второй участник зарегистрирован, но договор УХД не
+    // одобрен — в цепи он не активен, и планировщик обязан его пропустить.
+    const idle = freshMember({ prefix: 'capidl' })
+    await registerContributorViaApi(idle)
+    const idleBefore = (await gql<any>(chairman, CONTRIBUTOR, { d: { username: idle.account } })).capitalContributor
+    expect(idleBefore?.blockchain_status, 'договор второго участника не активен').not.toBe('active')
 
     // Одобрение шло в цепь мимо контроллера — ждём, пока участник появится в
     // зеркале активным: планировщик берёт участников из базы контроллера.
@@ -46,5 +52,10 @@ describe('Благорост — ежесуточное обновление э�
       return at > registeredAt ? d.capitalContributor : null
     }, { timeoutMs: 180_000, intervalMs: 5_000, label: `планировщик обновил энергию ${who.account}` })
     expect(Date.parse(refreshed.last_energy_update)).toBeGreaterThan(registeredAt)
+
+    // Тот же тик прошёл и мимо участника без активного договора.
+    const idleAfter = (await gql<any>(chairman, CONTRIBUTOR, { d: { username: idle.account } })).capitalContributor
+    expect(idleAfter?.blockchain_status).toBe(idleBefore?.blockchain_status)
+    expect(idleAfter?.last_energy_update ?? null, 'энергия участника без активного договора не обновлялась').toBe(idleBefore?.last_energy_update ?? null)
   })
 })

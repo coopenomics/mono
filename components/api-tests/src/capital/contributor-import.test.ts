@@ -47,6 +47,8 @@ describe('Благорост: участник в зеркале вместе с
     const who = freshMember({ prefix: 'cimp' })
     await gql(chairman, IMPORT, { d: importInput(who, '1500.0000 RUB') })
 
+    // capital.ci.side.fact-01: ответ ушёл после разбора блока транзакции —
+    // строка участника читается сразу, без пауз и повторов.
     const c = await contributor(who.account)
     expect(c.present).toBe(true)
     expect(c.blockchain_status).toBe('import')
