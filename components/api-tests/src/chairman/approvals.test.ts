@@ -32,6 +32,9 @@ const DECLINE = `mutation($d:DeclineApproveInput!){ chairmanDeclineApprove(data:
 
 const PAGE = { page: 1, limit: 50, sortOrder: 'DESC' }
 
+/** Предел ожидания разбора блока транзакции (BLOCKCHAIN_WRITE_WAIT_DELTA_MS). */
+const WRITE_WAIT_MS = 3_000
+
 /** Регистрация пайщика в Благоросте тем же путём, что страница регистрации рабочего стола. */
 async function registerInCapital(who: Who, token: string): Promise<void> {
   const docs = (await gql<any>(token, GEN_REG, { d: { coopname: COOP, username: who.account } })).capitalGenerateRegistrationDocuments
@@ -125,6 +128,10 @@ describe('одобрения председателя', () => {
       d: { coopname: COOP, approval_hash: pendingApproval.approval_hash.toLowerCase(), approved_document },
     })
     expect(err?.code).toBe('CHAIN_ASSERT')
+    // plt.i18n.side.06: до клиента доходит текст контракта, без обёртки
+    // виртуальной машины цепи.
+    expect(err?.message).toMatch(/[А-Яа-яЁё]/)
+    expect(err?.message).not.toMatch(/assertion failure|eosio_assert|pending console output/i)
     const [a] = await approvalsOf(chairToken, approvedWho.account, ['APPROVED'])
     expect(a?._id).toBe(pendingApproval._id)
   })
@@ -150,6 +157,36 @@ describe('одобрения председателя', () => {
     const [after] = await approvalsOf(chairToken, declinedWho.account, ['DECLINED'])
     expect(after?._id).toBe(a._id)
     expect(after.present).toBe(false)
+  })
+
+  it(caseName('sync.wwd.happy.02', 'решение председателя отвечает после факта из цепи: ответ уже без строки в цепи, адресат уже изменён'), async () => {
+    const who = freshMember({ prefix: 'apw' })
+    const token = await login(who)
+    await registerInCapital(who, token)
+    const [a] = await approvalsOf(chairToken, who.account, ['PENDING'])
+    expect(a?.present, 'одобрение ждёт решения в цепи').toBe(true)
+    const contributorStatus = async (): Promise<string | null> => {
+      const d = await gql<any>(chairToken, 'query($d:GetContributorInput!){ capitalContributor(data:$d){ status } }', { d: { username: who.account } })
+      return d.capitalContributor?.status ?? null
+    }
+    const before = await contributorStatus()
+
+    const approved_document = await signDocument(CHAIRMAN.wif, a.document.rawDocument, CHAIRMAN.account, 2, [a.document.document])
+    const started = Date.now()
+    const r = (await gql<any>(chairToken, CONFIRM, { d: { coopname: COOP, approval_hash: a.approval_hash.toLowerCase(), approved_document } })).chairmanConfirmApprove
+    const elapsedMs = Date.now() - started
+    // sync.wwd.happy.01: ожидание разбужено дельтой своей строки из блока
+    // транзакции — сам ответ уже несёт её: строка одобрения из цепи снята.
+    expect(r).toMatchObject({ _id: a._id, status: 'APPROVED', present: false })
+    // sync.wwd.side.05: транзакция уже дождалась своего блока, и ожидание
+    // дельты после неё отвечает сразу. Иначе оно ждало бы дельту, которая
+    // прошла до его регистрации, и ответ уходил бы только по пределу.
+    expect(elapsedMs, 'ответ не упёрся в предел ожидания дельты').toBeLessThan(WRITE_WAIT_MS)
+    // Контракт-адресат (Благорост) отработал в той же транзакции — участник
+    // сменил статус к моменту ответа, без ожиданий и повторов.
+    const after = await contributorStatus()
+    expect(after).not.toBeNull()
+    expect(after, `статус участника до решения — ${before}`).not.toBe(before)
   })
 
   it(caseName('chair.appr.side.04', 'фильтр по статусу отдаёт только этот статус'), async () => {

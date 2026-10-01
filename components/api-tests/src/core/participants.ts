@@ -135,3 +135,17 @@ export async function admitCandidate(username: string, createdAt = new Date().to
     },
   }])
 }
+
+/**
+ * Ключ принятого пайщика в цепи. `adduser` заводит аккаунт без ключа пайщика —
+ * им управляет кооператив; документ, подписанный пайщиком, цепь примет только
+ * после выдачи ключа (так же делает boot-скрипт add-plain-participant).
+ */
+export async function grantMemberKey(username: string, publicKey: string): Promise<void> {
+  await transact({ account: COOP, email: '', wif: DEFAULT_WIF }, [{
+    account: 'registrator',
+    name: 'changekey',
+    authorization: [{ actor: COOP, permission: 'active' }],
+    data: { coopname: COOP, changer: COOP, username, public_key: publicKey },
+  }])
+}

@@ -68,6 +68,17 @@ describe('extensions.availability: доступность расширений �
     }
   })
 
+  it(caseName('ext.avail.side.05', '«Карта кооператора» открыта только вне основной сети: на тестовом контуре доступна к установке'), async () => {
+    const card = (await catalog()).get('cardcoop')
+    expect(card, 'расширение заведено в реестре').toBeDefined()
+    expect(card.is_available).toBe(true)
+    if (card.is_installed) {
+      const r = await install('cardcoop', card.config ?? {})
+      expect(r.errors.length).toBeGreaterThan(0)
+      expect(GATE_CODES, r.errors[0].message).not.toContain(r.errors[0].code)
+    }
+  })
+
   it(caseName('ext.avail.side.03', 'закрытое везде расширение недоступно и вне основной сети, в состав столов не попадает'), async () => {
     const all = await catalog()
     for (const name of NOWHERE) {

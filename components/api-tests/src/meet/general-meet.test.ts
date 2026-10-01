@@ -12,7 +12,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, randomHash, signDocument, tableRows, tokenOf } from '../core'
+import { CHAIRMAN, COOP, ROLES, awaitDecision, caseName, declineDecisionOnChain, expectAuthDenied, expectCode, gql, gqlError, randomHash, signDocument, tableRows, tokenOf, voteOnDecision, waitFor } from '../core'
 
 
 const digest = (text: string): string => text ? crypto.createHash('sha256').update(text, 'utf8').digest('hex') : ''
@@ -173,5 +173,48 @@ describe('общее собрание: созыв и чтение', () => {
   // текстом «Hash для объекта meet не найден» (C28-80).
   it(caseName('meet.gm.side.04', 'собрания с таким хэшем нет — отказ «не найдено», а не сбой сервера'), async () => {
     expectCode(await gqlError(memberToken, GET, { d: { coopname: COOP, hash: randomHash() } }), 'MEET_NOT_FOUND')
+  })
+
+  it(caseName('meet.texts.side.03', 'совет отклонил созыв — собрание стёрто из цепи, по хешу и в списке его больше нет'), async () => {
+    const declinedTag = crypto.randomBytes(4).toString('hex')
+    const items = [{ title: `Отклоняемый вопрос ${declinedTag}`, context: '', decision: `Решение ${declinedTag}` }]
+    const opens = new Date(Date.now() + 16 * 24 * 3600_000)
+    const closes = new Date(opens.getTime() + 24 * 3600_000)
+    const generated = (await gql<any>(chairToken, GEN_AGENDA, {
+      d: {
+        coopname: COOP,
+        username: CHAIRMAN.account,
+        is_repeated: false,
+        meet: { type: 'regular', open_at_datetime: opens.toISOString(), close_at_datetime: closes.toISOString() },
+        questions: items.map((q, i) => ({ number: String(i + 1), title: q.title, context: q.context, decision: q.decision })),
+      },
+    })).generateAnnualGeneralMeetAgendaDocument
+    const convened = (await gql<any>(chairToken, CREATE, {
+      d: {
+        coopname: COOP,
+        initiator: CHAIRMAN.account,
+        presider: CHAIRMAN.account,
+        secretary: CHAIRMAN.account,
+        agenda: items,
+        open_at: opens.toISOString(),
+        close_at: closes.toISOString(),
+        proposal: await signDocument(CHAIRMAN.wif, generated, CHAIRMAN.account, 1),
+        details,
+      },
+    })).createAnnualGeneralMeet
+    const hash = String(convened.hash)
+    expect((await gql<any>(memberToken, GET, { d: { coopname: COOP, hash } })).getMeet.processing.meet.status).toBe('created')
+
+    // Совет голосует против и отклоняет вопрос о созыве — контракт стирает собрание.
+    const decision = await awaitDecision(hash, 'вопрос совета о созыве собрания')
+    await voteOnDecision(Number(decision.id), 'against')
+    await declineDecisionOnChain(Number(decision.id))
+
+    await waitFor(async () => ((await gqlError(memberToken, GET, { d: { coopname: COOP, hash } }))?.code === 'MEET_NOT_FOUND' ? true : null),
+      { timeoutMs: 90_000, intervalMs: 1_500, label: 'отклонённое собрание исчезло из чтения по хешу' })
+    const list = (await gql<any>(memberToken, LIST, { d: { coopname: COOP } })).getMeets as any[]
+    expect(list.some(m => String(m.hash).toLowerCase() === hash.toLowerCase())).toBe(false)
+    // Созванное прежде собрание этого набора на месте.
+    expect(list.some(m => String(m.hash).toLowerCase() === meetHash.toLowerCase())).toBe(true)
   })
 })

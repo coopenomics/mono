@@ -288,6 +288,8 @@ cases:
       проект, допуск и участие читаются по одному разу на весь список, а не
       заново на каждую задачу
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    external: unreachable
+    external_reason: "число чтений и память расчёта прав — внутренние свойства, снаружи не наблюдаются"
     status: passing
 
   - id: cap.access.break.08
@@ -298,6 +300,8 @@ cases:
       ошибка не запоминается — следующий запрос в том же расчёте читает
       заново, а не получает залипший отказ
     test: components/controller/tests/unit/capital/artifact-and-communication-access.test.ts
+    external: unreachable
+    external_reason: "число чтений и память расчёта прав — внутренние свойства, снаружи не наблюдаются"
     status: passing
 
   - id: cap.artacc.show.01

@@ -30,6 +30,7 @@ cases:
       секрет удалён без проверки кода, настройка «код при входе» погашена,
       пайщик уведомлён
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    api: components/api-tests/src/coopid/two-factor-reset.test.ts
     status: passing
 
   - id: cid.2fr.happy.02
@@ -75,6 +76,8 @@ cases:
       в записи actor — учётное имя председателя и reason=chairman_reset,
       а не «self»: иначе снятие защиты выглядело бы действием самого пайщика
     test: components/controller/src/application/auth-v2/two-factor/two-factor.service.spec.ts
+    external: unreachable
+    external_reason: "журнал безопасности (события доступа и снятия защиты) через API не читается"
     status: passing
 
   - id: cid.2fr.side.03

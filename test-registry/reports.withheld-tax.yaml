@@ -80,6 +80,7 @@ cases:
       подтверждение кассира и найдёт платёж; кассир получает назначение
       платежа и реквизиты бюджета готовыми
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
 
   - id: rep.tax.side.01
@@ -90,6 +91,8 @@ cases:
       налоговому поясу уже 23-е
     expect: платёж относится ко второй половине месяца
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.tax.side.02
@@ -98,6 +101,8 @@ cases:
     scenario: Платёж отправлен поздним вечером 31 декабря по UTC
     expect: расчётный период — первая половина января следующего года
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "расчётный период берётся от текущего времени сервера; время стенда через API не перемотать"
     status: passing
 
   - id: rep.tax.side.03
@@ -115,6 +120,8 @@ cases:
     scenario: Кошелька удержанного налога ещё нет — удержаний не было
     expect: остаток нулевой, отправлять в бюджет нечего
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "состояние до первого удержания на стенде не воспроизводится: кошелёк удержанного налога заводят наборы выплат, порядок наборов не задан"
     status: passing
 
   - id: rep.tax.side.06
@@ -138,6 +145,8 @@ cases:
       платёж кассира гасится, долг перед бюджетом остаётся целиком, а причина
       отказа цепи доходит до бухгалтера читаемым текстом
     test: components/controller/tests/unit/reports/withheld-tax.service.test.ts
+    external: unreachable
+    external_reason: "отказ цепи по заявке не вызвать: сумму сервер сверяет с доступным раньше цепи (rep.tax.side.06)"
     status: passing
 
   - id: rep.tax.side.05

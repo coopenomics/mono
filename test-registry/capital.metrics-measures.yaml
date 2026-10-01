@@ -154,6 +154,8 @@ cases:
     scenario: цель привязывают по хешу к мере другого кооператива
     expect: отказ — меры не общие
     test: components/controller/src/extensions/capital/application/services/component-metric-measures.spec.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; меру другого кооператива не завести"
     status: passing
 
   - id: cap.mm.side.05
@@ -197,6 +199,8 @@ cases:
       коридор прогноза остаётся живым: окно свежести — неделя, короткий
       перерыв застоем не считается
     test: components/controller/src/extensions/capital/domain/utils/wave-markup.spec.ts
+    external: unreachable
+    external_reason: "застой метрики на дни и неделю: время стенда через API не перемотать"
     status: passing
 
   - id: cap.mm.side.08
@@ -205,6 +209,8 @@ cases:
     scenario: после рывка метрика стоит неделю
     expect: коридор схлопывается в плоскую линию на последнем факте
     test: components/controller/src/extensions/capital/domain/utils/wave-markup.spec.ts
+    external: unreachable
+    external_reason: "застой метрики на дни и неделю: время стенда через API не перемотать"
     status: passing
 
   - id: cap.mm.side.09

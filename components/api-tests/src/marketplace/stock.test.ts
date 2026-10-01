@@ -282,4 +282,21 @@ describe('Стол заказов: остаток кооператива упа�
     // Заказ из остатка доводится до выдачи: стенд остаётся без висящих саг.
     await completeIssuance({ operator, member: buyer, orderId: topup.orderId })
   })
+
+  it(caseName('mkt.iss.side.47', 'закрытие выдачи заказа упаковками: счётчики предложения поставщика двигаются и по упаковке, целыми коробками'), async () => {
+    const read = async () => {
+      const d = await gqlRaw(operatorToken, 'query($id:String!){ marketplaceGetOffer(id:$id){ quantity_blocked quantity_consumed packages{ id size quantity_blocked quantity_consumed } } }', { id: offerId })
+      const o = d.data.marketplaceGetOffer
+      return { offer: o, box: (o.packages as any[]).find(p => p.id === packageId) }
+    }
+    const before = await read()
+    await stockFromShortIssue()
+    const after = await read()
+
+    // Принятое кооперативом выбыло из предложения: три коробки по десять штук.
+    expect(after.box.quantity_consumed - before.box.quantity_consumed, 'по упаковке — целыми коробками').toBe(BOXES_ORDERED)
+    expect(after.box.quantity_blocked, 'бронь коробок под заказ снята').toBe(before.box.quantity_blocked)
+    expect(near(Number(after.offer.quantity_consumed) - Number(before.offer.quantity_consumed), BOXES_ORDERED * BOX), 'в базовых единицах — то же количество').toBe(true)
+    expect(near(Number(after.offer.quantity_blocked), Number(before.offer.quantity_blocked))).toBe(true)
+  })
 })

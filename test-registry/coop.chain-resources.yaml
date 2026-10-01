@@ -47,6 +47,8 @@ cases:
       в журнале аренды одна запись с суммой квоты и идентификатором транзакции;
       ресурсы в записи — состояние ПОСЛЕ пополнения
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
     status: passing
 
   - id: coop.res.break.01
@@ -57,6 +59,8 @@ cases:
       записи в журнале аренды нет, отказ виден уровнем `error`. Прежде журнал
       рапортовал об успехе на каждую неудачную попытку
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
     status: passing
 
   - id: coop.res.side.01
@@ -67,6 +71,8 @@ cases:
       следующая попытка отодвигается (пауза удваивается до часа), цепь не
       получает одинаковую транзакцию каждую минуту, ошибка пишется один раз
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
     status: passing
 
   - id: coop.res.side.02
@@ -77,6 +83,8 @@ cases:
       дата последнего пополнения не обновляется — иначе сутки никто не повторит
       попытку, а журнал расширения покажет пополнение, которого не было
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
     status: passing
 
   - id: coop.res.side.03
@@ -85,6 +93,8 @@ cases:
     scenario: использование ресурсов ниже порога
     expect: пополнения нет, записи в журнале нет
     test: components/controller/tests/unit/extension/powerup-extension.test.ts
+    external: unreachable
+    external_reason: "пополнение ресурсов идёт по расписанию расширения и зависит от расхода ресурсов аккаунта в цепи; через API ни расход, ни тик не задать"
     status: passing
 
   - id: coop.res.side.04

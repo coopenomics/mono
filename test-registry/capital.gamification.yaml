@@ -142,6 +142,7 @@ cases:
     expect: >
       действие цепи вызывается только для участников с активным договором УХД
     test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    api: components/api-tests/src/capital/gamification.test.ts
     status: passing
 
   - id: cap.gam.break.02
@@ -155,6 +156,7 @@ cases:
       каждые сутки получал от цепи ассерт «Договор УХД с пайщиком не активен» на
       одном и том же человеке (11 одинаковых ошибок за неделю 11–18.09.2026)
     test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    api: components/api-tests/src/capital/gamification.test.ts
     status: passing
 
   - id: cap.gam.side.09
@@ -163,6 +165,8 @@ cases:
     scenario: участник другого кооператива в общей выборке
     expect: не обновляется — планировщик работает только по своему кооперативу
     test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив; участника другого кооператива в выборку не завести"
     status: passing
 
   - id: cap.gam.side.10
@@ -171,6 +175,8 @@ cases:
     scenario: цепь отклонила обновление одного участника
     expect: остальные участники обновляются, цикл не прерывается
     test: components/controller/tests/unit/capital/gamification-scheduler.service.test.ts
+    external: unreachable
+    external_reason: "отказ цепи по одному участнику не вызвать: участников без активного договора планировщик пропускает сам (cap.gam.break.02)"
     status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
