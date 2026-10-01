@@ -26,6 +26,9 @@ declare module 'eosjs-ecc' {
     encoding?: string,
   ): string
 
+  /** Открытый ключ подписавшего — из подписи и подписанных данных (библиотека сама берёт SHA-256). */
+  export function recover(signature: string, data: string | Buffer, encoding?: string): string
+
   const ecc: {
     randomKey: typeof randomKey
     seedPrivate: typeof seedPrivate
@@ -33,6 +36,7 @@ declare module 'eosjs-ecc' {
     sha256: typeof sha256
     signHash: typeof signHash
     sign: typeof sign
+    recover: typeof recover
   }
   export default ecc
 }

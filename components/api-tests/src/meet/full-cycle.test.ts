@@ -8,23 +8,28 @@
  * стол и фабрика документов читают его дальше из журнала изменений цепи.
  */
 import crypto from 'node:crypto'
+import ecc from 'eosjs-ecc'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import {
   CHAIRMAN,
   COOP,
+  COOP_SIGNER,
   COUNCIL,
   ROLES,
   authorizeDecisionOnChain,
   awaitDecision,
   caseName,
+  chainDoc,
   fixture,
+  grantMemberKey,
   gql,
   gqlRaw,
   signDocument,
   tableRows,
   toChainDoc,
   tokenOf,
+  transact,
   voteOnDecision,
   waitFor,
 } from '../core'
@@ -62,6 +67,8 @@ describe('общее собрание: созыв, голосование упо
   let decisionHtmlBeforeClose = ''
   let closedForVoter: any
   let closedForOutsider: any
+  /** Сколько уполномоченных проголосовало: фикстуры и уполномоченные чужих участков. */
+  let voters = 0
   let closedList: any[] = []
 
   async function meetAs(who: Who): Promise<any> {
@@ -71,8 +78,20 @@ describe('общее собрание: созыв, голосование упо
   beforeAll(async () => {
     chairToken = await tokenOf(CHAIRMAN)
     trustees = [fixture('chairkrg'), fixture('chairodn'), fixture('chairmyt')]
+    // Участки, заведённые другими наборами (boot-тесты цепи): их уполномоченных
+    // у узла нет, ключей у набора тоже. Кооператив выдаёт такому уполномоченному
+    // ключ, и его бюллетень подаётся прямо в цепь.
     const branches = await tableRows<any>('branch', COOP, 'branches')
-    expect(branches.length, 'голосуют уполномоченные всех участков; у набора ключи трёх').toBeLessThanOrEqual(trustees.length)
+    const known = new Set(trustees.map(t => t.account))
+    const strangers: Who[] = []
+    for (const branch of branches) {
+      const account = String(branch.trustee)
+      if (known.has(account))
+        continue
+      const wif = await ecc.randomKey()
+      await grantMemberKey(account, ecc.privateToPublic(wif))
+      strangers.push({ account, email: '', wif })
+    }
 
     // Созыв.
     const opens = new Date(Date.now() + OPENS_IN_MS)
@@ -134,8 +153,19 @@ describe('общее собрание: созыв, голосование упо
         },
       })
     }
-    const voted = await meetAs(trustees[0])
-    expect(voted.processing.meet.quorum_passed, 'кворум собран').toBe(true)
+    const questionIds = ((await meetAs(trustees[0])).processing.questions as any[]).map(q => Number(q.id))
+    for (const stranger of strangers) {
+      await transact(COOP_SIGNER, [{
+        account: 'meet',
+        name: 'vote',
+        data: { coopname: COOP, hash: meetHash, username: stranger.account, ballot: chainDoc([stranger]), votes: questionIds.map(id => ({ question_id: id, vote: 'for' })) },
+      }])
+    }
+    voters = trustees.length + strangers.length
+    const voted = await waitFor(async () => {
+      const m = await meetAs(trustees[0])
+      return m.processing?.meet?.quorum_passed ? m : null
+    }, { timeoutMs: 30_000, intervalMs: 1_000, label: 'кворум собран' })
     expect(voted.processing.isVoted).toBe(true)
 
     // Голосование закрылось — секретарь и председатель собрания подписывают протокол.
@@ -178,7 +208,7 @@ describe('общее собрание: созыв, голосование упо
     const results = closedForVoter.processed.results as any[]
     expect(results.map(r => Number(r.number))).toEqual([1, 2])
     expect(results.map(r => [r.title, r.context, r.decision])).toEqual(agenda.map(q => [q.title, q.context, q.decision]))
-    expect(results.every(r => Number(r.votes_for) === 3 && Number(r.votes_against) === 0 && r.accepted === true)).toBe(true)
+    expect(results.every(r => Number(r.votes_for) === voters && Number(r.votes_against) === 0 && r.accepted === true)).toBe(true)
 
     // Состояние собрания из журнала изменений цепи — статус, вопросы, отметка
     // «голосовал» — проверяется, когда стол его отдаёт. Если после стирания

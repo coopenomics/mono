@@ -98,6 +98,11 @@ export async function placeOrder(args: { who: Who, offerId: string, quantity: nu
   const { who, offerId, quantity, braname = KRG } = args
   const token = await tokenOf(who)
   await gql(token, 'mutation{ marketplaceClearCart{ __typename } }').catch(() => {})
+  // Пункт выдачи корзины мог остаться от другого набора (матрица прав зовёт
+  // операции с чужими аргументами) — привязываем корзину к своему участку.
+  await gql(token, 'mutation($i:MarketplaceSetCartDeliveryPointInput!){ marketplaceSetCartDeliveryPoint(input:$i){ delivery_braname } }', {
+    i: { delivery_braname: braname },
+  }).catch(() => {})
   await gql(token, 'mutation($i:MarketplaceAddToCartInput!){ marketplaceAddToCart(input:$i){ __typename } }', {
     i: { offer_id: offerId, quantity, delivery_braname: braname },
   })

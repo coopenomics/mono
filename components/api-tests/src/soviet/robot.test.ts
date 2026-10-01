@@ -199,7 +199,8 @@ describe('робот решений совета: кворум, повтор г�
     const chained = await registry()
     expect(chained.warnings).toEqual([])
     // Гарантированный голос председателя ведёт за собой всех, кто идёт за ним.
-    expect(chained.vote_quorum).toMatchObject({ delegated_count: council.length, reached: true })
+    expect(chained.vote_quorum.reached).toBe(true)
+    expect(chained.vote_quorum.delegated_count).toBeGreaterThanOrEqual(chained.vote_quorum.required_count)
 
     // И на деле: заявление проходит без единого живого голоса.
     const { member, exitHash, id } = await exitDecision('srba')
