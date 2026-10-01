@@ -57,6 +57,8 @@ cases:
     scenario: личность сверена по паспорту, но записи участника в цепи нет
     expect: member=false — членство даёт решение кооператива, а не проверка документов
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    external: unreachable
+    external_reason: "аккаунт в цепи заводится вместе с записью участника, а сверка личности требует пайщика (cid.ver.side.13); сверенный аккаунт без участника через API не получить"
     status: passing
 
   - id: cid.cc.side.03
@@ -101,6 +103,8 @@ cases:
     scenario: контур не настроен — ожидаемый токен в конфигурации пуст
     expect: не проходит никакой запрос, включая пустой токен
     test: components/controller/src/application/auth-v2/claims/participant-claims.controller.spec.ts
+    external: unreachable
+    external_reason: "контур стенда настроен при засеве; узел с пустым ожидаемым токеном через API не получить"
     status: passing
 
   - id: cid.cc.break.04
@@ -144,4 +148,6 @@ cases:
       своему id никого нет; свой id и прежний идентификатор Mongo разбираются как раньше,
       неизвестный uuid даёт прежнюю ошибку, не-uuid в authentik не отправляется
     test: components/controller/tests/unit/auth-v2/user-directory-subject.test.ts
+    external: unreachable
+    external_reason: "учётку CoopID (authentik) пайщику заводит вход в браузере; идентификатор такой учётки через API стенда не получить"
     status: passing

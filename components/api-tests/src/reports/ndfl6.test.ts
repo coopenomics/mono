@@ -9,15 +9,18 @@
  * вычисляет ожидаемую ячейку из времени проводки, а не из «сегодня».
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { ROLES, caseName } from '../core'
+import type { Who } from '../core'
+import { ROLES, caseName, freshMember } from '../core'
 import {
   type AidPayout,
   generateReport,
   initialEdits,
+  makeBranchTrusted,
   mskParts,
   payAid,
   uvPeriodOf,
 } from '../documents/docs-reports.helpers'
+import { individualData } from '../platform/platform-b.helpers'
 import { gql } from '../core/client'
 import { tokenOf } from '../core/auth'
 import { CHAIRMAN } from '../core/roles'
@@ -269,5 +272,57 @@ describe('отчёты: 6-НДФЛ и уведомление по НДФЛ из 
       expect(report.isValid).toBe(false)
       expect(report.errors.join(' '), `период ${bad}`).toMatch(/24/)
     }
+  })
+})
+
+describe('отчёты: справки 6-НДФЛ по данным профиля получателя', () => {
+  const Y = mskParts(new Date().toISOString()).year
+  let zeroSeries: Who
+  let noPassport: Who
+  let annual: any
+
+  /** Председатель правит анкету пайщика: паспорт с нужной серией либо без паспорта. */
+  async function setProfile(who: Who, passport: Record<string, unknown> | null): Promise<void> {
+    const data = individualData()
+    if (passport)
+      data.passport = passport
+    else
+      delete data.passport
+    await gql(await tokenOf(CHAIRMAN), 'mutation($d:UpdateAccountInput!){ updateAccount(data:$d){ username } }', {
+      d: { username: who.account, individual_data: { ...data, username: who.account, email: who.email } },
+    })
+  }
+
+  beforeAll(async () => {
+    // Получатели — новые доверенные участка: у первой серия паспорта начинается
+    // с нуля (в профиле она хранится числом 405), у второго паспорта нет вовсе.
+    zeroSeries = freshMember({ prefix: 'ndz' })
+    noPassport = freshMember({ prefix: 'ndn' })
+    await setProfile(zeroSeries, { series: 405, number: 123456, issued_by: 'ОВД «Тверской» г. Москвы', issued_at: '2010/01/01', code: '770-001' })
+    await setProfile(noPassport, null)
+    for (const who of [zeroSeries, noPassport]) {
+      await makeBranchTrusted(who)
+      await payAid(100, who)
+    }
+    annual = await initialEdits('NDFL6', Y, 4)
+  }, 1_200_000)
+
+  it(caseName('rep.ndfl6.side.08', 'серия паспорта получателя начинается с нуля — ведущий ноль восстановлен в справке'), () => {
+    const cert = (annual.certificates as any[]).find(c => c.username === zeroSeries.account)
+    expect(cert, 'справка на получательницу').toBeTruthy()
+    expect(cert.documentSerialNumber).toBe('0405 123456')
+    expect(cert.documentTypeCode).toBe('21')
+  })
+
+  it(caseName('rep.ndfl6.break.01', 'паспортных данных получателя в профиле нет — отчёт формируется, справка выходит с пустыми полями документа'), async () => {
+    const cert = (annual.certificates as any[]).find(c => c.username === noPassport.account)
+    expect(cert, 'справка на получателя без паспортных данных').toBeTruthy()
+    expect(cert.documentSerialNumber ?? '', 'серия и номер пусты — пробел виден бухгалтеру').toBe('')
+    expect(cert.taxWithheld).toBeGreaterThanOrEqual(13)
+
+    // Генерация не падает: файл собран либо отказ назван причиной, без сбоя сервера.
+    const report = await generateReport('NDFL6', Y, 4, annual)
+    expect(typeof report.isValid).toBe('boolean')
+    expect(report.xml.length + report.errors.join('').length).toBeGreaterThan(0)
   })
 })

@@ -73,6 +73,8 @@ cases:
     scenario: Дельта пришла по чужому кооперативу.
     expect: сигнал не публикуется
     test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    external: unreachable
+    external_reason: "дельты чужого кооператива, без имени пайщика и снятие строки кошелька цепь стенда не порождает"
     status: passing
 
   - id: wallet.realtime.side.03
@@ -83,6 +85,8 @@ cases:
       сигнал не публикуется — остаток нулевой и его покажет обычная дочитка,
       а `value` у снятой строки пуст
     test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    external: unreachable
+    external_reason: "дельты чужого кооператива, без имени пайщика и снятие строки кошелька цепь стенда не порождает"
     status: passing
 
   - id: wallet.realtime.side.04
@@ -91,6 +95,8 @@ cases:
     scenario: В дельте нет имени пайщика.
     expect: сигнал не публикуется — адресовать его некому
     test: components/controller/tests/unit/wallet/wallet-events.service.test.ts
+    external: unreachable
+    external_reason: "дельты чужого кооператива, без имени пайщика и снятие строки кошелька цепь стенда не порождает"
     status: passing
 
   - id: wallet.realtime.break.01

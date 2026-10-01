@@ -13,7 +13,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, ensureShareFunds, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, COOP, ROLES, caseName, ensureShareFunds, fixture, gql, gqlError, gqlRaw, signDocument, tokenOf } from '../core'
 import type { Who } from '../core'
 import { docMeta } from '../core/documents'
 import { amount } from '../core/wallet'
@@ -189,6 +189,30 @@ describe('заказ: границы оформления', () => {
     const negative = await gqlError(mt, ADD_TO_CART, { i: { offer_id: potato.id, quantity: -2, delivery_braname: KRG } })
     expect(negative).not.toBeNull()
     expect((await getCart(mt)).items).toHaveLength(0)
+  })
+
+  it(caseName('mkt.order.side.07', 'сумма заказа округляется до нуля — заказ не создаётся'), async () => {
+    // Десятитысячная рубля за килограмм, заказан грамм: цена и количество
+    // положительны, а сумма меньше младшего разряда рубля.
+    const dust = await createApprovedOffer(other, CHAIRMAN, {
+      product_name: `Тест ${RUN_TAG} пыль`,
+      price_per_unit: '0.0001',
+      unit_of_measure: 'KG',
+      unlimited_flag: true,
+    })
+    await clearCart(mt)
+    const added = await gqlRaw(mt, ADD_TO_CART, { i: { offer_id: dust.id, quantity: 0.001, delivery_braname: KRG } })
+    const codes: string[] = added.errors.map(e => String(e.code))
+    if (added.errors.length === 0) {
+      const r = await checkoutRaw(mt, {})
+      codes.push(...r.errors.map((e: any) => String(e.code)))
+      const res = r.data?.marketplaceCheckoutCart
+      expect(res?.created_orders ?? [], 'заказ с нулевой суммой не создан').toHaveLength(0)
+      codes.push(...(res?.failed_lines ?? []).map((f: any) => String(f.code)))
+    }
+    expect(codes, 'отказ называет нулевую сумму').toContain('MARKETPLACE_ORDER_TOTAL_ZERO')
+    expect(await myOrdersOfOffer(mt, dust.id)).toHaveLength(0)
+    await clearCart(mt)
   })
 
   it(caseName('mkt.order.side.06', 'пункт получения не указан — отказ, корзина остаётся на прежнем КУ'), async () => {
@@ -489,6 +513,33 @@ describe('заказ: заявление 1110 при оформлении', () =
     const done = await checkoutSigned(member)
     expect(done.fully_completed).toBe(true)
     expect(done.created_orders).toHaveLength(2)
+
+    // l2.pnam.side.14: заявление 1110 подписано отдельным действием и в строку
+    // заказа не записано — реестр процессов находит его в параметрах действия
+    // по хэшу заказа и показывает среди документов поставки один раз.
+    const chairman = await tokenOf(CHAIRMAN)
+    const isConvert = (d: any): boolean => d.source.code === 'marketplace' && d.source.table === 'convert'
+    const withStatement: any[][] = []
+    for (const o of done.created_orders) {
+      const hash = String((await getOrder(mt, o.id)).order_hash).toLowerCase()
+      const r = await gqlRaw<any>(chairman, `query($h:String!,$c:String!){
+        process(hash:$h, coopname:$c){ process_type documents{ hash source{ code table field primary_key } } }
+      }`, { h: hash, c: COOP })
+      expect(r.errors, JSON.stringify(r.errors)).toEqual([])
+      const docs = r.data.process.documents as any[]
+      expect(new Set(docs.map(d => d.hash)).size, 'каждый документ процесса — одной записью').toBe(docs.length)
+      if (docs.some(isConvert))
+        withStatement.push(docs)
+    }
+    expect(withStatement.length, 'заявление о переводе паевого взноса есть среди документов поставки').toBeGreaterThan(0)
+    for (const docs of withStatement) {
+      const statements = docs.filter(isConvert)
+      expect(statements).toHaveLength(1)
+      // Источник — контракт, действие, параметр и номер действия в цепи.
+      expect(statements[0].source.field).toBe('convert_statement')
+      expect(statements[0].source.primary_key).toMatch(/^\d+$/)
+    }
+
     for (const o of done.created_orders) await cancelOrder(mt, o.id)
   })
 
