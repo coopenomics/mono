@@ -50,7 +50,6 @@ export async function registerEdubridgeDocuments(port: IDocumentDeclarationPort)
       vars_field: EDU_ONBOARDING_STEPS.CONTRACT_TEMPLATE,
     }),
 
-    doc(R.EducationCourseAnnex.registry_id, 'form', 30, { bundle: 'education_forms' }),
     doc(R.EducationConvertStatement.registry_id, 'form', 31, { bundle: 'education_forms' }),
     doc(R.EducationRidStorageAct.registry_id, 'form', 32, { bundle: 'education_forms' }),
     doc(R.EducationRidStatement.registry_id, 'form', 33, { bundle: 'education_forms' }),

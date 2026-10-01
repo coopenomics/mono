@@ -21,12 +21,15 @@ describe('EdubridgeChainAdapter — документ в цепь', () => {
     expect(action.data.contract_hash).toBe('H');
   });
 
-  it('signannex и submitrid сериализуют annex/statement; уже строковая meta остаётся как есть', async () => {
+  it('submitrid сериализует statement; уже строковая meta остаётся как есть', async () => {
     const { adapter, chain } = make();
-    await adapter.signAnnex({ coopname: 'voskhod', username: 'ant', course_id: 7, annex_hash: 'A', annex: doc({ a: 1 }) });
     await adapter.submitRid({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', assignment_id: 1, amount: '1.0000 RUB', rid_type: 'other', statement: doc('{"s":1}') } as any);
-    expect(chain.transact.mock.calls[0][0].data.annex.meta).toBe('{"a":1}');
-    expect(chain.transact.mock.calls[1][0].data.statement.meta).toBe('{"s":1}');
+    expect(chain.transact.mock.calls[0][0].data.statement.meta).toBe('{"s":1}');
+  });
+
+  it('допуск к курсу в цепь не уходит — действия для приложения к договору у адаптера нет', () => {
+    const { adapter } = make();
+    expect((adapter as any).signAnnex).toBeUndefined();
   });
 
   it('без meta уходит «{}», а не «undefined»', async () => {

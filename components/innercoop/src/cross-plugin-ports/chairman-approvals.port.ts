@@ -15,7 +15,7 @@ export interface InnerChairmanApproval {
   coopname: string;
   /** Пайщик, чей документ ждёт подписи. */
   username: string;
-  /** Действие контракта-инициатора при одобрении (`apprvcontr`, `apprvannex`…) — тип одобрения. */
+  /** Действие контракта-инициатора при одобрении (`apprvcontr`, `apprvappndx`…) — тип одобрения. */
   action: string;
   status: InnerChairmanApprovalStatus;
   /** ISO 8601. */

@@ -43,12 +43,13 @@ using namespace Edubridge;
  *    o.edu.ridshr, w.edu.hold → w.wal.share, Дт 76 / Кт 80). Рекламация
  *    внутри срока и отказ совета снимают материалы с хранения
  *    (o.edu.retrid, Дт 76 / Кт 08).
- *  - **p.edu.teach** (7 actions): signcontract, apprvcontr, dclinecontr,
- *    signannex, apprvannex, dclineannex, termcontract — договор УХД преподавателя и
- *    приложения к нему на курс подписываются двумя сторонами: первая
- *    подпись преподавателя, вторая — председателя совета через одобрение
- *    (`Soviet::create_approval` → `soviet::confirmapprv` → коллбэк сюда),
- *    как договор и приложения в «Благоросте». Движений средств нет.
+ *  - **p.edu.teach** (4 actions): signcontract, apprvcontr, dclinecontr,
+ *    termcontract — договор УХД преподавателя подписывается двумя сторонами:
+ *    первая подпись преподавателя, вторая — председателя совета через
+ *    одобрение (`Soviet::create_approval` → `soviet::confirmapprv` → коллбэк
+ *    сюда), как договор в «Благоросте». Допуск преподавателя к курсу —
+ *    назначение, которое ведёт приложение кооператива; отдельного документа
+ *    и действия в цепи у него нет. Движений средств нет.
  *
  * Все действия авторизуются ключом кооператива (`require_auth(coopname)`):
  * пайщик подписывает документ, отправляет его бэкенд кооператива — как
@@ -317,38 +318,6 @@ public:
   [[eosio::action]] void dclinecontr(eosio::name coopname,
                                      eosio::name username,
                                      checksum256 contract_hash,
-                                     std::string reason);
-
-  /**
-   * @brief Преподаватель подписывает Приложение к договору УХД на курс
-   * (шаблон 3007) — первая подпись. Нужен действующий договор. Приложение
-   * уходит на вторую подпись председателю.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void signannex(eosio::name coopname,
-                                   eosio::name username,
-                                   uint64_t course_id,
-                                   checksum256 annex_hash,
-                                   document2 annex);
-
-  /**
-   * @brief Председатель подписал приложение — двухподписный документ
-   * публикуется в реестре, запись ожидания стирается; назначение
-   * преподавателя на курс действует.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void apprvannex(eosio::name coopname,
-                                    eosio::name username,
-                                    checksum256 annex_hash,
-                                    document2 approved_document);
-
-  /**
-   * @brief Председатель отказал в подписи приложения — запись стирается.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void dclineannex(eosio::name coopname,
-                                     eosio::name username,
-                                     checksum256 annex_hash,
                                      std::string reason);
 
   /**

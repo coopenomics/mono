@@ -740,9 +740,6 @@ export const AllTypesProps: Record<string,any> = {
 	EduSignActInput:{
 		document:"SignedDigitalDocumentInput"
 	},
-	EduSignAnnexInput:{
-		document:"SignedDigitalDocumentInput"
-	},
 	EduSignContractInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -2169,9 +2166,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeSignAct:{
 			data:"EduSignActInput"
-		},
-		edubridgeSignAnnex:{
-			data:"EduSignAnnexInput"
 		},
 		edubridgeSignContract:{
 			data:"EduSignContractInput"
@@ -5778,13 +5772,11 @@ export const ReturnTypes: Record<string,any> = {
 		username:"String"
 	},
 	EduAssignment:{
-		annex_hash:"String",
 		course_description:"String",
 		course_id:"ID",
 		course_syllabus:"String",
 		course_title:"String",
 		created_at:"DateTime",
-		decline_reason:"String",
 		expected_result:"String",
 		id:"ID",
 		minutes_per_month:"Int",
@@ -7951,7 +7943,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSetEconomySettings:"EduEconomySettings",
 		edubridgeSetTeacherRate:"String",
 		edubridgeSignAct:"EduContribution",
-		edubridgeSignAnnex:"EduAssignment",
 		edubridgeSignContract:"EduTeacherContract",
 		edubridgeSignOffer:"EduOnboardingState",
 		edubridgeSubmitContribution:"EduContribution",

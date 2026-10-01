@@ -16,9 +16,9 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null } = {}
+  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[] } = {}
 ) {
-  const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', annex_hash: null, decline_reason: '', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
+  const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
   const contractState: { current: any } = {
     current: opts.contract === false ? null : { coopname: 'voskhod', teacher_username: 'teach', contract_hash: 'h', contract_number: 'N1', hourly_rate: '1000.0000 RUB', status: typeof opts.contract === 'string' ? opts.contract : EduContractStatus.ACTIVE, decline_reason: '', approved_at: null },
@@ -28,7 +28,6 @@ function make(
     listContracts: jest.fn(async () => (contractState.current ? [contractState.current] : [])),
     saveContract: jest.fn(async (d: any) => { contractState.current = { ...d }; return contractState.current; }),
     findAssignment: jest.fn(async () => assignment),
-    findAssignmentByAnnexHash: jest.fn(async (_c: string, h: string) => (assignment.annex_hash === h.toLowerCase() ? assignment : null)),
     listAssignments: jest.fn(async () => [assignment]),
     createAssignment: jest.fn((d: any) => ({ ...d })),
     saveAssignment: jest.fn(async (a: any) => a),
@@ -51,7 +50,9 @@ function make(
       guarantee_days: opts.guaranteeDays ?? 14,
       planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
       starts_at: opts.startsAt ?? null,
+      teacher_usernames: opts.courseTeachers ?? ['teach'],
     })),
+    save: jest.fn(async (c: any) => c),
   } as any;
   const lessonStore = new Map<number, any>();
   const lessons = {
@@ -64,7 +65,7 @@ function make(
   const chain = {
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
     submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})),
-    signContract: jest.fn(async () => ({})), signAnnex: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
+    signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
   } as any;
   const documents = {
     generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
@@ -85,7 +86,7 @@ function make(
   const funds = { onSettled: jest.fn(async () => undefined) } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, logger, events);
-  return { service, teachers, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons };
+  return { service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons };
 }
 
 
@@ -104,11 +105,9 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(chain.signContract).not.toHaveBeenCalled();
   });
 
-  it('пока договор ждёт председателя — приложение и взнос недоступны', async () => {
-    const { service, chain, store } = make({ contract: EduContractStatus.PENDING_APPROVAL });
-    await expect(service.signAnnex('voskhod', 'teach', 'A1', signedBy('teach', 'ANNEX'))).rejects.toThrow(/ещё не подписан председателем/);
+  it('пока договор ждёт председателя — отчёт по занятию и взнос недоступны, хотя допуск к курсу уже есть', async () => {
+    const { service, store } = make({ contract: EduContractStatus.PENDING_APPROVAL });
     await expect(contributionOfLesson(service, store)).rejects.toThrow(/ещё не подписан председателем/);
-    expect(chain.signAnnex).not.toHaveBeenCalled();
   });
 
   it('коллбэк совета apprvcontr делает договор действующим; dclinecontr — отклонённым с причиной, и его можно подписать заново', async () => {
@@ -172,7 +171,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
   it('назначение на курс: ставка преподавателя не выше плановой ставки курса, от которой считан взнос', async () => {
     const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
     const covered = make();
-    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach' });
+    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE });
     const dear = make({ plannedRate: '900.0000 RUB' });
     await expect(dear.service.createAssignment('voskhod', input)).rejects.toThrow(/выше плановой ставки курса/);
     expect(dear.teachers.saveAssignment).not.toHaveBeenCalled();
@@ -185,33 +184,42 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(c.contract_hash).toBe('h');
   });
 
-  it('приложение: signannex в цепь с числовым курсом, назначение ждёт председателя; apprvannex → активно', async () => {
-    const { service, chain, assignment } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
-    const a = await service.signAnnex('voskhod', 'teach', 'A1', signedBy('teach', 'ANNEX'));
-    expect(chain.signAnnex).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', course_id: 7, annex_hash: 'ANNEX' }));
-    expect(a.status).toBe(EduAssignmentStatus.PENDING_APPROVAL);
-    expect(a.annex_hash).toBe('annex');
-
-    await service.onAnnexApproved('voskhod', 'teach', 'ANNEX');
-    expect(assignment.status).toBe(EduAssignmentStatus.ACTIVE);
+  it('допуск к курсу действует сразу: документа и подписей нет, в цепь ничего не уходит', async () => {
+    const { service, chain, teachers } = make();
+    const a = await service.createAssignment('voskhod', { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any);
+    expect(a.status).toBe(EduAssignmentStatus.ACTIVE);
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    for (const call of Object.values(chain) as jest.Mock[]) expect(call).not.toHaveBeenCalled();
+    // Действий и таблицы приложения к договору у расширения больше нет.
+    expect((service as any).signAnnex).toBeUndefined();
+    expect((chain as any).signAnnex).toBeUndefined();
   });
 
-  it('приложение: отказ председателя → DECLINED с причиной, подписывается заново; чужое назначение — запрет', async () => {
-    const { service, assignment } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
-    await service.signAnnex('voskhod', 'teach', 'A1', signedBy('teach', 'ANNEX'));
-    await service.onAnnexDeclined('voskhod', 'teach', 'ANNEX', 'Расписание не согласовано');
-    expect(assignment.status).toBe(EduAssignmentStatus.DECLINED);
-    expect(assignment.decline_reason).toBe('Расписание не согласовано');
+  it('допущенный преподаватель попадает в список «Курс ведут»; уже стоящий в списке курс не пересохраняет', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const absent = make({ courseTeachers: [] });
+    await absent.service.createAssignment('voskhod', input);
+    expect(absent.courses.save).toHaveBeenCalledWith(expect.objectContaining({ teacher_usernames: ['teach'] }));
 
-    const again = await service.signAnnex('voskhod', 'teach', 'A1', signedBy('teach', 'ANNEX2'));
-    expect(again.status).toBe(EduAssignmentStatus.PENDING_APPROVAL);
-    await expect(service.signAnnex('voskhod', 'other', 'A1', signedBy('other', 'Z'))).rejects.toThrow();
+    const listed = make({ courseTeachers: ['teach'] });
+    await listed.service.createAssignment('voskhod', input);
+    expect(listed.courses.save).not.toHaveBeenCalled();
   });
 
-  it('уже подписанное приложение повторно не уходит в цепь', async () => {
-    const { service, chain } = make({ assignmentStatus: EduAssignmentStatus.PENDING_APPROVAL });
-    await expect(service.signAnnex('voskhod', 'teach', 'A1', signedBy('teach', 'ANNEX'))).rejects.toThrow(/уже подписано/);
-    expect(chain.signAnnex).not.toHaveBeenCalled();
+  it('снятие допуска закрывает назначение и убирает преподавателя из курса — сверка не выдаст допуск заново', async () => {
+    const { service, assignment, courses } = make({ courseTeachers: ['teach', 'other'] });
+    const closed = await service.closeAssignment('voskhod', 'A1');
+    expect(closed.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(courses.save).toHaveBeenCalledWith(expect.objectContaining({ teacher_usernames: ['other'] }));
+  });
+
+  it('снятие допуска у преподавателя вне списка курса курс не трогает; несуществующее назначение — отказ', async () => {
+    const { service, courses, teachers } = make({ courseTeachers: ['other'] });
+    await service.closeAssignment('voskhod', 'A1');
+    expect(courses.save).not.toHaveBeenCalled();
+    teachers.findAssignment.mockResolvedValueOnce(null);
+    await expect(service.closeAssignment('voskhod', 'NOPE')).rejects.toThrow(/Назначение не найдено/);
   });
 });
 
@@ -239,9 +247,9 @@ describe('EdubridgeTeacherService', () => {
     await expect(contributionOfLesson(service, store)).rejects.toThrow(/договор участия/);
   });
 
-  it('назначение без подписанного приложения — взнос не подготовить', async () => {
-    const { service, store } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
-    await expect(contributionOfLesson(service, store)).rejects.toThrow(/приложение/);
+  it('допуск к курсу снят — отчитаться по занятию и подготовить взнос нельзя', async () => {
+    const { service, store } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    await expect(contributionOfLesson(service, store)).rejects.toThrow(/Допуск к курсу снят/);
   });
 
   it('подача: submitrid, проект решения совета, правило отслеживания, статус SUBMITTED', async () => {
@@ -676,12 +684,12 @@ describe('EdubridgeTeacherService — договор следует за таб�
   });
 });
 
-describe('Черновики назначений по списку «Курс ведут»', () => {
+describe('Допуски по списку «Курс ведут»', () => {
   const course = (teachers: string[]) =>
     ({ id: 'C1', title: 'Алгебра', schedule: 'Вт, Чт 17–19', teacher_usernames: teachers, starts_at: '2026-09-23', lessons_total: 64, lessons_per_month: 8, lesson_minutes: 60, planned_hourly_rate: '1000.0000 RUB' }) as any;
 
-  it('добавленный в курс преподаватель получает черновик назначения, уже назначенный — нет', async () => {
-    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
+  it('добавленный в курс преподаватель сразу получает действующий допуск, уже допущенный — нет', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE, courseTeachers: ['teach', 'newbie'] });
 
     await service.syncCourseAssignments('voskhod', course(['teach', 'newbie']));
 
@@ -690,7 +698,7 @@ describe('Черновики назначений по списку «Курс �
       expect.objectContaining({
         teacher_username: 'newbie',
         course_id: 'C1',
-        status: EduAssignmentStatus.DRAFT,
+        status: EduAssignmentStatus.ACTIVE,
         schedule: 'Вт, Чт 17–19',
         period_from: '2026-09-23',
         period_to: '2027-05-22',
@@ -699,25 +707,35 @@ describe('Черновики назначений по списку «Курс �
     );
   });
 
-  it('убранный из курса: неподписанный черновик закрывается', async () => {
-    const { service, assignment } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
-
-    await service.syncCourseAssignments('voskhod', course([]));
-
-    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
-  });
-
-  it('убранный из курса: действующее назначение не трогается — его закрывает администратор явно', async () => {
+  it('убранный из курса: действующий допуск снимается', async () => {
     const { service, assignment, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
 
     await service.syncCourseAssignments('voskhod', course([]));
 
-    expect(assignment.status).toBe(EduAssignmentStatus.ACTIVE);
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+  });
+
+  it('убранный из курса: уже снятый допуск повторно не сохраняется', async () => {
+    const { service, assignment, teachers } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+
+    await service.syncCourseAssignments('voskhod', course([]));
+
+    expect(assignment.status).toBe(EduAssignmentStatus.CLOSED);
     expect(teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
+  it('возвращённый в курс после снятия допуска получает новый допуск', async () => {
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+
+    await service.syncCourseAssignments('voskhod', course(['teach']));
+
+    expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
+    expect(teachers.saveAssignment).toHaveBeenCalledWith(expect.objectContaining({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE }));
+  });
+
   it('повторная сверка ничего не создаёт — идемпотентно', async () => {
-    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.DRAFT });
+    const { service, teachers } = make({ assignmentStatus: EduAssignmentStatus.ACTIVE });
 
     await service.syncCourseAssignments('voskhod', course(['teach']));
 
@@ -739,27 +757,27 @@ describe('Черновики назначений по списку «Курс �
 
 describe('EduAssignmentDTO — назначение в ответе API', () => {
   const course = { title: 'Алгебра', description: 'Про уравнения', syllabus: '1. Линейные уравнения' };
-  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-22', annex_hash: null, minutes_per_month: 480, status: EduAssignmentStatus.DRAFT, created_at: new Date('2026-09-23') } as any;
+  const entity = { id: 'A1', teacher_username: 'teach', course_id: 'C1', schedule: 'Вт', expected_result: 'Занятия', period_from: '2026-09-23', period_to: '2027-05-22', minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE, created_at: new Date('2026-09-23') } as any;
 
-  it('причина отказа всегда строка: пусто, пока председатель не отказывал, — иначе запрос назначений падал целиком', () => {
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: '' }, course).decline_reason).toBe('');
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: undefined }, course).decline_reason).toBe('');
-    expect(new EduAssignmentDTO({ ...entity, decline_reason: 'Не то расписание' }, course).decline_reason).toBe('Не то расписание');
+  it('назначение — рабочий допуск: полей приложения к договору в ответе нет', () => {
+    const dto = new EduAssignmentDTO(entity, course) as unknown as Record<string, unknown>;
+    expect(dto).not.toHaveProperty('annex_hash');
+    expect(dto).not.toHaveProperty('decline_reason');
   });
 
   it('обязательные поля схемы назначения заполнены', () => {
-    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, course) as unknown as Record<string, unknown>;
-    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'course_description', 'course_syllabus', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'decline_reason', 'created_at']) {
+    const dto = new EduAssignmentDTO(entity, course) as unknown as Record<string, unknown>;
+    for (const field of ['id', 'teacher_username', 'course_id', 'course_title', 'course_description', 'course_syllabus', 'schedule', 'expected_result', 'period_from', 'period_to', 'minutes_per_month', 'status', 'created_at']) {
       expect(dto[field]).not.toBeUndefined();
     }
   });
 
   it('программа и описание курса — в назначении: преподаватель читает их на своём столе; курса нет — пусто', () => {
-    const dto = new EduAssignmentDTO({ ...entity, decline_reason: '' }, course);
+    const dto = new EduAssignmentDTO(entity, course);
     expect(dto.course_title).toBe('Алгебра');
     expect(dto.course_syllabus).toBe('1. Линейные уравнения');
     expect(dto.course_description).toBe('Про уравнения');
-    const orphan = new EduAssignmentDTO({ ...entity, decline_reason: '' }, null);
+    const orphan = new EduAssignmentDTO(entity, null);
     expect([orphan.course_title, orphan.course_syllabus, orphan.course_description]).toEqual(['', '', '']);
   });
 });

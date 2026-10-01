@@ -113,12 +113,19 @@ export function tableOwners(dataSource: DataSource, owners: SchemaOwner[]): Map<
   return result;
 }
 
-/** Владелец инструкции: по её таблице, а тип перечисления — по первой колонке, которая его использует. */
+/**
+ * Владелец инструкции: по её таблице, а тип перечисления — по колонке, которая
+ * его использует. Смена набора значений идёт серией инструкций над типом
+ * (`ALTER TYPE … RENAME TO …_old`, `CREATE TYPE`, `DROP TYPE …_old`), и таблица
+ * названа только в соседней `ALTER TABLE` — поэтому ищем её по всему списку и
+ * по имени типа без суффикса `_old`.
+ */
 export function ownerOfStatement(sql: string, index: number, all: string[], ownerByTable: Map<string, string>): string {
   let table = statementTable(sql);
   if (!table) {
-    const type = sql.match(/^CREATE TYPE ((?:"[^"]+"\.)?"[^"]+")/)?.[1];
-    const user = type ? all.slice(index + 1).find((next) => next.includes(type)) : undefined;
+    const type = sql.match(/^(?:CREATE|ALTER|DROP) TYPE ((?:"[^"]+"\.)?"[^"]+")/)?.[1]?.replace(/_old"$/, '"');
+    const uses = (next: string) => !!type && next.includes(type) && statementTable(next) !== null;
+    const user = all.slice(index + 1).find(uses) ?? all.slice(0, index).reverse().find(uses);
     table = user ? statementTable(user) : null;
   }
   const owner = table ? ownerByTable.get(table) : undefined;

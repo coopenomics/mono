@@ -182,12 +182,12 @@ describe('EdubridgeEconomyService', () => {
     ];
     const assignments = [
       { teacher_username: 'teach', course_id: COURSE_ID, minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE },
-      { teacher_username: 'other', course_id: COURSE_ID, minutes_per_month: 240, status: EduAssignmentStatus.DRAFT },
+      { teacher_username: 'other', course_id: COURSE_ID, minutes_per_month: 240, status: EduAssignmentStatus.CLOSED },
     ];
     const { service } = make({ markup: 20, contracts, assignments });
     const economy = await service.courseEconomy('voskhod', COURSE_ID);
     expect(economy.plan.fee_month).toBe('9600.0000 RUB');
-    // Неподписанное назначение в факт не идёт: обязательства возникают с действующего приложения.
+    // Снятый допуск в факт не идёт: обязательства возникают по действующим назначениям.
     expect(economy.teachers).toHaveLength(1);
     expect(economy.actual_hours_per_month).toBe(8);
     expect(economy.actual_cost_month).toBe('12000.0000 RUB');

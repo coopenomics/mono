@@ -1,10 +1,9 @@
 /**
  * Общее для документов преподавателя по договору об участии в хозяйственной
- * деятельности (УХД) ЦПП «Образование»: приложение на курс (3007), заявление
- * (3008), протокол (3009), акт приёма-передачи (3010), акт передачи на
- * ответственное хранение (3012). Формы повторяют приложения к договору УХД
- * «Благороста» (1002, 1040–1042): каждый документ — приложение к договору,
- * называет его номер и дату, стороны подписываются с реквизитами.
+ * деятельности (УХД) ЦПП «Образование»: заявление (3008), протокол (3009),
+ * акт приёма-передачи (3010), акт передачи на ответственное хранение (3012).
+ * Формы повторяют приложения к договору УХД «Благороста» (1040–1042): каждый
+ * документ называет номер и дату договора.
  */
 
 /** Вид результата словами: в документ идёт название, а не служебное значение. */
@@ -25,23 +24,10 @@ export const EDUCATION_DOC_STYLE = `<style>.digital-document {padding: 20px;}.di
 /** Строки «Приложение № … к Договору …» в правом верхнем углу. */
 export const EDUCATION_ANNEX_HEAD_HTML = `<div style="text-align: right"><p style="margin: 0px !important">{% trans 'annex_number', rid_short_hash %}</p><p style="margin: 0px !important">{% trans 'annex_to_contract', contract_number %}</p></div>`
 
-/** Реквизиты и подписи сторон; `user` — имя переменной пайщика в модели. */
-export function educationRequisitesHtml(user: 'user' | 'common_user'): string {
-  return `<p><strong>{% trans 'society' %} / {{ vars.full_abbr }} «{{ vars.name }}» /:</strong></p><p style="margin: 0px !important">{% trans 'requisites_ids', coop.details.inn, coop.details.kpp, coop.details.ogrn %}</p><p style="margin: 0px !important">{% trans 'legal_address', coop.full_address %}</p><p style="margin: 0px !important">{% trans 'contact_phone', coop.phone %}</p><p style="margin: 0px !important">{% trans 'email', coop.email %}</p><p style="margin: 0px !important">{% trans 'bank_account', coop.defaultBankAccount.account_number, coop.defaultBankAccount.bank_name, coop.defaultBankAccount.details.bik, coop.defaultBankAccount.details.corr %}</p><p style="margin: 0px !important">{% trans 'chairman_of', vars.full_abbr_genitive, vars.name %}</p><p style="margin: 0px !important">{{ coop.chairman.last_name }} {{ coop.chairman.first_name }} {{ coop.chairman.middle_name }}</p><p>{% trans 'signed_electronically' %}</p><p><strong>{% trans 'member' %}:</strong></p><p style="margin: 0px !important">{{ ${user}.full_name_or_short_name }}</p><p style="margin: 0px !important">{% trans 'contact_phone', ${user}.phone %}</p><p style="margin: 0px !important">{% trans 'email', ${user}.email %}</p><p>{% trans 'signed_electronically' %}</p>`
-}
-
 export const educationContractDocTranslations = {
   annex_number: 'Приложение № {0}',
   annex_to_contract: 'к ДОГОВОРУ об участии в хозяйственной деятельности № {0}',
-  requisites_title: 'РЕКВИЗИТЫ И ПОДПИСИ СТОРОН',
-  society: 'Общество',
   member: 'Пайщик',
-  requisites_ids: 'ИНН {0}, КПП {1}, ОГРН {2}',
-  legal_address: 'Юр. адрес: {0}',
-  contact_phone: 'Контактный тел.: {0}',
-  email: 'Электронная почта: {0}',
-  bank_account: 'Р/с {0} в {1}, БИК {2}, Корр/счет: {3}',
-  chairman_of: 'Председатель Совета {0} «{1}»',
   chairman_label: 'Председатель Совета',
   signed_electronically: 'Подписано электронной подписью.',
   row_number: '№ п/п',

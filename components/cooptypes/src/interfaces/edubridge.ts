@@ -220,28 +220,6 @@ export interface ITermcontract {
   reason: string
 }
 
-export interface ISignannex {
-  coopname: IName
-  username: IName
-  course_id: IUint64
-  annex_hash: IChecksum256
-  annex: IDocument2
-}
-
-export interface IApprvannex {
-  coopname: IName
-  username: IName
-  annex_hash: IChecksum256
-  approved_document: IDocument2
-}
-
-export interface IDclineannex {
-  coopname: IName
-  username: IName
-  annex_hash: IChecksum256
-  reason: string
-}
-
 // ── Таблицы ──────────────────────────────────────────────────────────────
 
 /**
@@ -292,17 +270,4 @@ export interface IEduContract {
   status: IName
   created_at: ITimePointSec
   approved_at: ITimePointSec
-}
-
-/**
- * eduannexes (scope = coopname) — приложения к договору на курс в ожидании
- * подписи председателя; apprvannex / dclineannex стирают запись.
- */
-export interface IEduAnnex {
-  id: IUint64
-  username: IName
-  course_id: IUint64
-  contract_hash: IChecksum256
-  annex_hash: IChecksum256
-  created_at: ITimePointSec
 }

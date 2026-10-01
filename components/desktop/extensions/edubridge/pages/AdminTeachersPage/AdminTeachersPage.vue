@@ -255,6 +255,8 @@ async function onCreate(): Promise<void> {
     const created = await createAssignment({ ...form });
     assignments.value = [created, ...assignments.value];
     bumpCounters(1);
+    // Допуск действует сразу — действующих назначений тоже стало больше.
+    bumpActive(1);
     assignFormOpen.value = false;
     SuccessAlert(i18nT('edubridge.adminTeachersPage.assignment.created'));
   } catch (e) {

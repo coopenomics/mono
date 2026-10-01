@@ -13,7 +13,6 @@
 #include "../../domain/table_edubridge_subscriptions.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
 #include "../../domain/table_edubridge_contracts.hpp"
-#include "../../domain/table_edubridge_annexes.hpp"
 #include "../ledger2/ledger2.hpp"
 #include "../utils.hpp"
 
@@ -91,15 +90,6 @@ inline edu_contract get_active_contract_or_fail(eosio::name coopname, eosio::nam
   eosio::check(contract->status == ContractStatus::ACTIVE,
                "Договор участия в хозяйственной деятельности ещё не подписан председателем совета");
   return *contract;
-}
-
-/// Приложение к договору по annex_hash; бросает, если не найдено.
-inline edu_annexes_index::const_iterator
-get_annex_or_fail(edu_annexes_index& annexes, const checksum256& annex_hash) {
-  auto idx = annexes.get_index<"byhash"_n>();
-  auto it = idx.find(annex_hash);
-  eosio::check(it != idx.end(), "Приложение к договору с указанным hash не найдено");
-  return annexes.find(it->id);
 }
 
 /// Доступный остаток кооперативного кошелька программы; ноль, если кошелёк ещё не заведён.

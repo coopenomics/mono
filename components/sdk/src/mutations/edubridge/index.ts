@@ -32,8 +32,6 @@ export * as ConvertStatement from './convertStatement'
 export * as Subscribe from './subscribe'
 /** Подписать договор участия в хозяйственной деятельности */
 export * as SignContract from './signContract'
-/** Подписать приложение к договору по курсу */
-export * as SignAnnex from './signAnnex'
 /** Заявление о паевом взносе РИД для подписи */
 export * as RidStatement from './ridStatement'
 export * as RidStorageAct from './ridStorageAct'

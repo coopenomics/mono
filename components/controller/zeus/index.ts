@@ -6845,8 +6845,6 @@ export type ValueTypes = {
 	id: ValueTypes["ID"] | Variable<any, string>
 };
 	["EduAssignment"]: AliasType<{
-	/** Хеш подписанного приложения к договору */
-	annex_hash?:boolean | `@${string}`,
 	/** Описание курса */
 	course_description?:boolean | `@${string}`,
 	/** Курс */
@@ -6856,16 +6854,14 @@ export type ValueTypes = {
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
-	/** Причина отказа председателя в подписи приложения (если отказал) */
-	decline_reason?:boolean | `@${string}`,
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Нагрузка преподавателя по курсу, минут в месяц */
 	minutes_per_month?:boolean | `@${string}`,
-	/** Период сдачи — начало */
+	/** Период ведения курса — начало */
 	period_from?:boolean | `@${string}`,
-	/** Период сдачи — конец */
+	/** Период ведения курса — конец */
 	period_to?:boolean | `@${string}`,
 	/** Расписание */
 	schedule?:boolean | `@${string}`,
@@ -7720,12 +7716,6 @@ export type ValueTypes = {
 	/** Взнос */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Подписанный преподавателем акт приёма-передачи (3010) */
-	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
-};
-	["EduSignAnnexInput"]: {
-	/** Назначение */
-	assignment_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Подписанное приложение к договору (3007) */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
 	["EduSignContractInput"]: {
@@ -13719,7 +13709,6 @@ edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Vari
 edubridgeSetEconomySettings?: [{	data: ValueTypes["EduSetEconomySettingsInput"] | Variable<any, string>},ValueTypes["EduEconomySettings"]],
 edubridgeSetTeacherRate?: [{	data: ValueTypes["EduSetTeacherRateInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
-edubridgeSignAnnex?: [{	data: ValueTypes["EduSignAnnexInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeSignContract?: [{	data: ValueTypes["EduSignContractInput"] | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ValueTypes["EduSubmitContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -23873,8 +23862,6 @@ export type ResolverInputTypes = {
 	id: ResolverInputTypes["ID"]
 };
 	["EduAssignment"]: AliasType<{
-	/** Хеш подписанного приложения к договору */
-	annex_hash?:boolean | `@${string}`,
 	/** Описание курса */
 	course_description?:boolean | `@${string}`,
 	/** Курс */
@@ -23884,16 +23871,14 @@ export type ResolverInputTypes = {
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
 	created_at?:boolean | `@${string}`,
-	/** Причина отказа председателя в подписи приложения (если отказал) */
-	decline_reason?:boolean | `@${string}`,
 	/** Ожидаемый результат */
 	expected_result?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
 	/** Нагрузка преподавателя по курсу, минут в месяц */
 	minutes_per_month?:boolean | `@${string}`,
-	/** Период сдачи — начало */
+	/** Период ведения курса — начало */
 	period_from?:boolean | `@${string}`,
-	/** Период сдачи — конец */
+	/** Период ведения курса — конец */
 	period_to?:boolean | `@${string}`,
 	/** Расписание */
 	schedule?:boolean | `@${string}`,
@@ -24717,12 +24702,6 @@ export type ResolverInputTypes = {
 	/** Взнос */
 	contribution_id: ResolverInputTypes["ID"],
 	/** Подписанный преподавателем акт приёма-передачи (3010) */
-	document: ResolverInputTypes["SignedDigitalDocumentInput"]
-};
-	["EduSignAnnexInput"]: {
-	/** Назначение */
-	assignment_id: ResolverInputTypes["ID"],
-	/** Подписанное приложение к договору (3007) */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
 	["EduSignContractInput"]: {
@@ -30548,7 +30527,6 @@ edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"
 edubridgeSetEconomySettings?: [{	data: ResolverInputTypes["EduSetEconomySettingsInput"]},ResolverInputTypes["EduEconomySettings"]],
 edubridgeSetTeacherRate?: [{	data: ResolverInputTypes["EduSetTeacherRateInput"]},boolean | `@${string}`],
 edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInputTypes["EduContribution"]],
-edubridgeSignAnnex?: [{	data: ResolverInputTypes["EduSignAnnexInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeSignContract?: [{	data: ResolverInputTypes["EduSignContractInput"]},ResolverInputTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ResolverInputTypes["EduSubmitContributionInput"]},ResolverInputTypes["EduContribution"]],
@@ -40390,9 +40368,7 @@ export type ModelTypes = {
 	id: ModelTypes["ID"]
 };
 	["EduAssignment"]: {
-		/** Хеш подписанного приложения к договору */
-	annex_hash?: string | undefined | null,
-	/** Описание курса */
+		/** Описание курса */
 	course_description: string,
 	/** Курс */
 	course_id: ModelTypes["ID"],
@@ -40401,16 +40377,14 @@ export type ModelTypes = {
 	/** Название курса */
 	course_title: string,
 	created_at: ModelTypes["DateTime"],
-	/** Причина отказа председателя в подписи приложения (если отказал) */
-	decline_reason: string,
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: ModelTypes["ID"],
 	/** Нагрузка преподавателя по курсу, минут в месяц */
 	minutes_per_month: number,
-	/** Период сдачи — начало */
+	/** Период ведения курса — начало */
 	period_from: string,
-	/** Период сдачи — конец */
+	/** Период ведения курса — конец */
 	period_to: string,
 	/** Расписание */
 	schedule: string,
@@ -41189,12 +41163,6 @@ export type ModelTypes = {
 	/** Взнос */
 	contribution_id: ModelTypes["ID"],
 	/** Подписанный преподавателем акт приёма-передачи (3010) */
-	document: ModelTypes["SignedDigitalDocumentInput"]
-};
-	["EduSignAnnexInput"]: {
-	/** Назначение */
-	assignment_id: ModelTypes["ID"],
-	/** Подписанное приложение к договору (3007) */
 	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["EduSignContractInput"]: {
@@ -46922,11 +46890,11 @@ export type ModelTypes = {
 	edubridgeCancelEnrollment: ModelTypes["EduEnrollment"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
-	/** Закрыть назначение */
+	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
-	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
+	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
 	edubridgeCreateAssignment: ModelTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
@@ -46976,8 +46944,6 @@ export type ModelTypes = {
 	edubridgeSetTeacherRate: string,
 	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: ModelTypes["EduContribution"],
-	/** Подписать приложение к договору по курсу */
-	edubridgeSignAnnex: ModelTypes["EduAssignment"],
 	/** Подписать договор участия в хозяйственной деятельности (первая подпись — преподаватель) */
 	edubridgeSignContract: ModelTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
@@ -57360,8 +57326,6 @@ export type GraphQLTypes = {
 };
 	["EduAssignment"]: {
 	__typename: "EduAssignment",
-	/** Хеш подписанного приложения к договору */
-	annex_hash?: string | undefined | null,
 	/** Описание курса */
 	course_description: string,
 	/** Курс */
@@ -57371,16 +57335,14 @@ export type GraphQLTypes = {
 	/** Название курса */
 	course_title: string,
 	created_at: GraphQLTypes["DateTime"],
-	/** Причина отказа председателя в подписи приложения (если отказал) */
-	decline_reason: string,
 	/** Ожидаемый результат */
 	expected_result: string,
 	id: GraphQLTypes["ID"],
 	/** Нагрузка преподавателя по курсу, минут в месяц */
 	minutes_per_month: number,
-	/** Период сдачи — начало */
+	/** Период ведения курса — начало */
 	period_from: string,
-	/** Период сдачи — конец */
+	/** Период ведения курса — конец */
 	period_to: string,
 	/** Расписание */
 	schedule: string,
@@ -58234,12 +58196,6 @@ export type GraphQLTypes = {
 		/** Взнос */
 	contribution_id: GraphQLTypes["ID"],
 	/** Подписанный преподавателем акт приёма-передачи (3010) */
-	document: GraphQLTypes["SignedDigitalDocumentInput"]
-};
-	["EduSignAnnexInput"]: {
-		/** Назначение */
-	assignment_id: GraphQLTypes["ID"],
-	/** Подписанное приложение к договору (3007) */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["EduSignContractInput"]: {
@@ -64362,11 +64318,11 @@ export type GraphQLTypes = {
 	edubridgeCancelEnrollment: GraphQLTypes["EduEnrollment"],
 	/** Проверить площадку сейчас */
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
-	/** Закрыть назначение */
+	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
-	/** Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи */
+	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
 	edubridgeCreateAssignment: GraphQLTypes["EduAssignment"],
 	/** Добавить курс (черновик) */
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
@@ -64416,8 +64372,6 @@ export type GraphQLTypes = {
 	edubridgeSetTeacherRate: string,
 	/** Подписать акт приёма-передачи (первая подпись — преподаватель) */
 	edubridgeSignAct: GraphQLTypes["EduContribution"],
-	/** Подписать приложение к договору по курсу */
-	edubridgeSignAnnex: GraphQLTypes["EduAssignment"],
 	/** Подписать договор участия в хозяйственной деятельности (первая подпись — преподаватель) */
 	edubridgeSignContract: GraphQLTypes["EduTeacherContract"],
 	/** Подписать оферту ЦПП «Образование» со стола */
@@ -69633,10 +69587,7 @@ export enum EduAccessTaskStatus {
 /** Состояние назначения преподавателя */
 export enum EduAssignmentStatus {
 	ACTIVE = "ACTIVE",
-	CLOSED = "CLOSED",
-	DECLINED = "DECLINED",
-	DRAFT = "DRAFT",
-	PENDING_APPROVAL = "PENDING_APPROVAL"
+	CLOSED = "CLOSED"
 }
 /** Состояние подключения площадки */
 export enum EduConnectorHealth {
@@ -70748,7 +70699,6 @@ type ZEUS_VARIABLES = {
 	["EduSetEconomySettingsInput"]: ValueTypes["EduSetEconomySettingsInput"];
 	["EduSetTeacherRateInput"]: ValueTypes["EduSetTeacherRateInput"];
 	["EduSignActInput"]: ValueTypes["EduSignActInput"];
-	["EduSignAnnexInput"]: ValueTypes["EduSignAnnexInput"];
 	["EduSignContractInput"]: ValueTypes["EduSignContractInput"];
 	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
 	["EduSubmitContributionInput"]: ValueTypes["EduSubmitContributionInput"];

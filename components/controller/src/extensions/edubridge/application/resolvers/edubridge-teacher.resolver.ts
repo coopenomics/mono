@@ -10,7 +10,6 @@ import {
   EduContributionDTO,
   EduDeclineContributionInputDTO,
   EduSignActInputDTO,
-  EduSignAnnexInputDTO,
   EduSignContractInputDTO,
   EduHoldContributionInputDTO,
   EduSubmitContributionInputDTO,
@@ -69,16 +68,6 @@ export class EdubridgeTeacherResolver {
   async edubridgeMyAssignments(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduAssignmentDTO[]> {
     const rows = await this.teachers.listAssignments(coop(), m.username as string);
     return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course));
-  }
-
-  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeSignAnnex', description: 'Подписать приложение к договору по курсу' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAssignment', 'read:own')
-  async edubridgeSignAnnex(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSignAnnexInputDTO): Promise<EduAssignmentDTO> {
-    const a = await this.teachers.signAnnex(coop(), m.username as string, data.assignment_id, data.document);
-    // Курс — подписанного назначения, а не первого в списке преподавателя.
-    const rows = await this.teachers.listAssignments(coop(), m.username as string);
-    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }
 
   @Query(() => [EduContributionDTO], { name: 'edubridgeMyContributions', description: 'Мои взносы результатами работы' })
@@ -188,7 +177,7 @@ export class EdubridgeTeacherResolver {
     return rows.map(({ assignment, course }) => new EduAssignmentDTO(assignment, course));
   }
 
-  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCreateAssignment', description: 'Назначить преподавателю курс, расписание, ожидаемый результат и период сдачи' })
+  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCreateAssignment', description: 'Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduAssignment', 'manage')
   async edubridgeCreateAssignment(@Args('data') data: EduAssignmentInputDTO): Promise<EduAssignmentDTO> {
@@ -197,7 +186,7 @@ export class EdubridgeTeacherResolver {
     return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }
 
-  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCloseAssignment', description: 'Закрыть назначение' })
+  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeCloseAssignment', description: 'Снять допуск преподавателя к курсу' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   @RequireEduAccess('EduAssignment', 'manage')
   async edubridgeCloseAssignment(@Args('id', { type: () => ID }) id: string): Promise<EduAssignmentDTO> {

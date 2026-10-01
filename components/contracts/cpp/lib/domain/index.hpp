@@ -90,7 +90,6 @@
 #include "table_edubridge_expenses.hpp"
 #include "table_edubridge_rids.hpp"
 #include "table_edubridge_contracts.hpp"
-#include "table_edubridge_annexes.hpp"
 
 // apps (каталог приложений)
 #include "table_apps_packages.hpp"

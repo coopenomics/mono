@@ -34,7 +34,6 @@
     },
     "approvals": {
       "title": {
-        "apprvannex": "Приложение к договору на курс",
         "apprvcontr": "Договор участия в хозяйственной деятельности"
       }
     },
@@ -208,11 +207,7 @@
     "EDUBRIDGE_ACT_NOT_SIGNED_BY_TEACHER": "Акт не подписан преподавателем",
     "EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER": "Акт ещё не подписан преподавателем",
     "EDUBRIDGE_ACT_SIGNATURES_REQUIRED": "На акте должны быть подписи преподавателя и председателя",
-    "EDUBRIDGE_ANNEX_ALREADY_SIGNED": "Приложение по этому назначению уже подписано",
-    "EDUBRIDGE_ANNEX_NOT_SIGNED_BY_TEACHER": "Приложение не подписано преподавателем",
-    "EDUBRIDGE_ASSIGNMENT_COURSE_NOT_FOUND": "Курс назначения не найден",
-    "EDUBRIDGE_ASSIGNMENT_FOREIGN": "Назначение выдано другому преподавателю",
-    "EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE": "Назначение не активно — подпишите приложение к договору",
+    "EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE": "Допуск к курсу снят — отчитаться по занятию нельзя",
     "EDUBRIDGE_ASSIGNMENT_NOT_FOUND": "Назначение не найдено",
     "EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID": "Конец периода раньше начала",
     "EDUBRIDGE_CARRIER_NOT_SUPPORTED": "Носитель не поддерживается",
@@ -298,7 +293,7 @@
     "EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED": "Подписка уже отменена или закрыта",
     "EDUBRIDGE_SUBSCRIPTION_NOT_FOUND": "Подписка не найдена",
     "EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND": "У преподавателя нет договора участия в хозяйственной деятельности",
-    "EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS": "Преподаватель ведёт курсы — сначала закройте его назначения",
+    "EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS": "Преподаватель ведёт курсы — сначала снимите его допуски к курсам",
     "EDUBRIDGE_TEACHER_HAS_OPEN_CONTRIBUTIONS": "По занятиям преподавателя не закрыт расчёт — договор прекращается после него",
     "EDUBRIDGE_TEACHER_OFFER_REQUIRED": "Сначала подпишите оферту преподавателя по ЦПП «Образование»",
     "EDUBRIDGE_TEACHER_RATE_ALREADY_SET": "Ставка часа уже задана: её меняет администратор кооператива",

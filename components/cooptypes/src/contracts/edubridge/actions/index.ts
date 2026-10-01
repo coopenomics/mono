@@ -102,18 +102,3 @@ export * as Dclinecontr from './dclinecontr'
 
 /** Прекращение договора УХД — при выходе преподавателя либо по соглашению сторон. */
 export * as Termcontract from './termcontract'
-
-/**
- * Преподаватель подписывает приложение к договору на курс — первая подпись.
- */
-export * as Signannex from './signannex'
-
-/**
- * Председатель подписал приложение — коллбэк совета.
- */
-export * as Apprvannex from './apprvannex'
-
-/**
- * Председатель отказал в подписи приложения — коллбэк совета.
- */
-export * as Dclineannex from './dclineannex'

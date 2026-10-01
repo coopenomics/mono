@@ -153,13 +153,6 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     );
   }
 
-  async signAnnex(data: EdubridgeContract.Actions.Signannex.ISignannex): Promise<InnerTransactResult> {
-    await this.prepare(data.coopname);
-    return this.chain.transact(
-      this.action(EdubridgeContract.Actions.Signannex.actionName, { ...data, annex: this.chainDoc(data.annex) }, data.coopname)
-    );
-  }
-
   async declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Declinerid.actionName, data as unknown as Record<string, unknown>, data.coopname));

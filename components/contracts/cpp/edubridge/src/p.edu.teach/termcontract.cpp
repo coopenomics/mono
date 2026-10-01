@@ -11,8 +11,7 @@
  * Guards:
  *  - у преподавателя есть договор с указанным hash;
  *  - основание указано;
- *  - расчёт закрыт: нет материалов на ответственном хранении и приложений,
- *    ожидающих подписи председателя.
+ *  - расчёт закрыт: нет материалов на ответственном хранении.
  *
  * @ingroup public_edubridge_actions
  */
@@ -34,11 +33,6 @@ void edubridge::termcontract(eosio::name coopname,
   auto rids_by_user = rids.get_index<"byusername"_n>();
   eosio::check(rids_by_user.find(username.value) == rids_by_user.end(),
                "По материалам занятий преподавателя не закрыт расчёт — договор прекращается после него");
-
-  edu_annexes_index annexes(_edubridge, coopname.value);
-  auto annexes_by_user = annexes.get_index<"byusername"_n>();
-  eosio::check(annexes_by_user.find(username.value) == annexes_by_user.end(),
-               "Приложение к договору ожидает подписи председателя — сначала завершите его рассмотрение");
 
   contracts.erase(contracts.find(it->id));
 }

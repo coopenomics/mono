@@ -1,7 +1,11 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { EduAssignmentStatus } from '../../domain/enums';
 
-/** Назначение преподавателю: курс, расписание, ожидаемый результат, период сдачи. Приложение к ДУХД (док. 3007). */
+/**
+ * Допуск преподавателя к курсу: курс, расписание, ожидаемый результат, период.
+ * Рабочее назначение кооператива — документа и подписей не требует, условия
+ * участия преподавателя определяет договор УХД.
+ */
 @Entity({ name: 'edubridge_teacher_assignments' })
 @Index('IDX_edubridge_teacher_assignments_teacher', ['coopname', 'teacher_username'])
 export class EdubridgeTeacherAssignmentEntity {
@@ -29,10 +33,6 @@ export class EdubridgeTeacherAssignmentEntity {
   @Column({ type: 'date' })
   public period_to!: string;
 
-  /** Хеш подписанного приложения к ДУХД (док. 3007), lowercase; null — не подписано. */
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  public annex_hash!: string | null;
-
   /**
    * Нагрузка преподавателя по курсу, часов в месяц. Сумма нагрузок по ставкам
    * назначенных преподавателей — факт себестоимости против планового расчёта курса.
@@ -40,12 +40,8 @@ export class EdubridgeTeacherAssignmentEntity {
   @Column({ type: 'int', default: 0 })
   public minutes_per_month!: number;
 
-  @Column({ type: 'enum', enum: EduAssignmentStatus, default: EduAssignmentStatus.DRAFT })
+  @Column({ type: 'enum', enum: EduAssignmentStatus, default: EduAssignmentStatus.ACTIVE })
   public status!: EduAssignmentStatus;
-
-  /** Причина отказа председателя в подписи приложения; пусто, пока отказа не было. */
-  @Column({ type: 'text', default: '' })
-  public decline_reason!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;

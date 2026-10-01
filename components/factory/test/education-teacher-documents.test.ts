@@ -4,10 +4,10 @@ import { testDocumentGeneration } from './utils/testDocument'
 import { generator, mongoUri } from './utils'
 
 /**
- * Документы преподавателя по договору УХД ЦПП «Образование» — приложение на
- * курс (3007), заявление (3008), протокол (3009) и акт приёма-передачи (3010)
- * — оформлены приложениями к договору по формам «Благороста» (1002,
- * 1040–1042): называют номер и дату договора, вид результата — словами.
+ * Документы преподавателя по договору УХД ЦПП «Образование» — заявление
+ * (3008), протокол (3009) и акт приёма-передачи (3010) — оформлены
+ * приложениями к договору по формам «Благороста» (1040–1042): называют номер
+ * и дату договора, вид результата — словами.
  */
 const R = Cooperative.Registry
 const RID = '55c470039a8c53ce1b4b6e842fe8063ab3d5b85ba2ba8ab0ae6e30be3ad328b7'
@@ -22,7 +22,6 @@ async function text(data: Record<string, unknown>): Promise<string> {
   return plainText((await generator.generate({ ...BASE, ...data } as never)).html)
 }
 
-const ANNEX = { registry_id: R.EducationCourseAnnex.registry_id, contract_number: 'УХД-0007', course_title: 'Математика, 7 класс', schedule: 'вторник и четверг, 18:00', expected_result: 'ученик решает линейные уравнения', period_from: '01.10.2026', period_to: '31.12.2026' }
 const STATEMENT = { registry_id: R.EducationRidStatement.registry_id, rid_hash: RID, assignment_id: 12, amount: '1500.0000 RUB', rid_type: 'lesson_recording', links: ['https://cloud.example/lesson-3.mp4'] }
 const DECISION = { registry_id: R.EducationRidDecision.registry_id, decision_id: 1, rid_hash: RID, rid_type: 'lesson_recording', amount: '1500.0000 RUB' }
 const ACT = { registry_id: R.EducationRidAct.registry_id, rid_hash: RID, amount: '1500.0000 RUB', rid_type: 'lesson_recording', decision_id: 17, decision_date: '20.09.2026' }
@@ -38,20 +37,11 @@ describe('документы преподавателя по договору У
     }
   })
 
-  for (const doc of [ANNEX, STATEMENT, ACT]) {
+  for (const doc of [STATEMENT, ACT]) {
     it(`документ ${doc.registry_id} генерируется и воспроизводится с тем же хэшем`, async () => {
       await testDocumentGeneration({ ...BASE, ...doc } as never)
     })
   }
-
-  it('приложение на курс называет договор с датой и несёт реквизиты сторон', async () => {
-    const t = await text(ANNEX)
-    expect(t).toContain('к Договору об участии в хозяйственной деятельности № УХД-0007 от 15.09.2026')
-    expect(t).toContain('Математика, 7 класс')
-    expect(t).toContain('с 01.10.2026 по 31.12.2026')
-    expect(t).toContain('РЕКВИЗИТЫ И ПОДПИСИ СТОРОН')
-    expect(t).toMatch(/ИНН \d+, КПП \d+, ОГРН \d+/)
-  })
 
   it('заявление ссылается на договор, описывает Имущество и несёт заверение о праве собственности', async () => {
     const t = await text(STATEMENT)
@@ -81,8 +71,13 @@ describe('документы преподавателя по договору У
     expect(t).toContain('ПОЛУЧЕНО:')
   })
 
+  it('допуск к курсу документа не имеет — приложения на курс в реестре нет', () => {
+    expect((R as Record<string, unknown>).EducationCourseAnnex).toBeUndefined()
+    expect(Object.values(R).some((doc: any) => doc?.registry_id === 3007)).toBe(false)
+  })
+
   it('служебных значений и ссылки на ЦПП в документах преподавателя нет', async () => {
-    for (const doc of [ANNEX, STATEMENT, DECISION, ACT]) {
+    for (const doc of [STATEMENT, DECISION, ACT]) {
       const t = await text(doc)
       expect(t).not.toContain('lesson_recording')
       expect(t).not.toContain('Целевой Потребительской Программе')

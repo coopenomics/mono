@@ -47,7 +47,7 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
     const reasons: string[] = [];
 
     const assignments = (await this.teachers.listAssignments(coopname, { teacher: username })).filter(
-      (a) => a.status === EduAssignmentStatus.ACTIVE || a.status === EduAssignmentStatus.PENDING_APPROVAL
+      (a) => a.status === EduAssignmentStatus.ACTIVE
     );
     for (const assignment of assignments) {
       const course = await this.courses.findById(coopname, assignment.course_id);

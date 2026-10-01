@@ -48,7 +48,6 @@ import type {
 } from '../dto/edu-teacher.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import {
-  EDUBRIDGE_ANNEX_DECIDED_EVENT,
   EDUBRIDGE_CONTRACT_DECIDED_EVENT,
   EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT,
   EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT,
@@ -76,17 +75,20 @@ const MAX_LESSON_STRETCH = 2;
 const ALREADY_SUBMITTED = /уже подано/i;
 
 /**
- * Преподавательский контур: ДУХД → назначение с приложением → взнос РИД по
+ * Преподавательский контур: ДУХД → допуск к курсу (назначение) → взнос РИД по
  * заявлению → решение совета (платформенный проект свободного решения) →
  * акт приёма-передачи → `acceptrid` (проводка Дт 04 / Кт 80, право требования
  * в главном паевом кошельке; возврат — штатным механизмом платформы).
  *
- * Договор УХД и приложения к нему — двухподписные, как в «Благоросте»:
- * преподаватель подписывает первым (`signcontract` / `signannex`), контракт
- * ставит документ в очередь одобрений совета, председатель подписывает вторым
- * со стола «Запросы одобрений», и коллбэк совета (`apprvcontr` / `apprvannex`)
- * делает договор действующим или назначение активным — статусы здесь
- * переводит слушатель этих действий, а не сама мутация.
+ * Договор УХД — двухподписный, как в «Благоросте»: преподаватель подписывает
+ * первым (`signcontract`), контракт ставит документ в очередь одобрений
+ * совета, председатель подписывает вторым со стола «Запросы одобрений», и
+ * коллбэк совета (`apprvcontr`) делает договор действующим — статус здесь
+ * переводит слушатель этого действия, а не сама мутация.
+ *
+ * Допуск к курсу — рабочее назначение без документа: действует с момента,
+ * когда администратор поставил преподавателя на курс, и снимается, когда
+ * убрал. Список «Курс ведут» и действующие назначения — одно и то же.
  */
 @Injectable()
 export class EdubridgeTeacherService {
@@ -212,7 +214,7 @@ export class EdubridgeTeacherService {
     if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED');
 
     const openAssignments = (await this.teachers.listAssignments(coopname, { teacher })).filter(
-      (a) => a.status === EduAssignmentStatus.ACTIVE || a.status === EduAssignmentStatus.PENDING_APPROVAL
+      (a) => a.status === EduAssignmentStatus.ACTIVE
     );
     if (openAssignments.length) throw DomainError.badRequest('EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS');
     const openContributions = await this.teachers.listContributions(coopname, { teacher, statuses: OPEN_CONTRIBUTIONS });
@@ -291,9 +293,15 @@ export class EdubridgeTeacherService {
       period_to: input.period_to,
       // Нагрузка по умолчанию — всё расписание курса: один преподаватель ведёт его целиком.
       minutes_per_month: input.minutes_per_month ?? course.lessons_per_month * course.lesson_minutes,
-      status: EduAssignmentStatus.DRAFT,
+      status: EduAssignmentStatus.ACTIVE,
     });
-    return this.teachers.saveAssignment(entity);
+    const saved = await this.teachers.saveAssignment(entity);
+    // Список «Курс ведут» и допуски — одно и то же: допущенный стоит в курсе.
+    if (!(course.teacher_usernames ?? []).includes(saved.teacher_username)) {
+      course.teacher_usernames = [...(course.teacher_usernames ?? []), saved.teacher_username];
+      await this.courses.save(course);
+    }
+    return saved;
   }
 
   /**
@@ -309,11 +317,9 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Черновики назначений по списку «Курс ведут». Преподаватель, добавленный в
-   * курс, получает черновик назначения — приложение к договору, которое он
-   * видит на своём столе и подписывает; убранный из курса — его неподписанный
-   * черновик закрывается. Подписанные и действующие назначения не трогаются:
-   * их закрывает администратор явно. Идемпотентно.
+   * Допуски по списку «Курс ведут». Преподаватель, добавленный в курс, сразу
+   * получает действующее назначение и видит курс на своём столе; у убранного
+   * из курса допуск снимается. Идемпотентно.
    */
   async syncCourseAssignments(coopname: string, course: EdubridgeCourseEntity): Promise<void> {
     const listed = new Set(course.teacher_usernames ?? []);
@@ -329,18 +335,18 @@ export class EdubridgeTeacherService {
         period_from: period.from,
         period_to: period.to,
       } as EduAssignmentInputDTO);
-      this.logger.info(`Черновик назначения: ${teacher} → курс «${course.title}»`);
+      this.logger.info(`Допуск к курсу: ${teacher} → «${course.title}»`);
     }
     for (const a of forCourse) {
-      const unsigned = a.status === EduAssignmentStatus.DRAFT || a.status === EduAssignmentStatus.DECLINED;
-      if (!listed.has(a.teacher_username) && unsigned) {
+      if (!listed.has(a.teacher_username) && a.status === EduAssignmentStatus.ACTIVE) {
         a.status = EduAssignmentStatus.CLOSED;
         await this.teachers.saveAssignment(a);
+        this.logger.info(`Допуск снят: ${a.teacher_username} → «${course.title}»`);
       }
     }
   }
 
-  /** Черновики по всем курсам — при запуске: курсы, заполненные до появления связи. */
+  /** Допуски по всем курсам — при запуске: курсы, заполненные до появления связи. */
   async syncAllCourseAssignments(coopname: string): Promise<void> {
     for (const course of await this.courses.listAll(coopname)) {
       try {
@@ -355,62 +361,15 @@ export class EdubridgeTeacherService {
     const a = await this.teachers.findAssignment(coopname, id);
     if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
     a.status = EduAssignmentStatus.CLOSED;
-    return this.teachers.saveAssignment(a);
-  }
-
-  /**
-   * Первая подпись приложения — преподавателя. В цепь уходит `signannex`,
-   * назначение ждёт подписи председателя; активным станет по коллбэку совета
-   * (`onAnnexApproved`). Отклонённое приложение подписывается заново.
-   */
-  async signAnnex(coopname: string, teacher: string, assignmentId: string, document: ISignedDocument): Promise<EdubridgeTeacherAssignmentEntity> {
-    await this.requireContract(coopname, teacher);
-    const a = await this.teachers.findAssignment(coopname, assignmentId);
-    if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
-    if (a.teacher_username !== teacher) throw DomainError.forbidden('EDUBRIDGE_ASSIGNMENT_FOREIGN');
-    if (a.status !== EduAssignmentStatus.DRAFT && a.status !== EduAssignmentStatus.DECLINED) {
-      throw DomainError.badRequest('EDUBRIDGE_ANNEX_ALREADY_SIGNED');
-    }
-    if (!document.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_ANNEX_NOT_SIGNED_BY_TEACHER');
+    const saved = await this.teachers.saveAssignment(a);
+    // Снятый допуск убирает преподавателя и из списка «Курс ведут» — иначе
+    // сверка по курсу выдала бы назначение заново.
     const course = await this.courses.findById(coopname, a.course_id);
-    if (!course) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_COURSE_NOT_FOUND');
-
-    await this.chain.signAnnex({
-      coopname,
-      username: teacher,
-      course_id: Number(course.chain_ref),
-      annex_hash: document.hash,
-      annex: document as never,
-    });
-    this.logger.info(`[EDU.TEACH] ${teacher}: приложение ${document.hash} по курсу «${course.title}» подписано, ждёт подписи председателя`);
-
-    a.annex_hash = document.hash.toLowerCase();
-    a.status = EduAssignmentStatus.PENDING_APPROVAL;
-    a.decline_reason = '';
-    return this.teachers.saveAssignment(a);
-  }
-
-  /** Коллбэк совета `apprvannex`: председатель подписал приложение — назначение действует. */
-  async onAnnexApproved(coopname: string, teacher: string, annexHash: string): Promise<void> {
-    const a = await this.teachers.findAssignmentByAnnexHash(coopname, annexHash);
-    if (!a || a.teacher_username !== teacher) {
-      this.logger.warn(`[EDU.TEACH] apprvannex для неизвестного приложения ${annexHash} (${teacher})`);
-      return;
+    if (course && (course.teacher_usernames ?? []).includes(a.teacher_username)) {
+      course.teacher_usernames = (course.teacher_usernames ?? []).filter((u) => u !== a.teacher_username);
+      await this.courses.save(course);
     }
-    a.status = EduAssignmentStatus.ACTIVE;
-    a.decline_reason = '';
-    await this.teachers.saveAssignment(a);
-    this.events.emit(EDUBRIDGE_ANNEX_DECIDED_EVENT, { coopname, teacher_username: teacher, assignment_id: a.id, approved: true });
-  }
-
-  /** Коллбэк совета `dclineannex`: председатель отказал — назначение отклонено. */
-  async onAnnexDeclined(coopname: string, teacher: string, annexHash: string, reason: string): Promise<void> {
-    const a = await this.teachers.findAssignmentByAnnexHash(coopname, annexHash);
-    if (!a || a.teacher_username !== teacher) return;
-    a.status = EduAssignmentStatus.DECLINED;
-    a.decline_reason = reason;
-    await this.teachers.saveAssignment(a);
-    this.events.emit(EDUBRIDGE_ANNEX_DECIDED_EVENT, { coopname, teacher_username: teacher, assignment_id: a.id, approved: false, reason });
+    return saved;
   }
 
   // ── Взносы РИД ─────────────────────────────────────────────────────────────

@@ -27,6 +27,5 @@ export interface IEduLearnerRecipientChangedPayload {
   previous_recipient_value: string;
   trigger: string;
 }
-/** Председатель подписал или отклонил договор УХД / приложение (коллбэк контракта совета). */
+/** Председатель подписал или отклонил договор УХД (коллбэк контракта совета). */
 export const EDUBRIDGE_CONTRACT_DECIDED_EVENT = 'edubridge.contract.decided';
-export const EDUBRIDGE_ANNEX_DECIDED_EVENT = 'edubridge.annex.decided';

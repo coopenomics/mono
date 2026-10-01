@@ -132,7 +132,7 @@ export class EdubridgeCourseService {
       if (image) await this.images.deleteImage(image.bucket_key);
       throw e;
     }
-    // Преподаватели курса получают черновики назначений — им есть что подписать.
+    // Преподаватели курса сразу получают допуск к нему.
     await this.teacherService.syncCourseAssignments(coopname, saved);
     // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.
     return (await this.courses.findById(coopname, saved.id)) ?? saved;
@@ -167,7 +167,7 @@ export class EdubridgeCourseService {
     const saved = await this.courses.save(course);
     // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
     if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
-    // Добавленные преподаватели получают черновики назначений, убранные — лишаются неподписанных.
+    // Добавленные преподаватели получают допуск к курсу, у убранных он снимается.
     await this.teacherService.syncCourseAssignments(coopname, saved);
     return (await this.courses.findById(coopname, saved.id)) ?? saved;
   }
@@ -223,7 +223,7 @@ export class EdubridgeCourseService {
   /**
    * Преподавать могут только пайщики с подписанным договором УХД, и их ставку
    * должны покрывать взносы учеников: преподаватель курса сразу получает
-   * черновик назначения, а назначение с непокрытой ставкой не создаётся —
+   * допуск к нему, а назначение с непокрытой ставкой не создаётся —
    * отказываем до сохранения курса, а не после.
    */
   private async validateTeachers(coopname: string, teachers: string[], plannedRate: string | undefined): Promise<void> {

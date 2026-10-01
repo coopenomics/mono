@@ -16,10 +16,8 @@ const rawAssignmentSelector = {
   expected_result: true,
   period_from: true,
   period_to: true,
-  annex_hash: true,
   minutes_per_month: true,
   status: true,
-  decline_reason: true,
   created_at: true,
 }
 const _validateAssignment: MakeAllFieldsRequired<ValueTypes['EduAssignment']> = rawAssignmentSelector

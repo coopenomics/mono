@@ -32,7 +32,7 @@ function make(contracts: string[] = ['teach']) {
   const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
   // Взносы считает экономика программы: курс сам сумму не назначает.
   const economy = { feeForCourse: jest.fn(async () => ({ fee_month: '9600.0000 RUB' })) } as any;
-  // Преподаватели курса получают черновики назначений — здесь только факт вызова.
+  // Преподаватели курса получают допуск к нему — здесь только факт вызова.
   const teacherService = { syncCourseAssignments: jest.fn(async () => undefined) } as any;
   // Раздел и уровень проверяет справочник — здесь только факт проверки.
   const sections = { assertForCourse: jest.fn(async () => undefined) } as any;
@@ -133,7 +133,7 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'ex_teach'] })).rejects.toThrow(/ex_teach/);
   });
 
-  it('преподаватели курса получают черновики назначений — сверка после сохранения', async () => {
+  it('преподаватели курса получают допуск к нему — сверка после сохранения', async () => {
     const { service, teacherService, courses } = make(['teach']);
     const course = await service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] });
     expect(courses.save).toHaveBeenCalled();

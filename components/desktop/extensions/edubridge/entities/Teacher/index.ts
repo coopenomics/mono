@@ -37,10 +37,7 @@ export const CONTRIBUTION_STATUS_LABELS: Record<string, { label: string; variant
 };
 
 export const ASSIGNMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
-  [Zeus.EduAssignmentStatus.DRAFT]: { label: t('edubridge.assignment.status.DRAFT'), variant: 'warn' },
-  [Zeus.EduAssignmentStatus.PENDING_APPROVAL]: { label: t('edubridge.assignment.status.PENDING_APPROVAL'), variant: 'info' },
   [Zeus.EduAssignmentStatus.ACTIVE]: { label: t('edubridge.assignment.status.ACTIVE'), variant: 'pos' },
-  [Zeus.EduAssignmentStatus.DECLINED]: { label: t('edubridge.assignment.status.DECLINED'), variant: 'neg' },
   [Zeus.EduAssignmentStatus.CLOSED]: { label: t('edubridge.assignment.status.CLOSED'), variant: 'neutral' },
 };
 
@@ -134,39 +131,6 @@ export async function signContract(hourly_rate: string, prepared?: IContractDraf
     data: { document: document.signedDocument, contract_number, hourly_rate },
   });
 }
-
-/**
- * Приложение к договору по курсу (3007) — экземпляр для чтения. Подписывается
- * ровно он (`signAnnex`), а не собранный заново.
- */
-export async function buildAnnexDocument(a: IAssignment, contractNumber: string): Promise<DigitalDocument> {
-  const { username, coopname } = who();
-  const doc = new DigitalDocument();
-  await doc.generate({
-    registry_id: Cooperative.Registry.EducationCourseAnnex.registry_id,
-    coopname,
-    username,
-    contract_number: contractNumber,
-    course_title: a.course_title,
-    schedule: a.schedule,
-    expected_result: a.expected_result,
-    period_from: a.period_from,
-    period_to: a.period_to,
-  });
-  return doc;
-}
-
-/** Подписать прочитанное приложение и отправить: назначение уходит на подпись председателю. */
-export async function signAnnex(a: IAssignment, doc: DigitalDocument): Promise<IAssignment> {
-  const { username } = who();
-  await doc.sign(username);
-  if (!doc.signedDocument) throw new Error(t('edubridge.error.annexSignFailed'));
-  return m<IAssignment>(Mutations.Edubridge.SignAnnex.mutation, Mutations.Edubridge.SignAnnex.name, { data: { assignment_id: a.id, document: doc.signedDocument } });
-}
-
-/** Назначение ждёт подписи преподавателя: новое либо отклонённое председателем. */
-export const awaitsTeacherSignature = (a: IAssignment): boolean =>
-  a.status === Zeus.EduAssignmentStatus.DRAFT || a.status === Zeus.EduAssignmentStatus.DECLINED;
 
 /**
  * Передача материалов занятия кооперативу: акт ответственного хранения (3012)

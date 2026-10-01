@@ -95,7 +95,6 @@ import * as EducationProgramTemplate from './3000.EducationProgramTemplate'
 import * as EducationParentOffer from './3002.EducationParentOffer'
 import * as EducationTeacherOffer from './3004.EducationTeacherOffer'
 import * as EducationParticipationContract from './3006.EducationParticipationContract'
-import * as EducationCourseAnnex from './3007.EducationCourseAnnex'
 import * as EducationRidStatement from './3008.EducationRidStatement'
 import * as EducationRidDecision from './3009.EducationRidDecision'
 import * as EducationRidAct from './3010.EducationRidAct'
@@ -186,7 +185,6 @@ export const Registry = {
   3002: EducationParentOffer,
   3004: EducationTeacherOffer,
   3006: EducationParticipationContract,
-  3007: EducationCourseAnnex,
   3008: EducationRidStatement,
   3009: EducationRidDecision,
   3010: EducationRidAct,

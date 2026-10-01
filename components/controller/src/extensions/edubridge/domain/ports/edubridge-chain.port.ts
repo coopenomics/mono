@@ -55,8 +55,6 @@ export interface EdubridgeChainPort {
   signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult>;
   /** Прекращение договора УХД — выход преподавателя из кооператива либо соглашение сторон. */
   terminateContract(data: EdubridgeContract.Actions.Termcontract.ITermcontract): Promise<InnerTransactResult>;
-  /** Приложение к договору на курс (первая подпись) — уходит председателю на одобрение. */
-  signAnnex(data: EdubridgeContract.Actions.Signannex.ISignannex): Promise<InnerTransactResult>;
   /** Расход программы: средства фонда уходят в пул расходов, записка — в шасси. */
   createExpense(data: EdubridgeContract.Actions.CreateExp.ICreateexp): Promise<InnerTransactResult>;
 }

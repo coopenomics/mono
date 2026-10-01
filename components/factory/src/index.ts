@@ -250,7 +250,6 @@ export class Generator implements IGenerator {
       [Actions.EducationParentOffer.Template.registry_id]: new Actions.EducationParentOffer.Factory(this.storage), // 3002
       [Actions.EducationTeacherOffer.Template.registry_id]: new Actions.EducationTeacherOffer.Factory(this.storage), // 3004
       [Actions.EducationParticipationContract.Template.registry_id]: new Actions.EducationParticipationContract.Factory(this.storage), // 3006
-      [Actions.EducationCourseAnnex.Template.registry_id]: new Actions.EducationCourseAnnex.Factory(this.storage), // 3007
       [Actions.EducationRidStatement.Template.registry_id]: new Actions.EducationRidStatement.Factory(this.storage), // 3008
       [Actions.EducationRidDecision.Template.registry_id]: new Actions.EducationRidDecision.Factory(this.storage), // 3009
       [Actions.EducationRidAct.Template.registry_id]: new Actions.EducationRidAct.Factory(this.storage), // 3010 — двухподписный акт

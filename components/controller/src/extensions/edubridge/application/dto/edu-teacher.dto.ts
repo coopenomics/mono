@@ -72,12 +72,10 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Учебная программа курса' }) course_syllabus!: string;
   @Field(() => String, { description: 'Расписание' }) schedule!: string;
   @Field(() => String, { description: 'Ожидаемый результат' }) expected_result!: string;
-  @Field(() => String, { description: 'Период сдачи — начало' }) period_from!: string;
-  @Field(() => String, { description: 'Период сдачи — конец' }) period_to!: string;
-  @Field(() => String, { nullable: true, description: 'Хеш подписанного приложения к договору' }) annex_hash!: string | null;
+  @Field(() => String, { description: 'Период ведения курса — начало' }) period_from!: string;
+  @Field(() => String, { description: 'Период ведения курса — конец' }) period_to!: string;
   @Field(() => Int, { description: 'Нагрузка преподавателя по курсу, минут в месяц' }) minutes_per_month!: number;
   @Field(() => EduAssignmentStatus, { description: 'Состояние назначения' }) status!: EduAssignmentStatus;
-  @Field(() => String, { description: 'Причина отказа председателя в подписи приложения (если отказал)' }) decline_reason!: string;
   @Field(() => Date) created_at!: Date;
 
   /** Курс назначения: преподаватель читает его программу, не переходя на стол ученика. */
@@ -92,11 +90,8 @@ export class EduAssignmentDTO {
     this.expected_result = e.expected_result;
     this.period_from = e.period_from;
     this.period_to = e.period_to;
-    this.annex_hash = e.annex_hash;
     this.minutes_per_month = e.minutes_per_month;
     this.status = e.status;
-    // Поле обязательное в схеме: без него любой запрос назначений падал целиком.
-    this.decline_reason = e.decline_reason ?? '';
     this.created_at = e.created_at;
   }
 }
@@ -111,13 +106,6 @@ export class EduAssignmentInputDTO {
   @Field(() => String, { description: 'Период сдачи — конец (YYYY-MM-DD)' }) @IsDateString() period_to!: string;
   @Field(() => Int, { nullable: true, description: 'Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса' })
   @IsOptional() @IsInt() @Min(0) @Max(20_000) minutes_per_month?: number;
-}
-
-@InputType('EduSignAnnexInput')
-export class EduSignAnnexInputDTO {
-  @Field(() => ID, { description: 'Назначение' }) @IsUUID() assignment_id!: string;
-  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное приложение к договору (3007)' })
-  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
 }
 
 @InputType('EduSignContractInput')

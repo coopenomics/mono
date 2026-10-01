@@ -92,11 +92,9 @@ namespace Names {
     // инициирование (createexp) и этот коллбэк завершения — по нему
     // неизрасходованный остаток возвращается в фонд программы.
     constexpr eosio::name ON_EDU_EXPENSE_DONE = "onexpdone"_n;
-    // Коллбэки одобрений председателя: договор УХД преподавателя и приложение к нему на курс
+    // Коллбэки одобрений председателя: договор УХД преподавателя
     constexpr eosio::name APPROVE_CONTRACT = "apprvcontr"_n;
     constexpr eosio::name DECLINE_CONTRACT = "dclinecontr"_n;
-    constexpr eosio::name APPROVE_ANNEX    = "apprvannex"_n;
-    constexpr eosio::name DECLINE_ANNEX    = "dclineannex"_n;
   }
 
   namespace External {
@@ -157,6 +155,5 @@ namespace Names {
 
   namespace Edubridge {
     constexpr eosio::name SIGN_CONTRACT = "signcontract"_n; // акцепт договора УХД преподавателя
-    constexpr eosio::name SIGN_ANNEX    = "signannex"_n;    // акцепт приложения к договору на курс
   }
 }

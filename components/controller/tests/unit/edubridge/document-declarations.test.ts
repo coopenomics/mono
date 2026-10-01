@@ -27,7 +27,6 @@ describe('Документы ЦПП «Образование» в реестре
       R.EducationParentOffer.registry_id,
       R.EducationTeacherOffer.registry_id,
       R.EducationParticipationContract.registry_id,
-      R.EducationCourseAnnex.registry_id,
       R.EducationRidStatement.registry_id,
       R.EducationRidDecision.registry_id,
       R.EducationRidAct.registry_id,

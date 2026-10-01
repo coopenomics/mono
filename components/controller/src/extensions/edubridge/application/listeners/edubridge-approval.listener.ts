@@ -11,7 +11,7 @@ const SOVIET = SovietContract.contractName.production;
 /**
  * Вторая подпись председателя приходит не мутацией, а действием цепи:
  * `soviet::confirmapprv` / `declineapprv` вызывают коллбэк в `edubridge`, и
- * только по нему договор УХД становится действующим, а назначение — активным.
+ * только по нему договор УХД становится действующим.
  * Так же слушает свои коллбэки «Благорост» (`capital::apprvappndx`).
  */
 @Injectable()
@@ -35,20 +35,6 @@ export class EdubridgeApprovalListener {
     const d = action.data as EdubridgeContract.Actions.Dclinecontr.IDclinecontr;
     if (!d?.coopname || !d?.username || !d?.contract_hash) return;
     await this.teachers.onContractDeclined(String(d.coopname), String(d.username), String(d.contract_hash), String(d.reason ?? ''));
-  }
-
-  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.Apprvannex.actionName}`)
-  async onAnnexApproved(action: InnerChainActionRecord): Promise<void> {
-    const d = action.data as EdubridgeContract.Actions.Apprvannex.IApprvannex;
-    if (!d?.coopname || !d?.username || !d?.annex_hash) return;
-    await this.teachers.onAnnexApproved(String(d.coopname), String(d.username), String(d.annex_hash));
-  }
-
-  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.Dclineannex.actionName}`)
-  async onAnnexDeclined(action: InnerChainActionRecord): Promise<void> {
-    const d = action.data as EdubridgeContract.Actions.Dclineannex.IDclineannex;
-    if (!d?.coopname || !d?.username || !d?.annex_hash) return;
-    await this.teachers.onAnnexDeclined(String(d.coopname), String(d.username), String(d.annex_hash), String(d.reason ?? ''));
   }
 
   /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */

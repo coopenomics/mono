@@ -86,8 +86,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     // переносим в справочник: курсы получают ссылки. Идемпотентно.
     const migrated = await this.sections.migrateLegacyCourses(platformSettings().coopname);
     if (migrated) this.logger.info(`[EDU.SECTIONS] курсов перенесено в справочник разделов и уровней: ${migrated}`);
-    // Курсы, где преподаватели указаны до появления черновиков назначений, —
-    // досоздаём черновики, чтобы преподавателю было что подписать.
+    // Список «Курс ведут» и допуски — одно и то же: сводим их при запуске,
+    // чтобы у каждого преподавателя курса был действующий допуск.
     await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);
     this.logger.info('edubridge-extension готов');
   }

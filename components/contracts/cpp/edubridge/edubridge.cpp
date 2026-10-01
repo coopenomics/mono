@@ -27,11 +27,8 @@
 #include "src/p.edu.rid/declinerid.cpp"
 #include "src/p.edu.rid/recallrid.cpp"
 
-// ── p.edu.teach (7 actions) ──── договор УХД и приложения через одобрение ──
+// ── p.edu.teach (4 actions) ──── договор УХД через одобрение ──
 #include "src/p.edu.teach/signcontract.cpp"
 #include "src/p.edu.teach/apprvcontr.cpp"
 #include "src/p.edu.teach/dclinecontr.cpp"
-#include "src/p.edu.teach/signannex.cpp"
-#include "src/p.edu.teach/apprvannex.cpp"
-#include "src/p.edu.teach/dclineannex.cpp"
 #include "src/p.edu.teach/termcontract.cpp"
