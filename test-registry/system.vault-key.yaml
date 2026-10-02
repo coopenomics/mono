@@ -1,0 +1,61 @@
+feature: system.vault-key
+title: Серверное хранилище ключа — сохранение ключа аккаунта
+
+# Узел подписывает транзакции ключом, который лежит у него зашифрованным.
+# Сохранить ключ можно только свой: сервер сверяет его с действующим ключом
+# аккаунта в цепи. Чужой или испорченный ключ хранилище не принимает.
+#
+# Заведено 02.10.2026 (C28-85): запись в таблицу vaults не трогал ни один
+# сценарий внешнего слоя — ключи стенда кладёт установка кооператива до начала
+# сценариев (карта готовности к уходу с TypeORM, C28-81).
+sources:
+  backend:
+    - components/controller/src/application/system/interactors/wif.interactor.ts
+    - components/controller/src/domain/vault/**
+    - components/controller/src/infrastructure/database/typeorm/entities/vault.entity.ts
+    - components/controller/src/infrastructure/database/typeorm/repositories/vault.typeorm-repository.ts
+
+cases:
+  - id: sys.vault.happy.01
+    level: backend
+    kind: happy
+    scenario: владелец аккаунта сохраняет свой действующий ключ; сохраняет его повторно
+    expect: ключ принят оба раза; вход тем же ключом после сохранения проходит
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.01
+    level: backend
+    kind: side
+    scenario: для аккаунта присылают ключ другого аккаунта
+    expect: отказ AUTH_INVALID_PRIVATE_KEY
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.02
+    level: backend
+    kind: side
+    scenario: вместо ключа прислана строка, которая как ключ не разбирается
+    expect: отказ ввода AUTH_INVALID_PRIVATE_KEY, а не сбой сервера
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.03
+    level: backend
+    kind: side
+    scenario: для аккаунта кооператива и аккаунта председателя присылают чужой ключ
+    expect: отказ AUTH_INVALID_PRIVATE_KEY — ключ, которым узел подписывает, не подменяется
+    test: components/api-tests/src/system/vault-key.test.ts
+    status: written
+
+  - id: sys.vault.side.04
+    level: backend
+    kind: side
+    scenario: ключ на сервере сохраняет рядовой пайщик — без входа, только знанием своего ключа
+    expect: >
+      не решено. Сейчас мутация открыта без входа и принимает ключ любого
+      аккаунта цепи: пайщик может положить свой личный ключ в хранилище узла,
+      хотя узел подписывает только ключом кооператива
+    test: ~
+    status: missing
+    decision_needed: true

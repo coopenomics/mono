@@ -138,4 +138,14 @@ describe('Благорост — предел возврата средств п
     const after = (await gql<any>(chairman, PROJECT, { d: { hash: component } })).capitalProject.fact
     expect(amount(after.invest_pool)).toBeCloseTo(investPool, 4)
   })
+
+  // Находка 59 (C28-85): зеркало ссуд не пишется вовсе — сумма из цепи («5033.0000 RUB») не
+  // ложится в числовую колонку, вставка падает. Случай выключен до починки.
+  it.skip(caseName('cap.debt.happy.01', 'ссуды участников компонента видны в списке ссуд'), async () => {
+    const d = await gql<any>(chairman, 'query($f:DebtFilter,$o:PaginationInput){ capitalDebts(filter:$f, options:$o){ totalCount items{ debt_hash username project_hash present } } }',
+      { f: { projectHash: component }, o: { page: 1, limit: 20 } })
+    expect(d.capitalDebts.totalCount).toBe(2)
+    expect(d.capitalDebts.items.map((i: any) => i.username).sort()).toEqual([minor.account, major.account].sort())
+    expect(d.capitalDebts.items.every((i: any) => i.project_hash === component && i.present)).toBe(true)
+  })
 })

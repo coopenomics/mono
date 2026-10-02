@@ -279,6 +279,13 @@ describe('Стол заказов: остаток кооператива упа�
     expect(after.quantity_available).toBe(BOXES_LEFT - 1 + BOXES_LEFT)
     expect(after.quantity_blocked, 'заблокированное повторной публикацией не сброшено').toBe(1)
 
+    // mkt.stock.side.10: коробок свободно меньше, чем просят, — отказ до счётчиков и цепи.
+    await expect(orderFromStock({ operator, member: buyer, offerId: coopOfferId, quantity: after.quantity_available + 1, packageId: pkg.id }),
+      'заказ коробок сверх свободных отклонён').rejects.toThrow()
+    const untouched = coopPackage(await coopOffer(coopOfferId))
+    expect(untouched.quantity_available).toBe(after.quantity_available)
+    expect(untouched.quantity_blocked).toBe(1)
+
     // Заказ из остатка доводится до выдачи: стенд остаётся без висящих саг.
     await completeIssuance({ operator, member: buyer, orderId: topup.orderId })
   })

@@ -16,6 +16,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
+import { ensureCapitalInitialized, fundProgramPool } from '../capital/cap-metrics.helpers'
 import {
   CREATE_PROPOSAL,
   PROGRAM_EXPENSE_POOL,
@@ -427,4 +428,47 @@ describe('expenses: служебная записка на расход', () => 
     expect(err?.message).toContain('REPORT_SUBMITTED')
     expect((await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal.status).toBe('AUTHORIZED')
   })
+
+  // ── Оплата, отчёт, закрытие ──────────────────────────────────────────────
+
+  it(caseName('exp.prop.happy.04', 'председатель оплачивает строки, держатель аванса отчитывается, совет закрывает записку'), async () => {
+    // Пул расходов программы пополняется из средств программы «Благорост».
+    await ensureCapitalInitialized()
+    await fundProgramPool(freshMember({ prefix: 'expinv' }), 5_000)
+    await gql(chairman, 'mutation($d:CapitalTopupProgramExpenseInput!){ capitalTopupProgramExpensePool(data:$d){ __typename } }',
+      { d: { coopname: COOP, amount: '3000.0000 RUB' } })
+
+    const state = async () => (await gql<any>(chairman, GET, { h: draft.proposal_hash })).expenseProposal
+    const itemStatus = (p: any, hash: string) => p.items.find((i: any) => i.item_hash === hash).status
+
+    // Прямая оплата организации: подотчёта нет, строка сразу отчитана.
+    await gql(chairman, PAY, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: orgItem, actual_amount: '1500.0000 RUB' } })
+    let p = await state()
+    expect(p.status).toBe('PARTIALLY_PAID')
+    expect(itemStatus(p, orgItem)).toBe('REPORTED')
+    expect(itemStatus(p, memberItem)).toBe('APPROVED')
+
+    // Аванс пайщику: строка оплачена и ждёт отчёта держателя.
+    await gql(chairman, PAY, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem, actual_amount: '700.0000 RUB' } })
+    p = await state()
+    expect(p.status).toBe('PARTIALLY_PAID')
+    expect(itemStatus(p, memberItem)).toBe('PAID')
+
+    // Повторная оплата уже оплаченной строки отвергается.
+    expect(await gqlError(chairman, PAY, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: orgItem, actual_amount: '1500.0000 RUB' } })).not.toBeNull()
+
+    // Держатель аванса отчитывается на всю выданную сумму.
+    const report = await gql<any>(recipientToken, REPORT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem } })
+    expect(report.reportExpenseItem.outcome).toBe('CLOSED')
+    p = await state()
+    expect(itemStatus(p, memberItem)).toBe('REPORTED')
+    expect(p.status).toBe('REPORT_SUBMITTED')
+    expect(await gqlError(recipientToken, REPORT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash, item_hash: memberItem } }),
+      'повторный отчёт отклонён').not.toBeNull()
+
+    // Совет закрывает отчёт.
+    await gql(council, SUBMIT, { d: { coopname: COOP, proposal_hash: draft.proposal_hash } })
+    expect((await state()).status).toBe('CLOSED')
+    expect((await findInCoopList(chairman, draft.proposal_hash))?.status).toBe('CLOSED')
+  }, 600_000)
 })

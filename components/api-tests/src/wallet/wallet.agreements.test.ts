@@ -111,6 +111,8 @@ describe('кошельки и соглашения пайщика', () => {
     const signed = await signDocument(signer.wif, doc, signer.account, 1)
     const err = await gqlError(signerToken, SEND_AGREEMENT, sendInput(signer.account, 'signature', signed))
     expect(err).not.toBeNull()
+    // wal.agr.side.13: отказ приходит с кодом (отказ цепи либо правило узла), а не внутренней ошибкой.
+    expect(['500', 'INTERNAL_SERVER_ERROR', 'null'], JSON.stringify(err)).not.toContain(String(err!.code))
     const still = await agreementsOf(signerToken, { username: signer.account, type: 'signature', program_id: 0 })
     expect(still.map(a => [a.id, a.status])).toEqual([[signatureId, 'CONFIRMED']])
 

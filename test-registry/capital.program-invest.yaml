@@ -153,8 +153,8 @@ cases:
       Подписанное заявление расходится с суммой в запросе (подменили сумму
       после генерации черновика).
     expect: отказ до обращения к цепи
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/program-invest.test.ts
+    status: written
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 

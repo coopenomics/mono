@@ -16,7 +16,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COUNCIL, ROLES, caseName, freshMember } from '../core'
+import { CHAIRMAN, COUNCIL, ROLES, caseName, freshMember, tokenOf } from '../core'
 import { gqlError } from '../core/client'
 import { classify } from '../rights/classify'
 import {
@@ -210,6 +210,44 @@ describe('Благорост — общие списки без указания
     expect(issues.data.capitalIssues.totalCount).toBe(2)
     const stories = await storiesAs(M, { title: T })
     expect(stories.items.map(s => s.story_hash).sort()).toEqual([storyP.story_hash, storyK.story_hash].sort())
+  })
+
+  it(caseName('cap.access.break.04', 'список задач с фильтром по чужому проекту — пусто с нулевым счётчиком, число чужих задач не раскрывается'), async () => {
+    const foreign = await issuesAs(M, { project_hash: Q }, { page: 1, limit: 50 })
+    expect(foreign.errors).toEqual([])
+    expect(foreign.data.capitalIssues.items).toEqual([])
+    expect(foreign.data.capitalIssues.totalCount).toBe(0)
+
+    const outsider = await issuesAs(O, { project_hash: P }, { page: 1, limit: 50 })
+    expect(outsider.errors).toEqual([])
+    expect(outsider.data.capitalIssues.items).toEqual([])
+    expect(outsider.data.capitalIssues.totalCount).toBe(0)
+  })
+
+  it(caseName('cap.access.side.08', 'страницы задач у пайщика с доступом к части проектов — счётчик и страницы по доступному, без дыр'), async () => {
+    const first = await issuesAs(M, { title: T }, { page: 1, limit: 1 })
+    expect(first.errors).toEqual([])
+    expect(first.data.capitalIssues.items).toHaveLength(1)
+    expect(first.data.capitalIssues.totalCount).toBe(2)
+    expect(first.data.capitalIssues.totalPages).toBe(2)
+
+    const second = await issuesAs(M, { title: T }, { page: 2, limit: 1 })
+    expect(second.errors).toEqual([])
+    expect(second.data.capitalIssues.items).toHaveLength(1)
+    const seen = [first.data.capitalIssues.items[0].issue_hash, second.data.capitalIssues.items[0].issue_hash].sort()
+    expect(seen).toEqual([issueP.issue_hash, issueK.issue_hash].sort())
+
+    const third = await issuesAs(M, { title: T }, { page: 3, limit: 1 })
+    expect(third.data.capitalIssues.items, 'за последней страницей пусто').toEqual([])
+  })
+
+  it(caseName('cap.rev.side.06', 'историю редакций требования читает только допущенный к проекту — постороннему отказ'), async () => {
+    const REVISIONS = 'query($d:CapitalGetContentRevisionsInput!){ capitalGetContentRevisions(data:$d){ rev origin author } }'
+    const data = { d: { entity_type: 'STORY', entity_hash: storyP.story_hash } }
+    const err = await gqlError(await tokenOf(O), REVISIONS, data)
+    expect(String(err?.code)).toBe('CAPITAL_CONTENT_REVISION_HISTORY_FORBIDDEN')
+    // Ведущему проекта история открыта.
+    expect(await gqlError(await tokenOf(M), REVISIONS, data)).toBeNull()
   })
 
   it(caseName('cap.access.side.07', 'область переписки у допущенного пуста'), async () => {

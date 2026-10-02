@@ -1,0 +1,85 @@
+feature: marketplace.ku-details
+title: Пункт выдачи участка — режим работы, статус и место на карте
+
+# Председатель описывает пункт выдачи кооперативного участка (режим работы,
+# описание) и включает его; пайщики видят только включённые пункты. Место на
+# карте берётся из адреса участка: платформа спрашивает геокодер и запоминает
+# координаты либо причину отказа. Повтор запроса — по команде председателя;
+# смена адреса участка перезапускает запрос сама.
+#
+# Заведено 02.10.2026 (C28-85): серверная часть жила вне реестра, запись в
+# таблицу marketplace_ku_details шла только засевом стенда (карта готовности к
+# уходу с TypeORM, C28-81). Геокодер на стенде играет подставной узел.
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/ku-details.resolver.ts
+    - components/controller/src/extensions/marketplace/application/services/ku-details.service.ts
+    - components/controller/src/extensions/marketplace/application/dto/detail-ku-input.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/deactivate-ku-input.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/ku-details.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/list-marketplace-ku-input.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/working-hours.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/working-hours-input.dto.ts
+    - components/controller/src/extensions/marketplace/domain/entities/ku-details-domain.entity.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/ku-details-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/yandex-geocoder.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/ku-details.entity.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/AdminIssuancePoints/**
+
+cases:
+  - id: mkt.ku.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель правит режим работы и описание пункта выдачи
+    expect: режим и описание сохранены и видны пайщику; день без режима — выходной; статус пункта не меняется
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель выключает и включает пункт выдачи
+    expect: выключенный пункт пайщик среди действующих не видит, в полном списке он остаётся; включённый — виден; описание не меняется
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель повторяет запрос места на карте, геокодер отвечает координатами
+    expect: геокодеру ушёл адрес участка; координаты и время записаны, статус «найдено», причина прежнего отказа снята
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.side.01
+    level: backend
+    kind: side
+    scenario: геокодер отвечает отказом сервера; геокодер не находит адрес
+    expect: пункт помечен отказом с причиной и остаётся включённым
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.side.02
+    level: backend
+    kind: side
+    scenario: пункт выдачи правит, выключает или отправляет на геокодер член совета или пайщик
+    expect: отказ по правам, пункт не меняется
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.side.03
+    level: backend
+    kind: side
+    scenario: запрос с именем чужого кооператива; участок, которого нет; участок без пункта выдачи
+    expect: отказ своим кодом на каждый случай
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written
+
+  - id: mkt.ku.side.04
+    level: backend
+    kind: side
+    scenario: у участка сменили адрес в реквизитах
+    expect: при следующем чтении списка пунктов место на карте запрашивается заново по новому адресу
+    test: components/api-tests/src/marketplace/ku-details.test.ts
+    status: written

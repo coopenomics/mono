@@ -110,22 +110,17 @@ cases:
       Член совета создаёт событие в незашифрованной комнате реестра, правит
       его и удаляет; пайщики получают уведомления, лента ICS показывает
       событие с растущей SEQUENCE
-    expect: >
-      событие в списке и в ленте, правка поднимает icsSequence, удалённое
-      пропадает; снаружи не проверить — комнаты реестра заводит сервер Matrix,
-      на стенде его нет
-    test: ~
-    status: missing
+    expect: событие в списке и в ленте, правка поднимает icsSequence, удалённое пропадает из списка и ленты
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    status: written
 
   - id: chat.cal.side.06
     level: backend
     kind: side
     scenario: Событие в зашифрованной комнате реестра
-    expect: >
-      отказ CHATCOOP_CALENDAR_ROOM_UNAVAILABLE; снаружи не проверить — комнаты
-      реестра заводит сервер Matrix, на стенде его нет
-    test: ~
-    status: missing
+    expect: отказ CHATCOOP_CALENDAR_ROOM_UNAVAILABLE; зашифрованная комната календарю не предлагается
+    test: components/api-tests/src/chatcoop/calendar.test.ts
+    status: written
 
   - id: chat.cal.side.07
     level: backend

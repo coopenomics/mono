@@ -122,8 +122,8 @@ cases:
     expect: >
       возвращаются доли только этого компонента, с именами пайщиков и
       состоянием их ролей
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.happy.03
     level: backend
@@ -132,8 +132,8 @@ cases:
     expect: >
       доли всех компонентов и самого проекта объединяются по пайщику: один
       человек — одна строка, взносы суммируются
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.04
     level: backend
@@ -144,8 +144,8 @@ cases:
       страница отрезается уже после объединения, и общее количество считается
       по объединённым строкам. Отрезать до объединения означало бы неверное
       общее количество и потерянные строки на границе страниц
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.break.01
     level: backend
@@ -155,16 +155,16 @@ cases:
       отказ с указанием допустимых границ. Список участников берёт порции
       заметно меньше предела, но предел остаётся защитой от запроса, который
       вытянул бы всех участников кооператива разом
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.05
     level: backend
     kind: side
     scenario: запрошены участники по хэшу, которого нет среди проектов
     expect: доли ищутся напрямую по хэшу, объединение не применяется
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.happy.04
     level: backend
@@ -360,6 +360,8 @@ cases:
       обращения к базе на каждую долю
     test: ~
     status: missing
+    external: unreachable
+    external_reason: число обращений к базе за один запрос списка снаружи не видно — проверяется изнутри
 
   - id: cap.contrib.side.15
     level: backend
@@ -370,8 +372,8 @@ cases:
     expect: >
       отбор идёт по проекту доли, а не по самой доле, и «нет родителя»
       понимается одинаково для пустого хэша и незаполненного поля
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.contrib.side.16
     level: backend
@@ -382,8 +384,8 @@ cases:
     expect: >
       доля приходит с признаком закрытого голосования. Считать закрытость по
       записям о голосах нельзя: в таком компоненте их не появляется вовсе
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/result-submission.test.ts
+    status: written
 
   - id: cap.contrib.side.13
     level: backend
@@ -397,8 +399,8 @@ cases:
       дочерних проектов. Постраничная выборка исказила бы расчёт: он идёт
       по самому «дорогому» заёмщику, и пропущенный участник дал бы сумму,
       которую цепь отклонит
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/dealloc-debt-limit.test.ts
+    status: written
 
   - id: cap.contrib.side.17
     level: backend

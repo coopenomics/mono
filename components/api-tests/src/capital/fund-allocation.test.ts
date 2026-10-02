@@ -10,7 +10,7 @@
  * Проверяемое — только ответы API: карточка компонента и предел возврата.
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, amount, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, tokenOf } from '../core'
 import {
   chainFreePool,
   ensureCapitalInitialized,
@@ -118,6 +118,31 @@ describe('Благорост — направление средств прог�
     expect(err?.code).toBe('KIT_CURRENCY_SYMBOL_INVALID')
     const after = await getProject(chairman, component)
     expect(after.fact.program_invest_pool, 'отказ ничего не двигает').toBe(before.fact.program_invest_pool)
+  })
+
+  it(caseName('cap.alloc.side.12', 'направление средств запрашивает член совета — отказ по роли, компонент средств не получает'), async () => {
+    const before = await getProject(chairman, component)
+    expectCode(
+      await gqlError(await tokenOf(COUNCIL), ALLOCATE, { d: { coopname: COOP, project_hash: component, amount: '100.0000 RUB' } }),
+      'KIT_INSUFFICIENT_RIGHTS',
+    )
+    const after = await getProject(chairman, component)
+    expect(after.fact.total_received_investments).toBe(before.fact.total_received_investments)
+  })
+
+  it(caseName('cap.alloc.side.13', 'направление средств запрашивает пайщик без роли — отказ по роли; гостю отказ входа'), async () => {
+    const input = { d: { coopname: COOP, project_hash: component, amount: '100.0000 RUB' } }
+    expectCode(await gqlError(await tokenOf(ROLES.member()), ALLOCATE, input), 'KIT_INSUFFICIENT_RIGHTS')
+    expectAuthDenied(await gqlError(null, ALLOCATE, input))
+  })
+
+  it(caseName('cap.dealloc.side.12', 'возврат средств запрашивает член совета или пайщик — отказ по роли, средства компонента на месте'), async () => {
+    const before = await getProject(chairman, component)
+    const input = { d: { coopname: COOP, project_hash: component, amount: '100.0000 RUB' } }
+    expectCode(await gqlError(await tokenOf(COUNCIL), DEALLOCATE, input), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(await tokenOf(ROLES.member()), DEALLOCATE, input), 'KIT_INSUFFICIENT_RIGHTS')
+    const after = await getProject(chairman, component)
+    expect(after.fact.program_invest_pool).toBe(before.fact.program_invest_pool)
   })
 
   it(caseName('cap.alloc.break.31', 'учётная запись в статусе вступления не видит реестр вложений'), async () => {

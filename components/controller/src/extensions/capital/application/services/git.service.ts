@@ -90,9 +90,9 @@ export class GitService {
 
   reconfigureWithCapitalExtensionEncrypted(githubApiTokenEncrypted: string | undefined): void {
     const githubToken = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted, this.tokenSources);
-    this.octokit = new Octokit({
-      auth: githubToken || undefined,
-    });
+    // Адрес GitHub API из окружения узла (GITHUB_API_URL); не задан — api.github.com.
+    const baseUrl = this.integrations.get<{ api_url?: string }>('capital', 'github')?.api_url?.trim().replace(/\/+$/, '');
+    this.octokit = new Octokit(baseUrl ? { auth: githubToken || undefined, baseUrl } : { auth: githubToken || undefined });
     if (githubToken) {
       this.logger.info('GitHub токен найден, будет использован для аутентификации');
     } else {

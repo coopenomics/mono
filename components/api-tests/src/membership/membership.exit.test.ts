@@ -3,14 +3,15 @@
  * membership_exit_requests до подтверждения по ссылке из письма), чтение
  * статуса, отмена, превью возврата паевого взноса.
  *
- * Выходит только свежий пайщик (freshMember). Подтверждение по ссылке
- * снаружи недостижимо — токен приходит только письмом, — поэтому выход в цепь
- * здесь не уходит: заявления отменяются, пайщик остаётся в кооперативе.
+ * Выходит только свежий пайщик (freshMember). В первом наборе заявления
+ * отменяются до подтверждения, пайщик остаётся в кооперативе. Во втором
+ * пайщик подтверждает выход по ссылке из письма (почту стенда перехватывает
+ * Mailpit), заявление уходит в цепь и доводится до конца решением совета.
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, caseName, deposit, docMeta, freshMember, gql, gqlError, login, signDocument, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, deposit, docMeta, freshMember, gql, gqlError, latestMail, login, payOutExit, signDocument, tokenOf, voteOnDecision, waitFor } from '../core'
 import { addSbpMethod } from '../payments/payments.helpers'
 
 const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
@@ -158,4 +159,63 @@ describe('выход пайщика из кооператива', () => {
     const own = await gql<any>(leaverToken, RETURN_PREVIEW, { c: COOP, u: leaver.account })
     expect(d.membershipExitReturnPreview).toEqual(own.membershipExitReturnPreview)
   })
+})
+
+describe('выход пайщика: подтверждение по письму и повторные заявления', () => {
+  let leaver: Who
+  let leaverToken = ''
+  let statement: any
+  let hash = ''
+
+  const create = (exit_hash: string) =>
+    gqlError(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash, statement } })
+
+  beforeAll(async () => {
+    leaver = freshMember({ prefix: 'exitc' })
+    leaverToken = await login(leaver)
+    await addSbpMethod(leaverToken, leaver.account)
+    const g = await gql<any>(leaverToken, GENERATE_APPLICATION, { d: { coopname: COOP, username: leaver.account, skip_save: false } })
+    const signed = await signDocument(leaver.wif, g.generateMembershipExitApplication, leaver.account, 1)
+    const meta = docMeta(signed.meta)
+    statement = { ...signed, meta: Object.fromEntries(STATEMENT_META_KEYS.filter(k => k in meta).map(k => [k, meta[k]])) }
+  }, 300_000)
+
+  it(caseName('mem.exit.happy.05', 'пайщик подтверждает выход по ссылке из письма — заявление уходит в цепь, ссылка второй раз не работает'), async () => {
+    hash = exitHash()
+    const d = await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: hash, statement } })
+    expect(d.createMembershipExit.status).toBe('AWAITING_CONFIRMATION')
+
+    const mail = await latestMail(leaver.email, 'membership-exit/confirm?token=', 120_000)
+    const token = /membership-exit\/confirm\?token=([\w.-]+)/.exec(`${mail.text}\n${mail.html}`)?.[1]
+    expect(token, 'в письме есть ссылка подтверждения').toBeTruthy()
+
+    const confirmed = await gql<any>(null, CONFIRM_EXIT, { t: token })
+    expect(confirmed.confirmMembershipExit).toEqual({ exit_hash: hash, status: 'PENDING' })
+
+    const seen = await waitFor(async () => {
+      const row = await exitStatus(leaverToken, leaver.account)
+      return row?.status === 'PENDING' ? row : null
+    }, { timeoutMs: 60_000, intervalMs: 1_000, label: 'выход пайщика в цепи' })
+    expect(seen.exit_hash).toBe(hash)
+
+    expect(await gqlError(null, CONFIRM_EXIT, { t: token }), 'использованная ссылка отклонена').not.toBeNull()
+  })
+
+  it(caseName('mem.exit.side.08', 'новое заявление, когда выход уже в цепи, отклоняется'), async () => {
+    expect((await create(exitHash()))?.code).toBe('MEMBERSHIP_EXIT_ALREADY_SUBMITTED')
+    expect((await exitStatus(leaverToken, leaver.account))?.exit_hash).toBe(hash)
+  })
+
+  it(caseName('mem.exit.side.07', 'вышедший пайщик заявление снова не подаёт'), async () => {
+    const decision = await awaitDecision(hash, `решение совета о выходе ${leaver.account}`)
+    await voteOnDecision(Number(decision.id), 'for')
+    await authorizeDecisionOnChain(Number(decision.id))
+    await payOutExit(leaver, hash)
+
+    const err = await waitFor(async () => {
+      const e = await create(exitHash())
+      return e?.code === 'MEMBERSHIP_EXIT_ALREADY_EXITED' ? e : null
+    }, { timeoutMs: 60_000, intervalMs: 2_000, label: 'узел видит пайщика вышедшим' })
+    expect(err.code).toBe('MEMBERSHIP_EXIT_ALREADY_EXITED')
+  }, 300_000)
 })

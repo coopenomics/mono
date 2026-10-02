@@ -15,7 +15,7 @@
  * подключения — на стенде он завершён засевом (boot, postgres-init).
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, caseName, gql, gqlRaw, randomAccount, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, gqlRaw, randomAccount, signDocument, tokenOf } from '../core'
 import { REGISTER_ACCOUNT, freshKeyPair, individualData, registerInput } from '../platform/platform-b.helpers'
 
 const CONFIG = `query($t:AccountType!,$c:String!){ getRegistrationConfig(account_type:$t, coopname:$c){
@@ -254,5 +254,15 @@ describe('registration.intake-forms: анкеты при вступлении', 
       else
         expect(code, `${String(url).slice(0, 40)}: ${r.errors[0]?.message}`).toBe('400')
     }
+  })
+
+  it(caseName('reg.intake.side.11', 'анкету кандидата читает только совет — пайщику отказ по ролям, гостю отказ входа'), async () => {
+    const b = await applicant()
+    const INTAKE = 'query($u:String!){ getCandidateIntake(username:$u){ username program_key answers{ form_id values } } }'
+    expectCode(await gqlError(await tokenOf(ROLES.member()), INTAKE, { u: b.username }), 'KIT_INSUFFICIENT_RIGHTS')
+    expectAuthDenied(await gqlError(null, INTAKE, { u: b.username }))
+    // Члена совета по роли не отсекают: право дано совету, а не одному председателю.
+    const council = await gqlError(await tokenOf(COUNCIL), INTAKE, { u: b.username })
+    expect(String(council?.code ?? '')).not.toBe('KIT_INSUFFICIENT_RIGHTS')
   })
 })

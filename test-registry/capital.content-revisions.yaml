@@ -104,7 +104,8 @@ cases:
     kind: side
     scenario: просмотр истории артефакта без допуска к проекту
     expect: отказ «Недостаточно прав для просмотра истории редакций»
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   - id: cap.rev.happy.02
     level: ui

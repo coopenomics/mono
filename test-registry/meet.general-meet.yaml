@@ -52,8 +52,10 @@ cases:
     kind: side
     scenario: Собрание проходит полный путь — решение совета, голосование, подписи секретаря и председателя
     expect: итоги собрания (meet_processed) сохранены и отдаются в processed
-    # Полный путь собрания во внешнем слое не заведён — как meet.texts.side.06.
-    status: missing
+    # Полный путь собрания проходит набор meet/full-cycle (с 01.10.2026): итоги
+    # закрытого собрания читаются из processed с кворумом и результатами по вопросам.
+    test: components/api-tests/src/meet/full-cycle.test.ts
+    status: written
 
   - id: meet.gm.side.03
     level: backend

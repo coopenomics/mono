@@ -1,0 +1,125 @@
+feature: reports.drafts-calendar
+title: Черновики форм отчётности и отметки календаря отчётов
+
+# Председатель правит форму отчёта и сохраняет черновик — один на отчёт, год
+# и период. При следующем открытии форма собирается заново из учёта,
+# реквизитов и корректировок остатков, а поверх ложатся только поля, которые
+# он правил руками. Ячейку календаря можно отметить «сдан вне платформы» или
+# «не требуется»; сохранённый черновик красит ячейку «в работе».
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, запись в таблицы
+# report_drafts и report_submission_marks и чтение balance_corrections не
+# трогал ни один сценарий внешнего слоя (карта готовности к уходу с TypeORM,
+# C28-81).
+sources:
+  backend:
+    - components/controller/src/extensions/reports/application/resolvers/report-draft.resolver.ts
+    - components/controller/src/extensions/reports/application/resolvers/report-calendar.resolver.ts
+    - components/controller/src/extensions/reports/domain/utils/dirty-merge.ts
+    - components/controller/src/extensions/reports/domain/services/report-edits-builder.service.ts
+    - components/controller/src/extensions/reports/domain/services/reports-calendar-registry.ts
+    - components/controller/src/extensions/reports/infrastructure/entities/report-draft.entity.ts
+    - components/controller/src/extensions/reports/infrastructure/entities/report-submission-mark.entity.ts
+    - components/controller/src/extensions/reports/infrastructure/entities/balance-correction.entity.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/report-draft.typeorm-repository.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/report-submission-mark.typeorm-repository.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/balance-correction.typeorm-repository.ts
+  ui:
+    - components/desktop/extensions/reports/widgets/reports-calendar/**
+    - components/desktop/extensions/reports/widgets/report-forms/**
+
+cases:
+  - id: rep.draft.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель сохраняет черновик годовой формы
+    expect: черновик записан на председателя и читается по отчёту, году и периоду с теми же правками и списком правленых полей
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.happy.02
+    level: backend
+    kind: happy
+    scenario: черновик того же отчёта, года и периода сохраняется повторно
+    expect: обновляется тот же черновик, второй не заводится
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.happy.03
+    level: backend
+    kind: happy
+    scenario: открытие формы с черновиком и без него
+    expect: >
+      форма собрана из учёта, реквизитов и корректировок остатков; при
+      черновике поверх ложатся только поля из списка правленых, признак
+      черновика выставлен; без черновика — только собранное
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.side.01
+    level: backend
+    kind: side
+    scenario: черновики разных периодов одного отчёта и разных отчётов одного года
+    expect: каждый период — свой черновик; список фильтруется по отчёту, году и периоду
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.side.02
+    level: backend
+    kind: side
+    scenario: в черновик отправлен битый JSON правок
+    expect: отказ REPORTS_EDITS_JSON_INVALID, сохранённый черновик не меняется
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.side.03
+    level: backend
+    kind: side
+    scenario: черновик сохраняет, читает список или открывает форму член совета или пайщик
+    expect: отказ по правам
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.side.04
+    level: backend
+    kind: side
+    scenario: удаление черновика, повторное удаление, удаление по номеру, которого нет
+    expect: удалённый черновик не читается; повтор и несуществующий номер — отказ «не найдено»
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.cal.happy.01
+    level: backend
+    kind: happy
+    scenario: ячейку календаря отмечают «сдан вне платформы», отметку снимают; каждое действие дважды
+    expect: отметка красит ячейку, снятие возвращает прежний вид; повтор отметки и снятие отсутствующей — без ошибки
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.cal.happy.02
+    level: backend
+    kind: happy
+    scenario: на ячейке с отметкой «не требуется» появляется черновик, затем отметка «сдан вне платформы»
+    expect: черновик перекрывает «не требуется» (ячейка «в работе»), «сдан вне платформы» перекрывает черновик
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.cal.side.01
+    level: backend
+    kind: side
+    scenario: календарь читает и отметку меняет член совета или пайщик
+    expect: отказ по правам, отметка не меняется
+    test: components/api-tests/src/reports/drafts-calendar.test.ts
+    status: written
+
+  - id: rep.draft.side.05
+    level: backend
+    kind: side
+    scenario: корректировки остатков прошлых лет для бухгалтерской отчётности
+    expect: >
+      не решено. Корректировки читаются при сборке формы и предпросмотре, но
+      записать их нечем: ни одна операция API в таблицу balance_corrections не
+      пишет, входной тип корректировок описан и нигде не подключён
+    test: ~
+    status: missing
+    decision_needed: true
