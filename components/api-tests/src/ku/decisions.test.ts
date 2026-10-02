@@ -465,9 +465,10 @@ describe('собрание об учреждении участка', () => {
     await voteOnDecision(Number(item.id), 'for')
     // Председатель совета утверждает решение своим протоколом об учреждении участка.
     const chairmanToken = await tokenOf(CHAIRMAN)
-    const generated = (await gql<any>(chairmanToken, GEN_COUNCIL_DECISION, {
+    // Протокол собирается по голосам из журнала действий узла — ждём их разбора.
+    const generated = (await waitFor(() => gql<any>(chairmanToken, GEN_COUNCIL_DECISION, {
       d: { coopname: COOP, username: CHAIRMAN.account, decision_id: Number(item.id), branch_name: branchName, address, chairman: founder.account },
-    })).kuGenerateEstablishmentDecision
+    }), { timeoutMs: 30_000, intervalMs: 1_500, label: 'протокол решения совета об учреждении' })).kuGenerateEstablishmentDecision
     councilDecision = await signDocument(CHAIRMAN.wif, generated, CHAIRMAN.account, 1)
     await authorizeDecisionOnChain(Number(item.id), toChainDoc(councilDecision))
 

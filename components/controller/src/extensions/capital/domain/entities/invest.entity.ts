@@ -131,6 +131,9 @@ export class InvestDomainEntity
    */
   private mapStatusToDomain(blockchainStatus?: string): InvestStatus {
     switch (blockchainStatus) {
+      // Статус контракта (invests.hpp): создана.
+      case 'created':
+        return InvestStatus.PENDING;
       case 'pending':
         return InvestStatus.PENDING;
       case 'approved':

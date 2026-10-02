@@ -135,6 +135,11 @@ export class ExpenseDomainEntity
    */
   private mapStatusToDomain(blockchainStatus?: string): ExpenseStatus {
     switch (blockchainStatus) {
+      // Статусы контракта (expenses.hpp): создан, одобрен председателем, утверждён советом, оплачен, отклонён.
+      case 'created':
+        return ExpenseStatus.PENDING;
+      case 'authorized':
+        return ExpenseStatus.APPROVED;
       case 'pending':
         return ExpenseStatus.PENDING;
       case 'approved':

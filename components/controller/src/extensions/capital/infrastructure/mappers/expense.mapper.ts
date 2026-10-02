@@ -41,7 +41,8 @@ export class ExpenseMapper {
         project_hash: entity.project_hash,
         expense_hash: entity.expense_hash,
         fund_id: entity.fund_id,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         amount: entity.amount,
         description: entity.description,
         expense_statement: entity.expense_statement,
@@ -79,7 +80,8 @@ export class ExpenseMapper {
         project_hash: domain.project_hash as string,
         expense_hash: domain.expense_hash,
         fund_id: domain.fund_id as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         amount: domain.amount as string,
         description: domain.description as string,
         expense_statement: domain.expense_statement as ISignedDocument,

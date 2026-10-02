@@ -54,7 +54,8 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'text', nullable: true })
   memo!: string;
 
-  @Column({ type: 'timestamp' })
+  // Цепь даты создания записи не хранит — колонка необязательна (время появления в базе — `_created_at`).
+  @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
 
   // Доменные поля (расширения)
