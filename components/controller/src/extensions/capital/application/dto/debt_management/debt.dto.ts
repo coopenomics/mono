@@ -1,4 +1,4 @@
-import { ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { DebtStatus } from '../../../domain/enums/debt-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { AuthRoles, DocumentAggregateDTO } from '@coopenomics/extension-kit';
@@ -68,11 +68,11 @@ export class DebtOutputDTO extends BaseOutputDTO {
   })
   repaid_at?: string;
 
-  @Field(() => Float, {
+  @Field(() => String, {
     nullable: true,
     description: 'Сумма долга',
   })
-  amount?: number;
+  amount?: string;
 
   @Field(() => String, {
     nullable: true,

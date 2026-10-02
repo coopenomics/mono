@@ -169,6 +169,8 @@ cases:
       осиротевший объект удалится следующей попыткой
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "отказ хранилища снимков посреди решения: остановка хранилища роняет и остальные сценарии сверки, точечно сбой не создать"
 
   - id: cid.vrev.break.08
     level: backend
@@ -194,6 +196,8 @@ cases:
     status: missing
 
   # ── Журнал ────────────────────────────────────────────────────────────────
+    external: unreachable
+    external_reason: "недоступный журнал аудита после успешного действия в цепи: журнал живёт в той же базе, что и весь CoopID"
 
   - id: cid.vrev.happy.04
     level: backend

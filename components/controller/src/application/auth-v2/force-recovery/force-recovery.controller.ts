@@ -12,7 +12,7 @@ import { ForceRecoveryService } from './force-recovery.service';
  * SDK-контекста (доступ мог быть утрачен), авторизация — по одноразовому токену из ссылки.
  *
  * Запрос согласия и авторизация председателем (под JWT+CASL) переведены в GraphQL/SDK —
- * см. `CriticalActionsResolver.requestForceRecoveryConsent` / `authorizeForceRecovery`
+ * см. `ForceRecoveryResolver.requestForceRecoveryConsent` / `authorizeForceRecovery`
  * (Фаза 2 миграции REST→GraphQL/SDK).
  */
 @Controller('coop/force-recovery')

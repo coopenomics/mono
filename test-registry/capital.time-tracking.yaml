@@ -36,6 +36,8 @@ sources:
     - components/controller/src/extensions/capital/application/services/time-tracking.service.ts
     - components/controller/src/extensions/capital/application/dto/time_tracker/**
     - components/controller/src/extensions/capital/infrastructure/entities/time-entry.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/timer-session.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/timer-session.typeorm-repository.ts
   ui:
     - components/desktop/extensions/capital/entities/TimeEntries/**
     - components/desktop/extensions/capital/features/Issue/TrackTime/**
@@ -90,22 +92,73 @@ cases:
     level: backend
     kind: break
     scenario: capitalAddWorklog с нулём, отрицательным числом и нечисловым значением часов
-    expect: отказ, запись не создаётся, факт задачи не меняется
-    status: missing
+    expect: отказ (ноль и отрицательное — CAPITAL_TIME_HOURS_NOT_POSITIVE, нечисловое — отказ схемы), запись не создаётся
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
 
   - id: cap.time.break.04
     level: backend
     kind: break
     scenario: capitalStartTimer от имени участника, у которого уже есть открытая сессия по другой задаче
-    expect: отказ; первая сессия остаётся единственной открытой
-    status: missing
+    expect: >
+      прежняя сессия закрывается, открытой остаётся одна — на новой задаче
+      (инвариант «не больше одной открытой сессии на участника»). До 02.10.2026
+      случай ждал отказа: так ведёт себя рабочий стол (cap.time.break.01 прячет
+      кнопку), сервер же переключает сессию — ожидание приведено к коду
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
 
   - id: cap.time.break.05
     level: backend
     kind: break
     scenario: pause/resume/stop без открытой сессии и повтор терминального stop
-    expect: отказ, состояние сессий не меняется
-    status: missing
+    expect: >
+      пауза и продолжение — отказ CAPITAL_TIMER_NOT_ACTIVE; остановка без
+      открытой сессии отвечает пусто и записей не заводит
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
+
+  - id: cap.time.happy.10
+    level: backend
+    kind: happy
+    scenario: исполнитель задачи запускает таймер; повторный старт на той же задаче
+    expect: открыта одна сессия на задаче с её названием; повторный старт возвращает ту же сессию
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
+
+  - id: cap.time.happy.11
+    level: backend
+    kind: happy
+    scenario: пауза и продолжение таймера, каждое действие дважды
+    expect: >
+      пауза ставит момент паузы и не отвязывает задачу, продолжение копит
+      время паузы; повтор паузы и продолжения состояние не меняет
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
+
+  - id: cap.time.happy.12
+    level: backend
+    kind: happy
+    scenario: остановка таймера, набравшего время
+    expect: сессия закрыта, по задаче таймера заведена незакоммиченная запись факта сегодняшним днём, открытой сессии нет
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
+
+  - id: cap.time.break.06
+    level: backend
+    kind: break
+    scenario: пайщик без роли в совете запускает, ставит на паузу и останавливает таймер от чужого имени
+    expect: отказ CAPITAL_TIME_TRACKING_SELF_ONLY, сессия участника не меняется
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
+
+  - id: cap.time.break.07
+    level: backend
+    kind: break
+    scenario: старт таймера по задаче, которой нет
+    expect: отказ CAPITAL_ISSUE_NOT_FOUND, сессия не открывается
+    test: components/api-tests/src/capital/timers.test.ts
+    status: written
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст

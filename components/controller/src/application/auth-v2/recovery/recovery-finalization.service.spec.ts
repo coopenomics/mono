@@ -59,6 +59,7 @@ function setup() {
     audit as never,
     securityEvents as never,
     loginTwoFactor as never,
+    { markRecovered: jest.fn(async () => undefined) } as never,
   );
   return { service, chain, authentikAdmin, users, vault, sessions, audit, securityEvents, loginTwoFactor };
 }

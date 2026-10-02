@@ -11,7 +11,7 @@
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, caseName, gql, gqlError, tokenOf, transact, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, tokenOf, transact, waitFor } from '../core'
 import { COOP_SIGNER, amount } from '../core/wallet'
 import {
   cashierPaid,
@@ -139,5 +139,19 @@ describe('отчёты: перечисление удержанного НДФЛ
     expect(first[0].hash, 'первая страница — последний платёж').toBe(paidHash)
     expect(second[0].hash, 'вторая — предыдущий').toBe(declinedHash)
     expect(new Date(first[0].created_at).getTime()).toBeGreaterThanOrEqual(new Date(second[0].created_at).getTime())
+  })
+
+  it(caseName('mkt.cat.side.09', 'остаток удержанного налога и перечисление в бюджет — только председателю: оператору участка, члену совета и заказчику отказ'), async () => {
+    const before = await withheldState()
+    const STATE = 'query{ getWithheldTaxState{ __typename } }'
+    const PAYMENTS = 'query{ getWithheldTaxPayments(page:1, limit:5){ __typename } }'
+    for (const who of [ROLES.branchChairman(), COUNCIL, ROLES.member()]) {
+      const token = await tokenOf(who)
+      expectCode(await gqlError(token, STATE), 'KIT_INSUFFICIENT_RIGHTS')
+      expectCode(await gqlError(token, PAYMENTS), 'KIT_INSUFFICIENT_RIGHTS')
+      expectCode(await gqlError(token, PAY, { d: { amount: 1 } }), 'KIT_INSUFFICIENT_RIGHTS')
+    }
+    expectAuthDenied(await gqlError(null, PAY, { d: { amount: 1 } }))
+    expect((await withheldState()).available, 'чужие запросы налог не тронули').toBe(before.available)
   })
 })

@@ -15,7 +15,6 @@ import { CHAIN_MANIFESTS_CACHE } from '~/domain/auth-v2/ports/chain-manifests-ca
 import { COOP_SETTINGS_REPOSITORY } from '~/domain/auth-v2/ports/coop-settings.port';
 import { ACCESS_RULES_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER } from '~/domain/auth-v2/ports/access-rules.port';
 import { CAPABILITY_SETS_REPOSITORY } from '~/domain/auth-v2/ports/capability-sets.port';
-import { PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER } from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER } from '~/domain/auth-v2/ports/force-recovery-consent.port';
 import { KEY_REVOCATION_REPOSITORY } from '~/domain/auth-v2/ports/key-revocation.port';
 import { LOGIN_FACTORS_REPOSITORY } from '~/domain/auth-v2/ports/login-factors.port';
@@ -45,8 +44,6 @@ import { PostgresCoopSettingsRepository } from './postgres-coop-settings.reposit
 import { PostgresAccessRulesRepository } from './postgres-access-rules.repository';
 import { PostgresCapabilitySetsRepository } from './postgres-capability-sets.repository';
 import { RedisAccessRulesInvalidationPublisher } from './redis-access-rules-invalidation.publisher';
-import { PostgresPendingCriticalActionsRepository } from './postgres-pending-critical-actions.repository';
-import { RedisCriticalActionNotifier } from './redis-critical-action.notifier';
 import { RedisForceRecoveryConsentStore } from './redis-force-recovery-consent.store';
 import { RedisForceRecoveryConsentNotifier } from './redis-force-recovery-consent.notifier';
 import { PostgresKeyRevocationRepository } from './postgres-key-revocation.repository';
@@ -76,8 +73,6 @@ import { RedisEmailVerificationStore } from './redis-email-verification.store';
     { provide: ACCESS_RULES_REPOSITORY, useClass: PostgresAccessRulesRepository },
     { provide: CAPABILITY_SETS_REPOSITORY, useClass: PostgresCapabilitySetsRepository },
     { provide: ACCESS_RULES_INVALIDATION_PUBLISHER, useClass: RedisAccessRulesInvalidationPublisher },
-    { provide: PENDING_CRITICAL_ACTIONS_REPOSITORY, useClass: PostgresPendingCriticalActionsRepository },
-    { provide: CRITICAL_ACTION_NOTIFIER, useClass: RedisCriticalActionNotifier },
     { provide: FORCE_RECOVERY_CONSENT_STORE, useClass: RedisForceRecoveryConsentStore },
     { provide: FORCE_RECOVERY_CONSENT_NOTIFIER, useClass: RedisForceRecoveryConsentNotifier },
     { provide: KEY_REVOCATION_REPOSITORY, useClass: PostgresKeyRevocationRepository },
@@ -87,6 +82,6 @@ import { RedisEmailVerificationStore } from './redis-email-verification.store';
     { provide: AUTHENTIK_ADMIN_PORT, useClass: AuthentikAdminAdapter },
     { provide: CERT_KEY_CRYPTO_PORT, useClass: CertKeyCryptoAdapter },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, VERIFICATION_REVIEW_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, PENDING_CRITICAL_ACTIONS_REPOSITORY, CRITICAL_ACTION_NOTIFIER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, EMAIL_VERIFICATION_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
+  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, VERIFICATION_REVIEW_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, EMAIL_VERIFICATION_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
 })
 export class AuthV2InfrastructureModule {}

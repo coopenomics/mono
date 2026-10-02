@@ -113,21 +113,21 @@ cases:
     kind: happy
     scenario: пайщик подтверждает выход по ссылке из письма
     expect: заявление уходит в цепь (registrator::exitcoop), черновик и токен удаляются, статус PENDING
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: mem.exit.side.07
     level: backend
     kind: side
     scenario: вышедший пайщик (аккаунт blocked) подаёт заявление снова
     expect: отказ MEMBERSHIP_EXIT_ALREADY_EXITED
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: mem.exit.side.08
     level: backend
     kind: side
     scenario: заявление подаётся, когда выход уже в цепи
     expect: отказ MEMBERSHIP_EXIT_ALREADY_SUBMITTED
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written

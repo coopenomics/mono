@@ -35,6 +35,9 @@ sources:
     - components/controller/src/extensions/capital/application/services/component-metric.service.ts
     - components/controller/src/extensions/capital/application/dto/metrics/**
     - components/controller/src/extensions/capital/domain/entities/measure.entity.ts
+    - components/controller/src/extensions/capital/domain/entities/issue-metric-binding.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-metric-binding.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue-metric-binding.typeorm-repository.ts
     - components/controller/src/extensions/capital/domain/utils/build-metric-series.ts
     - components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.ts
     - components/controller/src/extensions/capital/domain/utils/wave-markup.ts
@@ -277,3 +280,51 @@ cases:
     test: components/controller/tests/unit/capital/metric-foreign-coop.test.ts
     api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
+
+  - id: cap.mm.bind.happy.01
+    level: backend
+    kind: happy
+    scenario: задаче назначают вклад в две цели её компонента
+    expect: обе привязки сохранены со своими величинами и читаются по задаче
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.happy.02
+    level: backend
+    kind: happy
+    scenario: привязки задачи назначают повторно другим набором
+    expect: новый набор заменяет прежний целиком
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.happy.03
+    level: backend
+    kind: happy
+    scenario: задача с привязкой выполнена, затем возвращена в работу
+    expect: при выполнении факт цели вырос на величину привязки, при возврате в работу вернулся к прежнему
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.01
+    level: backend
+    kind: side
+    scenario: к задаче привязывают цель другого компонента, выключенную цель, цель, которой нет
+    expect: отказ своим кодом на каждый случай, набор привязок задачи прежний
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.02
+    level: backend
+    kind: side
+    scenario: посторонний пайщик меняет привязки чужой задачи; привязки задачи, которой нет
+    expect: постороннему отказ CAPITAL_ISSUE_METRIC_LINK_FORBIDDEN, несуществующей задаче — «не найдено»
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.03
+    level: backend
+    kind: side
+    scenario: привязки меняют у выполненной задачи
+    expect: отказ CAPITAL_ISSUE_METRIC_LINKS_LOCKED_DONE, привязки прежние
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written

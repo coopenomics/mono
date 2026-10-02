@@ -4,15 +4,15 @@
  * персональной подписке с секретом в адресе (без токена — её опрашивают
  * календарные клиенты).
  *
- * На стенде сервера Matrix нет, реестр комнат пуст, поэтому событие создать
- * нельзя: здесь проверяется то, что от Matrix не зависит, — подписка ICS
- * (chatcoop_calendar_ics_subscriptions), чтение событий, отказы по комнате и
- * по роли.
+ * Комнаты реестра на стенде заводит сид (в жизни — сервер Matrix): на
+ * незашифрованной комнате проверяется весь путь события — создание, правка,
+ * удаление, лента ICS, — на зашифрованной и на комнате вне реестра — отказ.
  */
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { API_URL, COUNCIL, ROLES, caseName, freshMember, gql, gqlError, tokenOf } from '../core'
+import { seedRoom, seedSql, tag } from '../capital/cap-access.helpers'
 
 const LIST = `query{ chatcoopListCalendarEvents{ id matrixRoomId title startsAt endsAt createdByUsername icsSequence } }`
 const ROOMS = `query{ chatcoopListCalendarRooms{ matrixRoomId displayLabel } }`
@@ -148,5 +148,64 @@ describe('chatcoop: календарь и подписка ICS', () => {
   // (решение владельца 25.09: должна быть ошибка, C28-80).
   it(caseName('chat.cal.side.07', 'удаление несуществующего события — отказ «не найдено»'), async () => {
     expect((await gqlError(council, DELETE, { id: crypto.randomUUID() }))?.code).toBe('CHATCOOP_CALENDAR_EVENT_NOT_FOUND')
+  })
+
+  describe('событие в комнате реестра', () => {
+    let room = ''
+    let eventId = ''
+    const title = `Собрание совета ${tag('cal')}`
+
+    async function feed(): Promise<string> {
+      const url = feedUrl((await gql<any>(mine, ICS)).chatcoopCreateCalendarIcsSubscription.icsUrl)
+      const res = await fetch(url)
+      expect(res.status).toBe(200)
+      return res.text()
+    }
+
+    async function listed(): Promise<any | undefined> {
+      const d = await gql<any>(mine, LIST)
+      return (d.chatcoopListCalendarEvents as any[]).find(e => e.id === eventId)
+    }
+
+    beforeAll(() => {
+      room = seedRoom('members', null, `Календарь ${tag('room')}`)
+    })
+
+    it(caseName('chat.cal.happy.04', 'член совета создаёт событие в незашифрованной комнате, правит и удаляет — список и лента ICS идут следом, номер правки растёт'), async () => {
+      const rooms = (await gql<any>(council, ROOMS)).chatcoopListCalendarRooms as any[]
+      expect(rooms.map(r => r.matrixRoomId), 'комната реестра доступна календарю').toContain(room)
+
+      const startsAt = new Date(Date.now() + 3 * 24 * 3600_000).toISOString()
+      eventId = (await gql<any>(council, CREATE, { d: eventInput({ matrixRoomId: room, title, startsAt }) })).chatcoopCreateCalendarEvent.id
+      const created = await listed()
+      expect(created).toMatchObject({ matrixRoomId: room, title, createdByUsername: COUNCIL.account })
+      expect(new Date(created.startsAt).getTime()).toBe(new Date(startsAt).getTime())
+      const firstFeed = await feed()
+      expect(firstFeed).toContain(`SEQUENCE:${created.icsSequence}`)
+      expect(firstFeed).toContain('SUMMARY:')
+
+      await gql(council, UPDATE, { d: { id: eventId, matrixRoomId: room, title: `${title} — перенос`, startsAt, description: 'Перенесено на час' } })
+      const updated = await listed()
+      expect(updated.title).toBe(`${title} — перенос`)
+      expect(updated.icsSequence, 'правка поднимает номер редакции события').toBeGreaterThan(created.icsSequence)
+      expect(await feed()).toContain(`SEQUENCE:${updated.icsSequence}`)
+
+      const vevents = ((await feed()).match(/BEGIN:VEVENT/g) ?? []).length
+      expect((await gql<any>(council, DELETE, { id: eventId })).chatcoopDeleteCalendarEvent).toBe(true)
+      expect(await listed(), 'удалённое событие в списке не числится').toBeUndefined()
+      expect(((await feed()).match(/BEGIN:VEVENT/g) ?? []).length).toBe(vevents - 1)
+    })
+
+    it(caseName('chat.cal.side.06', 'событие в зашифрованной комнате реестра не создаётся'), async () => {
+      const encrypted = `!${tag('calenc')}:blackbox.test`
+      seedSql(`INSERT INTO chatcoop_managed_matrix_rooms (matrix_room_id, encrypted, room_kind, display_label, project_hash)
+        VALUES ('${encrypted}', true, 'council', 'Зашифрованная комната совета', NULL)`)
+
+      expect((await gqlError(council, CREATE, { d: eventInput({ matrixRoomId: encrypted }) }))?.code).toBe('CHATCOOP_CALENDAR_ROOM_UNAVAILABLE')
+      const rooms = (await gql<any>(council, ROOMS)).chatcoopListCalendarRooms as any[]
+      expect(rooms.map(r => r.matrixRoomId), 'зашифрованная комната календарю не предлагается').not.toContain(encrypted)
+      const list = await gql<any>(council, LIST)
+      expect(list.chatcoopListCalendarEvents.some((e: any) => e.matrixRoomId === encrypted)).toBe(false)
+    })
   })
 })

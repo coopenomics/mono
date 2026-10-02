@@ -412,8 +412,8 @@ cases:
     expect: >
       признак голоса выставлен только у доли того проекта, где голос отдан;
       чужие голоса на признак не влияют
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/result-submission.test.ts
+    status: written
 
   - id: cap.resdesk.side.11
     level: backend
@@ -436,8 +436,8 @@ cases:
       в первом случае возвращаются доли проектов с непустым родителем, во
       втором — доли проектов, у которых родителя нет: и когда родитель пустой
       хэш, и когда он не заполнен вовсе
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/project-contributors.test.ts
+    status: written
 
   - id: cap.resdesk.break.03
     level: backend

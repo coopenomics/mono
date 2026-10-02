@@ -24,3 +24,12 @@ export * as SetRecoveryStrategy from './setRecoveryStrategy'
 
 /** Снять приложение-аутентификатор у пайщика (председатель) */
 export * as ResetParticipantTwoFactor from './resetParticipantTwoFactor'
+
+/** Отозвать скомпрометированный ключ пайщика (председатель) */
+export * as RevokeParticipantKey from './revokeParticipantKey'
+
+/** Запросить согласие пайщика на принудительное восстановление (председатель) */
+export * as RequestForceRecoveryConsent from './requestForceRecoveryConsent'
+
+/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
+export * as AuthorizeForceRecovery from './authorizeForceRecovery'

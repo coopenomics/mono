@@ -122,6 +122,7 @@ function makeService(overrides: {
     certificate as any,
     deviceTracking as any,
     sessionMetadata as any,
+    { assertNotRevoked: jest.fn(async () => undefined) } as any,
   );
   const service = new VerifyTimestampService(
     redis as any,

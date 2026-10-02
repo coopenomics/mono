@@ -176,6 +176,18 @@ describe('Благорост: приём РИД — путь результат�
     expect(bobResult, 'предусловие: документ результата участника собран').toMatch(/^[0-9a-f]{64}$/)
   })
 
+  it(caseName('cap.resdesk.side.10', 'признак голоса стоит только у доли проекта, где пайщик голосовал; чужие голоса на него не влияют'), async () => {
+    const VOTING = 'query($f:CapitalSegmentFilter,$o:PaginationInput){ capitalSegments(filter:$f, options:$o){ items{ project_hash username has_voted voting_completed is_votes_calculated } } }'
+    const d = await gql<any>(await tokenOf(alice), VOTING, { f: { username: alice.account }, o: { page: 1, limit: 100 } })
+    const byProject = new Map<string, any>((d.capitalSegments.items as any[]).map(s => [s.project_hash, s]))
+    expect(byProject.get(component)?.has_voted, 'в компоненте участница голосовала').toBe(true)
+    expect(byProject.get(project)?.has_voted, 'в проекте голосования не было').toBe(false)
+    expect(byProject.get(emptyComponent)?.has_voted, 'в соседнем компоненте голосовал только сосед по проекту').toBe(false)
+
+    // cap.contrib.side.16: в компоненте все голоса получены — доля приходит с признаком закрытого голосования.
+    expect(byProject.get(component)).toMatchObject({ voting_completed: true, is_votes_calculated: true })
+  })
+
   it(caseName('l2.pnam.side.09', 'коммиты проекта показаны отдельным процессом с якорем на проекте, хотя цепь называет нитку приёмом РИД'), async () => {
     const council = await tokenOf(CHAIRMAN)
     const view = await waitFor(async () => {

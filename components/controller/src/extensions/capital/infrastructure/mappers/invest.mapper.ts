@@ -40,7 +40,8 @@ export class InvestMapper {
         username: entity.username,
         invest_hash: entity.invest_hash,
         project_hash: entity.project_hash,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         amount: entity.amount,
         invested_at: entity.invested_at.toISOString(),
         statement: entity.statement,
@@ -76,7 +77,8 @@ export class InvestMapper {
         username: domain.username as string,
         invest_hash: domain.invest_hash,
         project_hash: domain.project_hash as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         amount: domain.amount as string,
         invested_at: new Date(domain.invested_at ?? new Date()),
         statement: domain.statement as ISignedDocument,

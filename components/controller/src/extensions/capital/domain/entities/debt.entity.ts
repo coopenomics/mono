@@ -134,6 +134,13 @@ export class DebtDomainEntity
    */
   private mapStatusToDomain(blockchainStatus?: string): DebtStatus {
     switch (blockchainStatus) {
+      // Статусы контракта (debts.hpp): создан, одобрен председателем, утверждён советом, выплачен.
+      case 'created':
+        return DebtStatus.PENDING;
+      case 'authorized':
+        return DebtStatus.APPROVED;
+      case 'paid':
+        return DebtStatus.ACTIVE;
       case 'pending':
         return DebtStatus.PENDING;
       case 'approved':

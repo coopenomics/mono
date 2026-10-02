@@ -40,7 +40,8 @@ export class DebtMapper {
         username: entity.username,
         debt_hash: entity.debt_hash,
         project_hash: entity.project_hash,
-        status: entity.status,
+        // Статус цепи как есть — из blockchain_status; доменный статус сущность выводит из него сама.
+        status: entity.blockchain_status as any,
         repaid_at: entity.repaid_at.toISOString(),
         amount: entity.amount,
         statement: entity.statement,
@@ -77,7 +78,8 @@ export class DebtMapper {
         username: domain.username as string,
         debt_hash: domain.debt_hash,
         project_hash: domain.project_hash as string,
-        status: domain.blockchain_status as any,
+        // В колонку статуса идёт доменный статус; статус цепи как есть лежит в blockchain_status.
+        status: domain.status,
         repaid_at: domain.repaid_at ? new Date(domain.repaid_at) : new Date(),
         amount: domain.amount as string,
         statement: domain.statement as ISignedDocument,

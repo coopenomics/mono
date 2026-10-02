@@ -37,7 +37,8 @@ export class ExpenseTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'varchar' })
   blockchain_status!: string;
 
-  @Column({ type: 'bigint' })
+  // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
+  @Column({ type: 'varchar' })
   amount!: string;
 
   @Column({ type: 'text' })
@@ -55,7 +56,8 @@ export class ExpenseTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'timestamp' })
   spended_at!: Date;
 
-  @Column({ type: 'timestamp' })
+  // Цепь даты создания записи не хранит — колонка необязательна (время появления в базе — `_created_at`).
+  @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
 
   // Доменные поля (расширения)

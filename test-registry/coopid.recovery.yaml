@@ -263,3 +263,11 @@ cases:
     test: components/controller/src/application/auth-v2/recovery/recovery-strategy.service.spec.ts
     api: components/api-tests/src/coopid/recovery.test.ts
     status: passing
+
+  - id: cid.rec.break.09
+    level: backend
+    kind: break
+    scenario: восстановление доступа офлайн-кодом — кодом, которого нет, и без кода
+    expect: отказ invalid_offline_code (400), токен восстановления не выдаётся
+    test: components/api-tests/src/coopid/recovery.test.ts
+    status: written

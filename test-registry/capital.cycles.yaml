@@ -1,0 +1,65 @@
+feature: capital.cycles
+title: Циклы разработки — именованные отрезки времени со статусом
+
+# Цикл заводит председатель: название, даты начала и конца, статус (будущий,
+# идёт, завершён). Список циклов читают все пайщики, фильтр — по названию,
+# статусу и признаку «идёт».
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, запись в таблицу
+# capital_cycles не трогал ни один сценарий внешнего слоя (карта готовности к
+# уходу с TypeORM, C28-81).
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/dto/generation/create-cycle-input.dto.ts
+    - components/controller/src/extensions/capital/application/dto/generation/cycle.dto.ts
+    - components/controller/src/extensions/capital/application/dto/generation/cycle-filter.input.ts
+    - components/controller/src/extensions/capital/domain/entities/cycle.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/cycle.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/cycle.typeorm-repository.ts
+  ui:
+    - components/desktop/extensions/capital/features/Cycle/**
+    - components/desktop/extensions/capital/entities/Cycle/**
+
+cases:
+  - id: cap.cycle.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель заводит цикл без указания статуса
+    expect: цикл сохранён будущим с отправленными датами
+    test: components/api-tests/src/capital/cycles.test.ts
+    status: written
+
+  - id: cap.cycle.happy.02
+    level: backend
+    kind: happy
+    scenario: цикл заводится сразу действующим
+    expect: цикл сохранён со статусом «идёт»
+    test: components/api-tests/src/capital/cycles.test.ts
+    status: written
+
+  - id: cap.cycle.happy.03
+    level: backend
+    kind: happy
+    scenario: пайщик читает список циклов — по названию, по статусу, по признаку «идёт»
+    expect: цикл находится по названию; действующий цикл попадает в выборки по статусу и «идёт», будущий — ни в одну
+    test: components/api-tests/src/capital/cycles.test.ts
+    status: written
+
+  - id: cap.cycle.side.01
+    level: backend
+    kind: side
+    scenario: цикл заводит член совета, пайщик без роли, гость
+    expect: члену совета и пайщику отказ по правам, гостю отказ входа; цикл не создаётся
+    test: components/api-tests/src/capital/cycles.test.ts
+    status: written
+
+  - id: cap.cycle.side.02
+    level: backend
+    kind: side
+    scenario: цикл с датой конца раньше начала, с нечитаемой датой, с названием, которое уже занято
+    expect: >
+      не решено. Сейчас даты и название не проверяются: конец раньше начала и
+      повтор названия принимаются, нечитаемая дата доходит до базы
+    test: ~
+    status: missing
+    decision_needed: true

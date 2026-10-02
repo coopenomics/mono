@@ -28,6 +28,15 @@ export class GitHubService {
     };
   }
 
+  /**
+   * Адрес GitHub API из окружения узла (GITHUB_API_URL). Не задан — Octokit
+   * ходит на api.github.com; на стенде внешних тестов здесь подставной узел.
+   */
+  private get apiUrl(): string | undefined {
+    const url = this.integrations.get<{ api_url?: string }>('capital', 'github')?.api_url?.trim();
+    return url ? url.replace(/\/+$/, '') : undefined;
+  }
+
   private readonly logger = new Logger(GitHubService.name);
   private octokit: Octokit | null = null;
 
@@ -44,7 +53,8 @@ export class GitHubService {
   reconfigureWithCapitalExtensionEncrypted(githubApiTokenEncrypted: string | undefined): void {
     const plain = resolveCapitalGithubApiPlainToken(githubApiTokenEncrypted, this.tokenSources);
     if (plain) {
-      this.octokit = new Octokit({ auth: plain });
+      const baseUrl = this.apiUrl;
+      this.octokit = new Octokit(baseUrl ? { auth: plain, baseUrl } : { auth: plain });
       this.logger.log('GitHub API инициализирован');
     } else {
       this.octokit = null;

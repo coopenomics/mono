@@ -185,8 +185,8 @@ cases:
     expect: >
       пустой ответ с нулевым счётчиком — количество чужих задач тоже не
       раскрывается
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   - id: cap.access.side.08
     level: backend
@@ -197,8 +197,8 @@ cases:
     expect: >
       счётчик и число страниц считаются по доступным задачам; страницы не
       приходят рваными из-за отсева после выборки
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   # ── Переписка: доступ проверяется по самой комнате ─────────────────────────
 

@@ -85,9 +85,7 @@ Recovery / 2FA:
 - `coopid.security.suspicious_login_reported` — «это не я».
 - `WeakPasswordRejected` — отклонён слабый пароль при регистрации/смене.
 
-Критические действия (multi-party, Эпик 6):
-- `CriticalActionConfirmed` / `CriticalActionExpired` — финализация/истечение (оба подписанта
-  + `payload_hash`).
+Принудительное восстановление доступа (Эпик 6):
 - `ForceRecoveryConsentRequested` / `ForceRecoveryConsentGranted` / `ForceRecoveryAuthorized` /
   `ForceRecoveryDenied` — force-recovery rules.
 - `KeyRevokedManually` — ручной отзыв скомпрометированного ключа (`reason`+`chairman_id`).

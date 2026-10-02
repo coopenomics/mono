@@ -375,16 +375,16 @@ cases:
     expect: >
       отказ по роли: мутация объявлена только для председателя. Проверяется
       мимо интерфейса — кнопка у члена совета и так не отображается
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   - id: cap.alloc.side.13
     level: backend
     kind: side
     scenario: направление средств запрашивает пайщик без роли
     expect: отказ по роли
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   # ── Уровень UI ────────────────────────────────────────────────────────────
 
@@ -552,8 +552,8 @@ cases:
     kind: side
     scenario: возврат средств запрашивает член совета, а не председатель
     expect: отказ по роли — мутация объявлена только для председателя
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/fund-allocation.test.ts
+    status: written
 
   - id: cap.dealloc.side.13
     level: backend
@@ -568,6 +568,16 @@ cases:
     api: components/api-tests/src/capital/dealloc-debt-limit.test.ts
     status: passing
 
+
+  - id: cap.debt.happy.01
+    level: backend
+    kind: happy
+    scenario: участникам компонента выданы ссуды; председатель читает список ссуд компонента
+    expect: в списке ссуды обоих заёмщиков с привязкой к компоненту
+    # До 02.10.2026 зеркало ссуд не писалось: сумма из цепи не ложилась в числовую колонку
+    # (C28-85, находка 59; та же причина была у зеркал вложений в проект и расходов).
+    test: components/api-tests/src/capital/dealloc-debt-limit.test.ts
+    status: written
   # ── Возврат средств: UI ───────────────────────────────────────────────────
 
   - id: cap.dealloc.happy.03

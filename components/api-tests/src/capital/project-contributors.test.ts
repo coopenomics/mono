@@ -101,6 +101,61 @@ describe('Благорост: участники проекта', () => {
     })
   })
 
+  describe('списки участников', () => {
+    const PAGE = `query($f:CapitalSegmentFilter,$o:PaginationInput){ capitalSegments(filter:$f, options:$o){
+      totalCount totalPages currentPage items{ username project_hash parent_hash project_title } } }`
+
+    async function page(filter: Record<string, unknown>, options?: Record<string, unknown>) {
+      const d = await gql<any>(await tokenOf(CHAIRMAN), PAGE, { f: filter, o: options })
+      return d.capitalSegments as { totalCount: number, totalPages: number, currentPage: number, items: any[] }
+    }
+
+    it(caseName('cap.contrib.happy.02', 'участники компонента — только доли этого компонента, по одной на пайщика'), async () => {
+      const list = await page({ project_hash: component })
+      expect(list.items.map(s => s.username).sort()).toEqual([alice.account, bob.account].sort())
+      expect(list.items.every(s => s.project_hash === component)).toBe(true)
+      expect(list.totalCount).toBe(2)
+    })
+
+    it(caseName('cap.contrib.happy.03', 'участники проекта с компонентами — доли объединены по пайщику: один человек — одна строка'), async () => {
+      const list = await page({ project_hash: project })
+      const names = list.items.map(s => s.username)
+      expect(names.sort(), 'мастер с долями в проекте и компоненте — одной строкой').toEqual([alice.account, bob.account].sort())
+      expect(list.totalCount).toBe(2)
+    })
+
+    it(caseName('cap.contrib.side.04', 'страница отрезается после объединения — общее число считается по объединённым строкам'), async () => {
+      const first = await page({ project_hash: project }, { page: 1, limit: 1 })
+      expect(first.items).toHaveLength(1)
+      expect(first.totalCount).toBe(2)
+      expect(first.totalPages).toBe(2)
+      const second = await page({ project_hash: project }, { page: 2, limit: 1 })
+      expect(second.items).toHaveLength(1)
+      expect(second.items[0].username).not.toBe(first.items[0].username)
+    })
+
+    it(caseName('cap.contrib.break.01', 'больше тысячи участников на страницу не отдаётся — отказ с допустимыми границами'), async () => {
+      const err = await gqlError(await tokenOf(CHAIRMAN), PAGE, { f: { project_hash: project }, o: { page: 1, limit: 1001 } })
+      expect(err, 'запрос сверх предела отклонён').not.toBeNull()
+    })
+
+    it(caseName('cap.contrib.side.05', 'хеш, которого нет среди проектов, — пустой список без ошибки'), async () => {
+      const list = await page({ project_hash: 'a'.repeat(64) })
+      expect(list.items).toEqual([])
+      expect(list.totalCount).toBe(0)
+    })
+
+    it(caseName('cap.contrib.side.15', 'отбор «только компоненты» и «только проекты верхнего уровня» идёт по проекту доли'), async () => {
+      const inComponents = await page({ username: alice.account, is_component: true }, { page: 1, limit: 100 })
+      expect(inComponents.items.map(s => s.project_hash)).toContain(component)
+      expect(inComponents.items.map(s => s.project_hash)).not.toContain(project)
+
+      const inTopLevel = await page({ username: alice.account, is_component: false }, { page: 1, limit: 100 })
+      expect(inTopLevel.items.map(s => s.project_hash)).toContain(project)
+      expect(inTopLevel.items.map(s => s.project_hash)).not.toContain(component)
+    })
+  })
+
   it(caseName('cap.contrib.side.17', 'рядовой пайщик читает свои доли по всем проектам без указания проекта'), async () => {
     const mine = await segmentsOf(await tokenOf(alice), { username: alice.account })
     expect(mine.length).toBeGreaterThanOrEqual(2)

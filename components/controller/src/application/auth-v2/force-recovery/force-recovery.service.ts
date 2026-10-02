@@ -11,12 +11,6 @@ import {
   type IRecoveryStrategyRepository,
 } from '~/domain/auth-v2/ports/recovery-strategy.port';
 import { DEFAULT_RECOVERY_STRATEGY, RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
-import {
-  CriticalActionStatus,
-  CriticalActionType,
-  PENDING_CRITICAL_ACTIONS_REPOSITORY,
-  type IPendingCriticalActionsRepository,
-} from '~/domain/auth-v2/ports/pending-critical-actions.port';
 import { AuditService } from '../audit/audit.service';
 import { t } from '~/i18n';
 
@@ -41,8 +35,6 @@ export interface ForceRecoveryAuthorizeInput {
   initiatorId: string;
   /** (б) ссылка на blockchain-anchored решение собрания — tx_id в COOPOS. */
   assemblyDecisionTxId?: string;
-  /** При стратегии «решение совета» — id подтверждённого critical action (Story 6.8). */
-  criticalActionId?: string;
   ip?: string | null;
 }
 
@@ -58,8 +50,8 @@ const TX_ID_RE = /^[0-9a-f]{64}$/i;
 /**
  * Force-recovery rules (Story 6.9). Председатель не может сбросить доступ пайщика
  * единолично: требуется (а) согласие самого пайщика по magic-link ИЛИ (б) решение
- * общего собрания (on-chain tx). Дополнительно — multi-party approval (Story 6.8),
- * если стратегия восстановления пайщика = «решение совета». Любой отказ — `403
+ * общего собрания (on-chain tx). Пайщику со стратегией восстановления «решение
+ * совета» председатель доступ не сбрасывает вовсе. Любой отказ — `403
  * ForceRecoveryDenied` + audit; разрешение — audit с `triggered_by: chairman`, после
  * чего смена ключа идёт штатным recovery-flow Эпика 3 (финализация — placeholder 3.3).
  */
@@ -71,7 +63,6 @@ export class ForceRecoveryService {
     @Inject(FORCE_RECOVERY_CONSENT_STORE) private readonly consent: IForceRecoveryConsentStore,
     @Inject(FORCE_RECOVERY_CONSENT_NOTIFIER) private readonly notifier: IForceRecoveryConsentNotifier,
     @Inject(RECOVERY_STRATEGY_REPOSITORY) private readonly strategyRepo: IRecoveryStrategyRepository,
-    @Inject(PENDING_CRITICAL_ACTIONS_REPOSITORY) private readonly criticalRepo: IPendingCriticalActionsRepository,
     private readonly audit: AuditService,
   ) {}
 
@@ -116,11 +107,11 @@ export class ForceRecoveryService {
 
     if (!consentVia) throw await this.deny(ForceRecoveryDenialReason.NoConsent, input);
 
-    // Стратегия «решение совета» → дополнительно подтверждённый critical action (6.8).
+    // Стратегия «решение совета»: доступ такому пайщику восстанавливает совет своим
+    // порядком — единолично, пусть и с согласием пайщика, председатель его не сбрасывает.
     const strategy = (await this.strategyRepo.get(targetId)) ?? DEFAULT_RECOVERY_STRATEGY;
     if (strategy === RecoveryStrategy.Council) {
-      const ok = await this.councilApprovalConfirmed(input.criticalActionId, targetId);
-      if (!ok) throw await this.deny(ForceRecoveryDenialReason.CouncilApprovalMissing, input);
+      throw await this.deny(ForceRecoveryDenialReason.CouncilApprovalMissing, input);
     }
 
     await this.audit.record({
@@ -134,22 +125,10 @@ export class ForceRecoveryService {
         triggered_by: 'chairman',
         consent_via: consentVia,
         assembly_decision_tx: input.assemblyDecisionTxId ?? null,
-        critical_action_id: input.criticalActionId ?? null,
       },
     });
     this.logger.log(`force-recovery авторизован: target=${targetId} via=${consentVia}`);
     return { authorized: true, consentVia, triggeredBy: 'chairman' };
-  }
-
-  private async councilApprovalConfirmed(criticalActionId: string | undefined, targetId: string): Promise<boolean> {
-    if (!criticalActionId) return false;
-    const action = await this.criticalRepo.findById(criticalActionId);
-    return (
-      !!action &&
-      action.status === CriticalActionStatus.Confirmed &&
-      action.actionType === CriticalActionType.ForceRecovery &&
-      action.targetId === targetId
-    );
   }
 
   private async deny(reason: ForceRecoveryDenialReason, input: ForceRecoveryAuthorizeInput): Promise<ForbiddenException> {

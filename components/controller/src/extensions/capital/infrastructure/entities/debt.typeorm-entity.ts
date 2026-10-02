@@ -38,7 +38,8 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'timestamp', nullable: true })
   repaid_at!: Date;
 
-  @Column({ type: 'bigint' })
+  // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
+  @Column({ type: 'varchar' })
   amount!: string;
 
   @Column({ type: 'json' })
@@ -53,7 +54,8 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'text', nullable: true })
   memo!: string;
 
-  @Column({ type: 'timestamp' })
+  // Цепь даты создания записи не хранит — колонка необязательна (время появления в базе — `_created_at`).
+  @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
 
   // Доменные поля (расширения)

@@ -109,6 +109,8 @@ cases:
     test: ~
     status: missing
     decision_needed: false
+    external: unreachable
+    external_reason: "проверяется содержимое журнала контроллера, через API оно не отдаётся"
 
   - id: coop.res.side.05
     level: backend
@@ -122,6 +124,8 @@ cases:
     test: ~
     status: missing
     decision_needed: false
+    external: unreachable
+    external_reason: "срез транзакции лимитом процессорного времени на стенде с одним узлом и свободными ресурсами не воспроизвести"
 
   - id: coop.res.side.06
     level: backend
@@ -130,9 +134,17 @@ cases:
     expect: >
       отдаются занятая и доступная память, процессорное время, полоса и остаток
       системного токена; недоступный узел не обнуляет остальные показатели тика
-    test: ~
-    status: missing
+    test: components/api-tests/src/platform/metrics.test.ts
+    status: written
     decision_needed: false
+
+  - id: coop.res.side.09
+    level: backend
+    kind: side
+    scenario: мониторинг читает метрики состава кооператива и чтения цепи
+    expect: число пайщиков и участников цепи положительно, головной и прочитанный блоки отданы, узел помечен синхронизированным
+    test: components/api-tests/src/platform/metrics.test.ts
+    status: written
 
   - id: coop.res.side.07
     level: ui

@@ -550,8 +550,6 @@ export const AllTypesProps: Record<string,any> = {
 	CreateWithdrawInput:{
 		statement:"ReturnByMoneySignedDocumentInput"
 	},
-	CriticalActionStatus: "enum" as const,
-	CriticalActionType: "enum" as const,
 	CurrentTableStatesFiltersInput:{
 
 	},
@@ -914,10 +912,6 @@ export const AllTypesProps: Record<string,any> = {
 	Init:{
 		organization_data:"CreateInitOrganizationDataInput"
 	},
-	InitiateCriticalActionInput:{
-		action_type:"CriticalActionType",
-		payload:"JSON"
-	},
 	Install:{
 		soviet:"SovietMemberInput",
 		vars:"SetVarsInput"
@@ -937,6 +931,7 @@ export const AllTypesProps: Record<string,any> = {
 	JoinKuDecisionInput:{
 
 	},
+	KeyRevocationStatus: "enum" as const,
 	KuAgendaPointInput:{
 
 	},
@@ -1846,9 +1841,6 @@ export const AllTypesProps: Record<string,any> = {
 		confirmAgreement:{
 			data:"ConfirmAgreementInput"
 		},
-		confirmCriticalAction:{
-
-		},
 		confirmEmailVerification:{
 			data:"ConfirmEmailVerificationInputDTO"
 		},
@@ -2016,9 +2008,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		initSystem:{
 			data:"Init"
-		},
-		initiateCriticalAction:{
-			data:"InitiateCriticalActionInput"
 		},
 		installExtension:{
 			data:"ExtensionInput"
@@ -2927,9 +2916,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		getCapitalProjectLogs:{
 			data:"GetCapitalLogsInput"
-		},
-		getCriticalActionAuditTrail:{
-
 		},
 		getCurrentTableStates:{
 			filters:"CurrentTableStatesFiltersInput",
@@ -4383,7 +4369,7 @@ export const ReturnTypes: Record<string,any> = {
 		_created_at:"DateTime",
 		_id:"String",
 		_updated_at:"DateTime",
-		amount:"Float",
+		amount:"String",
 		approved_statement:"DocumentAggregate",
 		authorization:"DocumentAggregate",
 		block_num:"Int",
@@ -4437,12 +4423,12 @@ export const ReturnTypes: Record<string,any> = {
 		_created_at:"DateTime",
 		_id:"String",
 		_updated_at:"DateTime",
-		amount:"Float",
+		amount:"String",
 		block_num:"Int",
 		blockchain_status:"String",
 		coopname:"String",
 		coordinator:"String",
-		coordinator_amount:"Float",
+		coordinator_amount:"String",
 		id:"Int",
 		invest_hash:"String",
 		invested_at:"String",
@@ -5264,22 +5250,6 @@ export const ReturnTypes: Record<string,any> = {
 		id:"String",
 		question:"String",
 		title:"String"
-	},
-	CriticalActionAuditEntry:{
-		action_type:"CriticalActionType",
-		confirmer_ids:"CriticalActionConfirmation",
-		created_at:"String",
-		finalized_at:"String",
-		id:"String",
-		initiated_at:"String",
-		initiator_id:"String",
-		payload_hash:"String",
-		status:"CriticalActionStatus",
-		target_id:"String"
-	},
-	CriticalActionConfirmation:{
-		at:"String",
-		by:"String"
 	},
 	CurrentInstanceDTO:{
 		blockchain_status:"String",
@@ -7168,7 +7138,6 @@ export const ReturnTypes: Record<string,any> = {
 		completeChairmanGeneralMeetStep:"ChairmanOnboardingState",
 		completeExtensionOnboardingStep:"ExtensionOnboardingState",
 		confirmAgreement:"Transaction",
-		confirmCriticalAction:"PendingCriticalAction",
 		confirmEmailVerification:"Boolean",
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
@@ -7219,7 +7188,6 @@ export const ReturnTypes: Record<string,any> = {
 		generateUserAgreement:"GeneratedDocument",
 		generateWalletAgreement:"GeneratedDocument",
 		initSystem:"SystemInfo",
-		initiateCriticalAction:"PendingCriticalAction",
 		installExtension:"Extension",
 		installSystem:"SystemInfo",
 		kuApproveTrusted:"Transaction",
@@ -7765,18 +7733,6 @@ export const ReturnTypes: Record<string,any> = {
 		totalCount:"Int",
 		totalPages:"Int"
 	},
-	PendingCriticalAction:{
-		action_type:"CriticalActionType",
-		actor_id:"String",
-		confirmations:"CriticalActionConfirmation",
-		created_at:"String",
-		expires_at:"String",
-		finalized_at:"String",
-		id:"String",
-		payload:"JSON",
-		status:"CriticalActionStatus",
-		target_id:"String"
-	},
 	Permission:{
 		parent:"String",
 		perm_name:"String",
@@ -8059,7 +8015,6 @@ export const ReturnTypes: Record<string,any> = {
 		getCapitalOnboardingState:"CapitalOnboardingState",
 		getCapitalProjectLogs:"PaginatedCapitalLogsPaginationResult",
 		getChairmanOnboardingState:"ChairmanOnboardingState",
-		getCriticalActionAuditTrail:"CriticalActionAuditEntry",
 		getCurrentInstance:"CurrentInstanceDTO",
 		getCurrentTableStates:"PaginatedCurrentTableStatesPaginationResult",
 		getDeltas:"PaginatedDeltasPaginationResult",
@@ -8412,7 +8367,7 @@ export const ReturnTypes: Record<string,any> = {
 	RevokeKeyResult:{
 		must_recover:"Boolean",
 		sessions_revoked:"Int",
-		status:"String",
+		status:"KeyRevocationStatus",
 		target_id:"String"
 	},
 	RevokedSessionsResult:{

@@ -151,16 +151,18 @@ cases:
     kind: side
     scenario: registerParticipant целиком — отказ 400 без письма, сохранение ответов у кандидата, письмо в событии participant::registered и в описании участника capital
     expect: заявление без письма не принимается; после приёма письмо в candidates.intake_answers и в contributor.about (непустое описание не затирается)
-    test: ~
-    status: missing
+    # Снаружи видны отказ без письма (reg.intake.side.03) и сохранённые у кандидата ответы
+    # (reg.intake.happy.02, getCandidateIntake); событие и описание участника — изнутри.
+    test: components/api-tests/src/registration/intake-forms.test.ts
+    status: written
 
   - id: reg.intake.side.11
     level: backend
     kind: side
     scenario: getCandidateIntake запрашивает не председатель и не член совета
     expect: отказ по ролям; ответы заявителя посторонним не отдаются
-    test: ~
-    status: missing
+    test: components/api-tests/src/registration/intake-forms.test.ts
+    status: written
 
   - id: reg.intake.happy.04
     level: ui

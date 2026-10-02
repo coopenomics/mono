@@ -138,4 +138,19 @@ describe('Благорост — предел возврата средств п
     const after = (await gql<any>(chairman, PROJECT, { d: { hash: component } })).capitalProject.fact
     expect(amount(after.invest_pool)).toBeCloseTo(investPool, 4)
   })
+
+  // До 02.10.2026 зеркало ссуд не писалось вовсе: сумма из цепи («5033.0000 RUB») не ложилась
+  // в числовую колонку, вставка падала (C28-85, находка 59).
+  it(caseName('cap.debt.happy.01', 'ссуды участников компонента видны в списке ссуд'), async () => {
+    const DEBTS = 'query($f:DebtFilter,$o:PaginationInput){ capitalDebts(filter:$f, options:$o){ totalCount items{ debt_hash username project_hash present amount } } }'
+    // Зеркало пишется разбором цепи: ссуды выданы предыдущими шагами.
+    const d = await waitFor(async () => {
+      const r = await gql<any>(chairman, DEBTS, { f: { projectHash: component }, o: { page: 1, limit: 20 } })
+      return r.capitalDebts.totalCount >= 2 ? r : null
+    }, { timeoutMs: 60_000, intervalMs: 1_500, label: 'ссуды компонента в зеркале узла' })
+    expect(d.capitalDebts.totalCount).toBe(2)
+    expect(d.capitalDebts.items.every((i: any) => /^\d+\.\d{4} [A-Z]+$/.test(String(i.amount))), 'сумма ссуды — актив строкой').toBe(true)
+    expect(d.capitalDebts.items.map((i: any) => i.username).sort()).toEqual([minor.account, major.account].sort())
+    expect(d.capitalDebts.items.every((i: any) => i.project_hash === component && i.present)).toBe(true)
+  })
 })

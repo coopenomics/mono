@@ -759,14 +759,6 @@
     "council": "deny",
     "chairman": "pass"
   },
-  "getCriticalActionAuditTrail": {
-    "guest": "deny",
-    "member": "deny",
-    "supplier": "deny",
-    "branchChairman": "deny",
-    "council": "pass",
-    "chairman": "pass"
-  },
   "getCurrentInstance": {
     "guest": "deny",
     "member": "pass",
@@ -3159,14 +3151,6 @@
     "council": "pass",
     "chairman": "pass"
   },
-  "confirmCriticalAction": {
-    "guest": "deny",
-    "member": "deny",
-    "supplier": "deny",
-    "branchChairman": "deny",
-    "council": "pass",
-    "chairman": "pass"
-  },
   "confirmEmailVerification": {
     "guest": "pass",
     "member": "pass",
@@ -3557,14 +3541,6 @@
     "supplier": "deny",
     "branchChairman": "deny",
     "council": "pass",
-    "chairman": "pass"
-  },
-  "initiateCriticalAction": {
-    "guest": "deny",
-    "member": "deny",
-    "supplier": "deny",
-    "branchChairman": "deny",
-    "council": "deny",
     "chairman": "pass"
   },
   "initSystem": {

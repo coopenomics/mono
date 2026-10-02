@@ -1,0 +1,156 @@
+feature: marketplace.storage
+title: Адресное хранение склада участка — типы боксов, боксы и ячейки
+
+# Типы боксов — общий справочник кооператива: габариты одинаковы на всех
+# участках, по объёму считается перевозка. Справочник ведёт председатель.
+# Боксы и ячейки принадлежат участку, их ведёт оператор этого участка:
+# заводит боксы партией с кодами подряд, строит сетку ячеек «секция × ярус»,
+# ставит бокс в ячейку своего участка и снимает с адреса. Бокс без адреса —
+# штатное состояние. Вывести из оборота можно только пустую ячейку и пустой
+# бокс.
+#
+# Заведено 02.10.2026 (C28-85): серверная часть жила вне реестра, запись в
+# таблицы marketplace_container_type, marketplace_container и
+# marketplace_storage_cell не трогал ни один сценарий внешнего слоя (карта
+# готовности к уходу с TypeORM, C28-81). Экран оператора проверяется сценарием
+# реестра marketplace.stock.
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-container.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-storage-cell.resolver.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-container.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-storage-cell.service.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-container.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-storage-cell.dto.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-container.entity.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-container.types.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-storage-cell.entity.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-storage-cell.types.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-container-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-storage-cell-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-container.entity.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-storage-cell.entity.ts
+
+cases:
+  - id: mkt.store.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель заводит тип бокса с габаритами и предельной загрузкой
+    expect: объём посчитан из габаритов, тип действует и виден оператору участка
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.01
+    level: backend
+    kind: side
+    scenario: тип бокса с объёмом, заданным вручную; с нулевым габаритом; с пустым названием
+    expect: ручной объём сохраняется как задан; нулевой габарит и пустое название — отказ своим кодом
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.02
+    level: backend
+    kind: side
+    scenario: тип бокса заводит оператор участка или пайщик
+    expect: отказ по правам, тип не заводится
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.02
+    level: backend
+    kind: happy
+    scenario: оператор участка заводит партию боксов одного типа с общей подписью
+    expect: боксы получают уникальные коды, стоят без адреса, видны в списке участка и находятся по коду с этикетки
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.03
+    level: backend
+    kind: side
+    scenario: партия с нулём боксов, с типом, которого нет, сверх предела партии; поиск бокса по коду, которого нет
+    expect: отказ своим кодом на каждый случай
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.04
+    level: backend
+    kind: side
+    scenario: оператор другого участка заводит и правит боксы чужого участка; пайщик читает и заводит боксы
+    expect: отказ по правам, боксы участка не меняются
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.03
+    level: backend
+    kind: happy
+    scenario: оператор строит сетку ячеек из секций и диапазона ярусов, затем строит сетку шире прежней
+    expect: по ячейке на каждую пару «секция — ярус»; при повторе существующие ячейки остаются, добавляются только недостающие
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.04
+    level: backend
+    kind: happy
+    scenario: оператор заводит одиночную ячейку с подписью и правит подпись
+    expect: ячейка заведена действующей, подпись меняется
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.05
+    level: backend
+    kind: side
+    scenario: сетка без секций, с повтором секции, с перевёрнутым диапазоном ярусов, с нулевым ярусом
+    expect: отказ своим кодом на каждый случай
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.05
+    level: backend
+    kind: happy
+    scenario: оператор переименовывает секцию; новое название уже занято; секции нет
+    expect: все ячейки секции получают новое название; занятое название и отсутствующая секция — отказ
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.06
+    level: backend
+    kind: side
+    scenario: оператор другого участка заводит ячейку и разбирает секцию на чужом складе; пайщик читает ячейки
+    expect: отказ по правам, склад участка не меняется
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.06
+    level: backend
+    kind: happy
+    scenario: бокс ставят в ячейку, переставляют в другую, снимают с адреса
+    expect: адрес бокса меняется; размещённый бокс уходит из выборки «без адреса»; снятый снова без адреса
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.07
+    level: backend
+    kind: side
+    scenario: бокс ставят в ячейку чужого участка, в ячейку, которой нет; переставляют бокс, которого нет
+    expect: отказ своим кодом — имущество не переезжает между участками мимо процесса передачи
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.08
+    level: backend
+    kind: side
+    scenario: вывод из оборота ячейки с боксом; вывод пустой ячейки; бокс в выведенную ячейку
+    expect: занятая ячейка остаётся в обороте; пустая выводится и пропадает из действующих; в выведенную бокс не ставится
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.happy.07
+    level: backend
+    kind: happy
+    scenario: разбор секции целиком — с боксом внутри и после его снятия; вывод боксов из оборота
+    expect: >
+      секция с боксом не разбирается; секция и ярус в одном запросе или ни
+      того ни другого — отказ; пустая секция выводится целиком; пустые боксы
+      выводятся из оборота и пропадают из действующих
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written

@@ -529,8 +529,8 @@ cases:
     kind: side
     scenario: Оператор формирует бандл выдачи, у одной строки цена выше потолка либо на складе нет принятого.
     expect: бандл не сохраняется, ошибка возвращается оператору; пустого бандла без саг не остаётся
-    test: ~
-    status: missing   # сервис бандла без юнит-обвязки; проверка вынесена в issuance.assertFactAllowed и зовётся до сохранения
+    test: components/api-tests/src/marketplace/issuance.test.ts
+    status: written
 
   - id: mkt.iss.side.54
     level: backend

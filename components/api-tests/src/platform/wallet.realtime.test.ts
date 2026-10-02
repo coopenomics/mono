@@ -9,7 +9,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, ROLES, caseName, freshMember, login, tokenOf } from '../core'
+import { COOP, ROLES, caseName, freshMember, login, tokenOf, waitFor } from '../core'
 import type { WsConn, WsSub } from './platform-a.helpers'
 import {
   WS_FORBIDDEN,
@@ -56,8 +56,14 @@ describe('wallet.realtime: сигнал об изменении кошелька
 
     await chainDeposit(member.account, 300)
 
-    event = (await own.waitFor(e => own.events.indexOf(e) >= seenBefore && e.walletEvents?.wallet_name === 'w.wal.share' ? e.walletEvents : null, 60_000, 'сигнала паевого кошелька')) as any
-    availableAfter = await mirroredAvailable(memberToken, member.account)
+    await own.waitFor(e => own.events.indexOf(e) >= seenBefore && e.walletEvents?.wallet_name === 'w.wal.share' ? e.walletEvents : null, 60_000, 'сигнала паевого кошелька')
+    // Первым после тишины может дойти запоздавший сигнал о заведении кошелька при приёме
+    // пайщика — остаток по нему ещё прежний. Ждём остаток после взноса и берём последний сигнал.
+    availableAfter = await waitFor(async () => {
+      const available = await mirroredAvailable(memberToken, member.account)
+      return Math.abs(available - (before + 300)) < 1e-4 ? available : null
+    }, { timeoutMs: 60_000, intervalMs: 500, label: 'остаток паевого кошелька после взноса' })
+    event = own.events.filter(e => own.events.indexOf(e) >= seenBefore && e.walletEvents?.wallet_name === 'w.wal.share').at(-1)!.walletEvents
     expect(availableAfter).toBeCloseTo(before + 300, 4)
     await quietWindow()
   })

@@ -187,8 +187,15 @@ jobs:
       - name: Отказы стенда (пауза чтения цепи, остановка цепи)
         id: faults
         if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: bash scripts/blackbox/stack.sh faults
+
+      # Отдельный снимок: иначе запросы фазы отказов попадают в снимок матрицы
+      # прав и в карте покрытия считаются «только матрицей».
+      - name: База — снимок после отказов стенда
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
+        continue-on-error: true
+        run: bash scripts/blackbox/stack.sh dbcov snap faults
 
       # Матрица прав сверяется с утверждённым снимком
       # (components/api-tests/src/rights/snapshot.json, утверждён владельцем
@@ -209,6 +216,14 @@ jobs:
       - name: Логи стенда
         if: always()
         run: bash scripts/blackbox/stack.sh collect
+
+      # Карта собирается до выгрузки: db-coverage.md и db-coverage.json едут в
+      # артефакт, а не только в сводку прогона.
+      - name: База — карта покрытия таблиц
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -d .blackbox/dbcov ]; then node scripts/blackbox/db-coverage.mjs .blackbox > /dev/null; fi
 
       - name: Артефакты
         if: always()

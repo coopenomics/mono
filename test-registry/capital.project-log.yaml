@@ -1,0 +1,80 @@
+feature: capital.project-log
+title: Журнал событий проекта и задачи
+
+# Журнал проекта собирается из журнала мутаций узла: каждое успешное действие
+# над проектом, его компонентами и задачами становится событием с автором и
+# временем. Отказанные действия в журнал не попадают. Журнал задачи — те же
+# события, отобранные по задаче. События чужих личных проектов пайщику не
+# показываются.
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, чтение журнала мутаций
+# (mutation_logs) не проверял ни один сценарий внешнего слоя (случай
+# sys.ext.side.07 реестра system.extensions).
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/log.resolver.ts
+    - components/controller/src/extensions/capital/application/use-cases/log.interactor.ts
+    - components/controller/src/extensions/capital/application/services/log.service.ts
+    - components/controller/src/extensions/capital/application/services/mutation-log-mapper.service.ts
+
+cases:
+  - id: cap.log.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель читает журнал проекта после создания проекта, компонента, задачи и правки задачи
+    expect: в журнале события проекта, компонента и задачи с автором и названием, от новых к старым
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.happy.02
+    level: backend
+    kind: happy
+    scenario: журнал читается по задаче
+    expect: только события этой задачи — её создание и правка
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.side.01
+    level: backend
+    kind: side
+    scenario: журнал проекта без событий компонентов; без событий задач
+    expect: отбор убирает события компонентов и задач соответственно, события самого проекта остаются
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.side.02
+    level: backend
+    kind: side
+    scenario: журнал читается постранично; отбирается по автору, у которого действий в проекте нет
+    expect: счётчик и число страниц считаются по всему журналу проекта; по чужому автору — пусто
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.side.03
+    level: backend
+    kind: side
+    scenario: над проектом выполняют действие, которое сервер отклоняет
+    expect: отклонённое действие событием журнала не становится
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.side.04
+    level: backend
+    kind: side
+    scenario: журнал проекта и задачи читает гость
+    expect: отказ входа
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
+
+  - id: cap.log.side.05
+    level: backend
+    kind: side
+    scenario: в журнале проекта ищут правки задач, в журнале задачи — её создание
+    expect: >
+      правка задачи видна в журнале её проекта, создание задачи — в журнале
+      задачи: проект правки берётся у самой задачи, заведённая задача находится
+      по проекту, автору и времени записи
+    # До 02.10.2026 оба события терялись (C28-85, находка 65): журнал привязывал
+    # событие только по полям самой мутации.
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written
