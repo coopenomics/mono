@@ -131,7 +131,7 @@ describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => 
       driverError: { code: '23505', constraint },
     });
 
-  function makeAdapter(saveImpl: jest.Mock) {
+  function makeAdapter(insertImpl: jest.Mock) {
     const repo = {
       createQueryBuilder: jest.fn().mockReturnValue({
         select: jest.fn().mockReturnThis(),
@@ -139,7 +139,11 @@ describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => 
         getRawOne: jest.fn().mockResolvedValue({ maxId: 12, maxSort: 12 }),
       }),
       create: jest.fn((row) => row),
-      save: saveImpl,
+      insert: insertImpl,
+      // save при занятом номере переписал бы чужую строку — создание идёт только вставкой.
+      save: jest.fn(() => {
+        throw new Error('save в создании категории запрещён: он переписывает строку с занятым номером');
+      }),
     };
     const mapper = { toDomain: jest.fn((r) => r) };
     return {
@@ -165,12 +169,13 @@ describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => 
     const save = jest
       .fn()
       .mockRejectedValueOnce(uniqueViolation('marketplace_category_pkey'))
-      .mockResolvedValueOnce({ id: 14, display_name: 'Мёд' });
+      .mockResolvedValueOnce(undefined);
     const { adapter } = makeAdapter(save);
 
-    await expect(adapter.createCustom(COOP, 'Мёд')).resolves.toEqual({
-      id: 14,
+    await expect(adapter.createCustom(COOP, 'Мёд')).resolves.toMatchObject({
+      id: 13,
       display_name: 'Мёд',
+      coopname: COOP,
     });
     expect(save).toHaveBeenCalledTimes(2);
   });

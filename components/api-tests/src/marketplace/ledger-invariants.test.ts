@@ -55,19 +55,13 @@ describe('Стол заказов: инварианты учёта на данн
     expect(i1.details).toEqual([])
   })
 
-  it(caseName('mkt.supply.side.41', 'проводки по 86 и долг поставщикам на данных стенда сходятся; выдача из свободного паевого не считается выдачей без резерва: I2, I6, I7'), async () => {
-    for (const code of ['I2', 'I7']) {
+  it(caseName('mkt.supply.side.41', 'проводки по 86, резервы заказов и долг поставщикам на данных стенда сходятся: I2, I6, I7'), async () => {
+    // I6: стенд полон недовыдач и выдач по сниженной цене — часть резерва
+    // возвращена, часть списана. До 02.10.2026 сверка считала это нарушением.
+    for (const code of ['I2', 'I6', 'I7']) {
       const r = of(code)
       expect(r.ok, explain(r)).toBe(true)
     }
-    // Находка 54 (01.10.2026, в отчёте C28-85): I6 считает нарушением любой
-    // процесс, где есть и резерв, и разблокировка, и списание, — то есть
-    // частичную выдачу и выдачу со снижением цены, которыми стенд полон.
-    // Пока правило не разобрано владельцем, здесь утверждается только то, что
-    // требует случай: списаний и разблокировок без резерва на стенде нет.
-    const i6 = of('I6')
-    const other = i6.details.filter(d => !/двойное закрытие резерва/.test(d.message))
-    expect(other.map(d => `${d.process_hash.slice(0, 12)} ${d.message}`)).toEqual([])
   })
 
   it(caseName('mkt.supply.side.36', 'приёмка без выплаты и признанный, но не удержанный долг не дают расхождения счёта 76'), async () => {
@@ -77,8 +71,7 @@ describe('Стол заказов: инварианты учёта на данн
   })
 
   it(caseName('mkt.supply.side.41', 'сверка целиком зелёная и закрыта от пайщика'), async () => {
-    // I6 — см. находку 54 выше.
-    expect(results.filter(r => !r.ok && r.invariant !== 'I6').map(explain)).toEqual([])
+    expect(results.filter(r => !r.ok).map(explain)).toEqual([])
     const denied = await gqlError(await tokenOf(ROLES.member()), INVARIANTS)
     expect(denied).not.toBeNull()
   })

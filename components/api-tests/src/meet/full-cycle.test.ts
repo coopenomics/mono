@@ -24,7 +24,6 @@ import {
   fixture,
   grantMemberKey,
   gql,
-  gqlRaw,
   signDocument,
   tableRows,
   toChainDoc,
@@ -190,63 +189,47 @@ describe('общее собрание: созыв, голосование упо
       const rows = await tableRows<any>('meet', COOP, 'meets')
       return rows.some(r => String(r.hash).toLowerCase() === meetHash.toLowerCase()) ? null : true
     }, { timeoutMs: 90_000, intervalMs: 1_500, label: 'закрытое собрание стёрто из цепи' })
-    // Итог собрания узел записывает по действию цепи о принятом решении.
+    // Состояние закрытого собрания узел берёт из журнала изменений цепи, итог —
+    // из действия цепи о принятом решении.
     closedForVoter = await waitFor(async () => {
       const m = await meetAs(trustees[0])
-      return m.processed || m.processing?.extendedStatus === 'CLOSED' ? m : null
+      return m.processed && m.processing?.extendedStatus === 'CLOSED' ? m : null
     }, { timeoutMs: 60_000, intervalMs: 1_000, label: 'закрытое собрание читается после стирания из цепи' })
     closedForOutsider = await meetAs(ROLES.member())
     closedList = ((await gql<any>(chairToken, LIST, { d: { coopname: COOP } })).getMeets as any[])
       .filter(m => String(m.hash).toLowerCase() === meetHash.toLowerCase())
-    console.log(`закрытое собрание ${meetHash}: ${JSON.stringify({ voter: closedForVoter, outsider: closedForOutsider.processing, list: closedList })}`)
   }, 600_000)
 
-  it(caseName('meet.texts.side.02', 'собрание закрыто и стёрто из цепи — итог читается с вопросами по порядку и текстами формулировок'), () => {
+  it(caseName('meet.texts.side.02', 'собрание закрыто и стёрто из цепи — стол показывает статус, вопросы по порядку с текстами, итог и отметку «голосовал»'), () => {
+    // До 02.10.2026 закрытое собрание со стола пропадало: закрытие и стирание
+    // идут одним действием цепи, и в журнале строка остаётся в статусе до блока.
+    const processing = closedForVoter.processing
+    expect(processing.extendedStatus).toBe('CLOSED')
+    const questions = processing.questions as any[]
+    expect(questions.map(q => Number(q.number))).toEqual([1, 2])
+    expect(questions.map(q => [q.title, q.context, q.decision])).toEqual(agenda.map(q => [q.title, q.context, q.decision]))
+    expect(processing.isVoted, 'голосовавший уполномоченный отмечен').toBe(true)
+    expect(closedForOutsider.processing.isVoted, 'не голосовавший пайщик не отмечен').toBe(false)
+    expect(closedForOutsider.processing.questions.map((q: any) => q.title)).toEqual(agenda.map(q => q.title))
+
+    expect(closedList, 'в списке собрание одно').toHaveLength(1)
+    expect(closedList[0].processing.extendedStatus).toBe('CLOSED')
+
     // Итог собрания: вопросы по порядку, тексты формулировок, а не их хеши.
-    expect(closedForVoter.processed, 'итог закрытого собрания записан').toBeTruthy()
     expect(closedForVoter.processed.quorum_passed).toBe(true)
     const results = closedForVoter.processed.results as any[]
     expect(results.map(r => Number(r.number))).toEqual([1, 2])
     expect(results.map(r => [r.title, r.context, r.decision])).toEqual(agenda.map(q => [q.title, q.context, q.decision]))
     expect(results.every(r => Number(r.votes_for) === voters && Number(r.votes_against) === 0 && r.accepted === true)).toBe(true)
-
-    // Состояние собрания из журнала изменений цепи — статус, вопросы, отметка
-    // «голосовал» — проверяется, когда стол его отдаёт. Если после стирания
-    // оно не находится, это находка 58 (01.10.2026, отчёт C28-85): закрытие и
-    // стирание идут одним действием цепи, и состояния «закрыто» в журнале нет.
-    const processing = closedForVoter.processing
-    if (processing) {
-      expect(processing.extendedStatus).toBe('CLOSED')
-      const questions = processing.questions as any[]
-      expect(questions.map(q => Number(q.number))).toEqual([1, 2])
-      expect(questions.map(q => [q.title, q.context, q.decision])).toEqual(agenda.map(q => [q.title, q.context, q.decision]))
-      expect(processing.isVoted, 'голосовавший уполномоченный отмечен').toBe(true)
-      expect(closedForOutsider.processing?.isVoted ?? false, 'не голосовавший пайщик не отмечен').toBe(false)
-      expect(closedList, 'в списке собрание одно').toHaveLength(1)
-    }
   })
 
-  it(caseName('meet.texts.side.05', 'документ собрания собирается с текстами формулировок, а не с их хешами'), async () => {
-    const check = (html: string): void => {
-      for (const q of agenda) {
-        expect(html).toContain(q.title)
-        expect(html).toContain(q.decision)
-        expect(html).not.toContain(digest(q.title))
-        expect(html).not.toContain(digest(q.decision))
-      }
+  it(caseName('meet.texts.side.05', 'документ собрания собирается с текстами формулировок, а не с их хешами'), () => {
+    // Протокол собирается по вопросам собрания, а в цепи лежат хеши формулировок.
+    for (const q of agenda) {
+      expect(decisionHtmlBeforeClose).toContain(q.title)
+      expect(decisionHtmlBeforeClose).toContain(q.decision)
+      expect(decisionHtmlBeforeClose).not.toContain(digest(q.title))
+      expect(decisionHtmlBeforeClose).not.toContain(digest(q.decision))
     }
-    // Протокол, собранный по вопросам из цепи (в ней лежат хеши формулировок).
-    check(decisionHtmlBeforeClose)
-
-    // После стирания собрания из цепи вопросы берутся из журнала изменений.
-    // Пока открыта находка 58, документ закрытого собрания не собирается
-    // вовсе; когда соберётся — в нём обязаны быть тексты.
-    const secretaryToken = await tokenOf(secretary)
-    const after = await gqlRaw<any>(secretaryToken, `mutation($d:AnnualGeneralMeetingDecisionGenerateDocumentInput!){
-      generateAnnualGeneralMeetDecisionDocument(data:$d){ ${GENERATED} } }`, {
-      d: { coopname: COOP, username: secretary.account, meet_hash: meetHash },
-    })
-    if (after.errors.length === 0)
-      check(after.data.generateAnnualGeneralMeetDecisionDocument.html)
   })
 })

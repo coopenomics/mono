@@ -345,10 +345,17 @@ describe('документы: фабрика утверждений редакц
     expect(approvedHtml, 'текст неутверждённой редакции пайщикам не предъявляется').not.toContain(`${marker}-B`)
   })
 
-  // doc.appr.happy.11 (уведомление председателю о новой редакции объявленного
-  // документа) снаружи не проверяется: находка 53 (01.10.2026, в отчёте
-  // C28-85) — узел отбрасывает действие draft::upversion как «чужой
-  // кооператив» (в его данных нет coopname), и уведомление не уходит вовсе.
+  it(caseName('doc.appr.happy.11', 'оператор поднял редакцию объявленного документа — председатель получает уведомление с названием, номером редакции и ссылкой на реестр шаблонов'), async () => {
+    // До 02.10.2026 уведомление не уходило: узел отбрасывал действие сети о новой
+    // редакции как «чужое» (C28-85, находка 53).
+    const template = await templateOf(chair, RETURN_BY_MONEY)
+    const note = await waitFor(async () =>
+      (await inbox(chair)).find(n => n.workflowId === EDITION_AVAILABLE
+        && n.payload?.documentTitle === template.title
+        && String(n.payload?.version) === String(template.current_version)) ?? null,
+    { timeoutMs: 60_000, intervalMs: 1_500, label: 'уведомление о новой редакции документа' })
+    expect(note.payload.templatesUrl).toMatch(new RegExp(`/${COOP}/documents/templates$`))
+  })
 
   it(caseName('doc.appr.side.15', 'поднята редакция шаблона, не объявленного ни одним приложением кооператива, — уведомления нет'), async () => {
     const declared = new Set((await templates(chair)).map(t => t.registry_id))
@@ -356,8 +363,6 @@ describe('документы: фабрика утверждений редакц
     const undeclared = drafts.map(d => Number(d.registry_id)).find(id => !declared.has(id))
     expect(undeclared, 'в сети есть шаблон вне реестра кооператива').toBeDefined()
 
-    // Пока находка 53 не закрыта, уведомление не уходит ни по какому шаблону;
-    // случай станет содержательным вместе с её починкой.
     const before = (await inbox(chair)).filter(n => n.workflowId === EDITION_AVAILABLE).length
     await upversion(undeclared!)
     await quietWindow(8_000)

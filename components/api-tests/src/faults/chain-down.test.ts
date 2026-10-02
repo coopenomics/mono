@@ -159,18 +159,17 @@ describe.skipIf(!FAULTS_ENABLED)('цепь стенда остановлена �
     expect(stateWhileDown.lag_blocks ?? null).toBeNull()
   })
 
-  it(caseName('mkt.iss.break.01', 'цепь недоступна в момент подписи заявления — отказ, выдача не двигается, имущество не передано'), () => {
+  it(caseName('mkt.iss.break.01', 'цепь недоступна в момент подписи заявления — отказ с кодом, выдача не двигается, причина сохранена, имущество не передано'), () => {
+    // До 02.10.2026 ответ был внутренней ошибкой «fetch failed» без кода, а причина в
+    // ходе выдачи не сохранялась (C28-85, находка 52).
     expect(refused.errors.length, 'подпись без цепи отклонена').toBeGreaterThan(0)
-    expect(refused.status, 'отказ — ответ узла, а не его падение').toBeLessThan(500)
+    expect(refused.errors[0].code, refused.errors[0].message).toBe('BLOCKCHAIN_UNAVAILABLE')
+    expect(refused.errors[0].message).not.toMatch(/fetch failed/)
     expect(refusedAfterMs, 'отказ не повис на недоступной цепи').toBeLessThan(60_000)
     expect(sagaWhileDown.stage, 'ход выдачи на прежнем этапе').toBe('FACT_FIXED')
     expect(sagaWhileDown.decision_id ?? null, 'повестки совета нет').toBeNull()
+    expect(sagaWhileDown.last_error, 'причина отказа сохранена в ходе выдачи').toBeTruthy()
     expect(orderWhileDown.status, 'имущество не передано').toBe('READY_TO_RECEIVE')
-    // Находка 52 (01.10.2026, в отчёте C28-85): подпись заявлений бандла при
-    // недоступной цепи отвечает внутренней ошибкой «fetch failed» без кода, и
-    // причина в ходе выдачи не сохраняется (last_error пуст). Сохранение
-    // причины проверяет юнит-тест пути одиночного заявления; здесь оно не
-    // утверждается, пока дефект не разобран владельцем.
   })
 
   it(caseName('mkt.iss.break.01', 'цепь вернулась — та же подпись проходит повторно'), async () => {

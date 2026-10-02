@@ -16,9 +16,13 @@ import { runInChainDispatch } from './chain-dispatch-context';
 import { ChainChangesService } from './chain-changes.service';
 import { config } from '~/config';
 
-// Выносим исключения в конфиг или отдельный файл
+// Действия, в данных которых нет кооператива: они общие для сети и нужны каждому узлу.
 const ACTION_EXCEPTIONS = {
   'eosio.token': ['transfer', 'issue'],
+  // Новая редакция шаблона документа выходит сразу для всей сети (область `draft`), а
+  // уведомить о ней председателя обязан каждый кооператив: без исключения действие
+  // отбрасывалось как «чужое», и уведомление не уходило вовсе (C28-85, находка 53).
+  draft: ['upversion'],
 };
 
 /**

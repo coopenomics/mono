@@ -29,6 +29,9 @@ const QUESTION_TEXT_FIELDS = ['title', 'context', 'decision'] as const;
 /** Статус закрытого собрания: строку контракт стирает, собрание читается из журнала дельт. */
 const CLOSED_MEET_STATUS = 'closed';
 
+/** Статус после подписи секретаря — последний, который журнал видит перед закрытием. */
+const PRECLOSED_MEET_STATUS = 'preclosed';
+
 @Injectable()
 export class MeetBlockchainAdapter implements MeetBlockchainPort {
   constructor(
@@ -102,10 +105,19 @@ export class MeetBlockchainAdapter implements MeetBlockchainPort {
       { code: MeetContract.contractName.production, scope: coopname, table: MeetContract.Tables.Meets.tableName },
       hash ? { hash } : {}
     );
-    // Закрытость решает последнее известное состояние, а не отметка стирания: сразу после
-    // подписи протокола в журнале может лежать дельта «closed», а дельта стирания ещё не
-    // дошла. Собрания, которые ещё в цепи, вызывающий отсекает сам.
-    const closed = meets.filter((row) => row.value?.status === CLOSED_MEET_STATUS);
+    // Подпись председателя закрывает собрание и стирает строку одним действием цепи, а
+    // дельта стирания несёт строку такой, какой она была ДО блока: статус в ней —
+    // «подписано секретарём», а не «закрыто». Поэтому закрытое собрание — это стёртая
+    // строка в этом статусе: другого пути стереть её из него нет, отклонённые собрания
+    // стираются из «создано». Статус «закрыто» в журнале остаётся у собраний, закрытых до
+    // того, как контракт начал стирать строку, — их стёрла миграция отдельным блоком.
+    // Собрания, которые ещё в цепи, вызывающий отсекает сам.
+    const closed = meets
+      .filter(
+        (row) =>
+          row.value?.status === CLOSED_MEET_STATUS || (!row.present && row.value?.status === PRECLOSED_MEET_STATUS)
+      )
+      .map((row) => ({ ...row, value: { ...row.value, status: CLOSED_MEET_STATUS } }));
 
     return Promise.all(
       closed.map(async (row) => {

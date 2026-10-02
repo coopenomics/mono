@@ -715,7 +715,32 @@ describe('I6 — нет orphan o.mkt.lock', () => {
     expect(res.details?.[0]?.message).toMatch(/consum без предшествующего резерва/)
   })
 
-  it('violation: lock + unlock + consum (двойное закрытие)', () => {
+  it('недовыдача: часть резерва возвращена, часть списана выдачей — не нарушение', () => {
+    // До 02.10.2026 само сочетание трёх операций считалось двойным закрытием, и
+    // сверка писала нарушение на каждую выдачу меньше заказа (C28-85, находка 54).
+    const orderHash = newProcessHash()
+    const rows: MarketplaceLedger2OperationRow[] = [
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.lock', amount: 40, walletFrom: 'w.wal.share', walletTo: 'w.mkt.order', debitAccount: null, creditAccount: null }),
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.unlock', amount: 10, walletFrom: 'w.mkt.order', walletTo: 'w.mkt.share', debitAccount: null, creditAccount: null }),
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.consum', amount: 30, walletFrom: 'w.mkt.order', walletTo: null, debitAccount: 80, creditAccount: 10 }),
+    ]
+    expect(checkInvariantI6NoOrphanedReserves(rows).ok).toBe(true)
+  })
+
+  it('violation: возврат и списание вместе больше резерва, внесённого двумя кодами', () => {
+    const orderHash = newProcessHash()
+    const rows: MarketplaceLedger2OperationRow[] = [
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.lock', amount: 20, walletFrom: 'w.wal.share', walletTo: 'w.mkt.order', debitAccount: null, creditAccount: null }),
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.lockp', amount: 20, walletFrom: 'w.mkt.share', walletTo: 'w.mkt.order', debitAccount: null, creditAccount: null }),
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.unlock', amount: 15, walletFrom: 'w.mkt.order', walletTo: 'w.mkt.share', debitAccount: null, creditAccount: null }),
+      ...buildApplyTrio({ processHash: orderHash, operationCode: 'o.mkt.consum', amount: 30, walletFrom: 'w.mkt.order', walletTo: null, debitAccount: 80, creditAccount: 10 }),
+    ]
+    const res = checkInvariantI6NoOrphanedReserves(rows)
+    expect(res.ok).toBe(false)
+    expect(res.details?.[0]?.message).toMatch(/двойное закрытие/)
+  })
+
+  it('violation: резерв возвращён целиком и списан целиком (двойное закрытие)', () => {
     const orderHash = newProcessHash()
     const rows: MarketplaceLedger2OperationRow[] = [
       ...buildApplyTrio({
