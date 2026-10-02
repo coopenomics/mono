@@ -42,6 +42,11 @@
           AccountBadge(:account-name="current.username")
           BaseBadge.q-mt-xs(:variant="contractStatusOf(current.contract_status).variant") {{ contractStatusOf(current.contract_status).label }}
 
+      //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
+      .edu-teachers__about(v-if="current.about")
+        .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
+        .edu-teachers__about-text {{ current.about }}
+
       //- Документы на подписи у председателя — здесь же, чтобы подписать, не
       //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
       //- его и в «Запросах одобрений».
@@ -351,6 +356,14 @@ onMounted(load);
 }
 .edu-teachers__person-text {
   min-width: 0;
+}
+.edu-teachers__about {
+  margin-top: var(--p-4);
+}
+.edu-teachers__about-text {
+  white-space: pre-wrap;
+  font-size: var(--p-fs-body);
+  line-height: 1.6;
 }
 .edu-teachers__approvals {
   margin-top: var(--p-4);

@@ -44,6 +44,8 @@ import type {
   EduAssignmentInputDTO,
   EduLessonReportInputDTO,
   EduTeacherDTO,
+  EduTeacherProfileDTO,
+  EduTeacherProfileInputDTO,
   EduTeacherSettlementDTO,
 } from '../dto/edu-teacher.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
@@ -122,10 +124,11 @@ export class EdubridgeTeacherService {
    * коллбэку совета (`onContractApproved`). Отклонённый договор подписывается
    * заново — старая запись перезаписывается.
    */
-  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, hourlyRate: string) {
+  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, declaredRate?: string | null) {
     const existing = await this.teachers.findContract(coopname, teacher);
     if (existing && !RESIGNABLE_CONTRACT.includes(existing.status)) return existing;
     if (!document.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_NOT_SIGNED_BY_TEACHER');
+    const hourlyRate = await this.requireDeclaredRate(coopname, teacher, declaredRate);
     // Ставку преподаватель называет один раз при подключении. Дальше она
     // определяет и себестоимость курса, и его собственный взнос за занятие,
     // поэтому менять её в одиночку он не может — это делает администратор.
@@ -232,6 +235,58 @@ export class EdubridgeTeacherService {
     return saved;
   }
 
+  /**
+   * Ставка для договора: названа первым шагом подключения и лежит в профиле;
+   * явная ставка в запросе имеет приоритет. Без ставки договор не
+   * подписывается: по ней считается и стоимость курса, и взнос преподавателя
+   * за занятие.
+   */
+  private async requireDeclaredRate(coopname: string, teacher: string, declaredRate?: string | null): Promise<string> {
+    const rate = declaredRate || (await this.teachers.findProfile(coopname, teacher))?.hourly_rate || '';
+    if (!isPositiveRate(rate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
+    return rate;
+  }
+
+  // ── Профиль преподавателя ──────────────────────────────────────────────────
+  /**
+   * Профиль преподавателя: что он рассказал о себе и его ставка часа. Пока
+   * договора нет, ставка — названная при подключении; с договором — ставка
+   * договора, и преподаватель её уже не меняет (это делает администратор).
+   */
+  async profile(coopname: string, teacher: string): Promise<EduTeacherProfileDTO> {
+    const [profile, contract] = await Promise.all([this.teachers.findProfile(coopname, teacher), this.teachers.findContract(coopname, teacher)]);
+    const rate_locked = rateLockedBy(contract);
+    return {
+      about: profile?.about ?? '',
+      hourly_rate: rate_locked ? (contract as EdubridgeTeacherContractEntity).hourly_rate : profile?.hourly_rate ?? ZERO_RATE,
+      rate_locked,
+    };
+  }
+
+  /**
+   * Первый шаг подключения и правка «о себе» со стола. Рассказ о себе
+   * обязателен — иначе в карточке преподавателя пусто, и администратору не по
+   * чему судить, кого он допускает к курсу. Ставку преподаватель называет до
+   * договора; после подписи договора она закреплена.
+   */
+  async saveProfile(coopname: string, teacher: string, input: EduTeacherProfileInputDTO): Promise<EduTeacherProfileDTO> {
+    const about = (input.about ?? '').trim();
+    if (!about) throw DomainError.badRequest('EDUBRIDGE_TEACHER_ABOUT_REQUIRED');
+    const [existing, contract] = await Promise.all([this.teachers.findProfile(coopname, teacher), this.teachers.findContract(coopname, teacher)]);
+
+    let hourly_rate: string;
+    if (rateLockedBy(contract)) {
+      hourly_rate = (contract as EdubridgeTeacherContractEntity).hourly_rate;
+      if (input.hourly_rate && input.hourly_rate !== hourly_rate) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ALREADY_SET');
+    } else {
+      hourly_rate = input.hourly_rate || existing?.hourly_rate || ZERO_RATE;
+      if (!isPositiveRate(hourly_rate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
+    }
+
+    await this.teachers.saveProfile({ ...(existing ?? {}), coopname, teacher_username: teacher, about, hourly_rate });
+    return this.profile(coopname, teacher);
+  }
+
   private async requireContract(coopname: string, teacher: string): Promise<EdubridgeTeacherContractEntity> {
     const c = await this.teachers.findContract(coopname, teacher);
     if (!c) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_REQUIRED');
@@ -251,17 +306,20 @@ export class EdubridgeTeacherService {
   async listTeachers(coopname: string): Promise<EduTeacherDTO[]> {
     const contracts = await this.teachers.listContracts(coopname);
     const usernames = contracts.map((c) => c.teacher_username);
-    const [names, avatars, assignments] = await Promise.all([
+    const [names, avatars, assignments, profiles] = await Promise.all([
       this.names.displayNames(usernames),
       this.avatars.getAvatarUrls(usernames),
       this.teachers.listAssignments(coopname),
+      this.teachers.listProfiles(coopname),
     ]);
+    const aboutOf = new Map(profiles.map((p) => [p.teacher_username, p.about]));
     return contracts.map((c) => {
       const own = assignments.filter((a) => a.teacher_username === c.teacher_username);
       return {
         username: c.teacher_username,
         hourly_rate: c.hourly_rate,
         display_name: names.get(c.teacher_username) ?? '',
+        about: aboutOf.get(c.teacher_username) ?? '',
         avatar_url: avatars.get(c.teacher_username) ?? null,
         contract_number: c.contract_number,
         contract_status: c.status,
@@ -991,6 +1049,17 @@ export function coursePeriod(course: Pick<EdubridgeCourseEntity, 'starts_at' | '
 
 function rateValue(rate: string | null | undefined): number {
   return Number(String(rate ?? '').trim().split(' ')[0] ?? 0) || 0;
+}
+
+/** Ставка ещё не названа. */
+const ZERO_RATE = '0.0000 RUB';
+
+/**
+ * Ставка закреплена договором: он подписан преподавателем и не прекращён.
+ * Отклонённый договор ставку тоже держит — переподписывается он с ней же.
+ */
+function rateLockedBy(contract: EdubridgeTeacherContractEntity | null): boolean {
+  return Boolean(contract) && contract?.status !== EduContractStatus.TERMINATED && isPositiveRate(contract?.hourly_rate);
 }
 
 /** Ставка задана, когда сумма больше нуля: «0.0000 RUB» — ещё не названа. */

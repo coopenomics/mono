@@ -24,6 +24,12 @@ title: Образовательный мост — договор УХД, наз
 # договор. Допуск остаётся рабочим назначением: действует сразу, подписей и
 # одобрения председателя не требует, в цепь не уходит; список «Курс ведут» и
 # действующие назначения — одно и то же.
+#
+# Правка 02.10.2026 (7DD-22), решение владельца: подключение преподавателя
+# начинается со ставки за час и рассказа о себе — отдельным первым шагом, до
+# оферты и договора (раньше ставку спрашивали под текстом договора, а сведений
+# о преподавателе не было вовсе). Рассказ живёт в профиле преподавателя, его
+# видит администратор в карточке; ставка после подписи договора закреплена.
 sources:
   contract:
     - components/contracts/cpp/edubridge/src/p.edu.teach/**
@@ -36,6 +42,7 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-teacher.repository.ts
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-contract.entity.ts
     - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-assignment.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-profile.entity.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
     - components/factory/test/education-contract.test.ts
@@ -406,4 +413,30 @@ cases:
     scenario: "Преподаватель открывает стол: администратор поставил его на курс."
     expect: "На странице «Назначения» курс виден сразу со статусом «Действует»: расписание, период, ожидаемый результат, программа курса; кнопок подписи и числа на пункте меню нет; пока договор ждёт председателя — подсказка, что отчитываться по занятиям можно после его подписи; после снятия допуска статус «Допуск снят»."
     status: missing
-
+  - id: edu.teach.happy.profile-01
+    level: backend
+    kind: happy
+    scenario: "Первый шаг подключения: преподаватель без договора называет ставку за час и рассказывает о себе; позже правит рассказ, не называя ставку."
+    expect: "Профиль сохраняется, рассказ обрезается по краям; правка рассказа оставляет названную ставку; договор берёт ставку из профиля, когда её не передали."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.break.profile-01
+    level: backend
+    kind: break
+    scenario: "Пустой рассказ о себе; ставка не названа или нулевая; попытка сменить ставку после подписи договора; подпись договора без названной ставки."
+    expect: "Отказ с объяснением; профиль не сохраняется, договор в цепь не уходит; закреплённую договором ставку меняет только администратор."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.profile-01
+    level: backend
+    kind: side
+    scenario: "Преподаватель с договором, но без записи профиля; прекращённый договор; список преподавателей у администратора."
+    expect: "Рассказ пуст, ставка — из договора и закреплена; прекращённый договор ставку не держит; в списке преподавателей приходит рассказ о себе либо пустая строка."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teacher.ui.profile-01
+    level: ui
+    kind: happy
+    scenario: "Пайщик открывает подключение к преподаванию."
+    expect: "Три шага: «О себе и ставка» → оферта → договор. Первый шаг — поле ставки и рассказ о себе, кнопка «Сохранить и продолжить» недоступна, пока оба не заполнены; на шаге договора ставка показана строкой, вернуться к ней можно кликом по первому шагу, пока договор не подписан. В профиле преподавателя — блок «О себе» с правкой и ставка за час; у администратора рассказ виден в карточке преподавателя."
+    status: missing

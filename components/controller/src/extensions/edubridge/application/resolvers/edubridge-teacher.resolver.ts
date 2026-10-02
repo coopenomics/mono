@@ -15,6 +15,8 @@ import {
   EduSubmitContributionInputDTO,
   EduTeacherContractDTO,
   EduTeacherDTO,
+  EduTeacherProfileDTO,
+  EduTeacherProfileInputDTO,
   EduLessonDTO,
   EduLessonReportInputDTO,
   EduRevokeContributionInputDTO,
@@ -42,6 +44,20 @@ export class EdubridgeTeacherResolver {
   ) {}
 
   // ── Преподаватель ──────────────────────────────────────────────────────────
+  // Профиль — первый шаг подключения: о себе и ставку преподаватель называет
+  // до оферты и договора, поэтому подписанной оферты здесь не требуется.
+  @Query(() => EduTeacherProfileDTO, { name: 'edubridgeMyTeacherProfile', description: 'Мой профиль преподавателя: рассказ о себе и ставка часа' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  edubridgeMyTeacherProfile(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduTeacherProfileDTO> {
+    return this.teachers.profile(coop(), m.username as string);
+  }
+
+  @Mutation(() => EduTeacherProfileDTO, { name: 'edubridgeSaveTeacherProfile', description: 'Рассказать о себе и назвать ставку часа' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  edubridgeSaveTeacherProfile(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduTeacherProfileInputDTO): Promise<EduTeacherProfileDTO> {
+    return this.teachers.saveProfile(coop(), m.username as string, data);
+  }
+
   // Договор — часть подключения: его подписывают до того, как роль
   // преподавателя (и права стола) выданы, поэтому допуск — по подписанной
   // оферте, а не по матрице прав.

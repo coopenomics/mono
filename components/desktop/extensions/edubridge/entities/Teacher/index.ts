@@ -8,6 +8,8 @@ import { useGlobalStore } from 'src/shared/store';
 import { t } from '../../i18n';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
+export type ITeacherProfile = Queries.Edubridge.MyTeacherProfile.IOutput['edubridgeMyTeacherProfile'];
+export type ITeacherProfileInput = Mutations.Edubridge.SaveTeacherProfile.IInput['data'];
 export type ITeacher = Queries.Edubridge.Teachers.IOutput['edubridgeTeachers'][number];
 export type ITeacherApproval = Queries.Edubridge.TeacherApprovals.IOutput['edubridgeTeacherApprovals'][number];
 export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAssignments'][number];
@@ -59,6 +61,10 @@ async function m<T>(mutation: any, name: string, variables: Record<string, unkno
 }
 
 export const fetchMyContract = () => q<IContract | null>(Queries.Edubridge.MyContract.query, Queries.Edubridge.MyContract.name);
+/** Профиль преподавателя: рассказ о себе и ставка часа. */
+export const fetchMyTeacherProfile = () => q<ITeacherProfile>(Queries.Edubridge.MyTeacherProfile.query, Queries.Edubridge.MyTeacherProfile.name);
+export const saveTeacherProfile = (data: ITeacherProfileInput) =>
+  m<ITeacherProfile>(Mutations.Edubridge.SaveTeacherProfile.mutation, Mutations.Edubridge.SaveTeacherProfile.name, { data });
 export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAssignments.query, Queries.Edubridge.MyAssignments.name);
 export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
 export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
@@ -118,17 +124,17 @@ export async function buildContractDocument(): Promise<IContractDraft> {
 
 /**
  * Первая подпись договора — преподавателя; вторую ставит председатель со стола
- * «Запросы одобрений». Вместе с договором преподаватель называет ставку часа:
- * в документ она не входит, но по ней считаются и стоимость курса, и его взнос
- * за проведённое занятие.
+ * «Запросы одобрений». Ставку часа преподаватель назвал первым шагом
+ * подключения — сервер берёт её из профиля: в документ она не входит, но по
+ * ней считаются и стоимость курса, и его взнос за проведённое занятие.
  */
-export async function signContract(hourly_rate: string, prepared?: IContractDraft): Promise<IContract> {
+export async function signContract(prepared?: IContractDraft): Promise<IContract> {
   const { username } = who();
   const { document, contract_number } = prepared ?? (await buildContractDocument());
   await document.sign(username);
   if (!document.signedDocument) throw new Error(t('edubridge.error.contractSignFailed'));
   return m<IContract>(Mutations.Edubridge.SignContract.mutation, Mutations.Edubridge.SignContract.name, {
-    data: { document: document.signedDocument, contract_number, hourly_rate },
+    data: { document: document.signedDocument, contract_number },
   });
 }
 

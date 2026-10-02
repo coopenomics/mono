@@ -53,6 +53,7 @@ export class EduTeacherDTO {
   @Field(() => String, { description: 'Учётное имя' }) username!: string;
   @Field(() => String, { description: 'Ставка часа преподавателя' }) hourly_rate!: string;
   @Field(() => String, { description: 'Фамилия, имя и отчество' }) display_name!: string;
+  @Field(() => String, { description: 'Что преподаватель рассказал о себе' }) about!: string;
   @Field(() => String, { nullable: true, description: 'Фотография пайщика' }) avatar_url!: string | null;
   @Field(() => String, { description: 'Номер договора участия в хозяйственной деятельности' }) contract_number!: string;
   @Field(() => EduContractStatus, { description: 'Состояние договора' }) contract_status!: EduContractStatus;
@@ -113,9 +114,31 @@ export class EduSignContractInputDTO {
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанный договор участия в хозяйственной деятельности (3006)' })
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
   @Field(() => String, { description: 'Номер договора из подписанного экземпляра' }) @IsString() @Length(1, 32) contract_number!: string;
-  @Field(() => String, { description: 'Ставка часа преподавателя («1000.0000 RUB»)' })
+  @Field(() => String, { nullable: true, description: 'Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле' })
+  @IsOptional()
   @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
-  hourly_rate!: string;
+  hourly_rate?: string | null;
+}
+
+/** Профиль преподавателя: рассказ о себе и ставка часа. */
+@ObjectType('EduTeacherProfile')
+export class EduTeacherProfileDTO {
+  @Field(() => String, { description: 'Что преподаватель рассказал о себе' }) about!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя («1000.0000 RUB»)' }) hourly_rate!: string;
+  @Field(() => Boolean, { description: 'Ставка закреплена договором — её меняет администратор' }) rate_locked!: boolean;
+}
+
+@InputType('EduTeacherProfileInput')
+export class EduTeacherProfileInputDTO {
+  @Field(() => String, { description: 'О себе: чему и как учит преподаватель, опыт, образование' })
+  @IsString()
+  @Length(1, 2000, { message: validationMessage('edubridge.eduTeacherProfileInput.about.length') })
+  about!: string;
+
+  @Field(() => String, { nullable: true, description: 'Ставка часа («1000.0000 RUB»); называется до подписи договора' })
+  @IsOptional()
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate?: string | null;
 }
 
 @ObjectType('EduContribution')

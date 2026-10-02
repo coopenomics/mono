@@ -19,6 +19,7 @@ import {
   EdubridgeSectionEntity,
   EdubridgeTeacherAssignmentEntity,
   EdubridgeTeacherContractEntity,
+  EdubridgeTeacherProfileEntity,
 } from './infrastructure/entities';
 
 export const edubridgeEntities = [
@@ -32,6 +33,7 @@ export const edubridgeEntities = [
   EdubridgeLessonEntity,
   EdubridgeAdminEntity,
   EdubridgeTeacherContractEntity,
+  EdubridgeTeacherProfileEntity,
   EdubridgeReturnRequestEntity,
   EdubridgeSectionEntity,
   EdubridgeLevelEntity,

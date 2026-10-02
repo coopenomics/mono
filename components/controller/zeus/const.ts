@@ -754,6 +754,9 @@ export const AllTypesProps: Record<string,any> = {
 		document:"SignedDigitalDocumentInput",
 		period:"EduEnrollmentPeriod"
 	},
+	EduTeacherProfileInput:{
+
+	},
 	EduUpdateCourseInput:{
 		carrier:"EduAccessCarrier",
 		direction:"EduCourseDirection",
@@ -2152,6 +2155,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeSaveSection:{
 			data:"EduSaveSectionInput"
+		},
+		edubridgeSaveTeacherProfile:{
+			data:"EduTeacherProfileInput"
 		},
 		edubridgeSetConnectorCredentials:{
 			data:"EduSetConnectorCredentialsInput"
@@ -6089,6 +6095,7 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String"
 	},
 	EduTeacher:{
+		about:"String",
 		approved_at:"DateTime",
 		assignments_active:"Float",
 		assignments_total:"Float",
@@ -6114,6 +6121,11 @@ export const ReturnTypes: Record<string,any> = {
 		display_name:"String",
 		signed_at:"DateTime",
 		username:"String"
+	},
+	EduTeacherProfile:{
+		about:"String",
+		hourly_rate:"String",
+		rate_locked:"Boolean"
 	},
 	EduTeacherSettlement:{
 		accepted_total:"String",
@@ -7965,6 +7977,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRidStorageAct:"GeneratedDocument",
 		edubridgeSaveLevel:"EduLevel",
 		edubridgeSaveSection:"EduSection",
+		edubridgeSaveTeacherProfile:"EduTeacherProfile",
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",
@@ -8870,6 +8883,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyLessons:"EduLesson",
 		edubridgeMyReturnRequests:"EduReturnRequest",
 		edubridgeMySettlement:"EduTeacherSettlement",
+		edubridgeMyTeacherProfile:"EduTeacherProfile",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",
 		edubridgeProgramFund:"EduProgramFund",

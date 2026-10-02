@@ -2,15 +2,29 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { EduContributionStatus } from '../../domain/enums';
-import { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity } from '../entities';
+import { EdubridgeContributionEntity, EdubridgeTeacherAssignmentEntity, EdubridgeTeacherContractEntity, EdubridgeTeacherProfileEntity } from '../entities';
 
 @Injectable()
 export class EdubridgeTeacherRepository {
   constructor(
     @InjectRepository(EdubridgeTeacherContractEntity) private readonly contracts: Repository<EdubridgeTeacherContractEntity>,
     @InjectRepository(EdubridgeTeacherAssignmentEntity) private readonly assignments: Repository<EdubridgeTeacherAssignmentEntity>,
-    @InjectRepository(EdubridgeContributionEntity) private readonly contributions: Repository<EdubridgeContributionEntity>
+    @InjectRepository(EdubridgeContributionEntity) private readonly contributions: Repository<EdubridgeContributionEntity>,
+    @InjectRepository(EdubridgeTeacherProfileEntity) private readonly profiles: Repository<EdubridgeTeacherProfileEntity>
   ) {}
+
+  findProfile(coopname: string, teacher: string): Promise<EdubridgeTeacherProfileEntity | null> {
+    return this.profiles.findOne({ where: { coopname, teacher_username: teacher } });
+  }
+
+  /** Профили преподавателей кооператива — для карточек у администратора. */
+  listProfiles(coopname: string): Promise<EdubridgeTeacherProfileEntity[]> {
+    return this.profiles.find({ where: { coopname } });
+  }
+
+  saveProfile(data: Partial<EdubridgeTeacherProfileEntity>): Promise<EdubridgeTeacherProfileEntity> {
+    return this.profiles.save(this.profiles.create(data));
+  }
 
   findContract(coopname: string, teacher: string): Promise<EdubridgeTeacherContractEntity | null> {
     return this.contracts.findOne({ where: { coopname, teacher_username: teacher } });

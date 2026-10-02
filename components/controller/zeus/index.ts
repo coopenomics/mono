@@ -7725,8 +7725,8 @@ export type ValueTypes = {
 	contract_number: string | Variable<any, string>,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
-	/** Ставка часа преподавателя («1000.0000 RUB») */
-	hourly_rate: string | Variable<any, string>
+	/** Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле */
+	hourly_rate?: string | undefined | null | Variable<any, string>
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -7751,6 +7751,8 @@ export type ValueTypes = {
 	period: ValueTypes["EduEnrollmentPeriod"] | Variable<any, string>
 };
 	["EduTeacher"]: AliasType<{
+	/** Что преподаватель рассказал о себе */
+	about?:boolean | `@${string}`,
 	/** Договор подписан председателем совета */
 	approved_at?:boolean | `@${string}`,
 	/** Назначений действует */
@@ -7804,6 +7806,22 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduTeacherOption']?: Omit<ValueTypes["EduTeacherOption"], "...on EduTeacherOption">
 }>;
+	["EduTeacherProfile"]: AliasType<{
+	/** Что преподаватель рассказал о себе */
+	about?:boolean | `@${string}`,
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate?:boolean | `@${string}`,
+	/** Ставка закреплена договором — её меняет администратор */
+	rate_locked?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduTeacherProfile']?: Omit<ValueTypes["EduTeacherProfile"], "...on EduTeacherProfile">
+}>;
+	["EduTeacherProfileInput"]: {
+	/** О себе: чему и как учит преподаватель, опыт, образование */
+	about: string | Variable<any, string>,
+	/** Ставка часа («1000.0000 RUB»); называется до подписи договора */
+	hourly_rate?: string | undefined | null | Variable<any, string>
+};
 	["EduTeacherSettlement"]: AliasType<{
 	/** Принято советом взносов РИД на сумму */
 	accepted_total?:boolean | `@${string}`,
@@ -13753,6 +13771,7 @@ edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, str
 edubridgeRidStorageAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeSaveLevel?: [{	data: ValueTypes["EduSaveLevelInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
 edubridgeSaveSection?: [{	data: ValueTypes["EduSaveSectionInput"] | Variable<any, string>},ValueTypes["EduSection"]],
+edubridgeSaveTeacherProfile?: [{	data: ValueTypes["EduTeacherProfileInput"] | Variable<any, string>},ValueTypes["EduTeacherProfile"]],
 edubridgeSetConnectorCredentials?: [{	data: ValueTypes["EduSetConnectorCredentialsInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ValueTypes["EduSetConnectorEnabledInput"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ValueTypes["EduSetCourseStatusInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -15745,6 +15764,8 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMyReturnRequests?:ValueTypes["EduReturnRequest"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
+	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+	edubridgeMyTeacherProfile?:ValueTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduPlatformCourse"]],
@@ -24762,8 +24783,8 @@ export type ResolverInputTypes = {
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"],
-	/** Ставка часа преподавателя («1000.0000 RUB») */
-	hourly_rate: string
+	/** Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле */
+	hourly_rate?: string | undefined | null
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -24788,6 +24809,8 @@ export type ResolverInputTypes = {
 	period: ResolverInputTypes["EduEnrollmentPeriod"]
 };
 	["EduTeacher"]: AliasType<{
+	/** Что преподаватель рассказал о себе */
+	about?:boolean | `@${string}`,
 	/** Договор подписан председателем совета */
 	approved_at?:boolean | `@${string}`,
 	/** Назначений действует */
@@ -24838,6 +24861,21 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduTeacherProfile"]: AliasType<{
+	/** Что преподаватель рассказал о себе */
+	about?:boolean | `@${string}`,
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate?:boolean | `@${string}`,
+	/** Ставка закреплена договором — её меняет администратор */
+	rate_locked?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduTeacherProfileInput"]: {
+	/** О себе: чему и как учит преподаватель, опыт, образование */
+	about: string,
+	/** Ставка часа («1000.0000 RUB»); называется до подписи договора */
+	hourly_rate?: string | undefined | null
+};
 	["EduTeacherSettlement"]: AliasType<{
 	/** Принято советом взносов РИД на сумму */
 	accepted_total?:boolean | `@${string}`,
@@ -30619,6 +30657,7 @@ edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverIn
 edubridgeRidStorageAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeSaveLevel?: [{	data: ResolverInputTypes["EduSaveLevelInput"]},ResolverInputTypes["EduLevel"]],
 edubridgeSaveSection?: [{	data: ResolverInputTypes["EduSaveSectionInput"]},ResolverInputTypes["EduSection"]],
+edubridgeSaveTeacherProfile?: [{	data: ResolverInputTypes["EduTeacherProfileInput"]},ResolverInputTypes["EduTeacherProfile"]],
 edubridgeSetConnectorCredentials?: [{	data: ResolverInputTypes["EduSetConnectorCredentialsInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetConnectorEnabled?: [{	data: ResolverInputTypes["EduSetConnectorEnabledInput"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeSetCourseStatus?: [{	data: ResolverInputTypes["EduSetCourseStatusInput"]},ResolverInputTypes["EduCourse"]],
@@ -32535,6 +32574,8 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMyReturnRequests?:ResolverInputTypes["EduReturnRequest"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
+	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+	edubridgeMyTeacherProfile?:ResolverInputTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduPlatformCourse"]],
@@ -41271,8 +41312,8 @@ export type ModelTypes = {
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
 	document: ModelTypes["SignedDigitalDocumentInput"],
-	/** Ставка часа преподавателя («1000.0000 RUB») */
-	hourly_rate: string
+	/** Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле */
+	hourly_rate?: string | undefined | null
 };
 	["EduSignOfferInput"]: {
 	/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -41297,7 +41338,9 @@ export type ModelTypes = {
 	period: ModelTypes["EduEnrollmentPeriod"]
 };
 	["EduTeacher"]: {
-		/** Договор подписан председателем совета */
+		/** Что преподаватель рассказал о себе */
+	about: string,
+	/** Договор подписан председателем совета */
 	approved_at?: ModelTypes["DateTime"] | undefined | null,
 	/** Назначений действует */
 	assignments_active: number,
@@ -41343,6 +41386,20 @@ export type ModelTypes = {
 	signed_at: ModelTypes["DateTime"],
 	/** Учётное имя пайщика */
 	username: string
+};
+	["EduTeacherProfile"]: {
+		/** Что преподаватель рассказал о себе */
+	about: string,
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string,
+	/** Ставка закреплена договором — её меняет администратор */
+	rate_locked: boolean
+};
+	["EduTeacherProfileInput"]: {
+	/** О себе: чему и как учит преподаватель, опыт, образование */
+	about: string,
+	/** Ставка часа («1000.0000 RUB»); называется до подписи договора */
+	hourly_rate?: string | undefined | null
 };
 	["EduTeacherSettlement"]: {
 		/** Принято советом взносов РИД на сумму */
@@ -47074,6 +47131,8 @@ export type ModelTypes = {
 	edubridgeSaveLevel: ModelTypes["EduLevel"],
 	/** Добавить раздел либо переименовать */
 	edubridgeSaveSection: ModelTypes["EduSection"],
+	/** Рассказать о себе и назвать ставку часа */
+	edubridgeSaveTeacherProfile: ModelTypes["EduTeacherProfile"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: ModelTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -49171,6 +49230,8 @@ export type ModelTypes = {
 	edubridgeMyReturnRequests: Array<ModelTypes["EduReturnRequest"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
+	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+	edubridgeMyTeacherProfile: ModelTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
@@ -58349,8 +58410,8 @@ export type GraphQLTypes = {
 	contract_number: string,
 	/** Подписанный договор участия в хозяйственной деятельности (3006) */
 	document: GraphQLTypes["SignedDigitalDocumentInput"],
-	/** Ставка часа преподавателя («1000.0000 RUB») */
-	hourly_rate: string
+	/** Ставка часа преподавателя («1000.0000 RUB»); без неё берётся названная в профиле */
+	hourly_rate?: string | undefined | null
 };
 	["EduSignOfferInput"]: {
 		/** Подписанный пайщиком экземпляр оферты (3002 или 3004) */
@@ -58376,6 +58437,8 @@ export type GraphQLTypes = {
 };
 	["EduTeacher"]: {
 	__typename: "EduTeacher",
+	/** Что преподаватель рассказал о себе */
+	about: string,
 	/** Договор подписан председателем совета */
 	approved_at?: GraphQLTypes["DateTime"] | undefined | null,
 	/** Назначений действует */
@@ -58427,6 +58490,22 @@ export type GraphQLTypes = {
 	/** Учётное имя пайщика */
 	username: string,
 	['...on EduTeacherOption']: Omit<GraphQLTypes["EduTeacherOption"], "...on EduTeacherOption">
+};
+	["EduTeacherProfile"]: {
+	__typename: "EduTeacherProfile",
+	/** Что преподаватель рассказал о себе */
+	about: string,
+	/** Ставка часа преподавателя («1000.0000 RUB») */
+	hourly_rate: string,
+	/** Ставка закреплена договором — её меняет администратор */
+	rate_locked: boolean,
+	['...on EduTeacherProfile']: Omit<GraphQLTypes["EduTeacherProfile"], "...on EduTeacherProfile">
+};
+	["EduTeacherProfileInput"]: {
+		/** О себе: чему и как учит преподаватель, опыт, образование */
+	about: string,
+	/** Ставка часа («1000.0000 RUB»); называется до подписи договора */
+	hourly_rate?: string | undefined | null
 };
 	["EduTeacherSettlement"]: {
 	__typename: "EduTeacherSettlement",
@@ -64554,6 +64633,8 @@ export type GraphQLTypes = {
 	edubridgeSaveLevel: GraphQLTypes["EduLevel"],
 	/** Добавить раздел либо переименовать */
 	edubridgeSaveSection: GraphQLTypes["EduSection"],
+	/** Рассказать о себе и назвать ставку часа */
+	edubridgeSaveTeacherProfile: GraphQLTypes["EduTeacherProfile"],
 	/** Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются */
 	edubridgeSetConnectorCredentials: GraphQLTypes["EduConnectorBinding"],
 	/** Включить или выключить площадку */
@@ -66834,6 +66915,8 @@ export type GraphQLTypes = {
 	edubridgeMyReturnRequests: Array<GraphQLTypes["EduReturnRequest"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
+	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+	edubridgeMyTeacherProfile: GraphQLTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты родителя-слушателя и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
@@ -70905,6 +70988,7 @@ type ZEUS_VARIABLES = {
 	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
 	["EduSubmitContributionInput"]: ValueTypes["EduSubmitContributionInput"];
 	["EduSubscribeInput"]: ValueTypes["EduSubscribeInput"];
+	["EduTeacherProfileInput"]: ValueTypes["EduTeacherProfileInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];

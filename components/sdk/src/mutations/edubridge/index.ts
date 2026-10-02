@@ -30,6 +30,8 @@ export * as RemoveLearner from './removeLearner'
 export * as ConvertStatement from './convertStatement'
 /** Получить доступ: конвертация и подписка */
 export * as Subscribe from './subscribe'
+/** Рассказать о себе и назвать ставку часа */
+export * as SaveTeacherProfile from './saveTeacherProfile'
 /** Подписать договор участия в хозяйственной деятельности */
 export * as SignContract from './signContract'
 /** Заявление о паевом взносе РИД для подписи */

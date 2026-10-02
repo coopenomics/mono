@@ -14,19 +14,14 @@
     CardListSkeleton(v-else-if="!activeStep" :count="1")
 
     template(v-else)
-      VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys")
+      VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys" @change="onStepChange")
         template(#active="{ step }")
-          EduGateDocumentStep(:key="step.key" v-bind="stepProps(step.key)")
+          //- Подключение начинается со ставки и рассказа о себе; документы — следом.
+          EduGateProfileStep(v-if="step.key === 'profile'" :profile="profile" :symbol="symbol" @saved="onProfileSaved")
+          EduGateDocumentStep(v-else :key="step.key" v-bind="stepProps(step.key)")
             template(v-if="step.key === 'contract'" #before-agree)
-              BaseInput(
-                v-model="hourlyRate"
-                :label="$t('edubridge.eduOfferGate.hourlyRateLabel')"
-                type="number"
-                :suffix="symbol"
-                required
-              )
-                template(#append)
-                  FieldHelp(:text="$t('edubridge.eduOfferGate.hourlyRateHint')")
+              //- Ставка названа первым шагом: здесь её видно, вернуться к ней — по шагу «О себе и ставка».
+              DataRow(:label="$t('edubridge.eduOfferGate.hourlyRateLabel')" :value="formatAsset2Digits(profile?.hourly_rate ?? '')")
       EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)")
 </template>
 
@@ -37,13 +32,14 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { formatToAsset } from 'src/shared/lib/utils';
-import { BaseBanner, BaseCard, BaseInput, CardListSkeleton, FieldHelp } from 'src/shared/ui/base';
-import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseBanner, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { DataRow, PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
-import { buildContractDocument, fetchMyContract, signContract, type IContract, type IContractDraft } from '../../../entities/Teacher';
+import { buildContractDocument, fetchMyContract, fetchMyTeacherProfile, signContract, type IContract, type IContractDraft, type ITeacherProfile } from '../../../entities/Teacher';
 import { buildOfferDocument, fetchOnboardingState, signOffer, type EduOfferKind, type IEduOnboardingState } from '../api';
 import EduGateDocumentStep from './EduGateDocumentStep.vue';
+import EduGateProfileStep from './EduGateProfileStep.vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../../shared/lib/live';
 import { t } from '../../../i18n';
@@ -51,9 +47,10 @@ import { t } from '../../../i18n';
 /**
  * Шлюз стола. Пока подключение не завершено, бэкенд выдаёт маркер
  * `Onboarding:*`, открывающий только эту страницу. Родитель-слушатель подписывает
- * оферту; преподаватель — оферту и следом договор участия в хозяйственной
- * деятельности (первая подпись его, вторая — председателя со стола «Запросы
- * одобрений»). Каждый документ читается целиком здесь же, подписывается
+ * оферту; преподаватель начинает со ставки за час и рассказа о себе, затем
+ * подписывает оферту и договор участия в хозяйственной деятельности (первая
+ * подпись его, вторая — председателя со стола «Запросы одобрений»). Каждый
+ * документ читается целиком здесь же, подписывается
  * прочитанный экземпляр. После последней подписи перечитываем столы и уходим
  * на рабочую страницу.
  */
@@ -75,9 +72,11 @@ const state = ref<IEduOnboardingState | null>(null);
 const contract = ref<IContract | null>(null);
 const offerDoc = ref<DigitalDocument | null>(null);
 const contractDraft = ref<IContractDraft | null>(null);
-// Ставка часа называется один раз — при подписании договора; потом её правит
-// администратор в разделе «Экономика».
-const hourlyRate = ref('');
+// Ставка часа и рассказ о себе — первый шаг подключения; после договора ставку
+// правит администратор в разделе «Экономика».
+const profile = ref<ITeacherProfile | null>(null);
+// Преподаватель вернулся к первому шагу, чтобы поправить ставку или рассказ.
+const editingProfile = ref(false);
 const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
 
@@ -87,10 +86,16 @@ const offerSigned = computed(() => offer.value?.source === 'AGREEMENT_SIGNED');
 // Договор считается подписанным преподавателем, пока председатель не отказал и договор не прекращён.
 const RESIGNABLE: string[] = [Zeus.EduContractStatus.DECLINED, Zeus.EduContractStatus.TERMINATED];
 const contractSigned = computed(() => Boolean(contract.value) && !RESIGNABLE.includes(contract.value?.status ?? ''));
+// Шаг пройден, когда названа ставка и есть рассказ о себе. Преподаватель с уже
+// подписанным договором к шагу не возвращается: рассказ он допишет в профиле.
+const profileDone = computed(
+  () => contractSigned.value || (Number.parseFloat(profile.value?.hourly_rate ?? '') > 0 && Boolean(profile.value?.about?.trim())),
+);
 
 const steps = computed<StepperStep[]>(() =>
   isTeacher.value
     ? [
+        { key: 'profile', label: t('edubridge.eduOfferGate.step.profile.label'), description: t('edubridge.eduOfferGate.step.profile.description') },
         { key: 'offer', label: t('edubridge.eduOfferGate.step.teacherOffer.label'), description: t('edubridge.eduOfferGate.step.teacherOffer.description') },
         { key: 'contract', label: t('edubridge.eduOfferGate.step.contract.label'), description: t('edubridge.eduOfferGate.step.contract.description') },
       ]
@@ -98,11 +103,26 @@ const steps = computed<StepperStep[]>(() =>
 );
 const completedKeys = computed(() => {
   const done: string[] = [];
+  if (isTeacher.value && profileDone.value) done.push('profile');
   if (offerSigned.value) done.push('offer');
   if (contractSigned.value) done.push('contract');
   return done;
 });
-const activeStep = computed(() => steps.value.find((s) => !completedKeys.value.includes(s.key)) ?? null);
+const activeStep = computed(() => {
+  if (editingProfile.value) return steps.value.find((s) => s.key === 'profile') ?? null;
+  return steps.value.find((s) => !completedKeys.value.includes(s.key)) ?? null;
+});
+
+/** Клик по пройденному шагу: вернуться можно только к ставке и рассказу о себе, пока договор не подписан. */
+function onStepChange(key: string): void {
+  if (key === 'profile' && !contractSigned.value) editingProfile.value = true;
+}
+
+function onProfileSaved(saved: ITeacherProfile): void {
+  profile.value = saved;
+  editingProfile.value = false;
+  SuccessAlert(t('edubridge.eduOfferGate.profileSavedSuccess'));
+}
 
 function stepProps(key: string) {
   if (key === 'contract') {
@@ -124,10 +144,8 @@ function stepProps(key: string) {
         contractDraft.value = await buildContractDocument();
         return contractDraft.value.document.data?.html ?? '';
       },
-      signDisabled: Number(hourlyRate.value) <= 0,
       sign: async () => {
-        const rate = formatToAsset(String(hourlyRate.value).replace(',', '.'), symbol.value);
-        contract.value = await signContract(rate, contractDraft.value ?? undefined);
+        contract.value = await signContract(contractDraft.value ?? undefined);
         await onSigned(key);
       },
     };
@@ -154,6 +172,7 @@ function stepProps(key: string) {
 async function load(): Promise<void> {
   try {
     state.value = await fetchOnboardingState();
+    if (isTeacher.value) profile.value = await fetchMyTeacherProfile();
     // Договор читается по подписанной оферте — раньше бэкенд его не отдаст.
     if (isTeacher.value && offerSigned.value) contract.value = await fetchMyContract();
     if (!activeStep.value && offer.value?.source !== 'NOT_CONFIGURED') await goToDesk();

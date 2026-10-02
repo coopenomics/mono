@@ -5,6 +5,10 @@ const rawContractSelector = { contract_hash: true, contract_number: true, status
 const _validateContract: MakeAllFieldsRequired<ValueTypes['EduTeacherContract']> = rawContractSelector
 export const eduTeacherContractSelector = Selector('EduTeacherContract')(rawContractSelector)
 
+const rawProfileSelector = { about: true, hourly_rate: true, rate_locked: true }
+const _validateProfile: MakeAllFieldsRequired<ValueTypes['EduTeacherProfile']> = rawProfileSelector
+export const eduTeacherProfileSelector = Selector('EduTeacherProfile')(rawProfileSelector)
+
 const rawAssignmentSelector = {
   id: true,
   teacher_username: true,

@@ -67,6 +67,7 @@ const rawTeacherSelector = {
   username: true,
   hourly_rate: true,
   display_name: true,
+  about: true,
   avatar_url: true,
   contract_number: true,
   contract_status: true,

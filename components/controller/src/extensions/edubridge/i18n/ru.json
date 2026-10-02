@@ -92,6 +92,11 @@
         "format": "Ставка должна быть в формате «1000.0000 RUB»"
       }
     },
+    "eduTeacherProfileInput": {
+      "about": {
+        "length": "Рассказ о себе — от 1 до 2000 знаков"
+      }
+    },
     "edubridgeExtension": {
       "field": {
         "capitalIntegration": {
@@ -296,7 +301,9 @@
     "EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS": "Преподаватель ведёт курсы — сначала снимите его допуски к курсам",
     "EDUBRIDGE_TEACHER_HAS_OPEN_CONTRIBUTIONS": "По занятиям преподавателя не закрыт расчёт — договор прекращается после него",
     "EDUBRIDGE_TEACHER_OFFER_REQUIRED": "Сначала подпишите оферту преподавателя по ЦПП «Образование»",
+    "EDUBRIDGE_TEACHER_ABOUT_REQUIRED": "Расскажите о себе",
     "EDUBRIDGE_TEACHER_RATE_ALREADY_SET": "Ставка часа уже задана: её меняет администратор кооператива",
+    "EDUBRIDGE_TEACHER_RATE_REQUIRED": "Назовите ставку за час",
     "EDUBRIDGE_TEACHER_RATE_NOT_COVERED": "Ставка преподавателя {contractRate} выше плановой ставки курса {plannedRate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой",
     "EDUBRIDGE_TRANSFER_ACT_STALE": "Акт передачи материалов устарел — сформируйте и подпишите его заново",
     "EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED": "Занятия по курсу уже начались — отмена по недобору невозможна",

@@ -8,6 +8,7 @@ export { EdubridgeContributionEntity } from './edubridge-contribution.entity';
 export { EdubridgeLessonEntity } from './edubridge-lesson.entity';
 export { EdubridgeAdminEntity } from './edubridge-admin.entity';
 export { EdubridgeTeacherContractEntity } from './edubridge-teacher-contract.entity';
+export { EdubridgeTeacherProfileEntity } from './edubridge-teacher-profile.entity';
 export { EdubridgeReturnRequestEntity } from './edubridge-return-request.entity';
 export { EdubridgeSectionEntity } from './edubridge-section.entity';
 export { EdubridgeLevelEntity } from './edubridge-level.entity';

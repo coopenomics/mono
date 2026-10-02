@@ -34,6 +34,8 @@ export * as MyLearners from './myLearners'
 export * as MyEnrollments from './myEnrollments'
 /** Сумма взноса и хватает ли паевого */
 export * as Quote from './quote'
+/** Мой профиль преподавателя: рассказ о себе и ставка часа */
+export * as MyTeacherProfile from './myTeacherProfile'
 /** Мой договор участия в хозяйственной деятельности */
 export * as MyContract from './myContract'
 /** Мои назначения */
