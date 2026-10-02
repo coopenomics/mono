@@ -51,6 +51,7 @@ sources:
     - components/contracts/cpp/soviet/src/agreement/sndagreement.cpp
     - components/contracts/cpp/wallet/src/agreement/signagree.cpp
   backend:
+    - components/controller/src/infrastructure/decision-tracking/**
     - components/factory/src/Templates/registry.ts
     - components/factory/src/Factory/index.ts
     - components/factory/src/Services/Templator/index.ts
@@ -464,3 +465,17 @@ cases:
 # изменений (draft::drafts, draft::approvals, tracking_rules, signed_documents).
 # Кэш состояния шаблонов сбрасывается и по дельтам этих таблиц, а не только по
 # действиям draft: действия выпускаются в шину позже дельт своего блока.
+
+  - id: doc.appr.side.22
+    level: backend
+    kind: side
+    scenario: >
+      решение совета записывает номер и дату протокола в реквизиты кооператива;
+      мета документа решения хранит момент в ISO, старые документы — датой
+      вида ДД.ММ.ГГГГ ЧЧ:ММ
+    expect: >
+      в реквизиты дата попадает в виде для человека в поясе документа (без
+      пояса — московское время), старая дата остаётся как есть; сырого ISO в
+      шапках документов («Протокол № 4 от 2026-10-02T14:10:39.662Z») нет
+    test: components/controller/tests/unit/decision-tracking/protocol-date.test.ts
+    status: passing

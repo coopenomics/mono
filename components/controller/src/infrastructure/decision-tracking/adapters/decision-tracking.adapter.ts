@@ -10,6 +10,22 @@ import type { VarsDomainInterface } from '~/domain/system/interfaces/vars-domain
 import { TrackingRuleRepository } from '../repositories/tracking-rule.repository';
 import { IDecisionTrackingPort, CreateTrackingRuleInput, DecisionEventType, DecisionProcessedResult, TrackingRule, DecisionTrackedEvent } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
+import { formatCreatedAt } from '@coopenomics/factory';
+
+/** Пояс документа, если мета решения его не называет. */
+const DEFAULT_PROTOCOL_TIMEZONE = 'Europe/Moscow';
+
+/**
+ * Дата протокола для реквизитов кооператива (`vars.<поле>.protocol_day_month_year`).
+ *
+ * Берётся из меты документа решения. Мета хранит момент в ISO 8601, а реквизит
+ * печатается в шапках документов как есть («Протокол № 4 от …») — поэтому в
+ * переменные дата кладётся в виде для человека, в поясе документа. Дата старого
+ * вида `ДД.ММ.ГГГГ ЧЧ:ММ` возвращается без изменений.
+ */
+export function protocolDateForVars(createdAt: string, timezone?: string | null): string {
+  return formatCreatedAt(String(createdAt), timezone || DEFAULT_PROTOCOL_TIMEZONE);
+}
 
 /**
  * Адаптер для отслеживания решений
@@ -112,6 +128,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
 
       const decisionId = this.extractDecisionId(data);
       const decisionDate = this.extractDecisionDate(data);
+      const decisionTimezone = this.extractDecisionTimezone(data);
 
       this.logger.debug(`Обработка решения совета: hash=${docHash}, id=${decisionId}`);
 
@@ -120,6 +137,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
         event_type: 'soviet_decision' as DecisionEventType,
         decision_id: decisionId || undefined,
         decision_date: decisionDate || undefined,
+        decision_timezone: decisionTimezone || undefined,
       });
     } catch (error: any) {
       this.logger.error(`Ошибка при обработке решения совета: ${error.message}`, error.stack);
@@ -184,8 +202,9 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
     event_type: DecisionEventType;
     decision_id?: string;
     decision_date?: string;
+    decision_timezone?: string;
   }): Promise<void> {
-    const { hash, event_type, decision_id, decision_date } = params;
+    const { hash, event_type, decision_id, decision_date, decision_timezone } = params;
 
     // Ищем правило с соответствующим hash и типом события
     const rule = await this.repository.findByHash(hash);
@@ -211,7 +230,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
     // Обновляем vars. Пакет форм без общего поля vars реквизиты протокола не
     // пишет — иначе появилось бы поле с пустым именем.
     if (decision_id && decision_date && rule.vars_field) {
-      await this.updateVars(rule.vars_field, decision_id, decision_date);
+      await this.updateVars(rule.vars_field, decision_id, protocolDateForVars(decision_date, decision_timezone));
     }
 
     // Деактивируем правило после обработки
@@ -304,6 +323,15 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
    * Извлекает дату решения из document.meta
    */
   private extractDecisionDate(data: any): string | null {
+    return this.extractMetaField(data, 'created_at');
+  }
+
+  /** Пояс документа решения — в нём дата протокола показывается человеку. */
+  private extractDecisionTimezone(data: any): string | null {
+    return this.extractMetaField(data, 'timezone');
+  }
+
+  private extractMetaField(data: any, field: string): string | null {
     try {
       const meta = data?.document?.meta;
       if (!meta) return null;
@@ -319,7 +347,7 @@ export class DecisionTrackingAdapter implements IDecisionTrackingPort, OnModuleI
         metaObj = meta;
       }
 
-      return metaObj?.created_at || null;
+      return metaObj?.[field] || null;
     } catch (error) {
       this.logger.error('Ошибка при извлечении даты решения:', error instanceof Error ? error.message : String(error));
       return null;
