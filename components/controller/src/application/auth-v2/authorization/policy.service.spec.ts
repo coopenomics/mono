@@ -64,13 +64,13 @@ describe('PolicyService — Layer 4 общий вычислитель (Story 6.4
   it('Layer 3: политика вызывается только после прохождения Ability и решает допуск', async () => {
     const evaluate = jest.fn().mockResolvedValue(false);
     const { service } = makeService(evaluate);
-    // Ability проходит (chairman create CriticalAction), но политика отказывает → 403.
-    await expect(service.ensure(req('create', 'CriticalAction', 'same-coop-voting'), { username: 'chief', role: 'chairman' }))
+    // Ability проходит (chairman create Capability), но политика отказывает → 403.
+    await expect(service.ensure(req('create', 'Capability', 'same-coop-voting'), { username: 'chief', role: 'chairman' }))
       .rejects.toBeInstanceOf(ForbiddenException);
-    expect(evaluate).toHaveBeenCalledWith('same-coop-voting', expect.objectContaining({ action: 'create', subject: 'CriticalAction' }));
+    expect(evaluate).toHaveBeenCalledWith('same-coop-voting', expect.objectContaining({ action: 'create', subject: 'Capability' }));
 
     evaluate.mockResolvedValue(true);
-    await expect(service.ensure(req('create', 'CriticalAction', 'same-coop-voting'), { username: 'chief', role: 'chairman' }))
+    await expect(service.ensure(req('create', 'Capability', 'same-coop-voting'), { username: 'chief', role: 'chairman' }))
       .resolves.toBeUndefined();
   });
 

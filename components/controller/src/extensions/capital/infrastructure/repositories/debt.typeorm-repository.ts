@@ -9,6 +9,8 @@ import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync'
 import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
+import type { DebtFilterInputDTO } from '../../application/dto/debt_management/debt-filter.input';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class DebtTypeormRepository
@@ -58,5 +60,34 @@ export class DebtTypeormRepository
   async findByStatus(status: string): Promise<DebtDomainEntity[]> {
     const entities = await this.repository.find({ where: { status: status as any } });
     return entities.map((entity) => DebtMapper.toDomain(entity));
+  }
+
+  async findAllPaginated(
+    filter?: DebtFilterInputDTO,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<DebtDomainEntity>> {
+    const validatedOptions: PaginationInputDTO = options
+      ? PaginationUtils.validatePaginationOptions(options)
+      : { page: 1, limit: 10, sortBy: undefined, sortOrder: 'ASC' as const };
+    const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
+
+    const where: any = {};
+    if (filter?.username) where.username = filter.username;
+    if (filter?.projectHash) where.project_hash = filter.projectHash.toLowerCase();
+    if (filter?.status) where.status = filter.status;
+
+    const totalCount = await this.repository.count({ where });
+
+    // Имя вне колонок — сортировка по умолчанию, а не ошибка в ORDER BY.
+    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    const orderBy: any = {};
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
+    const entities = await this.repository.find({ where, skip: offset, take: limit, order: orderBy });
+
+    return PaginationUtils.createPaginationResult(
+      entities.map((entity) => DebtMapper.toDomain(entity)),
+      totalCount,
+      validatedOptions
+    );
   }
 }

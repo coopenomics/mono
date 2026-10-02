@@ -18,7 +18,7 @@ interface Row {
 
 /**
  * Хранилище ручных отзывов ключей в coop_domain_db (таблица V2.4.10). Свой lazy
- * DataSource, как `PostgresPendingCriticalActionsRepository`.
+ * DataSource.
  */
 @Injectable()
 export class PostgresKeyRevocationRepository implements IKeyRevocationRepository, OnModuleDestroy {

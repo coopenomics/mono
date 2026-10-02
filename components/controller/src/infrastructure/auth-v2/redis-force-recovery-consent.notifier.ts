@@ -10,7 +10,7 @@ import {
 /**
  * Нотификатор запроса согласия на force-recovery (Story 6.9). Публикует событие с
  * токеном в Redis-канал; рендер и доставка письма с magic-link — забота
- * notification-center (downstream-подписчик), как фан-аут critical-action (6.8).
+ * notification-center (downstream-подписчик).
  * `ioredis` — только в infrastructure.
  */
 @Injectable()

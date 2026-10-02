@@ -1840,8 +1840,6 @@ export type ValueTypes = {
 	["AuthorizeForceRecoveryInput"]: {
 	/** Идентификатор транзакции решения собрания (если основание — собрание) */
 	assembly_decision_tx_id?: string | undefined | null | Variable<any, string>,
-	/** Идентификатор связанного критического действия */
-	critical_action_id?: string | undefined | null | Variable<any, string>,
 	/** Пайщик, для которого авторизуется восстановление */
 	target_id: string | Variable<any, string>
 };
@@ -6350,42 +6348,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CreatedProjectFreeDecision']?: Omit<ValueTypes["CreatedProjectFreeDecision"], "...on CreatedProjectFreeDecision">
 }>;
-	["CriticalActionAuditEntry"]: AliasType<{
-	/** Тип действия */
-	action_type?:boolean | `@${string}`,
-	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
-	confirmer_ids?:ValueTypes["CriticalActionConfirmation"],
-	/** Момент инициации (ISO) */
-	created_at?:boolean | `@${string}`,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?:boolean | `@${string}`,
-	/** Идентификатор критического действия */
-	id?:boolean | `@${string}`,
-	/** Момент первой подписи инициатора (ISO) */
-	initiated_at?:boolean | `@${string}`,
-	/** Инициатор (председатель) */
-	initiator_id?:boolean | `@${string}`,
-	/** SHA-256 от payload — гарантия неподменяемости содержимого */
-	payload_hash?:boolean | `@${string}`,
-	/** Состояние действия */
-	status?:boolean | `@${string}`,
-	/** Кого/что затрагивает действие */
-	target_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on CriticalActionAuditEntry']?: Omit<ValueTypes["CriticalActionAuditEntry"], "...on CriticalActionAuditEntry">
-}>;
-	["CriticalActionConfirmation"]: AliasType<{
-	/** Когда подтвердил (ISO) */
-	at?:boolean | `@${string}`,
-	/** Кто подтвердил (имя аккаунта) */
-	by?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on CriticalActionConfirmation']?: Omit<ValueTypes["CriticalActionConfirmation"], "...on CriticalActionConfirmation">
-}>;
-	/** Состояние критического действия */
-["CriticalActionStatus"]:CriticalActionStatus;
-	/** Тип критического действия совета */
-["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: AliasType<{
 	/** Статус в блокчейне от контракта кооператива */
 	blockchain_status?:boolean | `@${string}`,
@@ -8292,14 +8254,6 @@ export type ValueTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ValueTypes["CreateInitOrganizationDataInput"] | Variable<any, string>
 };
-	["InitiateCriticalActionInput"]: {
-	/** Тип критического действия */
-	action_type: ValueTypes["CriticalActionType"] | Variable<any, string>,
-	/** Содержимое действия (зависит от типа) */
-	payload?: ValueTypes["JSON"] | undefined | null | Variable<any, string>,
-	/** Кого/что затрагивает действие */
-	target_id: string | Variable<any, string>
-};
 	["Install"]: {
 	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
 	install_code?: string | undefined | null | Variable<any, string>,
@@ -8349,6 +8303,8 @@ export type ValueTypes = {
 	/** Пайщик, присоединяющийся к собранию */
 	username: string | Variable<any, string>
 };
+	/** Исход отзыва ключа пайщика */
+["KeyRevocationStatus"]:KeyRevocationStatus;
 	["KeyWeight"]: AliasType<{
 	/** Ключ */
 	key?:boolean | `@${string}`,
@@ -12593,7 +12549,6 @@ completeChairmanAgendaStep?: [{	data: ValueTypes["ChairmanOnboardingAgendaInput"
 completeChairmanGeneralMeetStep?: [{	data: ValueTypes["ChairmanOnboardingGeneralMeetInput"] | Variable<any, string>},ValueTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ValueTypes["CompleteExtensionOnboardingStepInput"] | Variable<any, string>},ValueTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ValueTypes["ConfirmAgreementInput"] | Variable<any, string>},ValueTypes["Transaction"]],
-confirmCriticalAction?: [{	id: string | Variable<any, string>},ValueTypes["PendingCriticalAction"]],
 confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO"] | Variable<any, string>},boolean | `@${string}`],
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
@@ -12645,7 +12600,6 @@ generateSovietDecisionOnAnnualMeetDocument?: [{	data: ValueTypes["AnnualGeneralM
 generateUserAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 initSystem?: [{	data: ValueTypes["Init"] | Variable<any, string>},ValueTypes["SystemInfo"]],
-initiateCriticalAction?: [{	data: ValueTypes["InitiateCriticalActionInput"] | Variable<any, string>},ValueTypes["PendingCriticalAction"]],
 installExtension?: [{	data: ValueTypes["ExtensionInput"] | Variable<any, string>},ValueTypes["Extension"]],
 installSystem?: [{	data: ValueTypes["Install"] | Variable<any, string>},ValueTypes["SystemInfo"]],
 kuApproveTrusted?: [{	data: ValueTypes["ApproveKuTrustedInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -13797,30 +13751,6 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 ["PaymentStatus"]:PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]:PaymentType;
-	["PendingCriticalAction"]: AliasType<{
-	/** Тип действия */
-	action_type?:boolean | `@${string}`,
-	/** Инициатор (председатель) */
-	actor_id?:boolean | `@${string}`,
-	/** Накопленные подтверждения */
-	confirmations?:ValueTypes["CriticalActionConfirmation"],
-	/** Момент инициации (ISO) */
-	created_at?:boolean | `@${string}`,
-	/** Крайний срок подтверждения (ISO) */
-	expires_at?:boolean | `@${string}`,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?:boolean | `@${string}`,
-	/** Идентификатор критического действия */
-	id?:boolean | `@${string}`,
-	/** Содержимое действия (зависит от типа) */
-	payload?:boolean | `@${string}`,
-	/** Состояние действия */
-	status?:boolean | `@${string}`,
-	/** Кого/что затрагивает действие */
-	target_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on PendingCriticalAction']?: Omit<ValueTypes["PendingCriticalAction"], "...on PendingCriticalAction">
-}>;
 	["Permission"]: AliasType<{
 	/** Родительское разрешение */
 	parent?:boolean | `@${string}`,
@@ -14468,7 +14398,6 @@ getCapitalProjectLogs?: [{	data: ValueTypes["GetCapitalLogsInput"] | Variable<an
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ValueTypes["ChairmanOnboardingState"],
-getCriticalActionAuditTrail?: [{	target_id: string | Variable<any, string>},ValueTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -15390,7 +15319,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	must_recover?:boolean | `@${string}`,
 	/** Сколько активных сессий пайщика отозвано */
 	sessions_revoked?:boolean | `@${string}`,
-	/** Статус операции */
+	/** Исход отзыва */
 	status?:boolean | `@${string}`,
 	/** Пайщик, чей ключ отозван */
 	target_id?:boolean | `@${string}`,
@@ -17733,8 +17662,6 @@ export type ResolverInputTypes = {
 	["AuthorizeForceRecoveryInput"]: {
 	/** Идентификатор транзакции решения собрания (если основание — собрание) */
 	assembly_decision_tx_id?: string | undefined | null,
-	/** Идентификатор связанного критического действия */
-	critical_action_id?: string | undefined | null,
 	/** Пайщик, для которого авторизуется восстановление */
 	target_id: string
 };
@@ -22139,40 +22066,6 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["CriticalActionAuditEntry"]: AliasType<{
-	/** Тип действия */
-	action_type?:boolean | `@${string}`,
-	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
-	confirmer_ids?:ResolverInputTypes["CriticalActionConfirmation"],
-	/** Момент инициации (ISO) */
-	created_at?:boolean | `@${string}`,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?:boolean | `@${string}`,
-	/** Идентификатор критического действия */
-	id?:boolean | `@${string}`,
-	/** Момент первой подписи инициатора (ISO) */
-	initiated_at?:boolean | `@${string}`,
-	/** Инициатор (председатель) */
-	initiator_id?:boolean | `@${string}`,
-	/** SHA-256 от payload — гарантия неподменяемости содержимого */
-	payload_hash?:boolean | `@${string}`,
-	/** Состояние действия */
-	status?:boolean | `@${string}`,
-	/** Кого/что затрагивает действие */
-	target_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["CriticalActionConfirmation"]: AliasType<{
-	/** Когда подтвердил (ISO) */
-	at?:boolean | `@${string}`,
-	/** Кто подтвердил (имя аккаунта) */
-	by?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	/** Состояние критического действия */
-["CriticalActionStatus"]:CriticalActionStatus;
-	/** Тип критического действия совета */
-["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: AliasType<{
 	/** Статус в блокчейне от контракта кооператива */
 	blockchain_status?:boolean | `@${string}`,
@@ -24033,14 +23926,6 @@ export type ResolverInputTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ResolverInputTypes["CreateInitOrganizationDataInput"]
 };
-	["InitiateCriticalActionInput"]: {
-	/** Тип критического действия */
-	action_type: ResolverInputTypes["CriticalActionType"],
-	/** Содержимое действия (зависит от типа) */
-	payload?: ResolverInputTypes["JSON"] | undefined | null,
-	/** Кого/что затрагивает действие */
-	target_id: string
-};
 	["Install"]: {
 	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
 	install_code?: string | undefined | null,
@@ -24089,6 +23974,8 @@ export type ResolverInputTypes = {
 	/** Пайщик, присоединяющийся к собранию */
 	username: string
 };
+	/** Исход отзыва ключа пайщика */
+["KeyRevocationStatus"]:KeyRevocationStatus;
 	["KeyWeight"]: AliasType<{
 	/** Ключ */
 	key?:boolean | `@${string}`,
@@ -28201,7 +28088,6 @@ completeChairmanAgendaStep?: [{	data: ResolverInputTypes["ChairmanOnboardingAgen
 completeChairmanGeneralMeetStep?: [{	data: ResolverInputTypes["ChairmanOnboardingGeneralMeetInput"]},ResolverInputTypes["ChairmanOnboardingState"]],
 completeExtensionOnboardingStep?: [{	data: ResolverInputTypes["CompleteExtensionOnboardingStepInput"]},ResolverInputTypes["ExtensionOnboardingState"]],
 confirmAgreement?: [{	data: ResolverInputTypes["ConfirmAgreementInput"]},ResolverInputTypes["Transaction"]],
-confirmCriticalAction?: [{	id: string},ResolverInputTypes["PendingCriticalAction"]],
 confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerificationInputDTO"]},boolean | `@${string}`],
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
@@ -28253,7 +28139,6 @@ generateSovietDecisionOnAnnualMeetDocument?: [{	data: ResolverInputTypes["Annual
 generateUserAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateWalletAgreement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 initSystem?: [{	data: ResolverInputTypes["Init"]},ResolverInputTypes["SystemInfo"]],
-initiateCriticalAction?: [{	data: ResolverInputTypes["InitiateCriticalActionInput"]},ResolverInputTypes["PendingCriticalAction"]],
 installExtension?: [{	data: ResolverInputTypes["ExtensionInput"]},ResolverInputTypes["Extension"]],
 installSystem?: [{	data: ResolverInputTypes["Install"]},ResolverInputTypes["SystemInfo"]],
 kuApproveTrusted?: [{	data: ResolverInputTypes["ApproveKuTrustedInput"]},ResolverInputTypes["Transaction"]],
@@ -29355,29 +29240,6 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 ["PaymentStatus"]:PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]:PaymentType;
-	["PendingCriticalAction"]: AliasType<{
-	/** Тип действия */
-	action_type?:boolean | `@${string}`,
-	/** Инициатор (председатель) */
-	actor_id?:boolean | `@${string}`,
-	/** Накопленные подтверждения */
-	confirmations?:ResolverInputTypes["CriticalActionConfirmation"],
-	/** Момент инициации (ISO) */
-	created_at?:boolean | `@${string}`,
-	/** Крайний срок подтверждения (ISO) */
-	expires_at?:boolean | `@${string}`,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?:boolean | `@${string}`,
-	/** Идентификатор критического действия */
-	id?:boolean | `@${string}`,
-	/** Содержимое действия (зависит от типа) */
-	payload?:boolean | `@${string}`,
-	/** Состояние действия */
-	status?:boolean | `@${string}`,
-	/** Кого/что затрагивает действие */
-	target_id?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
 	["Permission"]: AliasType<{
 	/** Родительское разрешение */
 	parent?:boolean | `@${string}`,
@@ -30003,7 +29865,6 @@ getCapitalProjectLogs?: [{	data: ResolverInputTypes["GetCapitalLogsInput"]},Reso
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState?:ResolverInputTypes["ChairmanOnboardingState"],
-getCriticalActionAuditTrail?: [{	target_id: string},ResolverInputTypes["CriticalActionAuditEntry"]],
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -30902,7 +30763,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	must_recover?:boolean | `@${string}`,
 	/** Сколько активных сессий пайщика отозвано */
 	sessions_revoked?:boolean | `@${string}`,
-	/** Статус операции */
+	/** Исход отзыва */
 	status?:boolean | `@${string}`,
 	/** Пайщик, чей ключ отозван */
 	target_id?:boolean | `@${string}`,
@@ -33180,8 +33041,6 @@ export type ModelTypes = {
 	["AuthorizeForceRecoveryInput"]: {
 	/** Идентификатор транзакции решения собрания (если основание — собрание) */
 	assembly_decision_tx_id?: string | undefined | null,
-	/** Идентификатор связанного критического действия */
-	critical_action_id?: string | undefined | null,
 	/** Пайщик, для которого авторизуется восстановление */
 	target_id: string
 };
@@ -37470,36 +37329,6 @@ export type ModelTypes = {
 	/** Пользовательский заголовок документа */
 	title?: string | undefined | null
 };
-	["CriticalActionAuditEntry"]: {
-		/** Тип действия */
-	action_type: ModelTypes["CriticalActionType"],
-	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
-	confirmer_ids: Array<ModelTypes["CriticalActionConfirmation"]>,
-	/** Момент инициации (ISO) */
-	created_at: string,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?: string | undefined | null,
-	/** Идентификатор критического действия */
-	id: string,
-	/** Момент первой подписи инициатора (ISO) */
-	initiated_at?: string | undefined | null,
-	/** Инициатор (председатель) */
-	initiator_id: string,
-	/** SHA-256 от payload — гарантия неподменяемости содержимого */
-	payload_hash: string,
-	/** Состояние действия */
-	status: ModelTypes["CriticalActionStatus"],
-	/** Кого/что затрагивает действие */
-	target_id: string
-};
-	["CriticalActionConfirmation"]: {
-		/** Когда подтвердил (ISO) */
-	at: string,
-	/** Кто подтвердил (имя аккаунта) */
-	by: string
-};
-	["CriticalActionStatus"]:CriticalActionStatus;
-	["CriticalActionType"]:CriticalActionType;
 	["CurrentInstanceDTO"]: {
 		/** Статус в блокчейне от контракта кооператива */
 	blockchain_status: string,
@@ -39296,14 +39125,6 @@ export type ModelTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: ModelTypes["CreateInitOrganizationDataInput"]
 };
-	["InitiateCriticalActionInput"]: {
-	/** Тип критического действия */
-	action_type: ModelTypes["CriticalActionType"],
-	/** Содержимое действия (зависит от типа) */
-	payload?: ModelTypes["JSON"] | undefined | null,
-	/** Кого/что затрагивает действие */
-	target_id: string
-};
 	["Install"]: {
 	/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
 	install_code?: string | undefined | null,
@@ -39347,6 +39168,7 @@ export type ModelTypes = {
 	/** Пайщик, присоединяющийся к собранию */
 	username: string
 };
+	["KeyRevocationStatus"]:KeyRevocationStatus;
 	["KeyWeight"]: {
 		/** Ключ */
 	key: string,
@@ -43632,8 +43454,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: ModelTypes["Transaction"],
-	/** Подтвердить критическое действие совета (член совета) */
-	confirmCriticalAction: ModelTypes["PendingCriticalAction"],
 	/** Подтвердить электронную почту кодом из письма */
 	confirmEmailVerification: boolean,
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
@@ -43820,8 +43640,6 @@ export type ModelTypes = {
 	generateWalletAgreement: ModelTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: ModelTypes["SystemInfo"],
-	/** Инициировать критическое действие совета (председатель) */
-	initiateCriticalAction: ModelTypes["PendingCriticalAction"],
 	/** Установить расширение
 
 Требуемые роли: chairman.  */
@@ -45161,28 +44979,6 @@ export type ModelTypes = {
 };
 	["PaymentStatus"]:PaymentStatus;
 	["PaymentType"]:PaymentType;
-	["PendingCriticalAction"]: {
-		/** Тип действия */
-	action_type: ModelTypes["CriticalActionType"],
-	/** Инициатор (председатель) */
-	actor_id: string,
-	/** Накопленные подтверждения */
-	confirmations: Array<ModelTypes["CriticalActionConfirmation"]>,
-	/** Момент инициации (ISO) */
-	created_at: string,
-	/** Крайний срок подтверждения (ISO) */
-	expires_at: string,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?: string | undefined | null,
-	/** Идентификатор критического действия */
-	id: string,
-	/** Содержимое действия (зависит от типа) */
-	payload: ModelTypes["JSON"],
-	/** Состояние действия */
-	status: ModelTypes["CriticalActionStatus"],
-	/** Кого/что затрагивает действие */
-	target_id: string
-};
 	["Permission"]: {
 		/** Родительское разрешение */
 	parent: string,
@@ -46012,8 +45808,6 @@ export type ModelTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: ModelTypes["ChairmanOnboardingState"],
-	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
-	getCriticalActionAuditTrail: Array<ModelTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -47108,8 +46902,8 @@ export type ModelTypes = {
 	must_recover: boolean,
 	/** Сколько активных сессий пайщика отозвано */
 	sessions_revoked: number,
-	/** Статус операции */
-	status: string,
+	/** Исход отзыва */
+	status: ModelTypes["KeyRevocationStatus"],
 	/** Пайщик, чей ключ отозван */
 	target_id: string
 };
@@ -49362,8 +49156,6 @@ export type GraphQLTypes = {
 	["AuthorizeForceRecoveryInput"]: {
 		/** Идентификатор транзакции решения собрания (если основание — собрание) */
 	assembly_decision_tx_id?: string | undefined | null,
-	/** Идентификатор связанного критического действия */
-	critical_action_id?: string | undefined | null,
 	/** Пайщик, для которого авторизуется восстановление */
 	target_id: string
 };
@@ -53872,42 +53664,6 @@ export type GraphQLTypes = {
 	title?: string | undefined | null,
 	['...on CreatedProjectFreeDecision']: Omit<GraphQLTypes["CreatedProjectFreeDecision"], "...on CreatedProjectFreeDecision">
 };
-	["CriticalActionAuditEntry"]: {
-	__typename: "CriticalActionAuditEntry",
-	/** Тип действия */
-	action_type: GraphQLTypes["CriticalActionType"],
-	/** Подтверждающие совета (≠ инициатор) со своими timestamp */
-	confirmer_ids: Array<GraphQLTypes["CriticalActionConfirmation"]>,
-	/** Момент инициации (ISO) */
-	created_at: string,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?: string | undefined | null,
-	/** Идентификатор критического действия */
-	id: string,
-	/** Момент первой подписи инициатора (ISO) */
-	initiated_at?: string | undefined | null,
-	/** Инициатор (председатель) */
-	initiator_id: string,
-	/** SHA-256 от payload — гарантия неподменяемости содержимого */
-	payload_hash: string,
-	/** Состояние действия */
-	status: GraphQLTypes["CriticalActionStatus"],
-	/** Кого/что затрагивает действие */
-	target_id: string,
-	['...on CriticalActionAuditEntry']: Omit<GraphQLTypes["CriticalActionAuditEntry"], "...on CriticalActionAuditEntry">
-};
-	["CriticalActionConfirmation"]: {
-	__typename: "CriticalActionConfirmation",
-	/** Когда подтвердил (ISO) */
-	at: string,
-	/** Кто подтвердил (имя аккаунта) */
-	by: string,
-	['...on CriticalActionConfirmation']: Omit<GraphQLTypes["CriticalActionConfirmation"], "...on CriticalActionConfirmation">
-};
-	/** Состояние критического действия */
-["CriticalActionStatus"]: CriticalActionStatus;
-	/** Тип критического действия совета */
-["CriticalActionType"]: CriticalActionType;
 	["CurrentInstanceDTO"]: {
 	__typename: "CurrentInstanceDTO",
 	/** Статус в блокчейне от контракта кооператива */
@@ -55814,14 +55570,6 @@ export type GraphQLTypes = {
 	/** Объект организации кооператива, которая обслуживает данный экземпляр программного обеспечения MONO */
 	organization_data: GraphQLTypes["CreateInitOrganizationDataInput"]
 };
-	["InitiateCriticalActionInput"]: {
-		/** Тип критического действия */
-	action_type: GraphQLTypes["CriticalActionType"],
-	/** Содержимое действия (зависит от типа) */
-	payload?: GraphQLTypes["JSON"] | undefined | null,
-	/** Кого/что затрагивает действие */
-	target_id: string
-};
 	["Install"]: {
 		/** Код установки, выданный startInstall владельцу ключа кооператива. Без него совет установить нельзя. */
 	install_code?: string | undefined | null,
@@ -55871,6 +55619,8 @@ export type GraphQLTypes = {
 	/** Пайщик, присоединяющийся к собранию */
 	username: string
 };
+	/** Исход отзыва ключа пайщика */
+["KeyRevocationStatus"]: KeyRevocationStatus;
 	["KeyWeight"]: {
 	__typename: "KeyWeight",
 	/** Ключ */
@@ -60465,8 +60215,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman, member.  */
 	confirmAgreement: GraphQLTypes["Transaction"],
-	/** Подтвердить критическое действие совета (член совета) */
-	confirmCriticalAction: GraphQLTypes["PendingCriticalAction"],
 	/** Подтвердить электронную почту кодом из письма */
 	confirmEmailVerification: boolean,
 	/** Подтвердить выход из кооператива по ссылке из письма. Проверяет токен и отправляет ранее подписанное заявление в блокчейн. */
@@ -60653,8 +60401,6 @@ export type GraphQLTypes = {
 	generateWalletAgreement: GraphQLTypes["GeneratedDocument"],
 	/** Произвести инициализацию программного обеспечения перед установкой совета методом install */
 	initSystem: GraphQLTypes["SystemInfo"],
-	/** Инициировать критическое действие совета (председатель) */
-	initiateCriticalAction: GraphQLTypes["PendingCriticalAction"],
 	/** Установить расширение
 
 Требуемые роли: chairman.  */
@@ -62113,30 +61859,6 @@ export type GraphQLTypes = {
 ["PaymentStatus"]: PaymentStatus;
 	/** Тип платежа по назначению */
 ["PaymentType"]: PaymentType;
-	["PendingCriticalAction"]: {
-	__typename: "PendingCriticalAction",
-	/** Тип действия */
-	action_type: GraphQLTypes["CriticalActionType"],
-	/** Инициатор (председатель) */
-	actor_id: string,
-	/** Накопленные подтверждения */
-	confirmations: Array<GraphQLTypes["CriticalActionConfirmation"]>,
-	/** Момент инициации (ISO) */
-	created_at: string,
-	/** Крайний срок подтверждения (ISO) */
-	expires_at: string,
-	/** Момент финализации (ISO); пусто, пока не финализировано */
-	finalized_at?: string | undefined | null,
-	/** Идентификатор критического действия */
-	id: string,
-	/** Содержимое действия (зависит от типа) */
-	payload: GraphQLTypes["JSON"],
-	/** Состояние действия */
-	status: GraphQLTypes["CriticalActionStatus"],
-	/** Кого/что затрагивает действие */
-	target_id: string,
-	['...on PendingCriticalAction']: Omit<GraphQLTypes["PendingCriticalAction"], "...on PendingCriticalAction">
-};
 	["Permission"]: {
 	__typename: "Permission",
 	/** Родительское разрешение */
@@ -63022,8 +62744,6 @@ export type GraphQLTypes = {
 
 Требуемые роли: chairman.  */
 	getChairmanOnboardingState: GraphQLTypes["ChairmanOnboardingState"],
-	/** Audit-trail критических действий, затрагивающих пайщика (для контролирующего органа) */
-	getCriticalActionAuditTrail: Array<GraphQLTypes["CriticalActionAuditEntry"]>,
 	/** Получить текущий инстанс пользователя
 
 Требуемые роли: member, chairman, user.  */
@@ -64172,8 +63892,8 @@ export type GraphQLTypes = {
 	must_recover: boolean,
 	/** Сколько активных сессий пайщика отозвано */
 	sessions_revoked: number,
-	/** Статус операции */
-	status: string,
+	/** Исход отзыва */
+	status: GraphQLTypes["KeyRevocationStatus"],
 	/** Пайщик, чей ключ отозван */
 	target_id: string,
 	['...on RevokeKeyResult']: Omit<GraphQLTypes["RevokeKeyResult"], "...on RevokeKeyResult">
@@ -65935,20 +65655,6 @@ export enum ContributorStatus {
 export enum Country {
 	Russia = "Russia"
 }
-/** Состояние критического действия */
-export enum CriticalActionStatus {
-	Cancelled = "Cancelled",
-	Confirmed = "Confirmed",
-	Expired = "Expired",
-	Pending = "Pending"
-}
-/** Тип критического действия совета */
-export enum CriticalActionType {
-	ChangeCouncilRoles = "ChangeCouncilRoles",
-	ChangeVerificationTypes = "ChangeVerificationTypes",
-	ExcludeParticipant = "ExcludeParticipant",
-	ForceRecovery = "ForceRecovery"
-}
 /** Статус цикла в системе CAPITAL */
 export enum CycleStatus {
 	ACTIVE = "ACTIVE",
@@ -66112,6 +65818,10 @@ export enum IssueStatus {
 	IN_PROGRESS = "IN_PROGRESS",
 	ON_REVIEW = "ON_REVIEW",
 	TODO = "TODO"
+}
+/** Исход отзыва ключа пайщика */
+export enum KeyRevocationStatus {
+	Revoked = "Revoked"
 }
 /** Статус решения собрания пайщиков кооперативного участка */
 export enum KuDecisionStatus {
@@ -66944,8 +66654,6 @@ type ZEUS_VARIABLES = {
 	["CreateStoryInput"]: ValueTypes["CreateStoryInput"];
 	["CreateSubscriptionInput"]: ValueTypes["CreateSubscriptionInput"];
 	["CreateWithdrawInput"]: ValueTypes["CreateWithdrawInput"];
-	["CriticalActionStatus"]: ValueTypes["CriticalActionStatus"];
-	["CriticalActionType"]: ValueTypes["CriticalActionType"];
 	["CurrentTableStatesFiltersInput"]: ValueTypes["CurrentTableStatesFiltersInput"];
 	["CycleStatus"]: ValueTypes["CycleStatus"];
 	["DateTime"]: ValueTypes["DateTime"];
@@ -67073,7 +66781,6 @@ type ZEUS_VARIABLES = {
 	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];
 	["Init"]: ValueTypes["Init"];
-	["InitiateCriticalActionInput"]: ValueTypes["InitiateCriticalActionInput"];
 	["Install"]: ValueTypes["Install"];
 	["InstanceStatus"]: ValueTypes["InstanceStatus"];
 	["IntakeFormAnswerInput"]: ValueTypes["IntakeFormAnswerInput"];
@@ -67084,6 +66791,7 @@ type ZEUS_VARIABLES = {
 	["JSON"]: ValueTypes["JSON"];
 	["JSONObject"]: ValueTypes["JSONObject"];
 	["JoinKuDecisionInput"]: ValueTypes["JoinKuDecisionInput"];
+	["KeyRevocationStatus"]: ValueTypes["KeyRevocationStatus"];
 	["KuAgendaPointInput"]: ValueTypes["KuAgendaPointInput"];
 	["KuAgendaQuestionInput"]: ValueTypes["KuAgendaQuestionInput"];
 	["KuBallotAnswerInput"]: ValueTypes["KuBallotAnswerInput"];

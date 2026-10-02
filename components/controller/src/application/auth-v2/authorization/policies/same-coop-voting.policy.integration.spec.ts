@@ -30,7 +30,7 @@ const blob: EncryptedVaultBlob = {
 const ctx = (username: string, coopname?: string): PolicyEvaluationContext => ({
   user: { username, role: 'user' },
   action: 'vote',
-  subject: 'CriticalAction',
+  subject: 'Participant',
   resource: coopname === undefined ? undefined : { coopname },
 });
 

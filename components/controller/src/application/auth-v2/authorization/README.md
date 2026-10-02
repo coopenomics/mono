@@ -28,7 +28,6 @@
 | Participant | — | read | update (роли, 6.6) |
 | VerificationRule | — | read | manage |
 | CoopSettings | — | — | manage |
-| CriticalAction | — | read + **confirm** (6.8) | + create (инициатор) |
 | Capability | — | — | create (6.7) |
 | AuditEvent | — | read | (наследует) |
 

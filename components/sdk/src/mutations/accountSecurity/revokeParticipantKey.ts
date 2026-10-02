@@ -1,4 +1,4 @@
-import { revokeKeyResultSelector } from '../../selectors/criticalActions/revokeKeyResultSelector'
+import { revokeKeyResultSelector } from '../../selectors/accountSecurity/revokeKeyResultSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'revokeParticipantKey'

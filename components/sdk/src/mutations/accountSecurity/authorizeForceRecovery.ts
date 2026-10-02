@@ -1,4 +1,4 @@
-import { forceRecoveryAuthorizationSelector } from '../../selectors/criticalActions/forceRecoveryAuthorizationSelector'
+import { forceRecoveryAuthorizationSelector } from '../../selectors/accountSecurity/forceRecoveryAuthorizationSelector'
 import { $, type GraphQLTypes, type InputType, type ModelTypes, Selector } from '../../zeus/index'
 
 export const name = 'authorizeForceRecovery'
