@@ -62,6 +62,8 @@ cases:
     scenario: анкета без полей или с полем без подписи
     expect: регистрация анкеты отклонена на старте расширения, в реестр она не попадает
     test: components/controller/tests/unit/registration/intake-forms.test.ts
+    external: unreachable
+    external_reason: "анкету объявляет код расширения при старте; анкету без полей через API не зарегистрировать"
     status: written
 
   - id: reg.intake.side.02
@@ -70,6 +72,7 @@ cases:
     scenario: второе расширение регистрирует анкету с уже занятым идентификатором; владелец повторяет регистрацию
     expect: чужому — ConflictException; владельцу — перезапись без дубля
     test: components/controller/tests/unit/registration/intake-forms.test.ts
+    api: components/api-tests/src/faults/extension-stop.test.ts
     status: written
 
   - id: reg.intake.side.03
@@ -114,6 +117,7 @@ cases:
     scenario: расширение остановлено
     expect: его анкеты сняты с реестра, анкеты других расширений остались
     test: components/controller/tests/unit/registration/intake-forms.test.ts
+    api: components/api-tests/src/faults/extension-stop.test.ts
     status: written
 
   - id: reg.intake.side.08
@@ -140,6 +144,7 @@ cases:
     scenario: capital регистрирует программы при завершённом и незавершённом L1
     expect: анкета письма объявлена только при завершённом L1 и привязана только к «Генератору»
     test: components/controller/tests/unit/capital/capital-plugin-register.test.ts
+    api: components/api-tests/src/registration/intake-forms.test.ts
     status: written
 
   - id: reg.intake.side.10

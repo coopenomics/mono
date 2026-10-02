@@ -96,6 +96,12 @@ export interface MarketplaceIssuanceSubmitStatementInput {
    * когда `getConvertSignablePayload` вернул документ.
    */
   signed_convert?: MarketplaceConvertStatementSignedInputDTO | null;
+  /**
+   * Доплата по факту уже переведена общим заявлением бандла выдачи — второе
+   * заявление по этому заказу не требуется. Ставит только бандл у стойки;
+   * во входе API поля нет.
+   */
+  convert_settled_by_bundle?: boolean;
 }
 
 /** Доплата по факту (факт больше заказа), в минимальных единицах. */
@@ -383,7 +389,12 @@ export class MarketplaceIssuanceService {
     }
 
     this.assertStatementMatchesFact(input.signed_statement, order, saga);
-    await this.transferMembershipPart(input, order, saga);
+    // Бандл выдачи переводит доплату всех своих заказов одним заявлением 1110 до подачи
+    // заявлений о выдаче. Без этой отметки заказ бандла с доплатой тела требовал второе
+    // заявление, которого пайщику никто не показывал, и не подписывался (C28-85, находка 57).
+    if (!input.convert_settled_by_bundle) {
+      await this.transferMembershipPart(input, order, saga);
+    }
 
     const statement = new SignedDigitalDocumentInputDTO(input.signed_statement).toDocument() as MarketContract.Actions.IssueStmt.IIssueStmt['statement'];
     let tx;

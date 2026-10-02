@@ -156,7 +156,7 @@ th, td {
 
   <p>{% trans 'signature' %}</p>
   <p style="margin: 0px">{{ chairman.full_name_or_short_name }}</p>
-  <p style="margin: 0px">{{ meta.created_at }}</p>
+  <p style="margin: 0px">{{ created_at }}</p>
 </div>
 `
 

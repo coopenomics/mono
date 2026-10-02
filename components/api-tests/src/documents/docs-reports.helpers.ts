@@ -14,7 +14,8 @@ import crypto from 'node:crypto'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
-import { gql } from '../core/client'
+import { gql, gqlRaw } from '../core/client'
+import { voteOnDecision } from '../core/council'
 import { docMeta, signDocument } from '../core/documents'
 import { COOP, DEFAULT_WIF } from '../core/env'
 import { CHAIRMAN, ROLES } from '../core/roles'
@@ -167,22 +168,9 @@ export async function agendaAll(token: string): Promise<{ id: number, hash: stri
   return (d.getAgenda as any[]).map(a => ({ id: Number(a.table.id), hash: String(a.table.hash ?? ''), meta: String(a.table.meta ?? '') }))
 }
 
-/** Голоса членов совета ключом стенда — так, как голосует рабочий стол. */
+/** Голоса членов совета ключом стенда — общий помощник совета (core/council). */
 export async function vote(decision: AgendaRow, side: 'for' | 'against'): Promise<void> {
-  const { Classes } = await import('@coopenomics/sdk')
-  const signer: any = new Classes.Vote(DEFAULT_WIF)
-  for (const voter of VOTERS) {
-    if (decision.votes_for.includes(voter) || decision.votes_against.includes(voter))
-      continue
-    const data = side === 'for'
-      ? await signer.voteFor(COOP, voter, decision.id)
-      : await signer.voteAgainst(COOP, voter, decision.id)
-    await transact({ account: voter, email: '', wif: DEFAULT_WIF }, [{
-      account: 'soviet',
-      name: side === 'for' ? 'votefor' : 'voteagainst',
-      data,
-    }])
-  }
+  await voteOnDecision(decision.id, side, VOTERS)
 }
 
 /**
@@ -318,19 +306,22 @@ async function ensureFeePool(need: number): Promise<void> {
   throw new Error(`пул членских взносов w.mkt.fee не набрал ${need} RUB`)
 }
 
-/** Персональный кошелёк председателя участка krg не меньше нужного. */
-async function ensurePersonalFunds(need: number): Promise<void> {
+/**
+ * Персональный кошелёк получателя на участке krg не меньше нужного. Вес в
+ * распределении задаёт председатель участка; по умолчанию получатель — он сам.
+ */
+async function ensurePersonalFunds(need: number, recipient: Who = ROLES.branchChairman()): Promise<void> {
   const chair = ROLES.branchChairman()
   const token = await tokenOf(chair)
   for (let round = 0; round < 3; round++) {
     const eco = await branchEconomy(token)
-    const mine = (eco.weights as any[]).find(w => w.username === chair.account)
+    const mine = (eco.weights as any[]).find(w => w.username === recipient.account)
     const have = amount(mine?.personal_balance)
     if (have >= need)
       return
     if (!mine) {
       await gql(token, 'mutation($d:MarketplaceSetTrusteeWeightInput!){ marketplaceSetTrusteeWeight(data:$d) }', {
-        d: { braname: KRG, username: chair.account, weight: 1 },
+        d: { braname: KRG, username: recipient.account, weight: 1 },
       })
       continue
     }
@@ -360,24 +351,25 @@ async function ensurePersonalFunds(need: number): Promise<void> {
       d: { braname: KRG, amount: toDistribute },
     })
   }
-  throw new Error(`персональный кошелёк председателя участка не набрал ${need} RUB`)
+  throw new Error(`персональный кошелёк ${recipient.account} на участке не набрал ${need} RUB`)
 }
 
-let paymentMethodId = ''
+const paymentMethods = new Map<string, string>()
 
-async function chairPaymentMethod(): Promise<string> {
-  if (paymentMethodId)
-    return paymentMethodId
-  const chair = ROLES.branchChairman()
-  const token = await tokenOf(chair)
+/** Способ получения выплаты: банковский счёт получателя, заводится один раз. */
+async function paymentMethodOf(who: Who): Promise<string> {
+  const known = paymentMethods.get(who.account)
+  if (known)
+    return known
+  const token = await tokenOf(who)
   const list = await gql<any>(token, 'query($d:GetPaymentMethodsInput){ getPaymentMethods(data:$d){ items{ method_id } } }', {
-    d: { username: chair.account, page: 1, limit: 10, sortOrder: 'ASC' },
+    d: { username: who.account, page: 1, limit: 10, sortOrder: 'ASC' },
   })
-  paymentMethodId = list.getPaymentMethods.items[0]?.method_id ?? ''
-  if (!paymentMethodId) {
+  let methodId: string = list.getPaymentMethods.items[0]?.method_id ?? ''
+  if (!methodId) {
     const m = await gql<any>(token, 'mutation($d:AddPaymentMethodInput!){ addPaymentMethod(data:$d){ method_id } }', {
       d: {
-        username: chair.account,
+        username: who.account,
         is_default: true,
         bank_transfer_data: {
           account_number: '40817810099910004312',
@@ -387,9 +379,10 @@ async function chairPaymentMethod(): Promise<string> {
         },
       },
     })
-    paymentMethodId = m.addPaymentMethod.method_id
+    methodId = m.addPaymentMethod.method_id
   }
-  return paymentMethodId
+  paymentMethods.set(who.account, methodId)
+  return methodId
 }
 
 export interface GatewayPaymentRow { id: string, hash: string, status: string, quantity: number, type: string, username: string, message: string | null }
@@ -426,14 +419,15 @@ export interface AidPayout {
 }
 
 /**
- * Материальная помощь председателю участка krg на сумму заявления `gross`
- * от подачи до подтверждения перевода кассиром. Возвращает проводки выплаты.
+ * Материальная помощь на сумму заявления `gross` от подачи до подтверждения
+ * перевода кассиром. Получатель — председатель участка krg либо другой
+ * доверенный участка. Возвращает проводки выплаты.
  */
-export async function payAid(gross: number): Promise<AidPayout> {
-  const chair = ROLES.branchChairman()
+export async function payAid(gross: number, recipient: Who = ROLES.branchChairman()): Promise<AidPayout> {
+  const chair = recipient
   const token = await tokenOf(chair)
-  await ensurePersonalFunds(gross)
-  const methodId = await chairPaymentMethod()
+  await ensurePersonalFunds(gross, recipient)
+  const methodId = await paymentMethodOf(recipient)
 
   const pl = await gql<any>(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
     marketplaceAidStatementSignablePayload(data:$d){ full_title html hash meta binary }
@@ -533,4 +527,24 @@ export const TAX_PAYMENT_FIELDS = 'hash amount symbol status message memo create
 export async function withheldPayments(page = 1, limit = 50): Promise<any[]> {
   const d = await gql<any>(await tokenOf(CHAIRMAN), `query($p:Int,$l:Int){ getWithheldTaxPayments(page:$p, limit:$l){ items{ ${TAX_PAYMENT_FIELDS} } } }`, { p: page, l: limit })
   return d.getWithheldTaxPayments.items
+}
+
+/**
+ * Доверенный участка krg из пайщика: его назначает председатель кооператива,
+ * после чего пайщик участвует в распределении взносов участка и может
+ * получить материальную помощь.
+ */
+export async function makeBranchTrusted(who: Who): Promise<void> {
+  await gql(await tokenOf(CHAIRMAN), 'mutation($d:AddTrustedAccountInput!){ addTrustedAccount(data:$d){ braname } }', {
+    d: { coopname: COOP, braname: KRG, trusted: who.account },
+  })
+  // Состав участков Стол заказов держит в кэше на минуту — ждём, пока новый
+  // доверенный получит права участка.
+  const token = await tokenOf(who)
+  await waitFor(async () => {
+    const r = await gqlRaw(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
+      marketplaceAidStatementSignablePayload(data:$d){ hash }
+    }`, { d: { braname: KRG, amount: 1 } })
+    return r.errors.some(e => String(e.code) === '403' || /Forbidden/i.test(e.message)) ? null : true
+  }, { timeoutMs: 150_000, intervalMs: 5_000, label: `доверенный ${who.account} получил права участка` })
 }

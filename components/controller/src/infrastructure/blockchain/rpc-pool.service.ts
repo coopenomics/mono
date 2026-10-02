@@ -45,6 +45,30 @@ export function isFailoverWorthy(e: unknown): boolean {
   return false;
 }
 
+/**
+ * Узел цепи недостижим: соединение не установлено, оборвано либо ответа не дождались.
+ * Отличается от «узел ответил ошибкой» — там есть HTTP-статус и разбор ответа.
+ */
+export function isChainUnreachable(e: unknown): boolean {
+  if (e instanceof DomainError) return e.code === 'BLOCKCHAIN_RPC_TIMEOUT';
+  if (rpcErrorStatus(e) !== undefined) return false;
+  const error = e as { message?: unknown; code?: unknown; cause?: { code?: unknown } } | null;
+  const code = String(error?.cause?.code ?? error?.code ?? '');
+  return (
+    error?.message === 'fetch failed' ||
+    /^(ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|EHOSTUNREACH|UND_ERR_)/.test(code)
+  );
+}
+
+/**
+ * Отказ пайщику, когда цепь недостижима: код и статус 503 вместо внутренней ошибки
+ * «fetch failed» без кода (C28-85, находка 52). Стол по коду отличает «повторите позже»
+ * от отказа по существу.
+ */
+export function chainUnavailable(e: unknown): DomainError {
+  return DomainError.serviceUnavailable('BLOCKCHAIN_UNAVAILABLE', { reason: errMsg(e) });
+}
+
 interface RpcEndpoint {
   url: string;
   client: APIClient;
@@ -103,7 +127,8 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
   /**
    * Выполнить чтение на здоровом узле с failover. Транспортный сбой → следующий
    * здоровый узел; прикладная 4xx → проброс без перебора. Если все узлы
-   * исчерпаны — бросает последнюю ошибку (вызывающий решает: degraded/кэш).
+   * исчерпаны — бросает последнюю ошибку (вызывающий решает: degraded/кэш); если узлы
+   * недостижимы вовсе — отказ с кодом `BLOCKCHAIN_UNAVAILABLE` (503).
    */
   async read<T>(fn: (client: APIClient) => Promise<T>): Promise<T> {
     const order = this.readOrder();
@@ -124,6 +149,7 @@ export class RpcPool implements OnModuleInit, OnModuleDestroy {
         }
       }
     }
+    if (lastErr !== undefined && isChainUnreachable(lastErr)) throw chainUnavailable(lastErr);
     throw lastErr ?? DomainError.internal('BLOCKCHAIN_RPC_NO_NODES_AVAILABLE');
   }
 

@@ -1,64 +1,35 @@
 <template lang="pug">
-button.ws-switcher(
-  v-bind='$attrs',
-  type='button',
-  :aria-haspopup='workspaces.length > 1 ? "menu" : undefined'
-)
-  span.ws-switcher__icon
-    span.ws-switcher__icon-svg(v-html='logoSvg')
-  .ws-switcher__text
-    span.ws-switcher__caption(:title='coopBrand') {{ coopBrand }}
-    span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
-  q-icon.ws-switcher__chevron(v-if='workspaces.length > 1', name='expand_more', size='18px')
-
-  q-menu(
-    v-if='workspaces.length > 1',
-    v-model='menuOpen',
-    anchor='bottom left',
-    self='top left',
-    :offset='[0, 6]',
-    class='ws-switcher__menu'
-  )
-    q-list(padding)
-      q-item.ws-switcher__item(
-        v-for='ws in workspaces',
-        :key='ws.workspaceName',
-        clickable,
-        v-close-popup,
-        :active='ws.workspaceName === activeWorkspaceName',
-        @click='onSelect(ws.workspaceName)'
-      )
-        q-item-section(avatar)
-          q-icon(:name='ws.icon || "fa-solid fa-desktop"', size='18px')
-        q-item-section
-          q-item-label {{ ws.title }}
-
-//- Затемнение фона при открытом меню — рендерим в body чтобы overlay
-//- покрывал всё, включая контент за drawer'ом.
-Teleport(to='body')
-  .ws-switcher__scrim(v-if='menuOpen', aria-hidden='true')
+//- Шапка левого меню открывает единое окно столов и страниц — то же, что ⌘K.
+button.ws-switcher(type='button', aria-haspopup='dialog', @click='palette.open()')
+  span.ws-switcher__body
+    span.ws-switcher__icon
+      span.ws-switcher__icon-svg(v-html='logoSvg')
+    span.ws-switcher__text
+      span.ws-switcher__caption(:title='coopBrand') {{ coopBrand }}
+      span.ws-switcher__title-box
+        span.ws-switcher__title(:title='currentTitle') {{ currentTitle }}
+  //- Нижняя строка называет действие словами — чтобы в шапке читалась кнопка
+  //- выбора стола, а не заголовок.
+  span.ws-switcher__footer
+    span {{ workspaces.length > 1 ? t('desktop.workspaceSwitcher.switchLabel') : t('desktop.workspaceSwitcher.searchLabel') }}
+    span.ws-switcher__keys(aria-hidden='true')
+      span.kbd {{ modKey }}
+      span.kbd K
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
+import { useCommandPaletteStore } from 'src/entities/CommandPalette/model';
 import logoSvg from 'src/assets/logo.svg?raw';
 import { t } from 'src/shared/i18n';
 
-// Шаблон двухкорневой (кнопка + Teleport для затемнения), поэтому
-// автонаследование атрибутов отключаем и вручную направляем class и
-// прочие внешние атрибуты на корневую кнопку — иначе Vue ругается, что
-// class некуда применить.
-defineOptions({ inheritAttrs: false });
-
-const router = useRouter();
 const desktop = useDesktopStore();
 const system = useSystemStore();
+const palette = useCommandPaletteStore();
 
 const activeWorkspaceName = computed(() => desktop.activeWorkspaceName);
-const menuOpen = ref<boolean>(false);
 
 // Видимость столов — единый канон авторизации (grants) с fallback на legacy
 // roles, инкапсулированный в DesktopStore.isWorkspaceVisible. Не дублируем
@@ -91,24 +62,28 @@ const currentTitle = computed<string>(() => {
   return active?.title || t('desktop.workspaceSwitcher.defaultDesktopTitle');
 });
 
-function onSelect(name: string): void {
-  if (name === activeWorkspaceName.value) return;
-  desktop.selectWorkspace(name);
-  desktop.goToDefaultPage(router);
-}
+// На Mac сочетание показываем знаком ⌘, на остальных системах — Ctrl.
+// Платформу узнаём после монтирования: на сервере она неизвестна, и разный
+// текст на сервере и в браузере дал бы расхождение при гидрации.
+const modKey = ref<string>('⌘');
+onMounted(() => {
+  if (!/Mac|iPhone|iPad/i.test(navigator.platform)) modKey.value = 'Ctrl';
+});
 </script>
 
 <style scoped>
 .ws-switcher {
   display: flex;
-  align-items: center;
-  gap: var(--p-2, 8px);
+  flex-direction: column;
   width: 100%;
-  padding: var(--p-2, 8px);
+  padding: 0;
   margin: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--p-radius-md, 8px);
+  overflow: hidden;
+  /* Рамка и фон видны всегда: без них шапка в покое выглядит заголовком,
+     и неочевидно, что по ней открывается выбор стола. */
+  background: var(--p-surface);
+  border: 1px solid var(--p-line-1);
+  border-radius: var(--p-r-sm);
   color: var(--p-ink);
   cursor: pointer;
   text-align: left;
@@ -116,8 +91,14 @@ function onSelect(name: string): void {
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .ws-switcher:hover {
-  background: var(--p-surface);
-  border-color: var(--p-line);
+  border-color: var(--p-primary-line);
+}
+
+.ws-switcher__body {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  padding: var(--p-2);
 }
 
 .ws-switcher__icon {
@@ -127,9 +108,9 @@ function onSelect(name: string): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--p-primary-soft, rgba(13, 148, 136, 0.12));
+  background: var(--p-primary-soft);
   color: var(--p-primary);
-  border-radius: var(--p-radius-md, 8px);
+  border-radius: var(--p-r-sm);
 }
 .ws-switcher__icon-svg {
   display: inline-flex;
@@ -149,7 +130,7 @@ function onSelect(name: string): void {
   flex: 1;
 }
 .ws-switcher__caption {
-  font-size: var(--p-fs-caption, 11px);
+  font-size: var(--p-fs-eyebrow);
   line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -158,8 +139,15 @@ function onSelect(name: string): void {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Title допускает перенос на 3 строки — чтобы «Стол вычислительных ресурсов»
-   полностью помещался. Дальше — ellipsis. */
+/* Под название всегда занято две строки: высота шапки не зависит от длины
+   названия, и меню под ней не прыгает при смене стола. */
+.ws-switcher__title-box {
+  display: flex;
+  align-items: center;
+  height: calc(var(--p-fs-body) * 1.25 * 2);
+  margin-top: 2px;
+}
+/* «Стол вычислительных ресурсов» укладывается в две строки. Дальше — ellipsis. */
 .ws-switcher__title {
   font-size: var(--p-fs-body, 14px);
   line-height: 1.25;
@@ -169,52 +157,31 @@ function onSelect(name: string): void {
      независимо от того, как заведена строка в реестре workspace'ов. */
   text-transform: capitalize;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   word-break: break-word;
-  padding-top: 2px;
 }
 
-.ws-switcher__chevron {
-  flex: 0 0 18px;
-  color: var(--p-ink-3, var(--p-ink-2));
-  align-self: flex-start;
-  margin-top: var(--p-1, 4px);
+.ws-switcher__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--p-1) * 1.5) var(--p-2) calc(var(--p-1) * 1.5) var(--p-3);
+  border-top: 1px solid var(--p-line);
+  background: var(--p-surface-2);
+  font-size: var(--p-fs-meta);
+  line-height: 1;
+  font-weight: 500;
+  color: var(--p-ink-2);
+  transition: color 0.15s ease;
 }
-
-/* Меню выбора стола: canon-padding по краям, отступы вокруг
-   иконки и текста чтобы они не упирались в края. */
-.ws-switcher__menu :deep(.q-list) {
-  min-width: 240px;
-  padding: var(--p-1, 4px);
+.ws-switcher__keys {
+  display: inline-flex;
+  gap: 2px;
 }
-.ws-switcher__item {
-  padding: var(--p-2, 8px) var(--p-3, 12px);
-  border-radius: var(--p-radius-md, 8px);
-  min-height: 0;
-}
-.ws-switcher__item :deep(.q-item__section--avatar) {
-  min-width: 32px;
-  padding-right: var(--p-2, 8px);
-}
-/* Тот же единый регистр для подписей пунктов списка. */
-.ws-switcher__item :deep(.q-item__label) {
-  text-transform: capitalize;
-}
-
-/* Затемнение фона за menu — не сливаемся с контентом за drawer'ом. */
-.ws-switcher__scrim {
-  position: fixed;
-  inset: 0;
-  background: rgba(9, 9, 11, 0.32);
-  z-index: 5999; /* q-menu = 6000 — scrim чуть ниже */
-  pointer-events: none;
-  animation: ws-switcher-scrim-in 0.15s ease;
-}
-@keyframes ws-switcher-scrim-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.ws-switcher:hover .ws-switcher__footer {
+  color: var(--p-primary);
 }
 </style>

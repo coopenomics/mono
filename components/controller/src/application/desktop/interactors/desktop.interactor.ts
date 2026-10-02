@@ -66,6 +66,7 @@ export class DesktopDomainInteractor {
             name: desktop.name,
             title: desktop.title,
             extension_name: app.name,
+            extension_title: registryData.title,
             icon: desktop.icon,
             defaultRoute: desktop.defaultRoute,
             grants,

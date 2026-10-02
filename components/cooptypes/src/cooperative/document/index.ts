@@ -40,6 +40,12 @@ export interface IMetaDocument {
   version: string
   coopname: string
   username: string
+  /**
+   * Момент генерации документа в ISO 8601, UTC, до миллисекунд
+   * (`2026-09-24T11:05:31.123Z`). Вид для человека («ДД.ММ.ГГГГ ЧЧ:ММ» в поясе
+   * `timezone`) собирает рендер: шаблон выводит его переменной `created_at`.
+   * Документы до 28.09.2026 хранят здесь дату уже в виде для человека.
+   */
   created_at: string
   block_num: number
   timezone: string

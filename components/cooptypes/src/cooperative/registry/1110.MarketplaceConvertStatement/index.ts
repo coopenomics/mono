@@ -84,7 +84,7 @@ h1 { margin: 0px; text-align: center; }
 
   <p>{% trans 'signature' %}</p>
   <p>{{ user.full_name_or_short_name }}</p>
-  <p>{{ meta.created_at }}</p>
+  <p>{{ created_at }}</p>
 </div>
 `
 

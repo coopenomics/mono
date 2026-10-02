@@ -205,6 +205,26 @@ describe(`mkt.iss.side.44 — довзнос по факту: заявление
     expect(m.chainPort.issueStmt).toHaveBeenCalledWith(expect.not.objectContaining({ convert_statement: expect.anything() }));
   });
 
+  // Бандл у стойки переводит доплату всех своих заказов одним заявлением 1110 до подачи
+  // заявлений о выдаче. До 02.10.2026 заказ бандла с доплатой тела требовал второе
+  // заявление и не подписывался вовсе (C28-85, находка 57).
+  it('заказ бандла: доплата уже переведена общим заявлением — второе заявление не требуется, заявление о выдаче уходит', async () => {
+    const m = buildMocks({ order: orderWithFee(), sagas: [bigFact()], memberAvailableUnits: 0n, shareAvailableUnits: 0n });
+    const service = buildService(m);
+    stubSignatureChecks(service);
+    await service.submitStatement({
+      coopname: COOP,
+      member_account: 'orderer1',
+      order_id: 'order-1',
+      signed_statement: stmt('120.0000'),
+      signed_convert: null,
+      convert_settled_by_bundle: true,
+    });
+    expect(m.convertService.verifySigned).not.toHaveBeenCalled();
+    expect(m.chainPort.convert).not.toHaveBeenCalled();
+    expect(m.chainPort.issueStmt).toHaveBeenCalledTimes(1);
+  });
+
   it('обычная выдача без довзноса — convert не зовётся', async () => {
     const m = buildMocks({ order: orderWithFee(), sagas: [buildSaga({ fact: { actual_quantity: 5, actual_unit_price: '10.0000', fact_cost: '50.0000' } } as never)] });
     const service = buildService(m);

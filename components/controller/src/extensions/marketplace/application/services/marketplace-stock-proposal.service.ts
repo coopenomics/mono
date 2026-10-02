@@ -494,6 +494,20 @@ export class MarketplaceStockProposalService {
   }
 
   /**
+   * Цепь недостижима в момент подписи бандла: причина сохраняется в ходе выдачи каждого
+   * заказа бандла — оператор у стойки видит, почему подпись не прошла, а повтор возможен
+   * (C28-85, находка 52). Прочие отказы сюда не пишутся: они уходят пайщику ответом.
+   */
+  private async noteChainUnavailable(proposal: MarketplaceStockProposalDomainEntity, error: unknown): Promise<void> {
+    if (!(error instanceof DomainError) || error.code !== 'BLOCKCHAIN_UNAVAILABLE') return;
+    for (const item of proposal.items) {
+      if (!item.order_id) continue;
+      const saga = await this.sagaRepo.findActiveByOrderId(proposal.coopname, item.order_id);
+      if (saga) await this.sagaRepo.update(saga.id, { last_error: error.message });
+    }
+  }
+
+  /**
    * Пайщик ОДНИМ нажатием подписал заявления по всем строкам. По каждой:
    * докладка → заказ из остатка (stockorder, паевой резерв из свободного
    * паевого) → готовность → факт → заявление в цепь и повестка совета; обычный
@@ -525,7 +539,13 @@ export class MarketplaceStockProposalService {
     // План по свежему балансу членского кошелька: недостающая сумма обязана
     // совпасть с подписанным заявлением 1110, иначе подписание повторяется.
     // Перевод — отдельной транзакцией до заказов из остатка.
-    const plan = await this.planBundle(coopname, proposal, member_account);
+    let plan: BundlePlan;
+    try {
+      plan = await this.planBundle(coopname, proposal, member_account);
+    } catch (e) {
+      await this.noteChainUnavailable(proposal, e);
+      throw e;
+    }
     if (plan.transfer_units > 0n) {
       const convert_statement = this.convertService.verifySigned(
         input.signed_convert,
@@ -610,6 +630,7 @@ export class MarketplaceStockProposalService {
         signed_statement: signedByHash.get(item.order_hash!)!,
         // Довзнос по бандлу уже переведён в членский кошелёк выше одним заявлением.
         signed_convert: null,
+        convert_settled_by_bundle: true,
       });
     });
 

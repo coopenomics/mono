@@ -1,10 +1,12 @@
 import type { Router } from 'vue-router';
 import { useDesktopStore } from 'src/entities/Desktop/model';
+import { useCommandStore } from 'src/entities/Command';
 import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { extensionsRegistry, getAvailableExtensions } from './extensions-registry';
 
 export async function useInitExtensionsProcess(router: Router) {
   const store = useDesktopStore();
+  const commandStore = useCommandStore();
 
   // Получаем список всех доступных расширений
   const availableExtensions = getAvailableExtensions();
@@ -38,6 +40,7 @@ export async function useInitExtensionsProcess(router: Router) {
             );
           }
           store.setRoutes(config.workspace, config.routes as any);
+          commandStore.register(config.workspace, config.commands);
 
           // Регистрируем маршруты в router, добавляя их в базовый родительский маршрут
           const baseRoute = router.getRoutes().find((r) => r.name === 'base');
@@ -77,6 +80,7 @@ export async function loadExtensionRoutes(
   router: Router,
 ): Promise<IWorkspaceConfig[]> {
   const store = useDesktopStore();
+  const commandStore = useCommandStore();
 
   try {
 
@@ -97,6 +101,9 @@ export async function loadExtensionRoutes(
       if (config?.workspace && config?.routes?.length) {
         // Записываем маршруты в соответствующий workspace
         store.setRoutes(config.workspace, config.routes as any);
+        // Команды стола — вместе с маршрутами, чтобы новое приложение сразу
+        // появилось в окне столов и отвечало на свои сочетания клавиш.
+        commandStore.register(config.workspace, config.commands);
 
         // Регистрируем маршруты в router
         const baseRoute = router.getRoutes().find((r) => r.name === 'base');

@@ -14,6 +14,7 @@
     "BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_ACCOUNT": "Не найден приватный ключ для аккаунта {username}",
     "BLOCKCHAIN_PRIVATE_KEY_NOT_FOUND_FOR_COOPERATIVE": "Не найден приватный ключ для кооператива {coopname}",
     "BLOCKCHAIN_RPC_NO_NODES_AVAILABLE": "RpcPool: нет доступных RPC-узлов",
-    "BLOCKCHAIN_RPC_TIMEOUT": "RpcPool: таймаут RPC {ms}мс"
+    "BLOCKCHAIN_RPC_TIMEOUT": "RpcPool: таймаут RPC {ms}мс",
+    "BLOCKCHAIN_UNAVAILABLE": "Цепь временно недоступна — действие не выполнено, повторите его чуть позже"
   }
 }

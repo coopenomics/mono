@@ -15,7 +15,6 @@
  */
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import ecc from 'eosjs-ecc'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { tableRows, transact } from '../core/chain'
@@ -24,7 +23,8 @@ import { ApiError, gql, gqlRaw } from '../core/client'
 import { CHAIN_URL, COOP, DEFAULT_WIF, REPO_ROOT } from '../core/env'
 import { freshMember } from '../core/participants'
 import { CHAIRMAN } from '../core/roles'
-import { signDocument } from '../core/documents'
+import { authorizeDecisionOnChain, decisionByHash, voteOnDecision } from '../core/council'
+import { apiDoc, chainDoc, signDocument, toChainDoc } from '../core/documents'
 import { waitFor } from '../core/wait'
 import { COOP_SIGNER, amount, rub } from '../core/wallet'
 import { randomHash } from '../core/chain'
@@ -46,38 +46,8 @@ export function sha256(text: string): string {
 
 export { amount, rub }
 
-// ── Документы ──────────────────────────────────────────────────────────────
-
-function signatures(hash: string, signers: Who[]) {
-  const signedAt = new Date().toISOString().slice(0, 19)
-  return signers.map((s, i) => ({
-    id: i + 1,
-    signed_hash: hash,
-    signer: s.account,
-    public_key: ecc.privateToPublic(s.wif),
-    signature: ecc.signHash(hash, s.wif),
-    signed_at: signedAt,
-    meta: '{}',
-  }))
-}
-
-/**
- * Документ в формате цепи, подписанный ключами участников. Контракт сверяет
- * подпись с ключом аккаунта подписанта — чужим ключом его не подписать.
- */
-export function chainDoc(signers: Who[], hash = randomHash()) {
-  return { version: '1.0.0', hash, doc_hash: hash, meta_hash: hash, meta: '{}', signatures: signatures(hash, signers) }
-}
-
-/** Тот же документ в формате входа GraphQL (мета — объект). */
-export function apiDoc(signers: Who[], hash = randomHash()) {
-  return { version: '1.0.0', hash, doc_hash: hash, meta_hash: hash, meta: {}, signatures: signatures(hash, signers) }
-}
-
-/** Подписанный SDK документ — в цепь (мета строкой). */
-export function toChainDoc(signed: any) {
-  return { ...signed, meta: typeof signed.meta === 'string' ? signed.meta : JSON.stringify(signed.meta ?? {}) }
-}
+// Документы в формате цепи — общие для всех наборов (core/documents).
+export { apiDoc, chainDoc, toChainDoc }
 
 // ── Частота генерации документов ───────────────────────────────────────────
 
@@ -311,8 +281,10 @@ export async function commitHours(project: string, creator: Who, master: Who, ho
  * остальных поровну, завершение и подсчёт по каждому. После него проект
  * «завершён» (result), доли ждут обновления.
  */
-export async function runVoting(project: string, voters: Who[]): Promise<void> {
+export async function runVoting(project: string, voters: Who[], whileVoting?: () => Promise<void>): Promise<void> {
   await coop('startvoting', { project_hash: project })
+  // Наблюдение за проектом, пока он в статусе голосования.
+  await whileVoting?.()
   for (const voter of voters) {
     const row = await chainProject(project)
     const [total, symbol] = String(row.voting.amounts.active_voting_amount).split(' ')
@@ -332,44 +304,17 @@ export async function runVoting(project: string, voters: Who[]): Promise<void> {
 
 // ── Совет ──────────────────────────────────────────────────────────────────
 
-export async function decisionFor(hash: string): Promise<any | undefined> {
-  const rows = await tableRows<any>('soviet', COOP, 'decisions')
-  return rows.find(d => String(d.hash).toLowerCase() === hash.toLowerCase())
-}
+/** Решение совета по хэшу процесса — общий помощник совета (core/council). */
+export const decisionFor = decisionByHash
 
-async function votingBoardMembers(): Promise<string[]> {
-  const boards = await tableRows<any>('soviet', COOP, 'boards')
-  const board = boards.find(b => b.type === 'soviet') ?? boards[0]
-  const members = (board?.members ?? []).filter((m: any) => Boolean(Number(m.is_voting) || m.is_voting === true)).map((m: any) => m.username as string)
-  return members.length ? members : [CHAIRMAN.account]
-}
-
-/** Голоса «за» всех голосующих членов совета, ещё не голосовавших (у совета стенда общий ключ boot). */
+/** Голоса «за» всех голосующих членов совета, ещё не голосовавших. */
 export async function voteForDecision(decisionId: number): Promise<void> {
-  const { Classes } = await import('@coopenomics/sdk')
-  const decision = (await tableRows<any>('soviet', COOP, 'decisions')).find(d => Number(d.id) === decisionId)
-  const voted = new Set<string>([...(decision?.votes_for ?? []), ...(decision?.votes_against ?? [])])
-  const actions: any[] = []
-  for (const member of await votingBoardMembers()) {
-    if (voted.has(member))
-      continue
-    const vote = await new (Classes as any).Vote(DEFAULT_WIF).voteFor(COOP, member, decisionId, 'active')
-    actions.push({ account: 'soviet', name: 'votefor', authorization: [{ actor: member, permission: 'active' }], data: vote })
-  }
-  if (actions.length)
-    await transact(COOP_SIGNER, actions)
+  await voteOnDecision(decisionId, 'for')
 }
 
 /** Утверждение решения председателем с приложенным протоколом и исполнение. */
 export async function authorizeDecision(decisionId: number, protocol: any): Promise<void> {
-  await transact(COOP_SIGNER, [
-    {
-      account: 'soviet',
-      name: 'authorize',
-      data: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: decisionId, document: toChainDoc(protocol), permission: 'active' },
-    },
-    { account: 'soviet', name: 'exec', data: { executer: CHAIRMAN.account, coopname: COOP, decision_id: decisionId } },
-  ])
+  await authorizeDecisionOnChain(decisionId, toChainDoc(protocol))
 }
 
 /**

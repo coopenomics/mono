@@ -117,6 +117,11 @@ export async function publishNetworkKey(): Promise<void> {
   await publishWebhookKeys([NETWORK_PUBLIC])
 }
 
+/** Открытая часть ключа уведомлений — её отдаёт подставная сеть карт. */
+export function networkPublicKey(): string {
+  return NETWORK_PUBLIC
+}
+
 
 
 

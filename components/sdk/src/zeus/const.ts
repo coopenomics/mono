@@ -1046,6 +1046,10 @@ export const AllTypesProps: Record<string,any> = {
 	GetVoteInput:{
 
 	},
+	GlobalSearchGroupStatus: "enum" as const,
+	GlobalSearchInput:{
+
+	},
 	ImportContributorInput:{
 
 	},
@@ -3391,6 +3395,9 @@ export const AllTypesProps: Record<string,any> = {
 		getWithheldTaxPayments:{
 
 		},
+		globalSearch:{
+			data:"GlobalSearchInput"
+		},
 		kuDecision:{
 
 		},
@@ -5685,6 +5692,7 @@ export const ReturnTypes: Record<string,any> = {
 	DesktopWorkspace:{
 		defaultRoute:"String",
 		extension_name:"String",
+		extension_title:"String",
 		grants:"String",
 		icon:"String",
 		name:"String",
@@ -6371,6 +6379,26 @@ export const ReturnTypes: Record<string,any> = {
 		period:"Int",
 		reportType:"ReportType",
 		year:"Int"
+	},
+	GlobalSearchGroup:{
+		extension_name:"String",
+		hits:"GlobalSearchHit",
+		icon:"String",
+		key:"String",
+		status:"GlobalSearchGroupStatus",
+		title:"String"
+	},
+	GlobalSearchHit:{
+		icon:"String",
+		key:"String",
+		route:"GlobalSearchRoute",
+		subtitle:"String",
+		title:"String"
+	},
+	GlobalSearchRoute:{
+		name:"String",
+		params:"JSON",
+		query:"JSON"
 	},
 	InboxNotification:{
 		actorSubscriberId:"String",
@@ -8924,6 +8952,7 @@ export const ReturnTypes: Record<string,any> = {
 		getWebPushSubscriptionStats:"SubscriptionStatsDto",
 		getWithheldTaxPayments:"WithheldTaxPaymentPage",
 		getWithheldTaxState:"WithheldTaxState",
+		globalSearch:"GlobalSearchGroup",
 		kuDecision:"KuDecision",
 		kuDecisions:"PaginatedKuDecisionsPaginationResult",
 		kuTrustRequests:"PaginatedKuTrustRequestsPaginationResult",

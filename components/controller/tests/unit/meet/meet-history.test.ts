@@ -139,6 +139,30 @@ describe('MeetBlockchainAdapter — закрытые собрания из жу�
     expect(meet?.meet.status).toBe('closed');
   });
 
+  // Подпись председателя закрывает и стирает строку одним действием цепи: дельта
+  // стирания несёт строку такой, какой она была до блока, — со статусом «preclosed».
+  // До 02.10.2026 такое собрание со стола пропадало (C28-85, находка 58).
+  it('закрытие и стирание одним действием: стёртая строка в статусе «preclosed» — закрытое собрание', async () => {
+    getSingleRow.mockResolvedValue(null);
+    findLatestRows.mockImplementationOnce(async () => [
+      { primary_key: '1', value: meetRow(1, closedHash, 'preclosed'), present: false, block_num: 10 },
+    ]);
+
+    const meet = await adapter.getMeet({ coopname: 'voskhod', hash: closedHash, username: 'kdy' });
+
+    expect(meet?.meet.status).toBe('closed');
+    expect(meet?.questions.map((q) => q.number)).toEqual([1, 2]);
+  });
+
+  it('подписанное секретарём собрание, которое ещё в журнале присутствует, закрытым не считается', async () => {
+    getSingleRow.mockResolvedValue(null);
+    findLatestRows.mockImplementationOnce(async () => [
+      { primary_key: '1', value: meetRow(1, closedHash, 'preclosed'), present: true, block_num: 10 },
+    ]);
+
+    expect(await adapter.getMeet({ coopname: 'voskhod', hash: closedHash })).toBeNull();
+  });
+
   it('отклонённое и стёртое собрание не находится, как и раньше', async () => {
     getSingleRow.mockResolvedValue(null);
     expect(await adapter.getMeet({ coopname: 'voskhod', hash: declinedHash })).toBeNull();

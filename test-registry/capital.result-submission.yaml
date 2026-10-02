@@ -275,6 +275,8 @@ cases:
     scenario: pushResult при отсутствующем сегменте пользователя по проекту
     expect: отказ с именем пользователя и хэшем проекта
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "результат заводится только по сегменту проекта из цепи; запрос без результата отклоняется раньше этой проверки (cap.rid.side.24)"
     status: passing
 
   - id: cap.rid.side.28
@@ -283,6 +285,8 @@ cases:
     scenario: pushResult по проекту, не заведённому в блокчейне
     expect: assertBlockchainProject отклоняет до обращения к цепи
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "результат заводится только по сегменту проекта из цепи; запрос без результата отклоняется раньше этой проверки (cap.rid.side.24)"
     status: passing
 
   - id: cap.rid.side.29
@@ -294,6 +298,8 @@ cases:
       Прежде подставлялось '0' — не валидный ассет, запрос падал на разборе ABI
       вместо внятного отказа
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   # Случай cap.rid.side.30 (молчаливый пропуск события result.updated) снят:
@@ -367,6 +373,8 @@ cases:
       отказ до обращения к цепи; прежде project_hash подставлялся пустой
       строкой и синхронизация сегмента молча уходила в никуда
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   - id: cap.rid.side.38
@@ -413,6 +421,8 @@ cases:
       отказ со сверкой statement.meta и текущих данных — решение совета не
       выпускается на устаревшие цифры
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "после внесения результата цепь долю и сумму сегмента не меняет; расхождение с заявлением через API не создать"
     status: passing
 
   - id: cap.rid.side.42
@@ -430,6 +440,8 @@ cases:
     scenario: generateResultContributionStatement без segment.share_percent
     expect: отказ — доля участника не выводится
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   # Ветви ниже вскрыты мутационным прогоном: guard'ы «не найдено» в генерации
@@ -453,6 +465,7 @@ cases:
       отказ; сегмент ищется по проекту из запроса и пайщику из сессии, а не по
       присланному имени
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    api: components/api-tests/src/capital/result-submission.test.ts
     status: passing
 
   - id: cap.rid.side.50
@@ -489,6 +502,8 @@ cases:
       написаны, но порча любого из условий не роняет ни один тест
       (выявлено мутационным прогоном, покрытая часть сервиса 91.3%)
     test: components/controller/tests/unit/capital/result-submission.service.test.ts
+    external: unreachable
+    external_reason: "сегмент или результат с пустыми полями — рассинхронизация зеркала; через API такую строку не завести"
     status: passing
 
   - id: cap.rid.side.53
@@ -535,6 +550,8 @@ cases:
     scenario: pushResult — цепь приняла, но синхронизация сегмента вернула пусто
     expect: исключение с хэшем проекта и именем пользователя, а не молчаливый null
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сбой синхронизации сегмента после принятой цепью транзакции через API не вызвать"
     status: passing
 
   - id: cap.rid.break.02
@@ -551,6 +568,8 @@ cases:
       is_completed=true (segment.entity.ts:268). Потери состояния нет.
       Неудачен только текст ошибки: пайщик считает, что конвертация не прошла
     test: components/controller/tests/unit/capital/result-submission.interactor.test.ts
+    external: unreachable
+    external_reason: "сбой синхронизации сегмента после принятой цепью транзакции через API не вызвать"
     status: passing
 
   # ── Уровень UI ────────────────────────────────────────────────────────────

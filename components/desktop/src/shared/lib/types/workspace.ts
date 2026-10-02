@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export interface IWorkspaceRouteMeta {
   title: string
   // Иконка пункта меню. Необязательна: hidden-роуты (deep-link страницы вроде
@@ -46,6 +48,46 @@ export interface IWorkspaceRoute {
   [key: string]: any
 }
 
+/**
+ * Команда стола: действие, которое запускается из окна столов и страниц
+ * (⌘K) или сочетанием клавиш с любой страницы — «Создать предложение»,
+ * «Сканировать QR». Объявляется в install.ts рядом с маршрутами, поэтому
+ * появляется вместе с приложением и уходит вместе с ним.
+ *
+ * Права — только серверные: команда называет право стола (`requires`), а
+ * выдаёт его сервер вместе со столом (канон грантов, auth-v2). Команда видна,
+ * если стол переведён на гранты, право выдано и пайщик прошёл шлюз стола
+ * (онбординг). На столах без грантов команды не показываются: права по ролям
+ * на фронте не проверяют ни договоры, ни допуски, и команда открыла бы действие
+ * тому, кому оно не положено. Перевод стола на гранты открывает ему команды.
+ */
+export interface IWorkspaceCommand {
+  /** Уникальный ключ: `<расширение>.<действие>` */
+  id: string
+  title: string
+  /** Значок Material Icons */
+  icon: string
+  /** Слова, по которым команда ещё находится в окне */
+  keywords?: string[]
+  /**
+   * Сочетание — ведущая клавиша и буква через пробел: `N O`. Ведущие клавиши
+   * и правила — src/shared/lib/shortcuts. Сочетание, занятое другой командой,
+   * у второй команды снимается (она остаётся в окне).
+   */
+  shortcut?: string
+  /** Право стола `Resource:action`, которое выдаёт сервер. Обязательно. */
+  requires: string
+  /** Перейти на страницу — имя маршрута стола */
+  route?: { name: string }
+  /** Выполнить действие рабочего стола (actions.store), как пункт меню с meta.action */
+  action?: string
+  /**
+   * Открыть диалог: компонент (markRaw) с методом `openDialog()` в
+   * defineExpose. Монтирует его хост команд рабочего стола.
+   */
+  dialog?: Component
+}
+
 export interface IWorkspaceConfig {
   workspace: string // Уникальное имя workspace (например: 'soviet', 'chairman')
   extension_name: string // Имя расширения, которому принадлежит этот workspace
@@ -53,4 +95,6 @@ export interface IWorkspaceConfig {
   icon?: string // Иконка для меню
   defaultRoute?: string // Имя маршрута для перехода по умолчанию
   routes: IWorkspaceRoute[]
+  /** Команды стола — см. IWorkspaceCommand */
+  commands?: IWorkspaceCommand[]
 }

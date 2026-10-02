@@ -73,13 +73,20 @@
     "commandPalette": {
       "activeLabel": "Активный",
       "closeHint": "для закрытия",
+      "commandsSection": "Команды",
       "emptyBody": "Попробуйте другой запрос",
       "emptyTitle": "Ничего не найдено",
+      "goToWorkspace": "Перейти на стол",
+      "incompleteGroup": "{title}: источник не успел ответить, поиск по нему неполон",
       "navigateHint": "для навигации",
+      "noPagesTitle": "У стола нет доступных страниц",
+      "pagesHint": "к страницам стола",
+      "pagesSection": "Страницы",
       "searchAriaLabel": "Поиск рабочих столов и страниц",
-      "searchPlaceholder": "Поиск рабочих столов и страниц…",
+      "searchPlaceholder": "Стол, страница, пайщик или документ…",
+      "searching": "Ищем пайщиков, документы и записи приложений…",
       "selectHint": "для выбора",
-      "workspaceKeyword": "стол"
+      "workspacesSection": "Столы"
     },
     "complexDocument": {
       "decisionLabel": "Решение",

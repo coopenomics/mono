@@ -14,8 +14,6 @@
       "roleChairman": "Председатель",
       "roleMember": "Член совета",
       "roleShareholder": "Пайщик",
-      "searchHint": "Поиск (⌘K)",
-      "searchLabel": "Найти",
       "signOutError": "Ошибка при выходе: ",
       "signOutLabel": "Выйти из кабинета",
       "versionTitle": "Версия {version}",
@@ -34,7 +32,9 @@
     },
     "workspaceSwitcher": {
       "defaultCoopName": "Кооператив",
-      "defaultDesktopTitle": "Рабочий стол"
+      "defaultDesktopTitle": "Рабочий стол",
+      "searchLabel": "Найти страницу",
+      "switchLabel": "Сменить стол"
     }
   }
 }

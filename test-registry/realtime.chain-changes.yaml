@@ -118,6 +118,7 @@ cases:
     scenario: Дельта необъявленной таблицы или чужого кооператива.
     expect: сигнала нет
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.side.03
@@ -126,6 +127,8 @@ cases:
     scenario: Шина сигналов отказала при публикации.
     expect: предупреждение в журнал, разбор цепи продолжается
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    external: unreachable
+    external_reason: "отказ шины сигналов через API и паузой сервиса не вызвать: шина живёт внутри узла"
     status: passing
 
   - id: rt.cc.side.04
@@ -200,6 +203,7 @@ cases:
       сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
       откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
     test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
   - id: rt.cc.happy.05
@@ -212,6 +216,8 @@ cases:
       несколько владельцев строки (участники звонка) — сигнал каждому, повторы и
       пустые имена отброшены
     test: components/controller/src/infrastructure/blockchain/chain-changes.service.spec.ts
+    external: unreachable
+    external_reason: "служебные таблицы и назначенный персонал есть только у расширения образования; в ветке dev оно не установлено"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: rt.cc.side.05
@@ -221,6 +227,8 @@ cases:
     expect: >
       администратору — канал персонала служебной таблицы, пайщику — ничего
     test: components/controller/tests/unit/chain-changes/chain-changes.resolver.test.ts
+    external: unreachable
+    external_reason: "служебные таблицы и назначенный персонал есть только у расширения образования; в ветке dev оно не установлено"
     status: passing
 
   - id: rt.cc.side.06
@@ -273,6 +281,7 @@ cases:
       оплаты и пользовательские данные — сигнал по своей таблице владельцу и совету,
       переменные кооператива — всем; прочие коллекции и узел без ленты — тишина без ошибок
     test: components/controller/tests/unit/chain-changes/raw-writes-feed.test.ts
+    api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: rt.cc.happy.08

@@ -44,6 +44,7 @@ cases:
     scenario: "Мутация ждёт дельту своей таблицы и области из блока транзакции."
     expect: "Ожидание будится этой дельтой и получает её; номер блока берётся из результата transact."
     test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
   - id: sync.wwd.side.01
     level: backend
@@ -51,6 +52,8 @@ cases:
     scenario: "Приходят дельты раньшего блока, чужой таблицы, чужой области, чужой строки; нужная не приходит."
     expect: "Ожидание не будится ими; по таймауту — null, ожидание и таймер не остаются в памяти."
     test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    external: unreachable
+    external_reason: "чужие дельты и утечка ожиданий в памяти — внутренняя механика ожидания; снаружи виден только итог (sync.wwd.happy.01)"
     status: passing
   - id: sync.wwd.side.02
     level: backend
@@ -58,6 +61,8 @@ cases:
     scenario: "Потребитель разбирает дельту, у которой есть слушатели-проекции; слушатель падает или зависает."
     expect: "Ожидающие будятся после слушателей, не одновременно с ними; упавший или зависший дольше барьера слушатель событие не держит — оно подтверждается, ожидающие будятся."
     test: components/controller/tests/unit/blockchain/blockchain-consumer.processFork.test.ts
+    external: unreachable
+    external_reason: "падение или зависание слушателя-проекции через API не вызвать"
     status: passing
   - id: sync.wwd.happy.02
     level: backend
@@ -65,6 +70,7 @@ cases:
     scenario: "Председатель подтверждает или отклоняет одобрение."
     expect: "Ответ уходит после дельты самого одобрения (soviet::approvals по хэшу) и дельты контракта-адресата из блока транзакции; без порта или по таймауту — ответ сразу, с предупреждением в журнал."
     test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
   - id: sync.wwd.happy.03
     level: backend
@@ -86,6 +92,8 @@ cases:
     scenario: "Действие блока N сохранено; приходит событие блока N+1 либо цепь простаивает (parser2 дочитал дальше, у группы lag = 0 и pending = 0)."
     expect: "Действие уходит в шину сразу по факту разбора блока — без паузы в 3 секунды; своё блоковое событие действие не выпускает."
     test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    external: unreachable
+    external_reason: "порядок выпуска действий в шину — внутренняя механика; снаружи виден итог: ответ мутации уже с изменёнными данными (sync.wwd.happy.05)"
     status: passing
   - id: sync.wwd.side.03
     level: backend
@@ -93,6 +101,8 @@ cases:
     scenario: "В потоке есть непрочитанное или неподтверждённое; Redis не отвечает; обработчик одного действия падает."
     expect: "Пока поток не разобран — ждёт; при молчании Redis — выпуск по страховке с предупреждением; упавший обработчик не мешает остальным."
     test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    external: unreachable
+    external_reason: "молчание Redis и падение обработчика действия через API не вызвать"
     status: passing
   - id: sync.wwd.happy.05
     level: backend
@@ -108,6 +118,7 @@ cases:
     scenario: "Блок не разобран за предел; потребитель не запущен; транзакция без broadcast или без номера блока; сервис собран без гейта (мигратор)."
     expect: "Ответ уходит без ожидания (при пределе — с предупреждением), ожидание не остаётся в очереди; страховка действий ожидание транзакции не выпускает."
     test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    api: components/api-tests/src/faults/write-wait.test.ts
     status: passing
   - id: sync.wwd.break.01
     level: backend
@@ -115,6 +126,8 @@ cases:
     scenario: "Транзакцию отправляет обработчик дельты или действия — изнутри разбора цепи."
     expect: "Разбора блока не ждёт: иначе обработчик ждал бы блок, который потребитель не возьмёт, пока обработчик не закончит."
     test: components/controller/tests/unit/blockchain/blockchain-service-block-wait.test.ts
+    external: unreachable
+    external_reason: "транзакция из обработчика дельты — внутренняя ветвь; снаружи видна как отсутствие взаимной блокировки в автоматической регистрации долей (cap.areg.*)"
     status: passing
   - id: sync.wwd.break.02
     level: backend
@@ -122,6 +135,8 @@ cases:
     scenario: "Форк отменил блоки, которые уже считались разобранными."
     expect: "Номера отменённых блоков снова не разобраны — транзакции в новых блоках с теми же номерами ждут заново."
     test: components/controller/src/infrastructure/blockchain/action-release-gate.service.spec.ts
+    external: unreachable
+    external_reason: "форк цепи на стенде с одним производителем блоков не вызвать"
     status: passing
   - id: sync.wwd.side.05
     level: backend
@@ -129,6 +144,7 @@ cases:
     scenario: "Мутация зовёт afterTransact после transact, который уже дождался своего блока."
     expect: "afterTransact отвечает сразу, а не ждёт дельту, которая прошла раньше регистрации ожидания."
     test: components/controller/src/infrastructure/blockchain/chain-delta-waiter.service.spec.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
   - id: sync.wwd.break.03
     level: backend
@@ -136,5 +152,7 @@ cases:
     scenario: "Необязательная зависимость (гейт разбора блока, лента изменений) объявлена типом X | null без явного токена."
     expect: "Не бывает: у BlockchainService, ChainDeltaWaiterService и BlockchainConsumerService токен класса задан явно, иначе Nest молча подставил бы null и ожидание выключилось бы без ошибки. На старте журнал пишет «Транзакции отвечают после разбора своего блока»."
     test: components/controller/tests/unit/blockchain/optional-deps-injection.test.ts
+    external: unreachable
+    external_reason: "проверка внедрения зависимостей при сборке узла — свойство кода, а не поведения стенда"
     status: passing
 

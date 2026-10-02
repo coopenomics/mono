@@ -64,7 +64,7 @@ export const title = 'Заявление о конвертации паевог�
 export const description = 'Заявление пайщика о конвертации паевого взноса в членский взнос по ЦПП «Образование» при оформлении подписки на курс'
 
 // Вёрстка 1-в-1 с 1110 (см. комментарий там о sanitizeHtml/pre-wrap).
-export const context = `<div class="digital-document"><div style="text-align: right"><p style="margin: 0px !important">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} «{{ vars.name }}»</p><p style="margin: 0px !important">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center; padding-top: 20px"><h1 class="header">{% trans 'statement_title' %}</h1><p class="subheader">{% trans 'statement_subheader', program.name %}</p></div><p>{% if from_program_used %}{% trans 'body_with_program', from_program, program.name, total %}{% if convert_used %} {% trans 'body_convert_rest', amount %}{% endif %}{% else %}{% trans 'body', amount, program.name %}{% endif %}</p><div style="padding-top: 20px"><p style="margin: 0px !important">{% trans 'signature' %}</p><p style="margin: 0px !important">{{ user.full_name_or_short_name }}</p><p style="margin: 0px !important">{{ meta.created_at }}</p></div></div>${EDUCATION_DOC_STYLE}`
+export const context = `<div class="digital-document"><div style="text-align: right"><p style="margin: 0px !important">{% trans 'v_soviet' %} {{ vars.full_abbr_genitive }} «{{ vars.name }}»</p><p style="margin: 0px !important">{% trans 'from_member' %} {{ user.full_name_or_short_name }}</p></div><div style="text-align: center; padding-top: 20px"><h1 class="header">{% trans 'statement_title' %}</h1><p class="subheader">{% trans 'statement_subheader', program.name %}</p></div><p>{% if from_program_used %}{% trans 'body_with_program', from_program, program.name, total %}{% if convert_used %} {% trans 'body_convert_rest', amount %}{% endif %}{% else %}{% trans 'body', amount, program.name %}{% endif %}</p><div style="padding-top: 20px"><p style="margin: 0px !important">{% trans 'signature' %}</p><p style="margin: 0px !important">{{ user.full_name_or_short_name }}</p><p style="margin: 0px !important">{{ created_at }}</p></div></div>${EDUCATION_DOC_STYLE}`
 
 export const translations = {
   ru: {
@@ -81,6 +81,7 @@ export const translations = {
 
 export const exampleData = {
   meta: { created_at: '12.06.2026 12:00' },
+  created_at: '12.06.2026 12:00',
   coop: {
     short_name: 'ПК ВОСХОД',
     city: 'Москва',

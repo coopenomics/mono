@@ -89,7 +89,7 @@ ${SOCIETY_REQUISITES}
 ${MEMBER_REQUISITES}
 </div>
 </div>
-<p>{{ meta.created_at }}</p>
+<p>{{ created_at }}</p>
 </div>
 `
 
@@ -102,6 +102,7 @@ export const translations = {
 
 export const exampleData = {
   meta: { created_at: '12.06.2026 12:00' },
+  created_at: '12.06.2026 12:00',
   coop: {
     city: 'Москва',
     full_address: 'г. Москва, ул. Примерная, д. 1',

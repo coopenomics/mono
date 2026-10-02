@@ -70,11 +70,25 @@ div
 
   //- Данные пайщика: верификация, сброс второго фактора, сведения при
   //- вступлении, редактируемая анкета. На телефоне дроуэр во весь экран.
+  //- Открытый пайщик живёт в адресе (`?participant=<имя>`): ссылка
+  //- пересылается, «назад» закрывает панель, реестр под ней не сбрасывается.
   DetailsDrawer(
-    v-model='detailsOpen',
+    :model-value='overlay.isOpen.value',
     :title='selected ? getName(selected) : $t("participants.participantsTable.defaultDrawerTitle")',
-    :width='640'
+    :width='640',
+    @update:model-value='(v) => !v && overlay.close()'
   )
+    template(#actions)
+      BaseButton(
+        variant='ghost',
+        size='sm',
+        :aria-label='$t("participants.participantsTable.openFullPageAriaLabel")',
+        @click='openFullPage'
+      )
+        template(#icon-left)
+          q-icon(name='open_in_full', size='16px')
+        | {{ $t('participants.participantsTable.openFullPageButton') }}
+
     ParticipantDetails(
       v-if='selected',
       :key='selected.username',
@@ -86,7 +100,8 @@ div
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useWindowSize } from 'src/shared/hooks';
 import moment from 'src/shared/lib/utils/dates/moment';
 import { ParticipantCard, ParticipantDetails } from '.';
@@ -101,6 +116,10 @@ import {
   type BaseTableColumn,
 } from 'src/shared/ui/base';
 import { DetailsDrawer } from 'src/shared/ui/domain';
+import { useQueryOverlay } from 'src/shared/lib/navigation';
+import { useAccountStore } from 'src/entities/Account/model';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { PARTICIPANT_LIVE_TABLES } from '../model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { getAccountStatusBadge } from 'src/entities/Account';
 import {
@@ -144,20 +163,41 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-// Локальное состояние
-// Открытый в дроуэре пайщик. Храним имя аккаунта, а запись берём из свежего
+// Открытый в дроуэре пайщик — имя аккаунта в адресе. Запись берём из свежего
 // списка: после правки анкеты или верификации список перечитывается, и дроуэр
 // должен показывать уже обновлённые данные.
-const detailsOpen = ref(false);
-const selectedUsername = ref<string | null>(null);
-// Снимок на момент открытия — на случай, если пайщика нет в текущей странице
-// (переключили страницу или отбор, не закрыв дроуэр).
+const overlay = useQueryOverlay('participant');
+const router = useRouter();
+const accountStore = useAccountStore();
+// Снимок — на случай, если пайщика нет в текущей странице: переключили
+// страницу или отбор, не закрыв дроуэр, или пришли по пересланной ссылке.
 const selectedSnapshot = ref<IAccount | null>(null);
 const selected = computed(
   () =>
-    props.accounts.find((account) => account.username === selectedUsername.value) ??
-    selectedSnapshot.value,
+    props.accounts.find((account) => account.username === overlay.value.value) ??
+    (selectedSnapshot.value?.username === overlay.value.value ? selectedSnapshot.value : null),
 );
+
+// Пайщика, которого нет на текущей странице реестра (пришли по ссылке или
+// сменили страницу при открытой панели), дочитываем отдельно. Пайщика со
+// страницы обновляет живой реестр родителя, отдельный снимок — своя подписка.
+const isOffPage = computed(
+  () =>
+    !!overlay.value.value &&
+    !props.accounts.some((account) => account.username === overlay.value.value),
+);
+const loadSnapshot = async (): Promise<void> => {
+  const username = overlay.value.value;
+  if (!username || !isOffPage.value) return;
+  try {
+    const account = await accountStore.fetchAccount(username);
+    if (account && overlay.value.value === username) selectedSnapshot.value = account;
+  } catch {
+    // Фоновое перечитывание молчит: следующий сигнал повторит.
+  }
+};
+watch(() => overlay.value.value, () => void loadSnapshot(), { immediate: true });
+useLiveReload(PARTICIPANT_LIVE_TABLES, loadSnapshot);
 const { isMobile } = useWindowSize();
 
 // Каркас и пустое состояние — только по первой загрузке: повторные дочитки
@@ -256,9 +296,14 @@ const joinDate = (row: IAccount): string => {
 
 // События
 const openDetails = (account: IAccount) => {
-  selectedUsername.value = account.username;
   selectedSnapshot.value = account;
-  detailsOpen.value = true;
+  overlay.open(account.username);
+};
+
+const openFullPage = () => {
+  const username = overlay.value.value;
+  if (!username) return;
+  void router.push({ name: 'participant-details', params: { username } });
 };
 
 const onUpdate = (

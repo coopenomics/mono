@@ -68,9 +68,18 @@ q-layout(view='lHh LpR fff')
   CommandPalette(
     v-model='paletteOpen',
     :workspaces='paletteWorkspaces',
+    :search-groups='paletteSearchGroups',
+    :commands='paletteCommands',
+    :searching='globalSearch.loading.value',
     @select-workspace='onSelectWorkspace',
-    @select-page='onSelectPage'
+    @select-page='onSelectPage',
+    @update:query='globalSearch.setQuery',
+    @select-hit='onSelectHit',
+    @run-command='onRunCommand'
   )
+
+  //- Диалоги команд столов («Добавить задачу» и другие) — из окна и по сочетанию.
+  CommandHost(v-if='loggedIn', ref='commandHost')
 
   //- Универсальный сканер стола ПВЗ: невидимый держатель всплывающего сканера,
   //- регистрирует действие `marketplaceUniversalScan` (пункт меню «Сканировать
@@ -79,14 +88,19 @@ q-layout(view='lHh LpR fff')
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, provide } from 'vue';
+import { computed, onMounted, onUnmounted, provide, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { Header } from 'src/widgets/Header/CommonHeader';
 import { LeftDrawerMenu } from 'src/widgets/Desktop/LeftDrawerMenu';
 import { CommandPalette } from 'src/shared/ui/domain/CommandPalette';
-import type { CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import type { CommandPaletteSearchGroup, CommandPaletteWorkspace } from 'src/shared/ui/domain/CommandPalette';
+import { useGlobalSearch } from 'src/features/GlobalSearch';
+import type { CommandPaletteCommand } from 'src/shared/ui/domain/CommandPalette';
+import { useCommandStore, type IRegisteredCommand } from 'src/entities/Command';
+import { CommandHost } from 'src/widgets/Desktop/CommandHost';
+import { useCommandShortcuts } from 'src/shared/lib/shortcuts';
 import { ContactsFooter } from 'src/shared/ui/Footer';
 import { UniversalScannerHost } from 'src/widgets/Marketplace/UniversalScanner';
 
@@ -221,11 +235,103 @@ const paletteWorkspaces = computed<CommandPaletteWorkspace[]>(() => {
       name: ws.workspaceName,
       title: ws.title,
       icon: ws.icon,
+      appName: ws.extensionName,
+      appTitle: ws.extensionTitle,
       isActive: ws.workspaceName === desktop.activeWorkspaceName,
       pages,
     };
   });
 });
+
+// Находки единого поиска: пайщики, документы, записи приложений. Окно получает
+// их готовыми группами; стол при переходе переключит навигационный гард.
+const globalSearch = useGlobalSearch();
+
+const paletteSearchGroups = computed<CommandPaletteSearchGroup[]>(() =>
+  globalSearch.groups.value.map((group) => ({
+    key: group.key,
+    title: group.title,
+    icon: group.icon,
+    incomplete: group.status !== Zeus.GlobalSearchGroupStatus.OK,
+    hits: group.hits.map((hit) => ({
+      key: hit.key,
+      title: hit.title,
+      subtitle: hit.subtitle ?? undefined,
+      icon: hit.icon ?? undefined,
+    })),
+  })),
+);
+
+function onSelectHit(groupKey: string, hitKey: string): void {
+  const hit = globalSearch.groups.value
+    .find((group) => group.key === groupKey)
+    ?.hits.find((item) => item.key === hitKey);
+  palette.close();
+  globalSearch.reset();
+  if (!hit) return;
+  desktop.closeLeftDrawerOnMobile();
+  void router.push({
+    name: hit.route.name,
+    params: (hit.route.params ?? {}) as Record<string, string>,
+    query: (hit.route.query ?? {}) as Record<string, string>,
+  });
+}
+
+// Команды столов. Права — только серверные: право команды должно быть в
+// грантах стола (стол без грантов команд не показывает), а шлюз стола
+// (онбординг, допуск) — пройден. Тот же канон, что у страниц: фронт лишь
+// сверяет выданное сервером.
+const commandStore = useCommandStore();
+const commandHost = ref<InstanceType<typeof CommandHost> | null>(null);
+
+const availableCommands = computed<IRegisteredCommand[]>(() => {
+  if (!loggedIn.value) return [];
+  return commandStore.commands.filter((entry) => {
+    const ws = desktop.workspaceMenus.find((w) => w.workspaceName === entry.workspace);
+    if (!ws || !desktop.isWorkspaceVisible(ws)) return false;
+    if (!desktop.hasGrant(entry.workspace, entry.command.requires)) return false;
+    return desktop.gateRouteFor(entry.workspace) === null;
+  });
+});
+
+const paletteCommands = computed<CommandPaletteCommand[]>(() =>
+  availableCommands.value.map(({ command, workspace, keys }) => {
+    const ws = desktop.workspaceMenus.find((w) => w.workspaceName === workspace);
+    return {
+      id: command.id,
+      title: command.title,
+      icon: command.icon,
+      subtitle: ws?.extensionTitle || ws?.title,
+      keywords: command.keywords,
+      workspace,
+      shortcut: keys ?? undefined,
+    };
+  }),
+);
+
+function runCommand(entry: IRegisteredCommand): void {
+  const { command } = entry;
+  if (command.route) {
+    desktop.closeLeftDrawerOnMobile();
+    // Стол переключит навигационный гард — по маршруту.
+    void router.push({ name: command.route.name, params: { coopname: system.info.coopname } });
+    return;
+  }
+  if (command.action) {
+    actionsStore.executeAction(command.action);
+    return;
+  }
+  void commandHost.value?.open(command);
+}
+
+function onRunCommand(commandId: string): void {
+  const entry = availableCommands.value.find((c) => c.command.id === commandId);
+  if (entry) runCommand(entry);
+}
+
+useCommandShortcuts(() =>
+  availableCommands.value.flatMap((entry) => (entry.keys ? [{ keys: entry.keys, run: () => runCommand(entry) }] : [])),
+);
 
 function onSelectWorkspace(workspaceName: string): void {
   palette.close();

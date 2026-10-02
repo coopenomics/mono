@@ -52,6 +52,7 @@ cases:
       доставленной записи; заблокированные и ожидающие пропускаются, доставленное повторно
       не отправляется, а недоступность цепи не мешает разобрать журнал
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.connect.happy.01
@@ -63,6 +64,7 @@ cases:
       на сеть уходит подписанный документ coop_connect с issuer, клиентом и
       адресами приёмников расширения (уведомления и выдача анкеты)
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.connect.happy.02
@@ -74,6 +76,8 @@ cases:
       изменившийся состав уезжает сам — ротация не требует участия людей;
       неизменившийся состав повторно не отправляется
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "ротация секрета клиента — смена окружения узла и его перезапуск; через API не выполнить"
     status: passing
 
   - id: cc.connect.side.01
@@ -85,6 +89,8 @@ cases:
       самоподключение честно пропускается с записью в журнал — пустой секрет в
       реестр не уходит, старт кооператива не затронут
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "реквизиты клиента card.coop заданы окружением стенда: с ними проверяется подключение и вход по карте; узел без реквизитов в том же прогоне не получить"
     status: passing
 
   - id: cc.connect.break.01
@@ -96,6 +102,7 @@ cases:
       старт кооператива не падает (NFR-3); неудача записана и следующий старт
       повторяет доставку — она не запоминается как успех
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.connect.happy.03
@@ -107,6 +114,7 @@ cases:
       в coop_connect уезжает display_name; пустое или совпадающее с именем аккаунта
       не отправляется — сеть оставляет имя, которое у неё уже есть (в цепи названия нет)
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.connect.side.02
@@ -118,6 +126,7 @@ cases:
       подключение повторяется по расписанию раз в четверть часа, пока не принято;
       принятое с реквизитами клиента повторно не отправляется
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.announce.happy.02
@@ -130,6 +139,7 @@ cases:
       бывает), доставленное второй раз не объявляется; без флага самодопуска нет.
       Порядок на старте: допуски → подключение → повторы подключения
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.announce.side.02
@@ -142,6 +152,7 @@ cases:
       допуски объявляются без флага; поле скрыто из формы настроек (visible: false),
       остаётся для тестового контура; чужой кооператив без флага молчит
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.webhook-key.happy.01
@@ -154,6 +165,7 @@ cases:
       updateauth разрешением cardcoop у ano (полномочие ano@active, подпись оператора по
       делегированным правам) — до самоподключения; после pnpm run reboot ключ доезжает сам
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.webhook-key.side.01
@@ -166,6 +178,7 @@ cases:
       совпадающий ключ не переписывается; не оператор в цепь и в сеть не ходит; отказ сети и
       отсутствие ключа — предупреждение в журнале, старт не падает
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    api: components/api-tests/src/cardcoop/entry.test.ts
     status: passing
 
   - id: cc.announce.happy.01
@@ -178,6 +191,8 @@ cases:
       уходит подписанное объявление допуска с наименованием из записи цепи;
       исход виден в журнале объявлений
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
     status: passing
 
   - id: cc.announce.side.01
@@ -189,6 +204,8 @@ cases:
       установка молчит: событие цепи видят все, объявляет один, а блокировка —
       рычаг оператора АНО в card.coop, не автоматика
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
     status: passing
 
   - id: cc.announce.break.01
@@ -202,6 +219,8 @@ cases:
       непрочитанное наименование заменяется именем аккаунта, а не задерживает
       допуск
     test: components/controller/tests/unit/cardcoop/cardcoop-registry.test.ts
+    external: unreachable
+    external_reason: "активация и блокировка другого кооператива в цепи: на стенде один кооператив, второй через API не зарегистрировать"
     status: passing
 
   - id: cc.connect.ui.01
@@ -232,3 +251,7 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+# 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
+# ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
+# входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.

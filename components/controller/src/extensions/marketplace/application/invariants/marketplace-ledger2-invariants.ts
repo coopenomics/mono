@@ -487,14 +487,24 @@ export function checkInvariantI5ReserveConsistency(
 // резерва).
 //
 // Одна process_hash (= order_hash) может содержать lock + unlock (отмена),
-// lock + consum (выдача) или только lock (активный Order, не нарушение).
+// lock + consum (выдача), lock + unlock + consum (недовыдача либо выдача по
+// сниженной цене: невыданная часть резерва возвращается, выданная списывается)
+// или только lock (активный Order, не нарушение).
 //
-// Для статической проверки в CI рассматриваем закрытые процессы: если в
-// процессе есть o.mkt.unlock без резерва, или есть o.mkt.consum без
-// резерва — нарушение. Если есть все три (резерв + unlock + consum) —
-// тоже нарушение (двойное закрытие резерва).
+// Нарушения: o.mkt.unlock или o.mkt.consum без резерва; резерв закрыт на
+// сумму больше внесённой — возврат и списание вместе превышают резерв
+// (двойное закрытие). Прежняя редакция считала двойным закрытием само
+// сочетание трёх операций и писала нарушение на каждую недовыдачу (C28-85,
+// находка 54).
 // ---------------------------------------------------------------------------
 const RESERVE_CODES = ['o.mkt.lock', 'o.mkt.lockp'] as const
+
+/** Возврат и списание резерва по процессу вместе больше внесённого резерва. */
+function reserveOverClosed(index: OperationIndex, processHash: string): boolean {
+  const totals = index.totalsByProcess.get(processHash)
+  const sum = (codes: readonly string[]) => codes.reduce((acc, code) => acc + (totals?.get(code)?.total ?? 0n), 0n)
+  return sum(['o.mkt.unlock', 'o.mkt.consum']) > sum(RESERVE_CODES)
+}
 
 export function checkInvariantI6NoOrphanedReserves(
   rows: readonly MarketplaceLedger2OperationRow[],
@@ -520,7 +530,7 @@ export function checkInvariantI6NoOrphanedReserves(
         message: i18nT('marketplace.ledgerInvariants.unlockWithoutReserveIssue'),
       })
     }
-    if (hasLock && hasUnlock && hasConsum) {
+    if (hasLock && reserveOverClosed(index, processHash)) {
       violations.push({
         processHash,
         message: i18nT('marketplace.ledgerInvariants.doubleReserveCloseIssue'),

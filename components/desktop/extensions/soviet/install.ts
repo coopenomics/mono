@@ -2,6 +2,7 @@ import './i18n';
 import { markRaw } from 'vue';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
+import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails';
 // Страница «Персонал» (назначение ролей, Story 6.11) временно снята со стола
 // совета: управление наборами возможностей не доведено до конца, а
 // полурабочий экран раздачи прав опаснее его отсутствия. Возвращается
@@ -53,6 +54,20 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: t('soviet.install.participantsRegistryTitle'),
               icon: 'fa-solid fa-users',
               roles: ['chairman', 'member'],
+            },
+          },
+          {
+            // Страница пайщика: сюда ведут «Открыть страницу» из правой панели
+            // реестра и находка из единого поиска. Живёт рядом с реестром, а не
+            // внутри него, — подсветку раздела в меню держит menuKey.
+            path: 'participants/:username',
+            name: 'participant-details',
+            component: markRaw(ParticipantDetailsPage),
+            meta: {
+              title: t('soviet.install.participantTitle'),
+              roles: ['chairman', 'member'],
+              hidden: true,
+              menuKey: 'participants',
             },
           },
           // Временно скрыто — см. комментарий у импорта PersonnelPage.

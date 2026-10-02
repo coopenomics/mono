@@ -113,8 +113,11 @@ export class MarketplaceCategoryRepositoryAdapter
       });
 
       try {
-        const saved = await this.repo.save(row);
-        return this.mapper.toDomain(saved);
+        // Именно вставка, а не save: save при занятом номере молча переписал бы чужую
+        // строку — тогда два одновременных запроса с одним названием оба получали успех
+        // (C28-85, находка 56). Вставка упирается в первичный ключ либо в индекс названия.
+        await this.repo.insert(row);
+        return this.mapper.toDomain(row);
       } catch (e) {
         if (isDisplayNameConflict(e)) {
           // Второй запрос с тем же названием прошёл проверку сервиса и упёрся

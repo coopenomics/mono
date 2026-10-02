@@ -208,6 +208,10 @@ cases:
     scenario: Цепь недоступна в момент подписи заявления или закрывающей подписи акта
     expect: сага не двигается, причина сохранена, повторная попытка возможна; имущество не передаётся
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
+    # 02.10.2026 (находка 52, C28-85): недостижимая цепь отвечала внутренней ошибкой
+    # «fetch failed» без кода, причина в ходе выдачи бандла не сохранялась. Теперь отказ —
+    # BLOCKCHAIN_UNAVAILABLE (503), причина пишется в ход выдачи каждого заказа бандла.
     status: passing
 
   - id: mkt.iss.happy.03
@@ -343,6 +347,7 @@ cases:
       режиме — ничего подписывать не нужно; решение людей приходит обратным
       вызовом совета, акт формируется, уходит push «подпишите акт»
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.41
@@ -353,6 +358,7 @@ cases:
       сага закрыта отказом, заказ снова «готов к выдаче», паевой взнос остаётся
       на месте — движений по средствам нет
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.42
@@ -361,6 +367,7 @@ cases:
     scenario: Оператор снимает выдачу, пока совет рассматривает заявление
     expect: отказ — снять можно до заявления или после ответа совета
     test: components/controller/tests/unit/marketplace/marketplace-issuance-saga.test.ts
+    api: components/api-tests/src/marketplace/issuance-council.test.ts
     status: passing
 
   - id: mkt.iss.side.43
@@ -391,6 +398,10 @@ cases:
       пропорции контракта; без него подача отвергается до цепи; с ним сначала convert со
       свободного паевого, затем issuestmt без документа
     test: components/controller/tests/unit/marketplace/marketplace-convert-statement.test.ts
+    api: components/api-tests/src/marketplace/issuance-topup.test.ts
+    # 02.10.2026 (находка 57, C28-85): бандл у стойки с доплатой тела не подписывался —
+    # общее заявление 1110 принималось, а подача заявления о выдаче по заказу требовала
+    # второе. Заказ бандла теперь идёт с отметкой «доплата переведена бандлом».
     status: written
 
   # ── Счётчики предложения на выдаче (08.09.2026) ─────────────────────────
@@ -432,6 +443,7 @@ cases:
       движение идёт и по упаковке заказа целыми упаковками; сбой счётчика пишется в лог
       и выдачу не роняет — закрывающий акт уже принят цепью
     test: components/controller/tests/unit/marketplace/marketplace-issuance-remainder.test.ts
+    api: components/api-tests/src/marketplace/stock.test.ts
     status: passing
 
 # 2026-09-08: остаток по упаковкам — в докладке со склада (`marketplace-stock-proposal.service.ts`)
@@ -508,6 +520,8 @@ cases:
       сумму, пока цепь не отзеркалит проведённую уценку; закрытие такого
       заказа по выходу гарантии откладывается
     test: components/controller/tests/unit/marketplace/marketplace-chain-retry-cron.test.ts
+    external: unreachable
+    external_reason: "повтор шага выплаты идёт по расписанию (cron); запустить его через API нельзя"
     status: written   # прогон не подтверждён локально — гоняет CI; ветка отложенного закрытия покрыта только кодом крона закрытия
 
   - id: mkt.iss.side.53

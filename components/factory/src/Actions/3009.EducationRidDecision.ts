@@ -47,6 +47,7 @@ export class Factory extends DocFactory<EducationRidDecision.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: EducationRidDecision.Model = {

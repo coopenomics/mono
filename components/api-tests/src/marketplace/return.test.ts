@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
   CHAIRMAN,
+  COOP,
   ROLES,
   type Who,
   amount,
@@ -174,9 +175,6 @@ describe('гарантийный возврат: заявление, решен�
   let claim: any
 
   it(caseName('mkt.ret.side.05', 'пока открыто одно заявление, второе по тому же заказу не принимается'), async () => {
-    // Вторая половина случая — новое заявление после закрытия прежнего — на
-    // стенде не проходит: отказ председателя не снимает с заказа отметку
-    // открытого возврата в цепи (дефект вынесен в отчёт, случай без api).
     const signed = await signedStatement(ekaterina, order.orderId, 2)
     const second = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, 2, signed))
     expect(second?.codeText, second?.message).toBe('MARKETPLACE_RETURN_CLAIM_ALREADY_OPEN')
@@ -219,6 +217,39 @@ describe('гарантийный возврат: заявление, решен�
     expect(amount(empty.not_admitted_total)).toBe(0)
   })
 
+  it(caseName('l2.pnam.side.11', 'фильтр «Поставка» не втягивает нитку гарантийного возврата, хотя внутри неё возвращается членский взнос'), async () => {
+    const listed = async (processType: string, processHash: string): Promise<any[]> => {
+      const d = await gql<any>(chairmanToken, `query($f:ProcessesFilter!,$p:PaginationInput!){
+        processes(filter:$f, pagination:$p){ items{ processType processHash username } }
+      }`, { f: { coopname: COOP, processType, processHash }, p: { page: 1, limit: 10 } })
+      return d.processes.items
+    }
+    const returnHash = String(claim.request_hash).toLowerCase()
+    const orderHash = order.orderHash.toLowerCase()
+
+    const asReturn = await waitFor(async () => {
+      const rows = await listed('p.mkt.return', returnHash)
+      return rows.length ? rows : null
+    }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'нитка возврата в реестре процессов' })
+    expect(asReturn.map(r => r.processType)).toEqual(['p.mkt.return'])
+    expect(await listed('p.mkt.supply', returnHash), 'возврат поставкой не числится').toEqual([])
+    const view = await gql<any>(chairmanToken, 'query($h:String!,$c:String!){ process(hash:$h, coopname:$c){ process_type } }', { h: returnHash, c: COOP })
+    expect(view.process.process_type, 'при раскрытии называется так же, как в списке').toBe('p.mkt.return')
+
+    // l2.pnam.side.06: поставка, внутри которой зачислялся членский взнос,
+    // остаётся поставкой с заказчицей в субъекте и в выборку взносов участка
+    // не попадает.
+    const asSupply = await listed('p.mkt.supply', orderHash)
+    expect(asSupply.map(r => r.processType)).toEqual(['p.mkt.supply'])
+    expect(asSupply[0].username).toBe(ekaterina.account)
+    expect(await listed('p.brn.fees', orderHash), 'поставка взносами участка не числится').toEqual([])
+    const fees = await gql<any>(chairmanToken, `query($f:ProcessesFilter!,$p:PaginationInput!){
+      processes(filter:$f, pagination:$p){ items{ processType processHash } }
+    }`, { f: { coopname: COOP, processType: 'p.brn.fees' }, p: { page: 1, limit: 50 } })
+    for (const i of fees.processes.items as any[])
+      expect(i.processType).toBe('p.brn.fees')
+  })
+
   it(caseName('mkt.ret.side.50', 'согласие чужого поставщика и повторное согласие — отказ'), async () => {
     const foreign = await refusal(otherToken, ADMIT, { d: { claim_id: supplierClaim.id } })
     expect(foreign?.codeText, foreign?.message).toBe('MARKETPLACE_SUPPLIER_CLAIM_NOT_ADDRESSEE')
@@ -257,6 +288,23 @@ describe('гарантийный возврат: заявление, решен�
     expect(item.origin).toBe('WARRANTY_RETURN')
     expect(item.ownership).toBe('COOP')
     expect(amount(item.arrival_price), `остаток по цене выдачи ${issuePrice}, а не прибытия ${price}`).toBeCloseTo(issuePrice, 4)
+  })
+
+  it(caseName('mkt.ret.side.05', 'после отказа по заявлению новое по тому же заказу не принимается'), async () => {
+    // Решение владельца 28.09.2026: отказ по возврату окончателен, повторное
+    // заявление по тому же заказу невозможно.
+    const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
+    const refusedOrder = await issuedOrder({ member: ekaterina, supplier: sidorov, operator: chairkrg, offer, quantity: 1 })
+    const first = await submitClaim(refusedOrder.orderId, 1)
+    const rejected = await gql<any>(operatorToken, `mutation($d:MarketplaceRejectReturnRemoteInput!){ marketplaceRejectReturnRemote(data:$d){ claim{ id status } } }`, {
+      d: { claim_id: first.id, braname: KRG, comment: 'Внешний слой: дефект не подтверждён по фотографиям.' },
+    })
+    expect(rejected.marketplaceRejectReturnRemote.claim.status).toBe('REJECTED_REMOTELY')
+
+    const signed = await signedStatement(ekaterina, refusedOrder.orderId, 1)
+    const again = await refusal(memberToken, CREATE_CLAIM, claimInput(refusedOrder.orderId, 1, signed))
+    expect(again, 'повторное заявление после отказа отклонено').not.toBeNull()
+    expect((await myClaimsForOrder(refusedOrder.orderId)).map(c => c.id), 'второе заявление не заведено').toEqual([first.id])
   })
 
   it(caseName('mkt.ret.side.01', 'по предложению с нулевой гарантией заявление не заводится'), async () => {

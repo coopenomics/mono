@@ -9,11 +9,7 @@ import { VerificationTypesService } from './verification-types.service';
 import { VerificationAuthorityService, type VerificationActor } from './verification-authority.service';
 import type { ParticipantIdentityForVerificationDTO } from './dto/verification.dto';
 import { DomainError } from '@coopenomics/extension-kit';
-
-/** ФИО одной строкой; отсутствующие части просто пропускаем. */
-function fullName(data: { last_name?: string; first_name?: string; middle_name?: string }): string {
-  return [data.last_name, data.first_name, data.middle_name].filter(Boolean).join(' ');
-}
+import { personFullName } from '~/shared/utils/person-name';
 
 /**
  * Персональные данные пайщика для сверки с документом.
@@ -83,7 +79,7 @@ export class VerificationIdentityService {
     return {
       username,
       type: InnerAccountType.individual,
-      full_name: fullName(data),
+      full_name: personFullName(data),
       birthdate: data.birthdate ?? null,
       passport_series: passport.series != null ? String(passport.series) : null,
       passport_number: passport.number != null ? String(passport.number) : null,
@@ -98,7 +94,7 @@ export class VerificationIdentityService {
     return {
       username,
       type: InnerAccountType.entrepreneur,
-      full_name: fullName(data),
+      full_name: personFullName(data),
       birthdate: data.birthdate ?? null,
       full_address: data.full_address ?? null,
       inn: data.details?.inn ?? null,
@@ -115,7 +111,7 @@ export class VerificationIdentityService {
       full_address: data.full_address ?? null,
       inn: data.details?.inn ?? null,
       ogrn: data.details?.ogrn ?? null,
-      representative_name: fullName(rep) || null,
+      representative_name: personFullName(rep) || null,
       representative_position: rep.position ?? null,
       representative_based_on: rep.based_on ?? null,
     };

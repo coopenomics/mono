@@ -475,6 +475,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           ],
         },
       ],
+      // Команды стола: окно столов (⌘K) и сочетания клавиш с любой страницы.
+      commands: [
+        {
+          id: 'market.create-offer',
+          title: t('market.install.createOfferTitle'),
+          icon: 'add_business',
+          keywords: t('market.install.createOfferCommandKeywords').split(','),
+          shortcut: 'N O',
+          requires: 'Offer:create:own',
+          route: { name: 'marketplace-create-offer' },
+        },
+      ],
     },
 
     // ──────────────────────────── Стол ПВЗ ────────────────────────────
@@ -686,6 +698,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               children: [],
             },
           ],
+        },
+      ],
+      // Команды стола: окно столов (⌘K) и сочетания клавиш с любой страницы.
+      commands: [
+        {
+          id: 'market.scan-qr',
+          title: t('market.install.scanQrTitle'),
+          icon: 'qr_code_scanner',
+          keywords: t('market.install.scanQrCommandKeywords').split(','),
+          shortcut: 'G Q',
+          requires: 'Warehouse:read:own-KU',
+          action: 'marketplaceUniversalScan',
         },
       ],
     },

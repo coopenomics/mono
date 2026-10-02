@@ -41,6 +41,7 @@ cases:
       стол показывает номер карты, состояние «членство подтверждено» и дату
       вступления, о которой сам же и свидетельствовал
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.card.happy.02
@@ -75,6 +76,7 @@ cases:
     expect: >
       дата вступления не показывается: она относится к прекращённому членству
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    api: components/api-tests/src/cardcoop/network.test.ts
     status: passing
 
   - id: cc.card.side.03
@@ -142,6 +144,8 @@ cases:
       стол показывает карту выпущенной и без даты вступления — говорить человеку
       «карта не выпущена» неправда, он её выпустил и связал
     test: components/controller/tests/unit/cardcoop/cardcoop-card.test.ts
+    external: unreachable
+    external_reason: "состояние переходное: связь без свидетельства живёт от приёма до события цепи, а кандидату до приёма стол закрыт (решение владельца 25.09.2026)"
     status: passing
 
   - id: cc.card.side.06
@@ -155,3 +159,7 @@ cases:
     api: components/api-tests/src/cardcoop/join.test.ts
     status: passing
 
+
+# 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
+# ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
+# входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.

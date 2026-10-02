@@ -1,7 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import httpStatus from 'http-status';
 import { tokenTypes } from '~/types/token.types';
-import { Bytes, Checksum256, Signature } from '@wharfkit/antelope';
+import { Bytes, Checksum256, PublicKey, Signature } from '@wharfkit/antelope';
 import { UserDomainService, USER_DOMAIN_SERVICE } from '~/domain/user/services/user-domain.service';
 import { BLOCKCHAIN_PORT, BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import { TokenApplicationService } from '~/application/token/services/token-application.service';
@@ -47,12 +47,24 @@ export class AuthDomainService {
         throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
       }
     } else {
-      //если пользователь еще не зарегистрирован в блокчейне, то проверяем временный ключ, который установлен в объекте его аккаунта
-      if (user.public_key != publicKey.toString())
-        throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
+      // Пайщик ещё не принят в цепи — сверяем с ключом, присланным при регистрации.
+      // Сравнение по самому ключу, а не по его записи: одно и то же значение приходит и
+      // как `EOS…`, и как `PUB_K1_…`, и строковое сравнение отказывало во входе тому, кто
+      // зарегистрировался с ключом в первом написании (C28-85, находка 55).
+      if (!this.isSameKey(user.public_key, publicKey)) throw DomainError.unauthorized('AUTH_INVALID_PRIVATE_KEY');
     }
 
     return user;
+  }
+
+  /** Один ли это ключ; запись, которую не разобрать, ключом не считается. */
+  private isSameKey(stored: string | null | undefined, recovered: PublicKey): boolean {
+    if (!stored) return false;
+    try {
+      return PublicKey.from(stored).equals(recovered);
+    } catch {
+      return false;
+    }
   }
 
   /**

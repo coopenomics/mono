@@ -4950,5 +4950,13 @@
     "branchChairman": "deny",
     "council": "deny",
     "chairman": "pass"
+  },
+  "globalSearch": {
+    "guest": "deny",
+    "member": "pass",
+    "supplier": "pass",
+    "branchChairman": "pass",
+    "council": "pass",
+    "chairman": "pass"
   }
 }

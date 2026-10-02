@@ -578,7 +578,7 @@
       "accountUsageViolation": "{side} {accountId} на {quantity} {missing} в нитке: {threadCodes}",
       "consumWithoutReserveIssue": "consum без предшествующего резерва (lock / lockp) — невозможно списать резерв, которого не было.",
       "deductExceedsAcceptedIssue": "удержано {settledAmount} — больше принятой стоимости {acceptedAmount}",
-      "doubleReserveCloseIssue": "резерв + unlock + consum в одном процессе — двойное закрытие резерва.",
+      "doubleReserveCloseIssue": "возврат и списание резерва вместе больше внесённого — двойное закрытие резерва.",
       "i1Expected": "по каждому заказу выплата и удержание закрывают принятую стоимость",
       "i1Violation": "I1: расчёт с поставщиком по заказу закрыт не на принятую сумму либо проведён дважды.",
       "i2Expected": "дебета 86 нет, кредит 86 только переводом в членский и удержанием при отказе",

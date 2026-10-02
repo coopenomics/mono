@@ -49,10 +49,14 @@ describe('wallet.realtime: сигнал об изменении кошелька
     other = (await open(await tokenOf(ROLES.otherMember()))).subscribe(WALLET_EVENTS, { i: { coopname: COOP } })
     const before = await mirroredAvailable(memberToken, member.account)
     await settleSubscriptions()
+    // Сигналы о кошельках, заведённых при приёме пайщика, могут дойти уже после
+    // подписки — пропускаем их: нужен сигнал именно о взносе.
+    await quietWindow()
+    const seenBefore = own.events.length
 
     await chainDeposit(member.account, 300)
 
-    event = (await own.waitFor(e => e.walletEvents?.wallet_name === 'w.wal.share' ? e.walletEvents : null, 60_000, 'сигнала паевого кошелька')) as any
+    event = (await own.waitFor(e => own.events.indexOf(e) >= seenBefore && e.walletEvents?.wallet_name === 'w.wal.share' ? e.walletEvents : null, 60_000, 'сигнала паевого кошелька')) as any
     availableAfter = await mirroredAvailable(memberToken, member.account)
     expect(availableAfter).toBeCloseTo(before + 300, 4)
     await quietWindow()

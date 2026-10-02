@@ -192,6 +192,8 @@ cases:
       доля дойдёт до базы сообщением от парсера. Падение здесь означало бы
       отказ уже совершённого действия
     test: components/controller/tests/unit/capital/add-author-segment-sync.test.ts
+    external: unreachable
+    external_reason: "задержка чтения доли из цепи сразу после записи — гонка внутри узла, снаружи не ставится"
     status: passing
 
   # ── Уровень интерфейса ────────────────────────────────────────────────────

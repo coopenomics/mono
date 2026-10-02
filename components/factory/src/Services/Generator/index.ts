@@ -5,11 +5,12 @@ import path from 'node:path'
 import { type ChildProcessWithoutNullStreams, execSync, spawn } from 'node:child_process'
 import readline from 'node:readline'
 import { PDFDocument } from 'pdf-lib'
-import moment from 'moment-timezone'
 import { v4 as uuidv4 } from 'uuid'
 import type { IGeneratedDocument, IMetaDocument, ITranslations } from '../../Interfaces'
 import { BlankTemplateEngine, TemplateEngine } from '../Templator'
 import { calculateSha256 } from '../../Utils/calculateSHA'
+import { documentMetaKey } from '../../Utils/documentMetaKey'
+import { isLegacyCreatedAt, parseCreatedAt } from '../../Utils/documentCreatedAt'
 
 const weasyPrintVersion = '67' // ВАЖНО: держать в синхроне с controller/Dockerfile (pip install WeasyPrint==X) и мета-данными каждого документа
 
@@ -393,7 +394,7 @@ export class PDFService implements IPDFService {
   }
 
   private static async updateMetadata(pdfBuffer: Uint8Array, meta: IMetaDocument): Promise<Uint8Array> {
-    const dateWithTimezone = moment.tz(meta.created_at, 'DD.MM.YYYY HH:mm', meta.timezone).toDate()
+    const dateWithTimezone = parseCreatedAt(meta.created_at, meta.timezone).toDate()
 
     const pdfDoc = await PDFDocument.load(pdfBuffer)
     pdfDoc.setTitle(meta.title)
@@ -403,6 +404,16 @@ export class PDFService implements IPDFService {
     pdfDoc.setCreationDate(dateWithTimezone)
     pdfDoc.setModificationDate(dateWithTimezone)
     pdfDoc.setProducer(`weasyprint-v${weasyPrintVersion}`)
+
+    // Отпечаток меты делает хэш документа (sha256 файла) уникальным для каждой
+    // генерации: тело двух генераций совпадает, а мета — нет (дата до
+    // миллисекунд, блок). Без него поиск черновика по хэшу находил чужую
+    // версию, и повторная подпись отбивалась как подмена (C28-84). Отпечаток
+    // выводится из самой меты, поэтому перегенерация из той же меты даёт тот
+    // же хэш. Документы со старой датой «ДД.ММ.ГГГГ ЧЧ:ММ» собираются без
+    // него — байт в байт как были подписаны.
+    if (!isLegacyCreatedAt(meta.created_at))
+      pdfDoc.setKeywords([`meta:${documentMetaKey(meta)}`])
 
     return pdfDoc.save({ useObjectStreams: false })
   }

@@ -33,6 +33,7 @@ export class Factory extends DocFactory<ExpenseProposalDecision.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: ExpenseProposalDecision.Model = {

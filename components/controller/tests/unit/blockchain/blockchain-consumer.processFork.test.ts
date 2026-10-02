@@ -355,5 +355,44 @@ describe('BlockchainConsumerService.processAction/processDelta — markEventAppl
     actionGate.enqueue.mock.calls[0][1]();
     expect(events.emit).toHaveBeenCalledWith('action::capital::createpinv', action);
   });
-});
 
+  // Новая редакция шаблона выходит для всей сети: кооператива в данных действия нет.
+  // До 02.10.2026 оно отбрасывалось как «чужое», и председатель не получал уведомления
+  // о новой редакции документа (C28-85, находка 53).
+  it('processAction: draft::upversion без кооператива в данных сохраняется и уходит в шину', async () => {
+    const actionGate = { enqueue: jest.fn(), onBlockSeen: jest.fn(), onFork: jest.fn(), setActive: jest.fn() };
+    const parser = makeParserInteractorStub();
+    const events = makeEventsServiceStub();
+    const { service } = makeService({ actionGate, parserInteractor: parser, events });
+    const action = {
+      account: 'draft',
+      receiver: 'draft',
+      name: 'upversion',
+      block_num: 77,
+      global_sequence: '5',
+      data: { scope: 'draft', username: 'eosio', registry_id: '900' },
+    } as any;
+
+    await (service as any).processActionDelayed(action);
+
+    expect(parser.saveAction).toHaveBeenCalledWith(action);
+    actionGate.enqueue.mock.calls[0][1]();
+    expect(events.emit).toHaveBeenCalledWith('action::draft::upversion', action);
+  });
+
+  it('processAction: прочие действия без своего кооператива по-прежнему отбрасываются', async () => {
+    const parser = makeParserInteractorStub();
+    const { service } = makeService({ parserInteractor: parser });
+
+    await (service as any).processActionDelayed({
+      account: 'draft',
+      receiver: 'draft',
+      name: 'editdraft',
+      block_num: 78,
+      global_sequence: '6',
+      data: { scope: 'draft', username: 'eosio', registry_id: '900' },
+    } as any);
+
+    expect(parser.saveAction).not.toHaveBeenCalled();
+  });
+});

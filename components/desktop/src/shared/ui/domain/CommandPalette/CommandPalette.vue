@@ -1,6 +1,10 @@
 <template lang="pug">
+//- no-refocus: после выбора окно уводит на другую страницу, и возвращать
+//- фокус кнопке, которая его открыла, незачем — после Enter браузер обводил
+//- её рамкой фокуса, будто её выбрали.
 q-dialog(
   :model-value='modelValue',
+  no-refocus,
   position='top',
   transition-show='slide-down',
   transition-hide='slide-up',
@@ -20,6 +24,8 @@ q-dialog(
         spellcheck='false',
         @keydown.down.prevent='moveSelection(1)',
         @keydown.up.prevent='moveSelection(-1)',
+        @keydown.right='onArrowRight',
+        @keydown.left='onArrowLeft',
         @keydown.enter.prevent='executeActive'
       )
       button.command-palette__close(
@@ -29,67 +35,107 @@ q-dialog(
       )
         q-icon(name='close', size='18px')
 
-    .command-palette__results(ref='resultsRef')
-      //- режим без query — иерархия с sticky активным workspace
-      template(v-if='!isSearchMode')
-        template(v-for='ws in workspaces', :key='ws.name')
-          .command-palette__workspace(
-            :class='{ "is-active": ws.isActive }'
+    .command-palette__columns(ref='resultsRef', :class='{ "is-search": isSearchMode }')
+      //- слева — столы: сначала столы приложений с одним столом, ниже
+      //- приложения с несколькими столами под своим заголовком
+      nav.command-palette__desks
+        template(v-for='group in deskGroups', :key='group.key')
+          .command-palette__group-title(v-if='group.title') {{ group.title }}
+          button.command-palette__desk(
+            v-for='ws in group.workspaces',
+            :key='ws.name',
+            type='button',
+            :class='{ "is-active": ws.isActive, "is-focused": focusedName === ws.name, "is-selected": !isSearchMode && column === "desks" && focusedName === ws.name }',
+            @click='selectWorkspace(ws)',
+            @mouseenter='onDeskHover(ws)'
           )
-            button.command-palette__workspace-row(
+            q-icon.command-palette__desk-icon(:name='ws.icon', size='18px')
+            span.command-palette__desk-title {{ ws.title }}
+            span.command-palette__desk-app(v-if='!group.title && appLabel(ws)') {{ appLabel(ws) }}
+            q-icon.command-palette__desk-check(v-if='ws.isActive', name='check', size='18px')
+
+      .command-palette__pane
+        //- без запроса — страницы стола, выбранного слева
+        template(v-if='!isSearchMode && focusedWorkspace')
+          .command-palette__pane-head
+            q-icon.command-palette__pane-icon(:name='focusedWorkspace.icon', size='20px')
+            span.command-palette__pane-title {{ focusedWorkspace.title }}
+            span.command-palette__app-badge(v-if='appLabel(focusedWorkspace)') {{ appLabel(focusedWorkspace) }}
+            span.command-palette__workspace-badge(v-if='focusedWorkspace.isActive') {{ activeLabel ?? $t('ui.commandPalette.activeLabel') }}
+            button.command-palette__go(
+              v-if='!focusedWorkspace.isActive',
               type='button',
-              :class='{ "is-selected": activeKey === workspaceKey(ws) }',
-              @click='selectWorkspace(ws)',
-              @mouseenter='activeKey = workspaceKey(ws)'
-            )
-              q-icon.command-palette__workspace-icon(:name='ws.icon', size='20px')
-              span.command-palette__workspace-title {{ ws.title }}
-              span.command-palette__workspace-badge(v-if='ws.isActive') {{ activeLabel ?? $t('ui.commandPalette.activeLabel') }}
-          ul.command-palette__pages(v-if='ws.pages.length')
-            li(v-for='page in ws.pages', :key='page.name')
+              @click='selectWorkspace(focusedWorkspace)'
+            ) {{ $t('ui.commandPalette.goToWorkspace') }}
+          ul.command-palette__pages(v-if='focusedWorkspace.pages.length')
+            li(v-for='page in focusedWorkspace.pages', :key='page.name')
               button.command-palette__page(
                 type='button',
-                :class='{ "is-selected": activeKey === pageKey(ws, page) }',
-                @click='selectPage(ws, page)',
-                @mouseenter='activeKey = pageKey(ws, page)'
+                :class='{ "is-selected": column === "pages" && activeKey === pageKey(focusedWorkspace, page) }',
+                @click='selectPage(focusedWorkspace, page)',
+                @mouseenter='onPageHover(focusedWorkspace, page)'
               )
                 q-icon.command-palette__page-icon(:name='page.icon ?? "circle"', size='18px')
                 span.command-palette__page-title {{ page.title }}
                 kbd.command-palette__page-shortcut(v-if='page.shortcut') {{ page.shortcut }}
+          //- Команды стола — после его страниц, за разделителем: так их видно,
+          //- даже если название команды неизвестно.
+          template(v-if='deskCommands.length')
+            .command-palette__divider(v-if='focusedWorkspace.pages.length')
+            .command-palette__group-title {{ $t('ui.commandPalette.commandsSection') }}
+            ul.command-palette__pages
+              li(v-for='command in deskCommands', :key='command.id')
+                button.command-palette__page(
+                  type='button',
+                  :class='{ "is-selected": column === "pages" && activeKey === commandKey(command) }',
+                  @click='runCommand(command)',
+                  @mouseenter='onPaneHover(commandKey(command))'
+                )
+                  q-icon.command-palette__page-icon(:name='command.icon', size='18px')
+                  span.command-palette__page-title {{ command.title }}
+                  span.command-palette__keys(v-if='command.shortcut')
+                    kbd(v-for='key in command.shortcut', :key='key') {{ key }}
+          .command-palette__empty(v-if='!focusedWorkspace.pages.length && !deskCommands.length')
+            EmptyState(:title='$t("ui.commandPalette.noPagesTitle")')
 
-      //- режим поиска — плоский список (workspace + page с префиксом стола)
-      template(v-else-if='flatSearchResults.length')
-        ul.command-palette__flat(role='listbox')
-          li.command-palette__flat-item(
-            v-for='entry in flatSearchResults',
-            :key='entry.key',
-            :class='{ "is-selected": activeKey === entry.key, "is-workspace": entry.kind === "workspace" }',
-            role='option',
-            :aria-selected='activeKey === entry.key',
-            @click='executeEntry(entry)',
-            @mouseenter='activeKey = entry.key'
-          )
-            q-icon.command-palette__flat-icon(
-              :name='entry.kind === "workspace" ? entry.workspace.icon : entry.page.icon ?? entry.workspace.icon',
-              size='18px'
-            )
-            .command-palette__flat-text
-              .command-palette__flat-workspace(v-if='entry.kind === "page"') {{ entry.workspace.title }}
-              .command-palette__flat-title
-                | {{ entry.kind === 'workspace' ? entry.workspace.title : entry.page.title }}
-                span.command-palette__workspace-badge(
-                  v-if='entry.kind === "workspace" && entry.workspace.isActive'
-                ) {{ activeLabel ?? $t('ui.commandPalette.activeLabel') }}
-            kbd.command-palette__page-shortcut(v-if='entry.kind === "page" && entry.page.shortcut') {{ entry.page.shortcut }}
+        //- с запросом — столы и страницы (у каждой строки подписаны стол и
+        //- приложение), ниже находки единого поиска группами по источникам
+        template(v-else-if='searchResults.length || incompleteGroups.length || searching')
+          ul.command-palette__flat(role='listbox')
+            template(v-for='(entry, index) in searchResults', :key='entry.key')
+              li.command-palette__group-title(v-if='isSectionStart(index)') {{ sectionTitle(entry) }}
+              li.command-palette__flat-item(
+                :class='{ "is-selected": activeKey === entry.key }',
+                role='option',
+                :aria-selected='activeKey === entry.key',
+                @click='executeEntry(entry)',
+                @mouseenter='activeKey = entry.key'
+              )
+                q-icon.command-palette__flat-icon(:name='entryIcon(entry)', size='18px')
+                span.command-palette__flat-title {{ entryTitle(entry) }}
+                span.command-palette__flat-crumb {{ crumb(entry) }}
+                span.command-palette__keys(v-if='entry.kind === "command" && entry.command.shortcut')
+                  kbd(v-for='key in entry.command.shortcut', :key='key') {{ key }}
+            //- Источник не успел ответить: поиск по нему неполон, но остальное
+            //- уже показано.
+            li.command-palette__note(v-for='group in incompleteGroups', :key='`incomplete:${group.key}`')
+              q-icon(name='schedule', size='16px')
+              span {{ $t('ui.commandPalette.incompleteGroup', { title: group.title }) }}
+            li.command-palette__note(v-if='searching')
+              q-spinner(size='16px')
+              span {{ $t('ui.commandPalette.searching') }}
 
-      .command-palette__empty(v-else)
-        EmptyState(:title='$t("ui.commandPalette.emptyTitle")', :body='$t("ui.commandPalette.emptyBody")')
+        .command-palette__empty(v-else)
+          EmptyState(:title='$t("ui.commandPalette.emptyTitle")', :body='$t("ui.commandPalette.emptyBody")')
 
     footer.command-palette__footer
       span.command-palette__hint
         kbd ↑
         kbd ↓
         | {{ $t('ui.commandPalette.navigateHint') }}
+      span.command-palette__hint
+        kbd →
+        | {{ $t('ui.commandPalette.pagesHint') }}
       span.command-palette__hint
         kbd ↵ Enter
         | {{ $t('ui.commandPalette.selectHint') }}
@@ -100,11 +146,14 @@ q-dialog(
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { t } from 'src/shared/i18n';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
+import { t } from 'src/shared/i18n';
 import type {
+  CommandPaletteCommand,
+  CommandPaletteHit,
   CommandPalettePage,
   CommandPaletteProps,
+  CommandPaletteSearchGroup,
   CommandPaletteWorkspace,
 } from './CommandPalette.types';
 
@@ -114,10 +163,18 @@ const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   'select-workspace': [workspaceName: string];
   'select-page': [workspaceName: string, pageName: string];
+  /** Запрос изменился — владелец окна ищет по нему находки */
+  'update:query': [query: string];
+  'select-hit': [groupKey: string, hitKey: string];
+  'run-command': [commandId: string];
 }>();
 
 const query = ref('');
 const activeKey = ref<string>('');
+// Стол, выбранный в левой колонке: его страницы показаны справа.
+const focusedName = ref<string>('');
+// Колонка, по которой ходят стрелки, пока запрос пуст.
+const column = ref<'desks' | 'pages'>('desks');
 const inputRef = ref<HTMLInputElement | null>(null);
 const resultsRef = ref<HTMLElement | null>(null);
 
@@ -128,6 +185,51 @@ function workspaceKey(ws: CommandPaletteWorkspace): string {
 }
 function pageKey(ws: CommandPaletteWorkspace, page: CommandPalettePage): string {
   return `page:${ws.name}:${page.name}`;
+}
+
+interface DeskGroup {
+  key: string;
+  /** Заголовок группы — название приложения; у общего списка заголовка нет */
+  title: string;
+  workspaces: CommandPaletteWorkspace[];
+}
+
+/**
+ * Свой заголовок получает приложение с несколькими столами. Столы остальных
+ * приложений идут первым общим списком: у них название приложения обычно
+ * совпадает с названием стола, и заголовок над одной строкой его бы повторял.
+ */
+const deskGroups = computed<DeskGroup[]>(() => {
+  const byApp = new Map<string, CommandPaletteWorkspace[]>();
+  for (const ws of props.workspaces) {
+    const key = ws.appName ?? workspaceKey(ws);
+    byApp.set(key, [...(byApp.get(key) ?? []), ws]);
+  }
+  const common: DeskGroup = { key: 'common', title: '', workspaces: [] };
+  const apps: DeskGroup[] = [];
+  for (const [key, list] of byApp) {
+    if (list.length > 1) {
+      apps.push({ key, title: list[0].appTitle ?? key, workspaces: list });
+    } else {
+      common.workspaces.push(list[0]);
+    }
+  }
+  return [common, ...apps].filter((g) => g.workspaces.length);
+});
+
+/** Столы в том порядке, в каком они стоят в левой колонке */
+const deskList = computed<CommandPaletteWorkspace[]>(() =>
+  deskGroups.value.flatMap((g) => g.workspaces),
+);
+
+const focusedWorkspace = computed<CommandPaletteWorkspace | undefined>(
+  () => deskList.value.find((ws) => ws.name === focusedName.value) ?? deskList.value[0],
+);
+
+/** Название приложения показываем, когда оно отличается от названия стола */
+function appLabel(ws: CommandPaletteWorkspace): string {
+  const app = ws.appTitle?.trim() ?? '';
+  return app && app.toLowerCase() !== ws.title.trim().toLowerCase() ? app : '';
 }
 
 interface FlatEntryWorkspace {
@@ -141,62 +243,151 @@ interface FlatEntryPage {
   workspace: CommandPaletteWorkspace;
   page: CommandPalettePage;
 }
-type FlatEntry = FlatEntryWorkspace | FlatEntryPage;
+interface FlatEntryHit {
+  kind: 'hit';
+  key: string;
+  group: CommandPaletteSearchGroup;
+  hit: CommandPaletteHit;
+}
+interface FlatEntryCommand {
+  kind: 'command';
+  key: string;
+  command: CommandPaletteCommand;
+}
+type FlatEntry = FlatEntryWorkspace | FlatEntryPage | FlatEntryHit | FlatEntryCommand;
 
-/** Иерархический flat-список (для управления клавишами в режиме без поиска) */
-const hierarchyFlat = computed<FlatEntry[]>(() => {
-  const result: FlatEntry[] = [];
-  for (const ws of props.workspaces) {
-    result.push({ kind: 'workspace', key: workspaceKey(ws), workspace: ws });
-    for (const page of ws.pages) {
-      result.push({ kind: 'page', key: pageKey(ws, page), workspace: ws, page });
-    }
-  }
-  return result;
+/** Результаты поиска: команды, столы, страницы, затем находки источников */
+const searchResults = computed<FlatEntry[]>(() => [
+  ...commandResults.value,
+  ...localResults.value,
+  ...hitResults.value,
+]);
+
+// Команды показываются только по запросу: без него окно — навигация по
+// столам, и команды не мешают обычной работе.
+const commandResults = computed<FlatEntry[]>(() => {
+  const q = query.value.toLowerCase().trim();
+  if (!q) return [];
+  return (props.commands ?? [])
+    .filter((command) =>
+      [command.title, command.subtitle ?? '', ...(command.keywords ?? [])].some((text) =>
+        text.toLowerCase().includes(q),
+      ),
+    )
+    .map((command) => ({ kind: 'command' as const, key: commandKey(command), command }));
 });
 
-/** Плоский поиск: workspace показываем только если query явно ищет стол */
-const flatSearchResults = computed<FlatEntry[]>(() => {
+function commandKey(command: CommandPaletteCommand): string {
+  return `cmd:${command.id}`;
+}
+
+/** Команды стола, выбранного слева: в правой колонке после его страниц. */
+const deskCommands = computed<CommandPaletteCommand[]>(() =>
+  (props.commands ?? []).filter((c) => c.workspace && c.workspace === focusedWorkspace.value?.name),
+);
+
+/** Строки правой колонки по порядку: страницы стола, затем его команды. */
+const paneEntries = computed<FlatEntry[]>(() => {
+  const ws = focusedWorkspace.value;
+  if (!ws) return [];
+  return [
+    ...ws.pages.map((page) => ({ kind: 'page' as const, key: pageKey(ws, page), workspace: ws, page })),
+    ...deskCommands.value.map((command) => ({ kind: 'command' as const, key: commandKey(command), command })),
+  ];
+});
+
+const hitResults = computed<FlatEntry[]>(() =>
+  (props.searchGroups ?? []).flatMap((group) =>
+    group.hits.map((hit) => ({ kind: 'hit' as const, key: `hit:${group.key}:${hit.key}`, group, hit })),
+  ),
+);
+
+const incompleteGroups = computed(() => (props.searchGroups ?? []).filter((g) => g.incomplete));
+
+const localResults = computed<FlatEntry[]>(() => {
   const q = query.value.toLowerCase().trim();
   if (!q) return [];
 
-  const isSearchingWorkspaces =
-    q.includes(t('ui.commandPalette.workspaceKeyword')) ||
-    q.includes('workspace') ||
-    props.workspaces.some(
-      (ws) =>
-        ws.title.toLowerCase().startsWith(q) ||
-        ws.name.toLowerCase().startsWith(q),
-    );
-
-  const result: FlatEntry[] = [];
-  for (const ws of props.workspaces) {
-    if (isSearchingWorkspaces) {
-      const wsMatches =
-        ws.title.toLowerCase().startsWith(q) || ws.name.toLowerCase().startsWith(q);
-      if (wsMatches) {
-        result.push({ kind: 'workspace', key: workspaceKey(ws), workspace: ws });
-      }
+  const desks: FlatEntry[] = [];
+  const pages: FlatEntry[] = [];
+  for (const ws of deskList.value) {
+    if (
+      ws.title.toLowerCase().includes(q) ||
+      ws.name.toLowerCase().includes(q) ||
+      (ws.appTitle ?? '').toLowerCase().includes(q)
+    ) {
+      desks.push({ kind: 'workspace', key: workspaceKey(ws), workspace: ws });
     }
     for (const page of ws.pages) {
-      if (
-        page.title.toLowerCase().includes(q) ||
-        page.name.toLowerCase().includes(q)
-      ) {
-        result.push({ kind: 'page', key: pageKey(ws, page), workspace: ws, page });
+      if (page.title.toLowerCase().includes(q) || page.name.toLowerCase().includes(q)) {
+        pages.push({ kind: 'page', key: pageKey(ws, page), workspace: ws, page });
       }
     }
   }
-  return result;
+  return [...desks, ...pages];
 });
 
-const activeList = computed<FlatEntry[]>(() =>
-  isSearchMode.value ? flatSearchResults.value : hierarchyFlat.value,
-);
+/** Раздел выдачи: столы, страницы или группа источника поиска */
+function sectionOf(entry: FlatEntry): string {
+  return entry.kind === 'hit' ? `hit:${entry.group.key}` : entry.kind;
+}
+
+function isSectionStart(index: number): boolean {
+  const list = searchResults.value;
+  return index === 0 || sectionOf(list[index - 1]) !== sectionOf(list[index]);
+}
+
+function sectionTitle(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.group.title;
+  if (entry.kind === 'command') return t('ui.commandPalette.commandsSection');
+  return entry.kind === 'workspace' ? t('ui.commandPalette.workspacesSection') : t('ui.commandPalette.pagesSection');
+}
+
+function entryIcon(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.icon ?? entry.group.icon;
+  if (entry.kind === 'command') return entry.command.icon;
+  if (entry.kind === 'workspace') return entry.workspace.icon;
+  return entry.page.icon ?? entry.workspace.icon;
+}
+
+function entryTitle(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.title;
+  if (entry.kind === 'command') return entry.command.title;
+  return entry.kind === 'workspace' ? entry.workspace.title : entry.page.title;
+}
+
+/** Подпись справа от найденной строки: чей это стол и чья страница */
+function crumb(entry: FlatEntry): string {
+  if (entry.kind === 'hit') return entry.hit.subtitle ?? '';
+  if (entry.kind === 'command') return entry.command.subtitle ?? '';
+  const app = appLabel(entry.workspace);
+  if (entry.kind === 'workspace') return app;
+  return app ? `${entry.workspace.title} · ${app}` : entry.workspace.title;
+}
+
+function resetBrowse(): void {
+  column.value = 'desks';
+  activeKey.value = '';
+  focusedName.value =
+    deskList.value.find((ws) => ws.isActive)?.name ?? deskList.value[0]?.name ?? '';
+}
+
+watch(query, (next) => emit('update:query', next));
+
+// Находки приходят позже локальных строк: курсор не прыгает, пока выбранная
+// строка на месте, и встаёт на первую, если выбранной больше нет.
+watch(searchResults, (list) => {
+  if (!isSearchMode.value) return;
+  if (!list.some((e) => e.key === activeKey.value)) activeKey.value = list[0]?.key ?? '';
+});
 
 watch(query, () => {
-  const list = activeList.value;
-  activeKey.value = list[0]?.key ?? '';
+  if (isSearchMode.value) {
+    activeKey.value = searchResults.value[0]?.key ?? '';
+  } else {
+    column.value = 'desks';
+    activeKey.value = '';
+  }
 });
 
 watch(
@@ -204,34 +395,74 @@ watch(
   (next) => {
     if (next) {
       query.value = '';
-      activeKey.value = '';
+      resetBrowse();
     }
   },
 );
 
-watch(activeList, (list) => {
-  if (!list.find((e) => e.key === activeKey.value)) {
-    activeKey.value = list[0]?.key ?? '';
-  }
-}, { immediate: true });
+function clamp(index: number, length: number): number {
+  return Math.max(0, Math.min(length - 1, index));
+}
 
 function moveSelection(delta: number): void {
-  const list = activeList.value;
-  if (!list.length) return;
-  const currentIdx = list.findIndex((e) => e.key === activeKey.value);
-  let next: number;
-  if (currentIdx === -1) {
-    // Нет текущего выделения — ↓ ставит на первый, ↑ на последний.
-    next = delta > 0 ? 0 : list.length - 1;
+  if (isSearchMode.value) {
+    const list = searchResults.value;
+    if (!list.length) return;
+    const current = list.findIndex((e) => e.key === activeKey.value);
+    // На верхней и нижней позиции курсор остаётся на месте, как в нативных списках.
+    const next = current === -1 ? (delta > 0 ? 0 : list.length - 1) : clamp(current + delta, list.length);
+    activeKey.value = list[next].key;
+  } else if (column.value === 'pages') {
+    const list = paneEntries.value;
+    if (!list.length) return;
+    const current = list.findIndex((e) => e.key === activeKey.value);
+    activeKey.value = list[clamp(current + delta, list.length)].key;
   } else {
-    // Clamp в границах списка: на верхней/нижней позиции стрелка дальше
-    // не «оборачивает» курсор в противоположный конец — он остаётся на
-    // месте (привычное поведение скролла в нативных меню/listbox).
-    next = Math.max(0, Math.min(list.length - 1, currentIdx + delta));
+    const list = deskList.value;
+    if (!list.length) return;
+    const current = list.findIndex((ws) => ws.name === focusedWorkspace.value?.name);
+    focusedName.value = list[clamp(current + delta, list.length)].name;
   }
-  if (next === currentIdx) return;
-  activeKey.value = list[next].key;
   nextTick(() => scrollActiveIntoView());
+}
+
+// Стрелки вправо и влево переводят курсор между колонками, пока запрос пуст;
+// при наборе запроса они двигают каретку в поле, как обычно.
+function onArrowRight(event: KeyboardEvent): void {
+  if (isSearchMode.value || column.value === 'pages') return;
+  const first = paneEntries.value[0];
+  if (!first) return;
+  event.preventDefault();
+  column.value = 'pages';
+  activeKey.value = first.key;
+}
+
+function onArrowLeft(event: KeyboardEvent): void {
+  if (isSearchMode.value || column.value === 'desks') return;
+  event.preventDefault();
+  column.value = 'desks';
+  activeKey.value = '';
+}
+
+function onDeskHover(ws: CommandPaletteWorkspace): void {
+  if (isSearchMode.value) return;
+  focusedName.value = ws.name;
+  column.value = 'desks';
+  activeKey.value = '';
+}
+
+function onPageHover(ws: CommandPaletteWorkspace, page: CommandPalettePage): void {
+  onPaneHover(pageKey(ws, page));
+}
+
+function onPaneHover(key: string): void {
+  column.value = 'pages';
+  activeKey.value = key;
+}
+
+function runCommand(command: CommandPaletteCommand): void {
+  emit('update:modelValue', false);
+  emit('run-command', command.id);
 }
 
 function scrollActiveIntoView(): void {
@@ -243,17 +474,30 @@ function scrollActiveIntoView(): void {
 }
 
 function executeActive(): void {
-  const list = activeList.value;
-  const entry = list.find((e) => e.key === activeKey.value) ?? list[0];
-  if (!entry) return;
-  executeEntry(entry);
+  if (isSearchMode.value) {
+    const list = searchResults.value;
+    const entry = list.find((e) => e.key === activeKey.value) ?? list[0];
+    if (entry) executeEntry(entry);
+    return;
+  }
+  const ws = focusedWorkspace.value;
+  if (!ws) return;
+  const entry =
+    column.value === 'pages' ? paneEntries.value.find((e) => e.key === activeKey.value) : undefined;
+  if (entry) executeEntry(entry);
+  else selectWorkspace(ws);
 }
 
 function executeEntry(entry: FlatEntry): void {
   if (entry.kind === 'workspace') {
     selectWorkspace(entry.workspace);
-  } else {
+  } else if (entry.kind === 'page') {
     selectPage(entry.workspace, entry.page);
+  } else if (entry.kind === 'command') {
+    runCommand(entry.command);
+  } else {
+    emit('update:modelValue', false);
+    emit('select-hit', entry.group.key, entry.hit.key);
   }
 }
 
@@ -274,7 +518,8 @@ function close(): void {
 function onShow(): void {
   nextTick(() => {
     inputRef.value?.focus();
-    activeKey.value = activeList.value[0]?.key ?? '';
+    resetBrowse();
+    nextTick(() => scrollActiveIntoView());
   });
 }
 
@@ -285,24 +530,29 @@ function onHide(): void {
 </script>
 
 <style scoped>
+/* Размер окна постоянный: смена стола слева и набор запроса меняют только
+   содержимое колонок, само окно стоит на месте. */
 .command-palette {
   display: flex;
   flex-direction: column;
-  width: min(640px, 92vw);
+  width: min(820px, 94vw);
+  /* Quasar ограничивает содержимое диалога шириной 560px — снимаем предел,
+     иначе две колонки ужимаются и название стола обрезается. */
+  max-width: none !important;
+  height: min(620px, calc(100vh - 128px));
   margin-top: 64px;
-  max-height: calc(100vh - 128px);
   background: var(--p-surface);
   color: var(--p-ink);
-  border-radius: var(--p-r-md, 12px);
-  box-shadow: var(--p-elev-3);
+  border-radius: var(--p-r-md);
+  box-shadow: var(--p-shadow-modal);
   overflow: hidden;
 }
 
 .command-palette__search {
   display: flex;
   align-items: center;
-  gap: var(--p-2, 8px);
-  padding: var(--p-3, 12px) var(--p-4, 16px);
+  gap: var(--p-2);
+  padding: var(--p-3) var(--p-4);
   border-bottom: 1px solid var(--p-line);
   flex: 0 0 auto;
 }
@@ -314,12 +564,13 @@ function onHide(): void {
 
 .command-palette__input {
   flex: 1 1 auto;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--p-ink);
-  font-size: var(--p-fs-h6, 16px);
-  line-height: var(--p-lh-h6, 1.4);
+  font-size: var(--p-fs-h3);
+  line-height: var(--p-lh-h3);
   font-family: inherit;
 }
 .command-palette__input::placeholder {
@@ -334,218 +585,293 @@ function onHide(): void {
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: var(--p-r-sm, 8px);
+  border-radius: var(--p-r-sm);
   background: transparent;
   color: var(--p-ink-3);
   cursor: pointer;
-  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+  transition: background var(--p-dur-fast) var(--p-ease-standard);
 }
 .command-palette__close:hover {
   background: var(--p-surface-2);
   color: var(--p-ink);
 }
 
-.command-palette__results {
+/* ===== Колонки ===== */
+.command-palette__columns {
   flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.command-palette__desks {
+  flex: 0 0 300px;
+  width: 300px;
+  padding: var(--p-2);
+  border-right: 1px solid var(--p-line);
   overflow-y: auto;
-  padding-bottom: var(--p-2, 8px);
 }
 
-/* ===== Hierarchy ===== */
-.command-palette__workspace {
-  background: var(--p-surface);
+.command-palette__pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--p-3);
+  overflow-y: auto;
 }
 
-.command-palette__workspace-row {
+.command-palette__group-title {
+  padding: var(--p-3) var(--p-3) var(--p-1);
+  font-size: var(--p-fs-eyebrow);
+  line-height: var(--p-lh-eyebrow);
+  letter-spacing: var(--p-ls-eyebrow);
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--p-ink-3);
+  list-style: none;
+}
+
+/* ===== Строка стола ===== */
+.command-palette__desk {
   display: flex;
   align-items: center;
-  gap: var(--p-3, 12px);
+  gap: var(--p-3);
   width: 100%;
-  padding: var(--p-3, 12px) var(--p-4, 16px);
+  padding: var(--p-2) var(--p-3);
   border: 0;
-  background: var(--p-surface);
+  border-radius: var(--p-r-sm);
+  background: transparent;
   color: var(--p-ink);
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  font-size: var(--p-fs-body, 14px);
-  font-weight: 500;
-  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  transition: background var(--p-dur-fast) var(--p-ease-standard);
 }
-.command-palette__workspace.is-active .command-palette__workspace-row {
-  background: var(--p-primary-soft);
-}
-.command-palette__workspace-row:hover,
-.command-palette__workspace-row.is-selected {
+.command-palette__desk.is-focused {
   background: var(--p-surface-2);
 }
-.command-palette__workspace.is-active .command-palette__workspace-row.is-selected {
+.command-palette__desk.is-active {
   background: var(--p-primary-soft);
+  color: var(--p-primary);
+  font-weight: 500;
 }
-/* Универсальная рамка selected для строки стола — иначе при наведении
-   на неактивный стол курсор «теряется»: page'и имеют outline по selected,
-   а workspace-row до фикса получали outline только в is-active. */
-.command-palette__workspace-row.is-selected {
+.command-palette__desk.is-selected {
   outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
 
-.command-palette__workspace-icon {
+.command-palette__desk-icon {
+  color: var(--p-ink-2);
+  flex: 0 0 auto;
+}
+.command-palette__desk.is-active .command-palette__desk-icon,
+.command-palette__desk-check {
+  color: var(--p-primary);
+}
+.command-palette__desk-check {
+  flex: 0 0 auto;
+}
+
+.command-palette__desk-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette__desk-app {
+  flex: 0 0 auto;
+  font-size: var(--p-fs-meta);
+  font-weight: 400;
+  color: var(--p-ink-3);
+  white-space: nowrap;
+}
+
+/* ===== Шапка правой колонки ===== */
+.command-palette__pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  min-height: 40px;
+  padding: 0 var(--p-2) var(--p-2);
+  margin-bottom: var(--p-2);
+  border-bottom: 1px solid var(--p-line);
+}
+
+.command-palette__pane-icon {
   color: var(--p-primary);
   flex: 0 0 auto;
 }
 
-.command-palette__workspace-title {
-  flex: 1 1 auto;
+.command-palette__pane-title {
+  min-width: 0;
+  font-size: var(--p-fs-h3);
   font-weight: 600;
-  color: var(--p-ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.command-palette__workspace-badge {
+.command-palette__workspace-badge,
+.command-palette__app-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--p-primary);
-  color: var(--p-ink-on-primary, #fff);
-  font-size: var(--p-fs-caption, 11px);
-  font-weight: 600;
-  flex: 0 0 auto;
-}
-
-.command-palette__pages {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  background: var(--p-surface);
-}
-
-.command-palette__page {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3, 12px);
-  width: 100%;
-  padding: var(--p-2, 8px) var(--p-4, 16px) var(--p-2, 8px) calc(var(--p-4, 16px) + 28px);
-  border: 0;
-  background: transparent;
-  color: var(--p-ink-2);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  font-size: var(--p-fs-body, 14px);
-  line-height: var(--p-lh-body, 1.5);
-  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard), color var(--p-dur-fast, 120ms) var(--p-ease-standard);
-}
-.command-palette__page:hover,
-.command-palette__page.is-selected {
-  background: var(--p-surface-2);
-  color: var(--p-ink);
-}
-.command-palette__page.is-selected {
-  outline: 2px solid var(--p-primary);
-  outline-offset: -2px;
-}
-
-.command-palette__page-icon {
-  color: var(--p-ink-3);
-  flex: 0 0 auto;
-}
-
-.command-palette__page-title {
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.command-palette__page-shortcut {
-  padding: 2px 6px;
-  border: 1px solid var(--p-line);
-  border-radius: 4px;
-  background: var(--p-surface-2);
-  color: var(--p-ink-2);
-  font-family: var(--p-mono);
-  font-size: var(--p-fs-caption, 11px);
+  padding: 2px var(--p-2);
+  border-radius: var(--p-r-pill);
+  font-size: var(--p-fs-eyebrow);
   font-weight: 500;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.command-palette__workspace-badge {
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+}
+.command-palette__app-badge {
+  background: var(--p-surface-3);
+  color: var(--p-ink-2);
 }
 
-/* ===== Flat search ===== */
+.command-palette__go {
+  margin-left: auto;
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 var(--p-3);
+  border: 0;
+  border-radius: var(--p-r-xs);
+  background: var(--p-primary-soft);
+  color: var(--p-primary);
+  font-family: inherit;
+  font-size: var(--p-fs-meta);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--p-dur-fast) var(--p-ease-standard);
+}
+.command-palette__go:hover {
+  background: var(--p-primary-line);
+}
+
+/* ===== Страницы стола и результаты поиска ===== */
+.command-palette__pages,
 .command-palette__flat {
   list-style: none;
   margin: 0;
-  padding: var(--p-2, 8px) 0;
+  padding: 0;
 }
 
+.command-palette__page,
 .command-palette__flat-item {
   display: flex;
   align-items: center;
-  gap: var(--p-3, 12px);
-  padding: var(--p-2, 8px) var(--p-4, 16px);
+  gap: var(--p-3);
+  width: 100%;
+  padding: var(--p-2) var(--p-3);
+  border: 0;
+  border-radius: var(--p-r-sm);
+  background: transparent;
+  color: var(--p-ink);
   cursor: pointer;
-  transition: background var(--p-dur-fast, 120ms) var(--p-ease-standard);
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  transition: background var(--p-dur-fast) var(--p-ease-standard);
 }
-.command-palette__flat-item.is-workspace {
-  background: var(--p-surface-2);
-}
+.command-palette__page:hover,
+.command-palette__page.is-selected,
 .command-palette__flat-item:hover,
 .command-palette__flat-item.is-selected {
-  background: var(--p-primary-soft);
+  background: var(--p-surface-2);
 }
+.command-palette__page.is-selected,
 .command-palette__flat-item.is-selected {
   outline: 2px solid var(--p-primary);
   outline-offset: -2px;
 }
 
+.command-palette__page-icon,
 .command-palette__flat-icon {
-  color: var(--p-primary);
+  color: var(--p-ink-3);
   flex: 0 0 auto;
 }
 
-.command-palette__flat-text {
-  display: flex;
-  flex-direction: column;
+.command-palette__page-title,
+.command-palette__flat-title {
   flex: 1 1 auto;
   min-width: 0;
-}
-
-.command-palette__flat-workspace {
-  font-size: var(--p-fs-caption, 11px);
-  color: var(--p-ink-3);
-  text-transform: none;
-  letter-spacing: 0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.command-palette__flat-title {
-  display: inline-flex;
+.command-palette__note {
+  display: flex;
   align-items: center;
-  gap: var(--p-2, 8px);
-  font-size: var(--p-fs-body, 14px);
-  color: var(--p-ink);
+  gap: var(--p-2);
+  padding: var(--p-2) var(--p-3);
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
+  list-style: none;
+}
+
+.command-palette__divider {
+  height: 1px;
+  margin: var(--p-2) var(--p-2) 0;
+  background: var(--p-line);
+}
+
+.command-palette__keys {
+  display: inline-flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.command-palette__keys kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-xs);
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-eyebrow);
   font-weight: 500;
+}
+
+.command-palette__flat-crumb {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--p-fs-meta);
+  color: var(--p-ink-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ===== Empty / footer ===== */
+.command-palette__page-shortcut,
+.command-palette__hint kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-xs);
+  background: var(--p-surface-2);
+  color: var(--p-ink-2);
+  font-family: var(--p-mono);
+  font-size: var(--p-fs-eyebrow);
+  font-weight: 500;
+}
+
+/* ===== Пусто и подвал ===== */
 .command-palette__empty {
-  padding: var(--p-6, 24px) var(--p-4, 16px);
+  padding: var(--p-6) var(--p-4);
 }
 
 .command-palette__footer {
   display: flex;
   align-items: center;
-  gap: var(--p-4, 16px);
-  padding: var(--p-2, 8px) var(--p-4, 16px);
+  gap: var(--p-4);
+  padding: var(--p-2) var(--p-4);
   border-top: 1px solid var(--p-line);
-  background: var(--p-surface);
-  font-size: var(--p-fs-caption, 12px);
+  background: var(--p-surface-2);
+  font-size: var(--p-fs-meta);
   color: var(--p-ink-3);
   flex: 0 0 auto;
 }
@@ -553,16 +879,25 @@ function onHide(): void {
 .command-palette__hint {
   display: inline-flex;
   align-items: center;
-  gap: var(--p-1, 4px);
+  gap: var(--p-1);
+  white-space: nowrap;
 }
-.command-palette__hint kbd {
-  padding: 2px 6px;
-  border: 1px solid var(--p-line);
-  border-radius: 4px;
-  background: var(--p-surface-2);
-  color: var(--p-ink-2);
-  font-family: var(--p-mono);
-  font-size: var(--p-fs-caption, 11px);
-  font-weight: 500;
+
+/* На узком экране колонка одна: без запроса — столы, с запросом — результаты. */
+@media (max-width: 720px) {
+  .command-palette__desks {
+    flex: 1 1 auto;
+    width: auto;
+    border-right: 0;
+  }
+  /* Подсказки про клавиши на телефоне лишние: клавиатуры там нет. */
+  .command-palette__pane,
+  .command-palette__columns.is-search .command-palette__desks,
+  .command-palette__footer {
+    display: none;
+  }
+  .command-palette__columns.is-search .command-palette__pane {
+    display: block;
+  }
 }
 </style>

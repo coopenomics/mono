@@ -1,7 +1,7 @@
 {
   "name": "@coopenomics/api-tests",
   "type": "module",
-  "version": "2026.9.24-3",
+  "version": "2026.9.30",
   "private": true,
   "description": "Внешний слой тестов: платформа через её API на поднятом стенде (C28-80, C28-81)",
   "author": "Alex Ant <dacom.dark.sun@gmail.com>",

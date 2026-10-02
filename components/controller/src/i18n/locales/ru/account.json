@@ -42,6 +42,9 @@
     "deleteAccountInput": {
       "fieldUsernameForDeleteRequired": "Поле \"username_for_delete\" обязательно для заполнения."
     },
+    "globalSearch": {
+      "participantsGroup": "Пайщики"
+    },
     "registerAccountInput": {
       "atLeastOneDataRequired": "Необходимо указать хотя бы одно из полей: \"entrepreneur_data\", \"individual_data\" или \"organization_data\".",
       "fieldEmailRequired": "Поле \"email\" обязательно для заполнения.",

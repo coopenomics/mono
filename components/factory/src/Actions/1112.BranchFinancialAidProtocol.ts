@@ -45,6 +45,7 @@ export class Factory extends DocFactory<BranchFinancialAidProtocol.Action> {
       data.coopname,
       data.decision_id,
       meta.created_at,
+      meta.timezone,
     )
 
     const combinedData: BranchFinancialAidProtocol.Model = {

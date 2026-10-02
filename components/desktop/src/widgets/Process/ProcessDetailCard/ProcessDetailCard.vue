@@ -151,6 +151,7 @@ import {
   type ILedger2Posting,
 } from 'src/entities/Ledger2'
 import { getShortNameFromCertificate } from 'src/shared/lib/utils/getNameFromCertificate'
+import { formatDocumentCreatedAt } from 'src/shared/lib/utils/dates'
 import {
   processAccentColor,
   processChipBg,
@@ -245,7 +246,7 @@ function toDocRow(d: IProcessDocument): DocumentRowDoc {
   return {
     type: 'pdf',
     title: doc?.meta?.title || raw?.full_title || t('process.processDetailCard.documentFallbackTitle'),
-    date: doc?.meta?.created_at || undefined,
+    date: formatDocumentCreatedAt(doc?.meta) || undefined,
     author: signers.length ? signers.join(', ') : undefined,
   }
 }

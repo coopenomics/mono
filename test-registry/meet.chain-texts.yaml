@@ -76,6 +76,8 @@ cases:
     scenario: строка вопроса записана до выноса текстов или хеш неизвестен контроллеру
     expect: старый текст проходит как есть, неизвестный хеш остаётся хешем и пишется в журнал
     test: components/controller/tests/unit/meet/chain-text.service.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: meet.texts.side.02
@@ -84,6 +86,11 @@ cases:
     scenario: собрание закрыто и стёрто из цепи
     expect: стол показывает его из журнала дельт — статус, вопросы по порядку с текстами, отметку «голосовал»
     test: components/controller/tests/unit/meet/meet-history.test.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
+    # 02.10.2026 (находка 58, C28-85): подпись председателя закрывает и стирает строку
+    # одним действием цепи, дельта стирания несёт статус «preclosed» — закрытым теперь
+    # считается и стёртая строка в этом статусе. До починки новое закрытое собрание со
+    # стола пропадало; собрания, закрытые до стирания, читались и раньше.
     status: passing
 
   - id: meet.texts.side.03
@@ -92,6 +99,7 @@ cases:
     scenario: отклонённое собрание стёрто из цепи
     expect: в списке и по хешу его нет, как и раньше
     test: components/controller/tests/unit/meet/meet-history.test.ts
+    api: components/api-tests/src/meet/general-meet.test.ts
     status: passing
 
   - id: meet.texts.side.04
@@ -100,6 +108,8 @@ cases:
     scenario: закрытое собрание прежней версии ещё лежит в цепи
     expect: в списке одно собрание, журнал его не дублирует
     test: components/controller/tests/unit/meet/meet-history.test.ts
+    external: unreachable
+    external_reason: "строки без вынесенных текстов и расхождение хеша текста — наследие и рассинхронизация зеркала; через API не создать"
     status: passing
 
   - id: meet.texts.side.05
@@ -108,6 +118,7 @@ cases:
     scenario: фабрика собирает документ собрания по вопросам из журнала дельт
     expect: в документ попадают тексты формулировок, а не хеши
     test: components/controller/src/infrastructure/generator/controller-chain-data.source.spec.ts
+    api: components/api-tests/src/meet/full-cycle.test.ts
     status: passing
 
   - id: meet.texts.side.06

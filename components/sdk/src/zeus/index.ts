@@ -6604,6 +6604,8 @@ export type ValueTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title?:boolean | `@${string}`,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
@@ -9219,6 +9221,54 @@ export type ValueTypes = {
 	/** ID голоса */
 	_id: string | Variable<any, string>
 };
+	["GlobalSearchGroup"]: AliasType<{
+	/** Приложение, которому принадлежат находки; ядро — core */
+	extension_name?:boolean | `@${string}`,
+	/** Находки группы */
+	hits?:ValueTypes["GlobalSearchHit"],
+	/** Значок группы */
+	icon?:boolean | `@${string}`,
+	/** Ключ группы: пайщики, документы, заказы */
+	key?:boolean | `@${string}`,
+	/** Ответила ли группа */
+	status?:boolean | `@${string}`,
+	/** Заголовок группы */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GlobalSearchGroup']?: Omit<ValueTypes["GlobalSearchGroup"], "...on GlobalSearchGroup">
+}>;
+	/** Ответила ли группа поиска: ответила, не успела, упала */
+["GlobalSearchGroupStatus"]:GlobalSearchGroupStatus;
+	["GlobalSearchHit"]: AliasType<{
+	/** Значок находки */
+	icon?:boolean | `@${string}`,
+	/** Отличает находку от других в той же группе */
+	key?:boolean | `@${string}`,
+	/** Куда ведёт находка */
+	route?:ValueTypes["GlobalSearchRoute"],
+	/** Уточнение: аккаунт, дата, номер */
+	subtitle?:boolean | `@${string}`,
+	/** Что найдено */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GlobalSearchHit']?: Omit<ValueTypes["GlobalSearchHit"], "...on GlobalSearchHit">
+}>;
+	["GlobalSearchInput"]: {
+	/** Сколько находок показать в каждой группе */
+	limit?: number | undefined | null | Variable<any, string>,
+	/** Что ищем: имя, ИНН, название документа и так далее */
+	query: string | Variable<any, string>
+};
+	["GlobalSearchRoute"]: AliasType<{
+	/** Имя страницы рабочего стола */
+	name?:boolean | `@${string}`,
+	/** Параметры адреса страницы */
+	params?:boolean | `@${string}`,
+	/** Параметры запроса в адресе страницы */
+	query?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on GlobalSearchRoute']?: Omit<ValueTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
+}>;
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string | Variable<any, string>,
@@ -15800,6 +15850,7 @@ getUserWebPushSubscriptions?: [{	data: ValueTypes["GetUserSubscriptionsInput"] |
 getWithheldTaxPayments?: [{	limit?: number | undefined | null | Variable<any, string>,	page?: number | undefined | null | Variable<any, string>},ValueTypes["WithheldTaxPaymentPage"]],
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ValueTypes["WithheldTaxState"],
+globalSearch?: [{	data: ValueTypes["GlobalSearchInput"] | Variable<any, string>},ValueTypes["GlobalSearchGroup"]],
 kuDecision?: [{	hash: string | Variable<any, string>},ValueTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ValueTypes["KuDecisionFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ValueTypes["KuTrustRequestFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -23632,6 +23683,8 @@ export type ResolverInputTypes = {
 	defaultRoute?:boolean | `@${string}`,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title?:boolean | `@${string}`,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?:boolean | `@${string}`,
 	/** Иконка для меню */
@@ -26176,6 +26229,51 @@ export type ResolverInputTypes = {
 	/** ID голоса */
 	_id: string
 };
+	["GlobalSearchGroup"]: AliasType<{
+	/** Приложение, которому принадлежат находки; ядро — core */
+	extension_name?:boolean | `@${string}`,
+	/** Находки группы */
+	hits?:ResolverInputTypes["GlobalSearchHit"],
+	/** Значок группы */
+	icon?:boolean | `@${string}`,
+	/** Ключ группы: пайщики, документы, заказы */
+	key?:boolean | `@${string}`,
+	/** Ответила ли группа */
+	status?:boolean | `@${string}`,
+	/** Заголовок группы */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Ответила ли группа поиска: ответила, не успела, упала */
+["GlobalSearchGroupStatus"]:GlobalSearchGroupStatus;
+	["GlobalSearchHit"]: AliasType<{
+	/** Значок находки */
+	icon?:boolean | `@${string}`,
+	/** Отличает находку от других в той же группе */
+	key?:boolean | `@${string}`,
+	/** Куда ведёт находка */
+	route?:ResolverInputTypes["GlobalSearchRoute"],
+	/** Уточнение: аккаунт, дата, номер */
+	subtitle?:boolean | `@${string}`,
+	/** Что найдено */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["GlobalSearchInput"]: {
+	/** Сколько находок показать в каждой группе */
+	limit?: number | undefined | null,
+	/** Что ищем: имя, ИНН, название документа и так далее */
+	query: string
+};
+	["GlobalSearchRoute"]: AliasType<{
+	/** Имя страницы рабочего стола */
+	name?:boolean | `@${string}`,
+	/** Параметры адреса страницы */
+	params?:boolean | `@${string}`,
+	/** Параметры запроса в адресе страницы */
+	query?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
 	blagorost_agreement_created_at: string,
@@ -32542,6 +32640,7 @@ getUserWebPushSubscriptions?: [{	data: ResolverInputTypes["GetUserSubscriptionsI
 getWithheldTaxPayments?: [{	limit?: number | undefined | null,	page?: number | undefined | null},ResolverInputTypes["WithheldTaxPaymentPage"]],
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState?:ResolverInputTypes["WithheldTaxState"],
+globalSearch?: [{	data: ResolverInputTypes["GlobalSearchInput"]},ResolverInputTypes["GlobalSearchGroup"]],
 kuDecision?: [{	hash: string},ResolverInputTypes["KuDecision"]],
 kuDecisions?: [{	filter?: ResolverInputTypes["KuDecisionFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuDecisionsPaginationResult"]],
 kuTrustRequests?: [{	filter?: ResolverInputTypes["KuTrustRequestFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedKuTrustRequestsPaginationResult"]],
@@ -40158,6 +40257,8 @@ export type ModelTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title: string,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
@@ -42597,6 +42698,47 @@ export type ModelTypes = {
 	["GetVoteInput"]: {
 	/** ID голоса */
 	_id: string
+};
+	["GlobalSearchGroup"]: {
+		/** Приложение, которому принадлежат находки; ядро — core */
+	extension_name: string,
+	/** Находки группы */
+	hits: Array<ModelTypes["GlobalSearchHit"]>,
+	/** Значок группы */
+	icon: string,
+	/** Ключ группы: пайщики, документы, заказы */
+	key: string,
+	/** Ответила ли группа */
+	status: ModelTypes["GlobalSearchGroupStatus"],
+	/** Заголовок группы */
+	title: string
+};
+	["GlobalSearchGroupStatus"]:GlobalSearchGroupStatus;
+	["GlobalSearchHit"]: {
+		/** Значок находки */
+	icon?: string | undefined | null,
+	/** Отличает находку от других в той же группе */
+	key: string,
+	/** Куда ведёт находка */
+	route: ModelTypes["GlobalSearchRoute"],
+	/** Уточнение: аккаунт, дата, номер */
+	subtitle?: string | undefined | null,
+	/** Что найдено */
+	title: string
+};
+	["GlobalSearchInput"]: {
+	/** Сколько находок показать в каждой группе */
+	limit?: number | undefined | null,
+	/** Что ищем: имя, ИНН, название документа и так далее */
+	query: string
+};
+	["GlobalSearchRoute"]: {
+		/** Имя страницы рабочего стола */
+	name: string,
+	/** Параметры адреса страницы */
+	params?: ModelTypes["JSON"] | undefined | null,
+	/** Параметры запроса в адресе страницы */
+	query?: ModelTypes["JSON"] | undefined | null
 };
 	["ImportContributorInput"]: {
 	/** Дата соглашения Благорост в формате DD.MM.YYYY */
@@ -49192,6 +49334,8 @@ export type ModelTypes = {
 	getWithheldTaxPayments: ModelTypes["WithheldTaxPaymentPage"],
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState: ModelTypes["WithheldTaxState"],
+	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
+	globalSearch: Array<ModelTypes["GlobalSearchGroup"]>,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: ModelTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -57085,6 +57229,8 @@ export type GraphQLTypes = {
 	defaultRoute?: string | undefined | null,
 	/** Имя расширения, которому принадлежит этот workspace */
 	extension_name: string,
+	/** Название приложения, которому принадлежит рабочий стол */
+	extension_title: string,
 	/** Права доступа текущего пользователя в расширении (вид «Resource:action»). Фронт показывает страницу/стол, если её требование входит в этот список. Отсутствует у расширений, не использующих канон прав доступа. */
 	grants?: Array<string> | undefined | null,
 	/** Иконка для меню */
@@ -59698,6 +59844,54 @@ export type GraphQLTypes = {
 	["GetVoteInput"]: {
 		/** ID голоса */
 	_id: string
+};
+	["GlobalSearchGroup"]: {
+	__typename: "GlobalSearchGroup",
+	/** Приложение, которому принадлежат находки; ядро — core */
+	extension_name: string,
+	/** Находки группы */
+	hits: Array<GraphQLTypes["GlobalSearchHit"]>,
+	/** Значок группы */
+	icon: string,
+	/** Ключ группы: пайщики, документы, заказы */
+	key: string,
+	/** Ответила ли группа */
+	status: GraphQLTypes["GlobalSearchGroupStatus"],
+	/** Заголовок группы */
+	title: string,
+	['...on GlobalSearchGroup']: Omit<GraphQLTypes["GlobalSearchGroup"], "...on GlobalSearchGroup">
+};
+	/** Ответила ли группа поиска: ответила, не успела, упала */
+["GlobalSearchGroupStatus"]: GlobalSearchGroupStatus;
+	["GlobalSearchHit"]: {
+	__typename: "GlobalSearchHit",
+	/** Значок находки */
+	icon?: string | undefined | null,
+	/** Отличает находку от других в той же группе */
+	key: string,
+	/** Куда ведёт находка */
+	route: GraphQLTypes["GlobalSearchRoute"],
+	/** Уточнение: аккаунт, дата, номер */
+	subtitle?: string | undefined | null,
+	/** Что найдено */
+	title: string,
+	['...on GlobalSearchHit']: Omit<GraphQLTypes["GlobalSearchHit"], "...on GlobalSearchHit">
+};
+	["GlobalSearchInput"]: {
+		/** Сколько находок показать в каждой группе */
+	limit?: number | undefined | null,
+	/** Что ищем: имя, ИНН, название документа и так далее */
+	query: string
+};
+	["GlobalSearchRoute"]: {
+	__typename: "GlobalSearchRoute",
+	/** Имя страницы рабочего стола */
+	name: string,
+	/** Параметры адреса страницы */
+	params?: GraphQLTypes["JSON"] | undefined | null,
+	/** Параметры запроса в адресе страницы */
+	query?: GraphQLTypes["JSON"] | undefined | null,
+	['...on GlobalSearchRoute']: Omit<GraphQLTypes["GlobalSearchRoute"], "...on GlobalSearchRoute">
 };
 	["ImportContributorInput"]: {
 		/** Дата соглашения Благорост в формате DD.MM.YYYY */
@@ -66803,6 +66997,8 @@ export type GraphQLTypes = {
 	getWithheldTaxPayments: GraphQLTypes["WithheldTaxPaymentPage"],
 	/** Удержанный налог: сколько должны бюджету и что уже отправлено кассиру */
 	getWithheldTaxState: GraphQLTypes["WithheldTaxState"],
+	/** Единый поиск: пайщики, документы и записи приложений, сгруппированные по источнику */
+	globalSearch: Array<GraphQLTypes["GlobalSearchGroup"]>,
 	/** Получить решение собрания участка по хэшу (с вопросами повестки) */
 	kuDecision: GraphQLTypes["KuDecision"],
 	/** Получить список решений собраний кооперативных участков */
@@ -69752,6 +69948,12 @@ export enum ForceRecoveryConsentVia {
 	AssemblyDecision = "AssemblyDecision",
 	ParticipantMagicLink = "ParticipantMagicLink"
 }
+/** Ответила ли группа поиска: ответила, не успела, упала */
+export enum GlobalSearchGroupStatus {
+	ERROR = "ERROR",
+	OK = "OK",
+	TIMEOUT = "TIMEOUT"
+}
 /** Статусы жизненного цикла инстанса кооператива */
 export enum InstanceStatus {
 	ACTIVE = "ACTIVE",
@@ -70800,6 +71002,8 @@ type ZEUS_VARIABLES = {
 	["GetUserRequestsInput"]: ValueTypes["GetUserRequestsInput"];
 	["GetUserSubscriptionsInput"]: ValueTypes["GetUserSubscriptionsInput"];
 	["GetVoteInput"]: ValueTypes["GetVoteInput"];
+	["GlobalSearchGroupStatus"]: ValueTypes["GlobalSearchGroupStatus"];
+	["GlobalSearchInput"]: ValueTypes["GlobalSearchInput"];
 	["ImportContributorInput"]: ValueTypes["ImportContributorInput"];
 	["Init"]: ValueTypes["Init"];
 	["InitiateCriticalActionInput"]: ValueTypes["InitiateCriticalActionInput"];

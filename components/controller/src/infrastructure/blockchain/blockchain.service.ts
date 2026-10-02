@@ -8,7 +8,7 @@ import { AnoContract, RegistratorContract, SovietContract, SystemContract } from
 import config from '~/config/config';
 import { BlockchainPort } from '~/domain/common/ports/blockchain.port';
 import type { ActiveKeysQuorum, EndorsementRecord, ServedCooperative } from '~/domain/common/ports/blockchain.port';
-import { RpcPool } from './rpc-pool.service';
+import { RpcPool, chainUnavailable, isChainUnreachable } from './rpc-pool.service';
 import { CHAIN_EXHAUSTION_CODES, retryOnChainExhaustion } from './chain-retry';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import type { GetInfoResult } from '~/types/shared/blockchain.types';
@@ -221,8 +221,8 @@ export class BlockchainService implements BlockchainPort {
       );
     } catch (error) {
       // Отказ контракта уходит пайщику с кодом (CHAIN_ASSERT или код
-      // контракта), а не ошибкой сервера 500.
-      throw chainRefusalOf(error) ?? error;
+      // контракта), а не ошибкой сервера 500. Недостижимая цепь — тоже с кодом.
+      throw chainRefusalOf(error) ?? (isChainUnreachable(error) ? chainUnavailable(error) : error);
     }
     if (broadcast) await this.awaitBlockProcessed(result);
     return result;
