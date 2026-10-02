@@ -34,7 +34,8 @@ export class InvestTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'varchar', length: 20 })
   blockchain_status!: string;
 
-  @Column({ type: 'bigint' })
+  // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
+  @Column({ type: 'varchar' })
   amount!: string;
 
   @Column({ type: 'timestamp' })
@@ -46,7 +47,7 @@ export class InvestTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'varchar', length: 12, nullable: true })
   coordinator!: string;
 
-  @Column({ type: 'bigint', nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   coordinator_amount!: string;
 
   @Column({ type: 'timestamp' })

@@ -8,7 +8,11 @@ import { STORY_REPOSITORY, StoryRepository } from '../../domain/repositories/sto
 import { ACCOUNT_PORT, type IAccountPort,
   type InnerMutationLogEntry,
 } from '@coopenomics/innercoop';
+import type { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { t } from '../../i18n';
+
+/** Запись журнала о создании задачи делается сразу после мутации — в пределах этого окна. */
+const CREATED_ISSUE_WINDOW_MS = 15_000;
 
 /**
  * Типы сущностей для логов
@@ -61,6 +65,8 @@ type EventPayload = {
 export class MutationLogMapperService {
   /** Кэш ФИО на время одного mapMultiple / mapToCapitalLog */
   private nameCache = new Map<string, string>();
+  /** Кэш задач проекта (автора) на время одного mapMultiple — для привязки событий создания. */
+  private createdIssueCache = new Map<string, IssueDomainEntity[]>();
 
   constructor(
     @Inject(ISSUE_REPOSITORY)
@@ -229,9 +235,35 @@ export class MutationLogMapperService {
     return mutationName in this.mutationToEventType;
   }
 
+  /**
+   * Задача, заведённая мутацией создания: тот же проект и автор, ближайшая по времени
+   * к записи журнала (запись делается сразу после мутации).
+   */
+  private async findCreatedIssue(data: any, mutationLog: InnerMutationLogEntry): Promise<IssueDomainEntity | null> {
+    try {
+      const key = data.project_hash ? `project:${data.project_hash}` : `author:${mutationLog.username}`;
+      let candidates = this.createdIssueCache.get(key);
+      if (!candidates) {
+        candidates = data.project_hash
+          ? await this.issueRepository.findByProjectHash(data.project_hash)
+          : (await this.issueRepository.findByCreatedBy(mutationLog.username)).filter((issue) => !issue.project_hash);
+        this.createdIssueCache.set(key, candidates);
+      }
+      const loggedAt = new Date(mutationLog.created_at).getTime();
+      const distance = (issue: IssueDomainEntity) => Math.abs(new Date(issue._created_at as Date).getTime() - loggedAt);
+      const near = candidates
+        .filter((issue) => issue.created_by === mutationLog.username && distance(issue) <= CREATED_ISSUE_WINDOW_MS)
+        .sort((a, b) => distance(a) - distance(b));
+      return near.find((issue) => issue.title === data.title) ?? near[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private async determineEntityInfo(
     eventType: LogEventType,
-    data: any
+    data: any,
+    mutationLog: InnerMutationLogEntry
   ): Promise<{
     entity_type: LogEntityType;
     entity_id?: string;
@@ -263,14 +295,33 @@ export class MutationLogMapperService {
         };
 
       // События по задачам
-      case LogEventType.ISSUE_CREATED:
+      case LogEventType.ISSUE_CREATED: {
+        // Хеш задаче выдаёт сервер, в аргументах создания его нет — находим заведённую задачу.
+        const created = data.issue_hash ? null : await this.findCreatedIssue(data, mutationLog);
+        return {
+          entity_type: LogEntityType.ISSUE,
+          entity_id: data.issue_hash || created?.issue_hash || data.issue_id || data.id,
+          project_hash: data.project_hash,
+        };
+      }
+
       case LogEventType.ISSUE_UPDATED:
-      case LogEventType.ISSUE_DELETED:
+      case LogEventType.ISSUE_DELETED: {
+        // В аргументах правки проекта нет — берём его у самой задачи, иначе событие
+        // выпадает из журнала проекта.
+        let projectHash: string | undefined = data.project_hash;
+        if (!projectHash && data.issue_hash) {
+          try {
+            const issue = await this.issueRepository.findByIssueHash(data.issue_hash);
+            projectHash = issue?.project_hash ?? undefined;
+          } catch { /* задача удалена — событие остаётся без проекта */ }
+        }
         return {
           entity_type: LogEntityType.ISSUE,
           entity_id: data.issue_hash || data.issue_id || data.id,
-          project_hash: data.project_hash,
+          project_hash: projectHash,
         };
+      }
 
       // События по историям (stories)
       case LogEventType.STORY_CREATED:
@@ -373,7 +424,7 @@ export class MutationLogMapperService {
     const coopname = data.coopname || mutationLog.coopname || '';
     const initiator = mutationLog.username;
 
-    const { entity_type, entity_id, project_hash } = await this.determineEntityInfo(eventType, data);
+    const { entity_type, entity_id, project_hash } = await this.determineEntityInfo(eventType, data, mutationLog);
     const messageData = await this.generateMessageAndMetadata(eventType, initiator, data);
     if (!messageData) return null;
 
@@ -943,6 +994,7 @@ export class MutationLogMapperService {
 
   async mapMultipleToCapitalLogs(mutationLogs: InnerMutationLogEntry[]): Promise<IMappedCapitalLog[]> {
     this.nameCache.clear();
+    this.createdIssueCache.clear();
     const allNames = mutationLogs.flatMap((log) => this.collectUsernamesFromLog(log));
     await this.resolveNames(allNames);
 

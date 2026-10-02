@@ -9,9 +9,12 @@ import type { IssueRepository } from '../../domain/repositories/issue.repository
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import { IssuePriority } from '../../domain/enums/issue-priority.enum';
-import { v4 as uuid } from 'uuid';
+import { PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
+import type { ProjectRepository } from '../../domain/repositories/project.repository';
+import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
+import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 import { t } from '../../i18n';
-import { DomainError } from '@coopenomics/extension-kit';
+import { DomainError, generateUniqueHash } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ProcessService {
@@ -21,6 +24,8 @@ export class ProcessService {
     @Inject(PROCESS_TEMPLATE_REPOSITORY) private readonly templateRepo: ProcessTemplateRepository,
     @Inject(PROCESS_INSTANCE_REPOSITORY) private readonly instanceRepo: ProcessInstanceRepository,
     @Inject(ISSUE_REPOSITORY) private readonly issueRepo: IssueRepository,
+    @Inject(PROJECT_REPOSITORY) private readonly projectRepo: ProjectRepository,
+    private readonly issueIdService: IssueIdGenerationService,
   ) {}
 
   // ──── ШАБЛОНЫ ────
@@ -174,17 +179,16 @@ export class ProcessService {
     if (!step) return;
 
     try {
-      const issueHash = uuid().replace(/-/g, '').toUpperCase();
-      const prefix = instance.project_hash.substring(0, 3).toUpperCase();
-      const issueId = `${prefix}-P${Date.now().toString(36).toUpperCase()}`;
+      // Задача шага — обычная задача проекта: номер по счётчику проекта (ПРЕФИКС-число)
+      // и хеш обычного вида, чтобы к ней привязывались коммиты и учёт времени.
+      const project = await this.projectRepo.findByHash(instance.project_hash);
+      if (!project) {
+        throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: instance.project_hash });
+      }
 
-      const issue = new IssueDomainEntity({
-        _id: '' as any,
-        _created_at: new Date(),
-        _updated_at: new Date(),
-        present: true,
-        id: issueId,
-        issue_hash: issueHash,
+      const issueData: Omit<IIssueDatabaseData, 'id'> = {
+        _id: '',
+        issue_hash: generateUniqueHash(),
         coopname: instance.coopname,
         title: `[${template.title}] ${step.title}`,
         description: step.description || t('capital.process.taskTitle', { templateTitle: template.title, cycle: instance.cycle }),
@@ -193,10 +197,16 @@ export class ProcessService {
         estimate: step.estimate || 0,
         sort_order: 0,
         created_by: createdBy,
+        submaster: createdBy,
         creators: [createdBy],
         project_hash: instance.project_hash,
+        cycle_id: undefined,
         metadata: { labels: ['process', template.title], attachments: [] },
-      } as any);
+        present: true,
+      };
+      const generated = this.issueIdService.generateIssueId(project, issueData);
+      await this.projectRepo.update(generated.updatedProject);
+      const issue = new IssueDomainEntity(generated.issueData);
 
       const savedIssue = await this.issueRepo.create(issue);
 

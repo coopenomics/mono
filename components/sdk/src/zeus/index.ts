@@ -34782,7 +34782,7 @@ export type ModelTypes = {
 	/** Дата последнего обновления записи */
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма долга */
-	amount?: number | undefined | null,
+	amount?: string | undefined | null,
 	/** Одобренное заявление
 
 Требуемые роли: chairman, member.  */
@@ -34957,7 +34957,7 @@ export type ModelTypes = {
 	/** Дата последнего обновления записи */
 	_updated_at: ModelTypes["DateTime"],
 	/** Сумма инвестиции */
-	amount?: number | undefined | null,
+	amount?: string | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -34967,7 +34967,7 @@ export type ModelTypes = {
 	/** Координатор */
 	coordinator?: string | undefined | null,
 	/** Сумма координатора */
-	coordinator_amount?: number | undefined | null,
+	coordinator_amount?: string | undefined | null,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Хеш инвестиции */
@@ -51039,7 +51039,7 @@ export type GraphQLTypes = {
 	/** Дата последнего обновления записи */
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма долга */
-	amount?: number | undefined | null,
+	amount?: string | undefined | null,
 	/** Одобренное заявление
 
 Требуемые роли: chairman, member.  */
@@ -51223,7 +51223,7 @@ export type GraphQLTypes = {
 	/** Дата последнего обновления записи */
 	_updated_at: GraphQLTypes["DateTime"],
 	/** Сумма инвестиции */
-	amount?: number | undefined | null,
+	amount?: string | undefined | null,
 	/** Номер блока последнего обновления */
 	block_num?: number | undefined | null,
 	/** Статус из блокчейна */
@@ -51233,7 +51233,7 @@ export type GraphQLTypes = {
 	/** Координатор */
 	coordinator?: string | undefined | null,
 	/** Сумма координатора */
-	coordinator_amount?: number | undefined | null,
+	coordinator_amount?: string | undefined | null,
 	/** ID в блокчейне */
 	id?: number | undefined | null,
 	/** Хеш инвестиции */

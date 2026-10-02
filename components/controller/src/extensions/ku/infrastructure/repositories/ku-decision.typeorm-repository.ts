@@ -83,6 +83,10 @@ export class KuDecisionTypeormRepository
     );
   }
 
+  async saveAuthorization(hash: string, authorization: object): Promise<void> {
+    await this.repository.update({ hash: hash.toLowerCase() }, { authorization });
+  }
+
   async findMeetingsForReminder(from: Date, to: Date): Promise<KuDecisionDomainEntity[]> {
     const entities = await this.repository
       .createQueryBuilder('decision')

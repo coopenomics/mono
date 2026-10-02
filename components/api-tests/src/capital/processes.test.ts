@@ -179,9 +179,9 @@ describe('Благорост — процессы: исполнение', () => 
     expect(listed.map((i: any) => i.id)).toEqual([instanceId])
   })
 
-  // Находка 64а (C28-85): задача шагу не заводится — номер задачи шага длиннее колонки, ошибка
-  // глотается, шаг остаётся без задачи. Случай выключен до починки.
-  it.skip(caseName('cap.proc.happy.06', 'стартовый шаг становится задачей проекта с названием «[шаблон] шаг» и описанием шага'), async () => {
+  // До 02.10.2026 задача шагу не заводилась: номер задачи шага был длиннее колонки, ошибка
+  // глоталась (C28-85, находка 64а). Теперь шаг получает обычную задачу проекта.
+  it(caseName('cap.proc.happy.06', 'стартовый шаг становится задачей проекта с названием «[шаблон] шаг» и описанием шага'), async () => {
     const instance = (await gql<any>(chairmanToken, INSTANCE, { id: instanceId })).capitalGetProcessInstance
     const issueHash = stateOf(instance, 'prepare').issue_hash
     expect(issueHash, 'стартовый шаг получил задачу').toBeTruthy()
@@ -189,12 +189,12 @@ describe('Благорост — процессы: исполнение', () => 
     expect(issue, 'задача шага видна в проекте').toBeTruthy()
     expect(issue.title).toBe(`[Выпуск ${T} — правка] Подготовка`)
     expect(issue.description).toBe('Собрать исходные данные')
+    expect(String(issueHash), 'хеш задачи шага — обычного вида, к нему привязывается коммит').toMatch(/^[0-9a-f]{64}$/i)
   })
 
-  // Находка 64б (C28-85): после первого закрытого шага экземпляр не читается — время закрытия лежит
-  // строкой, поле ждёт дату-время, ответ и последующие чтения падают внутренней ошибкой. Случаи
-  // закрытия шагов выключены до починки; отказы «не найдено» ниже от неё не зависят.
-  it.skip(caseName('cap.proc.happy.04', 'закрытый шаг открывает следующие; шаг с двумя входами ждёт оба; последний шаг завершает экземпляр'), async () => {
+  // До 02.10.2026 после первого закрытого шага экземпляр не читался: время закрытия лежало
+  // строкой, поле ждало дату-время (C28-85, находка 64б).
+  it(caseName('cap.proc.happy.04', 'закрытый шаг открывает следующие; шаг с двумя входами ждёт оба; последний шаг завершает экземпляр'), async () => {
     const afterPrepare = (await gql<any>(chairmanToken, COMPLETE, { d: { instance_id: instanceId, step_id: 'prepare' } })).capitalCompleteProcessStep
     expect(stateOf(afterPrepare, 'prepare').status).toBe('COMPLETED')
     expect(stateOf(afterPrepare, 'prepare').completed_at).toBeTruthy()
@@ -220,7 +220,7 @@ describe('Благорост — процессы: исполнение', () => 
     expect(stored.step_states.every((s: any) => s.status === 'COMPLETED')).toBe(true)
   })
 
-  it.skip(caseName('cap.proc.side.05', 'повторное закрытие шага ничего не меняет — задачи не удваиваются'), async () => {
+  it(caseName('cap.proc.side.05', 'повторное закрытие шага ничего не меняет — задачи не удваиваются'), async () => {
     const before = (await projectIssues()).length
     const again = (await gql<any>(chairmanToken, COMPLETE, { d: { instance_id: instanceId, step_id: 'prepare' } })).capitalCompleteProcessStep
     expect(again.status).toBe('COMPLETED')

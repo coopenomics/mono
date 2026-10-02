@@ -37,7 +37,8 @@ export class ExpenseTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'varchar' })
   blockchain_status!: string;
 
-  @Column({ type: 'bigint' })
+  // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
+  @Column({ type: 'varchar' })
   amount!: string;
 
   @Column({ type: 'text' })

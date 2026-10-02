@@ -38,7 +38,8 @@ export class DebtTypeormEntity extends BaseTypeormEntity {
   @Column({ type: 'timestamp', nullable: true })
   repaid_at!: Date;
 
-  @Column({ type: 'bigint' })
+  // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
+  @Column({ type: 'varchar' })
   amount!: string;
 
   @Column({ type: 'json' })

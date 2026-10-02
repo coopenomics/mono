@@ -37,7 +37,7 @@ beforeAll(async () => {
   issue = await createIssue(CHAIRMAN, { title: `Задача журнала ${T}`, project_hash: project, creators: [CHAIRMAN.account] })
   await gql(chairman, UPDATE_ISSUE, { d: { issue_hash: issue.issue_hash, status: 'IN_PROGRESS' } })
   // Журнал мутаций пишется после ответа мутации — ждём, пока последняя запись появится.
-  await waitFor(async () => (await projectLogs({})).items.some(l => l.event_type === 'ISSUE_CREATED') ? true : null,
+  await waitFor(async () => (await projectLogs({})).items.some(l => l.event_type === 'ISSUE_UPDATED') ? true : null,
     { timeoutMs: 60_000, intervalMs: 1_000, label: 'события проекта в журнале' })
 }, 600_000)
 
@@ -45,7 +45,9 @@ describe('Благорост — журнал событий проекта', ()
   it(caseName('cap.log.happy.01', 'журнал проекта отдаёт события проекта, компонента и задачи — с автором, от новых к старым'), async () => {
     const log = await projectLogs({})
     const types = log.items.map(l => l.event_type)
-    expect(types).toEqual(expect.arrayContaining(['PROJECT_CREATED', 'ISSUE_CREATED']))
+    // До 02.10.2026 правка задачи в журнал проекта не попадала: в аргументах правки нет
+    // проекта, событие оставалось без привязки (C28-85, находка 65).
+    expect(types).toEqual(expect.arrayContaining(['PROJECT_CREATED', 'ISSUE_CREATED', 'ISSUE_UPDATED']))
     expect(log.items.every(l => l.initiator === CHAIRMAN.account && l.coopname === COOP)).toBe(true)
     expect(log.items.every(l => l.title && l.actor_name)).toBe(true)
     expect(log.items.some(l => l.project_hash === component), 'события компонента входят в журнал проекта').toBe(true)
@@ -81,10 +83,22 @@ describe('Благорост — журнал событий проекта', ()
   it(caseName('cap.log.happy.02', 'журнал задачи — события только этой задачи'), async () => {
     const d = await gql<any>(chairman, ISSUE_LOGS, { d: { issue_hash: issue.issue_hash }, o: { page: 1, limit: 50 } })
     const items = d.getCapitalIssueLogs.items as any[]
-    // Правка задачи в её журнале есть; создание — на решении владельца (cap.log.side.05).
-    expect(items.map(l => l.event_type)).toContain('ISSUE_UPDATED')
+    // Создание задачи в её журнале есть, хотя хеш задаче выдаёт сервер (находка 65).
+    expect(items.map(l => l.event_type)).toEqual(expect.arrayContaining(['ISSUE_CREATED', 'ISSUE_UPDATED']))
     expect(items.every(l => l.entity_type === 'ISSUE')).toBe(true)
     expect(items.every(l => String(l.entity_id).toLowerCase() === String(issue.issue_hash).toLowerCase() || String(l.reference_id).toLowerCase() === String(issue.issue_hash).toLowerCase())).toBe(true)
+  })
+
+  it(caseName('cap.log.side.05', 'правка задачи видна в журнале её проекта, создание задачи — в журнале задачи'), async () => {
+    const updated = (await projectLogs({})).items.find(l => l.event_type === 'ISSUE_UPDATED')
+    expect(updated, 'правка задачи в журнале проекта').toBeTruthy()
+    expect(updated.project_hash).toBe(project)
+    expect(String(updated.entity_id).toLowerCase()).toBe(String(issue.issue_hash).toLowerCase())
+
+    const d = await gql<any>(chairman, ISSUE_LOGS, { d: { issue_hash: issue.issue_hash }, o: { page: 1, limit: 50 } })
+    const created = (d.getCapitalIssueLogs.items as any[]).find(l => l.event_type === 'ISSUE_CREATED')
+    expect(created, 'создание задачи в журнале задачи').toBeTruthy()
+    expect(String(created.entity_id).toLowerCase()).toBe(String(issue.issue_hash).toLowerCase())
   })
 
   it(caseName('cap.log.side.03', 'отказанное действие в журнал не попадает'), async () => {

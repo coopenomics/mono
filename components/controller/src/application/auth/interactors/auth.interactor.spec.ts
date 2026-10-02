@@ -27,6 +27,7 @@ describe('AuthInteractor.login', () => {
       userDomainService as any,
       loginTwoFactor as any,
       vault as any,
+      { assertNotRevoked: jest.fn(async () => undefined), markRecovered: jest.fn(async () => undefined) } as any,
     );
     return { interactor, tokenApplicationService, vault, loginTwoFactor };
   }

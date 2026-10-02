@@ -99,6 +99,6 @@ import { CriticalActionsResolver } from './critical-actions/critical-actions.res
       inject: [BaselineVerificationResolver, ChainVerificationResolver],
     },
   ],
-  exports: [AuditService, SessionBindingService, VaultService, VerifyTimestampService, LoginTwoFactorService, CertificateService, CertKeyService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
+  exports: [AuditService, SessionBindingService, VaultService, KeyRevocationService, VerifyTimestampService, LoginTwoFactorService, CertificateService, CertKeyService, VerificationTypesService, VerificationRulesService, VerificationRuleGuard, LogoutService, TwoFactorService, TWO_FACTOR_VERIFIER],
 })
 export class AuthV2Module {}

@@ -1,4 +1,5 @@
 import { CapitalBaseline1790197276752 } from './migrations/database/1790197276752-baseline';
+import { CapitalAssetAmountsAsText1790966897678 } from './migrations/database/1790966897678-asset-amounts-as-text';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -6,4 +7,4 @@ import { CapitalBaseline1790197276752 } from './migrations/database/179019727675
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const capitalDatabaseMigrations = [CapitalBaseline1790197276752];
+export const capitalDatabaseMigrations = [CapitalBaseline1790197276752, CapitalAssetAmountsAsText1790966897678];

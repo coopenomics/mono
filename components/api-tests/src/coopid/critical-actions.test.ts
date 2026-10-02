@@ -13,7 +13,8 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COUNCIL, COUNCIL_2, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COUNCIL, COUNCIL_2, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, latestMail, login, tokenOf } from '../core'
+import { freshKeyPair } from '../platform/platform-b.helpers'
 
 const PENDING = 'id action_type target_id actor_id status created_at expires_at finalized_at confirmations{ by at }'
 const INITIATE = `mutation($d:InitiateCriticalActionInput!){ initiateCriticalAction(data:$d){ ${PENDING} } }`
@@ -107,6 +108,23 @@ describe('CoopID — отзыв ключа пайщика', () => {
     expect(result).toMatchObject({ status: 'revoked', target_id: target.account, must_recover: true })
     expect(result.sessions_revoked).toBeGreaterThanOrEqual(0)
   })
+
+  it(caseName('coopid.revoke.side.02', 'отозванным ключом войти нельзя; после смены ключа вход новым ключом открыт, прежний не подходит'), async () => {
+    // До 02.10.2026 отзыв только закрывал сессии: тем же ключом открывалась новая (C28-85, находка 61).
+    const refusal = async (who: Who) => login(who).then(() => null, (e: any) => e?.errors?.[0] ?? { code: String(e?.message) })
+    expectCode(await refusal(target), 'AUTH_KEY_REVOKED_RECOVERY_REQUIRED')
+
+    // Восстановление доступа: письмо со ссылкой сброса ключа, новый ключ пайщика.
+    await gql(null, 'mutation($d:StartResetKeyInput!){ startResetKey(data:$d) }', { d: { email: target.email } })
+    const mail = await latestMail(target.email, 'reset-key?token=', 120_000)
+    const token = /reset-key\?token=([^"'&\s<]+)/.exec(`${mail.html} ${mail.text}`)?.[1]
+    expect(token, 'в письме ссылка сброса ключа').toBeTruthy()
+    const fresh = await freshKeyPair()
+    await gql(null, 'mutation($d:ResetKeyInput!){ resetKey(data:$d) }', { d: { token: decodeURIComponent(token!), public_key: fresh.publicKey } })
+
+    expect(await login({ ...target, wif: fresh.wif }), 'новым ключом вход открыт').toBeTruthy()
+    expect(await refusal(target), 'прежний ключ после смены не подходит').not.toBeNull()
+  }, 300_000)
 
   it(caseName('coopid.revoke.side.01', 'ключ отзывает только председатель — члену совета и пайщику отказ'), async () => {
     const input = { d: { target_id: target.account, reason: 'чужой запрос' } }

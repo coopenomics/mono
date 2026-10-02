@@ -13,7 +13,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, ROLES, authorizeDecisionOnChain, awaitDecision, caseName, decisionByHash, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomAccount, randomHash, signDocument, tokenOf, voteOnDecision, waitFor } from '../core'
+import { CHAIRMAN, COOP, ROLES, authorizeDecisionOnChain, awaitDecision, caseName, decisionByHash, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomAccount, randomHash, signDocument, toChainDoc, tokenOf, voteOnDecision, waitFor } from '../core'
 
 
 
@@ -350,6 +350,7 @@ describe('собрание об учреждении участка', () => {
   const GEN_LIABILITY = `mutation($d:BranchTrusteeLiabilityAgreementGenerateDocumentInput!){ kuGenerateTrusteeLiabilityAgreement(data:$d){ ${DOC} } }`
   const GEN_AUTHORITY = `mutation($d:BranchTrusteePowerOfAttorneyGenerateDocumentInput!){ kuGenerateTrusteePowerOfAttorney(data:$d){ ${DOC} } }`
   const EXEC = `mutation($d:ExecKuDecisionInput!){ kuExecDecision(data:$d)${TX} }`
+  const GEN_COUNCIL_DECISION = `mutation($d:BranchEstablishmentDecisionGenerateDocumentInput!){ kuGenerateEstablishmentDecision(data:$d){ ${DOC} } }`
   const NEW_BRANCH = 'query($d:GetBranchesInput!){ getBranches(data:$d){ braname short_name full_name fact_address trustee{ username } } }'
 
   const hash = randomHash()
@@ -367,6 +368,8 @@ describe('собрание об учреждении участка', () => {
   let founder: Who
   let founderToken = ''
   let questions: any[] = []
+  /** Протокол совета об учреждении, которым председатель утвердил решение. */
+  let councilDecision: any = null
 
   const voting = (token: string) => votingOf(token, hash)
 
@@ -460,7 +463,13 @@ describe('собрание об учреждении участка', () => {
     expect(String(item.type)).toBe('branchdec')
     expect(String(item.username)).toBe(founder.account)
     await voteOnDecision(Number(item.id), 'for')
-    await authorizeDecisionOnChain(Number(item.id))
+    // Председатель совета утверждает решение своим протоколом об учреждении участка.
+    const chairmanToken = await tokenOf(CHAIRMAN)
+    const generated = (await gql<any>(chairmanToken, GEN_COUNCIL_DECISION, {
+      d: { coopname: COOP, username: CHAIRMAN.account, decision_id: Number(item.id), branch_name: branchName, address, chairman: founder.account },
+    })).kuGenerateEstablishmentDecision
+    councilDecision = await signDocument(CHAIRMAN.wif, generated, CHAIRMAN.account, 1)
+    await authorizeDecisionOnChain(Number(item.id), toChainDoc(councilDecision))
 
     // Карточку участка узел заводит по событию решения совета.
     const branch = await waitFor(async () => {
@@ -481,10 +490,13 @@ describe('собрание об учреждении участка', () => {
     expect((await voting(joinerToken)).protocol_document?.hash, 'протокол собрания остался на странице').toBeTruthy()
   })
 
-  // Выключен: находка 66 (C28-85) — решение совета в запись собрания не попадает: действие
-  // совета стирает запись, не записав в неё документ решения. Прогон 37036446921.
-  it.skip(caseName('ku.dec.happy.10', 'решение совета об учреждении видно на странице собрания'), async () => {
-    expect((await voting(joinerToken)).authorization_document?.hash, 'решение совета на странице собрания').toBeTruthy()
+  // До 02.10.2026 решения совета на странице не было: действие совета стирает запись собрания,
+  // не записав в неё документ решения (C28-85, находка 66). Теперь его сохраняет узел.
+  it(caseName('ku.dec.happy.10', 'решение совета об учреждении видно на странице собрания'), async () => {
+    expect(councilDecision, 'решение совета принято предыдущим шагом').toBeTruthy()
+    const shown = await waitFor(async () => (await voting(joinerToken)).authorization_document ?? null,
+      { timeoutMs: 60_000, intervalMs: 1_500, label: 'решение совета на странице собрания' })
+    expect([councilDecision.hash, councilDecision.doc_hash].map(h => String(h).toLowerCase())).toContain(String(shown.hash).toLowerCase())
   })
 })
 

@@ -2,6 +2,11 @@ import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
 
+/** Колонка `date` возвращается из базы строкой «ГГГГ-ММ-ДД» — домен и API ждут дату. */
+function toDate(value: Date | string): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
 /**
  * Маппер для преобразования между доменной сущностью цикла и TypeORM сущностью
  */
@@ -14,8 +19,8 @@ export class CycleMapper {
       _id: entity._id,
       block_num: entity.block_num,
       name: entity.name,
-      start_date: entity.start_date,
-      end_date: entity.end_date,
+      start_date: toDate(entity.start_date),
+      end_date: toDate(entity.end_date),
       status: entity.status,
       _created_at: entity._created_at,
       _updated_at: entity._updated_at,
