@@ -251,3 +251,16 @@ cases:
     expect: отказ MEMBERSHIP_EXIT_ALREADY_SUBMITTED
     test: ~
     status: missing
+
+  - id: mem.exit.break.09
+    level: backend
+    kind: break
+    scenario: >
+      заявление об аннулировании соглашений ЦПП формирует пайщик за другого
+      пайщика; запрос без пайщика; учётная запись с не кооперативной ролью
+    expect: >
+      отказ 403 — право MembershipExit:generate из матрицы даёт пайщику только
+      свой выход; член совета и председатель формируют заявление за любого;
+      мутация объявлена правом матрицы, а не ролью
+    test: components/controller/tests/unit/membership-exit/annulment-generation-rights.test.ts
+    status: passing

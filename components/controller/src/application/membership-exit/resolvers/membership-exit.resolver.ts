@@ -11,6 +11,8 @@ import { CreateMembershipExitInputDTO } from '../dto/create-membership-exit-inpu
 import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
 import { MembershipExitReturnPreviewDTO } from '../dto/membership-exit-return-preview.dto';
 import { MembershipExitDTO } from '../dto/membership-exit.dto';
+import { AuthorizationGuard } from '~/application/auth-v2/authorization/authorization.guard';
+import { CheckAbility } from '~/application/auth-v2/authorization/check-ability.decorator';
 
 /**
  * GraphQL резолвер выхода пайщика из кооператива.
@@ -39,13 +41,15 @@ export class MembershipExitResolver {
 
   // Заявление об аннулировании соглашений ЦПП подписывается вместе с заявлением
   // о выходе: суммы по программам собирает сервер, пайщик их только видит.
+  // Право — `MembershipExit:generate` из матрицы: за себя формирует сам пайщик,
+  // за другого — совет.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateProgramAgreementsAnnulment',
     description: 'Сгенерировать заявление об аннулировании соглашений об участии в целевых потребительских программах.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, AuthorizationGuard)
+  @CheckAbility('generate', 'MembershipExit')
   async generateProgramAgreementsAnnulment(
     @Args('data', { type: () => ProgramAgreementsAnnulmentGenerateDocumentInputDTO })
     data: ProgramAgreementsAnnulmentGenerateDocumentInputDTO,

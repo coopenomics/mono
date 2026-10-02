@@ -10,9 +10,10 @@ import type { MongoAbility } from '@casl/ability';
 /**
  * Действия. База CRUD + `manage` (CASL-wildcard «всё над субъектом») + доменные
  * глаголы: `confirm` — второй подписант critical-action (Story 6.8); `vote` —
- * голос в решении (Story 6.3, same-coop policy).
+ * голос в решении (Story 6.3, same-coop policy); `generate` — сформировать
+ * документ к подписи (C28-87: перевод генерации документов с `@AuthRoles`).
  */
-export type CoopAction = 'manage' | 'create' | 'read' | 'update' | 'delete' | 'confirm' | 'vote';
+export type CoopAction = 'manage' | 'create' | 'read' | 'update' | 'delete' | 'confirm' | 'vote' | 'generate';
 
 /** Субъекты (ресурсы) домена auth-v2. `all` — CASL-wildcard для платформенного админа. */
 export type CoopSubject =
@@ -35,6 +36,8 @@ export type CoopSubject =
   | 'AccountingDesk'
   /** Реестр платежей / будущий стол кассира (доступ набора `cashier`). */
   | 'PaymentRegistry'
+  /** Выход пайщика из кооператива и документы к нему (заявления, решение). */
+  | 'MembershipExit'
   | 'all';
 
 /** Тип Ability пайщика — собирается `AbilityFactory.createForParticipant`. */

@@ -52,6 +52,9 @@ export class AbilityFactory {
       can('read', 'Certificate', owner);
       can(['read', 'update'], 'Session', owner);
       can('manage', 'RecoveryStrategy', owner); // вкл. настройки 2FA
+      // Документы своего выхода из кооператива пайщик формирует сам: мутации
+      // генерации называют выходящего полем `username`.
+      can('generate', 'MembershipExit', { username: user.username });
     }
 
     // Member — член совета: read-only надзор + роль второго подписанта critical-action.
@@ -61,6 +64,7 @@ export class AbilityFactory {
       can('read', 'CriticalAction');
       can('read', 'AuditEvent');
       can('confirm', 'CriticalAction'); // второй подписант (Story 6.8)
+      can('generate', 'MembershipExit'); // документы выхода любого пайщика
     }
 
     // Chairman — председатель: write-модерация + инициация critical-action.

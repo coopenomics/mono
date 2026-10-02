@@ -10,6 +10,7 @@ import { SystemModule } from '../system/system.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
 import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/entities/membership-exit-request.entity';
+import { AuthorizationModule } from '~/application/auth-v2/authorization/authorization.module';
 
 /**
  * Модуль выхода пайщика из кооператива: генерация документов выхода (200/201),
@@ -28,6 +29,8 @@ import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/e
     SystemModule,
     UserDomainModule,
     EventsInfrastructureModule,
+    // Право на генерацию документов выхода — из матрицы прав (`@CheckAbility`).
+    AuthorizationModule,
   ],
   providers: [MembershipExitResolver, MembershipExitService, MembershipExitAuthorizationListener],
   exports: [MembershipExitService],

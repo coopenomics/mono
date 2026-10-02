@@ -104,6 +104,36 @@ describe('AbilityFactory — Layer 1 static ability (Story 6.1)', () => {
   });
 });
 
+describe('AbilityFactory — документы выхода из кооператива (MembershipExit:generate)', () => {
+  const factory = new AbilityFactory(emptyRepo, emptySets);
+  const exitOf = (username: string) => subject('MembershipExit', { username });
+
+  it('пайщик формирует документы только своего выхода', () => {
+    const ability = factory.createForParticipant({ username: 'alice', role: 'user' });
+    expect(ability.can('generate', exitOf('alice'))).toBe(true);
+    expect(ability.can('generate', exitOf('bob'))).toBe(false);
+  });
+
+  it('член совета и председатель формируют документы выхода любого пайщика', () => {
+    for (const role of ['member', 'chairman']) {
+      const ability = factory.createForParticipant({ username: 'council', role });
+      expect(ability.can('generate', exitOf('alice'))).toBe(true);
+      expect(ability.can('generate', exitOf('council'))).toBe(true);
+    }
+  });
+
+  it('не кооперативная роль документы выхода не формирует даже за себя', () => {
+    const ability = factory.createForParticipant({ username: 'x', role: 'admin' });
+    expect(ability.can('generate', exitOf('x'))).toBe(false);
+  });
+
+  it('право формировать документы не даёт иных действий над выходом', () => {
+    const ability = factory.createForParticipant({ username: 'alice', role: 'user' });
+    expect(ability.can('manage', exitOf('alice'))).toBe(false);
+    expect(ability.can('delete', exitOf('alice'))).toBe(false);
+  });
+});
+
 describe('AbilityFactory — Layer 2 access_rules merge (Story 6.2)', () => {
   const factory = new AbilityFactory(emptyRepo, emptySets);
 
