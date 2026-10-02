@@ -21,7 +21,11 @@ on:
     # для параллельной работы над API-тестами: стенд целиком, но без прежних
     # наборов boot и без матрицы прав (их гоняет полный прогон). Имя после
     # префикса — чья это работа, у каждой ветки свой прогон.
-    branches: [ci/blackbox, 'ci/blackbox-fast-*']
+    # ci/blackbox-cardcoop — отдельный набор карты кооператора: стенд целиком и
+    # только наборы src/cardcoop против подставной сети карт. В общий прогон
+    # они не входят (решение владельца 02.10.2026): интеграции с сетью карт
+    # нужен свой стенд, до него набор гоняется отдельно.
+    branches: [ci/blackbox, 'ci/blackbox-fast-*', ci/blackbox-cardcoop]
   workflow_dispatch:
 
 # Прогоны не отменяют друг друга: полигоны ci/tests и ci/blackbox общие для
@@ -148,7 +152,7 @@ jobs:
 
       - name: Внешние тесты
         id: tests
-        if: ${{ !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
+        if: ${{ !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh tests
 
@@ -161,9 +165,15 @@ jobs:
 
       - name: API-тесты (components/api-tests)
         id: apitests
-        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
         timeout-minutes: 60
         run: bash scripts/blackbox/stack.sh apitests
+
+      - name: Карта кооператора (отдельный набор, подставная сеть карт)
+        id: cardcoop
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name == 'ci/blackbox-cardcoop' }}
+        timeout-minutes: 30
+        run: bash scripts/blackbox/stack.sh cardcoop
 
       - name: База — снимок после API-тестов
         if: ${{ !cancelled() && steps.app.outcome == 'success' }}
@@ -176,7 +186,7 @@ jobs:
       # и оставляет стенд непригодным для сценариев Стола заказов.
       - name: Отказы стенда (пауза чтения цепи, остановка цепи)
         id: faults
-        if: ${{ !cancelled() && steps.app.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && github.ref_name != 'ci/blackbox-cardcoop' }}
         timeout-minutes: 15
         run: bash scripts/blackbox/stack.sh faults
 
@@ -187,7 +197,7 @@ jobs:
       # коммите.
       - name: Матрица прав
         id: rights
-        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') }}
+        if: ${{ !cancelled() && steps.app.outcome == 'success' && !startsWith(github.ref_name, 'ci/blackbox-fast-') && github.ref_name != 'ci/blackbox-cardcoop' }}
         timeout-minutes: 30
         run: bash scripts/blackbox/stack.sh rights
 

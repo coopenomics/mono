@@ -232,8 +232,21 @@ cmd_apitests() {
   pnpm exec vitest run \
     --reporter=default --reporter=junit \
     --outputFile.junit="$OUT/junit-api.xml" \
-    --exclude 'src/{rights,faults}/**' \
+    --exclude 'src/{rights,faults,cardcoop}/**' \
     ${BLACKBOX_API_TESTS:-}
+}
+
+# Карта кооператора — отдельный набор (решение владельца 02.10.2026): наборы
+# src/cardcoop идут против подставной сети карт и в общий прогон не входят.
+# Настоящей интеграции с сетью карт нужен свой стенд; до него набор гоняется
+# веткой-полигоном ci/blackbox-cardcoop.
+cmd_cardcoop() {
+  ( controller_autoreg_on )
+  api_tests_env
+  cd components/api-tests
+  pnpm exec vitest run src/cardcoop \
+    --reporter=default --reporter=junit \
+    --outputFile.junit="$OUT/junit-cardcoop.xml"
 }
 
 cmd_rights() {
@@ -347,13 +360,13 @@ for line in sys.stdin:
     echo "## Black-box: тесты"
     echo
     local junit found=0
-    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml"; do
+    for junit in "$OUT/junit.xml" "$OUT/junit-api.xml" "$OUT/junit-rights.xml" "$OUT/junit-faults.xml" "$OUT/junit-faults-chain.xml" "$OUT/junit-cardcoop.xml"; do
       # Пустой отчёт — набор не нашёл файлов или упал до старта.
       [ -s "$junit" ] || continue
       found=1
       python3 - "$junit" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
-titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи"}
+titles = {"junit.xml": "boot (components/boot/src/tests)", "junit-api.xml": "api-tests (components/api-tests)", "junit-rights.xml": "матрица прав", "junit-faults.xml": "отказы стенда: пауза чтения цепи", "junit-faults-chain.xml": "отказы стенда: остановка цепи", "junit-cardcoop.xml": "карта кооператора (отдельный набор)"}
 root = ET.parse(sys.argv[1]).getroot()
 suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
 total = failed = skipped = 0
@@ -398,8 +411,9 @@ case "${1:-}" in
   apitests) cmd_apitests ;;
   rights) cmd_rights ;;
   faults) cmd_faults ;;
+  cardcoop) cmd_cardcoop ;;
   dbcov) shift; cmd_dbcov "$@" ;;
   collect) cmd_collect ;;
   summary) cmd_summary ;;
-  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|rights|faults|dbcov|collect|summary>" >&2; exit 2 ;;
+  *) echo "использование: $0 <env|image|infra|boot|app|seed|tests|apitests|cardcoop|rights|faults|dbcov|collect|summary>" >&2; exit 2 ;;
 esac
