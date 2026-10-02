@@ -5,7 +5,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { caseName, deposit, tokenOf, waitFor } from '../core'
+import { COOP, caseName, deposit, expectCode, gql, gqlError, signDocument, tokenOf, waitFor } from '../core'
 import { amount, capitalMember, capitalWallets, contributorOf, ensureCapitalProgram, programInvest } from './cap-results.helpers'
 
 const INVEST = 500
@@ -35,5 +35,24 @@ describe('Благорост: паевой взнос в программу', ()
     expect(walletsAfter.blago).toBeCloseTo(walletsBefore.blago + INVEST, 4)
     const investedAfter = amount((await contributorOf(token, member.account))?.contributed_as_investor)
     expect(investedAfter).toBeCloseTo(investedBefore + INVEST, 4)
+  })
+
+  it(caseName('cap.pinv.side.08', 'сумма в запросе расходится с подписанным заявлением — отказ до цепи, кошельки не тронуты'), async () => {
+    const walletsBefore = await capitalWallets(token, member.account)
+    const signedFor = `${(100).toFixed(4)} RUB`
+    const gen = await gql<any>(token, `mutation($d:ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput!){
+      capitalGenerateProgramMoneyInvestStatement(data:$d){ full_title html hash meta binary }
+    }`, { d: { coopname: COOP, username: member.account, amount: signedFor } })
+    const statement = await signDocument(member.wif, gen.capitalGenerateProgramMoneyInvestStatement, member.account)
+
+    // Заявление подписано на 100, в запросе — 400: подмена суммы после генерации.
+    const err = await gqlError(token, 'mutation($d:CreateProgramInvestInput!){ capitalCreateProgramInvest(data:$d){ transaction } }', {
+      d: { coopname: COOP, username: member.account, amount: `${(400).toFixed(4)} RUB`, statement },
+    })
+    expectCode(err, 'KIT_DOCUMENT_FIELD_MISMATCH')
+
+    const walletsAfter = await capitalWallets(token, member.account)
+    expect(walletsAfter.share).toBeCloseTo(walletsBefore.share, 4)
+    expect(walletsAfter.blago).toBeCloseTo(walletsBefore.blago, 4)
   })
 })

@@ -175,6 +175,8 @@ cases:
     # объём. До решения о серии дефект был недостижим — заявление де-факто
     # было одноразовым; с разрешённой серией он открывается.
     # Не чиню: заказчик вынес подачу заявления на возврат в отдельную работу.
+    # 02.10.2026 (C28-85): внешний тест написан и выключен (it.skip) в
+    # components/api-tests/src/marketplace/return.test.ts — включить после починки.
 
   - id: mkt.ret.side.06
     level: ui
@@ -297,8 +299,8 @@ cases:
     expect: >
       имущество ждёт пайщика на участке, оператор выдаёт его обратно (handback),
       заявление закрывается без движений по средствам
-    test: ~
-    status: missing
+    test: components/api-tests/src/marketplace/return-council.test.ts
+    status: written
 
   - id: mkt.ret.side.42
     level: contract

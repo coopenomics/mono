@@ -209,6 +209,13 @@ function main() {
     const none = d.none.length ? `${d.none.length}: ${d.none.slice(0, 8).join(', ')}${d.none.length > 8 ? ', …' : ''}` : '—'
     lines.push(`| ${domain} | ${d.total} | ${d.read} | ${d.write} | ${d.rightsOnly} | ${none} |`)
   }
+  // Таблица, которую сценарии только читают: запись в неё идёт путём, которого
+  // внешний слой не проходит, — для переноса репозитория это такой же пробел.
+  const readOnly = rows.filter(r => touched(r, 'read', scenario) && !touched(r, 'write', scenario)).map(r => r.table).sort()
+  if (readOnly.length) {
+    lines.push('')
+    lines.push(`Сценарии только читают, записи нет (${readOnly.length}): ${readOnly.join(', ')}.`)
+  }
   const md = lines.join('\n') + '\n'
   fs.writeFileSync(path.join(OUT, 'db-coverage.md'), md)
   process.stdout.write(md)

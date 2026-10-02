@@ -201,3 +201,18 @@ describe('coopid.recovery: контекст ссылки', () => {
     expect(r.body?.error).toBe('invalid_recovery_token')
   })
 })
+
+describe('coopid.recovery: офлайн-код', () => {
+  it(caseName('cid.rec.break.09', 'офлайн-код, которого нет, и пустой код — отказ invalid_offline_code, токен восстановления не выдаётся'), async () => {
+    // Стратегия офлайн-кодов закрыта (решение владельца): кодов ни у кого нет, любой код — неверный.
+    const wrong = await rest('POST', '/coop/recovery/offline-code', { ip: uniqueIp(), body: { code: '1234-5678-9012' } })
+    expect(wrong.status).toBe(400)
+    expect(wrong.body?.error).toBe('invalid_offline_code')
+    expect(wrong.body?.recovery_token).toBeUndefined()
+
+    const empty = await rest('POST', '/coop/recovery/offline-code', { ip: uniqueIp(), body: {} })
+    expect(empty.status).toBeGreaterThanOrEqual(400)
+    expect(empty.body?.recovery_token).toBeUndefined()
+  })
+})
+

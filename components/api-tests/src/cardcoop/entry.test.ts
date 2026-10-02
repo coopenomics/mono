@@ -307,6 +307,33 @@ describe.skipIf(!OIDC_CLIENT_ID)('cardcoop: подставная сеть кар
       expect((await myCard(await tokenOf(CHAIRMAN))).enterUrl, 'расширение работает').toContain(STUB_URL)
     })
 
+    it(caseName('cc.reg.side.05', 'сеть приняла подключение, но реквизиты входа не осели — подключение повторяется при тех же параметрах'), async () => {
+      // Ответ сети без реквизитов клиента «Входа с CardCOOP»: подключение принято, реквизитов нет.
+      await stubRoute('POST', CONNECT, { status: 200, body: {} })
+      const connectsSince = async (from: number) =>
+        (await sentTo(CONNECT, body => body?.payload?.type === 'coop_connect')).filter(r => Date.parse(r.at) >= from)
+
+      const first = Date.now()
+      await restartExtension()
+      await waitFor(async () => ((await connectsSince(first)).length ? true : null), { timeoutMs: 90_000, intervalMs: 1_000, label: 'подключение ушло в сеть' })
+      await networkQuiet()
+      const accepted = await connectsSince(first)
+      expect(accepted, 'сеть приняла подключение с первой попытки').toHaveLength(1)
+      expect(await entryAvailable(), 'без реквизитов клиента вход по карте недоступен').toBe(false)
+
+      // Параметры установки те же, отпечаток совпадает — подключение всё равно повторяется.
+      const second = Date.now()
+      await restartExtension()
+      const repeated = await waitFor(async () => {
+        const sent = await connectsSince(second)
+        return sent.length ? sent : null
+      }, { timeoutMs: 90_000, intervalMs: 1_000, label: 'повторное подключение при тех же параметрах' })
+      await networkQuiet()
+      const stable = (payload: any) => ({ ...payload, issued_at: undefined })
+      expect(stable(repeated[0].body.payload), 'параметры установки не менялись').toEqual(stable(accepted[0].body.payload))
+      expect(await entryAvailable()).toBe(false)
+    })
+
     it(caseName('cc.announce.happy.02', 'оператор объявляет допуск самому себе раньше подключения; принятое второй раз не объявляется'), async () => {
       await stubRoute('POST', ANNOUNCE, { status: 200, body: {} })
       await stubRoute('POST', CONNECT, { status: 200, body: { rpClient: RP } })

@@ -251,6 +251,8 @@ cases:
     expect: уведомление без подтверждения провайдером платёж не меняет; повтор того же уведомления не обрабатывается второй раз
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "уведомление принимает только расширение ЮKassa, а оно помечено «не ставится нигде»: через API его не установить, адрес API провайдера не настраивается"
 
   - id: pay.core.side.19
     level: backend
@@ -259,6 +261,8 @@ cases:
     expect: повторный опрос той же выписки платежи второй раз не проводит
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "опрос выписки (SberpollExtension.sync) никто не вызывает и расширение нигде не ставится — путь записи в payment_state недостижим ни снаружи, ни изнутри"
 
   - id: pay.core.happy.08
     level: backend

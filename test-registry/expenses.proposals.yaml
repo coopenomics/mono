@@ -333,11 +333,11 @@ cases:
       организации, выдача аванса), держатель аванса отчитывается чеком или
       возвращает остаток, совет закрывает отчёт
     expect: >
-      строки PAID/REPORTED, записка PARTIALLY_PAID → REPORT_SUBMITTED → CLOSED;
-      снаружи не проверить — на стенде пуст пул w.cap.pgexp, пополнение только
-      из инвестиций программы «Благорост»
-    test: ~
-    status: missing
+      прямая оплата сразу отчитана, аванс — оплачен и ждёт отчёта; после отчёта
+      держателя записка REPORT_SUBMITTED, после закрытия советом — CLOSED;
+      повторная оплата и повторный отчёт отклоняются
+    test: components/api-tests/src/expenses/proposals.test.ts
+    status: written
 
   - id: exp.prop.side.13
     level: backend

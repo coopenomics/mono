@@ -269,6 +269,14 @@ describe('гарантийный возврат: заявление, решен�
     expect(amount(s.not_admitted_total), 'непризнанного по претензии не осталось').toBeCloseTo(summaryBefore.pending, 4)
   })
 
+  // Выключен: дефект продукта (реестр, mkt.ret.side.19) — остаток к возврату считается от всего выданного,
+  // принятые возвраты не вычитаются. Включить после решения о серии заявлений на возврат.
+  it.skip(caseName('mkt.ret.side.19', 'после принятого возврата части заявление на всё выданное не принимается — остаток к возврату считается за вычетом принятого'), async () => {
+    expect(claim.status, 'первый возврат по заказу принят').toBe('ACCEPTED_BY_COUNCIL')
+    const preview = await refusal(memberToken, CLAIM_PAYLOAD, { d: { order_id: order.orderId, actual_quantity: order.quantity, reason_text: REASON } })
+    expect(preview, 'заявление на всё выданное после принятого возврата отклонено').not.toBeNull()
+  })
+
   it(caseName('mkt.ret.side.53', 'возврат имущества, выданного со снижением цены, — в остаток по цене выдачи'), async () => {
     const offer = await pickOffer(sidorov.account, KRG, 'Мёд цветочный')
     const price = amount(offer.price_per_unit)

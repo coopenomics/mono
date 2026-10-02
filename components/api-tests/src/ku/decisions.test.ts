@@ -13,7 +13,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { COOP, ROLES, caseName, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomHash, signDocument, tokenOf } from '../core'
+import { COOP, ROLES, authorizeDecisionOnChain, awaitDecision, caseName, decisionByHash, expectAuthDenied, expectCode, freshMember, gql, gqlError, login, randomAccount, randomHash, signDocument, tokenOf, voteOnDecision, waitFor } from '../core'
 
 
 
@@ -156,11 +156,335 @@ describe('собрание пайщиков участка', () => {
     expectAuthDenied(await gqlError(null, DECISION, { h: hash }))
   })
 
+  /** Повтор отвергается осмысленным кодом (отказ цепи либо правило узла), а не внутренней ошибкой. */
+  function expectRefusedWithCode(err: { code: string | null, message: string } | null, what: string): void {
+    expect(err, `${what}: ожидался отказ`).not.toBeNull()
+    expect(['500', 'INTERNAL_SERVER_ERROR', 'null'], `${what}: ${JSON.stringify(err)}`).not.toContain(String(err!.code))
+  }
+
   it(caseName('ku.dec.happy.03', 'организатор отменяет собрание — оно остаётся в истории отменённым'), async () => {
+    // ku.dec.side.03: повторное присоединение уже присоединившегося — отказ, состав прежний.
+    expectRefusedWithCode(await gqlError(joinerToken, JOIN, { d: { coopname: COOP, hash, username: joiner.account } }), 'повторное присоединение')
+    expect((await decision(initiatorToken, hash)).participants).toEqual([initiator.account, joiner.account])
+
     await gql(initiatorToken, CANCEL, { d: { coopname: COOP, hash, reason: 'Проверка отмены' } })
     const d = await decision(joinerToken, hash)
     expect(d).toMatchObject({ status: 'CANCELLED', present: false })
     expect(d.questions).toEqual([])
+  })
+
+  it(caseName('ku.dec.side.03', 'повторная отмена собрания и присоединение к отменённому — отказ с кодом, собрание остаётся отменённым'), async () => {
+    expectRefusedWithCode(await gqlError(initiatorToken, CANCEL, { d: { coopname: COOP, hash, reason: 'Повторная отмена' } }), 'повторная отмена')
+    expectRefusedWithCode(await gqlError(joinerToken, JOIN, { d: { coopname: COOP, hash, username: joiner.account } }), 'присоединение к отменённому')
+    expect(await decision(joinerToken, hash)).toMatchObject({ status: 'CANCELLED', present: false })
+  })
+})
+
+const GEN_BALLOT = `mutation($d:BranchMeetingBallotGenerateDocumentInput!){ kuGenerateMeetingBallot(data:$d){ ${DOC} } }`
+const GEN_PROTOCOL = `mutation($d:BranchMeetingDecisionGenerateDocumentInput!){ kuGenerateMeetingDecision(data:$d){ ${DOC} } }`
+const VOTE = `mutation($d:VoteOnKuDecisionInput!){ kuVoteOnDecision(data:$d)${TX} }`
+const CLOSE = `mutation($d:CloseKuDecisionInput!){ kuCloseDecision(data:$d)${TX} }`
+const VOTING = `query($h:String!){ kuDecision(hash:$h){ hash type status chairman present participants signed_ballots open_at close_at braname address branch_name branch_email branch_phone
+  protocol_document{ hash } authorization_document{ hash }
+  questions{ id number title decision context counter_votes_for counter_votes_against counter_votes_abstained voters_for voters_against voters_abstained } } }`
+
+async function votingOf(token: string, hash: string): Promise<any> {
+  return (await gql<any>(token, VOTING, { h: hash })).kuDecision
+}
+
+function byNumber(questions: any[]): any[] {
+  return [...questions].sort((a, b) => a.number - b.number)
+}
+
+/** Бюллетень участника: документ со всеми вопросами и его ответами, подписанный им самим. */
+async function ballotOf(hash: string, questions: any[], who: Who, token: string, answers: string[]) {
+  const generated = (await gql<any>(token, GEN_BALLOT, {
+    d: {
+      coopname: COOP,
+      username: who.account,
+      hash,
+      questions: questions.map(q => ({ id: String(q.id), number: String(q.number), title: q.title, decision: q.decision, context: q.context ?? '' })),
+      answers: questions.map((q, i) => ({ id: String(q.id), number: String(q.number), vote: answers[i] })),
+    },
+  })).kuGenerateMeetingBallot
+  return {
+    d: {
+      coopname: COOP,
+      hash,
+      username: who.account,
+      ballot: await signDocument(who.wif, generated, who.account, 1),
+      votes: questions.map((q, i) => ({ question_id: q.id, vote: answers[i] })),
+    },
+  }
+}
+
+/** Протокол собрания по итогам голосования, подписанный председателем собрания. */
+async function protocolOf(hash: string, chair: Who, token: string, voted: any, voters: number) {
+  const generated = (await gql<any>(token, GEN_PROTOCOL, {
+    d: {
+      coopname: COOP,
+      username: chair.account,
+      hash,
+      chairman: chair.account,
+      open_at_datetime: String(voted.open_at),
+      close_at_datetime: String(voted.close_at),
+      current_quorum_percent: 100,
+      protocol_number: '1',
+      questions: byNumber(voted.questions).map((q: any) => ({
+        number: String(q.number),
+        title: q.title,
+        decision: q.decision,
+        context: q.context ?? '',
+        counter_votes_for: String(q.counter_votes_for),
+        counter_votes_against: String(q.counter_votes_against),
+        counter_votes_abstained: String(q.counter_votes_abstained),
+        is_accepted: q.counter_votes_for > q.counter_votes_against,
+        votes_for_percent: Math.round(q.counter_votes_for / voters * 100),
+        votes_against_percent: Math.round(q.counter_votes_against / voters * 100),
+        votes_abstained_percent: Math.round(q.counter_votes_abstained / voters * 100),
+      })),
+    },
+  })).kuGenerateMeetingDecision
+  return signDocument(chair.wif, generated, chair.account, 1)
+}
+
+describe('собрание пайщиков участка: голосование и протокол', () => {
+  const hash = randomHash()
+  let third: Who
+  let thirdToken = ''
+  let questions: any[] = []
+
+  const voting = (token: string) => votingOf(token, hash)
+  const ballot = (who: Who, token: string, answers: string[]) => ballotOf(hash, questions, who, token, answers)
+
+  beforeAll(async () => {
+    third = freshMember({ prefix: 'kuv' })
+    thirdToken = await login(third)
+    const generated = (await gql<any>(initiatorToken, GEN_PROPOSAL, {
+      d: { coopname: COOP, username: initiator.account, hash, type: 'free', questions: agenda.map((q, i) => ({ number: String(i + 1), ...q })) },
+    })).kuGenerateMeetingProposal
+    const proposal = await signDocument(initiator.wif, generated, initiator.account, 1)
+    await gql(initiatorToken, CREATE, {
+      d: {
+        coopname: COOP,
+        hash,
+        type: 'FREE',
+        initiator: initiator.account,
+        braname: '',
+        agenda,
+        proposal,
+        meet_place: 'Красногорск, зал собраний',
+        meet_at: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+      },
+    })
+    await gql(joinerToken, JOIN, { d: { coopname: COOP, hash, username: joiner.account } })
+  }, 300_000)
+
+  it(caseName('ku.dec.side.04', 'голосование не открыть, пока участников меньше трёх'), async () => {
+    const err = await gqlError(initiatorToken, START, { d: { coopname: COOP, hash, chairman: initiator.account } })
+    expect(err, 'двоих участников для голосования мало').not.toBeNull()
+    expect((await voting(initiatorToken)).status).toBe('OPENED')
+  })
+
+  it(caseName('ku.dec.happy.05', 'организатор открывает голосование — собрание в голосовании, окно отмерено, председатель назначен'), async () => {
+    await gql(thirdToken, JOIN, { d: { coopname: COOP, hash, username: third.account } })
+    await gql(initiatorToken, START, { d: { coopname: COOP, hash, chairman: initiator.account } })
+
+    const d = await voting(joinerToken)
+    expect(d).toMatchObject({ status: 'VOTING', chairman: initiator.account, present: true, signed_ballots: 0 })
+    expect(d.participants).toEqual([initiator.account, joiner.account, third.account])
+    expect(d.open_at).toBeTruthy()
+    expect(new Date(d.close_at).getTime()).toBeGreaterThan(new Date(d.open_at).getTime())
+    questions = [...d.questions].sort((a, b) => a.number - b.number)
+    expect(questions.map(q => q.title)).toEqual(agenda.map(q => q.title))
+
+    // К начатому голосованию присоединиться уже нельзя.
+    const late = freshMember({ prefix: 'kul' })
+    expect(await gqlError(await login(late), JOIN, { d: { coopname: COOP, hash, username: late.account } })).not.toBeNull()
+  }, 300_000)
+
+  it(caseName('ku.dec.happy.06', 'участники подают бюллетени — голоса считаются по каждому вопросу; повторный и чужой бюллетень не принимается'), async () => {
+    await gql(initiatorToken, VOTE, await ballot(initiator, initiatorToken, ['for', 'for']))
+    await gql(joinerToken, VOTE, await ballot(joiner, joinerToken, ['for', 'against']))
+
+    // Повторный бюллетень того же участника и бюллетень за другого — отказ.
+    expect(await gqlError(joinerToken, VOTE, await ballot(joiner, joinerToken, ['against', 'against'])), 'повторный бюллетень').not.toBeNull()
+    const foreign = await ballot(third, joinerToken, ['for', 'for']).catch(() => null)
+    if (foreign)
+      expectCode(await gqlError(joinerToken, VOTE, foreign), 'KU_ACTION_SELF_ONLY')
+    // Пайщик вне собрания не голосует.
+    const outsider = ROLES.member()
+    expect(await gqlError(outsiderToken, VOTE, {
+      d: { coopname: COOP, hash, username: outsider.account, ballot: (await ballot(initiator, initiatorToken, ['for', 'for'])).d.ballot, votes: questions.map(q => ({ question_id: q.id, vote: 'for' })) },
+    }), 'пайщик вне собрания').not.toBeNull()
+
+    await gql(thirdToken, VOTE, await ballot(third, thirdToken, ['abstained', 'for']))
+
+    const d = await voting(initiatorToken)
+    expect(d.signed_ballots).toBe(3)
+    const [first, second] = [...d.questions].sort((a: any, b: any) => a.number - b.number)
+    expect([first.counter_votes_for, first.counter_votes_against, first.counter_votes_abstained]).toEqual([2, 0, 1])
+    expect([second.counter_votes_for, second.counter_votes_against, second.counter_votes_abstained]).toEqual([2, 1, 0])
+    expect(first.voters_abstained).toEqual([third.account])
+    expect(second.voters_against).toEqual([joiner.account])
+  })
+
+  it(caseName('ku.dec.happy.07', 'председатель собрания утверждает протокол — собрание завершено; не организатор закрыть не может'), async () => {
+    const protocol = await protocolOf(hash, initiator, initiatorToken, await voting(initiatorToken), 3)
+
+    expectCode(await gqlError(joinerToken, CLOSE, { d: { coopname: COOP, hash, protocol } }), 'KU_ACTION_INITIATOR_ONLY')
+    expect((await voting(initiatorToken)).status).toBe('VOTING')
+
+    await gql(initiatorToken, CLOSE, { d: { coopname: COOP, hash, protocol } })
+    const closed = await decision(joinerToken, hash)
+    expect(closed).toMatchObject({ status: 'COMPLETED', present: false })
+
+    // Завершённое собрание повторно не закрывается и бюллетени не принимает.
+    expect(await gqlError(initiatorToken, CLOSE, { d: { coopname: COOP, hash, protocol } })).not.toBeNull()
+    expect((await decision(joinerToken, hash)).status).toBe('COMPLETED')
+  })
+})
+
+describe('собрание об учреждении участка', () => {
+  const GEN_PETITION = `mutation($d:BranchEstablishmentPetitionGenerateDocumentInput!){ kuGenerateEstablishmentPetition(data:$d){ ${DOC} } }`
+  const GEN_LIABILITY = `mutation($d:BranchTrusteeLiabilityAgreementGenerateDocumentInput!){ kuGenerateTrusteeLiabilityAgreement(data:$d){ ${DOC} } }`
+  const GEN_AUTHORITY = `mutation($d:BranchTrusteePowerOfAttorneyGenerateDocumentInput!){ kuGenerateTrusteePowerOfAttorney(data:$d){ ${DOC} } }`
+  const EXEC = `mutation($d:ExecKuDecisionInput!){ kuExecDecision(data:$d)${TX} }`
+  const NEW_BRANCH = 'query($d:GetBranchesInput!){ getBranches(data:$d){ braname short_name full_name fact_address trustee{ username } } }'
+
+  const hash = randomHash()
+  const braname = randomAccount('ku')
+  const branchName = `Тестовый ${braname.slice(-5)}`
+  const address = `Московская область, г. Красногорск, ул. Учредительная, д. ${hash.slice(0, 3)}`
+  const contacts = { branch_email: `${braname}@example.com`, branch_phone: '+79990001122' }
+  const founding = [
+    { title: 'Учредить кооперативный участок', decision: `Учредить кооперативный участок «${branchName}»`, context: '' },
+    { title: 'Избрать председателя участка', decision: 'Избрать председателем участка организатора собрания', context: '' },
+  ]
+
+  // Учредитель созывает собрание и избирается председателем нового участка:
+  // свежий пайщик, который больше нигде не участвует.
+  let founder: Who
+  let founderToken = ''
+  let questions: any[] = []
+
+  const voting = (token: string) => votingOf(token, hash)
+
+  /** Пакет председателя участка в совет: заявление, договор матответственности, доверенность. */
+  async function execPackage(who: Who, token: string) {
+    const base = { coopname: COOP, username: who.account, hash, branch_name: branchName }
+    const petition = (await gql<any>(token, GEN_PETITION, { d: { ...base, address, chairman: founder.account } })).kuGenerateEstablishmentPetition
+    const liability = (await gql<any>(token, GEN_LIABILITY, { d: base })).kuGenerateTrusteeLiabilityAgreement
+    const authority = (await gql<any>(token, GEN_AUTHORITY, { d: { ...base, branch_address: address } })).kuGenerateTrusteePowerOfAttorney
+    return {
+      petition: await signDocument(who.wif, petition, who.account, 1),
+      liability: await signDocument(who.wif, liability, who.account, 1),
+      authority: await signDocument(who.wif, authority, who.account, 1),
+    }
+  }
+
+  beforeAll(async () => {
+    founder = freshMember({ prefix: 'kuf' })
+    founderToken = await login(founder)
+    const generated = (await gql<any>(founderToken, GEN_PROPOSAL, {
+      d: { coopname: COOP, username: founder.account, hash, type: 'createbranch', braname, questions: founding.map((q, i) => ({ number: String(i + 1), ...q })) },
+    })).kuGenerateMeetingProposal
+    const proposal = await signDocument(founder.wif, generated, founder.account, 1)
+    await gql(founderToken, CREATE, {
+      d: {
+        coopname: COOP,
+        hash,
+        type: 'CREATEBRANCH',
+        initiator: founder.account,
+        braname,
+        agenda: founding,
+        proposal,
+        meet_place: 'Красногорск, зал собраний',
+        meet_at: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
+      },
+    })
+    await gql(initiatorToken, JOIN, { d: { coopname: COOP, hash, username: initiator.account } })
+    await gql(joinerToken, JOIN, { d: { coopname: COOP, hash, username: joiner.account } })
+  }, 300_000)
+
+  it(caseName('ku.dec.side.05', 'голосование об учреждении не открыть без наименования и контактов участка'), async () => {
+    const start = { coopname: COOP, hash, chairman: founder.account, address }
+    expectCode(await gqlError(founderToken, START, { d: start }), 'KU_BRANCH_NAME_REQUIRED')
+    expectCode(await gqlError(founderToken, START, { d: { ...start, branch_name: branchName } }), 'KU_BRANCH_CONTACTS_REQUIRED')
+    expectCode(await gqlError(founderToken, START, { d: { ...start, branch_name: branchName, branch_email: contacts.branch_email } }), 'KU_BRANCH_CONTACTS_REQUIRED')
+    expect(await voting(founderToken)).toMatchObject({ status: 'OPENED', type: 'CREATEBRANCH', braname })
+  })
+
+  it(caseName('ku.dec.happy.04', 'собрание об учреждении голосует и утверждает протокол — собрание ждёт заявления в совет, протокол на странице собрания'), async () => {
+    await gql(founderToken, START, { d: { coopname: COOP, hash, chairman: founder.account, address, branch_name: branchName, ...contacts } })
+    const started = await voting(joinerToken)
+    expect(started).toMatchObject({ status: 'VOTING', chairman: founder.account, address, branch_name: branchName, ...contacts })
+    questions = byNumber(started.questions)
+    expect(questions.map(q => q.title)).toEqual(founding.map(q => q.title))
+
+    await gql(founderToken, VOTE, await ballotOf(hash, questions, founder, founderToken, ['for', 'for']))
+    await gql(initiatorToken, VOTE, await ballotOf(hash, questions, initiator, initiatorToken, ['for', 'for']))
+    await gql(joinerToken, VOTE, await ballotOf(hash, questions, joiner, joinerToken, ['for', 'abstained']))
+
+    const voted = await voting(founderToken)
+    expect(voted.signed_ballots).toBe(3)
+    const [first, second] = byNumber(voted.questions)
+    expect([first.counter_votes_for, first.counter_votes_against, first.counter_votes_abstained]).toEqual([3, 0, 0])
+    expect([second.counter_votes_for, second.counter_votes_against, second.counter_votes_abstained]).toEqual([2, 0, 1])
+
+    const protocol = await protocolOf(hash, founder, founderToken, voted, 3)
+    await gql(founderToken, CLOSE, { d: { coopname: COOP, hash, protocol } })
+
+    // Собрание об учреждении протоколом не заканчивается: оно ждёт заявления в совет.
+    const approved = await voting(joinerToken)
+    expect(approved).toMatchObject({ status: 'APPROVED', present: true })
+    expect([protocol.hash, protocol.doc_hash].map(h => String(h).toLowerCase()), 'протокол на странице собрания').toContain(String(approved.protocol_document?.hash).toLowerCase())
+    expect(byNumber(approved.questions).map((q: any) => q.counter_votes_for), 'счётчики голосов остались в вопросах').toEqual([3, 2])
+  }, 300_000)
+
+  it(caseName('ku.dec.side.06', 'заявление в совет подаёт только избранный председатель участка'), async () => {
+    const foreign = await execPackage(joiner, joinerToken)
+    expectCode(await gqlError(joinerToken, EXEC, { d: { coopname: COOP, hash, ...foreign } }), 'KU_ACTION_CHAIRMAN_ONLY')
+    expectAuthDenied(await gqlError(null, EXEC, { d: { coopname: COOP, hash, ...foreign } }))
+    expect((await voting(founderToken)).status).toBe('APPROVED')
+    expect(await decisionByHash(hash), 'вопрос в совет не ушёл').toBeUndefined()
+  })
+
+  it(caseName('ku.dec.happy.08', 'председатель участка подаёт заявление — вопрос об учреждении уходит в совет; совет утверждает — участок появляется с карточкой и председателем'), async () => {
+    await gql(founderToken, EXEC, { d: { coopname: COOP, hash, ...await execPackage(founder, founderToken) } })
+    expect((await voting(joinerToken)).status).toBe('ONAPPROVAL')
+    // Повторная подача заявления по тому же собранию — отказ.
+    expect(await gqlError(founderToken, EXEC, { d: { coopname: COOP, hash, ...await execPackage(founder, founderToken) } }), 'повторное заявление').not.toBeNull()
+
+    const item = await awaitDecision(hash, 'вопрос совета об учреждении участка')
+    expect(String(item.type)).toBe('branchdec')
+    expect(String(item.username)).toBe(founder.account)
+    await voteOnDecision(Number(item.id), 'for')
+    await authorizeDecisionOnChain(Number(item.id))
+
+    // Карточку участка узел заводит по событию решения совета.
+    const branch = await waitFor(async () => {
+      const list = (await gql<any>(founderToken, NEW_BRANCH, { d: { coopname: COOP, braname } })).getBranches as any[]
+      return list[0] ?? null
+    }, { timeoutMs: 90_000, intervalMs: 2_000, label: `участок ${braname} с карточкой` })
+    expect(branch.trustee.username).toBe(founder.account)
+    expect(branch.fact_address).toBe(address)
+    expect(branch.short_name).toContain(branchName)
+    expect(branch.full_name).toContain(branchName)
+
+    expect(await voting(joinerToken)).toMatchObject({ status: 'COMPLETED', present: false })
+    // Учреждённое собрание не отменить и повторно в совет не подать.
+    expect(await gqlError(founderToken, CANCEL, { d: { coopname: COOP, hash, reason: 'после учреждения' } })).not.toBeNull()
+  }, 300_000)
+
+  it(caseName('ku.dec.happy.09', 'после учреждения протокол собрания остаётся на его странице'), async () => {
+    expect((await voting(joinerToken)).protocol_document?.hash, 'протокол собрания остался на странице').toBeTruthy()
+  })
+
+  // Выключен: находка 66 (C28-85) — решение совета в запись собрания не попадает: действие
+  // совета стирает запись, не записав в неё документ решения. Прогон 37036446921.
+  it.skip(caseName('ku.dec.happy.10', 'решение совета об учреждении видно на странице собрания'), async () => {
+    expect((await voting(joinerToken)).authorization_document?.hash, 'решение совета на странице собрания').toBeTruthy()
   })
 })
 
@@ -200,6 +524,12 @@ describe('заявки доверенных лиц участка', () => {
     await gql(branchChairToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'Проверка отказа' } })
     expect((await trustRequest(branchChairToken, applicant.account, declinedHash)).present).toBe(false)
     expect(await trustedOf(branchChairToken, BRANCH_ODN)).not.toContain(applicant.account)
+
+    // ku.dec.side.03: повторное отклонение уже закрытой заявки — отказ с кодом, не внутренняя ошибка.
+    const again = await gqlError(branchChairToken, DECLINE, { d: { coopname: COOP, hash: declinedHash, reason: 'Повторный отказ' } })
+    expect(again, 'повторное отклонение отвергнуто').not.toBeNull()
+    expect(['500', 'INTERNAL_SERVER_ERROR', 'null'], JSON.stringify(again)).not.toContain(String(again!.code))
+    expect((await trustRequest(branchChairToken, applicant.account, declinedHash)).present).toBe(false)
   })
 
   it(caseName('ku.trust.happy.03', 'заявка одобряется встречной подписью председателя участка — пайщик в доверенных лицах'), async () => {

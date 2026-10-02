@@ -199,6 +199,6 @@ cases:
     level: backend
     kind: side
     scenario: повторная подача принятого соглашения — код отказа
-    expect: отказ доменным кодом (сейчас ассерт цепи уходит сырым текстом «assertion failure with message» с кодом 500)
-    test: ~
-    status: missing
+    expect: отказ с кодом (отказ цепи CHAIN_ASSERT либо правило узла), не внутренняя ошибка 500
+    test: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: written

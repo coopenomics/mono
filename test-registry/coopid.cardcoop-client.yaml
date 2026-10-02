@@ -126,6 +126,8 @@ cases:
       автотеста на выражение authentik нет — писать нечем без стенда
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "нужен недоступный контроллер в момент выдачи токена внешнему клиенту — на стенде токен выдаёт сам контроллер, остановить его и получить ответ нельзя"
 
   - id: cid.cc.break.06
     level: backend
@@ -136,7 +138,8 @@ cases:
       секретом означал бы открытую дверь в кооператив
     test: ~
     status: missing
-
+    external: unreachable
+    external_reason: "окружение кооператива без секрета клиента задаётся при подъёме стенда; на живом стенде секрет задан"
 
   - id: cc.client.side.subject-from-coopid
     level: backend

@@ -383,6 +383,8 @@ const envVarsSchema = z.object({
   // Параметры GitHub
   // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
   GITHUB_TOKEN: z.string().optional().describe('GitHub токен для доступа к API'),
+  // i18n-ignore: описание/валидация переменной окружения для схемы конфигурации при старте, до пайщика не доходит
+  GITHUB_API_URL: z.string().optional().describe('Адрес GitHub API; не задан — https://api.github.com'),
 
   // Клиент card.coop в CoopID кооператива (карта кооператора, story 7.0/7.6). Те же значения
   // получает блюпринт coopid-cardcoop-client через окружение authentik; расширение доносит
@@ -693,6 +695,7 @@ export default {
   },
   github: {
     token: envVars.data.GITHUB_TOKEN,
+    api_url: envVars.data.GITHUB_API_URL,
   },
   cardcoop_client: {
     client_id: envVars.data.CARDCOOP_CLIENT_ID,

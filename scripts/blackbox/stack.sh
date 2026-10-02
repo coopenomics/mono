@@ -109,6 +109,22 @@ EOF
   set_env "$ctl_env" CARDCOOP_CLIENT_ID "$CARDCOOP_CLIENT_ID"
   set_env "$ctl_env" CARDCOOP_CLIENT_SECRET "blackbox-$(head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n')"
   set_env "$ctl_env" CARDCOOP_OIDC_ISSUER "$CARDCOOP_OIDC_ISSUER"
+  # Чужие узлы, на которые ходит контроллер, на стенде играет подставной узел
+  # (scripts/blackbox/http-stub.mjs): геокодер адресов участков и сервер чата.
+  # Адрес чата в примере окружения боевой — без подмены стенд стучался бы
+  # входом администратора на настоящий сервер.
+  set_env "$ctl_env" GEOCODER_PROVIDER yandex
+  set_env "$ctl_env" GEOCODER_API_KEY blackbox-geocoder-key
+  set_env "$ctl_env" GEOCODER_BASE_URL "http://stub:8090/geocoder"
+  set_env "$ctl_env" MATRIX_HOMESERVER_URL "http://stub:8090"
+  set_env "$ctl_env" MATRIX_CLIENT_URL "http://stub:8090/matrix-client"
+  set_env "$ctl_env" MATRIX_ADMIN_USERNAME blackbox-admin
+  set_env "$ctl_env" MATRIX_ADMIN_PASSWORD blackbox-admin-password
+  # Представитель союза в чате: с ним платформа сводит пайщика-кооператива.
+  set_env "$ctl_env" MATRIX_UNION_PERSON_ID "@union-person:stub:8090"
+  # GitHub для опроса коммитов Благороста — тоже подставной узел.
+  set_env "$ctl_env" GITHUB_TOKEN blackbox-github-token
+  set_env "$ctl_env" GITHUB_API_URL "http://stub:8090/github"
   # Ключи веб-уведомлений обязательны для конфига; одноразовая пара, как в test.yaml.
   local vapid
   vapid="$(cd components/controller && node -e "const k=require('web-push').generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)")"

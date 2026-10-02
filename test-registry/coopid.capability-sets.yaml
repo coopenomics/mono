@@ -1,0 +1,91 @@
+feature: coopid.capability-sets
+title: Наборы возможностей пайщика — назначение, срок и отзыв
+
+# Набор возможностей — именованный пакет прав («Бухгалтер», «Кассир»).
+# Председатель назначает набор пайщику и отзывает его; назначение может быть
+# срочным. Пайщик читает свой итоговый доступ — по нему рабочий стол решает,
+# какие столы и страницы показывать. Каталог наборов и их права заводятся
+# миграциями: через API наборы не создаются.
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, таблицы access_rules,
+# capability_sets и participant_capability_sets трогала только матрица прав
+# (карта готовности к уходу с TypeORM, C28-81).
+sources:
+  backend:
+    - components/controller/src/application/auth-v2/authorization/authorization.resolver.ts
+    - components/controller/src/application/auth-v2/authorization/capability-set.service.ts
+    - components/controller/src/application/auth-v2/authorization/ability.factory.ts
+    - components/controller/src/application/auth-v2/authorization/authorization.guard.ts
+    - components/controller/src/application/auth-v2/authorization/dto/**
+    - components/controller/src/domain/auth-v2/ports/capability-sets.port.ts
+    - components/controller/src/domain/auth-v2/ports/access-rules.port.ts
+    - components/controller/src/infrastructure/auth-v2/postgres-capability-sets.repository.ts
+    - components/controller/src/infrastructure/auth-v2/postgres-access-rules.repository.ts
+
+cases:
+  - id: coopid.caps.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель читает каталог наборов возможностей
+    expect: в каталоге «Бухгалтер» и «Кассир» — встроенные, каждый со своими правами
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель назначает пайщику набор «Бухгалтер»
+    expect: назначение числится за пайщиком с именем назначившего; права набора появились в доступе пайщика, права других наборов — нет
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.happy.03
+    level: backend
+    kind: happy
+    scenario: набор назначают со сроком в будущем, затем со сроком в прошлом
+    expect: до срока набор действует и срок виден в назначении; истёкший набор в доступ пайщика не входит
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.happy.04
+    level: backend
+    kind: happy
+    scenario: председатель отзывает набор; отзывает его повторно
+    expect: права набора сняты, набор за пайщиком не числится; повторный отзыв — отказ AUTH_V2_CAPABILITY_SET_NOT_ACTIVE
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.side.01
+    level: backend
+    kind: side
+    scenario: тот же набор назначают пайщику повторно
+    expect: назначение одно, доступ не меняется
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.side.02
+    level: backend
+    kind: side
+    scenario: назначение набора, которого нет; пустое имя пайщика; отзыв набора, которого нет
+    expect: отказ своим кодом на каждый случай
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.side.03
+    level: backend
+    kind: side
+    scenario: наборы назначает, отзывает и читает член совета, пайщик; гость читает свой доступ
+    expect: члену совета и пайщику отказ по правам, гостю отказ входа; доступ пайщика не меняется
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written
+
+  - id: coopid.caps.side.04
+    level: backend
+    kind: side
+    scenario: набор назначают имени, которого нет среди пайщиков
+    expect: >
+      не решено. Сейчас существование пайщика не проверяется: назначение
+      записывается на любое имя
+    test: ~
+    status: missing
+    decision_needed: true

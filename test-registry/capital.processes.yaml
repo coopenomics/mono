@@ -1,0 +1,172 @@
+feature: capital.processes
+title: Процессы проекта — шаблоны шагов и их исполнение
+
+# Шаблон процесса — граф шагов проекта (шаги и связи между ними). Совет
+# рисует его черновиком и включает; по включённому шаблону запускается
+# экземпляр. Стартовые шаги экземпляра становятся задачами проекта, следующий
+# шаг открывается, когда закрыты все шаги, которые в него ведут, а экземпляр
+# завершается, когда закрыты все конечные шаги.
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, её таблицы
+# (capital_process_templates, capital_process_instances) не трогал ни один
+# сценарий внешнего слоя — карта готовности к уходу с TypeORM (C28-81).
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/process.resolver.ts
+    - components/controller/src/extensions/capital/application/services/process.service.ts
+    - components/controller/src/extensions/capital/application/dto/process/**
+    - components/controller/src/extensions/capital/domain/entities/process-template.entity.ts
+    - components/controller/src/extensions/capital/domain/entities/process-instance.entity.ts
+    - components/controller/src/extensions/capital/domain/repositories/process.repository.ts
+    - components/controller/src/extensions/capital/domain/enums/process-status.enum.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/process-template.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/process-instance.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/process-template.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/process-instance.typeorm-repository.ts
+  ui:
+    - components/desktop/extensions/capital/entities/Process/**
+    - components/desktop/extensions/capital/pages/ProcessesPage/**
+
+cases:
+  - id: cap.proc.happy.01
+    level: backend
+    kind: happy
+    scenario: совет заводит шаблон процесса для проекта
+    expect: черновик без шагов и связей, автор — заводивший; виден в списке проекта, в списке кооператива и по номеру
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.happy.02
+    level: backend
+    kind: happy
+    scenario: совет правит название, шаги и связи шаблона
+    expect: шаги и связи сохраняются как отправлены; правка шагов статус шаблона не меняет
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.happy.03
+    level: backend
+    kind: happy
+    scenario: запуск экземпляра по включённому шаблону
+    expect: экземпляр идёт, цикл первый; стартовые шаги активны, остальные шаги ждут; экземпляр виден в списке проекта
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.happy.04
+    level: backend
+    kind: happy
+    scenario: шаги экземпляра закрываются по графу — развилка и слияние
+    expect: >
+      закрытый шаг открывает следующие и заводит им задачи; шаг с двумя
+      входами открывается только после обоих; закрытие конечного шага
+      завершает экземпляр и ставит время завершения
+    test: ~
+    status: missing
+    # Тест написан и выключен: находка 64б (C28-85) — после первого закрытого шага экземпляр не читается.
+
+  - id: cap.proc.happy.06
+    level: backend
+    kind: happy
+    scenario: активный шаг экземпляра становится задачей проекта
+    expect: у шага есть задача проекта с названием «[шаблон] шаг» и описанием шага; у каждого шага своя задача
+    test: ~
+    status: missing
+    # Тест написан и выключен: находка 64а (C28-85) — номер задачи шага длиннее колонки, задача не заводится.
+
+  - id: cap.proc.side.01
+    level: backend
+    kind: side
+    scenario: пайщик без роли в совете заводит, правит или удаляет шаблон; гость читает шаблоны
+    expect: пайщику отказ по правам, гостю отказ входа; шаблон не меняется
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.side.02
+    level: backend
+    kind: side
+    scenario: запуск экземпляра по шаблону-черновику
+    expect: отказ CAPITAL_PROCESS_TEMPLATE_NOT_ACTIVE, экземпляр не создаётся
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.side.03
+    level: backend
+    kind: side
+    scenario: запуск включённого шаблона, в котором ни один шаг не отмечен стартовым
+    expect: отказ CAPITAL_PROCESS_TEMPLATE_NO_START_STEPS
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.side.04
+    level: backend
+    kind: side
+    scenario: удаление шаблона
+    expect: шаблон пропадает из списка проекта, по номеру отдаётся пусто
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.side.05
+    level: backend
+    kind: side
+    scenario: повторное закрытие уже закрытого шага (двойной клик)
+    expect: экземпляр возвращается как есть, новые задачи не заводятся
+    test: ~
+    status: missing
+    # Тест написан и выключен: находка 64б (C28-85) — закрытие шага отвечает внутренней ошибкой.
+
+  - id: cap.proc.side.06
+    level: backend
+    kind: side
+    scenario: закрытие шага, которого нет в экземпляре; обращение к экземпляру, которого нет
+    expect: отказ «не найдено» своим кодом; чтение несуществующего экземпляра отдаёт пусто
+    test: components/api-tests/src/capital/processes.test.ts
+    status: written
+
+  - id: cap.proc.side.07
+    level: backend
+    kind: side
+    scenario: >
+      пайщик запускает процесс или закрывает шаг в проекте, к которому у него
+      нет доступа (чужой личный проект, проект без допуска); читает шаблоны
+      всего кооператива без указания проекта
+    expect: >
+      не решено. Сейчас принадлежность к проекту не проверяется вовсе: любой
+      пайщик запускает экземпляр по номеру шаблона в любом проекте (и получает
+      там задачи со своим авторством), закрывает чужие шаги и читает шаблоны
+      всех проектов, включая личные
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: cap.proc.side.08
+    level: backend
+    kind: side
+    scenario: запуск по номеру шаблона, которого нет; правка шаблона, которого нет
+    expect: >
+      не решено. Сейчас запуск отвечает внутренней ошибкой
+      CAPITAL_PROCESS_TEMPLATE_NOT_FOUND (не «не найдено»), а правка
+      несуществующего шаблона — ошибкой схемы (пустой ответ на обязательное
+      поле); номер не в виде UUID доходит до базы
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: cap.proc.side.09
+    level: backend
+    kind: side
+    scenario: удаление или правка шаблона, по которому идут экземпляры
+    expect: >
+      не решено. Сейчас шаблон удаляется и правится свободно; идущий экземпляр
+      после удаления шаблона закрыть нельзя (шаблон не найден), после правки
+      графа его шаги расходятся с шаблоном
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: cap.proc.happy.05
+    level: ui
+    kind: happy
+    scenario: страница «Процессы» — совет рисует шаблон, включает и запускает экземпляр
+    expect: шаблон и экземпляр видны на странице, шаги закрываются с экрана
+    test: ~
+    status: missing

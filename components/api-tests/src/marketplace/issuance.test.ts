@@ -302,6 +302,27 @@ describe('выдача одного заказа по этапам: заказа
   })
 })
 
+describe('бандл из двух заказов: негодная строка отвергает бандл целиком', () => {
+  const PROPOSALS = 'query($d:MarketplaceListStockProposalsInput){ marketplaceListStockProposals(data:$d){ id member_account } }'
+
+  it(caseName('mkt.iss.side.53', 'у одной строки бандла цена выше потолка — бандл не сохраняется, ходов выдачи нет ни по одной строке'), async () => {
+    const good = await prepareReceivedOrder({ member, supplier, operator, offerId: offer.id, quantity: 1, receivedQuantity: 1, arrivalPrice: price2(orderPrice * 0.9) })
+    const bad = await prepareReceivedOrder({ member, supplier, operator, offerId: offer.id, quantity: 1, receivedQuantity: 1, arrivalPrice: price2(orderPrice * 0.9) })
+    const before = (await gql<any>(operatorToken, PROPOSALS, { d: { braname: KRG } })).marketplaceListStockProposals.length
+
+    const err = await gqlError(operatorToken, CREATE_BUNDLE, bundleInput(member.account, [
+      { order_id: good.orderId, actual_quantity: 1, actual_unit_price: money(price2(orderPrice * 0.9)) },
+      { order_id: bad.orderId, actual_quantity: 1, actual_unit_price: money(orderPrice) },
+    ]))
+    expect(err?.code).toBe('MARKETPLACE_ISSUANCE_PRICE_ABOVE_CEILING')
+
+    expect(await sagaOf(memberToken, good.orderId), 'по годной строке ход выдачи не начат').toBeNull()
+    expect(await sagaOf(memberToken, bad.orderId)).toBeNull()
+    const after = (await gql<any>(operatorToken, PROPOSALS, { d: { braname: KRG } })).marketplaceListStockProposals.length
+    expect(after, 'пустого бандла не осталось').toBe(before)
+  }, 600_000)
+})
+
 describe('бандл из двух заказов: сбой позиции не прерывает остальные', () => {
   let b1: PreparedOrder
   let b2: PreparedOrder
