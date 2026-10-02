@@ -33,7 +33,6 @@ export const manifest = {
           meta: {
             title: t('desktop.chairmanMenu.programsItem'),
             icon: 'handshake',
-            roles: [],
           },
           path: 'programs',
           name: 'user-programs',

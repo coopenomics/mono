@@ -45,7 +45,6 @@ export const manifest = {
           meta: {
             title: t('desktop.memberMenu.programsItem'),
             icon: 'handshake',
-            roles: [],
           },
           path: 'programs',
           name: 'user-programs',
