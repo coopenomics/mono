@@ -2,10 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
-import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
-import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
-import { RequestResolver } from './resolvers/request.resolver';
 import { MarketplaceMembershipResolver } from './resolvers/marketplace-membership.resolver';
 import { KuDetailsResolver } from './resolvers/ku-details.resolver';
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
@@ -29,7 +26,6 @@ import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guar
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
-import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
 import { ACCOUNT_PORT } from '@coopenomics/innercoop';
 import {
@@ -238,10 +234,7 @@ import {
       MarketplaceOfferImagesService,
     ]),
     // GraphQL резолверы
-    CategoryTreeResolver,
-    AttributeResolver,
     AvailableCategoryAdminResolver,
-    RequestResolver,
     MarketplaceMembershipResolver,
     KuDetailsResolver,
     MarketplaceOnboardingResolver,
@@ -284,11 +277,6 @@ import {
     MarketplaceDesktopGrantsProvider,
 
     // Сервисы приложения
-    {
-      provide: CATEGORY_TREE_SERVICE,
-      useClass: CategoryTreeService,
-    },
-    CategoryTreeService,
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
@@ -505,7 +493,6 @@ import {
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
-    CATEGORY_TREE_SERVICE,
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
     KuDetailsService,
@@ -527,10 +514,7 @@ import {
     MarketplaceOfferCountersService,
 
     // Экспортируем резолверы для регистрации в GraphQL
-    CategoryTreeResolver,
-    AttributeResolver,
     AvailableCategoryAdminResolver,
-    RequestResolver,
     MarketplaceMembershipResolver,
     KuDetailsResolver,
     MarketplaceOnboardingResolver,

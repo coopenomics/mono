@@ -5,14 +5,7 @@ import { EXTENSION_DATABASE_PORT, type IExtensionDatabasePort } from '@coopenomi
 // TypeORM entities
 import { CategoryEntity } from './entities/category.entity';
 import { TypeEntity } from './entities/type.entity';
-import { AttributeEntity } from './entities/attribute.entity';
-import { DictionaryEntity } from './entities/dictionary.entity';
-import { DictionaryValueEntity } from './entities/dictionary-value.entity';
-import { CategoryTypeAttributeEntity } from './entities/category-type-attribute.entity';
 import { AvailableCategoryEntity } from './entities/available-category.entity';
-import { RequestEntity } from './entities/request.entity';
-import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
-import { RequestImageEntity } from './entities/request-image.entity';
 import { KuDetailsTypeormEntity } from './entities/ku-details.entity';
 import { MarketplaceVitrineEntity } from './entities/marketplace-vitrine.entity';
 import { MarketplaceSupplierEntity } from './entities/marketplace-supplier.entity';
@@ -44,11 +37,7 @@ import { MarketplaceSupplierSettingsEntity } from './entities/marketplace-suppli
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
 import { TypeRepositoryAdapter } from './adapters/type-repository.adapter';
-import { AttributeRepositoryAdapter } from './adapters/attribute-repository.adapter';
-import { DictionaryRepositoryAdapter } from './adapters/dictionary-repository.adapter';
-import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-repository.adapter';
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
-import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
 import { geocoderPortFactory } from './adapters/geocoder.factory';
 import { MarketplaceVitrineRepositoryAdapter } from './adapters/marketplace-vitrine-repository.adapter';
@@ -109,11 +98,7 @@ import { MarketplaceCartMapper } from './mappers/marketplace-cart.mapper';
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
 import { TYPE_DOMAIN_REPOSITORY } from '../domain/repositories/type-domain.repository';
-import { ATTRIBUTE_DOMAIN_REPOSITORY } from '../domain/repositories/attribute-domain.repository';
-import { DICTIONARY_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-domain.repository';
-import { DICTIONARY_VALUE_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-value-domain.repository';
 import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/available-category-domain.repository';
-import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
 import { KU_DETAILS_DOMAIN_REPOSITORY } from '../domain/repositories/ku-details-domain.repository';
 import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
 import { MARKETPLACE_VITRINE_REPOSITORY } from '../domain/repositories/marketplace-vitrine.repository';
@@ -171,14 +156,7 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
           entities: [
             CategoryEntity,
             TypeEntity,
-            AttributeEntity,
-            DictionaryEntity,
-            DictionaryValueEntity,
-            CategoryTypeAttributeEntity,
             AvailableCategoryEntity,
-            RequestEntity,
-            RequestAttributeValueEntity,
-            RequestImageEntity,
             KuDetailsTypeormEntity,
             MarketplaceVitrineEntity,
             MarketplaceSupplierEntity,
@@ -219,14 +197,7 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
       [
         CategoryEntity,
         TypeEntity,
-        AttributeEntity,
-        DictionaryEntity,
-        DictionaryValueEntity,
-        CategoryTypeAttributeEntity,
         AvailableCategoryEntity,
-        RequestEntity,
-        RequestAttributeValueEntity,
-        RequestImageEntity,
         KuDetailsTypeormEntity,
         MarketplaceVitrineEntity,
         MarketplaceSupplierEntity,
@@ -268,24 +239,8 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
       useClass: TypeRepositoryAdapter,
     },
     {
-      provide: ATTRIBUTE_DOMAIN_REPOSITORY,
-      useClass: AttributeRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_DOMAIN_REPOSITORY,
-      useClass: DictionaryRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_VALUE_DOMAIN_REPOSITORY,
-      useClass: DictionaryValueRepositoryAdapter,
-    },
-    {
       provide: AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
       useClass: AvailableCategoryRepositoryAdapter,
-    },
-    {
-      provide: REQUEST_DOMAIN_REPOSITORY,
-      useClass: RequestRepositoryAdapter,
     },
     {
       provide: KU_DETAILS_DOMAIN_REPOSITORY,
@@ -438,11 +393,7 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
   exports: [
     CATEGORY_DOMAIN_REPOSITORY,
     TYPE_DOMAIN_REPOSITORY,
-    ATTRIBUTE_DOMAIN_REPOSITORY,
-    DICTIONARY_DOMAIN_REPOSITORY,
-    DICTIONARY_VALUE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
-    REQUEST_DOMAIN_REPOSITORY,
     KU_DETAILS_DOMAIN_REPOSITORY,
     GEOCODER_PORT,
     MARKETPLACE_VITRINE_REPOSITORY,

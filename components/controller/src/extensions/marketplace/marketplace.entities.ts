@@ -7,12 +7,8 @@
  * репозитории не поднимаются, расширение не стартует. Поэтому состав
  * объявляется здесь и попадает в подключение через запись реестра.
  */
-import { AttributeEntity } from './infrastructure/entities/attribute.entity';
 import { AvailableCategoryEntity } from './infrastructure/entities/available-category.entity';
-import { CategoryTypeAttributeEntity } from './infrastructure/entities/category-type-attribute.entity';
 import { CategoryEntity } from './infrastructure/entities/category.entity';
-import { DictionaryValueEntity } from './infrastructure/entities/dictionary-value.entity';
-import { DictionaryEntity } from './infrastructure/entities/dictionary.entity';
 import { KuDetailsTypeormEntity } from './infrastructure/entities/ku-details.entity';
 import { MarketplaceAplReceptionEntity } from './infrastructure/entities/marketplace-apl-reception.entity';
 import { MarketplaceCartItemEntity } from './infrastructure/entities/marketplace-cart-item.entity';
@@ -37,18 +33,11 @@ import { MarketplaceSupplyValidationLogEntity } from './infrastructure/entities/
 import { MarketplaceTtnDocumentEntity } from './infrastructure/entities/marketplace-ttn-document.entity';
 import { MarketplaceVitrineEntity } from './infrastructure/entities/marketplace-vitrine.entity';
 import { MarketplaceWriteoffProposalEntity } from './infrastructure/entities/marketplace-writeoff-proposal.entity';
-import { RequestAttributeValueEntity } from './infrastructure/entities/request-attribute-value.entity';
-import { RequestImageEntity } from './infrastructure/entities/request-image.entity';
-import { RequestEntity } from './infrastructure/entities/request.entity';
 import { TypeEntity } from './infrastructure/entities/type.entity';
 
 export const marketplaceEntities = [
-  AttributeEntity,
   AvailableCategoryEntity,
-  CategoryTypeAttributeEntity,
   CategoryEntity,
-  DictionaryValueEntity,
-  DictionaryEntity,
   KuDetailsTypeormEntity,
   MarketplaceAplReceptionEntity,
   MarketplaceCartItemEntity,
@@ -74,8 +63,5 @@ export const marketplaceEntities = [
   MarketplaceTtnDocumentEntity,
   MarketplaceVitrineEntity,
   MarketplaceWriteoffProposalEntity,
-  RequestAttributeValueEntity,
-  RequestImageEntity,
-  RequestEntity,
   TypeEntity,
 ];

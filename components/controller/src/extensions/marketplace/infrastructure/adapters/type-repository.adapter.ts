@@ -17,7 +17,7 @@ export class TypeRepositoryAdapter implements TypeDomainRepository {
 
   async findAll(): Promise<TypeDomainEntity[]> {
     const types = await this.typeRepository.find({
-      relations: ['category', 'categoryTypeAttributes'],
+      relations: ['category'],
     });
     return types.map((type) => TypeMapper.toDomain(type));
   }
@@ -25,7 +25,7 @@ export class TypeRepositoryAdapter implements TypeDomainRepository {
   async findById(id: number): Promise<TypeDomainEntity | null> {
     const type = await this.typeRepository.findOne({
       where: { typeId: id },
-      relations: ['category', 'categoryTypeAttributes'],
+      relations: ['category'],
     });
     return type ? TypeMapper.toDomain(type) : null;
   }
@@ -85,21 +85,6 @@ export class TypeRepositoryAdapter implements TypeDomainRepository {
 
   async count(): Promise<number> {
     return this.typeRepository.count();
-  }
-
-  async findWithAttributes(): Promise<TypeDomainEntity[]> {
-    const types = await this.typeRepository.find({
-      relations: ['category', 'categoryTypeAttributes', 'categoryTypeAttributes.attribute'],
-    });
-    return types.map((type) => TypeMapper.toDomain(type));
-  }
-
-  async findByCategoryIdWithAttributes(categoryId: number): Promise<TypeDomainEntity[]> {
-    const types = await this.typeRepository.find({
-      where: { descriptionCategoryId: categoryId },
-      relations: ['category', 'categoryTypeAttributes', 'categoryTypeAttributes.attribute'],
-    });
-    return types.map((type) => TypeMapper.toDomain(type));
   }
 
   async searchByName(searchTerm: string, limit = 50): Promise<TypeDomainEntity[]> {
