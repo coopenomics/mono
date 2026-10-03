@@ -16,7 +16,7 @@ import {
   MARKETPLACE_INVENTORY_REPOSITORY,
   type MarketplaceInventoryDomainRepository,
 } from '../../domain/repositories/marketplace-inventory.repository';
-import { MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
+import { MarketplaceInventoryOnWarehouseStatuses, MarketplaceInventoryOwnerships } from '../../domain/entities/marketplace-inventory.types';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
   type MarketplaceOfferDomainRepository,
@@ -507,6 +507,7 @@ export class MarketplaceWriteoffService {
     // не запретом второго проекта.
 
     const normalizedItems = this.validateAndNormalizeItems(input.items);
+    await this.assertInventoryOnStock(input.coopname, normalizedItems);
     const total = this.sumItems(normalizedItems);
     const cycleStartedAt = input.cycle_started_at ?? new Date();
 
@@ -539,6 +540,7 @@ export class MarketplaceWriteoffService {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_EDIT');
     }
     const normalizedItems = this.validateAndNormalizeItems(input.items);
+    await this.assertInventoryOnStock(draft.coopname, normalizedItems);
     const total = this.sumItems(normalizedItems);
 
     return this.repo.updateDraftItems(input.id, normalizedItems, this.formatAsset(total), {
@@ -754,6 +756,8 @@ export class MarketplaceWriteoffService {
     if (!proposal.is_authorized && !proposal.is_executing) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_AUTHORIZED_FOR_EXECUTE', { status: proposal.status });
     }
+    // Пока совет решал, имущество могли выдать — такое не списывается.
+    await this.assertInventoryOnStock(proposal.coopname, proposal.items.filter((it) => !it.executed));
     let working = proposal;
     if (working.is_authorized) {
       working = await this.repo.markExecuting(id, {
@@ -859,6 +863,9 @@ export class MarketplaceWriteoffService {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_MEMO_WRONG_PROJECT');
     }
 
+    // Пока совет решал, имущество могли выдать — такое не списывается: сверка до цепи.
+    await this.assertInventoryOnStock(proposal.coopname, pendingIndexes.map((idx) => proposal.items[idx]));
+
     // on-chain confirmwroff: закрывает все неисполненные позиции КУ за вызов,
     // проводит o.mkt.wroff и якорит записку в реестр документов.
     const confirmTx = await this.chainPort.confirmWroff({
@@ -953,6 +960,29 @@ export class MarketplaceWriteoffService {
       ...sorted.map((it) => `${it.braname}|${it.asset_title}|${it.quantity}|${it.amount}`),
     ].join('|');
     return createHash('sha256').update(payload).digest('hex');
+  }
+
+  /**
+   * Списать можно только то, что лежит на складе своего участка. Выданное
+   * пайщику, уже списанное и имущество чужого участка в проект не попадает и
+   * не проводится: до 03.10.2026 сервер состав со складом не сверял, а защитой
+   * был только список кандидатов на экране.
+   */
+  private async assertInventoryOnStock(
+    coopname: string,
+    items: ReadonlyArray<{ braname: string; asset_title: string; inventory_ids?: string[] }>
+  ): Promise<void> {
+    for (const item of items) {
+      for (const invId of item.inventory_ids ?? []) {
+        const inv = await this.inventoryRepo.findById(invId);
+        if (!inv || inv.coopname !== coopname || inv.braname !== item.braname) {
+          throw DomainError.badRequest('MARKETPLACE_WRITEOFF_INVENTORY_NOT_FOUND', { title: item.asset_title });
+        }
+        if (!MarketplaceInventoryOnWarehouseStatuses.includes(inv.status)) {
+          throw DomainError.conflict('MARKETPLACE_WRITEOFF_INVENTORY_NOT_ON_STOCK', { title: item.asset_title });
+        }
+      }
+    }
   }
 
   validateAndNormalizeItems(items: MarketplaceWriteoffItemInput[]): MarketplaceWriteoffProposalItem[] {

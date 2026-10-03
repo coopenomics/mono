@@ -11,7 +11,7 @@
  * параллельные ветви → сборка».
  */
 import { beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, tokenOf } from '../core'
+import { CHAIRMAN, COUNCIL, ROLES, caseName, expectAuthDenied, expectCode, gql, gqlError, tokenOf } from '../core'
 import { createLocalProject, issuesAs, tag } from './cap-access.helpers'
 
 const TEMPLATE_FIELDS = 'id coopname project_hash title description status created_by steps{ id title description estimate is_start position{ x y } } edges{ id source target }'
@@ -237,5 +237,46 @@ describe('Благорост — процессы: исполнение', () => 
       'CAPITAL_PROCESS_INSTANCE_NOT_FOUND',
     )
     expect((await gql<any>(chairmanToken, INSTANCE, { id: UNKNOWN_ID })).capitalGetProcessInstance).toBeNull()
+  })
+
+  it(caseName('cap.proc.side.07', 'процессы чужого личного проекта закрыты: посторонний не запускает, не закрывает шаги и не читает'), async () => {
+    // До 03.10.2026 доступ к проекту не проверялся вовсе: любой пайщик запускал процесс в
+    // чужом проекте, закрывал чужие шаги и читал шаблоны всех проектов (C28-85).
+    const councilToken = await tokenOf(COUNCIL)
+    const start = { d: { template_id: templateId, project_hash: project.project_hash } }
+    for (const token of [memberToken, councilToken]) {
+      expectCode(await gqlError(token, START, start), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      expectCode(await gqlError(token, COMPLETE, { d: { instance_id: instanceId, step_id: 'prepare' } }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      expectCode(await gqlError(token, TEMPLATES, { p: project.project_hash }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      expectCode(await gqlError(token, TEMPLATE, { id: templateId }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      expectCode(await gqlError(token, INSTANCES, { p: project.project_hash }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      expectCode(await gqlError(token, INSTANCE, { id: instanceId }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+      // В списке шаблонов кооператива чужого личного проекта нет.
+      const all = (await gql<any>(token, TEMPLATES, {})).capitalGetProcessTemplates as any[]
+      expect(all.some(t => t.project_hash === project.project_hash)).toBe(false)
+    }
+    // Член совета шаблон чужого личного проекта не заводит, не правит и не удаляет.
+    expectCode(await gqlError(councilToken, CREATE, { d: { project_hash: project.project_hash, title: 'Чужой' } }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+    expectCode(await gqlError(councilToken, UPDATE, { d: { id: templateId, title: 'Чужая правка' } }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+    expectCode(await gqlError(councilToken, DELETE, { id: templateId }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+
+    // Шаблон одного проекта в другом проекте не запускается.
+    const other = await createLocalProject(CHAIRMAN, `Процессы ${T} — соседний`)
+    expectCode(await gqlError(chairmanToken, START, { d: { template_id: templateId, project_hash: other.project_hash } }), 'CAPITAL_PROCESS_TEMPLATE_FOREIGN_PROJECT')
+
+    // Владельцу всё по-прежнему видно, чужие запросы ничего не изменили.
+    const mine = (await gql<any>(chairmanToken, INSTANCES, { p: project.project_hash })).capitalGetProcessInstances as any[]
+    expect(mine.map(i => i.id)).toContain(instanceId)
+    expect((await gql<any>(chairmanToken, TEMPLATE, { id: templateId })).capitalGetProcessTemplate.title).not.toBe('Чужая правка')
+  })
+
+  it(caseName('cap.proc.side.08', 'шаблона нет — отказ «не найдено»; номер не в виде UUID отклоняется на входе'), async () => {
+    expectCode(await gqlError(chairmanToken, START, { d: { template_id: UNKNOWN_ID, project_hash: project.project_hash } }), 'CAPITAL_PROCESS_TEMPLATE_NOT_FOUND')
+    expectCode(await gqlError(chairmanToken, UPDATE, { d: { id: UNKNOWN_ID, title: 'Нет такого' } }), 'CAPITAL_PROCESS_TEMPLATE_NOT_FOUND')
+    expectCode(await gqlError(chairmanToken, DELETE, { id: UNKNOWN_ID }), 'CAPITAL_PROCESS_TEMPLATE_NOT_FOUND')
+
+    expectCode(await gqlError(chairmanToken, START, { d: { template_id: 'не-номер', project_hash: project.project_hash } }), '422')
+    expectCode(await gqlError(chairmanToken, UPDATE, { d: { id: 'не-номер', title: 'Нет такого' } }), '422')
+    expectCode(await gqlError(chairmanToken, COMPLETE, { d: { instance_id: 'не-номер', step_id: 'prepare' } }), '422')
   })
 })

@@ -133,6 +133,16 @@ describe('CoopID — наборы возможностей', () => {
     )
   })
 
+  it(caseName('coopid.caps.side.04', 'набор назначают имени, которого нет среди пайщиков, — отказ, назначение не записано'), async () => {
+    // До 03.10.2026 назначение записывалось на любое имя, в том числе с опечаткой (C28-85).
+    const ghost = 'nosuchmember'
+    expectCode(
+      await gqlError(chairman, ASSIGN, { d: { username: ghost, set_key: 'accountant' } }),
+      'AUTH_V2_PARTICIPANT_NOT_FOUND',
+    )
+    expect((await gql<any>(chairman, ASSIGNED, { u: ghost })).getParticipantCapabilitySets).toEqual([])
+  })
+
   it(caseName('coopid.caps.side.03', 'наборами управляет только председатель — члену совета и пайщику отказ, гостю отказ входа'), async () => {
     for (const token of [council, member, targetToken]) {
       denied(await gqlError(token, ASSIGN, { d: { username: target.account, set_key: 'accountant' } }))

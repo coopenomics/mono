@@ -31,7 +31,8 @@ function makeService() {
   };
   const inventoryRepo = {
     findWriteoffCandidates: jest.fn().mockResolvedValue([]),
-    findById: jest.fn(),
+    // По умолчанию позиция лежит на складе своего участка.
+    findById: jest.fn(async (id: string) => ({ id, coopname: COOP, braname: BRANCH, status: 'RECEIVED' })),
     applyStatusTransition: jest.fn(),
   };
   const chainPort = { confirmWroff: jest.fn(), propWroff: jest.fn(), execWroff: jest.fn() };
@@ -154,6 +155,22 @@ describe('MarketplaceWriteoffService.confirmWriteoff: кто и когда пр�
     signed_memo: { meta: {}, signatures: [] },
     ...overrides,
   }) as never;
+
+  it('выданное пайщику, списанное и чужое имущество в проект списания не попадает', async () => {
+    // mkt.wof.side.03: до 03.10.2026 состав проекта со складом не сверялся.
+    const { service, repo, inventoryRepo } = makeService();
+
+    inventoryRepo.findById.mockResolvedValueOnce({ id: 'inv-1', coopname: COOP, braname: BRANCH, status: 'ISSUED' });
+    await expect(service.createDraft(draftInput([item()]) as never)).rejects.toThrow('уже выдано или списано');
+
+    inventoryRepo.findById.mockResolvedValueOnce({ id: 'inv-1', coopname: COOP, braname: 'odn', status: 'RECEIVED' });
+    await expect(service.createDraft(draftInput([item()]) as never)).rejects.toThrow('не найдено на складе этого участка');
+
+    inventoryRepo.findById.mockResolvedValueOnce(null);
+    await expect(service.createDraft(draftInput([item()]) as never)).rejects.toThrow('не найдено на складе этого участка');
+
+    expect(repo.create).not.toHaveBeenCalled();
+  });
 
   it('проект ещё не утверждён советом → провести списание нельзя', async () => {
     const { service, repo, chainPort, inventoryRepo } = makeService();
