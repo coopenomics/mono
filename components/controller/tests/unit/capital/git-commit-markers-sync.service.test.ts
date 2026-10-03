@@ -192,4 +192,38 @@ describe('GitCommitMarkersSyncService — мульти-веточный ingest',
     expect(compareMock).not.toHaveBeenCalled();
     expect(syncStateRepository.setTipSha).not.toHaveBeenCalled();
   });
+
+  // Ветки gh-pages и legacy не имеют общей истории с dev. Курсор для них не
+  // сохранялся, и сервис повторял сравнение и предупреждение каждый проход —
+  // две строки в минуту на узел, ~86 тыс. пустых запросов к GitHub в месяц (C28-88).
+  it('у ветки нет общей истории с базовой — курсор ставится на HEAD, повтора не будет', async () => {
+    const head = '9'.repeat(40);
+    const compareMock = jest.fn().mockRejectedValue(new Error('No common ancestor between dev and gh-pages.'));
+    const { service, linkedCommitRepository, syncStateRepository } = buildService({
+      state: null,
+      github: { listCommitsBetweenBaseAndHead: compareMock },
+    });
+
+    await service.syncMarkedCommits({ ...syncArgs('gh-pages'), headSha: head });
+
+    expect(linkedCommitRepository.insertLinkedCommit).not.toHaveBeenCalled();
+    expect(syncStateRepository.setTipSha).toHaveBeenCalledWith(
+      'voskhod',
+      'https://github.com/coopenomics/mono',
+      'gh-pages',
+      head
+    );
+  });
+
+  it('временный сбой GitHub при первом заходе курсор не ставит — ветка разберётся на следующем проходе', async () => {
+    const compareMock = jest.fn().mockRejectedValue(new Error('connect ETIMEDOUT 140.82.121.6:443'));
+    const { service, syncStateRepository } = buildService({
+      state: null,
+      github: { listCommitsBetweenBaseAndHead: compareMock },
+    });
+
+    await service.syncMarkedCommits({ ...syncArgs('feat/y'), headSha: 'a'.repeat(40) });
+
+    expect(syncStateRepository.setTipSha).not.toHaveBeenCalled();
+  });
 });

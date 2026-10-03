@@ -121,6 +121,15 @@ cases:
     api: components/api-tests/src/capital/git-commit-markers.test.ts
     status: written   # прогон не подтверждён локально — гоняет CI
 
+  - id: cap.gitmark.side.09
+    level: backend
+    kind: side
+    scenario: у ветки нет общей истории с базовой (gh-pages, осиротевшая ветка) — GitHub отвергает сравнение «No common ancestor»
+    expect: курсор ветки ставится на её вершину, на следующих проходах ветка пропускается без запроса и без предупреждения; временный сбой GitHub курсор не ставит
+    test: components/controller/tests/unit/capital/git-commit-markers-sync.service.test.ts
+    api: components/api-tests/src/capital/git-commit-markers.test.ts
+    status: written   # прогон не подтверждён локально — гоняет CI
+
   - id: cap.gitmark.break.02
     level: backend
     kind: break

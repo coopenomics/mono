@@ -189,6 +189,9 @@ describe('Благорост — привязка коммитов GitHub по �
     let broken: Repo
     let issueBroken = ''
     const C1 = () => sha('broken-1')
+    let orphan: Repo
+    const O1 = () => sha('orphan-dev-1')
+    const G1 = () => sha('orphan-pages-1')
     let perBranchBefore = 0
 
     beforeAll(async () => {
@@ -204,6 +207,17 @@ describe('Благорост — привязка коммитов GitHub по �
       await stubRoute('GET', `${broken.path}/commits`, { body: [commit(C1(), marked(issueBroken, 'починка'), [sha('root-c')])] })
       await stubRoute('GET', `${broken.path}/commits/${C1()}`, { body: { sha: C1(), files: [{ filename: 'fix.ts', patch: patch('fix()') }] } })
       await attach(broken)
+
+      // Репозиторий с веткой без общей истории с базовой (как gh-pages): сравнение
+      // с базовой GitHub отвергает, и так будет всегда.
+      orphan = await repo('orphan')
+      const issueOrphan = await issueIn(orphan, `Задача рядом с осиротевшей веткой ${T}`)
+      await branches(orphan, { 'dev': O1(), 'gh-pages': G1() })
+      await stubRoute('GET', `${orphan.path}/branches/dev`, { body: { name: 'dev', commit: { sha: O1() } } })
+      await stubRoute('GET', `${orphan.path}/commits`, { body: [commit(O1(), marked(issueOrphan, 'начало'), [sha('root-o')])] })
+      await stubRoute('GET', `${orphan.path}/commits/${O1()}`, { body: { sha: O1(), files: [{ filename: 'a.ts', patch: patch('a()') }] } })
+      await stubRoute('GET', `${orphan.path}/compare/dev...${G1()}`, { status: 404, body: { message: 'No common ancestor between dev and gh-pages.' } })
+      await attach(orphan)
 
       perBranchBefore = (await stubRequests(`${main.path}/branches/*`)).length
       await polling(1)
@@ -232,6 +246,22 @@ describe('Благорост — привязка коммитов GitHub по �
       expect(rows[0]).toMatchObject({ github_sha: C1(), branch: 'dev', in_default_branch: true })
       expect((await stubRequests(`${broken.path}/branches/dev`)).length, 'вершина настроенной ветки запрошена отдельно').toBeGreaterThan(0)
     })
+
+    it(caseName('cap.gitmark.side.09', 'у ветки нет общей истории с базовой — сравнение запрашивается один раз, дальше ветка пропускается'), async () => {
+      const compare = `${orphan.path}/compare/dev...${G1()}`
+      const passes = async () => (await stubRequests(`${orphan.path}/branches`)).length
+      const opts = { timeoutMs: 280_000, intervalMs: 2_000 }
+
+      await waitFor(async () => (await stubRequests(compare)).length > 0 ? true : null, { ...opts, label: 'обход дошёл до ветки без общей истории' })
+      // Следующий листинг веток — знак, что проход, в котором было сравнение, закончился.
+      const afterFirst = await passes() + 1
+      await waitFor(async () => (await passes()) >= afterFirst ? true : null, { ...opts, label: 'начался следующий проход' })
+      const asked = (await stubRequests(compare)).length
+
+      // Ещё два прохода: до правки сравнение повторялось в каждом (C28-88).
+      await waitFor(async () => (await passes()) >= afterFirst + 2 ? true : null, { ...opts, label: 'прошли ещё два прохода обхода' })
+      expect((await stubRequests(compare)).length, 'сравнение осиротевшей ветки не повторялось').toBe(asked)
+    }, 900_000)
 
     it(caseName('cap.gitmark.side.01', 'тот же коммит дошёл до базовой ветки — привязка стала канонической, второй не появилось'), async () => {
       const HEAD = sha('dev-2')
