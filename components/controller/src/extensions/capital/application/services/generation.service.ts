@@ -1413,7 +1413,7 @@ export class GenerationService {
   /**
    * Удаление задачи по хэшу
    */
-  async deleteIssueByHash(issueHash: string, currentUser?: IMonoAccount): Promise<boolean> {
+  async deleteIssueByHash(issueHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
     if (!issueEntity) {
       throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
@@ -1421,7 +1421,7 @@ export class GenerationService {
     // Удалить задачу вправе тот, кому это разрешает таблица ролей задачи —
     // ведущий проекта; по ней же стол показывает кнопку. Председатель
     // действует по своей роли, как и раньше (C28-87).
-    if (currentUser?.role !== 'chairman') {
+    if (currentUser.role !== 'chairman') {
       const permissions = await this.permissionsService.calculateIssuePermissions(issueEntity, currentUser);
       if (!permissions.can_delete_issue) {
         throw DomainError.forbidden('CAPITAL_ISSUE_DELETE_FORBIDDEN');

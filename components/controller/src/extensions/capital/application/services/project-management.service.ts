@@ -217,7 +217,7 @@ export class ProjectManagementService {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectInputDTO, currentUser?: IMonoAccount): Promise<InnerTransactResult> {
+  async deleteProject(data: DeleteProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
     await this.assertProjectPermission(data.project_hash, currentUser, 'can_delete_project', 'CAPITAL_PROJECT_DELETE_FORBIDDEN');
     return await this.projectManagementInteractor.deleteProject(data);
   }
