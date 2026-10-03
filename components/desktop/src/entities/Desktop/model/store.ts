@@ -118,10 +118,10 @@ export const useDesktopStore = defineStore(namespace, () => {
       (w) => w.name === workspaceName,
     );
 
+    // Стола нет среди отданных бэкендом — расширение в кооперативе не
+    // установлено. Это штатно: кабинет грузит все расширения сборки.
     if (ws) {
       (ws as any).routes = routes;
-    } else {
-      console.warn('🏠 [DesktopStore] Workspace not found for setting routes:', workspaceName);
     }
   }
 
