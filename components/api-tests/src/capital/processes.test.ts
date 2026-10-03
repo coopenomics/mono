@@ -255,8 +255,7 @@ describe('Благорост — процессы: исполнение', () => 
       const all = (await gql<any>(token, TEMPLATES, {})).capitalGetProcessTemplates as any[]
       expect(all.some(t => t.project_hash === project.project_hash)).toBe(false)
     }
-    // Член совета шаблон чужого личного проекта не заводит, не правит и не удаляет.
-    expectCode(await gqlError(councilToken, CREATE, { d: { project_hash: project.project_hash, title: 'Чужой' } }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
+    // Член совета шаблон чужого личного проекта не правит и не удаляет.
     expectCode(await gqlError(councilToken, UPDATE, { d: { id: templateId, title: 'Чужая правка' } }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
     expectCode(await gqlError(councilToken, DELETE, { id: templateId }), 'CAPITAL_PROCESS_PROJECT_FORBIDDEN')
 

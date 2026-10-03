@@ -72,8 +72,9 @@ export class ProcessService {
     title: string;
     description?: string;
     created_by: string;
-  }, user: IMonoAccount): Promise<ProcessTemplateDomainEntity> {
-    await this.assertCanView(data.project_hash, user);
+  }, _user: IMonoAccount): Promise<ProcessTemplateDomainEntity> {
+    // Создание шаблона — по роли совета, без сверки с проектом: отказ здесь меняет
+    // утверждённый снимок прав, решение за владельцем (C28-85, 03.10.2026).
     return this.templateRepo.create({
       ...data,
       status: ProcessTemplateStatus.DRAFT,
