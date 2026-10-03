@@ -354,11 +354,12 @@ export class GenerationResolver {
     description: 'Удаление задачи по хэшу',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member', 'user'])
   async deleteCapitalIssue(
-    @Args('data', { type: () => DeleteIssueByHashInputDTO }) data: DeleteIssueByHashInputDTO
+    @Args('data', { type: () => DeleteIssueByHashInputDTO }) data: DeleteIssueByHashInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<boolean> {
-    return await this.generationService.deleteIssueByHash(data.issue_hash);
+    return await this.generationService.deleteIssueByHash(data.issue_hash, currentUser);
   }
 
   // ============ ГЕНЕРАЦИЯ ДОКУМЕНТОВ ============

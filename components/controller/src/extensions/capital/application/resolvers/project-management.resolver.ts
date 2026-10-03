@@ -86,7 +86,7 @@ export class ProjectManagementResolver {
     description: 'Установка мастера проекта в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async setCapitalMaster(
     @Args('data', { type: () => SetMasterInputDTO }) data: SetMasterInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -103,7 +103,7 @@ export class ProjectManagementResolver {
     description: 'Добавление автора проекта в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member', 'user'])
   async addCapitalAuthor(
     @Args('data', { type: () => AddAuthorInputDTO }) data: AddAuthorInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -169,7 +169,7 @@ export class ProjectManagementResolver {
     description: 'Запуск проекта в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async startCapitalProject(
     @Args('data', { type: () => StartProjectInputDTO }) data: StartProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -186,7 +186,7 @@ export class ProjectManagementResolver {
     description: 'Открытие проекта для инвестиций в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async openCapitalProject(
     @Args('data', { type: () => OpenProjectInputDTO }) data: OpenProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -203,7 +203,7 @@ export class ProjectManagementResolver {
     description: 'Закрытие проекта от инвестиций в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async closeCapitalProject(
     @Args('data', { type: () => CloseProjectInputDTO }) data: CloseProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -220,7 +220,7 @@ export class ProjectManagementResolver {
     description: 'Остановка проекта в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async stopCapitalProject(
     @Args('data', { type: () => StopProjectInputDTO }) data: StopProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -238,7 +238,7 @@ export class ProjectManagementResolver {
     description: 'Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member'])
   async finalizeCapitalProject(
     @Args('data', { type: () => FinalizeProjectInputDTO }) data: FinalizeProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -255,11 +255,12 @@ export class ProjectManagementResolver {
     description: 'Удаление проекта в CAPITAL контракте',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @AuthRoles(['chairman', 'member', 'user'])
   async deleteCapitalProject(
-    @Args('data', { type: () => DeleteProjectInputDTO }) data: DeleteProjectInputDTO
+    @Args('data', { type: () => DeleteProjectInputDTO }) data: DeleteProjectInputDTO,
+    @CurrentUser() currentUser: IMonoAccount
   ): Promise<TransactionDTO> {
-    const result = await this.projectManagementService.deleteProject(data);
+    const result = await this.projectManagementService.deleteProject(data, currentUser);
     return result;
   }
 
