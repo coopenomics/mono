@@ -37,7 +37,15 @@ const ROLES: MatrixRole[] = [
   { name: 'chairman', platform: 'chairman', who: () => CHAIRMAN },
 ]
 
-interface Cell { outcome: Outcome, code: string | null, message: string | null }
+/**
+ * Операции, после которых исполнитель теряет своё право. Смена модели работы
+ * поставщика возвращает его заявку на рассмотрение и снимает допуск: вызванная
+ * по алфавиту, она записывала поставщику отказ на правку и снятие своего
+ * предложения, хотя допущенный поставщик это делать вправе.
+ */
+const CHANGES_OWN_RIGHTS = new Set(['marketplaceSwitchSupplierModel'])
+
+interface Cell { outcome: Outcome, code: string | null, message: string | null, http: number | null }
 type Matrix = Record<string, Record<string, Cell>>
 
 const OUT = process.env.RIGHTS_OUT || path.resolve('.rights')
@@ -50,8 +58,8 @@ const sinceAuthCheck = new Map<string, string[]>()
 let ops: Operation[] = []
 let declared = new Map<string, DeclaredOp>()
 
-function short(err: GqlError | null): Pick<Cell, 'code' | 'message'> {
-  return { code: err?.code === null || err?.code === undefined ? null : String(err.code), message: err ? err.message.slice(0, 160) : null }
+function short(err: GqlError | null): Pick<Cell, 'code' | 'message' | 'http'> {
+  return { code: err?.code === null || err?.code === undefined ? null : String(err.code), message: err ? err.message.slice(0, 160) : null, http: err?.httpStatus ?? null }
 }
 
 async function call(op: Operation, role: MatrixRole, tokens: Map<string, string | null>): Promise<Cell> {
@@ -84,7 +92,7 @@ async function call(op: Operation, role: MatrixRole, tokens: Map<string, string 
     else sinceAuthCheck.set(role.name, [...(sinceAuthCheck.get(role.name) ?? []), op.name])
     return { outcome, ...short(err) }
   }
-  return { outcome: 'throttled', code: null, message: 'повторы исчерпаны' }
+  return { outcome: 'throttled', code: null, message: 'повторы исчерпаны', http: null }
 }
 
 function coarse(o: Outcome): 'deny' | 'pass' | null {
@@ -106,6 +114,9 @@ describe('матрица прав', () => {
     // Запросы раньше мутаций: мутация с чужими аргументами может поменять
     // стенд, а чтения должны видеть его таким, каким его оставили сценарии.
     ops.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === 'query' ? -1 : 1))
+    // Операции, которые меняют права самого исполнителя, идут в самом конце:
+    // иначе вызовы после них проверяли бы уже другого человека.
+    ops = [...ops.filter(o => !CHANGES_OWN_RIGHTS.has(o.name)), ...ops.filter(o => CHANGES_OWN_RIGHTS.has(o.name))]
     for (const op of ops) {
       matrix[op.name] = {}
       for (const role of ROLES)
