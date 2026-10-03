@@ -82,6 +82,17 @@ describe('MarketplaceDesktopGrantsProvider', () => {
     expect(grants).toEqual([]);
   });
 
+  it('председатель со статусом registered получает права по роли', async () => {
+    const { provider } = makeProvider({});
+    const grants = await provider.resolveGrants({
+      ...baseCtx,
+      userRole: 'chairman',
+      userStatus: 'registered' as any,
+      config: { coopAcceptance: { accepted: false } },
+    });
+    expect(grants).toContain('Extension:configure');
+  });
+
   describe('L1: ЦПП ещё не принята кооперативом', () => {
     it('председатель → настройка расширения и маркер страницы подключения', async () => {
       const { provider } = makeProvider({});

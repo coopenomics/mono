@@ -125,6 +125,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.approveReturnVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -146,6 +147,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.rejectReturnRemote({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -168,6 +170,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.acceptReturnAtVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -193,6 +196,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.rejectReturnAtVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -290,6 +294,7 @@ export class MarketplaceReturnClaimResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceHandBackReturnInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
+    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.handBackReturn({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -396,5 +401,14 @@ export class MarketplaceReturnClaimResolver {
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const dto = await this.toClaimDTO(result.claim);
     return { claim: dto, tx_hash: result.tx_hash };
+  }
+
+  /**
+   * Решение по возврату принимает оператор участка, к которому привязано
+   * заявление: сервис сверяет участок заявления с присланным, здесь — что
+   * оператор сам с этого участка. Раньше это проверяла только цепь (C28-87).
+   */
+  private async assertOperatesBranch(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
+    await this.kuChairmanService.assertIsMemberOfBranch(platformSettings().coopname, braname, member.username);
   }
 }

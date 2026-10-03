@@ -107,6 +107,7 @@ export class MarketplaceStockResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplacePublishStockInputDTO
   ): Promise<MarketplaceOfferDTO[]> {
+    await this.assertOwnsPositions(member, data.inventory_ids);
     const offers = await this.stockService.publishStock({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -127,6 +128,7 @@ export class MarketplaceStockResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUnpublishStockInputDTO
   ): Promise<MarketplaceUnpublishStockResultDTO> {
+    await this.assertOwnsPositions(member, data.inventory_ids);
     const affected = await this.stockService.unpublishStock({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -213,6 +215,8 @@ export class MarketplaceStockResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
   ): Promise<MarketplaceStockProposalDTO> {
+    const proposalBraname = await this.proposalService.branameOfProposal(platformSettings().coopname, data.proposal_id);
+    if (proposalBraname) await this.assertBranameAllowed(member, proposalBraname, 'StockProposal', 'cancel');
     const proposal = await this.proposalService.cancelProposal(
       platformSettings().coopname,
       data.proposal_id,
@@ -311,6 +315,8 @@ export class MarketplaceStockResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCancelStockOrderInputDTO
   ): Promise<MarketplaceOrderDTO> {
+    const orderBraname = await this.stockService.branameOfOrder(platformSettings().coopname, data.order_id);
+    if (orderBraname) await this.assertBranameAllowed(member, orderBraname, 'StockProposal', 'cancel');
     const order = await this.stockService.cancelStockOrder(
       platformSettings().coopname,
       data.order_id,
@@ -402,6 +408,17 @@ export class MarketplaceStockResolver {
       return [requested];
     }
     return ownBranames;
+  }
+
+  /**
+   * Остаток публикует и снимает оператор участка, на складе которого он
+   * лежит; администратор с правом `publish:all` — на любом участке.
+   */
+  private async assertOwnsPositions(member: IMarketplaceCurrentMember, inventory_ids: string[]): Promise<void> {
+    const branames = await this.stockService.branamesOfPositions(platformSettings().coopname, inventory_ids);
+    for (const braname of branames) {
+      await this.assertBranameAllowed(member, braname, 'Stock', 'publish');
+    }
   }
 
   private async assertBranameAllowed(

@@ -62,6 +62,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAssignInventoryPlacementInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
+    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.assignPlacement({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -85,6 +86,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSplitInventoryInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
+    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.splitInventory({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -111,6 +113,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceGenerateInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
+    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.generateLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -133,6 +136,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
+    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.bindLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -156,6 +160,7 @@ export class MarketplaceInventoryResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceClearInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
+    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.clearLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -236,5 +241,25 @@ export class MarketplaceInventoryResolver {
       dto.category_id = display?.category_id ?? null;
       return dto;
     });
+  }
+
+  /**
+   * Позицию склада трогает только председатель или доверенный её участка:
+   * право `Inventory:label` говорит «оператор вообще», а чей это склад —
+   * сверяется здесь. Без сверки оператор одного участка перекладывал и
+   * перемаркировал имущество на складе другого (C28-87).
+   */
+  private async assertOperatesItemBranch(
+    member: IMarketplaceCurrentMember,
+    inventory_id: string
+  ): Promise<void> {
+    const coopname = platformSettings().coopname;
+    const item = await this.inventoryRepo.findById(inventory_id);
+    // Позиции нет или она чужого кооператива — «не найдено» скажет сервис.
+    if (!item || item.coopname !== coopname) return;
+    const isMember = await this.kuChairmanService.isMemberOfBranch(coopname, item.braname, member.username);
+    if (!isMember) {
+      throw DomainError.forbidden('MARKETPLACE_ACTION_NOT_TRUSTEE');
+    }
   }
 }
