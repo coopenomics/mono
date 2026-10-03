@@ -36,8 +36,9 @@ export class ProcessService {
 
   /**
    * Процессы живут внутри проекта и подчиняются его доступу. Вести процесс
-   * (запускать, закрывать шаги, править шаблоны) может тот, кто ведёт задачи
-   * проекта; личный проект виден только владельцу.
+   * (запускать, закрывать шаги) может тот, кто ведёт задачи проекта. Шаблоны
+   * правит совет — по роли, как и прежде; личный проект при этом виден и
+   * доступен только владельцу.
    */
   private async assertCanManage(projectHash: string, user: IMonoAccount): Promise<void> {
     const project = await this.projectRepo.findByHash(projectHash);
@@ -72,7 +73,7 @@ export class ProcessService {
     description?: string;
     created_by: string;
   }, user: IMonoAccount): Promise<ProcessTemplateDomainEntity> {
-    await this.assertCanManage(data.project_hash, user);
+    await this.assertCanView(data.project_hash, user);
     return this.templateRepo.create({
       ...data,
       status: ProcessTemplateStatus.DRAFT,
@@ -113,13 +114,13 @@ export class ProcessService {
     user: IMonoAccount
   ): Promise<ProcessTemplateDomainEntity> {
     const template = await this.getTemplateOrFail(id);
-    await this.assertCanManage(template.project_hash, user);
+    await this.assertCanView(template.project_hash, user);
     return this.templateRepo.update(id, data);
   }
 
   async deleteTemplate(id: string, user: IMonoAccount): Promise<void> {
     const template = await this.getTemplateOrFail(id);
-    await this.assertCanManage(template.project_hash, user);
+    await this.assertCanView(template.project_hash, user);
     return this.templateRepo.delete(id);
   }
 

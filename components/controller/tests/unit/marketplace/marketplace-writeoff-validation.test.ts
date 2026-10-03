@@ -166,7 +166,7 @@ describe('MarketplaceWriteoffService.confirmWriteoff: кто и когда пр�
     inventoryRepo.findById.mockResolvedValueOnce({ id: 'inv-1', coopname: COOP, braname: 'odn', status: 'RECEIVED' });
     await expect(service.createDraft(draftInput([item()]) as never)).rejects.toThrow('не найдено на складе этого участка');
 
-    inventoryRepo.findById.mockResolvedValueOnce(null);
+    inventoryRepo.findById.mockResolvedValueOnce(null as never);
     await expect(service.createDraft(draftInput([item()]) as never)).rejects.toThrow('не найдено на складе этого участка');
 
     expect(repo.create).not.toHaveBeenCalled();
