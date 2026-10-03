@@ -10,6 +10,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -24,6 +25,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -38,6 +40,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -52,6 +55,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -66,6 +70,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -80,6 +85,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -94,6 +100,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -108,6 +115,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -122,6 +130,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -136,6 +145,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -150,6 +160,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -164,6 +175,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -178,6 +190,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -192,6 +205,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -206,6 +220,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -220,6 +235,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -234,6 +250,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -248,6 +265,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -262,6 +280,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -276,6 +295,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -290,6 +310,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -304,6 +325,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -318,6 +340,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -332,6 +355,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -346,6 +370,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -360,6 +385,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -374,6 +400,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -388,6 +415,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -402,6 +430,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -416,6 +445,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -430,6 +460,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -444,6 +475,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -458,6 +490,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -472,6 +505,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -486,6 +520,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -500,6 +535,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -514,6 +550,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -528,6 +565,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -542,6 +580,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -556,6 +595,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -570,6 +610,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -584,6 +625,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -598,6 +640,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -612,6 +655,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -626,6 +670,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -640,6 +685,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -654,6 +700,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -668,6 +715,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -682,6 +730,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -696,6 +745,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -710,6 +760,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -724,6 +775,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -738,6 +790,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -752,6 +805,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -766,6 +820,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -780,6 +835,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -794,6 +850,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -808,6 +865,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -822,6 +880,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -836,6 +895,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -850,6 +910,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -864,6 +925,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -878,6 +940,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -892,6 +955,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -906,6 +970,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -920,6 +985,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -934,6 +1000,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -948,6 +1015,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -962,6 +1030,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -976,6 +1045,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -990,6 +1060,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1004,6 +1075,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1018,6 +1090,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1032,6 +1105,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1046,6 +1120,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1060,6 +1135,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1074,6 +1150,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1088,6 +1165,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1102,6 +1180,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1116,6 +1195,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1130,6 +1210,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1144,6 +1225,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1158,6 +1240,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1172,6 +1255,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1186,6 +1270,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1200,6 +1285,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1214,6 +1300,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1228,6 +1315,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1242,6 +1330,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1256,6 +1345,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1270,6 +1360,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1284,6 +1375,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1298,6 +1390,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1312,6 +1405,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1326,6 +1420,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1340,6 +1435,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1354,6 +1450,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1368,6 +1465,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1382,6 +1480,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1396,6 +1495,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1410,6 +1510,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1424,6 +1525,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1438,6 +1540,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1452,6 +1555,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1466,6 +1570,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1480,6 +1585,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1494,6 +1600,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1508,6 +1615,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1522,6 +1630,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1536,6 +1645,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1550,6 +1660,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1564,6 +1675,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1578,6 +1690,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1592,6 +1705,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1606,6 +1720,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1620,6 +1735,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1634,6 +1750,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1648,6 +1765,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1662,6 +1780,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1676,6 +1795,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1690,6 +1810,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1704,6 +1825,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1718,6 +1840,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1732,6 +1855,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1746,6 +1870,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1760,6 +1885,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1774,6 +1900,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -1788,6 +1915,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1802,6 +1930,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1816,6 +1945,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1830,6 +1960,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1844,6 +1975,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1858,6 +1990,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1872,6 +2005,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1886,6 +2020,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1900,6 +2035,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1914,6 +2050,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1928,6 +2065,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1942,6 +2080,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1956,6 +2095,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -1970,6 +2110,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1984,6 +2125,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -1998,6 +2140,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2012,6 +2155,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2026,6 +2170,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2040,6 +2185,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2054,6 +2200,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2068,6 +2215,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2082,6 +2230,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2096,6 +2245,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2110,6 +2260,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2124,6 +2275,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2138,6 +2290,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2152,6 +2305,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2166,6 +2320,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2180,6 +2335,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2194,6 +2350,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2208,6 +2365,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2222,6 +2380,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2236,6 +2395,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2250,6 +2410,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2264,6 +2425,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2278,6 +2440,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2292,6 +2455,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2306,6 +2470,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2320,6 +2485,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2334,6 +2500,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2348,6 +2515,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2362,6 +2530,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2376,6 +2545,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2390,6 +2560,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2404,6 +2575,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2418,6 +2590,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2432,6 +2605,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2446,6 +2620,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2460,6 +2635,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2474,6 +2650,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2488,6 +2665,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2502,6 +2680,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2516,6 +2695,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2530,6 +2710,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2544,6 +2725,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2558,6 +2740,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2572,6 +2755,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2586,6 +2770,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2600,6 +2785,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2614,6 +2800,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2628,6 +2815,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2642,6 +2830,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2656,6 +2845,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2670,6 +2860,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2684,6 +2875,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2698,6 +2890,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2712,6 +2905,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2726,6 +2920,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2740,6 +2935,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2754,6 +2950,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2768,6 +2965,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2782,6 +2980,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2796,6 +2995,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2810,6 +3010,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2824,6 +3025,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2838,6 +3040,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2852,6 +3055,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2866,6 +3070,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2880,6 +3085,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2894,6 +3100,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2908,6 +3115,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2922,6 +3130,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2936,6 +3145,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2950,6 +3160,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2964,6 +3175,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -2978,6 +3190,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2992,6 +3205,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3006,6 +3220,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3020,6 +3235,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3034,6 +3250,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3048,6 +3265,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3062,6 +3280,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3076,6 +3295,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3090,6 +3310,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3104,6 +3325,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3118,6 +3340,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3132,6 +3355,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3146,6 +3370,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3160,6 +3385,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3174,6 +3400,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3188,6 +3415,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3202,6 +3430,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3216,6 +3445,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3230,6 +3460,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3244,6 +3475,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3258,6 +3490,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3272,6 +3505,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3286,6 +3520,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3300,6 +3535,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3314,6 +3550,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3328,6 +3565,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3342,6 +3580,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3356,6 +3595,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3370,6 +3610,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3384,6 +3625,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3398,6 +3640,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3412,6 +3655,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3426,6 +3670,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3440,6 +3685,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3454,6 +3700,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3468,6 +3715,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3482,6 +3730,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3496,6 +3745,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3510,6 +3760,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3524,6 +3775,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3538,6 +3790,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3552,6 +3805,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3566,6 +3820,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3580,6 +3835,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3594,6 +3850,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3608,6 +3865,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3622,6 +3880,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3636,6 +3895,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3650,6 +3910,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3664,6 +3925,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3678,6 +3940,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -3692,6 +3955,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3706,6 +3970,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3720,6 +3985,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3734,6 +4000,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3748,6 +4015,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3762,6 +4030,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3776,6 +4045,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3790,6 +4060,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3804,6 +4075,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3818,6 +4090,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -3832,6 +4105,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3846,6 +4120,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3860,6 +4135,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3874,6 +4150,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3888,6 +4165,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3902,6 +4180,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3916,6 +4195,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3930,6 +4210,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3944,6 +4225,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3958,6 +4240,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3972,6 +4255,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -3986,6 +4270,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4000,6 +4285,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4014,6 +4300,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4028,6 +4315,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4042,6 +4330,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4056,6 +4345,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4070,6 +4360,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4084,6 +4375,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4098,6 +4390,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4112,6 +4405,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4126,6 +4420,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4140,6 +4435,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4154,6 +4450,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4168,6 +4465,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4182,6 +4480,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4196,6 +4495,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4210,6 +4510,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4224,6 +4525,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4238,6 +4540,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4252,6 +4555,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4266,6 +4570,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4280,6 +4585,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4294,6 +4600,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4308,6 +4615,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4322,6 +4630,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4336,6 +4645,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4350,6 +4660,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4364,6 +4675,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4378,6 +4690,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4392,6 +4705,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4406,6 +4720,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4420,6 +4735,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4434,6 +4750,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4448,6 +4765,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4462,6 +4780,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4476,6 +4795,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4490,6 +4810,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4504,6 +4825,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4518,6 +4840,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4532,6 +4855,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4546,6 +4870,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4560,6 +4885,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4574,6 +4900,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4588,6 +4915,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4602,6 +4930,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4616,6 +4945,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4630,6 +4960,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4644,6 +4975,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4658,6 +4990,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4672,6 +5005,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4686,6 +5020,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4700,6 +5035,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4714,6 +5050,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4728,6 +5065,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4742,6 +5080,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4756,6 +5095,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4770,6 +5110,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4784,6 +5125,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4798,6 +5140,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4812,6 +5155,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4826,6 +5170,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4840,6 +5185,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4854,6 +5200,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4868,6 +5215,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4882,6 +5230,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4896,6 +5245,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4910,6 +5260,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4924,6 +5275,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -4938,6 +5290,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4952,6 +5305,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4966,6 +5320,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4980,6 +5335,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -4994,6 +5350,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5008,6 +5365,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5022,6 +5380,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5036,6 +5395,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5050,6 +5410,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5064,6 +5425,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5078,6 +5440,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5092,6 +5455,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5106,6 +5470,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5120,6 +5485,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5134,6 +5500,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5148,6 +5515,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5162,6 +5530,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5176,6 +5545,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5190,6 +5560,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5204,6 +5575,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5218,6 +5590,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5232,6 +5605,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5246,6 +5620,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5260,6 +5635,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5274,6 +5650,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5288,6 +5665,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5302,6 +5680,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5316,6 +5695,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5330,6 +5710,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5344,6 +5725,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5358,6 +5740,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5372,6 +5755,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5386,6 +5770,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5400,6 +5785,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5414,6 +5800,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5428,6 +5815,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5442,6 +5830,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5456,6 +5845,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5470,6 +5860,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5484,6 +5875,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5498,6 +5890,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5512,6 +5905,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5526,6 +5920,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5540,6 +5935,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5554,6 +5950,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5568,6 +5965,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5582,6 +5980,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5596,6 +5995,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5610,6 +6010,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5624,6 +6025,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5638,6 +6040,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5652,6 +6055,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5666,6 +6070,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5680,6 +6085,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5694,6 +6100,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5708,6 +6115,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5722,6 +6130,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5736,6 +6145,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5750,6 +6160,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5764,6 +6175,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5778,6 +6190,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -5792,6 +6205,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5806,6 +6220,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5820,6 +6235,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5834,6 +6250,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5848,6 +6265,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5862,6 +6280,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -5876,6 +6295,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5890,6 +6310,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5904,6 +6325,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5918,6 +6340,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5932,6 +6355,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5946,6 +6370,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5960,6 +6385,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5974,6 +6400,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -5988,6 +6415,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6002,6 +6430,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6016,6 +6445,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6030,6 +6460,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6044,6 +6475,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6058,6 +6490,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6072,6 +6505,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6086,6 +6520,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6100,6 +6535,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6114,6 +6550,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6128,6 +6565,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6142,6 +6580,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6156,6 +6595,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6170,6 +6610,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6184,6 +6625,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6198,6 +6640,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6212,6 +6655,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6226,6 +6670,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6240,6 +6685,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6254,6 +6700,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6268,6 +6715,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6282,6 +6730,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6296,6 +6745,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6310,6 +6760,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6324,6 +6775,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6338,6 +6790,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6352,6 +6805,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6366,6 +6820,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6380,6 +6835,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6394,6 +6850,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6408,6 +6865,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6422,6 +6880,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6436,6 +6895,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6450,6 +6910,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6464,6 +6925,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6478,6 +6940,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6492,6 +6955,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6506,6 +6970,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6520,6 +6985,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6534,6 +7000,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -6548,6 +7015,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -6562,6 +7030,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -6576,6 +7045,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6590,6 +7060,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6604,6 +7075,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6618,6 +7090,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6632,6 +7105,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6646,6 +7120,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6660,6 +7135,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6674,6 +7150,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6688,6 +7165,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6702,6 +7180,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6716,6 +7195,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6730,6 +7210,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6744,6 +7225,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6758,6 +7240,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6772,6 +7255,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6786,6 +7270,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6800,6 +7285,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6814,6 +7300,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6828,6 +7315,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6842,6 +7330,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6856,6 +7345,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6870,6 +7360,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -6884,6 +7375,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6898,6 +7390,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6912,6 +7405,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6926,6 +7420,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6940,6 +7435,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6954,6 +7450,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6968,6 +7465,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6982,6 +7480,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -6996,6 +7495,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7010,6 +7510,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7024,6 +7525,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7038,6 +7540,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7052,6 +7555,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7066,6 +7570,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7080,6 +7585,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7094,6 +7600,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7108,6 +7615,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7122,6 +7630,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7136,6 +7645,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7150,6 +7660,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7164,6 +7675,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7178,6 +7690,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7192,6 +7705,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7206,6 +7720,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7220,6 +7735,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7234,6 +7750,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7248,6 +7765,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7262,6 +7780,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7276,6 +7795,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7290,6 +7810,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7304,6 +7825,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7318,6 +7840,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7332,6 +7855,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7346,6 +7870,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7360,6 +7885,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7374,6 +7900,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7388,6 +7915,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7402,6 +7930,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7416,6 +7945,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7430,6 +7960,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7444,6 +7975,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7458,6 +7990,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7472,6 +8005,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7486,6 +8020,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7500,6 +8035,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7514,6 +8050,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7528,6 +8065,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7542,6 +8080,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7556,6 +8095,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7570,6 +8110,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7584,6 +8125,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7598,6 +8140,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7612,6 +8155,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7626,6 +8170,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7640,6 +8185,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7654,6 +8200,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7668,6 +8215,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7682,6 +8230,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7696,6 +8245,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7710,6 +8260,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -7724,6 +8275,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7738,6 +8290,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7752,6 +8305,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7766,6 +8320,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7780,6 +8335,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7794,6 +8350,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -7808,6 +8365,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7822,6 +8380,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7836,6 +8395,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7850,6 +8410,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7864,6 +8425,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7878,6 +8440,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7892,6 +8455,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7906,6 +8470,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7920,6 +8485,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7934,6 +8500,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -7948,6 +8515,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7962,6 +8530,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7976,6 +8545,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -7990,6 +8560,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8004,6 +8575,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8018,6 +8590,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8032,6 +8605,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8046,6 +8620,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8060,6 +8635,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8074,6 +8650,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8088,6 +8665,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8102,6 +8680,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -8116,6 +8695,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8130,6 +8710,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8144,6 +8725,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8158,6 +8740,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8172,6 +8755,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8186,6 +8770,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8200,6 +8785,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8214,6 +8800,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -8228,6 +8815,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8242,6 +8830,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8256,6 +8845,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8270,6 +8860,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8284,6 +8875,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8298,6 +8890,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8312,6 +8905,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8326,6 +8920,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8340,6 +8935,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8354,6 +8950,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8368,6 +8965,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8382,6 +8980,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8396,6 +8995,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   },
@@ -8410,6 +9010,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8424,6 +9025,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8438,6 +9040,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8452,6 +9055,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8466,6 +9070,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8480,6 +9085,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8494,6 +9100,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8508,6 +9115,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8522,6 +9130,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8536,6 +9145,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8550,6 +9160,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "deny"
   },
@@ -8564,6 +9175,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8578,6 +9190,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8592,6 +9205,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8606,6 +9220,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8620,6 +9235,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
+    "branchTrusted": "deny",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -8634,6 +9250,7 @@
     "newcomer": "pass",
     "supplierPending": "pass",
     "supplierRejected": "pass",
+    "branchTrusted": "pass",
     "capitalMember": "pass",
     "exited": "pass"
   }
