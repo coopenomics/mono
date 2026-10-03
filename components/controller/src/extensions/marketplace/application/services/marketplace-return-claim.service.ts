@@ -282,7 +282,7 @@ export class MarketplaceReturnClaimService {
     reason_text?: string;
   }): Promise<InnerGeneratedDocument> {
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
-    const quantity = this.resolveActualQuantity(order, input.actual_quantity);
+    const quantity = await this.resolveActualQuantity(order, input.actual_quantity);
     return this.generateStatementDocument({
       order,
       orderer: input.orderer_account,
@@ -355,7 +355,7 @@ export class MarketplaceReturnClaimService {
     this.validateSubmitInput(input);
 
     const order = await this.loadOrderForReturn(input.coopname, input.order_id, input.orderer_account);
-    const actual_quantity = this.resolveActualQuantity(order, input.actual_quantity);
+    const actual_quantity = await this.resolveActualQuantity(order, input.actual_quantity);
     const existingActive = await this.claimRepo.findActiveByOrderId(input.coopname, order.id);
     if (existingActive) {
       throw DomainError.conflict('MARKETPLACE_RETURN_CLAIM_ALREADY_OPEN');
@@ -1132,16 +1132,27 @@ export class MarketplaceReturnClaimService {
     }
   }
 
-  private resolveActualQuantity(order: MarketplaceOrderDomainEntity, requested?: number): number {
+  /**
+   * Количество к возврату. Вернуть можно не больше выданного за вычетом уже
+   * возвращённого по прежним заявлениям: без вычета серия заявлений возвращала
+   * больше, чем пайщик получил.
+   */
+  private async resolveActualQuantity(order: MarketplaceOrderDomainEntity, requested?: number): Promise<number> {
     const factQty = order.issuance_fact?.actual_quantity ?? order.quantity;
-    if (requested === undefined || requested === null) return factQty;
-    if (requested <= 0) {
+    const returned = await this.claimRepo.sumReturnedQuantity(order.coopname, order.id);
+    // Доли килограмма складываются с погрешностью — сверяем с точностью до тысячной.
+    const remaining = Math.max(0, Math.round((factQty - returned) * 1000) / 1000);
+    if (requested !== undefined && requested !== null && requested <= 0) {
       throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_MUST_BE_POSITIVE');
     }
-    if (requested > factQty) {
+    const quantity = requested ?? remaining;
+    if (quantity > factQty) {
       throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_ISSUED', { factQty });
     }
-    return requested;
+    if (returned > 0 && (remaining <= 0 || quantity > remaining)) {
+      throw DomainError.badRequest('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_REMAINING', { remaining, factQty });
+    }
+    return quantity;
   }
 
   /**

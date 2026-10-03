@@ -30,7 +30,7 @@ export class ProcessResolver {
       title: data.title,
       description: data.description,
       created_by: user.username,
-    }) as any;
+    }, user) as any;
   }
 
   @Mutation(() => ProcessTemplateDTO, {
@@ -41,8 +41,9 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member'])
   async updateProcessTemplate(
     @Args('data') data: UpdateProcessTemplateInputDTO,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessTemplateDTO> {
-    return this.processService.updateTemplate(data.id, data) as any;
+    return this.processService.updateTemplate(data.id, data, user) as any;
   }
 
   @Mutation(() => Boolean, {
@@ -53,8 +54,9 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member'])
   async deleteProcessTemplate(
     @Args('id') id: string,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<boolean> {
-    await this.processService.deleteTemplate(id);
+    await this.processService.deleteTemplate(id, user);
     return true;
   }
 
@@ -65,12 +67,13 @@ export class ProcessResolver {
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   @AuthRoles(['chairman', 'member', 'user'])
   async getProcessTemplates(
+    @CurrentUser() user: IMonoAccount,
     @Args('project_hash', { nullable: true }) projectHash?: string,
   ): Promise<ProcessTemplateDTO[]> {
     if (projectHash) {
-      return this.processService.getTemplatesByProject(projectHash) as any;
+      return this.processService.getTemplatesByProject(projectHash, user) as any;
     }
-    return this.processService.getTemplatesByCoopname(platformSettings().coopname) as any;
+    return this.processService.getTemplatesByCoopname(platformSettings().coopname, user) as any;
   }
 
   @Query(() => ProcessTemplateDTO, {
@@ -82,8 +85,9 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getProcessTemplate(
     @Args('id') id: string,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessTemplateDTO | null> {
-    return this.processService.getTemplate(id) as any;
+    return this.processService.getTemplate(id, user) as any;
   }
 
   // ──── ЭКЗЕМПЛЯРЫ (chairman/member/user) ────
@@ -103,7 +107,7 @@ export class ProcessResolver {
       project_hash: data.project_hash,
       started_by: user.username,
       coopname: platformSettings().coopname,
-    }) as any;
+    }, user) as any;
   }
 
   @Mutation(() => ProcessInstanceDTO, {
@@ -114,8 +118,9 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async completeProcessStep(
     @Args('data') data: CompleteProcessStepInputDTO,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessInstanceDTO> {
-    return this.processService.completeStep(data.instance_id, data.step_id) as any;
+    return this.processService.completeStep(data.instance_id, data.step_id, user) as any;
   }
 
   @Query(() => [ProcessInstanceDTO], {
@@ -126,8 +131,9 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getProcessInstances(
     @Args('project_hash') projectHash: string,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessInstanceDTO[]> {
-    return this.processService.getInstancesByProject(projectHash) as any;
+    return this.processService.getInstancesByProject(projectHash, user) as any;
   }
 
   @Query(() => ProcessInstanceDTO, {
@@ -139,7 +145,8 @@ export class ProcessResolver {
   @AuthRoles(['chairman', 'member', 'user'])
   async getProcessInstance(
     @Args('id') id: string,
+    @CurrentUser() user: IMonoAccount,
   ): Promise<ProcessInstanceDTO | null> {
-    return this.processService.getInstance(id) as any;
+    return this.processService.getInstance(id, user) as any;
   }
 }

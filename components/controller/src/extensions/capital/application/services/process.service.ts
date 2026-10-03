@@ -15,6 +15,9 @@ import { IssueIdGenerationService } from '../../domain/services/issue-id-generat
 import type { IIssueDatabaseData } from '../../domain/interfaces/issue-database.interface';
 import { t } from '../../i18n';
 import { DomainError, generateUniqueHash } from '@coopenomics/extension-kit';
+import type { IMonoAccount } from '@coopenomics/innercoop';
+import { PermissionsService } from './permissions.service';
+import { canViewLocalProject } from '../../domain/utils/private-project-access';
 
 @Injectable()
 export class ProcessService {
@@ -26,7 +29,40 @@ export class ProcessService {
     @Inject(ISSUE_REPOSITORY) private readonly issueRepo: IssueRepository,
     @Inject(PROJECT_REPOSITORY) private readonly projectRepo: ProjectRepository,
     private readonly issueIdService: IssueIdGenerationService,
+    private readonly permissionsService: PermissionsService,
   ) {}
+
+  // ──── ДОСТУП К ПРОЕКТУ ────
+
+  /**
+   * Процессы живут внутри проекта и подчиняются его доступу. Вести процесс
+   * (запускать, закрывать шаги) может тот, кто ведёт задачи проекта. Шаблоны
+   * правит совет — по роли, как и прежде; личный проект при этом виден и
+   * доступен только владельцу.
+   */
+  private async assertCanManage(projectHash: string, user: IMonoAccount): Promise<void> {
+    const project = await this.projectRepo.findByHash(projectHash);
+    if (!project) throw DomainError.notFound('CAPITAL_PROJECT_HASH_NOT_FOUND', { hash: projectHash });
+    const permissions = await this.permissionsService.calculateProjectPermissions(project, user);
+    if (!permissions.can_manage_issues) throw DomainError.forbidden('CAPITAL_PROCESS_PROJECT_FORBIDDEN');
+  }
+
+  private async canView(projectHash: string, user: IMonoAccount): Promise<boolean> {
+    const project = await this.projectRepo.findByHash(projectHash);
+    // Проекта нет — скрывать нечего: чтение отдаст пустой список.
+    if (!project) return true;
+    return canViewLocalProject(project, user.username);
+  }
+
+  private async assertCanView(projectHash: string, user: IMonoAccount): Promise<void> {
+    if (!(await this.canView(projectHash, user))) throw DomainError.forbidden('CAPITAL_PROCESS_PROJECT_FORBIDDEN');
+  }
+
+  private async getTemplateOrFail(id: string): Promise<ProcessTemplateDomainEntity> {
+    const template = await this.templateRepo.findById(id);
+    if (!template) throw DomainError.notFound('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
+    return template;
+  }
 
   // ──── ШАБЛОНЫ ────
 
@@ -36,7 +72,9 @@ export class ProcessService {
     title: string;
     description?: string;
     created_by: string;
-  }): Promise<ProcessTemplateDomainEntity> {
+  }, _user: IMonoAccount): Promise<ProcessTemplateDomainEntity> {
+    // Создание шаблона — по роли совета, без сверки с проектом: отказ здесь меняет
+    // утверждённый снимок прав, решение за владельцем (C28-85, 03.10.2026).
     return this.templateRepo.create({
       ...data,
       status: ProcessTemplateStatus.DRAFT,
@@ -45,23 +83,45 @@ export class ProcessService {
     });
   }
 
-  async getTemplate(id: string): Promise<ProcessTemplateDomainEntity | null> {
-    return this.templateRepo.findById(id);
+  async getTemplate(id: string, user: IMonoAccount): Promise<ProcessTemplateDomainEntity | null> {
+    const template = await this.templateRepo.findById(id);
+    if (!template) return null;
+    await this.assertCanView(template.project_hash, user);
+    return template;
   }
 
-  async getTemplatesByProject(projectHash: string): Promise<ProcessTemplateDomainEntity[]> {
+  async getTemplatesByProject(projectHash: string, user: IMonoAccount): Promise<ProcessTemplateDomainEntity[]> {
+    await this.assertCanView(projectHash, user);
     return this.templateRepo.findByProjectHash(projectHash);
   }
 
-  async getTemplatesByCoopname(coopname: string): Promise<ProcessTemplateDomainEntity[]> {
-    return this.templateRepo.findByCoopname(coopname);
+  /** Шаблоны всего кооператива — без шаблонов чужих личных проектов. */
+  async getTemplatesByCoopname(coopname: string, user: IMonoAccount): Promise<ProcessTemplateDomainEntity[]> {
+    const templates = await this.templateRepo.findByCoopname(coopname);
+    const visible = new Map<string, boolean>();
+    const result: ProcessTemplateDomainEntity[] = [];
+    for (const template of templates) {
+      if (!visible.has(template.project_hash)) {
+        visible.set(template.project_hash, await this.canView(template.project_hash, user));
+      }
+      if (visible.get(template.project_hash)) result.push(template);
+    }
+    return result;
   }
 
-  async updateTemplate(id: string, data: Partial<ProcessTemplateDomainEntity>): Promise<ProcessTemplateDomainEntity> {
+  async updateTemplate(
+    id: string,
+    data: Partial<ProcessTemplateDomainEntity>,
+    user: IMonoAccount
+  ): Promise<ProcessTemplateDomainEntity> {
+    const template = await this.getTemplateOrFail(id);
+    await this.assertCanView(template.project_hash, user);
     return this.templateRepo.update(id, data);
   }
 
-  async deleteTemplate(id: string): Promise<void> {
+  async deleteTemplate(id: string, user: IMonoAccount): Promise<void> {
+    const template = await this.getTemplateOrFail(id);
+    await this.assertCanView(template.project_hash, user);
     return this.templateRepo.delete(id);
   }
 
@@ -72,15 +132,19 @@ export class ProcessService {
     project_hash: string;
     started_by: string;
     coopname: string;
-  }): Promise<ProcessInstanceDomainEntity> {
-    const template = await this.templateRepo.findById(data.template_id);
-    if (!template) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
+  }, user: IMonoAccount): Promise<ProcessInstanceDomainEntity> {
+    const template = await this.getTemplateOrFail(data.template_id);
+    // Процесс идёт в проекте своего шаблона: чужой проект в запросе не подставить.
+    if (template.project_hash.toLowerCase() !== data.project_hash.toLowerCase()) {
+      throw DomainError.badRequest('CAPITAL_PROCESS_TEMPLATE_FOREIGN_PROJECT');
+    }
+    await this.assertCanManage(template.project_hash, user);
     if (template.status !== ProcessTemplateStatus.ACTIVE) {
-      throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_ACTIVE');
+      throw DomainError.conflict('CAPITAL_PROCESS_TEMPLATE_NOT_ACTIVE');
     }
 
     const startSteps = template.steps.filter(s => s.is_start);
-    if (startSteps.length === 0) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NO_START_STEPS');
+    if (startSteps.length === 0) throw DomainError.conflict('CAPITAL_PROCESS_TEMPLATE_NO_START_STEPS');
 
     const stepStates: ProcessStepState[] = template.steps.map(step => ({
       step_id: step.id,
@@ -104,12 +168,12 @@ export class ProcessService {
     return instance;
   }
 
-  async completeStep(instanceId: string, stepId: string): Promise<ProcessInstanceDomainEntity> {
+  async completeStep(instanceId: string, stepId: string, user: IMonoAccount): Promise<ProcessInstanceDomainEntity> {
     const instance = await this.instanceRepo.findById(instanceId);
     if (!instance) throw DomainError.notFound('CAPITAL_PROCESS_INSTANCE_NOT_FOUND');
+    await this.assertCanManage(instance.project_hash, user);
 
-    const template = await this.templateRepo.findById(instance.template_id);
-    if (!template) throw DomainError.internal('CAPITAL_PROCESS_TEMPLATE_NOT_FOUND');
+    const template = await this.getTemplateOrFail(instance.template_id);
 
     const stepState = instance.step_states.find(s => s.step_id === stepId);
     if (!stepState) throw DomainError.notFound('CAPITAL_PROCESS_STEP_NOT_FOUND');
@@ -159,12 +223,16 @@ export class ProcessService {
     });
   }
 
-  async getInstancesByProject(projectHash: string): Promise<ProcessInstanceDomainEntity[]> {
+  async getInstancesByProject(projectHash: string, user: IMonoAccount): Promise<ProcessInstanceDomainEntity[]> {
+    await this.assertCanView(projectHash, user);
     return this.instanceRepo.findByProjectHash(projectHash);
   }
 
-  async getInstance(id: string): Promise<ProcessInstanceDomainEntity | null> {
-    return this.instanceRepo.findById(id);
+  async getInstance(id: string, user: IMonoAccount): Promise<ProcessInstanceDomainEntity | null> {
+    const instance = await this.instanceRepo.findById(id);
+    if (!instance) return null;
+    await this.assertCanView(instance.project_hash, user);
+    return instance;
   }
 
   // ──── СОЗДАНИЕ ЗАДАЧ ────

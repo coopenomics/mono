@@ -269,12 +269,18 @@ describe('гарантийный возврат: заявление, решен�
     expect(amount(s.not_admitted_total), 'непризнанного по претензии не осталось').toBeCloseTo(summaryBefore.pending, 4)
   })
 
-  // Выключен: дефект продукта (реестр, mkt.ret.side.19) — остаток к возврату считается от всего выданного,
-  // принятые возвраты не вычитаются. Включить после решения о серии заявлений на возврат.
-  it.skip(caseName('mkt.ret.side.19', 'после принятого возврата части заявление на всё выданное не принимается — остаток к возврату считается за вычетом принятого'), async () => {
+  it(caseName('mkt.ret.side.19', 'после принятого возврата части заявление на всё выданное не принимается — остаток к возврату считается за вычетом принятого'), async () => {
+    // До 03.10.2026 количество сверялось со всем выданным: серия заявлений возвращала
+    // больше, чем пайщица получила (C28-85).
     expect(claim.status, 'первый возврат по заказу принят').toBe('ACCEPTED_BY_COUNCIL')
-    const preview = await refusal(memberToken, CLAIM_PAYLOAD, { d: { order_id: order.orderId, actual_quantity: order.quantity, reason_text: REASON } })
-    expect(preview, 'заявление на всё выданное после принятого возврата отклонено').not.toBeNull()
+    const returned = Number(claim.actual_quantity)
+    const whole = await refusal(memberToken, CLAIM_PAYLOAD, { d: { order_id: order.orderId, actual_quantity: order.quantity, reason_text: REASON } })
+    expect(whole?.codeText, whole?.message).toBe('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_REMAINING')
+
+    const signed = await signedStatement(ekaterina, order.orderId, order.quantity - returned)
+    const create = await refusal(memberToken, CREATE_CLAIM, claimInput(order.orderId, order.quantity, signed))
+    expect(create?.codeText, create?.message).toBe('MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_REMAINING')
+    expect((await myClaimsForOrder(order.orderId)).map(c => c.id), 'заявление сверх остатка не заведено').toEqual([claim.id])
   })
 
   it(caseName('mkt.ret.side.53', 'возврат имущества, выданного со снижением цены, — в остаток по цене выдачи'), async () => {

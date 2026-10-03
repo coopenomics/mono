@@ -83,9 +83,7 @@ cases:
     level: backend
     kind: side
     scenario: набор назначают имени, которого нет среди пайщиков
-    expect: >
-      не решено. Сейчас существование пайщика не проверяется: назначение
-      записывается на любое имя
-    test: ~
-    status: missing
-    decision_needed: true
+    expect: отказ AUTH_V2_PARTICIPANT_NOT_FOUND, назначение не записывается
+    # До 03.10.2026 существование пайщика не проверялось (C28-85, решение владельца от 03.10.2026).
+    test: components/api-tests/src/coopid/capability-sets.test.ts
+    status: written

@@ -4,6 +4,7 @@ import { In, IsNull, Not, Repository } from 'typeorm';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES,
+  MarketplaceReturnClaimStatuses,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type {
@@ -83,6 +84,17 @@ export class MarketplaceReturnClaimRepositoryAdapter
       where: { coopname, order_id, status: In(ACTIVE_STATUSES) },
     });
     return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async sumReturnedQuantity(coopname: string, order_id: string): Promise<number> {
+    const rows = await this.repo.find({
+      where: {
+        coopname,
+        order_id,
+        status: In([MarketplaceReturnClaimStatuses.PENDING_COUNCIL, MarketplaceReturnClaimStatuses.ACCEPTED_BY_COUNCIL]),
+      },
+    });
+    return rows.reduce((sum, row) => sum + Number(row.actual_quantity ?? 0), 0);
   }
 
   async listByOrderer(

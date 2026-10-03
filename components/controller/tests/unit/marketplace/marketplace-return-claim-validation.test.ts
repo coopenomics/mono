@@ -18,6 +18,7 @@ const COOP = 'voskhod';
 function makeService() {
   const claimRepo = {
     findActiveByOrderId: jest.fn(),
+    sumReturnedQuantity: jest.fn(async () => 0),
     create: jest.fn(),
     findById: jest.fn(),
   };
@@ -212,6 +213,33 @@ describe('MarketplaceReturnClaimService.submitReturnClaim: право на во�
       .then(() => null)
       .catch((e: Error) => e);
     expect(atBoundary?.message ?? '').not.toContain('Нельзя вернуть больше единиц');
+  });
+
+  it('серия заявлений: вернуть можно не больше выданного за вычетом уже возвращённого', async () => {
+    // Выдано 10, по прежнему заявлению возвращено 6 — осталось 4 (mkt.ret.side.19).
+    const { service, orderRepo, claimRepo } = makeService();
+    orderRepo.findById.mockResolvedValue(receivedOrder());
+    claimRepo.sumReturnedQuantity.mockResolvedValue(6);
+
+    await expect(service.submitReturnClaim(claimInput({ actual_quantity: 10 }))).rejects.toThrow(
+      'осталось после прежних возвратов'
+    );
+    await expect(service.submitReturnClaim(claimInput({ actual_quantity: 4.001 }))).rejects.toThrow(
+      'осталось после прежних возвратов'
+    );
+
+    // Ровно остаток — допустимая граница.
+    const atBoundary = await service
+      .submitReturnClaim(claimInput({ actual_quantity: 4 }))
+      .then(() => null)
+      .catch((e: Error) => e);
+    expect(atBoundary?.message ?? '').not.toContain('осталось после прежних возвратов');
+
+    // Всё выданное уже возвращено — новое заявление не принимается вовсе.
+    claimRepo.sumReturnedQuantity.mockResolvedValue(10);
+    await expect(service.submitReturnClaim(claimInput({ actual_quantity: 1 }))).rejects.toThrow(
+      'осталось после прежних возвратов'
+    );
   });
 
   it('ноль и отрицательное количество к возврату → отказ', async () => {

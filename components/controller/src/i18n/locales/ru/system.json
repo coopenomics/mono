@@ -14,7 +14,8 @@
     "SYSTEM_INVITE_USER_NOT_FOUND": "Пользователь с email {email} не найден",
     "SYSTEM_ORGANIZATION_DATA_READONLY": "Невозможно обновить данные организации - они были установлены администратором и доступны только для чтения.",
     "SYSTEM_SOVIET_MEMBERS_MIN_COUNT": "Количество членов совета должно быть не менее {minCount}",
-    "SYSTEM_STATUS_UPDATE_FAILED": "Не удалось обновить статус системы"
+    "SYSTEM_STATUS_UPDATE_FAILED": "Не удалось обновить статус системы",
+    "SYSTEM_VAULT_COOPERATIVE_KEY_ONLY": "Узел хранит только ключ кооператива"
   },
   "system": {
     "installInteractor": {

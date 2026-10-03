@@ -128,6 +128,8 @@ describe('кандидаты на списание: партии по проис
   const OFFER_NAME = 'Мёд цветочный'
   let returnedIds: string[] = []
   let receptionIds: string[] = []
+  /** Позиции, выданные пайщику: списанию не подлежат. */
+  let issuedIds: string[] = []
   let claimStatus = ''
 
   beforeAll(async () => {
@@ -150,7 +152,34 @@ describe('кандидаты на списание: партии по проис
     claimStatus = (await warrantyReturn({ member, operator: krgChairman, orderId: w.orderId, quantity: 2 })).status
     const rows = await inventoryOfOrder(krgToken, w.orderId)
     returnedIds = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED').map(r => r.id)
+
+    // Четвёртый заказ выдан пайщику и остался у него.
+    const issued = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 1, receivedQuantity: 1, arrivalPrice: price })
+    await issueOrder({ operator: krgChairman, member, orderId: issued.orderId, actualQuantity: 1, actualUnitPrice: price })
+    issuedIds = (await inventoryOfOrder(krgToken, issued.orderId)).filter(r => r.status === 'ISSUED').map(r => r.id)
   }, 900_000)
+
+  it(caseName('mkt.wof.side.03', 'выданное пайщику и имущество чужого участка в проект списания не попадает'), async () => {
+    // До 03.10.2026 состав проекта со складом не сверялся: защитой был только список
+    // кандидатов на экране, выданное молча списывалось при проведении (C28-85).
+    expect(issuedIds.length, 'у пайщика на руках выданное имущество').toBeGreaterThan(0)
+    const open = (await gql<any>(chairmanToken, OPEN_DRAFT)).marketplaceOpenWriteoffDraft
+    const submit = (items: unknown[]) => open
+      ? gqlError(chairmanToken, UPDATE_DRAFT, { d: { id: open.id, items } })
+      : gqlError(chairmanToken, CREATE_DRAFT, { d: { items } })
+
+    const issuedItem = { ...item('Внешний тест: списание выданного.'), inventory_ids: [issuedIds[0]] }
+    expect((await submit([issuedItem]))?.code, 'выданное списать нельзя').toBe('MARKETPLACE_WRITEOFF_INVENTORY_NOT_ON_STOCK')
+
+    const foreignItem = { ...item('Внешний тест: чужой участок.'), braname: 'odn', inventory_ids: [receptionIds[0]] }
+    expect((await submit([foreignItem]))?.code, 'имущество лежит на другом участке').toBe('MARKETPLACE_WRITEOFF_INVENTORY_NOT_FOUND')
+
+    const after = (await gql<any>(chairmanToken, OPEN_DRAFT)).marketplaceOpenWriteoffDraft
+    if (open)
+      expect(after.items, 'состав черновика прежний').toEqual(open.items)
+    else
+      expect(after, 'черновик с выданным имуществом не создан').toBeNull()
+  })
 
   it(caseName('mkt.wof.side.33', 'возврат по гарантии — отдельной строкой; партии одного происхождения складываются'), async () => {
     expect(claimStatus, 'совет принял возврат (на стенде — робот)').toBe('ACCEPTED_BY_COUNCIL')
