@@ -142,7 +142,8 @@ cases:
       чтение собраний и другие права пайщика отвечают KIT_MEMBERS_ONLY; ход
       своего выхода и свои кошельки он читает как прежде. Повторный приём
       возвращает статус. Решение владельца от 03.10.2026 (C28-87): после выхода
-      остаются вход и своё
+      остаются вход и своё. Прежние выходы один раз проходит миграция данных
+      202610031230 — по сохранённым действиям цепи
     test: components/controller/tests/unit/account/participant-join-date.test.ts
     api: components/api-tests/src/membership/membership.exit.test.ts
     status: written
