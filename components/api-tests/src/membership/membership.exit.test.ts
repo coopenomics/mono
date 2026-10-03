@@ -230,8 +230,8 @@ describe('выход пайщика: подтверждение по письм�
     expect(await gqlError(await tokenOf(ROLES.member()), MEETS, { d: { coopname: COOP } }), 'действующий пайщик собрания читает').toBeNull()
 
     // Своё вышедший читает как прежде: ход возврата взноса и свои кошельки.
-    const own = await exitStatus(leaverToken, leaver.account)
-    expect(own?.status, 'ход своего выхода виден').toBe('COMPLETED')
+    // У выхода с нулевым возвратом хода нет — важно, что запрос отвечает без отказа.
+    expect(await gqlError(leaverToken, EXIT_STATUS, { c: COOP, u: leaver.account }), 'ход своего выхода читается без отказа').toBeNull()
     expect(await gqlError(leaverToken, USER_WALLETS, { u: leaver.account }), 'свои кошельки видны').toBeNull()
   }, 180_000)
 })
