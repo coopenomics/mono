@@ -9,7 +9,7 @@
  *  - newcomer        — принят, к Столу заказов не подключался;
  *  - supplierPending — подал заявку поставщика, решения нет;
  *  - supplierRejected — заявку поставщика отклонил председатель;
- *  - branchTrusted   — доверенный участка krg;
+ *  - branchTrusted   — доверенный кооперативного участка;
  *  - capitalMember   — участник Благороста с договором УХД;
  *  - exited          — вышел из кооператива, выход завершён.
  *
@@ -21,7 +21,6 @@ import { completeCapitalRegistration } from '../capital/cap-results.helpers'
 import { approveAsChairman, ensureCapitalChainReady } from '../capital/cap-access.helpers'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, completeExit, freshMember, gql, gqlRaw, login, registerCandidate, tokenOf, waitFor } from '../core'
-import { makeBranchTrusted } from '../documents/docs-reports.helpers'
 
 export interface StateActor {
   name: string
@@ -52,7 +51,7 @@ const MAKERS: { name: string, make: () => Promise<Who> }[] = [
     name: 'branchTrusted',
     make: async () => {
       const who = freshMember({ prefix: 'mxtr' })
-      await makeBranchTrusted(who)
+      await makeTrusted(who)
       return who
     },
   },
@@ -91,6 +90,33 @@ async function supplierApplicant(prefix: string): Promise<Who> {
     marketplaceRequestSupplier(input:$i){ member_account status }
   }`, { i: { contract_number: `МП-${who.account}`, contract_date: '2026-09-01' } })
   return who
+}
+
+/**
+ * Доверенный участка. Цепь держит на участке не больше трёх доверенных, а
+ * сценарии до матрицы занимают места на krg — берётся первый участок, где
+ * место есть.
+ */
+async function makeTrusted(who: Who): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
+  const branches = (await gql<any>(chairman,
+    'query($d:GetBranchesInput!){ getBranches(data:$d){ braname trusted_certificates{ username } } }',
+    { d: { coopname: COOP } })).getBranches as { braname: string, trusted_certificates: unknown[] | null }[]
+  const branch = branches.find(b => (b.trusted_certificates ?? []).length < 3)
+  if (!branch)
+    throw new Error(`на всех участках по три доверенных: ${branches.map(b => b.braname).join(', ')}`)
+  await gql(chairman, 'mutation($d:AddTrustedAccountInput!){ addTrustedAccount(data:$d){ braname } }', {
+    d: { coopname: COOP, braname: branch.braname, trusted: who.account },
+  })
+  // Состав участков Стол заказов держит в кэше на минуту — ждём, пока новый
+  // доверенный получит права участка.
+  const token = await tokenOf(who)
+  await waitFor(async () => {
+    const r = await gqlRaw(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
+      marketplaceAidStatementSignablePayload(data:$d){ hash }
+    }`, { d: { braname: branch.braname, amount: 1 } })
+    return r.errors.some(e => String(e.code) === '403' || /Forbidden/i.test(e.message)) ? null : true
+  }, { timeoutMs: 150_000, intervalMs: 5_000, label: `доверенный ${who.account} получил права участка ${branch.braname}` })
 }
 
 /**
