@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
 import { DataSource } from 'typeorm';
-import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
+import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { isHexHash } from '~/shared/sql/hex-value.util';
@@ -25,7 +25,7 @@ import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 export class ControllerChainDataSource implements IChainDataSource {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly draftRegistry: TypeOrmDraftRegistryRepository,
+    private readonly draftRegistry: DraftRegistryKyselyRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
     private readonly blockchainService: BlockchainService,
     private readonly effectiveBlock: EffectiveTemplateBlockResolver,
@@ -93,18 +93,7 @@ export class ControllerChainDataSource implements IChainDataSource {
       if (draftId === undefined) return null;
       const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(draftId)));
 
-      // Языки заранее не известны — берём все версии этого шаблона на нужный
-      // блок и оставляем по одной свежей записи на язык.
-      const rows = await this.dataSource.query(
-        `SELECT DISTINCT ON (lang) value
-           FROM draft_translations
-          WHERE draft_id = $1::bigint
-            AND ($2::bigint IS NULL OR block_num <= $2::bigint)
-          ORDER BY lang, block_num DESC`,
-        [String(draftId), blockNum ?? null]
-      );
-
-      return rows.map((r: { value: unknown }) => r.value) as T[];
+      return (await this.draftRegistry.findTranslationsAt(String(draftId), blockNum ?? undefined)) as T[];
     }
 
     return null;

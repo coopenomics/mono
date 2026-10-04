@@ -69,7 +69,7 @@ sources:
     - components/controller/src/infrastructure/database/kysely/local-changes.plugin.ts
     - components/controller/src/infrastructure/database/kysely/kysely.provider.ts
     - components/controller/src/infrastructure/generator/generator.service.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/extension.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
     - components/extension-kit/src/utils/local-changes-collector.ts
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts

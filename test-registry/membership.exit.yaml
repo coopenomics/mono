@@ -14,7 +14,7 @@ title: Выход пайщика из кооператива — заявлен�
 sources:
   backend:
     - components/controller/src/application/membership-exit/**/*.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/membership-exit-request.entity.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/membership-exit-request.kysely-repository.ts
     - components/controller/src/application/document/documents-dto/membership-exit-*.ts
     - components/controller/src/domain/account/services/participant-status-sync.service.ts
 

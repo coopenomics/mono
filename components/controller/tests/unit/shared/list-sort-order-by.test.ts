@@ -17,7 +17,8 @@
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { PaginationInputDTO, PaginationUtils } from '@coopenomics/extension-kit';
-import { TypeOrmLogExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-log-extension.repository';
+import { LOG_EXTENSION_SORT_COLUMNS } from '~/infrastructure/database/kysely/repositories/log-extension.kysely-repository';
+import { sortColumn, sortDirection } from '~/infrastructure/database/kysely/sort';
 import { ApprovalTypeormRepository } from '~/extensions/chairman/infrastructure/repositories/approval.typeorm-repository';
 
 const INJECTION = 'created_at, (SELECT CASE WHEN (1=1) THEN pg_sleep(5) END)';
@@ -91,25 +92,21 @@ describe('Поле сортировки на входе', () => {
 });
 
 describe('Журнал расширений (getExtensionLogs)', () => {
-  it('сортирует по колонке журнала', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'name', 'created_at']);
-    const logs = new TypeOrmLogExtensionDomainRepository(repository as never);
-    await logs.getWithFilter(undefined, { page: 1, limit: 10, sortBy: 'name', sortOrder: 'ASC' });
-    expect(qb.orderBy).toHaveBeenCalledWith('log.name', 'ASC');
+  // Хранилище на Kysely: имя колонки берётся только из своего перечня.
+  it('сортирует по колонке журнала', () => {
+    expect(sortColumn(LOG_EXTENSION_SORT_COLUMNS, 'name', 'created_at')).toBe('name');
+    expect(sortDirection('ASC')).toBe('asc');
   });
 
-  it('подзапрос в поле сортировки до SQL не доходит', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'name', 'created_at']);
-    const logs = new TypeOrmLogExtensionDomainRepository(repository as never);
-    await logs.getWithFilter(undefined, { page: 1, limit: 10, sortBy: INJECTION, sortOrder: 'ASC' });
-    expect(qb.orderBy).toHaveBeenCalledWith('log.created_at', 'ASC');
+  it('подзапрос в поле сортировки до SQL не доходит', () => {
+    expect(sortColumn(LOG_EXTENSION_SORT_COLUMNS, INJECTION, 'created_at')).toBe('created_at');
+    expect(sortColumn(LOG_EXTENSION_SORT_COLUMNS, undefined, 'created_at')).toBe('created_at');
   });
 
-  it('направление сортировки — только ASC или DESC', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'created_at']);
-    const logs = new TypeOrmLogExtensionDomainRepository(repository as never);
-    await logs.getWithFilter(undefined, { page: 1, limit: 10, sortOrder: 'DESC; DROP TABLE x' as never });
-    expect(qb.orderBy).toHaveBeenCalledWith('log.created_at', 'DESC');
+  it('направление сортировки — только ASC или DESC', () => {
+    expect(sortDirection('DESC; DROP TABLE x')).toBe('desc');
+    expect(sortDirection(undefined)).toBe('desc');
+    expect(sortDirection('asc')).toBe('asc');
   });
 });
 

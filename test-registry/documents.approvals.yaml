@@ -60,7 +60,7 @@ sources:
     - components/controller/src/infrastructure/blockchain/adapters/draft-blockchain.adapter.ts
     - components/controller/src/infrastructure/generator/effective-template-block.resolver.ts
     - components/controller/src/infrastructure/generator/controller-chain-data.source.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/draft-registry.kysely-repository.ts
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
     - components/innercoop/src/core-ports/document-approval.port.ts

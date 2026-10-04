@@ -7,10 +7,8 @@ import { kyselyProvider } from '../kysely/kysely.provider';
 import { KYSELY } from '../kysely/kysely.tokens';
 import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
 import { MembershipExitRequestKyselyRepository } from '../kysely/repositories/membership-exit-request.kysely-repository';
-import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
-import { ExtensionEntity } from './entities/extension.entity';
-import { LogExtensionEntity } from './entities/log-extension.entity';
-import { TypeOrmLogExtensionDomainRepository } from './repositories/typeorm-log-extension.repository';
+import { ExtensionKyselyRepository } from '../kysely/repositories/extension.kysely-repository';
+import { LogExtensionKyselyRepository } from '../kysely/repositories/log-extension.kysely-repository';
 import { MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
 import { MeetPreKyselyRepository } from '../kysely/repositories/meet-pre.kysely-repository';
 import { MigrationEntity } from './entities/migration.entity';
@@ -19,8 +17,7 @@ import { TypeOrmMigrationRepository } from './repositories/typeorm-migration.rep
 import { CandidateEntity } from './entities/candidate.entity';
 import { CANDIDATE_REPOSITORY } from '~/domain/account/repository/candidate.repository';
 import { TypeOrmCandidateRepository } from './repositories/typeorm-candidate.repository';
-import { ChainTextEntity } from './entities/chain-text.entity';
-import { TypeOrmChainTextRepository } from './repositories/typeorm-chain-text.repository';
+import { ChainTextKyselyRepository } from '../kysely/repositories/chain-text.kysely-repository';
 import { CHAIN_TEXT_REPOSITORY } from '~/domain/chain-text/chain-text.repository';
 import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 import { MEET_PROCESSED_REPOSITORY } from '~/domain/meet/repositories/meet-processed.repository';
@@ -50,9 +47,7 @@ import { AgreementTypeormRepository } from './repositories/agreement.typeorm-rep
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { ActionEntity } from './entities/action.entity';
-import { DraftTemplateEntity } from './entities/draft-template.entity';
-import { DraftTranslationEntity } from './entities/draft-translation.entity';
-import { TypeOrmDraftRegistryRepository } from './repositories/typeorm-draft-registry.repository';
+import { DraftRegistryKyselyRepository } from '../kysely/repositories/draft-registry.kysely-repository';
 import { DeltaEntity } from './entities/delta.entity';
 import { ForkEntity } from './entities/fork.entity';
 import { SyncStateEntity } from './entities/sync-state.entity';
@@ -76,9 +71,8 @@ import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.re
 import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
 import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
 import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
-import { SettingsEntity } from './entities/settings.entity';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
-import { SettingsTypeormRepository } from './repositories/settings.typeorm-repository';
+import { SettingsKyselyRepository } from '../kysely/repositories/settings.kysely-repository';
 import { TokenEntity } from './entities/token.entity';
 import { TOKEN_REPOSITORY } from '~/domain/token/repositories/token.repository';
 import { TokenTypeormRepository } from './repositories/token.typeorm-repository';
@@ -91,13 +85,11 @@ import { VaultTypeormRepository } from './repositories/vault.typeorm-repository'
 import { IpnEntity } from './entities/ipn.entity';
 import { IPN_REPOSITORY } from '~/domain/gateway/repositories/ipn.repository';
 import { TypeormIpnRepository } from './repositories/typeorm-ipn.repository';
-import { SystemStatusEntity } from './entities/system-status.entity';
 import { PaymentStateEntity } from './entities/payment-state.entity';
 import { PAYMENT_STATE_REPOSITORY } from '~/domain/gateway/repositories/payment-state.repository';
 import { TypeormPaymentStateRepository } from './repositories/typeorm-payment-state.repository';
-import { MutationLogEntity } from './entities/mutation-log.entity';
 import { MUTATION_LOG_REPOSITORY } from '~/domain/mutation-log/repositories/mutation-log.repository';
-import { MutationLogTypeormRepository } from './repositories/mutation-log.typeorm-repository';
+import { MutationLogKyselyRepository } from '../kysely/repositories/mutation-log.kysely-repository';
 import { ProgramWalletTypeormEntity } from './entities/program-wallet.typeorm-entity';
 import { PROGRAM_WALLET_REPOSITORY } from '~/domain/wallet/repositories/program-wallet.repository';
 import { ProgramWalletTypeormRepository } from './repositories/program-wallet.typeorm-repository';
@@ -112,9 +104,8 @@ import { USER_WALLET_REPOSITORY } from '~/domain/wallet/repositories/user-wallet
 import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-repository';
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
 import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.service';
-import { SignedDocumentEntity } from './entities/signed-document.entity';
 import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
-import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
+import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-document.kysely-repository';
 
 @Global()
 @Module({
@@ -129,9 +120,6 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
       useFactory: () => ({ ...mainDataSourceOptions(), migrationsRun: true }),
     }),
     NestTypeOrmModule.forFeature([
-      ExtensionEntity,
-      LogExtensionEntity,
-      ChainTextEntity,
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
@@ -139,8 +127,6 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
-      DraftTemplateEntity,
-      DraftTranslationEntity,
       DeltaEntity,
       ForkEntity,
       SyncStateEntity,
@@ -148,18 +134,14 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
       EntityVersionTypeormEntity,
       InvalidatedEntityTypeormEntity,
       InvalidatedEntityVersionTypeormEntity,
-      SettingsEntity,
       TokenEntity,
       UserEntity,
       VaultEntity,
       IpnEntity,
-      SystemStatusEntity,
       PaymentStateEntity,
-      MutationLogEntity,
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
-      SignedDocumentEntity,
     ]),
   ],
   providers: [
@@ -170,11 +152,11 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     { provide: NOTIFICATION_INBOX_REPOSITORY, useClass: NotificationInboxKyselyRepository },
     {
       provide: EXTENSION_REPOSITORY,
-      useClass: TypeOrmExtensionDomainRepository,
+      useClass: ExtensionKyselyRepository,
     },
     {
       provide: LOG_EXTENSION_REPOSITORY,
-      useClass: TypeOrmLogExtensionDomainRepository,
+      useClass: LogExtensionKyselyRepository,
     },
     {
       provide: MEET_REPOSITORY,
@@ -186,7 +168,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     },
     {
       provide: CHAIN_TEXT_REPOSITORY,
-      useClass: TypeOrmChainTextRepository,
+      useClass: ChainTextKyselyRepository,
     },
     ChainTextService,
     {
@@ -221,7 +203,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     AgreementTypeormRepository,
     AgreementDeltaMapper,
     AgreementSyncService,
-    TypeOrmDraftRegistryRepository,
+    DraftRegistryKyselyRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
       useClass: TypeOrmActionRepository,
@@ -244,7 +226,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     },
     {
       provide: SETTINGS_REPOSITORY,
-      useClass: SettingsTypeormRepository,
+      useClass: SettingsKyselyRepository,
     },
     {
       provide: TOKEN_REPOSITORY,
@@ -268,7 +250,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     },
     {
       provide: MUTATION_LOG_REPOSITORY,
-      useClass: MutationLogTypeormRepository,
+      useClass: MutationLogKyselyRepository,
     },
     // ProgramWallet компоненты
     {
@@ -296,7 +278,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     // Реестр подписанных документов (Postgres-проекция, C28-21)
     {
       provide: SIGNED_DOCUMENT_REPOSITORY,
-      useClass: SignedDocumentTypeormRepository,
+      useClass: SignedDocumentKyselyRepository,
     },
     EntityVersionRepository,
     EntityVersioningService,
@@ -310,7 +292,7 @@ import { SignedDocumentTypeormRepository } from './repositories/signed-document.
     NOTIFICATION_OUTBOX_REPOSITORY,
     NOTIFICATION_DELIVERY_REPOSITORY,
     NOTIFICATION_INBOX_REPOSITORY,
-    TypeOrmDraftRegistryRepository,
+    DraftRegistryKyselyRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
     MEET_REPOSITORY,

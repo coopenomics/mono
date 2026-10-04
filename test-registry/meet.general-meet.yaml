@@ -14,10 +14,8 @@ sources:
   backend:
     - components/controller/src/application/meet/**
     - components/controller/src/domain/meet/**
-    - components/controller/src/infrastructure/database/typeorm/entities/meet-pre.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/meet-processed.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-meet.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-meet-processed.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/meet-pre.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/meet-processed.kysely-repository.ts
 
 cases:
   - id: meet.gm.happy.01
