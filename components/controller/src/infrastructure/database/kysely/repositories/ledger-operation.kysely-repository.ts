@@ -5,7 +5,7 @@ import { LedgerOperationDomainEntity } from '~/domain/ledger/entities/ledger-ope
 import type { GetLedgerHistoryInputDomainInterface, LedgerHistoryResponseDomainInterface } from '~/domain/ledger/interfaces';
 import type { LedgerOperations } from '../database.types';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { sortColumn, sortDirection } from '../sort';
+import { sortColumn, sortDirection } from '@coopenomics/extension-kit';
 
 /** Колонки, по которым историю операций можно сортировать. */
 export const LEDGER_OPERATION_SORT_COLUMNS = ['created_at', 'global_sequence', 'action', 'account_id', 'username'] as const;

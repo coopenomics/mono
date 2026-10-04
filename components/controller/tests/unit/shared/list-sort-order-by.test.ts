@@ -18,7 +18,7 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { PaginationInputDTO, PaginationUtils } from '@coopenomics/extension-kit';
 import { LOG_EXTENSION_SORT_COLUMNS } from '~/infrastructure/database/kysely/repositories/log-extension.kysely-repository';
-import { sortColumn, sortDirection } from '~/infrastructure/database/kysely/sort';
+import { sortColumn, sortDirection } from '@coopenomics/extension-kit';
 import { ApprovalTypeormRepository } from '~/extensions/chairman/infrastructure/repositories/approval.typeorm-repository';
 
 const INJECTION = 'created_at, (SELECT CASE WHEN (1=1) THEN pg_sleep(5) END)';

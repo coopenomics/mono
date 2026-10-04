@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { rawQuery } from '../raw-query';
+import { rawQuery } from '@coopenomics/extension-kit';
 import { userStatus } from '~/types/user.types';
 import { CandidateStatus } from '~/domain/registration/enum';
 import { NotificationOutboxStatus } from '~/domain/notification/interfaces/notification-outbox.domain.interface';

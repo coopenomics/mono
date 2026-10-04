@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Ledger2Contract } from 'cooptypes';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { rawQuery } from '../raw-query';
+import { rawQuery } from '@coopenomics/extension-kit';
 import type { Ledger2StatePort } from '~/domain/ledger2/ports/ledger2-state.port';
 import type { Ledger2AccountDomainInterface } from '~/domain/ledger2/interfaces/ledger2-account.interface';
 import type { Ledger2WalletDomainInterface } from '~/domain/ledger2/interfaces/ledger2-wallet.interface';

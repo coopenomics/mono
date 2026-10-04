@@ -8,7 +8,7 @@ import type {
 } from '@coopenomics/extension-kit';
 import type { ExtensionsLogs } from '../database.types';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { sortColumn, sortDirection } from '../sort';
+import { sortColumn, sortDirection } from '@coopenomics/extension-kit';
 
 /** Колонки, по которым журнал расширений можно сортировать. */
 export const LOG_EXTENSION_SORT_COLUMNS = ['id', 'name', 'extension_local_id', 'created_at', 'updated_at'] as const;

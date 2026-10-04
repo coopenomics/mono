@@ -1,12 +1,6 @@
 /**
- * Сущности расширения «Робот совета»: явная декларация состава таблиц —
- * файловый глоб по `src/extensions/**` не находит расширение, установленное
- * пакетом, поэтому состав объявляется здесь и уходит в реестр.
+ * Сущности TypeORM расширения «Робот совета». Расширение переведено на Kysely
+ * (C28-81): сущностей нет, таблицы объявлены в `soviet-robot.tables.ts`, схема —
+ * в миграциях. Пустой состав остаётся, пока реестр расширений ждёт это поле.
  */
-import { RobotDecisionTypeormEntity } from './infrastructure/entities/robot-decision-typeorm.entity';
-import { RobotKeyTypeormEntity } from './infrastructure/entities/robot-key-typeorm.entity';
-
-export const sovietRobotEntities = [
-  RobotDecisionTypeormEntity,
-  RobotKeyTypeormEntity,
-];
+export const sovietRobotEntities = [];

@@ -8,7 +8,7 @@ import type {
   ProcessJournalPort,
 } from '~/domain/process-registry/ports/process-journal.port';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { rawQuery } from '../raw-query';
+import { rawQuery } from '@coopenomics/extension-kit';
 import { toAction } from './blockchain-action.kysely-repository';
 import { toDelta } from './blockchain-delta.kysely-repository';
 

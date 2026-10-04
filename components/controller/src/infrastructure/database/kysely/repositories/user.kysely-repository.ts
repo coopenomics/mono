@@ -15,7 +15,7 @@ import { userStatus } from '~/types/user.types';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import type { DB, Users } from '../database.types';
 import { KYSELY, type Database } from '../kysely.tokens';
-import { sortColumn } from '../sort';
+import { sortColumn } from '@coopenomics/extension-kit';
 
 /** Колонки, по которым реестр пользователей разрешено сортировать с клиента. */
 export const USER_SORT_COLUMNS = ['created_at', 'username', 'email', 'status', 'type', 'role'] as const;

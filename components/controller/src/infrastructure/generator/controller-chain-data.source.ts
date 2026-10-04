@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
 import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
-import { rawQuery } from '~/infrastructure/database/kysely/raw-query';
+import { rawQuery } from '@coopenomics/extension-kit';
 import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';

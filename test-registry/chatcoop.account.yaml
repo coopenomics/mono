@@ -14,9 +14,9 @@ sources:
     - components/controller/src/extensions/chatcoop/application/resolvers/chatcoop.resolver.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-application.service.ts
     - components/controller/src/extensions/chatcoop/domain/services/matrix-user-management.service.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.kysely-repository.ts
     - components/controller/src/extensions/chatcoop/domain/services/union-chat.service.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/union-chat.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/union-chat.kysely-repository.ts
 
 cases:
   - id: chat.acc.happy.01
