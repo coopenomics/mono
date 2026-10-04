@@ -1,6 +1,6 @@
-import { DataSource } from 'typeorm';
 import config from '~/config/config';
 import type { EncryptedVaultBlob } from '~/domain/auth-v2/vault/vault.types';
+import { CoopDomainDatabase } from '~/infrastructure/auth-v2/coop-domain.database';
 import { PostgresVaultRepository } from '~/infrastructure/auth-v2/postgres-vault.repository';
 import { SameCoopVotingPolicy } from './same-coop-voting.policy';
 import type { PolicyEvaluationContext } from '../policy.types';
@@ -34,46 +34,38 @@ const ctx = (username: string, coopname?: string): PolicyEvaluationContext => ({
   resource: coopname === undefined ? undefined : { coopname },
 });
 
-async function tryConnect(): Promise<DataSource | null> {
+async function tryConnect(): Promise<CoopDomainDatabase | null> {
+  const db = new CoopDomainDatabase();
   try {
-    const ds = new DataSource({
-      type: 'postgres',
-      host: config.coopDomainDb.host,
-      port: config.coopDomainDb.port,
-      username: config.coopDomainDb.username,
-      password: config.coopDomainDb.password,
-      database: config.coopDomainDb.database,
-    });
-    await ds.initialize();
-    return ds;
+    await db.query('SELECT 1');
+    return db;
   } catch {
+    await db.onModuleDestroy();
     return null;
   }
 }
 
 describe('SameCoopVotingPolicy — integration с реальной coop_domain_db (Story 6.3)', () => {
-  let ds: DataSource | null = null;
+  let db: CoopDomainDatabase | null = null;
   let repo: PostgresVaultRepository;
   let policy: SameCoopVotingPolicy;
 
   beforeAll(async () => {
-    ds = await tryConnect();
-    if (!ds) return;
-    repo = new PostgresVaultRepository();
+    db = await tryConnect();
+    if (!db) return;
+    repo = new PostgresVaultRepository(db);
     policy = new SameCoopVotingPolicy(repo);
-    await ds.query(`DELETE FROM vaults WHERE subject_type='participant' AND subject_id=$1`, [TEST_USER]);
+    await db.query(`DELETE FROM vaults WHERE subject_type='participant' AND subject_id=$1`, [TEST_USER]);
   });
 
   afterAll(async () => {
-    if (ds) {
-      await ds.query(`DELETE FROM vaults WHERE subject_type='participant' AND subject_id=$1`, [TEST_USER]);
-      await ds.destroy();
-    }
-    if (repo) await repo.onModuleDestroy();
+    if (!db) return;
+    await db.query(`DELETE FROM vaults WHERE subject_type='participant' AND subject_id=$1`, [TEST_USER]);
+    await db.onModuleDestroy();
   });
 
   it('реальный DB-lookup: членство (vault) разрешает голос, отсутствие — запрещает', async () => {
-    if (!ds) {
+    if (!db) {
       console.warn('coop_domain_db недоступна — integration-тест Layer 3 пропущен');
       return;
     }
