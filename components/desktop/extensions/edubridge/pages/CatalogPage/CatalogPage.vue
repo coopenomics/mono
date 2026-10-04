@@ -1,10 +1,20 @@
 <template lang="pug">
 .q-pa-md
+  //- Разделы — вкладки под шапкой, уровни — ряд переключателей: каталог листают, а не настраивают.
+  PageTabs(v-if="sections.length" hoist :tabs="sectionTabs" :active-key="sectionId ?? ALL" @select="(tab) => pickSection(tab.key)")
+
   PageHint.q-mb-md(storage-key="edu:catalog:banner-dismissed")
     | {{ $t('edubridge.catalogPage.hint.line1') }}
-    | {{ $t('edubridge.catalogPage.hint.line2') }}
 
-  FilterBar.q-mb-md(hide-search :filters="filters" :model-value="filterValues" @update:model-value="onFilters" @reset="onFilters({})")
+  .edu-catalog__levels.q-mb-md(v-if="levels.length")
+    button.chip.chip--lg.edu-catalog__level(
+      v-for="l in levelChips"
+      :key="l.key"
+      type="button"
+      :class="l.key === (levelId ?? ALL) ? 'chip--accent' : 'chip--neutral'"
+      :aria-pressed="l.key === (levelId ?? ALL)"
+      @click="pickLevel(l.key)"
+    ) {{ l.label }}
 
   CardListSkeleton(v-if="firstLoad" :count="6")
 
@@ -31,7 +41,8 @@ import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { FilterBar, PageHint, type FilterDefinition, type FilterValues } from 'src/shared/ui/domain';
+import { PageHint } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import { fetchSections, type ISection } from '../../entities/Section';
 import { CourseCard } from '../../widgets/CourseCard';
@@ -59,16 +70,17 @@ const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);
 const totalPages = ref(0);
 
-const filters = computed<FilterDefinition[]>(() => [
-  { key: 'section_id', label: t('edubridge.catalogPage.filters.section'), type: 'select', options: sections.value.map((sec) => ({ value: String(sec.id), label: sec.title })) },
-  {
-    key: 'level_id',
-    label: t('edubridge.catalogPage.filters.level'),
-    type: 'select',
-    options: (sections.value.find((sec) => sec.id === sectionId.value)?.levels ?? []).map((l) => ({ value: String(l.id), label: l.title })),
-  },
+/** Ключ «без отбора»: все разделы либо все уровни раздела. */
+const ALL = 'all';
+const sectionTabs = computed<PageTab[]>(() => [
+  { key: ALL, label: t('edubridge.catalogPage.allSections') },
+  ...sections.value.map((sec) => ({ key: String(sec.id), label: sec.title })),
 ]);
-const filterValues = computed<FilterValues>(() => ({ section_id: sectionId.value, level_id: levelId.value }));
+const levels = computed(() => sections.value.find((sec) => String(sec.id) === sectionId.value)?.levels ?? []);
+const levelChips = computed(() => [
+  { key: ALL, label: t('edubridge.catalogPage.allLevels') },
+  ...levels.value.map((l) => ({ key: String(l.id), label: l.title })),
+]);
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 async function load(page: number): Promise<void> {
@@ -89,11 +101,14 @@ async function load(page: number): Promise<void> {
 }
 
 // Уровень имеет смысл только внутри раздела: сменили раздел — уровень сбрасывается.
-function onFilters(values: FilterValues): void {
-  const nextSection = (values.section_id as string | null | undefined) ?? null;
-  const nextLevel = (values.level_id as string | null | undefined) ?? null;
-  levelId.value = nextSection === sectionId.value ? nextLevel : null;
-  sectionId.value = nextSection;
+function pickSection(key: string): void {
+  sectionId.value = key === ALL ? null : key;
+  levelId.value = null;
+  void load(1);
+}
+
+function pickLevel(key: string): void {
+  levelId.value = key === ALL ? null : key;
   void load(1);
 }
 
@@ -123,3 +138,15 @@ onMounted(async () => {
   void load(1);
 });
 </script>
+
+<style scoped>
+.edu-catalog__levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+}
+.edu-catalog__level {
+  cursor: pointer;
+  font-family: inherit;
+}
+</style>
