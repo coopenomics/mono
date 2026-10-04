@@ -25,9 +25,8 @@ import {
   signDocument,
   tokenOf,
 } from '../core'
+import { OFFER_REGISTRY_ID, generateOffer } from './onboarding.helpers'
 
-/** Шаблон инстанса оферты ЦПП «Стол заказов» (cooptypes 1102.MarketplaceOffer). */
-const OFFER_REGISTRY_ID = 1102
 /** Положение ЦПП (cooptypes 1100.MarketplaceProgramTemplate) — документ принятия. */
 const PROGRAM_TEMPLATE_REGISTRY_ID = 1100
 const EXTENSION = 'market'
@@ -40,26 +39,6 @@ const SIGN_OFFER = `mutation($i:MarketplaceSignOnboardingOfferInput!){
 const ACCEPT_CPP = `mutation($i:MarketplaceAcceptCppInput!){
   marketplaceAcceptCpp(input:$i){ status document_registry_id accepted_at accepted_by_board_decision_id }
 }`
-
-/** Инстанс оферты так, как его собирает стол пайщика (OnboardingMemberPickCpp). */
-async function generateOffer(token: string, username: string): Promise<any> {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const d = await gql<any>(token, `mutation($i:GenerateAnyDocumentInput!){
-    generateDocument(input:$i){ full_title html hash meta binary }
-  }`, {
-    i: {
-      data: {
-        registry_id: OFFER_REGISTRY_ID,
-        coopname: COOP,
-        username,
-        marketplace_agreement_number: crypto.randomBytes(8).toString('hex').toUpperCase(),
-        marketplace_agreement_created_at: `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`,
-      },
-    },
-  })
-  return d.generateDocument
-}
 
 describe('Стол заказов: онбординг кооператива и пайщика', () => {
   let memberToken = ''

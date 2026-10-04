@@ -1,12 +1,13 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight } from '@coopenomics/extension-kit';
 
 import { MARKETPLACE_OFFER_AGREEMENT_ID } from '../../constants/marketplace-agreement-ids';
 import { MarketplaceRegistrationOfferStatusDTO } from '../dto/marketplace-registration-offer-status.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { AGREEMENT_CATALOG_PORT, type IAgreementCatalogPort } from '@coopenomics/innercoop';
+import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 
 /**
  * Story 1.10: Query видимости marketplace-оферты в registration-flow.
@@ -32,7 +33,8 @@ export class MarketplaceRegistrationOfferResolver {
     description:
       'Статус видимости оферты Стола заказов в core registration-flow (платформенный AgreementRegistry)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('Onboarding', 'read:own')
   async marketplaceRegistrationOfferStatus(): Promise<MarketplaceRegistrationOfferStatusDTO> {
     const item = this.agreementQueryPort.getAgreementById(MARKETPLACE_OFFER_AGREEMENT_ID);
     if (!item) {

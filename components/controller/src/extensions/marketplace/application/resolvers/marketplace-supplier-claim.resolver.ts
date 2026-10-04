@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -46,7 +45,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Гарантийные претензии, выставленные текущему поставщику, — новые сверху.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('SupplierClaim', 'read:to-self')
+  @RequireRight('SupplierClaim', 'read:to-self')
   async marketplaceListSupplierClaims(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierClaimDTO[]> {
@@ -59,7 +58,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Одна гарантийная претензия с рекламацией, фотографиями и пройденными шагами возврата.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('SupplierClaim', ['read:to-self', 'read:all'])
+  @RequireRight('SupplierClaim', ['read:to-self', 'read:all'])
   async marketplaceSupplierClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
@@ -75,7 +74,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('SupplierClaim', 'read:to-self')
+  @RequireRight('SupplierClaim', 'read:to-self')
   async marketplaceSupplierClaimSummary(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierClaimSummaryDTO> {
@@ -87,7 +86,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('SupplierClaim', 'respond:to-self')
+  @RequireRight('SupplierClaim', 'respond:to-self')
   async marketplaceAdmitSupplierClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAdmitSupplierClaimInputDTO

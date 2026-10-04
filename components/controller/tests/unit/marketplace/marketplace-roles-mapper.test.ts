@@ -37,7 +37,6 @@ describe('mapCoreRolesToMarketplaceRoles', () => {
       'orderer',
       'board_readonly',
       'admin',
-      'board',
     ]);
   });
 
@@ -47,7 +46,7 @@ describe('mapCoreRolesToMarketplaceRoles', () => {
         isOfferer: true,
         isKuChairman: true,
       })
-    ).toEqual(['orderer', 'offerer', 'operator', 'board_readonly', 'admin', 'board']);
+    ).toEqual(['orderer', 'offerer', 'operator', 'board_readonly', 'admin']);
   });
 
   it('Без User в core_roles (admin платформы) → []', () => {

@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -52,7 +51,8 @@ export class MarketplaceOutgoingPaymentResolver {
     name: 'marketplaceListOutgoingPaymentsAsSupplier',
     description: 'История выплат поставщику в столе поставщика — статусы по каждому заказу.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('Payment', 'read:to-self')
   async marketplaceListOutgoingPaymentsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('filter', { nullable: true })
@@ -72,7 +72,7 @@ export class MarketplaceOutgoingPaymentResolver {
       'Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Payment', 'read:all')
+  @RequireRight('Payment', 'read:all')
   async marketplaceListOutgoingPayments(
     @Args('filter', { nullable: true })
     filter?: MarketplaceListOutgoingPaymentsFilterInputDTO
@@ -92,7 +92,7 @@ export class MarketplaceOutgoingPaymentResolver {
       'Null — выплаты с таким идентификатором в кооперативе нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Payment', 'read:all')
+  @RequireRight('Payment', 'read:all')
   async marketplaceGetOutgoingPayment(
     @Args('id', { type: () => String }) id: string
   ): Promise<MarketplaceOutgoingPaymentDetailDTO | null> {

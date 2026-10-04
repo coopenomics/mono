@@ -112,7 +112,6 @@ describe('MarketplaceMembershipGuard', () => {
       'offerer',
       'board_readonly',
       'admin',
-      'board',
     ]);
   });
 

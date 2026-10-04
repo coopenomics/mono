@@ -70,26 +70,26 @@ function makeReflector(requiredRoles?: string[]): Reflector {
 
 describe('MarketplaceRoleGuard', () => {
   it('декоратор @RequireMarketplaceRole не задан → guard true', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector(undefined), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector(undefined), makeLogger(), {} as any);
     const ctx = makeCtx({ req: { headers: {} } });
     expect(guard.canActivate(ctx as any)).toBe(true);
   });
 
   it('decoratoр пустой массив → guard true', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector([]), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector([]), makeLogger(), {} as any);
     const ctx = makeCtx({ req: { headers: {} } });
     expect(guard.canActivate(ctx as any)).toBe(true);
   });
 
   it('requested role в marketplace_roles → guard true', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger(), {} as any);
     const req = {
       headers: {},
       user: { username: 'chair', role: 'chairman', status: 'active' },
       currentMember: {
         username: 'chair',
         core_roles: ['User', 'Member', 'Chairman'],
-        marketplace_roles: ['orderer', 'board_readonly', 'admin', 'board'],
+        marketplace_roles: ['orderer', 'board_readonly', 'admin'],
       },
     };
     const ctx = makeCtx({ req, requiredRoles: ['admin'] });
@@ -97,7 +97,7 @@ describe('MarketplaceRoleGuard', () => {
   });
 
   it('OR-семантика: одна из ролей хватает → true', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector(['admin', 'board_readonly']), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector(['admin', 'board_readonly']), makeLogger(), {} as any);
     const req = {
       headers: {},
       currentMember: {
@@ -112,7 +112,7 @@ describe('MarketplaceRoleGuard', () => {
 
   it('роль отсутствует → ForbiddenException + warn-лог forbidden-attempt', () => {
     const logger = makeLogger();
-    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), logger);
+    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), logger, {} as any);
     const req = {
       headers: {},
       currentMember: {
@@ -141,13 +141,13 @@ describe('MarketplaceRoleGuard', () => {
   });
 
   it('server-secret → true даже без currentMember', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger(), {} as any);
     const ctx = makeCtx({ req: { headers: { 'server-secret': 'svc-secret' } } });
     expect(guard.canActivate(ctx as any)).toBe(true);
   });
 
   it('нет currentMember + декоратор задан → ForbiddenException (рассогласование UseGuards)', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger());
+    const guard = new MarketplaceRoleGuard(makeReflector(['admin']), makeLogger(), {} as any);
     const ctx = makeCtx({ req: { headers: {} } });
     expect(() => guard.canActivate(ctx as any)).toThrow(ForbiddenException);
   });
@@ -155,14 +155,13 @@ describe('MarketplaceRoleGuard', () => {
   it('Decorator-helper RequireMarketplaceRole пишет метаданные', () => {
     const target = {};
     const descriptor = { value: () => undefined };
-    const required = ['admin', 'board'] as const;
+    const required = ['admin'] as const;
     const factory = require('~/extensions/marketplace/application/decorators/marketplace-role.decorator')
       .RequireMarketplaceRole;
     const decorate = factory(...required);
     decorate(target, 'someHandler', descriptor);
     expect(Reflect.getMetadata(MARKETPLACE_ROLES_METADATA_KEY, descriptor.value)).toEqual([
       'admin',
-      'board',
     ]);
   });
 });

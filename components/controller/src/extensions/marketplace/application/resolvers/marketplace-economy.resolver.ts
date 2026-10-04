@@ -1,8 +1,15 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GeneratedDocumentDTO, GqlJwtAuthGuard, createPaginationResult, PaginationInputDTO, type PaginationResult, platformSettings } from '@coopenomics/extension-kit';
+import {
+  GeneratedDocumentDTO,
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  type PaginationResult,
+  platformSettings,
+  RequireRight,
+} from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
@@ -76,7 +83,7 @@ export class MarketplaceEconomyResolver {
       'Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'read')
+  @RequireRight('Economy', 'read')
   async marketplaceGetEconomyConfig(): Promise<MarketplaceEconomyConfigDTO> {
     const membership_fee_percent = await this.economyService.getMembershipFeePercent(
       platformSettings().coopname
@@ -90,7 +97,7 @@ export class MarketplaceEconomyResolver {
       'Установить единую ставку членского взноса кооператива (одинакова для всех кооперативных участков). Доступно администратору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'set-fee')
+  @RequireRight('Economy', 'set-fee')
   async marketplaceSetMembershipFee(
     @Args('data') data: MarketplaceSetMembershipFeeInputDTO
   ): Promise<MarketplaceEconomyConfigDTO> {
@@ -109,7 +116,7 @@ export class MarketplaceEconomyResolver {
       'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'read:own-KU')
+  @RequireRight('Economy', 'read:own-KU')
   async marketplaceGetBranchEconomy(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('braname') braname: string
@@ -125,7 +132,7 @@ export class MarketplaceEconomyResolver {
       'Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'read:own-KU')
+  @RequireRight('Economy', 'read:own-KU')
   async marketplaceGetBranchWalletHistory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('braname') braname: string,
@@ -145,7 +152,7 @@ export class MarketplaceEconomyResolver {
       'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'configure:own-KU')
+  @RequireRight('Economy', 'configure:own-KU')
   async marketplaceDistributeBranchFunds(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceDistributeBranchFundsInputDTO
@@ -165,7 +172,7 @@ export class MarketplaceEconomyResolver {
       'Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'configure:own-KU')
+  @RequireRight('Economy', 'configure:own-KU')
   async marketplaceSetTrusteeWeight(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSetTrusteeWeightInputDTO
@@ -186,7 +193,7 @@ export class MarketplaceEconomyResolver {
       'Исключить участника из распределения членских взносов участка: доли оставшихся пересчитываются автоматически. Доступно председателю участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'configure:own-KU')
+  @RequireRight('Economy', 'configure:own-KU')
   async marketplaceDeleteTrusteeWeight(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceDeleteTrusteeWeightInputDTO
@@ -208,7 +215,7 @@ export class MarketplaceEconomyResolver {
       'Персональные членские средства текущего пайщика, распределённые ему как доверенному кооперативного участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceGetPersonalEconomy(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplacePersonalEconomyDTO> {
@@ -225,7 +232,7 @@ export class MarketplaceEconomyResolver {
       'Движения по персональному кошельку членских средств текущего пайщика: переводы в Стол заказов и завершённая материальная помощь.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceGetPersonalWalletHistory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -248,7 +255,7 @@ export class MarketplaceEconomyResolver {
       'Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceAidStatementSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAidStatementSignablePayloadInputDTO
@@ -268,7 +275,7 @@ export class MarketplaceEconomyResolver {
       'Подать заявление на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление выносится на рассмотрение совета, и только по его положительному решению заявка передаётся кассиру. Налог с дохода получатель оплачивает самостоятельно.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceCreateAid(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateAidInputDTO
@@ -291,7 +298,7 @@ export class MarketplaceEconomyResolver {
       'Подать расход кооперативного участка: сумма расхода выделяется из общего кошелька участка, а сам расход выносится на решение совета. После одобрения кассир платит по реквизитам либо выдаёт аванс под отчёт; неизрасходованное возвращается участку. Возвращает идентификатор расхода.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceCreateBranchExpense(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: CreateBranchExpenseInputDTO
@@ -305,7 +312,7 @@ export class MarketplaceEconomyResolver {
       'Заявления на материальную помощь: свои — для доверенного; все заявления кооператива — для администратора. Показывает стадию (рассмотрение советом либо ожидание выплаты) и статус выплаты у кассира.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Economy', 'use:own')
+  @RequireRight('Economy', 'use:own')
   async marketplaceListAids(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListAidsInputDTO
