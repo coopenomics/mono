@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql, type Kysely, type Selectable } from 'kysely';
-import { KYSELY } from '@coopenomics/extension-kit';
+import { KYSELY, affectedCount } from '@coopenomics/extension-kit';
 import type {
   ReportDraftFilter,
   ReportDraftRecord,
@@ -102,7 +102,7 @@ export class ReportDraftKyselyRepository implements ReportDraftRepository {
       .where('id', '=', id)
       .where('coopname', '=', coopname)
       .where('owner_username', '=', owner_username)
-      .executeTakeFirst();
-    return Number(result.numDeletedRows ?? 0) > 0;
+      .execute();
+    return affectedCount(result) > 0;
   }
 }

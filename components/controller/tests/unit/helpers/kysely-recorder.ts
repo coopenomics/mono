@@ -6,6 +6,7 @@ import {
   type CompiledQuery,
   type DatabaseConnection,
   type Driver,
+  type KyselyPlugin,
   type QueryResult,
 } from 'kysely';
 import type { DB } from '~/infrastructure/database/kysely/database.types';
@@ -80,8 +81,12 @@ class RecordingDriver implements Driver {
  * компилятором Postgres и записываются; ответы базы задаются по порядку
  * запросов (по умолчанию — пустой результат). Проверяется то, что уйдёт в
  * базу, — текст запроса и его параметры — и разбор ответа хранилищем.
+ * Плагины — те же, что у настоящего соединения (сигналы ленты изменений).
  */
-export function recordingKysely(results: ScriptedResult[] = []): { db: Kysely<DB>; queries: RecordedQuery[] } {
+export function recordingKysely(
+  results: ScriptedResult[] = [],
+  plugins: KyselyPlugin[] = []
+): { db: Kysely<DB>; queries: RecordedQuery[] } {
   const queries: RecordedQuery[] = [];
   const db = new Kysely<DB>({
     dialect: {
@@ -90,6 +95,7 @@ export function recordingKysely(results: ScriptedResult[] = []): { db: Kysely<DB
       createIntrospector: (instance) => new PostgresIntrospector(instance),
       createQueryCompiler: () => new PostgresQueryCompiler(),
     },
+    plugins,
   });
   return { db, queries };
 }

@@ -1,5 +1,6 @@
 import { TableStore, isNull, lessThan, notEqual, notNull, oneOf } from '@coopenomics/extension-kit';
 import { recordingKysely } from '../helpers/kysely-recorder';
+import { LocalChangesPlugin } from '~/infrastructure/database/kysely/local-changes.plugin';
 
 interface Session {
   id: string;
@@ -84,5 +85,40 @@ describe('TableStore', () => {
     expect(await store.delete({ cardId: 'c1' })).toBe(2);
     expect(await store.count({ state: 'new' })).toBe(3);
     expect(await store.findOne({ id: 's1' })).toEqual({ id: 's1', cardId: 'c1', lastError: null });
+  });
+
+  /**
+   * Таблица ленты изменений: слой базы дописывает запросу `RETURNING`, и база
+   * отвечает строками вместо счётчика. До 04.10.2026 шлюз читал счётчик у
+   * строки: правка и удаление отвечали «ничего не затронуто», а запрос без
+   * совпадений падал.
+   */
+  describe('таблица ленты изменений: число затронутых строк считается по строкам', () => {
+    const watched = (results: Parameters<typeof recordingKysely>[0]) => {
+      const plugin = new LocalChangesPlugin(() => true, () => ['id'], () => undefined);
+      const { db, queries } = recordingKysely(results, [plugin]);
+      return { store: new TableStore<Session>(db, { table: 'sessions', primaryKey: ['id'] }), queries };
+    };
+
+    it('правка двух строк отвечает двойкой', async () => {
+      const { store, queries } = watched([{ rows: [{ id: 's1' }, { id: 's2' }], affected: 2 }]);
+
+      await expect(store.update({ state: 'new' }, { state: 'done' })).resolves.toBe(2);
+      expect(queries[0].sql).toBe('update "sessions" set "state" = $1 where "state" = $2 returning *');
+    });
+
+    it('удаление одной строки отвечает единицей, без совпадений — нулём', async () => {
+      const { store } = watched([{ rows: [{ id: 's1' }], affected: 1 }, { rows: [], affected: 0 }]);
+
+      await expect(store.delete({ id: 's1' })).resolves.toBe(1);
+      await expect(store.delete({ id: 'нет' })).resolves.toBe(0);
+    });
+  });
+
+  it('таблица вне ленты: число затронутых строк берётся из счётчика базы', async () => {
+    const { store } = make([{ affected: 3 }, { affected: 0 }]);
+
+    await expect(store.delete({ state: 'old' })).resolves.toBe(3);
+    await expect(store.update({ state: 'old' }, { state: 'new' })).resolves.toBe(0);
   });
 });

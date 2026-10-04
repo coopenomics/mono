@@ -138,3 +138,18 @@ cases:
     external_reason: "проверяется текст и число запросов к базе — снаружи они не видны; само поведение черновиков, отметок и реквизитов через API покрыто случаями rep.draft.* и rep.cal.*"
     status: written
 
+  - id: rep.draft.side.07
+    level: backend
+    kind: side
+    scenario: >
+      черновики и отметки объявлены в ленте изменений, поэтому удаление
+      возвращает сами строки, а не счётчик; удаляется существующий черновик и
+      снимается отметка, которой нет
+    expect: >
+      удалённый черновик отвечает «удалён»; снятие отсутствующей отметки
+      отвечает «нечего снимать» и запрос не падает
+    test: components/controller/tests/unit/reports/reports.kysely-repositories.test.ts
+    external: unreachable
+    external_reason: "проверяется разбор ответа базы с дописанным RETURNING; видимое снаружи поведение покрыто случаями rep.draft.side.04 и rep.cal.happy.01 — они и поймали дефект"
+    status: written
+

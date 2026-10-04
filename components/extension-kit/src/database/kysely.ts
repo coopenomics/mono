@@ -75,3 +75,17 @@ export function snakeRow(fields: Record<string, unknown>): Record<string, unknow
       .map(([key, value]) => [toSnake(key), value])
   );
 }
+
+/**
+ * Число затронутых записью строк. Правка и удаление отдают счётчик, но для
+ * таблиц ленты изменений слой базы дописывает `RETURNING` — и вместо счётчика
+ * приходят сами строки. Считать через этот помощник и `execute()`:
+ * `executeTakeFirst()` на такой таблице вернёт строку либо пустоту.
+ */
+export function affectedCount(results: readonly unknown[]): number {
+  const [first] = results;
+  const summary = first as { numDeletedRows?: bigint; numUpdatedRows?: bigint } | undefined;
+  const counted = summary?.numDeletedRows ?? summary?.numUpdatedRows;
+  if (results.length === 1 && typeof counted === 'bigint') return Number(counted);
+  return results.length;
+}

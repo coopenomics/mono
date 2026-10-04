@@ -1,5 +1,5 @@
 import { sql, type Expression, type ExpressionBuilder, type Kysely, type SqlBool } from 'kysely';
-import { camelRow } from './kysely';
+import { affectedCount, camelRow } from './kysely';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -27,11 +27,13 @@ export const moreThan = <T>(value: T): any => condition('>', value);
 export const lessOrEqual = <T>(value: T): any => condition('<=', value);
 /** Значение колонки не меньше заданного. */
 export const moreOrEqual = <T>(value: T): any => condition('>=', value);
+/** Значение колонки подходит под шаблон LIKE без учёта регистра. */
+export const ilike = (pattern: string): any => condition('ilike', pattern);
 /** Значение колонки — одно из перечня. */
 export const oneOf = <T>(values: readonly T[]): any => condition('in', values);
 
 /** Условие отбора: равенство по полям либо условие из помощников выше; массив — «или». */
-export type Where<TRecord> = { [K in keyof TRecord]?: TRecord[K] | null };
+export type Where<TRecord> = { [K in keyof TRecord]?: unknown };
 export type WhereInput<TRecord> = Where<TRecord> | Where<TRecord>[];
 
 export interface FindOptions<TRecord> {
@@ -46,6 +48,8 @@ export interface TableStoreOptions<TRecord> {
   primaryKey: Array<keyof TRecord & string>;
   /** Поля json/jsonb: при записи сериализуются. */
   json?: Array<keyof TRecord & string>;
+  /** Поля numeric/bigint: база отдаёт их строкой, в записи они числа. */
+  numbers?: Array<keyof TRecord & string>;
   /** Поле времени правки: при каждой правке ставится текущее время базы. */
   updatedAt?: keyof TRecord & string;
   /** Имена колонок совпадают с именами полей (иначе поле `camelCase` — колонка `snake_case`). */
@@ -62,9 +66,31 @@ const toSnake = (key: string): string => key.replace(/[A-Z]/g, (char) => `_${cha
  */
 export class TableStore<TRecord extends object> {
   private readonly json: Set<string>;
+  private readonly numbers: string[];
 
   constructor(private readonly db: Kysely<any>, private readonly options: TableStoreOptions<TRecord>) {
     this.json = new Set(options.json ?? []);
+    this.numbers = options.numbers ?? [];
+  }
+
+  /** Тот же шлюз на другом соединении — внутри транзакции `inTransaction`. */
+  on(db: Kysely<any>): TableStore<TRecord> {
+    return new TableStore<TRecord>(db, this.options);
+  }
+
+  /** Kysely этого шлюза — для запросов сложнее отбора по равенству. */
+  get kysely(): Kysely<any> {
+    return this.db;
+  }
+
+  /** Начало выборки из таблицы шлюза: все колонки, условия дописывает вызывающий. */
+  select() {
+    return this.db.selectFrom(this.options.table).selectAll();
+  }
+
+  /** Строки базы, полученные своим запросом, в записи шлюза. */
+  records(rows: Array<Record<string, unknown>>): TRecord[] {
+    return rows.map((row) => this.toRecord(row));
   }
 
   /** Заготовка записи: обычный объект, в базу не пишется. */
@@ -77,6 +103,13 @@ export class TableStore<TRecord extends object> {
     return record ?? null;
   }
 
+  /** Запись по условию; нет такой — ошибка: вызывающий уверен, что она есть. */
+  async findOneOrFail(where: WhereInput<TRecord>): Promise<TRecord> {
+    const record = await this.findOne(where);
+    if (!record) throw new Error(`No ${this.options.table} row matches the condition`);
+    return record;
+  }
+
   async find(where: WhereInput<TRecord> = {}, options: FindOptions<TRecord> = {}): Promise<TRecord[]> {
     let query = this.db.selectFrom(this.options.table).selectAll().where((eb) => this.filter(eb, where));
     for (const [field, direction] of Object.entries(options.order ?? {})) {
@@ -85,6 +118,15 @@ export class TableStore<TRecord extends object> {
     if (options.offset) query = query.offset(options.offset);
     if (options.limit) query = query.limit(options.limit);
     return (await query.execute()).map((row) => this.toRecord(row));
+  }
+
+  /** Страница записей и общее число подходящих. */
+  async findAndCount(where: WhereInput<TRecord> = {}, options: FindOptions<TRecord> = {}): Promise<[TRecord[], number]> {
+    return [await this.find(where, options), await this.count(where)];
+  }
+
+  async exists(where: WhereInput<TRecord>): Promise<boolean> {
+    return (await this.findOne(where)) !== null;
   }
 
   async count(where: WhereInput<TRecord> = {}): Promise<number> {
@@ -121,14 +163,21 @@ export class TableStore<TRecord extends object> {
     return Object.assign(record, this.toRecord(saved)) as TRecord;
   }
 
+  /** Сохранение нескольких записей по очереди — каждая как в `save`. */
+  async saveMany(records: Array<Partial<TRecord>>): Promise<TRecord[]> {
+    const saved: TRecord[] = [];
+    for (const record of records) saved.push(await this.save(record));
+    return saved;
+  }
+
   /** Правка записей по условию; возвращает число затронутых. */
   async update(where: WhereInput<TRecord>, patch: Partial<TRecord>): Promise<number> {
     const result = await this.db
       .updateTable(this.options.table)
       .set(this.changes(this.toRow(patch), []))
       .where((eb) => this.filter(eb, where))
-      .executeTakeFirst();
-    return Number(result.numUpdatedRows ?? 0);
+      .execute();
+    return affectedCount(result);
   }
 
   /** Удаление записей по условию; возвращает число удалённых. */
@@ -136,8 +185,8 @@ export class TableStore<TRecord extends object> {
     const result = await this.db
       .deleteFrom(this.options.table)
       .where((eb) => this.filter(eb, where))
-      .executeTakeFirst();
-    return Number(result.numDeletedRows ?? 0);
+      .execute();
+    return affectedCount(result);
   }
 
   private column(field: string): string {
@@ -155,7 +204,11 @@ export class TableStore<TRecord extends object> {
   }
 
   private toRecord(row: Record<string, unknown>): TRecord {
-    return this.options.sameNames ? (row as TRecord) : camelRow<TRecord>(row);
+    const record = (this.options.sameNames ? { ...row } : camelRow<Record<string, unknown>>(row)) as Record<string, unknown>;
+    for (const field of this.numbers) {
+      if (record[field] !== null && record[field] !== undefined) record[field] = Number(record[field]);
+    }
+    return record as TRecord;
   }
 
   /** Колонки к правке: всё переданное, кроме ключа, плюс время правки. */

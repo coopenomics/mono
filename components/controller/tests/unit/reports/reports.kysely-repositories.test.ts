@@ -4,6 +4,7 @@ import { ReportRequisitesKyselyRepository } from '~/extensions/reports/infrastru
 import { BalanceCorrectionKyselyRepository } from '~/extensions/reports/infrastructure/repositories/balance-correction.kysely-repository';
 import { GeneratedReportKyselyRepository } from '~/extensions/reports/infrastructure/repositories/generated-report.kysely-repository';
 import { recordingKysely } from '../helpers/kysely-recorder';
+import { LocalChangesPlugin } from '~/infrastructure/database/kysely/local-changes.plugin';
 
 const make = (results: Parameters<typeof recordingKysely>[0] = []) => {
   const { db, queries } = recordingKysely(results);
@@ -29,6 +30,22 @@ describe('хранилища отчётов на Kysely', () => {
 
     expect(await new ReportDraftKyselyRepository(db).delete('d1', 'voskhod', 'ant')).toBe(false);
     expect(queries[0].sql).toBe('delete from "report_drafts" where "id" = $1 and "coopname" = $2 and "owner_username" = $3');
+  });
+
+  /**
+   * Черновики и отметки — таблицы ленты изменений: слой базы дописывает
+   * удалению `RETURNING`, и база отвечает строками. До 04.10.2026 хранилище
+   * читало счётчик у строки: удалённый черновик отвечал «не найден», а снятие
+   * отсутствующей отметки роняло запрос.
+   */
+  it('удаление в таблице ленты: исход считается по возвращённым строкам', async () => {
+    const feed = () => new LocalChangesPlugin(() => true, () => ['id'], () => undefined);
+    const removed = recordingKysely([{ rows: [{ id: 'd1' }], affected: 1 }], [feed()]);
+    const absent = recordingKysely([{ rows: [], affected: 0 }], [feed()]);
+
+    expect(await new ReportDraftKyselyRepository(removed.db as never).delete('d1', 'voskhod', 'ant')).toBe(true);
+    expect(removed.queries[0].sql).toContain('returning *');
+    expect(await new ReportSubmissionMarkKyselyRepository(absent.db as never).remove('voskhod', 'NDFL6' as never, 2026)).toBe(false);
   });
 
   it('отметка о сдаче: существующая правится, второй записи на тот же отчёт нет', async () => {

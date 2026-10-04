@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql, type Kysely, type Selectable } from 'kysely';
-import { KYSELY } from '@coopenomics/extension-kit';
+import { KYSELY, affectedCount } from '@coopenomics/extension-kit';
 import type {
   ReportSubmissionMarkFilter,
   ReportSubmissionMarkRecord,
@@ -84,8 +84,8 @@ export class ReportSubmissionMarkKyselyRepository implements ReportSubmissionMar
       .where('report_type', '=', report_type)
       .where('year', '=', year);
     query = period == null ? query.where('period', 'is', null) : query.where('period', '=', period);
-    const result = await query.executeTakeFirst();
-    return Number(result.numDeletedRows ?? 0) > 0;
+    const result = await query.execute();
+    return affectedCount(result) > 0;
   }
 
   /** Отметка одного отчёта: пустой период — годовой отчёт. */
