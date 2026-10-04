@@ -39,7 +39,7 @@ export const marketplaceBootstrapV22Migration: IExtensionSchemaMigration<Partial
   },
 
   async afterMigrate(ctx: ExtensionSchemaMigrationAfterContext): Promise<void> {
-    const dataSource = ctx.resolve<DataSource>(getDataSourceToken('marketplace') as string | symbol);
+    const dataSource = ctx.resolve<DataSource>(getDataSourceToken() as string | symbol);
     if (!dataSource) return;
 
     const result: unknown = await dataSource.query(

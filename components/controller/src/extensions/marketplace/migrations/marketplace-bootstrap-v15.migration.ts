@@ -62,7 +62,7 @@ export const marketplaceBootstrapV15Migration: IExtensionSchemaMigration<Partial
     // getDataSourceToken отдаёт union (string | Function | Type<DataSource>);
     // для DI-резолва достаточно строкового/символьного варианта.
     const dataSource = ctx.resolve<DataSource>(
-      getDataSourceToken('marketplace') as string | symbol
+      getDataSourceToken() as string | symbol
     );
     if (!dataSource) return;
 
