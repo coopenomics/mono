@@ -7,14 +7,10 @@
  * репозитории не поднимаются, расширение не стартует. Поэтому состав
  * объявляется здесь и попадает в подключение через запись реестра.
  */
-import { ExpenseFileTypeormEntity } from './infrastructure/entities/expense-file.typeorm-entity';
-import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
 import { ExpenseProposalTypeormEntity } from './infrastructure/entities/expense-proposal.typeorm-entity';
-import { ExpenseRequisiteSnapshotTypeormEntity } from './infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
 
+// Реестр файлов, снимки реквизитов и планы расходов переведены на Kysely
+// (C28-81) — их таблицы объявлены шлюзами в `infrastructure/database/expenses-stores.ts`.
 export const expensesEntities = [
-  ExpenseFileTypeormEntity,
-  ExpensePlanEntity,
   ExpenseProposalTypeormEntity,
-  ExpenseRequisiteSnapshotTypeormEntity,
 ];

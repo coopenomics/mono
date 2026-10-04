@@ -9,7 +9,8 @@ import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expe
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
-import { QuantityUtils } from '@coopenomics/extension-kit';
+import { QuantityUtils, type TableStore } from '@coopenomics/extension-kit';
+import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
 import { PAYMENT_PORT, type IPaymentPort, type InnerPaymentDraft, PaymentStatus, PaymentType, PaymentDirection } from '@coopenomics/innercoop';
 import { generateUniqueHash } from '@coopenomics/extension-kit';
 
@@ -38,8 +39,8 @@ export class ExpensePaymentsListener implements OnModuleInit {
   constructor(
     @Inject(PAYMENT_PORT)
     private readonly payments: IPaymentPort,
-    @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
-    private readonly snapshots: Repository<ExpenseRequisiteSnapshotTypeormEntity>,
+    @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
+    private readonly snapshots: TableStore<ExpenseRequisiteSnapshotTypeormEntity>,
     @InjectRepository(ExpenseProposalTypeormEntity)
     private readonly proposalEntities: Repository<ExpenseProposalTypeormEntity>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -86,13 +87,7 @@ export class ExpensePaymentsListener implements OnModuleInit {
       const existing = await this.payments.findByHash(itemHash);
       if (existing) continue;
 
-      const snapshot = await this.snapshots.findOne({
-        where: {
-          coopname: entity.coopname,
-          proposal_hash: entity.proposal_hash,
-          item_hash: itemHash,
-        },
-      });
+      const snapshot = await this.snapshots.findOne({ coopname: entity.coopname, proposal_hash: entity.proposal_hash, item_hash: itemHash, });
       if (!snapshot) {
         // СЗ авторизована, а реквизитов нет — кассир не сможет оплатить позицию.
         this.logger.error(

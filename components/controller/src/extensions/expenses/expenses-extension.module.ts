@@ -1,6 +1,5 @@
 import './i18n';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
@@ -24,7 +23,6 @@ import { ExpenseProposalResolver } from './application/resolvers/expense-proposa
 import { ExpenseMutationsResolver } from './application/resolvers/expense-mutations.resolver';
 import { ExpenseFilesResolver } from './application/resolvers/expense-files.resolver';
 import { ExpensesInnercoopExpenseChassisAdapter } from './infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
-import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
 import {
   EXPENSE_PLANS_SERVICE,
   ExpensePlansService,
@@ -51,7 +49,6 @@ import { ExpensesLiveFeedService } from './application/services/expenses-live-fe
  */
 @Module({
   imports: [
-    NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
   ],
   providers: [

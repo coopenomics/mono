@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { EXPENSES_FILE_STORE } from '../../infrastructure/database/expenses-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExpenseFileTypeormEntity } from '../entities/expense-file.typeorm-entity';
 import { ExpenseFileMapper } from '../mappers/expense-file.mapper';
 import type { ExpenseFileRepository } from '../../domain/repositories/expense-file.repository';
@@ -9,8 +9,8 @@ import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-f
 @Injectable()
 export class ExpenseFileTypeormRepository implements ExpenseFileRepository {
   constructor(
-    @InjectRepository(ExpenseFileTypeormEntity)
-    private readonly repository: Repository<ExpenseFileTypeormEntity>
+    @Inject(EXPENSES_FILE_STORE)
+    private readonly repository: TableStore<ExpenseFileTypeormEntity>
   ) {}
 
   async create(data: IExpenseFileDatabaseData): Promise<IExpenseFileDatabaseData> {
@@ -20,34 +20,26 @@ export class ExpenseFileTypeormRepository implements ExpenseFileRepository {
   }
 
   async findById(id: number): Promise<IExpenseFileDatabaseData | null> {
-    const entity = await this.repository.findOne({ where: { id } });
+    const entity = await this.repository.findOne({ id });
     return entity ? ExpenseFileMapper.toDomain(entity) : null;
   }
 
   async findByChecksum(coopname: string, checksum: string): Promise<IExpenseFileDatabaseData | null> {
-    const entity = await this.repository.findOne({
-      where: { coopname, checksum_sha256: checksum },
-    });
+    const entity = await this.repository.findOne({ coopname, checksum_sha256: checksum });
     return entity ? ExpenseFileMapper.toDomain(entity) : null;
   }
 
   async findByProposal(coopname: string, proposalHash: string): Promise<IExpenseFileDatabaseData[]> {
-    const entities = await this.repository.find({
-      where: { coopname, proposal_hash: proposalHash.toLowerCase() },
-      order: { uploaded_at: 'DESC' },
-    });
+    const entities = await this.repository.find({ coopname, proposal_hash: proposalHash.toLowerCase() }, { order: { uploaded_at: 'DESC' } });
     return entities.map((e) => ExpenseFileMapper.toDomain(e));
   }
 
   async findByItem(coopname: string, proposalHash: string, itemHash: string): Promise<IExpenseFileDatabaseData[]> {
     const entities = await this.repository.find({
-      where: {
         coopname,
         proposal_hash: proposalHash.toLowerCase(),
         item_hash: itemHash.toLowerCase(),
-      },
-      order: { uploaded_at: 'DESC' },
-    });
+      }, { order: { uploaded_at: 'DESC' } });
     return entities.map((e) => ExpenseFileMapper.toDomain(e));
   }
 

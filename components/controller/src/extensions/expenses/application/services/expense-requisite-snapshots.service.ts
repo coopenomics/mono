@@ -1,3 +1,5 @@
+import { TableStore } from '@coopenomics/extension-kit';
+import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -21,8 +23,8 @@ export class ExpenseRequisiteSnapshotsService {
   constructor(
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethods: IPaymentMethodPort,
-    @InjectRepository(ExpenseRequisiteSnapshotTypeormEntity)
-    private readonly repository: Repository<ExpenseRequisiteSnapshotTypeormEntity>
+    @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
+    private readonly repository: TableStore<ExpenseRequisiteSnapshotTypeormEntity>
   ) {}
 
   async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
@@ -33,7 +35,7 @@ export class ExpenseRequisiteSnapshotsService {
     const snapshots = await this.resolve(coopname, items)
     if (snapshots.length === 0) return
     try {
-      await this.repository.save(snapshots)
+      await this.repository.saveMany(snapshots)
     } catch (error: any) {
       // On-chain заявка уже создана — без снимка бухгалтер не получит реквизиты
       // для оплаты. Требуется ручная сверка.
@@ -47,10 +49,7 @@ export class ExpenseRequisiteSnapshotsService {
 
   /** Снимки реквизитов всех строк СЗ — для сверки советом на странице расхода. */
   async listByProposal(coopname: string, proposalHash: string): Promise<ExpenseRequisiteSnapshotTypeormEntity[]> {
-    return this.repository.find({
-      where: { coopname, proposal_hash: proposalHash.toLowerCase() },
-      order: { id: 'ASC' },
-    })
+    return this.repository.find({ coopname, proposal_hash: proposalHash.toLowerCase() }, { order: { id: 'ASC' } })
   }
 
   /** Полные реквизиты платёжного метода пайщика строкой — для документов. */
@@ -68,9 +67,7 @@ export class ExpenseRequisiteSnapshotsService {
     proposalHash: string,
     itemHash: string
   ): Promise<{ data: Record<string, unknown> | null; requisites: string } | null> {
-    const snapshot = await this.repository.findOne({
-      where: { coopname, proposal_hash: proposalHash.toLowerCase(), item_hash: itemHash.toLowerCase() },
-    })
+    const snapshot = await this.repository.findOne({ coopname, proposal_hash: proposalHash.toLowerCase(), item_hash: itemHash.toLowerCase() })
     if (!snapshot) return null
     return { data: snapshot.data ?? null, requisites: snapshot.requisites ?? '' }
   }
