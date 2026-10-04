@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_KU_DETAILS_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   KuDetailsStatuses,
   type GeocodeStatus,
@@ -14,12 +14,12 @@ import { KuDetailsMapper } from '../mappers/ku-details.mapper';
 @Injectable()
 export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
   constructor(
-    @InjectRepository(KuDetailsTypeormEntity, 'marketplace')
-    private readonly repo: Repository<KuDetailsTypeormEntity>
+    @Inject(MARKETPLACE_KU_DETAILS_STORE)
+private readonly repo: TableStore<KuDetailsTypeormEntity>
   ) {}
 
   async findByCoreBraname(coopname: string, coreBraname: string): Promise<KuDetailsDomainEntity | null> {
-    const found = await this.repo.findOne({ where: { coopname, coreBraname } });
+    const found = await this.repo.findOne({ coopname, coreBraname });
     return found ? KuDetailsMapper.toDomain(found) : null;
   }
 
@@ -29,15 +29,15 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
   ): Promise<KuDetailsDomainEntity[]> {
     const where: { coopname: string; status?: KuDetailsStatus } = { coopname };
     if (options.onlyActive) where.status = KuDetailsStatuses.ACTIVE;
-    const rows = await this.repo.find({ where, order: { createdAt: 'ASC' } });
+    const rows = await this.repo.find(where, { order: { createdAt: 'ASC' } });
     return rows.map((row) => KuDetailsMapper.toDomain(row));
   }
 
   async save(entity: KuDetailsDomainEntity): Promise<KuDetailsDomainEntity> {
     const existing =
       entity.id !== undefined
-        ? await this.repo.findOne({ where: { id: entity.id } })
-        : await this.repo.findOne({ where: { coopname: entity.coopname, coreBraname: entity.coreBraname } });
+        ? await this.repo.findOne({ id: entity.id })
+        : await this.repo.findOne({ coopname: entity.coopname, coreBraname: entity.coreBraname });
 
     const toPersist = existing ?? new KuDetailsTypeormEntity();
     toPersist.coopname = entity.coopname;
@@ -68,7 +68,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
       geocodedAddress?: string;
     }
   ): Promise<KuDetailsDomainEntity | null> {
-    const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
+    const existing = await this.repo.findOne({ coopname, coreBraname });
     if (!existing) return null;
 
     existing.geocodeStatus = payload.status;
@@ -87,7 +87,7 @@ export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
     coreBraname: string,
     status: KuDetailsStatus
   ): Promise<KuDetailsDomainEntity | null> {
-    const existing = await this.repo.findOne({ where: { coopname, coreBraname } });
+    const existing = await this.repo.findOne({ coopname, coreBraname });
     if (!existing) return null;
     existing.status = status;
     const saved = await this.repo.save(existing);

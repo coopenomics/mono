@@ -115,6 +115,15 @@ describe('TableStore', () => {
     });
   });
 
+  it('незаданное значение в отборе условия не даёт — отбор идёт по остальным полям', async () => {
+    const { store, queries } = make();
+
+    await store.find({ state: 'new', lastError: undefined });
+
+    expect(queries[0].sql).toBe('select * from "sessions" where "state" = $1');
+    expect(queries[0].parameters).toEqual(['new']);
+  });
+
   it('таблица вне ленты: число затронутых строк берётся из счётчика базы', async () => {
     const { store } = make([{ affected: 3 }, { affected: 0 }]);
 

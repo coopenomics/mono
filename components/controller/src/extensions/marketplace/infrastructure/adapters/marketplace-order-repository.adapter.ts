@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { TableStore, isNull, lessOrEqual, moreThan, oneOf, rawQuery } from '@coopenomics/extension-kit';
+import { sql } from 'kysely';
+import { MARKETPLACE_ORDER_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
 import {
   MARKETPLACE_ORDER_STATUS_CHANGED_EVENT,
   type MarketplaceOrderStatusChangedEvent,
@@ -29,8 +30,8 @@ import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extensio
 @Injectable()
 export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceOrderEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceOrderEntity>,
+    @Inject(MARKETPLACE_ORDER_STORE)
+private readonly repo: TableStore<MarketplaceOrderEntity>,
     private readonly mapper: MarketplaceOrderMapper,
     private readonly eventEmitter: EventEmitter2
   ) {}
@@ -147,13 +148,13 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
   }
 
   async findById(id: string): Promise<MarketplaceOrderDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findByIds(ids: string[]): Promise<MarketplaceOrderDomainEntity[]> {
     if (ids.length === 0) return [];
-    const rows = await this.repo.find({ where: { id: In(ids) } });
+    const rows = await this.repo.find({ id: oneOf(ids) });
     return rows.map((row) => this.mapper.toDomain(row));
   }
 
@@ -161,9 +162,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     coopname: string,
     order_hash: string
   ): Promise<MarketplaceOrderDomainEntity | null> {
-    const row = await this.repo.findOne({
-      where: { coopname, order_hash: order_hash.toLowerCase() },
-    });
+    const row = await this.repo.findOne({ coopname, order_hash: order_hash.toLowerCase() });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -173,7 +172,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
   ): Promise<MarketplaceOrderDomainEntity[]> {
     const hashes = [...new Set(order_hashes.filter((h) => h).map((h) => h.toLowerCase()))];
     if (hashes.length === 0) return [];
-    const rows = await this.repo.find({ where: { coopname, order_hash: In(hashes) } });
+    const rows = await this.repo.find({ coopname, order_hash: oneOf(hashes) });
     return rows.map((row) => this.mapper.toDomain(row));
   }
 
@@ -181,23 +180,17 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     filter: MarketplaceOrderListFilter,
     pagination: PaginationInputDTO
   ): Promise<PaginationResult<MarketplaceOrderDomainEntity>> {
-    const qb = this.repo.createQueryBuilder('o').where('o.coopname = :coop', { coop: filter.coopname });
-
-    if (filter.orderer_account) qb.andWhere('o.orderer_account = :ord', { ord: filter.orderer_account });
-    if (filter.supplier_account) qb.andWhere('o.supplier_account = :sup', { sup: filter.supplier_account });
-    if (filter.offer_id) qb.andWhere('o.offer_id = :off', { off: filter.offer_id });
-    if (filter.cycle_id) qb.andWhere('o.cycle_id = :cid', { cid: filter.cycle_id });
-    if (filter.checkout_id) qb.andWhere('o.checkout_id = :chid', { chid: filter.checkout_id });
-    if (filter.delivery_braname) qb.andWhere('o.delivery_braname = :br', { br: filter.delivery_braname });
-    if (filter.status) {
-      const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-      qb.andWhere('o.status IN (:...statuses)', { statuses });
+    const where: Record<string, unknown> = { coopname: filter.coopname };
+    for (const key of ['orderer_account', 'supplier_account', 'offer_id', 'cycle_id', 'checkout_id', 'delivery_braname'] as const) {
+      if (filter[key]) where[key] = filter[key];
     }
+    if (filter.status) where.status = oneOf(Array.isArray(filter.status) ? filter.status : [filter.status]);
 
-    qb.orderBy('o.updated_at', pagination.sortOrder ?? 'DESC');
-    qb.skip((pagination.page - 1) * pagination.limit).take(pagination.limit);
-
-    const [rows, totalCount] = await qb.getManyAndCount();
+    const [rows, totalCount] = await this.repo.findAndCount(where, {
+      order: { updated_at: pagination.sortOrder === 'ASC' ? 'ASC' : 'DESC' },
+      offset: (pagination.page - 1) * pagination.limit,
+      limit: pagination.limit,
+    });
     return {
       items: rows.map((r) => this.mapper.toDomain(r)),
       totalCount,
@@ -211,7 +204,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     newStatus: MarketplaceOrderStatus,
     reason: string | null
   ): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
 
     const patch: Partial<MarketplaceOrderEntity> = {
       status: newStatus,
@@ -227,7 +220,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     }
 
     await this.repo.update({ id }, patch as Record<string, unknown>);
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     const updated = this.mapper.toDomain(row);
     if (before.status !== updated.status) {
       this.emitStatusChanged(updated, before.status);
@@ -247,15 +240,12 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         `MarketplaceOrderRepositoryAdapter.findBySyncKey: ожидался order_hash, получено "${syncKey}"`
       );
     }
-    const row = await this.repo.findOne({ where: { order_hash: syncValue.toLowerCase() } });
+    const row = await this.repo.findOne({ order_hash: syncValue.toLowerCase() });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findByBlockNumGreaterThan(blockNum: number): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.on_chain_block_num > :bn', { bn: blockNum })
-      .getMany();
+    const rows = await this.repo.find({ on_chain_block_num: moreThan(blockNum) });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -323,15 +313,10 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     coopname: string,
     offer_id: string
   ): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
-        coop: coopname,
-        off: offer_id,
-        st: MarketplaceOrderStatuses.ACTIVE,
-      })
-      .orderBy('o.blocked_at', 'ASC')
-      .getMany();
+    const rows = await this.repo.find(
+      { coopname, offer_id, status: MarketplaceOrderStatuses.ACTIVE, cycle_id: isNull() },
+      { order: { blocked_at: 'ASC' } }
+    );
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -341,39 +326,30 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     newStatus: MarketplaceOrderStatus
   ): Promise<number> {
     if (orderIds.length === 0) return 0;
-    const beforeRows = await this.repo.find({ where: { id: In(orderIds) } });
+    const beforeRows = await this.repo.find({ id: oneOf(orderIds) });
     const beforeStatusById = new Map(beforeRows.map((r) => [r.id, r.status] as const));
-    const result = await this.repo
-      .createQueryBuilder()
-      .update(MarketplaceOrderEntity)
-      .set({
-        cycle_id,
-        status: newStatus,
-        accepted_at: newStatus === 'ACCEPTED' ? new Date() : undefined,
-      })
-      .where('id IN (:...ids) AND cycle_id IS NULL', { ids: orderIds })
-      .execute();
+    // В партию попадают только заказы без партии: условие в самой правке.
+    const result = await this.repo.update(
+      { id: oneOf(orderIds), cycle_id: isNull() },
+      { cycle_id, status: newStatus, accepted_at: newStatus === 'ACCEPTED' ? new Date() : undefined }
+    );
     // Партия — пачка заказов; сигналим по каждому реально перешедшему: у
     // заказов одной партии могут быть разные заказчики-адресаты.
-    const afterRows = await this.repo.find({ where: { id: In(orderIds) } });
+    const afterRows = await this.repo.find({ id: oneOf(orderIds) });
     for (const row of afterRows) {
       const prev = beforeStatusById.get(row.id);
       if (prev !== undefined && prev !== row.status) {
         this.emitStatusChanged(this.mapper.toDomain(row), prev);
       }
     }
-    return result.affected ?? 0;
+    return result;
   }
 
   async findByCycleId(
     coopname: string,
     cycle_id: string
   ): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop AND o.cycle_id = :cid', { coop: coopname, cid: cycle_id })
-      .orderBy('o.blocked_at', 'ASC')
-      .getMany();
+    const rows = await this.repo.find({ coopname, cycle_id }, { order: { blocked_at: 'ASC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -381,11 +357,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     coopname: string,
     shipment_id: string
   ): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop AND o.shipment_id = :sid', { coop: coopname, sid: shipment_id })
-      .orderBy('o.blocked_at', 'ASC')
-      .getMany();
+    const rows = await this.repo.find({ coopname, shipment_id }, { order: { blocked_at: 'ASC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -395,36 +367,29 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     reason: string | null
   ): Promise<number> {
     if (orderIds.length === 0) return 0;
-    const result = await this.repo
-      .createQueryBuilder()
-      .update(MarketplaceOrderEntity)
-      .set({ shipment_id, status: 'SUPPLY_PREPARED', last_status_reason: reason })
-      .where('id IN (:...ids) AND status = :accepted AND shipment_id IS NULL', {
-        ids: orderIds,
-        accepted: 'ACCEPTED',
-      })
-      .execute();
+    const result = await this.repo.update(
+      { id: oneOf(orderIds), status: 'ACCEPTED', shipment_id: isNull() },
+      { shipment_id, status: 'SUPPLY_PREPARED', last_status_reason: reason }
+    );
     // Guard WHERE пропускает только ACCEPTED → перешли ровно те, кто теперь
     // SUPPLY_PREPARED в этой партии; previous известен из guard'а.
-    const afterRows = await this.repo.find({ where: { id: In(orderIds), shipment_id } });
+    const afterRows = await this.repo.find({ id: oneOf(orderIds), shipment_id });
     for (const row of afterRows) {
       if (row.status === 'SUPPLY_PREPARED') {
         this.emitStatusChanged(this.mapper.toDomain(row), 'ACCEPTED');
       }
     }
-    return result.affected ?? 0;
+    return result;
   }
 
   async sumUnassignedActiveByOffer(coopname: string, offer_id: string): Promise<number> {
-    const raw = await this.repo
-      .createQueryBuilder('o')
-      .select('COALESCE(SUM(o.quantity), 0)', 'total')
-      .where('o.coopname = :coop AND o.offer_id = :off AND o.status = :st AND o.cycle_id IS NULL', {
-        coop: coopname,
-        off: offer_id,
-        st: MarketplaceOrderStatuses.ACTIVE,
-      })
-      .getRawOne<{ total: string }>();
+    const [raw] = await rawQuery<{ total: string }>(
+      this.repo.kysely,
+      `SELECT COALESCE(SUM(quantity), 0) AS total
+         FROM marketplace_order
+        WHERE coopname = $1 AND offer_id = $2 AND status = $3 AND cycle_id IS NULL`,
+      [coopname, offer_id, MarketplaceOrderStatuses.ACTIVE]
+    );
     return Number(raw?.total ?? 0);
   }
 
@@ -433,19 +398,14 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     offerIds: string[]
   ): Promise<Array<{ offer_id: string; delivery_braname: string; total: number }>> {
     if (offerIds.length === 0) return [];
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .select('o.offer_id', 'offer_id')
-      .addSelect('o.delivery_braname', 'delivery_braname')
-      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
-      .where('o.coopname = :coop AND o.offer_id IN (:...offers) AND o.status = :st', {
-        coop: coopname,
-        offers: offerIds,
-        st: MarketplaceOrderStatuses.ACTIVE,
-      })
-      .groupBy('o.offer_id')
-      .addGroupBy('o.delivery_braname')
-      .getRawMany<{ offer_id: string; delivery_braname: string; total: string }>();
+    const rows = await rawQuery<{ offer_id: string; delivery_braname: string; total: string }>(
+      this.repo.kysely,
+      `SELECT offer_id, delivery_braname, COALESCE(SUM(quantity), 0) AS total
+         FROM marketplace_order
+        WHERE coopname = $1 AND offer_id::text = ANY($2::text[]) AND status = $3
+        GROUP BY offer_id, delivery_braname`,
+      [coopname, offerIds, MarketplaceOrderStatuses.ACTIVE]
+    );
     return rows.map((r) => ({
       offer_id: r.offer_id,
       delivery_braname: r.delivery_braname,
@@ -458,25 +418,19 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     cycleIds: string[]
   ): Promise<Array<{ cycle_id: string; total: number }>> {
     if (cycleIds.length === 0) return [];
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .select('o.cycle_id', 'cycle_id')
-      .addSelect('COALESCE(SUM(o.quantity), 0)', 'total')
-      .where('o.coopname = :coop AND o.cycle_id IN (:...cids)', {
-        coop: coopname,
-        cids: cycleIds,
-      })
-      .groupBy('o.cycle_id')
-      .getRawMany<{ cycle_id: string; total: string }>();
+    const rows = await rawQuery<{ cycle_id: string; total: string }>(
+      this.repo.kysely,
+      `SELECT cycle_id, COALESCE(SUM(quantity), 0) AS total
+         FROM marketplace_order
+        WHERE coopname = $1 AND cycle_id::text = ANY($2::text[])
+        GROUP BY cycle_id`,
+      [coopname, cycleIds]
+    );
     return rows.map((r) => ({ cycle_id: r.cycle_id, total: Number(r.total ?? 0) }));
   }
 
   async deleteByBlockNumGreaterThan(blockNum: number): Promise<void> {
-    await this.repo
-      .createQueryBuilder()
-      .delete()
-      .where('on_chain_block_num > :bn', { bn: blockNum })
-      .execute();
+    await this.repo.delete({ on_chain_block_num: moreThan(blockNum) });
   }
 
   // ── Story 6.1 / 6.3: выдача пайщику ──────────────────────────────
@@ -485,7 +439,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     id: string,
     patch: { current_warehouse_braname: string }
   ): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update(
       { id },
       {
@@ -494,7 +448,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         ready_announced_at: before.ready_announced_at ?? new Date(),
       } as Record<string, unknown>
     );
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
@@ -503,7 +457,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     id: string,
     patch: { issuance_fact: MarketplaceOrderIssuanceFactSnapshot }
   ): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update(
       { id },
       {
@@ -513,7 +467,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         issue_decision_id: null,
       } as Record<string, unknown>
     );
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
@@ -522,20 +476,20 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     id: string,
     patch: { issue_decision_id: string | null }
   ): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update(
       { id },
       { status: 'ISSUE_AUTHORIZED', issue_decision_id: patch.issue_decision_id } as Record<string, unknown>
     );
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
 
   async applyIssuanceAct1(id: string): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update({ id }, { status: 'ISSUE_ACT1' } as Record<string, unknown>);
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
@@ -549,7 +503,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       warranty_until: Date | null;
     }
   ): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update(
       { id },
       {
@@ -561,13 +515,13 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         warranty_until: patch.warranty_until,
       } as Record<string, unknown>
     );
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
 
   async applyIssuanceReset(id: string): Promise<MarketplaceOrderDomainEntity> {
-    const before = await this.repo.findOneOrFail({ where: { id } });
+    const before = await this.repo.findOneOrFail({ id });
     await this.repo.update(
       { id },
       {
@@ -577,70 +531,64 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
         issue_decision_id: null,
       } as Record<string, unknown>
     );
-    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const updated = this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
     if (before.status !== updated.status) this.emitStatusChanged(updated, before.status);
     return updated;
   }
 
   async listOpenSupplierSettlements(coopname: string): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop', { coop: coopname })
-      .andWhere('o.on_chain_present = true')
-      // Заказы, принятые до появления `accepted_cost`, узнаются по статусу
-      // после приёмки (задача 99D-15); отказ после приёмки живёт на цепи как
-      // `refused` с терминальным статусом проекции.
-      .andWhere('(o.accepted_cost IS NOT NULL OR o.status IN (:...accepted))', {
-        accepted: [
-          MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
-          MarketplaceOrderStatuses.READY_TO_RECEIVE,
-          MarketplaceOrderStatuses.ISSUE_PENDING,
-          MarketplaceOrderStatuses.ISSUE_AUTHORIZED,
-          MarketplaceOrderStatuses.ISSUE_ACT1,
-          MarketplaceOrderStatuses.RECEIVED,
-          MarketplaceOrderStatuses.RETURNED,
-          MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
-        ],
-      })
-      .andWhere('o.supplier_account <> :coop', { coop: coopname })
-      .andWhere('(o.payout_status IS NULL OR o.payout_status <> :done)', {
-        done: MarketplaceOrderPayoutStatuses.COMPLETED,
-      })
-      .orderBy('o.accepted_at', 'ASC')
-      .getMany();
+    // Заказы, принятые до появления `accepted_cost`, узнаются по статусу
+    // после приёмки (задача 99D-15); отказ после приёмки живёт на цепи как
+    // `refused` с терминальным статусом проекции.
+    const accepted = [
+      MarketplaceOrderStatuses.ACCEPTED_TO_COOP,
+      MarketplaceOrderStatuses.READY_TO_RECEIVE,
+      MarketplaceOrderStatuses.ISSUE_PENDING,
+      MarketplaceOrderStatuses.ISSUE_AUTHORIZED,
+      MarketplaceOrderStatuses.ISSUE_ACT1,
+      MarketplaceOrderStatuses.RECEIVED,
+      MarketplaceOrderStatuses.RETURNED,
+      MarketplaceOrderStatuses.CANCELLED_BY_ORDERER,
+    ];
+    const found = await this.repo
+      .select()
+      .where('coopname', '=', coopname)
+      .where('on_chain_present', '=', true)
+      .where((eb) => eb.or([eb('accepted_cost', 'is not', null), eb('status', 'in', accepted)]))
+      .where('supplier_account', '<>', coopname)
+      .where((eb) => eb.or([eb('payout_status', 'is', null), eb('payout_status', '<>', MarketplaceOrderPayoutStatuses.COMPLETED)]))
+      .orderBy('accepted_at', 'asc')
+      .execute();
+    const rows = this.repo.records(found);
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async applyMarkdownDue(id: string, markdown_due: string | null): Promise<MarketplaceOrderDomainEntity> {
     await this.repo.update({ id }, { markdown_due } as Record<string, unknown>);
-    return this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
   }
 
   async listMarkdownPending(coopname: string, limit: number): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop', { coop: coopname })
-      .andWhere('o.on_chain_present = true')
-      .andWhere('o.status = :received', { received: MarketplaceOrderStatuses.RECEIVED })
-      .andWhere('o.markdown_due > 0')
-      .andWhere('(o.markdown_cost IS NULL OR o.markdown_cost = 0)')
-      .orderBy('o.received_at', 'ASC')
-      .take(limit)
-      .getMany();
+    const found = await this.repo
+      .select()
+      .where('coopname', '=', coopname)
+      .where('on_chain_present', '=', true)
+      .where('status', '=', MarketplaceOrderStatuses.RECEIVED)
+      .where(sql<boolean>`markdown_due > 0`)
+      .where(sql<boolean>`(markdown_cost IS NULL OR markdown_cost = 0)`)
+      .orderBy('received_at', 'asc')
+      .limit(limit)
+      .execute();
+    const rows = this.repo.records(found);
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
   async listUndelivered(coopname: string, accepted_before: Date, limit: number): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop', { coop: coopname })
-      .andWhere('o.on_chain_present = true')
-      .andWhere('o.status = :accepted', { accepted: MarketplaceOrderStatuses.ACCEPTED })
-      .andWhere('o.accepted_at IS NOT NULL')
-      .andWhere('o.accepted_at <= :before', { before: accepted_before })
-      .orderBy('o.accepted_at', 'ASC')
-      .take(limit)
-      .getMany();
+    // Заказ без даты приёма в отбор не попадает: сравнение с пустым значением ложно.
+    const rows = await this.repo.find(
+      { coopname, on_chain_present: true, status: MarketplaceOrderStatuses.ACCEPTED, accepted_at: lessOrEqual(accepted_before) },
+      { order: { accepted_at: 'ASC' }, limit }
+    );
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -648,15 +596,14 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
     coopname: string,
     delivery_braname: string
   ): Promise<MarketplaceOrderDomainEntity[]> {
-    const rows = await this.repo
-      .createQueryBuilder('o')
-      .where('o.coopname = :coop AND o.delivery_braname = :br AND o.status IN (:...sts)', {
-        coop: coopname,
-        br: delivery_braname,
-        sts: ['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1'],
-      })
-      .orderBy('o.accepted_at', 'ASC')
-      .getMany();
+    const rows = await this.repo.find(
+      {
+        coopname,
+        delivery_braname,
+        status: oneOf(['ACCEPTED_TO_COOP', 'READY_TO_RECEIVE', 'ISSUE_PENDING', 'ISSUE_AUTHORIZED', 'ISSUE_ACT1']),
+      },
+      { order: { accepted_at: 'ASC' } }
+    );
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -704,7 +651,7 @@ export class MarketplaceOrderRepositoryAdapter implements MarketplaceOrderDomain
       markdown_cost: entity.markdown_cost,
     };
     await this.repo.update({ id: entity.id }, patch);
-    const row = await this.repo.findOneOrFail({ where: { id: entity.id } });
+    const row = await this.repo.findOneOrFail({ id: entity.id });
     return this.mapper.toDomain(row);
   }
 }

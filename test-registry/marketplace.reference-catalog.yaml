@@ -41,3 +41,20 @@ cases:
     expect: витрина по умолчанию одна, заведена на кооператив при установке Стола заказов
     test: components/api-tests/src/marketplace/reference-catalog.test.ts
     status: written
+
+  - id: mkt.ref.side.05
+    level: backend
+    kind: side
+    scenario: >
+      хранилище справочника: тип имущества читается вместе со своей категорией;
+      занятость названия категории ищется по всему справочнику без учёта
+      регистра; гонка двух созданий за один номер
+    expect: >
+      категория типа читается отдельным запросом по ключу; условие занятости
+      совпадает с выражением уникального индекса; отказ базы по индексу названия
+      становится отказом «название занято», проигранная гонка за номер
+      повторяется
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    external: unreachable
+    external_reason: "проверяются запросы к базе и разбор её отказа — снаружи они не видны; чтение справочника через API покрыто случаями mkt.ref.happy.*"
+    status: written

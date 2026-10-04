@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from 'node:async_hooks';
 import {
   QueryNode,
   SelectionNode,
@@ -9,18 +8,12 @@ import {
   type RootOperationNode,
   type UnknownRow,
 } from 'kysely';
+import type { PendingLocalChange } from '@coopenomics/extension-kit';
 
-export interface LocalChange {
-  table: string;
-  primary_key: string;
-  row: Record<string, unknown>;
-}
+export type LocalChange = PendingLocalChange;
 
 /** Куда уходит изменение: сразу в ленту либо в очередь до фиксации транзакции. */
 export type LocalChangeSink = (change: LocalChange) => void;
-
-/** Изменения транзакции Kysely: копятся здесь и публикуются после фиксации. */
-export const pendingLocalChanges = new AsyncLocalStorage<LocalChange[]>();
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNode = any;

@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_SUPPLIER_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   MarketplaceSupplierCreateInput,
   MarketplaceSupplierDomainRepository,
@@ -16,16 +16,13 @@ export class MarketplaceSupplierRepositoryAdapter
   implements MarketplaceSupplierDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceSupplierEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceSupplierEntity>,
+    @Inject(MARKETPLACE_SUPPLIER_STORE)
+private readonly repo: TableStore<MarketplaceSupplierEntity>,
     private readonly mapper: MarketplaceSupplierMapper
   ) {}
 
   async list(coopname: string): Promise<MarketplaceSupplierDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname },
-      order: { requested_at: 'ASC' },
-    });
+    const rows = await this.repo.find({ coopname }, { order: { requested_at: 'ASC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -33,7 +30,7 @@ export class MarketplaceSupplierRepositoryAdapter
     coopname: string,
     member_account: string
   ): Promise<MarketplaceSupplierDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, member_account } });
+    const row = await this.repo.findOne({ coopname, member_account });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -59,7 +56,7 @@ export class MarketplaceSupplierRepositoryAdapter
     member_account: string,
     patch: MarketplaceSupplierPatchInput
   ): Promise<MarketplaceSupplierDomainEntity> {
-    const row = await this.repo.findOne({ where: { coopname, member_account } });
+    const row = await this.repo.findOne({ coopname, member_account });
     if (!row) {
       throw DomainError.notFound('MARKETPLACE_SUPPLIER_NOT_FOUND_IN_REGISTRY', { memberAccount: member_account });
     }

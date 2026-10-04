@@ -222,7 +222,12 @@ export class TableStore<TRecord extends object> {
 
   private filter(eb: ExpressionBuilder<any, any>, where: WhereInput<TRecord>): Expression<SqlBool> {
     const groups = Array.isArray(where) ? where : [where];
-    return eb.or(groups.map((group) => eb.and(Object.entries(group).map(([field, value]) => this.clause(eb, field, value)))));
+    // Незаданное значение условия не даёт — отбор по остальным полям, как у прежней прослойки.
+    const clauses = (group: object) =>
+      Object.entries(group)
+        .filter(([, value]) => value !== undefined)
+        .map(([field, value]) => this.clause(eb, field, value));
+    return eb.or(groups.map((group) => eb.and(clauses(group))));
   }
 
   private clause(eb: ExpressionBuilder<any, any>, field: string, value: unknown): Expression<SqlBool> {

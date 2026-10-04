@@ -5,7 +5,8 @@ import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.s
 import type { DB } from './database.types';
 import { BoundConnectionDialect, type PgQueryable } from './bound-connection.dialect';
 import { KYSELY, type Database } from './kysely.tokens';
-import { LocalChangesPlugin, pendingLocalChanges, type LocalChange } from './local-changes.plugin';
+import { configureLocalChangePublisher, pendingLocalChanges } from '@coopenomics/extension-kit';
+import { LocalChangesPlugin, type LocalChange } from './local-changes.plugin';
 
 /** Лента изменений и ключи таблиц — общие для всех экземпляров Kysely процесса. */
 interface Feed {
@@ -34,25 +35,13 @@ export function createKysely(dataSource: DataSource): Database {
   return new Kysely<DB>({
     dialect: new PostgresDialect({ pool }),
     // Вне транзакции запись уже зафиксирована — сигнал сразу; внутри
-    // `inTransaction` — после фиксации.
+    // `inTransaction` (каркас расширения) — после фиксации.
     plugins: plugins((change) => {
       const pending = pendingLocalChanges.getStore();
       if (pending) pending.push(change);
       else feed?.publish(change);
     }),
   });
-}
-
-/**
- * Транзакция Kysely. Сигналы ленты изменений уходят после фиксации: стол по
- * ним читает уже записанное, откаченная запись сигнала не даёт. Голый
- * `db.transaction()` этого не делает — транзакции открывать только здесь.
- */
-export async function inTransaction<T>(db: Database, work: (trx: Database) => Promise<T>): Promise<T> {
-  const changes: LocalChange[] = [];
-  const result = await pendingLocalChanges.run(changes, () => db.transaction().execute((trx) => work(trx)));
-  changes.forEach((change) => feed?.publish(change));
-  return result;
 }
 
 /**
@@ -107,6 +96,8 @@ export const kyselyProvider: Provider = {
       primaryKeyOf: (table) => primaryKeys.get(table) ?? [],
       publish: (change) => void changes.publishLocal(change.table, change.primary_key, change.row),
     };
+    // Транзакции Kysely (`inTransaction` из каркаса) публикуют накопленное после фиксации.
+    configureLocalChangePublisher((change) => feed?.publish(change));
     // Исход транзакции TypeORM решает судьбу сигналов, записанных в ней через Kysely.
     dataSource.subscribers.push({
       afterTransactionCommit: (event) => {

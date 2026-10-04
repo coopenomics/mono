@@ -2,14 +2,14 @@
  * Стол заказов в общей ленте изменений (C28-83).
  *
  * Инварианты:
- *   - подписчик объявляет таблицы расширения в ленте: корзина — личная по
+ *   - расширение объявляет свои таблицы в ленте: корзина — личная по
  *     заказчику, остальные открыты пайщикам кооператива; из цепи — настройки
  *     стола (сбор с оборота);
- *   - запись в таблицу своей базы — сигнал через порт после фиксации;
- *   - таблица вне списка — тишина;
- *   - узел без порта ленты — подписчик молчит и не падает;
- *   - сырой UPDATE счётчиков предложения подписчик не видит — сигнал шлёт
- *     репозиторий сам, и только когда строка действительно изменилась.
+ *   - сигнал о записи шлёт слой базы, и ключ строки он берёт у таблицы базы:
+ *     каждая объявленная таблица обязана быть таблицей расширения;
+ *   - узел без порта ленты — объявление молчит и не падает;
+ *   - готовый UPDATE счётчиков предложения слой базы не видит — сигнал шлёт
+ *     хранилище само, и только когда строка действительно изменилась.
  */
 import {
   MARKETPLACE_LIVE_CHAIN_TABLES,
@@ -18,13 +18,8 @@ import {
 } from '~/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber';
 import { MarketplaceOfferRepositoryAdapter } from '~/extensions/marketplace/infrastructure/adapters/marketplace-offer-repository.adapter';
 import { MarketplaceOfferStatuses } from '~/extensions/marketplace/domain/entities/marketplace-offer.types';
-
-function metadata(tableName: string) {
-  return {
-    tableName,
-    primaryColumns: [{ getEntityValue: (row: Record<string, unknown>) => row.id }],
-  } as any;
-}
+import marketplaceTables from '~/extensions/marketplace/marketplace.tables';
+import { recordingKysely } from '../helpers/kysely-recorder';
 
 function port() {
   return {
@@ -37,7 +32,7 @@ function port() {
 describe('MarketplaceLiveFeedSubscriber', () => {
   it('объявляет таблицы расширения: корзина личная, остальные открыты; сбор с оборота из цепи', () => {
     const chainChanges = port();
-    new MarketplaceLiveFeedSubscriber({ subscribers: [] } as any, chainChanges);
+    new MarketplaceLiveFeedSubscriber(chainChanges);
 
     expect(chainChanges.declareTables).toHaveBeenCalledWith(MARKETPLACE_LIVE_CHAIN_TABLES);
     expect(MARKETPLACE_LIVE_CHAIN_TABLES).toEqual([{ code: 'marketplace', table: 'config' }]);
@@ -49,51 +44,21 @@ describe('MarketplaceLiveFeedSubscriber', () => {
     expect(order).toEqual({ code: 'market', table: 'marketplace_order' });
   });
 
-  it('регистрируется подписчиком базы расширения и шлёт сигнал после фиксации', () => {
-    const chainChanges = port();
-    const dataSource = { subscribers: [] as unknown[] } as any;
-    const subscriber = new MarketplaceLiveFeedSubscriber(dataSource, chainChanges);
-    expect(dataSource.subscribers).toContain(subscriber);
+  it('каждая таблица ленты — таблица базы расширения: слой базы знает её ключ', () => {
+    const declared = MARKETPLACE_LIVE_TABLES.map((entry) => entry.table);
 
-    const queryRunner = { isTransactionActive: true } as any;
-    const row = { id: 'o-1', orderer_account: 'ivan' };
-    subscriber.afterUpdate({ metadata: metadata('marketplace_order'), queryRunner, entity: row, databaseEntity: row } as any);
-    expect(chainChanges.publishLocal).not.toHaveBeenCalled();
-
-    subscriber.afterTransactionCommit({ queryRunner } as any);
-    expect(chainChanges.publishLocal).toHaveBeenCalledWith('marketplace_order', 'o-1', row);
-  });
-
-  it('таблица вне списка — тишина', () => {
-    const chainChanges = port();
-    const subscriber = new MarketplaceLiveFeedSubscriber({ subscribers: [] } as any, chainChanges);
-
-    subscriber.afterInsert({
-      metadata: metadata('marketplace_migrations'),
-      queryRunner: { isTransactionActive: false },
-      entity: { id: '1' },
-    } as any);
-
-    expect(chainChanges.publishLocal).not.toHaveBeenCalled();
+    expect(declared.filter((table) => !marketplaceTables.includes(table))).toEqual([]);
   });
 
   it('без порта ленты — молчит и не падает', () => {
-    const subscriber = new MarketplaceLiveFeedSubscriber({ subscribers: [] } as any, null);
-
-    expect(() =>
-      subscriber.afterInsert({
-        metadata: metadata('marketplace_order'),
-        queryRunner: { isTransactionActive: false },
-        entity: { id: 'o-2' },
-      } as any),
-    ).not.toThrow();
+    expect(() => new MarketplaceLiveFeedSubscriber(null)).not.toThrow();
   });
 });
 
-describe('MarketplaceOfferRepositoryAdapter: сигнал после сырого UPDATE счётчиков', () => {
+describe('MarketplaceOfferRepositoryAdapter: сигнал после готового UPDATE счётчиков', () => {
   function build(updated: boolean) {
     const repo = {
-      query: jest.fn().mockResolvedValue(updated ? [[{ id: 'of-1' }], 1] : [[], 0]),
+      kysely: recordingKysely([{ rows: updated ? [{ id: 'of-1' }] : [] }]).db,
       findOne: jest.fn().mockResolvedValue({ id: 'of-1', status: MarketplaceOfferStatuses.ACTIVE }),
       findOneOrFail: jest.fn().mockResolvedValue({ id: 'of-1' }),
     } as any;
