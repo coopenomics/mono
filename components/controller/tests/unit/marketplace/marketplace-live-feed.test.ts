@@ -47,7 +47,9 @@ describe('MarketplaceLiveFeedSubscriber', () => {
   it('каждая таблица ленты — таблица базы расширения: слой базы знает её ключ', () => {
     const declared = MARKETPLACE_LIVE_TABLES.map((entry) => entry.table);
 
-    expect(declared.filter((table) => !marketplaceTables.includes(table))).toEqual([]);
+    const known: readonly string[] = marketplaceTables;
+
+    expect(declared.filter((table) => !known.includes(table))).toEqual([]);
   });
 
   it('без порта ленты — молчит и не падает', () => {
