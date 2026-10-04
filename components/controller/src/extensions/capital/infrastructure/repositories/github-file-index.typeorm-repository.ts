@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_GITHUB_FILE_INDEX_STORE } from '../../infrastructure/database/capital-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import type { GitHubFileIndexRepository, IGitHubFileIndexData } from '../../domain/repositories/github-file-index.repository';
 import { GitHubFileIndexTypeormEntity } from '../entities/github-file-index.typeorm-entity';
 
@@ -10,28 +10,24 @@ import { GitHubFileIndexTypeormEntity } from '../entities/github-file-index.type
 @Injectable()
 export class GitHubFileIndexTypeormRepository implements GitHubFileIndexRepository {
   constructor(
-    @InjectRepository(GitHubFileIndexTypeormEntity)
-    private readonly repository: Repository<GitHubFileIndexTypeormEntity>
+    @Inject(CAPITAL_GITHUB_FILE_INDEX_STORE)
+    private readonly repository: TableStore<GitHubFileIndexTypeormEntity>
   ) {}
 
   async findByHash(entityType: string, entityHash: string, coopname: string): Promise<IGitHubFileIndexData | null> {
     const entity = await this.repository.findOne({
-      where: {
         coopname,
         entity_type: entityType as any,
         entity_hash: entityHash.toLowerCase(),
-      },
-    });
+      });
     return entity || null;
   }
 
   async findByPath(filePath: string, coopname: string): Promise<IGitHubFileIndexData | null> {
     const entity = await this.repository.findOne({
-      where: {
         coopname,
         file_path: filePath,
-      },
-    });
+      });
     return entity || null;
   }
 
@@ -76,16 +72,11 @@ export class GitHubFileIndexTypeormRepository implements GitHubFileIndexReposito
   }
 
   async getAllIndexes(coopname: string): Promise<IGitHubFileIndexData[]> {
-    return await this.repository.find({
-      where: { coopname },
-    });
+    return await this.repository.find({ coopname });
   }
 
   async getLastSyncedSha(coopname: string): Promise<string | null> {
-    const result = await this.repository.findOne({
-      where: { coopname },
-      order: { last_synced_at: 'DESC' },
-    });
+    const result = await this.repository.findOne({ coopname }, { order: { last_synced_at: 'DESC' } });
     return result?.github_sha || null;
   }
 }

@@ -168,3 +168,16 @@ cases:
     expect: шаблон и экземпляр видны на странице, шаги закрываются с экрана
     test: ~
     status: missing
+
+  - id: cap.proc.side.10
+    level: backend
+    kind: side
+    scenario: >
+      хранилище шаблонов процессов: правка шагов шаблона
+    expect: >
+      правка идёт по ключу шаблона, шаги уходят в базу как json, в ответ
+      отдаётся перечитанный шаблон
+    test: components/controller/tests/unit/capital/capital-kysely-stores.test.ts
+    external: unreachable
+    external_reason: "проверяется текст запроса к базе — снаружи он не виден; ведение шаблонов через API покрыто случаями фичи"
+    status: written

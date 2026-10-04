@@ -15,20 +15,11 @@ import { ContributorTypeormEntity } from './infrastructure/entities/contributor.
 import { CycleTypeormEntity } from './infrastructure/entities/cycle.typeorm-entity';
 import { DebtTypeormEntity } from './infrastructure/entities/debt.typeorm-entity';
 import { ExpenseTypeormEntity } from './infrastructure/entities/expense.typeorm-entity';
-import { FavoriteTypeormEntity } from './infrastructure/entities/favorite.typeorm-entity';
-import { GithubBranchCommitSyncStateTypeormEntity } from './infrastructure/entities/github-branch-commit-sync-state.typeorm-entity';
-import { GithubCommMessageCursorTypeormEntity } from './infrastructure/entities/github-comm-message-cursor.typeorm-entity';
-import { GithubCommTranscriptionCursorTypeormEntity } from './infrastructure/entities/github-comm-transcription-cursor.typeorm-entity';
-import { GitHubFileIndexTypeormEntity } from './infrastructure/entities/github-file-index.typeorm-entity';
 import { InvestTypeormEntity } from './infrastructure/entities/invest.typeorm-entity';
-import { IssueLinkedGitCommitShaTypeormEntity } from './infrastructure/entities/issue-linked-git-commit-sha.typeorm-entity';
-import { IssueLinkedGitCommitTypeormEntity } from './infrastructure/entities/issue-linked-git-commit.typeorm-entity';
 import { IssueMetricBindingTypeormEntity } from './infrastructure/entities/issue-metric-binding.typeorm-entity';
 import { IssueTypeormEntity } from './infrastructure/entities/issue.typeorm-entity';
 import { MeasureTypeormEntity } from './infrastructure/entities/measure.typeorm-entity';
 import { MetricContributionTypeormEntity } from './infrastructure/entities/metric-contribution.typeorm-entity';
-import { ProcessInstanceTypeormEntity } from './infrastructure/entities/process-instance.entity';
-import { ProcessTemplateTypeormEntity } from './infrastructure/entities/process-template.entity';
 import { ProgramPropertyTypeormEntity } from './infrastructure/entities/program-property.typeorm-entity';
 import { ProgramWalletTypeormEntity } from './infrastructure/entities/program-wallet.typeorm-entity';
 import { ProgramWithdrawTypeormEntity } from './infrastructure/entities/program-withdraw.typeorm-entity';
@@ -38,7 +29,6 @@ import { ResultTypeormEntity } from './infrastructure/entities/result.typeorm-en
 import { SegmentTypeormEntity } from './infrastructure/entities/segment.typeorm-entity';
 import { StateTypeormEntity } from './infrastructure/entities/state.typeorm-entity';
 import { StoryTypeormEntity } from './infrastructure/entities/story.typeorm-entity';
-import { ContentRevisionTypeormEntity } from './infrastructure/entities/content-revision.typeorm-entity';
 import { TimeEntryEntity } from './infrastructure/entities/time-entry.entity';
 import { TimerSessionEntity } from './infrastructure/entities/timer-session.entity';
 import { VoteTypeormEntity } from './infrastructure/entities/vote.typeorm-entity';
@@ -52,20 +42,11 @@ export const capitalEntities = [
   CycleTypeormEntity,
   DebtTypeormEntity,
   ExpenseTypeormEntity,
-  FavoriteTypeormEntity,
-  GithubBranchCommitSyncStateTypeormEntity,
-  GithubCommMessageCursorTypeormEntity,
-  GithubCommTranscriptionCursorTypeormEntity,
-  GitHubFileIndexTypeormEntity,
   InvestTypeormEntity,
-  IssueLinkedGitCommitShaTypeormEntity,
-  IssueLinkedGitCommitTypeormEntity,
   IssueMetricBindingTypeormEntity,
   IssueTypeormEntity,
   MeasureTypeormEntity,
   MetricContributionTypeormEntity,
-  ProcessInstanceTypeormEntity,
-  ProcessTemplateTypeormEntity,
   ProgramPropertyTypeormEntity,
   ProgramWalletTypeormEntity,
   ProgramWithdrawTypeormEntity,
@@ -75,7 +56,6 @@ export const capitalEntities = [
   SegmentTypeormEntity,
   StateTypeormEntity,
   StoryTypeormEntity,
-  ContentRevisionTypeormEntity,
   TimeEntryEntity,
   TimerSessionEntity,
   VoteTypeormEntity,

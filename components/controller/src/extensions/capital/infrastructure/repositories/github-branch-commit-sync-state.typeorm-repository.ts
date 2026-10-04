@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE } from '../../infrastructure/database/capital-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { GithubBranchCommitSyncStateTypeormEntity } from '../entities/github-branch-commit-sync-state.typeorm-entity';
 import type { GithubBranchCommitSyncStateRepository } from '../../domain/repositories/github-branch-commit-sync-state.repository';
 
 @Injectable()
 export class GithubBranchCommitSyncStateTypeormRepository implements GithubBranchCommitSyncStateRepository {
   constructor(
-    @InjectRepository(GithubBranchCommitSyncStateTypeormEntity)
-    private readonly repo: Repository<GithubBranchCommitSyncStateTypeormEntity>
+    @Inject(CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE)
+    private readonly repo: TableStore<GithubBranchCommitSyncStateTypeormEntity>
   ) {}
 
   async getState(
@@ -16,9 +16,7 @@ export class GithubBranchCommitSyncStateTypeormRepository implements GithubBranc
     githubRepository: string,
     branch: string
   ): Promise<{ last_synced_tip_sha: string | null } | null> {
-    const row = await this.repo.findOne({
-      where: { coopname, github_repository: githubRepository, branch },
-    });
+    const row = await this.repo.findOne({ coopname, github_repository: githubRepository, branch });
     if (!row) {
       return null;
     }
@@ -26,9 +24,7 @@ export class GithubBranchCommitSyncStateTypeormRepository implements GithubBranc
   }
 
   async setTipSha(coopname: string, githubRepository: string, branch: string, tipSha: string | null): Promise<void> {
-    const existing = await this.repo.findOne({
-      where: { coopname, github_repository: githubRepository, branch },
-    });
+    const existing = await this.repo.findOne({ coopname, github_repository: githubRepository, branch });
     if (!existing) {
       await this.repo.insert({
         coopname,
@@ -51,10 +47,7 @@ export class GithubBranchCommitSyncStateTypeormRepository implements GithubBranc
   }
 
   async listBranches(coopname: string, githubRepository: string): Promise<string[]> {
-    const rows = await this.repo.find({
-      where: { coopname, github_repository: githubRepository },
-      select: ['branch'],
-    });
+    const rows = await this.repo.find({ coopname, github_repository: githubRepository });
     return rows.map((r) => r.branch);
   }
 }

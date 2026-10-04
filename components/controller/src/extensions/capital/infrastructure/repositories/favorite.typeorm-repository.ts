@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_FAVORITE_STORE } from '../database/capital-stores';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
@@ -15,8 +17,8 @@ import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 @Injectable()
 export class FavoriteTypeormRepository implements FavoriteRepository {
   constructor(
-    @InjectRepository(FavoriteTypeormEntity)
-    private readonly repo: Repository<FavoriteTypeormEntity>,
+    @Inject(CAPITAL_FAVORITE_STORE)
+    private readonly repo: TableStore<FavoriteTypeormEntity>,
     @InjectRepository(ProjectTypeormEntity)
     private readonly projectRepo: Repository<ProjectTypeormEntity>,
     @InjectRepository(IssueTypeormEntity)
@@ -26,11 +28,16 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
   ) {}
 
   async add(favorite: Omit<IFavorite, 'created_at'>): Promise<void> {
-    await this.repo
-      .createQueryBuilder()
-      .insert()
-      .values({ ...favorite, target_hash: favorite.target_hash.toLowerCase() })
-      .orIgnore()
+    // Повторное добавление того же избранного — без ошибки и без второй строки.
+    await this.repo.kysely
+      .insertInto('capital_favorites')
+      .values({
+        coopname: favorite.coopname,
+        username: favorite.username,
+        target_type: favorite.target_type,
+        target_hash: favorite.target_hash.toLowerCase(),
+      })
+      .onConflict((conflict) => conflict.doNothing())
       .execute();
   }
 
@@ -44,10 +51,7 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
   }
 
   async findByUserWithTargets(coopname: string, username: string): Promise<IFavoriteWithTarget[]> {
-    const favorites = await this.repo.find({
-      where: { coopname, username },
-      order: { created_at: 'ASC' },
-    });
+    const favorites = await this.repo.find({ coopname, username }, { order: { created_at: 'ASC' } });
     if (favorites.length === 0) return [];
 
     const targets = await this.loadTargets(favorites);

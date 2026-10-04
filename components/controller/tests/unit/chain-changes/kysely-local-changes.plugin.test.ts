@@ -1,5 +1,7 @@
 import { DummyDriver, Kysely, PostgresAdapter, PostgresIntrospector, PostgresQueryCompiler, type RootOperationNode } from 'kysely';
 import { LocalChangesPlugin, type LocalChange } from '~/infrastructure/database/kysely/local-changes.plugin';
+import { configureLocalChangePublisher, inTransaction, pendingLocalChanges } from '@coopenomics/extension-kit';
+import { recordingKysely } from '../helpers/kysely-recorder';
 
 /**
  * Сигналы ленты изменений для таблиц, записанных через Kysely (C28-81):
@@ -82,5 +84,48 @@ describe('LocalChangesPlugin: сигналы ленты для записей Ky
     expect(await run(plugin, select, [{ id: 'a1' }])).toBe(select);
     expect(await run(plugin, insert, [])).toBe(insert);
     expect(changes).toEqual([]);
+  });
+});
+
+/**
+ * Транзакция каркаса (`inTransaction` из extension-kit): сигналы ленты копятся
+ * до фиксации. Стол по сигналу перечитывает данные — сигнал до фиксации показал
+ * бы прежнее состояние, а сигнал откаченной записи — то, чего в базе нет.
+ */
+describe('inTransaction: сигналы ленты уходят после фиксации', () => {
+  const change = { table: 'marketplace_inventory', primary_key: 'inv-1', row: { id: 'inv-1' } };
+
+  it('изменение внутри транзакции публикуется только после её завершения', async () => {
+    const published: unknown[] = [];
+    configureLocalChangePublisher((item) => published.push(item));
+    const { db: recording } = recordingKysely();
+
+    const result = await inTransaction(recording, async () => {
+      pendingLocalChanges.getStore()?.push(change);
+      expect(published).toEqual([]);
+      return 'готово';
+    });
+
+    expect(result).toBe('готово');
+    expect(published).toEqual([change]);
+  });
+
+  it('откаченная транзакция сигналов не даёт', async () => {
+    const published: unknown[] = [];
+    configureLocalChangePublisher((item) => published.push(item));
+    const { db: recording } = recordingKysely();
+
+    await expect(
+      inTransaction(recording, async () => {
+        pendingLocalChanges.getStore()?.push(change);
+        throw new Error('сбой записи');
+      })
+    ).rejects.toThrow('сбой записи');
+
+    expect(published).toEqual([]);
+  });
+
+  it('вне транзакции копить некуда — изменение публикуется сразу тем, кто его записал', () => {
+    expect(pendingLocalChanges.getStore()).toBeUndefined();
   });
 });
