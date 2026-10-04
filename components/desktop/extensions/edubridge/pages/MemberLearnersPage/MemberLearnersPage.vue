@@ -20,7 +20,7 @@
               q-icon(name="edit" size="18px")
 
   BaseDialog(v-model="learnerDialogOpen" :title="editingLearner ? $t('edubridge.memberLearnersPage.editDialogTitle') : $t('edubridge.memberLearnersPage.newDialogTitle')" size="md")
-    LearnerForm(:learner="editingLearner" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")
+    LearnerForm(:learner="editingLearner" :default-self="!learners.length" :has-self="learners.some((l) => l.is_self)" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")
 </template>
 
 <script setup lang="ts">

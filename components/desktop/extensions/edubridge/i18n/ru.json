@@ -671,19 +671,18 @@
     },
     "learnerForm": {
       "cancel": "Отменить",
-      "contactHint": "Площадке передаётся только этот контакт.",
       "createdSuccess": "Обучающийся добавлен",
-      "displayNameLabel": "Имя обучающегося",
-      "emailHint": "Площадке передаётся только этот адрес — ни ФИО, ни телефон.",
-      "isSelfCheckbox": "Обучаюсь я сам(а)",
+      "displayNameLabel": "Имя",
       "recipientLabel": {
-        "EMAIL": "Почта обучающегося",
+        "EMAIL": "Электронная почта",
         "ONSITE": "Код пропуска",
-        "TELEGRAM": "Telegram обучающегося"
+        "TELEGRAM": "Telegram"
       },
       "recipientLabelDefault": "Контакт",
       "recipientTypeLabel": "Как доставить пропуск",
-      "savedSuccess": "Обучающийся сохранён"
+      "savedSuccess": "Обучающийся сохранён",
+      "whoSelf": "Я сам(а)",
+      "whoOther": "Другой человек"
     },
     "memberLearnersPage": {
       "editAriaLabel": "Изменить",

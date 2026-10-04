@@ -40,7 +40,7 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
     BaseButton(variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") {{ $t('edubridge.subscribeDialog.getAccess') }}
 
   BaseDialog(v-model="learnerFormOpen" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md")
-    LearnerForm(:default-self="!pool.length" @saved="onLearnerAdded" @cancel="learnerFormOpen = false")
+    LearnerForm(:default-self="!pool.length" :has-self="pool.some((l) => l.is_self)" @saved="onLearnerAdded" @cancel="learnerFormOpen = false")
 
 </template>
 
