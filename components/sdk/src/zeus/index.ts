@@ -7470,7 +7470,7 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduMemberRow']?: Omit<ValueTypes["EduMemberRow"], "...on EduMemberRow">
 }>;
-	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
 	/** Оферта */
@@ -7489,7 +7489,7 @@ export type ValueTypes = {
 	/** Состояние подключения пайщика к столу */
 ["EduOnboardingSource"]:EduOnboardingSource;
 	["EduOnboardingState"]: AliasType<{
-	/** Оферта родителя-слушателя */
+	/** Оферта ученика */
 	parent?:ValueTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher?:ValueTypes["EduOfferState"],
@@ -15766,7 +15766,7 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ValueTypes["EduTeacherProfile"],
-	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduPlatformCourse"]],
 	/** Деньги программы: кошельки и движение средств */
@@ -24539,7 +24539,7 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]:EduOfferKind;
 	["EduOfferState"]: AliasType<{
 	/** Оферта */
@@ -24557,7 +24557,7 @@ export type ResolverInputTypes = {
 	/** Состояние подключения пайщика к столу */
 ["EduOnboardingSource"]:EduOnboardingSource;
 	["EduOnboardingState"]: AliasType<{
-	/** Оферта родителя-слушателя */
+	/** Оферта ученика */
 	parent?:ResolverInputTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher?:ResolverInputTypes["EduOfferState"],
@@ -32576,7 +32576,7 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ResolverInputTypes["EduTeacherProfile"],
-	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
 edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduPlatformCourse"]],
 	/** Деньги программы: кошельки и движение средств */
@@ -41099,7 +41099,7 @@ export type ModelTypes = {
 };
 	["EduOnboardingSource"]:EduOnboardingSource;
 	["EduOnboardingState"]: {
-		/** Оферта родителя-слушателя */
+		/** Оферта ученика */
 	parent: ModelTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher: ModelTypes["EduOfferState"]
@@ -49232,7 +49232,7 @@ export type ModelTypes = {
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: ModelTypes["EduTeacherProfile"],
-	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<ModelTypes["EduPlatformCourse"]>,
@@ -58155,7 +58155,7 @@ export type GraphQLTypes = {
 	username: string,
 	['...on EduMemberRow']: Omit<GraphQLTypes["EduMemberRow"], "...on EduMemberRow">
 };
-	/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+	/** Оферта ЦПП «Образование»: ученик или преподаватель */
 ["EduOfferKind"]: EduOfferKind;
 	["EduOfferState"]: {
 	__typename: "EduOfferState",
@@ -58175,7 +58175,7 @@ export type GraphQLTypes = {
 ["EduOnboardingSource"]: EduOnboardingSource;
 	["EduOnboardingState"]: {
 	__typename: "EduOnboardingState",
-	/** Оферта родителя-слушателя */
+	/** Оферта ученика */
 	parent: GraphQLTypes["EduOfferState"],
 	/** Оферта преподавателя */
 	teacher: GraphQLTypes["EduOfferState"],
@@ -66917,7 +66917,7 @@ export type GraphQLTypes = {
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: GraphQLTypes["EduTeacherProfile"],
-	/** Подписаны ли оферты родителя-слушателя и преподавателя */
+	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<GraphQLTypes["EduPlatformCourse"]>,
@@ -69923,7 +69923,7 @@ export enum EduEnrollmentStatus {
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"
 }
-/** Оферта ЦПП «Образование»: родитель-слушатель или преподаватель */
+/** Оферта ЦПП «Образование»: ученик или преподаватель */
 export enum EduOfferKind {
 	PARENT = "PARENT",
 	TEACHER = "TEACHER"

@@ -18,7 +18,7 @@ import { EdubridgeLearnerService } from '../services/edubridge-learner.service';
 
 const coop = () => platformSettings().coopname;
 
-/** Стол пайщика-родителя: обучающиеся, подписки, получение доступа. */
+/** Стол пайщика: обучающиеся, подписки, получение доступа. */
 @Resolver()
 @Injectable()
 export class EdubridgeMemberResolver {

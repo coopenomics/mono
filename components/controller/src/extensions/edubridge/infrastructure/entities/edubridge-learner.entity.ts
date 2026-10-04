@@ -20,7 +20,7 @@ export class EdubridgeLearnerEntity {
   @Generated('increment')
   public chain_ref!: string;
 
-  /** Пайщик-родитель (или сам обучающийся). */
+  /** Пайщик, записавший обучающегося (или сам обучающийся). */
   @Column({ type: 'varchar', length: 13 })
   public member_username!: string;
 

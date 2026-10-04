@@ -8,7 +8,7 @@ export enum EduOfferKind {
   PARENT = 'parent',
   TEACHER = 'teacher',
 }
-registerEnumType(EduOfferKind, { name: 'EduOfferKind', description: 'Оферта ЦПП «Образование»: родитель-слушатель или преподаватель' });
+registerEnumType(EduOfferKind, { name: 'EduOfferKind', description: 'Оферта ЦПП «Образование»: ученик или преподаватель' });
 
 /** Почему стол открыт или закрыт. */
 export enum EduOnboardingSource {
@@ -41,7 +41,7 @@ export class EduOfferStateDTO {
 
 @ObjectType('EduOnboardingState')
 export class EduOnboardingStateDTO {
-  @Field(() => EduOfferStateDTO, { description: 'Оферта родителя-слушателя' })
+  @Field(() => EduOfferStateDTO, { description: 'Оферта ученика' })
   parent!: EduOfferStateDTO;
 
   @Field(() => EduOfferStateDTO, { description: 'Оферта преподавателя' })

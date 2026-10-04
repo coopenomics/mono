@@ -43,7 +43,7 @@ namespace SubscriptionPeriod {
 struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_subscription {
   uint64_t id;                       ///< внутренний ID
   checksum256 sub_hash;              ///< process_hash для p.edu.access
-  eosio::name username;              ///< пайщик-плательщик (родитель-слушатель)
+  eosio::name username;              ///< пайщик-плательщик (ученик)
   uint64_t learner_id;               ///< обучающийся (off-chain id приложения)
   uint64_t course_id;                ///< курс (off-chain id приложения)
   eosio::name period;                ///< период оплаты: month | course (year — у прежних подписок)

@@ -26,7 +26,7 @@ export * as TeacherApprovals from './teacherApprovals'
 export * as Attention from './attention'
 /** Курсы и группы на площадке кооператива — для привязки курса каталога */
 export * as PlatformCourses from './platformCourses'
-/** Подписаны ли оферты родителя-слушателя и преподавателя */
+/** Подписаны ли оферты ученика и преподавателя */
 export * as OnboardingState from './onboardingState'
 /** Мои обучающиеся */
 export * as MyLearners from './myLearners'

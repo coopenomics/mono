@@ -5,7 +5,7 @@ export const EDUBRIDGE_EXTENSION_NAME = 'edubridge';
 export const EDUBRIDGE_WORKSPACES = {
   /** Владелец и администратор: курсы, реестры, очередь, площадки. */
   ADMIN: 'edubridge',
-  /** Пайщик-родитель/слушатель: обучающиеся, подписки, доступ. */
+  /** Пайщик-ученик: обучающиеся, подписки, доступ. */
   MEMBER: 'edubridge-member',
   /** Преподаватель: назначения, взносы РИД, расчёт. */
   TEACHER: 'edubridge-teacher',

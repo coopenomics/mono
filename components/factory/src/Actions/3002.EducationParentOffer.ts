@@ -8,7 +8,7 @@ import { Udata } from '../Models'
 export { EducationParentOffer as Template } from '../Templates'
 
 /**
- * Factory для экземпляра оферты родителя-слушателя ЦПП «Образование».
+ * Factory для экземпляра оферты ученика ЦПП «Образование».
  * Подписывает пайщик (`data.username`); номер и дату соглашения передаёт
  * бэкенд edubridge явно (как L3-путь 1102.MarketplaceOffer).
  */
@@ -48,7 +48,7 @@ export class Factory extends DocFactory<EducationParentOffer.Action> {
       agreement_created_at = row?.value ? String(row.value) : ''
     }
     if (!agreement_number || !agreement_created_at) {
-      throw new Error('Номер и дата оферты родителя-слушателя ЦПП «Образование» обязательны (не переданы и не найдены в Udata)')
+      throw new Error('Номер и дата оферты ученика ЦПП «Образование» обязательны (не переданы и не найдены в Udata)')
     }
 
     const combinedData: EducationParentOffer.Model = {

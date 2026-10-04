@@ -100,7 +100,7 @@ async function getAccess(): Promise<void> {
     void router.push({ name: 'signup', params: { coopname: route.params.coopname } });
     return;
   }
-  // Оферта родителя-слушателя не подписана — бэкенд откажет в подписке, поэтому
+  // Оферта ученика не подписана — бэкенд откажет в подписке, поэтому
   // сначала гейт подключения (право `Onboarding:learner` живёт ровно до подписи).
   if (desktopStore.hasGrant('edubridge-member', 'Onboarding:learner')) {
     void router.push({ name: 'edubridge-member-onboarding', params: { coopname: route.params.coopname } });

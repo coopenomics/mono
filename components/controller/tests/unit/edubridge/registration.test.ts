@@ -49,7 +49,7 @@ describe('EdubridgeRoleFactsAdapter', () => {
 
   const none = { isLearner: false, hasTeacherOffer: false, isTeacher: false, isAdmin: false };
 
-  it('подписана оферта родителя → learner; преподавателя + договор → teacher; запись в admins → admin', async () => {
+  it('подписана оферта ученика → learner; преподавателя + договор → teacher; запись в admins → admin', async () => {
     await expect(make({ parentSigned: true }).resolve('voskhod', 'ant')).resolves.toEqual({ ...none, isLearner: true });
     await expect(make({ teacherSigned: true, contract: true, admin: true }).resolve('voskhod', 'ant')).resolves.toEqual({
       isLearner: false,

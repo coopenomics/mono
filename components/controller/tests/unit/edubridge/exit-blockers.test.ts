@@ -23,7 +23,7 @@ function make(opts: { assignments?: any[]; contributions?: any[]; subscriptions?
 }
 
 describe('Запреты выхода из кооператива у Образования', () => {
-  it('родителю-слушателю выход не держат: подписки закрываются сами', async () => {
+  it('ученику выход не держат: подписки закрываются сами', async () => {
     const { service } = make();
     expect(await service.blockers('voskhod', 'ant')).toEqual([]);
   });

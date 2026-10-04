@@ -4,7 +4,7 @@ import { EduRecipientType } from '../../domain/enums';
 import type { EdubridgeLearnerEntity } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
-/** Обучающийся глазами пайщика-родителя. Контакт виден владельцу записи — это его данные. */
+/** Обучающийся глазами пайщика. Контакт виден владельцу записи — это его данные. */
 @ObjectType('EduLearner')
 export class EduLearnerDTO {
   @Field(() => ID, { description: 'Идентификатор обучающегося' })

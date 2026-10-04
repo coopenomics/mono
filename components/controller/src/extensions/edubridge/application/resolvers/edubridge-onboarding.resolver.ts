@@ -13,7 +13,7 @@ import { EdubridgeOnboardingService } from '../services/edubridge-onboarding.ser
 export class EdubridgeOnboardingResolver {
   constructor(private readonly onboarding: EdubridgeOnboardingService) {}
 
-  @Query(() => EduOnboardingStateDTO, { name: 'edubridgeOnboardingState', description: 'Подписаны ли оферты родителя-слушателя и преподавателя' })
+  @Query(() => EduOnboardingStateDTO, { name: 'edubridgeOnboardingState', description: 'Подписаны ли оферты ученика и преподавателя' })
   @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
   edubridgeOnboardingState(@CurrentEduMember() member: IEdubridgeMembership): Promise<EduOnboardingStateDTO> {
     return this.onboarding.getState(platformSettings().coopname, member.username as string);
