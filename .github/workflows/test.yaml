@@ -119,6 +119,9 @@ jobs:
           cd components/controller
           eval "$(node -e "const k=require('web-push').generateVAPIDKeys(); console.log('export VAPID_PUBLIC_KEY=' + k.publicKey + ' VAPID_PRIVATE_KEY=' + k.privateKey)")"
           pnpm run schema:check
+          # Типы таблиц для Kysely собираются из тех же миграций (C28-81): миграция
+          # без пересборки типов оставила бы запросы проверенными по старой схеме.
+          pnpm run schema:types --verify
 
   component:
     runs-on: ubuntu-latest
