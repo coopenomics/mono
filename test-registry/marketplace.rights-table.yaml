@@ -117,3 +117,16 @@ cases:
     external: unreachable
     external_reason: "проверка читает объявление маршрутов рабочего стола, снаружи сервера его нет"
     status: written
+
+  - id: mkt.rights.side.08
+    level: backend
+    kind: side
+    scenario: цепь недоступна, пайщик читает свои заказы и корзину
+    expect: >
+      пайщик, которого узел уже видел подключённым, остаётся подключённым —
+      состояние оферты читается с участием цепи, а чтение своего от связи с
+      цепью не зависит; пайщика, которого узел подключённым не видел,
+      недоступная цепь не подключает
+    test: components/controller/tests/unit/marketplace/marketplace-rights-service.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
+    status: written

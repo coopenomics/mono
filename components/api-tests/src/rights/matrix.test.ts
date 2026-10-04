@@ -22,7 +22,7 @@ import { login } from '../core/auth'
 import { gqlRaw } from '../core/client'
 import type { GqlError } from '../core/client'
 import { CHAIRMAN, COUNCIL, fixture } from '../core/roles'
-import { stateActors } from './actors'
+import { ensureOrdererOnboarded, stateActors } from './actors'
 import { classify, isDenied, type Outcome } from './classify'
 import { type Operation, SchemaModel } from './schema'
 import { type DeclaredOp, type PlatformRole, declaredOps, expectedFor } from './static'
@@ -69,6 +69,8 @@ const sinceAuthCheck = new Map<string, string[]>()
 let ops: Operation[] = []
 /** Исполнители по состояниям, которых завести не удалось, — с причиной. */
 let missingActors: string[] = []
+/** Чего не хватало пайщику из засева, чтобы считаться подключённым заказчиком. */
+let ordererFixes: string[] = []
 let declared = new Map<string, DeclaredOp>()
 
 function short(err: GqlError | null): Pick<Cell, 'code' | 'message' | 'http'> {
@@ -118,6 +120,7 @@ describe('матрица прав', () => {
   beforeAll(async () => {
     const actors = await stateActors()
     missingActors = actors.missing
+    ordererFixes = await ensureOrdererOnboarded(fixture('ekaterina'))
     for (const a of actors.ready) ROLES.push({ name: a.name, platform: 'user', who: () => a.who, state: true })
     const tokens = new Map<string, string | null>()
     for (const r of ROLES) {
@@ -241,6 +244,7 @@ function report(): void {
   section('Роль вне @AuthRoles прошла', f.roleEscalated)
   section('Роль из @AuthRoles получила отказ гварда', f.roleDenied)
   section('Исполнитель по состоянию не заведён', missingActors)
+  section('Пайщику из засева пришлось довести подключение к Столу заказов', ordererFixes)
   section('Сессию роли закрыла одна из операций', [...sessionKillers])
   // Прошедшие проверку прав вызовы с чужими аргументами должны получать
   // деловую ошибку (4xx, код домена). 500 значит, что вход не проверен и

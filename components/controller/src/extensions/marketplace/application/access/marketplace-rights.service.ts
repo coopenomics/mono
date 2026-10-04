@@ -57,10 +57,21 @@ export class MarketplaceRightsService {
     const key = `${coopname}:${username}`;
     const until = this.onboardedUntil.get(key);
     if (until && until > Date.now()) return true;
-    const [state, cart] = await Promise.all([
-      this.onboardingService.getOnboardingState(username),
-      this.cartRepository.findByOrderer(coopname, username),
-    ]);
+    let state: Awaited<ReturnType<MarketplaceOnboardingService['getOnboardingState']>>;
+    let cart: Awaited<ReturnType<MarketplaceCartDomainRepository['findByOrderer']>>;
+    try {
+      [state, cart] = await Promise.all([
+        this.onboardingService.getOnboardingState(username),
+        this.cartRepository.findByOrderer(coopname, username),
+      ]);
+    } catch (error) {
+      // Состояние оферты читается с участием цепи. Пока цепь недоступна,
+      // пайщик, которого узел уже видел подключённым, остаётся подключённым:
+      // чтение своих заказов и корзины от связи с цепью зависеть не должно.
+      if (until) return true;
+      throw error;
+    }
+    if (until && state.source === MarketplaceOnboardingSource.NOT_CONFIGURED) return true;
     const signed = state.source === MarketplaceOnboardingSource.AGREEMENT_SIGNED && !state.requires_gate;
     const onboarded = signed && Boolean(cart?.delivery_braname);
     if (onboarded) this.onboardedUntil.set(key, Date.now() + ONBOARDED_TTL_MS);
