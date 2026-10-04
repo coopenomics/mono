@@ -3,6 +3,8 @@ import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
 import { mainDataSourceOptions } from './data-source.options';
+import { kyselyProvider } from '../kysely/kysely.provider';
+import { KYSELY } from '../kysely/kysely.tokens';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
@@ -163,6 +165,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     ]),
   ],
   providers: [
+    kyselyProvider,
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
@@ -300,6 +303,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
   ],
   exports: [
     NestTypeOrmModule,
+    KYSELY,
     TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
