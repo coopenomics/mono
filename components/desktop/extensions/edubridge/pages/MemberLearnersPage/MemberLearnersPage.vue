@@ -3,18 +3,19 @@
   PageHint.q-mb-md(storage-key="edu:member-learners:banner-dismissed")
     | {{ $t('edubridge.memberLearnersPage.hint.line1') }}
 
-  BaseCard(variant="default" :title="$t('edubridge.memberLearnersPage.title')")
+  BaseCard(variant="default")
     CardListSkeleton(v-if="firstLoad" :count="2")
     EmptyState(v-else-if="!learners.length" :title="$t('edubridge.memberLearnersPage.emptyTitle')" :body="$t('edubridge.memberLearnersPage.emptyBody')")
       template(#icon)
         q-icon(name="groups" size="32px")
-    q-list(v-else separator)
-      q-item(v-for="l in learners" :key="asText(l.id)")
-        q-item-section
-          .text-weight-medium {{ l.display_name }}
-            BaseChip.q-ml-sm(v-if="l.is_self" variant="neutral" size="sm") {{ $t('edubridge.memberLearnersPage.selfChip') }}
-          .t-muted.t-sm.t-mono {{ l.recipient_value }}
-        q-item-section(side)
+    template(v-else)
+      .person.person--row(v-for="l in learners" :key="asText(l.id)")
+        Avatar(:name="l.display_name" size="md" :tone="l.is_self ? 'primary' : 'neutral'")
+        .person__main
+          .person__name {{ l.display_name }}
+          .person__meta {{ l.recipient_value }}
+        .person__right
+          BaseChip(v-if="l.is_self" variant="neutral" size="sm") {{ $t('edubridge.memberLearnersPage.selfChip') }}
           BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberLearnersPage.editAriaLabel')" @click="editLearner(l)")
             template(#icon-left)
               q-icon(name="edit" size="18px")
@@ -29,7 +30,7 @@ import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
-import { BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { LearnerForm } from '../../widgets/LearnerForm';
