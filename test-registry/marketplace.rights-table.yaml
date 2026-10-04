@@ -128,5 +128,6 @@ cases:
       цепью не зависит; пайщика, которого узел подключённым не видел,
       недоступная цепь не подключает
     test: components/controller/tests/unit/marketplace/marketplace-rights-service.test.ts
-    api: components/api-tests/src/faults/chain-down.test.ts
+    external: unreachable
+    external_reason: "узел помнит подключение минуту, и сценарий остановки цепи укладывается в это время; дождаться истечения памяти при остановленной цепи значит держать стенд без цепи дольше, чем позволяет прогон"
     status: written
