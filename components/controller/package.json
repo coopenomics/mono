@@ -163,7 +163,7 @@
     "jose": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
-    "kysely": "0.29.6",
+    "kysely": "0.28.17",
     "libxmljs2": "^0.37.0",
     "liquidjs": "^10.29.0",
     "livekit-server-sdk": "^2.15.0",
