@@ -34,8 +34,8 @@ describe('OutboxWorkerService — письма переживают падени
   }
 
   function setup(result: ChannelDeliveryResult) {
-    const outboxRepository = { save: jest.fn(async (row: unknown) => row) };
-    const deliveryRepository = { save: jest.fn(), create: jest.fn((x: unknown) => x) };
+    const outboxRepository = { saveProgress: jest.fn(async () => undefined) };
+    const deliveryRepository = { append: jest.fn() };
     const emailChannel = { send: jest.fn(async () => result) };
     const service = new OutboxWorkerService(
       outboxRepository as never,
@@ -68,7 +68,7 @@ describe('OutboxWorkerService — письма переживают падени
     expect(row.attempts).toBe(4);
     expect(row.scheduledAt.getTime()).toBeGreaterThan(now.getTime());
     // Журнал доставок такими заходами не засоряется.
-    expect(deliveryRepository.save).not.toHaveBeenCalled();
+    expect(deliveryRepository.append).not.toHaveBeenCalled();
   });
 
   it('канал вернулся — ждавшее письмо уходит и помечается доставленным', async () => {
@@ -78,8 +78,8 @@ describe('OutboxWorkerService — письма переживают падени
     await processRow(service, row, new Date('2026-09-08T11:00:00Z'));
 
     expect(row.status).toBe(NotificationOutboxStatus.SENT);
-    expect(deliveryRepository.save).toHaveBeenCalledTimes(1);
-    expect(deliveryRepository.save.mock.calls[0][0]).toMatchObject({
+    expect(deliveryRepository.append).toHaveBeenCalledTimes(1);
+    expect(deliveryRepository.append.mock.calls[0][0]).toMatchObject({
       status: NotificationDeliveryStatus.SENT,
     });
   });
@@ -97,7 +97,7 @@ describe('OutboxWorkerService — письма переживают падени
     await processRow(service, row, now);
 
     expect(row.status).toBe(NotificationOutboxStatus.FAILED);
-    expect(deliveryRepository.save).toHaveBeenCalledTimes(1);
+    expect(deliveryRepository.append).toHaveBeenCalledTimes(1);
   });
 
   it('отказ по существу письма считается в лимит и хоронит его как раньше', async () => {

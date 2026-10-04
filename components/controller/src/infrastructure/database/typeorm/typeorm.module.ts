@@ -11,31 +11,36 @@ import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extensi
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
 import { TypeOrmLogExtensionDomainRepository } from './repositories/typeorm-log-extension.repository';
-import { MeetPreEntity } from './entities/meet-pre.entity';
 import { MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
-import { TypeOrmMeetRepository } from './repositories/typeorm-meet.repository';
+import { MeetPreKyselyRepository } from '../kysely/repositories/meet-pre.kysely-repository';
 import { MigrationEntity } from './entities/migration.entity';
 import { MIGRATION_REPOSITORY } from '~/domain/system/repositories/migration-domain.repository';
 import { TypeOrmMigrationRepository } from './repositories/typeorm-migration.repository';
 import { CandidateEntity } from './entities/candidate.entity';
 import { CANDIDATE_REPOSITORY } from '~/domain/account/repository/candidate.repository';
 import { TypeOrmCandidateRepository } from './repositories/typeorm-candidate.repository';
-import { MeetProcessedEntity } from './entities/meet-processed.entity';
 import { ChainTextEntity } from './entities/chain-text.entity';
 import { TypeOrmChainTextRepository } from './repositories/typeorm-chain-text.repository';
 import { CHAIN_TEXT_REPOSITORY } from '~/domain/chain-text/chain-text.repository';
 import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 import { MEET_PROCESSED_REPOSITORY } from '~/domain/meet/repositories/meet-processed.repository';
-import { TypeOrmMeetProcessedRepository } from './repositories/typeorm-meet-processed.repository';
+import { MeetProcessedKyselyRepository } from '../kysely/repositories/meet-processed.kysely-repository';
 import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
 import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
 import { PaymentFileEntity } from './entities/payment-file.entity';
 import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
 import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
-import { WebPushSubscriptionEntity } from './entities/web-push-subscription.entity';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
-import { TypeOrmWebPushSubscriptionRepository } from './repositories/typeorm-web-push-subscription.repository';
+import { WebPushSubscriptionKyselyRepository } from '../kysely/repositories/web-push-subscription.kysely-repository';
+import {
+  NOTIFICATION_DELIVERY_REPOSITORY,
+  NOTIFICATION_INBOX_REPOSITORY,
+  NOTIFICATION_OUTBOX_REPOSITORY,
+} from '~/domain/notification/repositories/notification-store.repository';
+import { NotificationOutboxKyselyRepository } from '../kysely/repositories/notification-outbox.kysely-repository';
+import { NotificationDeliveryKyselyRepository } from '../kysely/repositories/notification-delivery.kysely-repository';
+import { NotificationInboxKyselyRepository } from '../kysely/repositories/notification-inbox.kysely-repository';
 import { LEDGER_OPERATION_REPOSITORY } from '~/domain/ledger/repositories/ledger-operation.repository';
 import { TypeOrmLedgerOperationRepository } from './repositories/typeorm-ledger-operation.repository';
 import { LedgerOperationEntity } from './entities/ledger-operation.entity';
@@ -110,9 +115,6 @@ import { UserWalletSyncService } from './blockchain/services/user-wallet-sync.se
 import { SignedDocumentEntity } from './entities/signed-document.entity';
 import { SIGNED_DOCUMENT_REPOSITORY } from '~/domain/document/repository/signed-document.repository';
 import { SignedDocumentTypeormRepository } from './repositories/signed-document.typeorm-repository';
-import { NotificationOutboxTypeormEntity } from './entities/notification-outbox.typeorm-entity';
-import { NotificationDeliveryTypeormEntity } from './entities/notification-delivery.typeorm-entity';
-import { NotificationInboxTypeormEntity } from './entities/notification-inbox.typeorm-entity';
 
 @Global()
 @Module({
@@ -129,14 +131,11 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     NestTypeOrmModule.forFeature([
       ExtensionEntity,
       LogExtensionEntity,
-      MeetPreEntity,
-      MeetProcessedEntity,
       ChainTextEntity,
       MigrationEntity,
       CandidateEntity,
       PaymentEntity,
       PaymentFileEntity,
-      WebPushSubscriptionEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
@@ -161,14 +160,14 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
       SignedDocumentEntity,
-      NotificationOutboxTypeormEntity,
-      NotificationDeliveryTypeormEntity,
-      NotificationInboxTypeormEntity,
     ]),
   ],
   providers: [
     kyselyProvider,
     { provide: MEMBERSHIP_EXIT_REQUEST_REPOSITORY, useClass: MembershipExitRequestKyselyRepository },
+    { provide: NOTIFICATION_OUTBOX_REPOSITORY, useClass: NotificationOutboxKyselyRepository },
+    { provide: NOTIFICATION_DELIVERY_REPOSITORY, useClass: NotificationDeliveryKyselyRepository },
+    { provide: NOTIFICATION_INBOX_REPOSITORY, useClass: NotificationInboxKyselyRepository },
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
@@ -179,11 +178,11 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     },
     {
       provide: MEET_REPOSITORY,
-      useClass: TypeOrmMeetRepository,
+      useClass: MeetPreKyselyRepository,
     },
     {
       provide: MEET_PROCESSED_REPOSITORY,
-      useClass: TypeOrmMeetProcessedRepository,
+      useClass: MeetProcessedKyselyRepository,
     },
     {
       provide: CHAIN_TEXT_REPOSITORY,
@@ -208,7 +207,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
-      useClass: TypeOrmWebPushSubscriptionRepository,
+      useClass: WebPushSubscriptionKyselyRepository,
     },
     {
       provide: LEDGER_OPERATION_REPOSITORY,
@@ -308,6 +307,9 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
     NestTypeOrmModule,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
+    NOTIFICATION_OUTBOX_REPOSITORY,
+    NOTIFICATION_DELIVERY_REPOSITORY,
+    NOTIFICATION_INBOX_REPOSITORY,
     TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
