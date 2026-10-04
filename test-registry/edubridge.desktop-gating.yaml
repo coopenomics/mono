@@ -71,7 +71,28 @@ cases:
   - id: edu.gating.happy.06
     level: backend
     kind: happy
-    scenario: Матрица доступа — гость, владелец, администратор; разворот :all → :own.
-    expect: Гость только EduCatalog:read; контакты и площадки только у владельца; список действий — хотя бы одно.
+    scenario: Матрица доступа — гость, владелец, администратор; столу права отдаются как записаны.
+    expect: Гость только EduCatalog:read; контакты и площадки только у владельца; список действий — хотя бы одно; охват :all в :own для стола не разворачивается.
     test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
     status: passing
+  - id: edu.gating.break.03
+    level: backend
+    kind: break
+    scenario: Председатель (владелец программы) без договора преподавателя открывает стол преподавателя.
+    expect: Из прав стола преподавателя выдан только маркер подключения; права профиля, назначений, отчётов, взносов и расчёта не выданы — должность личный стол не открывает.
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
+  - id: edu.gating.side.07
+    level: backend
+    kind: side
+    scenario: Председатель без оферты ученика открывает стол ученика.
+    expect: Каталог курсов и маркер подключения выданы, права страниц «Обучающиеся» и «Подписки» — нет.
+    test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    status: passing
+  - id: edu.gating.side.08
+    level: ui
+    kind: side
+    scenario: Пайщик без оферты ученика переходит на стол ученика; без договора преподавателя — на стол преподавателя.
+    expect: Стол ученика открывается на каталоге курсов, «Подключение» остаётся в меню; стол преподавателя открывается на «Подключении», других пунктов в меню нет.
+    test: ~
+    status: missing

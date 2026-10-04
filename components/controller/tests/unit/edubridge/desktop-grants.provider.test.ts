@@ -58,6 +58,24 @@ describe('EdubridgeDesktopGrantsProvider', () => {
     expect(grants).not.toContain('EduAssignment:read:own');
   });
 
+  it('председатель без договора преподавателя: на столе преподавателя только подключение', async () => {
+    const grants = await make().resolveGrants({ coopname: coop, username: 'ant', userRole: 'chairman', userStatus: 'active' });
+    expect(grants).toContain('Onboarding:teacher');
+    expect(grants).toContain('EduAssignment:manage');
+    // Права страниц стола преподавателя: профиль и назначения, отчёты, взносы, расчёт.
+    for (const own of ['EduAssignment:read:own', 'EduContribution:create:own', 'EduContribution:read:own', 'EduTeacherWallet:read:own']) {
+      expect(grants).not.toContain(own);
+    }
+  });
+
+  it('председатель без оферты ученика: каталог открыт, страницы ученика закрыты', async () => {
+    const grants = await make().resolveGrants({ coopname: coop, username: 'ant', userRole: 'chairman', userStatus: 'active' });
+    expect(grants).toContain('EduCatalog:read');
+    expect(grants).toContain('Onboarding:learner');
+    expect(grants).not.toContain('EduLearner:read:own');
+    expect(grants).not.toContain('EduEnrollment:read:own');
+  });
+
   it('пайщик со статусом не active — как гость', async () => {
     const grants = await make().resolveGrants({ coopname: coop, username: 'ant', userRole: 'user', userStatus: 'blocked' });
     expect(grants).toEqual(['EduCatalog:read']);

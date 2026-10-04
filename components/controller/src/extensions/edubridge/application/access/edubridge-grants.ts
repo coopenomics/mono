@@ -3,30 +3,21 @@ import { edubridgeAccessMatrix } from './edubridge-access-matrix';
 
 /**
  * Разворачивает роли пайщика в плоский набор прав `Resource:action[:scope]`.
- * Фронт сверяет `meta.requires` простым `includes`, иерархию охвата он не знает,
- * поэтому `<...>:all` разворачивается здесь в `:own`.
+ * Фронт сверяет `meta.requires` простым `includes`.
+ *
+ * Охват `:all` в `:own` не разворачивается: на правах `:own` стоят страницы
+ * личных столов — ученика и преподавателя, а их открывает подписанная оферта
+ * (и договор у преподавателя), а не должность. Иначе председатель и
+ * администратор программы видели бы стол преподавателя целиком, не
+ * подключившись к преподаванию.
  */
-const SUBSET_QUALIFIERS = ['own'];
-
-function expandToken(token: string): string[] {
-  const out = [token];
-  const colon = token.lastIndexOf(':');
-  if (colon > 0 && token.slice(colon + 1) === 'all') {
-    const prefix = token.slice(0, colon);
-    for (const q of SUBSET_QUALIFIERS) out.push(`${prefix}:${q}`);
-  }
-  return out;
-}
-
 export function expandGrantsForRoles(roles: EdubridgeRole[]): string[] {
   const set = new Set<string>();
   for (const role of roles) {
     const resources = edubridgeAccessMatrix[role];
     if (!resources) continue;
     for (const [resource, actions] of Object.entries(resources)) {
-      for (const action of actions) {
-        for (const token of expandToken(`${resource}:${action}`)) set.add(token);
-      }
+      for (const action of actions) set.add(`${resource}:${action}`);
     }
   }
   return [...set];

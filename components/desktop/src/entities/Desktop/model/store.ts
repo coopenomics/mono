@@ -108,7 +108,16 @@ export const useDesktopStore = defineStore(namespace, () => {
   }
 
 
-  function setRoutes(workspaceName: string, routes: RouteRecordRaw[]): void {
+  /**
+   * Маршруты стола из `install.ts` расширения — и его стартовая страница.
+   *
+   * Стартовую страницу стол объявляет там же, где свои маршруты: сервер о
+   * страницах расширения не знает и своей не присылает. Без неё выбор страницы
+   * считал, что допуска в стол нет, и вёл на шлюз подключения — даже там, где
+   * стартовая страница открыта всем (каталог курсов на столе ученика). Значение
+   * с сервера, если оно есть, остаётся главным.
+   */
+  function setRoutes(workspaceName: string, routes: RouteRecordRaw[], defaultRoute?: string): void {
     if (!currentDesktop.value) {
       console.warn('🏠 [DesktopStore] Cannot set routes: no current desktop');
       return;
@@ -120,6 +129,9 @@ export const useDesktopStore = defineStore(namespace, () => {
 
     if (ws) {
       (ws as any).routes = routes;
+      if (defaultRoute && !(ws as any).defaultRoute) {
+        (ws as any).defaultRoute = defaultRoute;
+      }
     } else {
       console.warn('🏠 [DesktopStore] Workspace not found for setting routes:', workspaceName);
     }

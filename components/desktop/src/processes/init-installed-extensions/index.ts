@@ -39,7 +39,7 @@ export async function useInitExtensionsProcess(router: Router) {
               'Маршруты этого стола не будут отображены — добавьте стол в extensions.registry.ts.',
             );
           }
-          store.setRoutes(config.workspace, config.routes as any);
+          store.setRoutes(config.workspace, config.routes as any, config.defaultRoute);
           commandStore.register(config.workspace, config.commands);
 
           // Регистрируем маршруты в router, добавляя их в базовый родительский маршрут
@@ -100,7 +100,7 @@ export async function loadExtensionRoutes(
     for (const config of workspaceConfigs) {
       if (config?.workspace && config?.routes?.length) {
         // Записываем маршруты в соответствующий workspace
-        store.setRoutes(config.workspace, config.routes as any);
+        store.setRoutes(config.workspace, config.routes as any, config.defaultRoute);
         // Команды стола — вместе с маршрутами, чтобы новое приложение сразу
         // появилось в окне столов и отвечало на свои сочетания клавиш.
         commandStore.register(config.workspace, config.commands);

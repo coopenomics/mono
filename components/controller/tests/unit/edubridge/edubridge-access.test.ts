@@ -21,10 +21,16 @@ describe('edubridge access matrix', () => {
     expect(canAccess(['teacher'], 'EduLearner', ['manage:own', 'manage'])).toBe(false);
   });
 
-  it('разворот :all добавляет :own, чтобы фронт проходил требования пайщика', () => {
+  it('столу права отдаются как записаны: :all не превращается в :own', () => {
     const grants = expandGrantsForRoles(['admin']);
     expect(grants).toContain('EduAssignment:read:all');
-    expect(grants).toContain('EduAssignment:read:own');
+    expect(grants).not.toContain('EduAssignment:read:own');
+    expect(grants).not.toContain('EduContribution:read:own');
     expect(grants).not.toContain('EduContacts:read');
+  });
+
+  it('личные права преподавателя даёт только роль преподавателя', () => {
+    expect(expandGrantsForRoles(['owner']).filter((g) => g.endsWith(':own'))).toEqual([]);
+    expect(expandGrantsForRoles(['owner', 'teacher'])).toContain('EduAssignment:read:own');
   });
 });
