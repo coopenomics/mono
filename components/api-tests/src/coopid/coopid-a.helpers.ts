@@ -13,11 +13,12 @@ import ecc from 'eosjs-ecc'
 import type { Who } from '../core/auth'
 import { tokenOf } from '../core/auth'
 import { type GqlResponse, gql, gqlRaw } from '../core/client'
-import { signDocument } from '../core/documents'
 import { API_URL, CHAIN_URL, COOP } from '../core/env'
 import { CHAIRMAN } from '../core/roles'
 import { waitFor } from '../core/wait'
 import { totp } from '../core/totp'
+import { KRG } from '../marketplace/flow'
+import { onboardOrderer } from '../marketplace/onboarding.helpers'
 
 /** Кооперативный участок стенда: председатель — chairkrg. */
 export const BRANCH = 'krg'
@@ -187,34 +188,15 @@ export const RESET_TWO_FACTOR = 'mutation($d:ResetParticipantTwoFactorInput!){ r
 
 // ── Стол заказов для свежего пайщика ───────────────────────────────────────
 
-/** Шаблон оферты ЦПП «Стол заказов» (cooptypes 1102.MarketplaceOffer). */
-const MARKETPLACE_OFFER_REGISTRY_ID = 1102
 
 /**
  * Свежий пайщик подключается к Столу заказов так, как это делает его стол:
- * инстанс оферты → подпись ключом → marketplaceSignOnboardingOffer. Подпись
+ * инстанс оферты → подпись ключом → marketplaceSignOnboardingOffer, затем
+ * выбор пункта выдачи: права заказчика открываются после обоих шагов. Подпись
  * программы доходит до зеркала из wallet::users с отставанием на блок.
  */
 export async function joinMarketplace(who: Who, token: string): Promise<void> {
-  const now = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const d = await gql<any>(token, `mutation($i:GenerateAnyDocumentInput!){
-    generateDocument(input:$i){ full_title html hash meta binary }
-  }`, {
-    i: {
-      data: {
-        registry_id: MARKETPLACE_OFFER_REGISTRY_ID,
-        coopname: COOP,
-        username: who.account,
-        marketplace_agreement_number: crypto.randomBytes(8).toString('hex').toUpperCase(),
-        marketplace_agreement_created_at: `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`,
-      },
-    },
-  })
-  const signed = await signDocument(who.wif, d.generateDocument, who.account, 1)
-  await gql(token, `mutation($i:MarketplaceSignOnboardingOfferInput!){
-    marketplaceSignOnboardingOffer(input:$i){ requires_gate }
-  }`, { i: { document: signed } })
+  await onboardOrderer(who, KRG)
   await waitFor(async () => {
     const s = (await gql<any>(token, 'query{ marketplaceOnboardingState{ requires_gate } }')).marketplaceOnboardingState
     return s.requires_gate === false ? true : null

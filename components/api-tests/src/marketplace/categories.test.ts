@@ -101,10 +101,10 @@ describe('категории кооператива', () => {
     for (const who of [ROLES.member(), ROLES.supplier(), ROLES.branchChairman(), COUNCIL]) {
       const t = await tokenOf(who)
       const label = who.account
-      expect(code(await gqlError(t, CREATE, { i: { displayName: `АТ от ${label} ${TAG}` } })), `${label}: создание`).toBe('KIT_INSUFFICIENT_RIGHTS')
-      expect(code(await gqlError(t, DELETE, { id: own.id })), `${label}: удаление`).toBe('KIT_INSUFFICIENT_RIGHTS')
-      expect(code(await gqlError(t, REMOVE_AVAILABLE, { i: { categoryIds: [own.id] } })), `${label}: ограничение каталога`).toBe('KIT_INSUFFICIENT_RIGHTS')
-      expect(code(await gqlError(t, LIST)), `${label}: редактируемый список`).toBe('KIT_INSUFFICIENT_RIGHTS')
+      expect(code(await gqlError(t, CREATE, { i: { displayName: `АТ от ${label} ${TAG}` } })), `${label}: создание`).toBe('403')
+      expect(code(await gqlError(t, DELETE, { id: own.id })), `${label}: удаление`).toBe('403')
+      expect(code(await gqlError(t, REMOVE_AVAILABLE, { i: { categoryIds: [own.id] } })), `${label}: ограничение каталога`).toBe('403')
+      expect(code(await gqlError(t, LIST)), `${label}: редактируемый список`).toBe('403')
     }
 
     expect((await categories()).map(c => c.id).sort()).toEqual(before)
