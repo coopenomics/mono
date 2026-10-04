@@ -1,45 +1,18 @@
-import { affectedRows } from './raw-query-result';
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import type { ITwoFactorRepository, TwoFactorRecord } from '~/domain/auth-v2/ports/two-factor.port';
 
 /**
  * Хранилище TOTP-секретов в coop_domain_db (таблица `two_factor`, миграция V2.4.2).
- * Свой DataSource, как `PostgresVaultRepository`/`AuditService`: недоступность
+ * Общее соединение базы CoopID (`CoopDomainDatabase`): недоступность
  * coop-postgres бьёт только по 2FA-операциям, не по запуску coopback.
  */
 @Injectable()
-export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
-
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) return Promise.resolve(this.ds);
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
-  }
+export class PostgresTwoFactorRepository implements ITwoFactorRepository {
+  constructor(@Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase) {}
 
   async get(subjectId: string): Promise<TwoFactorRecord | null> {
-    const ds = await this.getDataSource();
-    const rows: Array<{ subject_id: string; secret_enc: string; enabled: boolean }> = await ds.query(
+    const rows: Array<{ subject_id: string; secret_enc: string; enabled: boolean }> = await this.db.query(
       `SELECT subject_id, secret_enc, enabled FROM two_factor WHERE subject_id=$1`,
       [subjectId],
     );
@@ -49,9 +22,8 @@ export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModu
   }
 
   async putPending(subjectId: string, secretEnc: string): Promise<void> {
-    const ds = await this.getDataSource();
     // Перевыпуск до подтверждения сбрасывает enabled и confirmed_at.
-    await ds.query(
+    await this.db.query(
       `INSERT INTO two_factor (subject_id, secret_enc, enabled, confirmed_at)
        VALUES ($1, $2, false, NULL)
        ON CONFLICT (subject_id) DO UPDATE SET
@@ -61,28 +33,21 @@ export class PostgresTwoFactorRepository implements ITwoFactorRepository, OnModu
   }
 
   async enable(subjectId: string): Promise<void> {
-    const ds = await this.getDataSource();
-    await ds.query(`UPDATE two_factor SET enabled = true, confirmed_at = now() WHERE subject_id=$1`, [subjectId]);
+    await this.db.query(`UPDATE two_factor SET enabled = true, confirmed_at = now() WHERE subject_id=$1`, [subjectId]);
   }
 
   async claimStep(subjectId: string, step: number): Promise<boolean> {
-    const ds = await this.getDataSource();
     // Одним условным UPDATE: два одновременных запроса с одним кодом не пройдут оба.
-    const result: unknown = await ds.query(
+    const claimed = await this.db.query(
       `UPDATE two_factor SET last_used_step = $2
        WHERE subject_id = $1 AND (last_used_step IS NULL OR last_used_step < $2)
        RETURNING subject_id`,
       [subjectId, step],
     );
-    return affectedRows(result) > 0;
+    return claimed.length > 0;
   }
 
   async remove(subjectId: string): Promise<void> {
-    const ds = await this.getDataSource();
-    await ds.query(`DELETE FROM two_factor WHERE subject_id=$1`, [subjectId]);
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) await this.ds.destroy();
+    await this.db.query(`DELETE FROM two_factor WHERE subject_id=$1`, [subjectId]);
   }
 }

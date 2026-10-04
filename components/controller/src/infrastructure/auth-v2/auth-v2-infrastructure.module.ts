@@ -28,6 +28,8 @@ import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { AuthentikSessionAdapter } from './authentik-session.adapter';
 import { AuthentikAdminAdapter } from './authentik-admin.adapter';
 import { PostgresVaultRepository } from './postgres-vault.repository';
+import { CoopDomainDatabase } from './coop-domain.database';
+import { COOP_DOMAIN_DATABASE } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import { RedisThrottlerStorage } from './redis-throttler.storage';
 import { RedisRecoveryTokenStore } from './redis-recovery-token.store';
 import { PostgresTwoFactorRepository } from './postgres-two-factor.repository';
@@ -55,6 +57,8 @@ import { RedisEmailVerificationStore } from './redis-email-verification.store';
 @Module({
   imports: [RedisModule],
   providers: [
+    // Одно соединение базы CoopID на все её хранилища и журнал аудита.
+    { provide: COOP_DOMAIN_DATABASE, useClass: CoopDomainDatabase },
     { provide: AUTHN_SESSION_PORT, useClass: AuthentikSessionAdapter },
     { provide: VAULT_REPOSITORY, useClass: PostgresVaultRepository },
     { provide: RATE_LIMIT_STORAGE, useClass: RedisThrottlerStorage },
@@ -82,6 +86,6 @@ import { RedisEmailVerificationStore } from './redis-email-verification.store';
     { provide: AUTHENTIK_ADMIN_PORT, useClass: AuthentikAdminAdapter },
     { provide: CERT_KEY_CRYPTO_PORT, useClass: CertKeyCryptoAdapter },
   ],
-  exports: [AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, VERIFICATION_REVIEW_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, EMAIL_VERIFICATION_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
+  exports: [COOP_DOMAIN_DATABASE, AUTHN_SESSION_PORT, VAULT_REPOSITORY, RATE_LIMIT_STORAGE, RECOVERY_TOKEN_STORE, TWO_FACTOR_REPOSITORY, OFFLINE_RECOVERY_CODE_REPOSITORY, RECOVERY_STRATEGY_REPOSITORY, VERIFICATION_RULE_REPOSITORY, VERIFICATION_REVIEW_REPOSITORY, KNOWN_DEVICES_STORE, NEW_DEVICE_NOTIFICATION_THROTTLE, SESSION_METADATA_PORT, NOT_ME_TOKEN_STORE, CHAIN_MANIFESTS_CACHE, COOP_SETTINGS_REPOSITORY, ACCESS_RULES_REPOSITORY, CAPABILITY_SETS_REPOSITORY, ACCESS_RULES_INVALIDATION_PUBLISHER, FORCE_RECOVERY_CONSENT_STORE, FORCE_RECOVERY_CONSENT_NOTIFIER, KEY_REVOCATION_REPOSITORY, LOGIN_FACTORS_REPOSITORY, LOGIN_CHALLENGE_STORE, EMAIL_VERIFICATION_STORE, AUTHENTIK_ADMIN_PORT, CERT_KEY_CRYPTO_PORT],
 })
 export class AuthV2InfrastructureModule {}

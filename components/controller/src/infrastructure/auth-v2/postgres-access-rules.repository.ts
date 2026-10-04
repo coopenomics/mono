@@ -1,7 +1,5 @@
-import { affectedRows } from './raw-query-result';
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import {
   AccessRuleEffect,
   AccessRulePrincipalKind,
@@ -27,42 +25,15 @@ function toEffect(raw: string): AccessRuleEffect {
 
 /**
  * Хранилище правил CASL Layer 2 в coop_domain_db (таблица `access_rules`, миграция
- * V2.4.7). Свой DataSource, как `PostgresVerificationRuleRepository`. Истёкшие
+ * V2.4.7). Общее соединение базы CoopID (`CoopDomainDatabase`). Истёкшие
  * capabilities (`expires_at <= now`) исключаются на чтении.
  */
 @Injectable()
-export class PostgresAccessRulesRepository implements IAccessRulesRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
-
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) {
-      return Promise.resolve(this.ds);
-    }
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
-  }
+export class PostgresAccessRulesRepository implements IAccessRulesRepository {
+  constructor(@Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase) {}
 
   async findForPrincipal(roles: string[], username: string): Promise<AccessRuleRecord[]> {
-    const ds = await this.getDataSource();
-    const rows: AccessRuleRow[] = await ds.query(
+    const rows: AccessRuleRow[] = await this.db.query(
       `SELECT subject_type, subject_id, effect, action, resource_type, conditions
          FROM access_rules
         WHERE (
@@ -84,8 +55,7 @@ export class PostgresAccessRulesRepository implements IAccessRulesRepository, On
 
   async findForCapabilitySets(setKeys: string[]): Promise<AccessRuleRecord[]> {
     if (!setKeys.length) return [];
-    const ds = await this.getDataSource();
-    const rows: AccessRuleRow[] = await ds.query(
+    const rows: AccessRuleRow[] = await this.db.query(
       `SELECT subject_type, subject_id, effect, action, resource_type, conditions
          FROM access_rules
         WHERE subject_type = $1 AND subject_id = ANY($2)
@@ -103,8 +73,7 @@ export class PostgresAccessRulesRepository implements IAccessRulesRepository, On
   }
 
   async insert(rule: AccessRuleRecord): Promise<void> {
-    const ds = await this.getDataSource();
-    await ds.query(
+    await this.db.query(
       `INSERT INTO access_rules (subject_type, subject_id, effect, action, resource_type, conditions, expires_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, now())`,
       [
@@ -120,22 +89,14 @@ export class PostgresAccessRulesRepository implements IAccessRulesRepository, On
   }
 
   async deleteExpired(now: Date): Promise<number> {
-    const ds = await this.getDataSource();
     // Только истёкшие с непустым TTL: бессрочные (expires_at IS NULL) и ещё
-    // действующие не трогаем. Число удалённых — из ответа DELETE (пара
-    // [строки, число] у TypeORM; см. raw-query-result.ts).
-    const raw: unknown = await ds.query(
+    // действующие не трогаем. Число удалённых — по строкам, которые вернуло удаление.
+    const removed = await this.db.query(
       `DELETE FROM access_rules
         WHERE expires_at IS NOT NULL AND expires_at <= $1
        RETURNING 1 AS id`,
       [now],
     );
-    return affectedRows(raw);
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) {
-      await this.ds.destroy();
-    }
+    return removed.length;
   }
 }

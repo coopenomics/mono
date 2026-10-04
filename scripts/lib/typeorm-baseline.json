@@ -1,6 +1,5 @@
 {
   "imports": {
-    "components/controller/src/application/auth-v2/audit/audit.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/content-revision.service.ts": 2,
     "components/controller/src/extensions/capital/infrastructure/database/capital-database.module.ts": 1,
     "components/controller/src/extensions/capital/infrastructure/entities/appendix.typeorm-entity.ts": 1,
@@ -113,17 +112,6 @@
     "components/controller/src/extensions/marketplace/migrations/marketplace-bootstrap-v24.migration.ts": 2,
     "components/controller/src/extensions/reports/migrations/database/1790197276759-baseline.ts": 1,
     "components/controller/src/extensions/soviet-robot/migrations/database/1790197276760-baseline.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-access-rules.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-capability-sets.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-coop-settings.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-key-revocation.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-login-factors.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-offline-recovery-code.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-recovery-strategy.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-two-factor.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-vault.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.ts": 1,
-    "components/controller/src/infrastructure/auth-v2/postgres-verification-rule.repository.ts": 1,
     "components/controller/src/infrastructure/blockchain/local-changes.subscriber.ts": 2,
     "components/controller/src/infrastructure/database/kysely/kysely.provider.ts": 1,
     "components/controller/src/infrastructure/database/migrations/1790197276751-baseline.ts": 1,
@@ -291,7 +279,6 @@
     "components/extension-kit/src/sync/invalidated-entity.repository.ts": 2
   },
   "leaks": {
-    "components/controller/src/application/auth-v2/audit/audit.service.ts": 1,
     "components/controller/src/extensions/capital/application/services/content-revision.service.ts": 2,
     "components/controller/src/extensions/expenses/application/services/expense-payments.listener.ts": 2,
     "components/controller/src/extensions/expenses/application/services/expense-plans.service.ts": 2,
