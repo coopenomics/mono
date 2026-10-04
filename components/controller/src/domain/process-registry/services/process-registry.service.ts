@@ -1,10 +1,9 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Ledger2Contract } from 'cooptypes';
 import Redis from 'ioredis';
-import { DeltaEntity } from '~/infrastructure/database/typeorm/entities/delta.entity';
-import { ActionEntity } from '~/infrastructure/database/typeorm/entities/action.entity';
+import type { ActionDomainInterface } from '~/domain/parser/interfaces/action-domain.interface';
+import type { DeltaDomainInterface } from '~/domain/parser/interfaces/delta-domain.interface';
+import { PROCESS_JOURNAL_PORT, type ProcessJournalPort } from '../ports/process-journal.port';
 import { DocumentAggregator } from '~/domain/document/aggregators/document.aggregator';
 import { REDIS_PROVIDER } from '~/infrastructure/redis/redis.provider';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
@@ -79,10 +78,8 @@ type RedisClient = {
 @Injectable()
 export class ProcessRegistryService {
   constructor(
-    @InjectRepository(DeltaEntity)
-    private readonly deltaRepository: Repository<DeltaEntity>,
-    @InjectRepository(ActionEntity)
-    private readonly actionRepository: Repository<ActionEntity>,
+    @Inject(PROCESS_JOURNAL_PORT)
+    private readonly journal: ProcessJournalPort,
     private readonly documentAggregator: DocumentAggregator,
     @Inject(REDIS_PROVIDER)
     private readonly redisClient: RedisClient,
@@ -113,13 +110,7 @@ export class ProcessRegistryService {
     //
     // Index: idx_actions_process_hash (не-partial, full-table) — покрывает
     // оба случая (ledger2-only и cross-account).
-    const allActions = await this.actionRepository
-      .createQueryBuilder('a')
-      .where(`LOWER(a.data ->> 'process_hash') = :hash`, { hash: normHash })
-      .andWhere(`a.data ->> 'coopname' = :coop`, { coop: coopname })
-      .orderBy('a.block_num', 'ASC')
-      .addOrderBy('a.global_sequence', 'ASC')
-      .getMany();
+    const allActions = await this.journal.findActionsByProcess(normHash, coopname);
 
     if (allActions.length === 0) {
       throw DomainError.notFound('PROCESS_REGISTRY_NOT_FOUND', { hash: normHash });
@@ -191,7 +182,7 @@ export class ProcessRegistryService {
     const { baseFilter, params, nextParamIdx } = this.buildListFilter(filter);
     let pIdx = nextParamIdx;
 
-    const countRow = await this.actionRepository.manager.query(
+    const countRow = await this.journal.query<any>(
       `SELECT COUNT(DISTINCT LOWER(a.data ->> 'process_hash')) AS cnt
        FROM blockchain_actions a
        WHERE ${baseFilter}`,
@@ -222,7 +213,7 @@ export class ProcessRegistryService {
     const offsetIdx = pIdx;
     params.push(offset);
 
-    const rows = await this.actionRepository.manager.query(
+    const rows = await this.journal.query<any>(
       `SELECT
          ARRAY_AGG(a.data ->> 'operation_code'
                    ORDER BY a.block_num ASC, (a.global_sequence)::numeric ASC) AS "operationCodes",
@@ -266,7 +257,7 @@ export class ProcessRegistryService {
    *
    * Имя берётся из `ledger2::apply` (он всегда присутствует в трио).
    */
-  private resolveProcessTypeOrFail(actions: ActionEntity[], processHash: string): string {
+  private resolveProcessTypeOrFail(actions: ActionDomainInterface[], processHash: string): string {
     const applies = actions.filter((a) => a.account === LEDGER2_CODE && a.name === 'apply');
     if (applies.length === 0) {
       throw new BadRequestException(
@@ -534,21 +525,14 @@ export class ProcessRegistryService {
     locations: HashLocation[],
     hash: string,
     coopname: string
-  ): Promise<DeltaEntity[]> {
+  ): Promise<DeltaDomainInterface[]> {
     if (locations.length === 0) return [];
-    const all: DeltaEntity[] = [];
+    const all: DeltaDomainInterface[] = [];
     for (const loc of locations) {
       // Coopname-скоупинг: часть таблиц хранит coopname в scope (ledger2,
       // большинство кооп-scope таблиц), часть — в value.jsonb (singleton-scope
       // контракты типа registrator). Поддерживаем оба варианта.
-      const rows = await this.deltaRepository
-        .createQueryBuilder('d')
-        .where('d.code = :code', { code: loc.code })
-        .andWhere('d.table = :table', { table: loc.table })
-        .andWhere(`LOWER(d.value ->> :field) = :hash`, { field: loc.field, hash })
-        .andWhere("(d.scope = :coop OR d.value ->> 'coopname' = :coop)", { coop: coopname })
-        .orderBy('d.block_num', 'ASC')
-        .getMany();
+      const rows = await this.journal.findEntityDeltas(loc, hash, coopname);
       all.push(...rows);
     }
     return all;
@@ -569,20 +553,18 @@ export class ProcessRegistryService {
   private async scanDocumentActions(
     hash: string,
     coopname: string,
-    anchors: ActionEntity[],
-    entityDeltas: DeltaEntity[]
-  ): Promise<ActionEntity[]> {
+    anchors: ActionDomainInterface[],
+    entityDeltas: DeltaDomainInterface[]
+  ): Promise<ActionDomainInterface[]> {
     const blocks = [...anchors, ...entityDeltas].map((r) => Number(r.block_num)).filter(Number.isFinite);
     if (blocks.length === 0) return [];
-    return this.actionRepository
-      .createQueryBuilder('a')
-      .where('a.block_num BETWEEN :from AND :to', { from: Math.min(...blocks), to: Math.max(...blocks) })
-      .andWhere('a.account <> :ledger2', { ledger2: LEDGER2_CODE })
-      .andWhere(`a.data ->> 'coopname' = :coop`, { coop: coopname })
-      .andWhere(`a.data::text ILIKE :pattern`, { pattern: `%${hash}%` })
-      .orderBy('a.block_num', 'ASC')
-      .addOrderBy('a.global_sequence', 'ASC')
-      .getMany();
+    return this.journal.findDocumentActions({
+      hash,
+      coopname,
+      fromBlock: Math.min(...blocks),
+      toBlock: Math.max(...blocks),
+      excludeAccount: LEDGER2_CODE,
+    });
   }
 
   private collectDeltaDocumentCandidates(deltas: ProcessDeltaView[]): DocumentCandidate[] {
@@ -601,7 +583,7 @@ export class ProcessRegistryService {
   }
 
   /** Документы из параметров действия: source — контракт, имя действия, параметр и global_sequence. */
-  private collectActionDocumentCandidates(actions: ActionEntity[]): DocumentCandidate[] {
+  private collectActionDocumentCandidates(actions: ActionDomainInterface[]): DocumentCandidate[] {
     const candidates: DocumentCandidate[] = [];
     for (const action of actions) {
       const data = action.data as Record<string, unknown> | null;
@@ -683,7 +665,7 @@ export class ProcessRegistryService {
     return results;
   }
 
-  private toDeltaView = (d: DeltaEntity): ProcessDeltaView => ({
+  private toDeltaView = (d: DeltaDomainInterface): ProcessDeltaView => ({
     id: d.id,
     code: d.code,
     scope: d.scope,
@@ -695,8 +677,9 @@ export class ProcessRegistryService {
     created_at: d.created_at,
   });
 
-  private toActionView = (a: ActionEntity): ProcessActionView => ({
-    id: a.id,
+  // Действие из журнала всегда сохранено: ключ и дата записи у него есть.
+  private toActionView = (a: ActionDomainInterface): ProcessActionView => ({
+    id: a.id as string,
     account: a.account,
     name: a.name,
     data: a.data,
@@ -704,7 +687,7 @@ export class ProcessRegistryService {
     block_id: a.block_id,
     global_sequence: a.global_sequence,
     transaction_id: a.transaction_id,
-    created_at: a.created_at,
+    created_at: a.created_at as Date,
   });
 
   private compareByBlock = (

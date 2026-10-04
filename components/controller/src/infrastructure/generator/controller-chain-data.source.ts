@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
-import { DataSource } from 'typeorm';
+import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
+import { rawQuery } from '~/infrastructure/database/kysely/raw-query';
 import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
@@ -24,7 +25,7 @@ import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 @Injectable()
 export class ControllerChainDataSource implements IChainDataSource {
   constructor(
-    private readonly dataSource: DataSource,
+    @Inject(KYSELY) private readonly db: Database,
     private readonly draftRegistry: DraftRegistryKyselyRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
     private readonly blockchainService: BlockchainService,
@@ -123,7 +124,8 @@ export class ControllerChainDataSource implements IChainDataSource {
       conditions.push(`${hex ? `lower(${expression})` : expression} = ${placeholder}`);
     });
 
-    const rows = await this.dataSource.query(
+    const rows = await rawQuery<any>(
+      this.db,
       `SELECT DISTINCT ON (primary_key) value, present
          FROM blockchain_deltas d
         WHERE code = $1 AND scope = $2 AND "table" = $3

@@ -36,18 +36,13 @@ import { NotificationOutboxKyselyRepository } from '../kysely/repositories/notif
 import { NotificationDeliveryKyselyRepository } from '../kysely/repositories/notification-delivery.kysely-repository';
 import { NotificationInboxKyselyRepository } from '../kysely/repositories/notification-inbox.kysely-repository';
 import { LEDGER_OPERATION_REPOSITORY } from '~/domain/ledger/repositories/ledger-operation.repository';
-import { TypeOrmLedgerOperationRepository } from './repositories/typeorm-ledger-operation.repository';
-import { LedgerOperationEntity } from './entities/ledger-operation.entity';
+import { LedgerOperationKyselyRepository } from '../kysely/repositories/ledger-operation.kysely-repository';
 import { AgreementTypeormEntity } from './entities/agreement.typeorm-entity';
 import { AGREEMENT_REPOSITORY } from '~/domain/agreement/repositories/agreement.repository';
 import { AgreementTypeormRepository } from './repositories/agreement.typeorm-repository';
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
-import { ActionEntity } from './entities/action.entity';
 import { DraftRegistryKyselyRepository } from '../kysely/repositories/draft-registry.kysely-repository';
-import { DeltaEntity } from './entities/delta.entity';
-import { ForkEntity } from './entities/fork.entity';
-import { SyncStateEntity } from './entities/sync-state.entity';
 import {
   EntityVersionTypeormEntity,
   EntityVersionRepository,
@@ -61,13 +56,12 @@ import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
 import { SYNC_STATE_REPOSITORY_PORT } from '~/domain/parser/ports/sync-state-repository.port';
-import { TypeOrmActionRepository } from './repositories/typeorm-action.repository';
-import { TypeOrmDeltaRepository } from './repositories/typeorm-delta.repository';
-import { TypeOrmForkRepository } from './repositories/typeorm-fork.repository';
-import { TypeOrmSyncStateRepository } from './repositories/typeorm-sync-state.repository';
-import { ConsumerDedupEntity } from './entities/consumer-dedup.entity';
+import { BlockchainActionKyselyRepository } from '../kysely/repositories/blockchain-action.kysely-repository';
+import { BlockchainDeltaKyselyRepository } from '../kysely/repositories/blockchain-delta.kysely-repository';
+import { BlockchainForkKyselyRepository } from '../kysely/repositories/blockchain-fork.kysely-repository';
+import { BlockchainSyncStateKyselyRepository } from '../kysely/repositories/blockchain-sync-state.kysely-repository';
 import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-dedup-repository.port';
-import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
+import { ConsumerDedupKyselyRepository } from '../kysely/repositories/consumer-dedup.kysely-repository';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsKyselyRepository } from '../kysely/repositories/settings.kysely-repository';
 import { TOKEN_REPOSITORY } from '~/domain/token/repositories/token.repository';
@@ -113,13 +107,7 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     }),
     NestTypeOrmModule.forFeature([
       MigrationEntity,
-      LedgerOperationEntity,
       AgreementTypeormEntity,
-      ActionEntity,
-      DeltaEntity,
-      ForkEntity,
-      SyncStateEntity,
-      ConsumerDedupEntity,
       EntityVersionTypeormEntity,
       InvalidatedEntityTypeormEntity,
       InvalidatedEntityVersionTypeormEntity,
@@ -177,7 +165,7 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     },
     {
       provide: LEDGER_OPERATION_REPOSITORY,
-      useClass: TypeOrmLedgerOperationRepository,
+      useClass: LedgerOperationKyselyRepository,
     },
     // Agreement компоненты
     {
@@ -190,23 +178,23 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     DraftRegistryKyselyRepository,
     {
       provide: ACTION_REPOSITORY_PORT,
-      useClass: TypeOrmActionRepository,
+      useClass: BlockchainActionKyselyRepository,
     },
     {
       provide: DELTA_REPOSITORY_PORT,
-      useClass: TypeOrmDeltaRepository,
+      useClass: BlockchainDeltaKyselyRepository,
     },
     {
       provide: FORK_REPOSITORY_PORT,
-      useClass: TypeOrmForkRepository,
+      useClass: BlockchainForkKyselyRepository,
     },
     {
       provide: SYNC_STATE_REPOSITORY_PORT,
-      useClass: TypeOrmSyncStateRepository,
+      useClass: BlockchainSyncStateKyselyRepository,
     },
     {
       provide: CONSUMER_DEDUP_REPOSITORY_PORT,
-      useClass: TypeOrmConsumerDedupRepository,
+      useClass: ConsumerDedupKyselyRepository,
     },
     {
       provide: SETTINGS_REPOSITORY,

@@ -20,7 +20,8 @@ describe('ControllerChainDataSource', () => {
   const resolveFields = jest.fn();
 
   const source = new ControllerChainDataSource(
-    { query } as any,
+    // Запросы журнала дельт уходят в базу готовым текстом с параметрами.
+    { executeQuery: async (compiled: any) => ({ rows: await query(compiled.sql, compiled.parameters) }) } as any,
     { findTemplateAt, findTranslationsAt } as any,
     { find: actionsFind } as any,
     { getInfo } as any,

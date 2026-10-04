@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { PLATFORM_METRICS_PORT } from '~/domain/metrics/ports/platform-metrics.port';
 import { USER_ACTIVITY_PORT } from '~/domain/metrics/ports/user-activity.port';
-import { TypeOrmPlatformMetricsRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-platform-metrics.repository';
+import { PlatformMetricsKyselyRepository } from '~/infrastructure/database/kysely/repositories/platform-metrics.kysely-repository';
 import { RedisUserActivityStore } from '~/infrastructure/redis/redis-user-activity.store';
 import { PlatformMetricsService } from './platform-metrics.service';
 
@@ -15,7 +15,7 @@ import { PlatformMetricsService } from './platform-metrics.service';
  * Так же в кодовой базе живёт `ParserDomainModule`.
  *
  * RedisModule импортируется явно: он не глобальный, а хранилищу активности
- * нужен REDIS_PROVIDER. DataSource приходит от `TypeOrmModule.forRoot` и
+ * нужен REDIS_PROVIDER. Запросы к базе идут через общий слой Kysely, он
  * доступен приложению целиком.
  */
 @Global()
@@ -23,7 +23,7 @@ import { PlatformMetricsService } from './platform-metrics.service';
   imports: [RedisModule],
   providers: [
     PlatformMetricsService,
-    { provide: PLATFORM_METRICS_PORT, useClass: TypeOrmPlatformMetricsRepository },
+    { provide: PLATFORM_METRICS_PORT, useClass: PlatformMetricsKyselyRepository },
     { provide: USER_ACTIVITY_PORT, useClass: RedisUserActivityStore },
   ],
   exports: [PlatformMetricsService, USER_ACTIVITY_PORT],

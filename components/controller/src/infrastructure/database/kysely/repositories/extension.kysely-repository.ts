@@ -40,10 +40,11 @@ export class ExtensionKyselyRepository<TConfig = any> implements ExtensionDomain
     return this.toDomain(row);
   }
 
-  async find(filter: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>[]> {
+  /** Без фильтра — все расширения: каталог вызывает поиск без условий. */
+  async find(filter?: Partial<ExtensionDomainEntity<TConfig>>): Promise<ExtensionDomainEntity<TConfig>[]> {
     let query = this.db.selectFrom('extensions').selectAll();
-    if (filter.name !== undefined) query = query.where('name', '=', filter.name);
-    if (filter.enabled !== undefined) query = query.where('enabled', '=', filter.enabled);
+    if (filter?.name !== undefined) query = query.where('name', '=', filter.name);
+    if (filter?.enabled !== undefined) query = query.where('enabled', '=', filter.enabled);
     const rows = await query.execute();
     return rows.map((row) => this.toDomain(row));
   }
