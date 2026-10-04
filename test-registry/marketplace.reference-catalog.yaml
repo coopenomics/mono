@@ -1,57 +1,36 @@
 feature: marketplace.reference-catalog
-title: Внешний справочник категорий и характеристик, заявки по нему, витрина кооператива
+title: Внешний справочник категорий и витрина кооператива
 
-# Справочник Стола заказов — дерево категорий, типы товаров, характеристики и
-# словари их значений по образцу внешнего каталога. Заполняется вне
-# платформы: загрузчика у узла нет, у хранилищ справочника нет ни одного
-# вызова записи. По справочнику подаются заявки на товар; без справочника
-# заявка отклоняется. Витрина по умолчанию заводится при установке Стола
-# заказов.
+# Справочник Стола заказов — дерево категорий и типы товаров по образцу
+# внешнего каталога. Заполняется вне платформы: загрузчика у узла нет, у
+# хранилищ справочника нет ни одного вызова записи. По справочнику кооператив
+# выбирает доступные категории. Витрина по умолчанию заводится при установке
+# Стола заказов.
 #
-# Заведено 02.10.2026 (C28-85): серверная часть жила вне реестра, её таблицы
-# (categories, types, attributes, dictionaries, dictionary_values,
-# category_type_attributes, marketplace_requests и две дочерние,
-# marketplace_vitrine) трогала только матрица прав (карта готовности к уходу с
-# TypeORM, C28-81). Рабочий стол этими операциями не пользуется.
+# Заведено 02.10.2026 (C28-85): серверная часть жила вне реестра.
+#
+# Правка 2026-10-03 (C28-87): заявки на товар, характеристики, словари и чтение
+# дерева справочника (22 операции первой версии Стола заказов) убраны вместе с
+# сервисами и сущностями — рабочий стол их не вызывал, обёрток в SDK не было.
+# Решение владельца от 03.10.2026. Случаи про них (happy.02, happy.03,
+# side.01–side.04) сняты; вопрос side.04 «довести или убрать» закрыт.
+# Семь таблиц первой версии (заявки с картинками и значениями характеристик,
+# характеристики, словари и их значения, связь типа с характеристиками) удаляет
+# миграция 1791028868299 — владелец подтвердил 04.10.2026.
 sources:
   backend:
-    - components/controller/src/extensions/marketplace/application/resolvers/category-tree.resolver.ts
-    - components/controller/src/extensions/marketplace/application/resolvers/attribute.resolver.ts
-    - components/controller/src/extensions/marketplace/application/resolvers/request.resolver.ts
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-vitrine.resolver.ts
     - components/controller/src/extensions/marketplace/domain/services/category-tree-domain.service.ts
-    - components/controller/src/extensions/marketplace/domain/services/attribute-domain.service.ts
-    - components/controller/src/extensions/marketplace/domain/services/request-domain.service.ts
     - components/controller/src/extensions/marketplace/infrastructure/adapters/category-repository.adapter.ts
     - components/controller/src/extensions/marketplace/infrastructure/adapters/type-repository.adapter.ts
-    - components/controller/src/extensions/marketplace/infrastructure/adapters/attribute-repository.adapter.ts
-    - components/controller/src/extensions/marketplace/infrastructure/adapters/dictionary-repository.adapter.ts
-    - components/controller/src/extensions/marketplace/infrastructure/adapters/dictionary-value-repository.adapter.ts
-    - components/controller/src/extensions/marketplace/infrastructure/adapters/request-repository.adapter.ts
     - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-vitrine-repository.adapter.ts
 
 cases:
   - id: mkt.ref.happy.01
     level: backend
     kind: happy
-    scenario: пайщик читает дерево категорий, корни, поиск по названию, категорию и тип по номеру на кооперативе с пустым справочником
-    expect: списки пусты, категория и тип по номеру — пусто, сводка дерева считается; ошибок нет
-    test: components/api-tests/src/marketplace/reference-catalog.test.ts
-    status: written
-
-  - id: mkt.ref.happy.02
-    level: backend
-    kind: happy
-    scenario: пайщик читает характеристики категории, обязательные и аспектные, ищет характеристики и значения словаря на пустом справочнике
-    expect: списки пусты, сводка характеристик считается; ошибок нет
-    test: components/api-tests/src/marketplace/reference-catalog.test.ts
-    status: written
-
-  - id: mkt.ref.happy.03
-    level: backend
-    kind: happy
-    scenario: совет читает заявки кооператива, пайщик — заявку по номеру и по хешу, когда заявок нет
-    expect: списки пусты, заявка по номеру и хешу — пусто, сводка заявок считается
+    scenario: председатель читает дерево доступных категорий на кооперативе с пустым справочником
+    expect: список пуст, ошибок нет
     test: components/api-tests/src/marketplace/reference-catalog.test.ts
     status: written
 
@@ -62,40 +41,3 @@ cases:
     expect: витрина по умолчанию одна, заведена на кооператив при установке Стола заказов
     test: components/api-tests/src/marketplace/reference-catalog.test.ts
     status: written
-
-  - id: mkt.ref.side.01
-    level: backend
-    kind: side
-    scenario: справочник читает гость
-    expect: отказ входа
-    test: components/api-tests/src/marketplace/reference-catalog.test.ts
-    status: written
-
-  - id: mkt.ref.side.02
-    level: backend
-    kind: side
-    scenario: член совета подаёт заявку по категории, которой нет в справочнике
-    expect: отказ MARKETPLACE_REQUEST_CATEGORY_NOT_FOUND, заявка не заводится
-    test: components/api-tests/src/marketplace/reference-catalog.test.ts
-    status: written
-
-  - id: mkt.ref.side.03
-    level: backend
-    kind: side
-    scenario: заявку подаёт пайщик без роли в совете; гость
-    expect: пайщику отказ по правам, гостю отказ входа
-    test: components/api-tests/src/marketplace/reference-catalog.test.ts
-    status: written
-
-  - id: mkt.ref.side.04
-    level: backend
-    kind: side
-    scenario: заявка по заполненному справочнику — создание, обязательные характеристики, изображения, публикация
-    expect: >
-      не решено. Справочник заполнить нечем (загрузчика нет, запись в
-      хранилища не вызывается), мутация публикации заявки закомментирована,
-      рабочий стол заявками и справочником не пользуется. Вопрос владельцу:
-      довести функцию или убрать её вместе с девятью таблицами
-    test: ~
-    status: missing
-    decision_needed: true

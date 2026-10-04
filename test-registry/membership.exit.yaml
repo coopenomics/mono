@@ -16,6 +16,7 @@ sources:
     - components/controller/src/application/membership-exit/**/*.ts
     - components/controller/src/infrastructure/database/typeorm/entities/membership-exit-request.entity.ts
     - components/controller/src/application/document/documents-dto/membership-exit-*.ts
+    - components/controller/src/domain/account/services/participant-status-sync.service.ts
 
 cases:
   - id: mem.exit.side.01
@@ -130,4 +131,19 @@ cases:
     scenario: заявление подаётся, когда выход уже в цепи
     expect: отказ MEMBERSHIP_EXIT_ALREADY_SUBMITTED
     test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
+  - id: mem.exit.side.09
+    level: backend
+    kind: side
+    scenario: выход завершён в цепи — вышедший человек обращается к данным кооператива и к своим
+    expect: >
+      учётная запись уходит из статуса «принят» по событию soviet::delpartcpnt:
+      чтение собраний и другие права пайщика отвечают KIT_MEMBERS_ONLY; ход
+      своего выхода и свои кошельки он читает как прежде. Повторный приём
+      возвращает статус. Решение владельца от 03.10.2026 (C28-87): после выхода
+      остаются вход и своё. Прежние выходы один раз проходит миграция данных
+      202610031230 — по сохранённым действиям цепи
+    test: components/controller/tests/unit/account/participant-join-date.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
     status: written

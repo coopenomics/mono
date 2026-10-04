@@ -11,6 +11,8 @@ export interface GqlError {
   message: string
   code: string | null
   path: readonly (string | number)[] | null
+  /** HTTP-статус отказа из `extensions.status`: сервер кладёт его в каждую ошибку. */
+  httpStatus?: number | null
 }
 
 export interface GqlResponse<T> {
@@ -49,6 +51,7 @@ export async function gqlRaw<T = any>(token: string | null, query: string, varia
     message: String(e?.message ?? ''),
     code: e?.extensions?.code ?? null,
     path: e?.path ?? null,
+    httpStatus: typeof e?.extensions?.status === 'number' ? e.extensions.status : null,
   }))
   return { status: res.status, data: payload.data ?? null, errors }
 }

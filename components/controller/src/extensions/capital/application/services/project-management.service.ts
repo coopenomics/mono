@@ -92,9 +92,42 @@ export class ProjectManagementService {
   }
 
   /**
+   * Право на действие над проектом — по таблице ролей проекта
+   * (`PROJECT_PERMISSION_MATRIX`), той же, по которой рабочий стол рисует
+   * кнопки. Гард резолвера пускает роль кооператива, а кто именно вправе на
+   * этом проекте, решает таблица: член совета, ведущий, владелец личного
+   * проекта. Председатель действует по своей роли, как и раньше.
+   *
+   * До 03.10.2026 гард пускал только председателя: член совета и ведущий
+   * видели кнопку и получали отказ (C28-87, решение владельца — «как в
+   * таблице ролей»).
+   */
+  private async assertProjectPermission(
+    projectHash: string,
+    currentUser: IMonoAccount | undefined,
+    permission: 'can_set_master' | 'can_manage_authors' | 'can_change_project_status' | 'can_delete_project',
+    code: string
+  ): Promise<void> {
+    if (currentUser?.role === 'chairman') return;
+    const project = await this.projectManagementInteractor.getProjectByHash(projectHash);
+    if (!project) {
+      throw DomainError.notFound('CAPITAL_PROJECT_NOT_FOUND_BY_HASH', { hash: projectHash });
+    }
+    const projectDTO = await this.projectMapperService.mapToDTO(project, currentUser);
+    if (!projectDTO.permissions[permission]) {
+      throw DomainError.forbidden(code);
+    }
+  }
+
+  private assertProjectStatusPermission(projectHash: string, currentUser?: IMonoAccount): Promise<void> {
+    return this.assertProjectPermission(projectHash, currentUser, 'can_change_project_status', 'CAPITAL_PROJECT_STATUS_FORBIDDEN');
+  }
+
+  /**
    * Установка мастера проекта CAPITAL контракта
    */
   async setMaster(data: SetMasterInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_set_master', 'CAPITAL_PROJECT_MASTER_FORBIDDEN');
     return await this.projectManagementInteractor.setMaster(data, currentUser);
   }
 
@@ -102,6 +135,7 @@ export class ProjectManagementService {
    * Добавление автора проекта CAPITAL контракта
    */
   async addAuthor(data: AddAuthorInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_manage_authors', 'CAPITAL_PROJECT_AUTHORS_FORBIDDEN');
     const project = await this.projectManagementInteractor.addAuthor(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -138,6 +172,7 @@ export class ProjectManagementService {
    * Запуск проекта CAPITAL контракта
    */
   async startProject(data: StartProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.startProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -146,6 +181,7 @@ export class ProjectManagementService {
    * Открытие проекта для инвестиций CAPITAL контракта
    */
   async openProject(data: OpenProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.openProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -154,6 +190,7 @@ export class ProjectManagementService {
    * Закрытие проекта от инвестиций CAPITAL контракта
    */
   async closeProject(data: CloseProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.closeProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -162,6 +199,7 @@ export class ProjectManagementService {
    * Остановка проекта CAPITAL контракта
    */
   async stopProject(data: StopProjectInputDTO, currentUser?: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.stopProject(data);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -171,6 +209,7 @@ export class ProjectManagementService {
    * Финализация проекта после завершения всех конвертаций участников
    */
   async finalizeProject(data: FinalizeProjectInputDTO, currentUser: IMonoAccount): Promise<ProjectOutputDTO> {
+    await this.assertProjectStatusPermission(data.project_hash, currentUser);
     const project = await this.projectManagementInteractor.finalizeProject(data, currentUser);
     return await this.projectMapperService.mapToDTO(project, currentUser);
   }
@@ -178,7 +217,8 @@ export class ProjectManagementService {
   /**
    * Удаление проекта CAPITAL контракта
    */
-  async deleteProject(data: DeleteProjectInputDTO): Promise<InnerTransactResult> {
+  async deleteProject(data: DeleteProjectInputDTO, currentUser: IMonoAccount): Promise<InnerTransactResult> {
+    await this.assertProjectPermission(data.project_hash, currentUser, 'can_delete_project', 'CAPITAL_PROJECT_DELETE_FORBIDDEN');
     return await this.projectManagementInteractor.deleteProject(data);
   }
 

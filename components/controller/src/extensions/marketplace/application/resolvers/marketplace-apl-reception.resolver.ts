@@ -77,6 +77,11 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
+    // Акт приёмки открывает оператор участка, на который идёт партия. Без
+    // сверки оператор другого участка открывал акт по чужой партии и занимал
+    // её: у партии может быть только один акт (C28-87).
+    const shipmentBraname = await this.service.branameOfShipment(platformSettings().coopname, data.shipment_id);
+    if (shipmentBraname) await this.assertOperatesBranch(member, shipmentBraname);
     const result = await this.service.create({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -160,6 +165,12 @@ export class MarketplaceAplReceptionResolver {
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignAplReceptionInputDTO
   ): Promise<MarketplaceAplReceptionResultDTO> {
+    // Закрывающую подпись ставит оператор участка приёмки. Цепь проверяет это
+    // сама, но отказ отсюда приходит раньше и понятным текстом.
+    const receptionToSign = await this.receptionRepo.findById(data.apl_reception_id);
+    if (receptionToSign && receptionToSign.coopname === platformSettings().coopname) {
+      await this.assertOperatesBranch(member, receptionToSign.braname);
+    }
     const result = await this.service.signAsChairman({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -444,5 +455,15 @@ export class MarketplaceAplReceptionResolver {
         ),
       })
     );
+  }
+
+  /** Оператор — председатель или доверенный именно этого участка. */
+  private async assertOperatesBranch(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
+    const roles = member.marketplace_roles as MarketplaceRole[];
+    if (canAccess(roles, 'Receiving', 'read:all')) return;
+    const isMember = await this.kuChairmanService.isMemberOfBranch(platformSettings().coopname, braname, member.username);
+    if (!isMember) {
+      throw DomainError.forbidden('MARKETPLACE_RECEPTION_NOT_TRUSTEE');
+    }
   }
 }

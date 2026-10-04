@@ -332,9 +332,19 @@ export class MarketplaceWriteoffResolver {
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
   @RequireMarketplaceAccess('Writeoff', 'confirm:own-KU')
   async marketplaceWriteoffProtocolDocument(
-    @CurrentMarketplaceMember() _member: IMarketplaceCurrentMember,
+    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
   ): Promise<DocumentAggregateDTO> {
+    // Протокол читает оператор участка, чьи позиции есть в проекте списания;
+    // совет и администратор — любой.
+    const roles = member.marketplace_roles as MarketplaceRole[];
+    if (!canAccess(roles, 'Writeoff', 'read:all')) {
+      const proposal = await this.service.getProposal(data.proposal_id);
+      const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
+      if (!proposal.items.some((item) => own.includes(item.braname))) {
+        throw DomainError.forbidden('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE');
+      }
+    }
     // Протокол уже подписан советом и лежит в реестре документов: собираем
     // агрегат из подписанного документа по doc_hash (тело + подписи), НЕ
     // регенерируем. Канон — issuance/return-claim.

@@ -85,10 +85,11 @@ export class MarketplaceDesktopGrantsProvider
 
   async resolveGrants(ctx: InnerDesktopGrantsContext): Promise<string[]> {
     if (!ctx.username) return [];
-    if (ctx.userStatus !== MonoAccountStatus.Active) return [];
 
     const coreRoles = mapUserRoleToCoreRoles(ctx.userRole);
     if (coreRoles.length === 0) return [];
+    // Совет проходит по роли в любом статусе — как в гарде стола и в ядре.
+    if (!coreRoles.includes('Member') && ctx.userStatus !== MonoAccountStatus.Active) return [];
 
     const onboarded = Boolean(ctx.config?.coopAcceptance?.accepted);
     if (!onboarded) {

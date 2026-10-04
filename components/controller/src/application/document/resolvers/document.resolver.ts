@@ -53,7 +53,7 @@ export class DocumentResolver {
 
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateDocument',
-    description: 'Универсальная генерация документа с произвольными данными (только для председателя)',
+    description: 'Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя.',
   })
   @UseGuards(GqlJwtAuthGuard, RolesGuard)
   async generateDocument(

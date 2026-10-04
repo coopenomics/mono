@@ -4,12 +4,10 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { CategoryEntity } from './category.entity';
-import { CategoryTypeAttributeEntity } from './category-type-attribute.entity';
 
 @Entity('types')
 export class TypeEntity {
@@ -28,9 +26,6 @@ export class TypeEntity {
   @ManyToOne(() => CategoryEntity, (category) => category.types)
   @JoinColumn({ name: 'description_category_id' })
   category!: CategoryEntity;
-
-  @OneToMany(() => CategoryTypeAttributeEntity, (cta) => cta.type)
-  categoryTypeAttributes!: CategoryTypeAttributeEntity[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

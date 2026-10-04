@@ -132,3 +132,32 @@ describe('ParticipantStatusSyncService.backfillJoinedAt', () => {
     expect(repo.setJoinedAt).not.toHaveBeenCalled();
   });
 });
+
+describe('выход из кооператива снимает статус «принят»', () => {
+  const exitEvent = (username: string, coopname = config.coopname) => ({ data: { coopname, username } } as any);
+
+  it('delpartcpnt по принятому пайщику — статус уходит в blocked', async () => {
+    const { service, repo } = makeService({ users: { leaver: { status: userStatus['5_Active'] } } });
+    await service.handleDeleteParticipant(exitEvent('leaver'));
+    expect(repo.updateByUsername).toHaveBeenCalledWith('leaver', { status: userStatus['200_Blocked'] });
+  });
+
+  it('повторное событие по уже заблокированной записи ничего не пишет', async () => {
+    const { service, repo } = makeService({ users: { leaver: { status: userStatus['200_Blocked'] } } });
+    await service.handleDeleteParticipant(exitEvent('leaver'));
+    expect(repo.updateByUsername).not.toHaveBeenCalled();
+  });
+
+  it('чужой кооператив и незнакомый аккаунт пропускаются', async () => {
+    const { service, repo } = makeService({ users: { leaver: { status: userStatus['5_Active'] } } });
+    await service.handleDeleteParticipant(exitEvent('leaver', 'othercoop'));
+    await service.handleDeleteParticipant(exitEvent('stranger'));
+    expect(repo.updateByUsername).not.toHaveBeenCalled();
+  });
+
+  it('повторный приём после выхода возвращает статус «принят»', async () => {
+    const { service, repo } = makeService({ users: { leaver: { status: userStatus['200_Blocked'] } } });
+    await service.handleAddParticipant(acceptEvent('leaver', '2026-10-03T10:00:00'));
+    expect(repo.updateByUsername).toHaveBeenCalledWith('leaver', { status: userStatus['5_Active'] });
+  });
+});

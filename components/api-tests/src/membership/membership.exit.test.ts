@@ -218,4 +218,20 @@ describe('выход пайщика: подтверждение по письм�
     }, { timeoutMs: 60_000, intervalMs: 2_000, label: 'узел видит пайщика вышедшим' })
     expect(err.code).toBe('MEMBERSHIP_EXIT_ALREADY_EXITED')
   }, 300_000)
+
+  it(caseName('mem.exit.side.09', 'вышедший пайщик теряет права пайщика, вход и своё остаются'), async () => {
+    const MEETS = 'query($d:GetMeetsInput!){ getMeets(data:$d){ hash } }'
+    // Статус снимает слушатель события цепи — после разбора блока с выходом.
+    const denied = await waitFor(async () => {
+      const e = await gqlError(leaverToken, MEETS, { d: { coopname: COOP } })
+      return e?.code === 'KIT_MEMBERS_ONLY' ? e : null
+    }, { timeoutMs: 60_000, intervalMs: 2_000, label: 'учётная запись вышедшего потеряла статус «принят»' })
+    expect(denied.code).toBe('KIT_MEMBERS_ONLY')
+    expect(await gqlError(await tokenOf(ROLES.member()), MEETS, { d: { coopname: COOP } }), 'действующий пайщик собрания читает').toBeNull()
+
+    // Своё вышедший читает как прежде: ход возврата взноса и свои кошельки.
+    // У выхода с нулевым возвратом хода нет — важно, что запрос отвечает без отказа.
+    expect(await gqlError(leaverToken, EXIT_STATUS, { c: COOP, u: leaver.account }), 'ход своего выхода читается без отказа').toBeNull()
+    expect(await gqlError(leaverToken, USER_WALLETS, { u: leaver.account }), 'свои кошельки видны').toBeNull()
+  }, 180_000)
 })

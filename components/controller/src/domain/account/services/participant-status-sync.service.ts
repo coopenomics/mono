@@ -26,6 +26,9 @@ export function chainTimeToDate(value: unknown): Date | null {
  * Без этого транзишена `ActiveUserStatusGuard` отбрасывает свежепринятых
  * пайщиков на write-операциях (createDepositPayment и т.п.) — в моно-аккаунте
  * статус так и остаётся `4_Registered`.
+ *
+ * Обратный переход — `soviet::delpartcpnt` при завершении выхода: статус
+ * уходит в `blocked`, как у аккаунта в цепи.
  */
 @Injectable()
 export class ParticipantStatusSyncService implements OnApplicationBootstrap {
@@ -111,6 +114,53 @@ export class ParticipantStatusSyncService implements OnApplicationBootstrap {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
       this.logger.error(`Ошибка обработки addpartcpnt: ${message}`, stack);
+    }
+  }
+
+  /**
+   * Выход из кооператива завершён: цепь стёрла запись пайщика
+   * (`soviet::delpartcpnt` — зеркало `addpartcpnt`). Учётная запись теряет
+   * статус «принят» и вместе с ним права пайщика: роль `user` проходит только
+   * в статусе `active`. Вход и своё остаются — документы, платежи и ход
+   * возврата паевого взноса человек читает от своего имени.
+   *
+   * До 03.10.2026 статус после выхода оставался `active`, и вышедший человек
+   * продолжал читать собрания, решения участков и списки приложений (C28-87).
+   */
+  @OnEvent(`action::${SovietContract.contractName.production}::delpartcpnt`)
+  async handleDeleteParticipant(event: IAction): Promise<void> {
+    try {
+      const data = event.data as { coopname?: string; username?: string };
+
+      if (data.coopname !== config.coopname) {
+        return;
+      }
+
+      const username = data.username;
+      if (!username) {
+        this.logger.warn('delpartcpnt без username в data — пропуск');
+        return;
+      }
+
+      const user = await this.userRepository.findByUsername(username);
+      if (!user) {
+        this.logger.warn(`delpartcpnt(${username}): моно-аккаунт не найден — пропуск`);
+        return;
+      }
+
+      if (user.status === userStatus['200_Blocked']) {
+        return;
+      }
+
+      await this.userRepository.updateByUsername(username, {
+        status: userStatus['200_Blocked'],
+      });
+
+      this.logger.info(`delpartcpnt(${username}): users.status → ${userStatus['200_Blocked']}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Ошибка обработки delpartcpnt: ${message}`, stack);
     }
   }
 }

@@ -5,7 +5,10 @@
  *  - deny-auth    — не вошёл: нет токена, токен плохой, сессия закрыта;
  *  - deny-role    — вошёл, но роль или статус не пускают (гвард);
  *  - deny-service — проверка прав внутри сервиса («чужой объект», «не
- *                   председатель участка»);
+ *                   председатель участка»). Узнаётся по HTTP-статусу отказа
+ *                   (401/403 в `extensions.status`): кодов у сервисов больше
+ *                   сотни, и список по именам отставал — отказ с незнакомым
+ *                   кодом записывался проходом (C28-87);
  *  - pass         — проверки прав пройдены: ответ или деловая ошибка
  *                   (объекта нет, неверные данные — после гвардов);
  *  - invalid      — вызов не прошёл проверку схемы (дефект генератора);
@@ -25,7 +28,7 @@ export function classify(err: GqlError | null): Outcome {
     return 'pass'
   const code = err.code === null ? '' : String(err.code)
   const msg = err.message
-  if (THROTTLED.has(code))
+  if (THROTTLED.has(code) || err.httpStatus === 429)
     return 'throttled'
   if (INVALID.has(code) || /^(Variable "\$|Unknown argument|Field ".*" of required type|Cannot query field|Syntax Error)/.test(msg))
     return 'invalid'
@@ -46,6 +49,10 @@ export function classify(err: GqlError | null): Outcome {
   if (/^Forbidden: marketplace/.test(msg) || /Недостаточно прав доступа|Доступ только для пайщиков/.test(msg))
     return 'deny-role'
   if (code === '403' || /FORBIDDEN|NOT_TRUSTEE|SELF_ONLY|FOREIGN|NOT_OWNER|ACCESS_DENIED|NOT_ALLOWED/.test(code) || /^Forbidden/.test(msg))
+    return 'deny-service'
+  // Любой другой отказ со статусом 401/403 — решение сервиса: «только
+  // председатель», «не адресат», неверный секрет из аргументов.
+  if (err.httpStatus === 401 || err.httpStatus === 403)
     return 'deny-service'
   return 'pass'
 }

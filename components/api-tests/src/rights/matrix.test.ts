@@ -22,11 +22,22 @@ import { login } from '../core/auth'
 import { gqlRaw } from '../core/client'
 import type { GqlError } from '../core/client'
 import { CHAIRMAN, COUNCIL, fixture } from '../core/roles'
+import { stateActors } from './actors'
 import { classify, isDenied, type Outcome } from './classify'
 import { type Operation, SchemaModel } from './schema'
 import { type DeclaredOp, type PlatformRole, declaredOps, expectedFor } from './static'
 
-interface MatrixRole { name: string, platform: PlatformRole, who: () => Who | null }
+interface MatrixRole {
+  name: string
+  platform: PlatformRole
+  who: () => Who | null
+  /**
+   * Исполнитель по состоянию (actors.ts): роль кооператива у него «пайщик»,
+   * а права меняет состояние. Отказ такому исполнителю — норма, в список
+   * «роль из @AuthRoles получила отказ» он не попадает.
+   */
+  state?: boolean
+}
 
 const ROLES: MatrixRole[] = [
   { name: 'guest', platform: 'guest', who: () => null },
@@ -37,7 +48,15 @@ const ROLES: MatrixRole[] = [
   { name: 'chairman', platform: 'chairman', who: () => CHAIRMAN },
 ]
 
-interface Cell { outcome: Outcome, code: string | null, message: string | null }
+/**
+ * Операции, после которых исполнитель теряет своё право. Смена модели работы
+ * поставщика возвращает его заявку на рассмотрение и снимает допуск: вызванная
+ * по алфавиту, она записывала поставщику отказ на правку и снятие своего
+ * предложения, хотя допущенный поставщик это делать вправе.
+ */
+const CHANGES_OWN_RIGHTS = new Set(['marketplaceSwitchSupplierModel'])
+
+interface Cell { outcome: Outcome, code: string | null, message: string | null, http: number | null }
 type Matrix = Record<string, Record<string, Cell>>
 
 const OUT = process.env.RIGHTS_OUT || path.resolve('.rights')
@@ -48,10 +67,12 @@ const sessionKillers = new Set<string>()
 /** Операции, вызванные ролью после последнего вызова, где её вход проверялся. */
 const sinceAuthCheck = new Map<string, string[]>()
 let ops: Operation[] = []
+/** Исполнители по состояниям, которых завести не удалось, — с причиной. */
+let missingActors: string[] = []
 let declared = new Map<string, DeclaredOp>()
 
-function short(err: GqlError | null): Pick<Cell, 'code' | 'message'> {
-  return { code: err?.code === null || err?.code === undefined ? null : String(err.code), message: err ? err.message.slice(0, 160) : null }
+function short(err: GqlError | null): Pick<Cell, 'code' | 'message' | 'http'> {
+  return { code: err?.code === null || err?.code === undefined ? null : String(err.code), message: err ? err.message.slice(0, 160) : null, http: err?.httpStatus ?? null }
 }
 
 async function call(op: Operation, role: MatrixRole, tokens: Map<string, string | null>): Promise<Cell> {
@@ -84,7 +105,7 @@ async function call(op: Operation, role: MatrixRole, tokens: Map<string, string 
     else sinceAuthCheck.set(role.name, [...(sinceAuthCheck.get(role.name) ?? []), op.name])
     return { outcome, ...short(err) }
   }
-  return { outcome: 'throttled', code: null, message: 'повторы исчерпаны' }
+  return { outcome: 'throttled', code: null, message: 'повторы исчерпаны', http: null }
 }
 
 function coarse(o: Outcome): 'deny' | 'pass' | null {
@@ -95,6 +116,9 @@ function coarse(o: Outcome): 'deny' | 'pass' | null {
 
 describe('матрица прав', () => {
   beforeAll(async () => {
+    const actors = await stateActors()
+    missingActors = actors.missing
+    for (const a of actors.ready) ROLES.push({ name: a.name, platform: 'user', who: () => a.who, state: true })
     const tokens = new Map<string, string | null>()
     for (const r of ROLES) {
       const who = r.who()
@@ -106,6 +130,9 @@ describe('матрица прав', () => {
     // Запросы раньше мутаций: мутация с чужими аргументами может поменять
     // стенд, а чтения должны видеть его таким, каким его оставили сценарии.
     ops.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === 'query' ? -1 : 1))
+    // Операции, которые меняют права самого исполнителя, идут в самом конце:
+    // иначе вызовы после них проверяли бы уже другого человека.
+    ops = [...ops.filter(o => !CHANGES_OWN_RIGHTS.has(o.name)), ...ops.filter(o => CHANGES_OWN_RIGHTS.has(o.name))]
     for (const op of ops) {
       matrix[op.name] = {}
       for (const role of ROLES)
@@ -119,6 +146,10 @@ describe('матрица прав', () => {
     expect(ops.length).toBeGreaterThan(400)
     // Невалидный вызов — дефект генератора аргументов: право не проверено.
     expect(invalid.length / ops.length).toBeLessThan(0.05)
+  })
+
+  it('исполнители по состояниям заведены', () => {
+    expect(missingActors).toEqual([])
   })
 
   it('гость не проходит туда, где стоит проверка входа', () => {
@@ -153,7 +184,7 @@ function findings() {
           guestPassed.push(line)
         else roleEscalated.push(line)
       }
-      if (expected === 'allow' && (cell.outcome === 'deny-role' || cell.outcome === 'deny-auth'))
+      if (!role.state && expected === 'allow' && (cell.outcome === 'deny-role' || cell.outcome === 'deny-auth'))
         roleDenied.push(`${opName} — ${role.name}: ${cell.code ?? ''} ${cell.message ?? ''}`.trim())
     }
   }
@@ -209,6 +240,7 @@ function report(): void {
   section('Гость прошёл закрытую операцию', f.guestPassed)
   section('Роль вне @AuthRoles прошла', f.roleEscalated)
   section('Роль из @AuthRoles получила отказ гварда', f.roleDenied)
+  section('Исполнитель по состоянию не заведён', missingActors)
   section('Сессию роли закрыла одна из операций', [...sessionKillers])
   // Прошедшие проверку прав вызовы с чужими аргументами должны получать
   // деловую ошибку (4xx, код домена). 500 значит, что вход не проверен и
