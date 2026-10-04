@@ -257,7 +257,12 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
       rights: {
         Warehouse: ['read:all'],
         Order: ['read:all'],
-        Offer: ['read:all'],
+        // Совет читает реестр всех предложений; карточку предложения, витрину и
+        // ставку взноса он открывает по этим же данным — без подключения
+        // заказчиком, как оператор участка.
+        Offer: ['read', 'read:all'],
+        Vitrine: ['read'],
+        Economy: ['read'],
         Writeoff: ['read:all'],
         // Совет ведёт read-only надзор за расчётами кооператива с поставщиками:
         // подтверждение/отказ выплат делает кассир, совету нужен только обзор.

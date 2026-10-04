@@ -172,6 +172,22 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
     });
   });
 
+  // mkt.rights.side.09
+  it('член совета без подключения заказчика открывает карточку предложения и витрину, корзина закрыта', async () => {
+    const council = { username: 'petr', core_roles: ['User', 'Member'], marketplace_roles: ['orderer', 'board_readonly'] };
+    for (const access of [
+      { resource: 'Offer', action: 'read' },
+      { resource: 'Offer', action: 'read:all' },
+      { resource: 'Vitrine', action: 'read' },
+      { resource: 'Economy', action: 'read' },
+    ]) {
+      await expect(run(access, council, { onboarded: false })).resolves.toBe(true);
+    }
+    await expect(run({ resource: 'Cart', action: 'manage:own' }, council, { onboarded: false })).rejects.toMatchObject({
+      code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
+    });
+  });
+
   // mkt.rights.side.03
   it('до решения совета действует только подключение кооператива', async () => {
     const state = { accepted: false };

@@ -131,3 +131,12 @@ cases:
     external: unreachable
     external_reason: "узел помнит подключение минуту, и сценарий остановки цепи укладывается в это время; дождаться истечения памяти при остановленной цепи значит держать стенд без цепи дольше, чем позволяет прогон"
     status: written
+
+  - id: mkt.rights.side.09
+    level: backend
+    kind: side
+    scenario: член совета без подключения заказчиком открывает карточку предложения, витрину и ставку взноса; пробует корзину
+    expect: чтение проходит по строке совета — реестр предложений он ведёт по роли; корзина закрыта условием заказчика
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
