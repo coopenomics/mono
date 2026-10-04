@@ -46,7 +46,7 @@ describe('TableStore', () => {
 
     expect(await store.update({ id: 's1' }, { state: 'done', lastError: undefined })).toBe(1);
 
-    expect(queries[0].sql).toBe('update "sessions" set "state" = $1, "updated_at" = now() where ("id" = $2)');
+    expect(queries[0].sql).toBe('update "sessions" set "state" = $1, "updated_at" = now() where "id" = $2');
   });
 
   it('отбор: равенство полей, пустое значение, условия и «или» между группами', async () => {
@@ -75,7 +75,7 @@ describe('TableStore', () => {
 
     await store.find({ cardId: oneOf([]) });
 
-    expect(queries[0].sql).toBe('select * from "sessions" where (false)');
+    expect(queries[0].sql).toBe('select * from "sessions" where false');
   });
 
   it('удаление и счёт отдают числа, запись читается с полями домена', async () => {
