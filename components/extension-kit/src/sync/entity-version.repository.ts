@@ -84,17 +84,21 @@ export class EntityVersionRepository {
   }
 
   /**
-   * Получить все версии для сущностей, которые нужно восстановить
+   * Изменения сущностей таблицы после блока форка, от ранних к поздним.
+   *
+   * Версия записана блоком изменения, которое она отменяет, поэтому после
+   * форка нужны версии с блоком БОЛЬШЕ блока форка: по первой из них сущность
+   * возвращается к состоянию на блоке форка. Локальные изменения (блок не
+   * задан) форк не затрагивает.
    */
-  async getVersionsForRecovery(entityTable: string, maxBlockNum: number): Promise<EntityVersionTypeormEntity[]> {
+  async getVersionsForRecovery(entityTable: string, forkBlockNum: number): Promise<EntityVersionTypeormEntity[]> {
     return await this.repository
       .createQueryBuilder('version')
       .where('version.entity_table = :entityTable', { entityTable })
-      .andWhere('(version.block_num <= :maxBlockNum OR version.block_num IS NULL)', { maxBlockNum })
-      .orderBy('version.entity_table', 'ASC')
-      .addOrderBy('version.entity_id', 'ASC')
-      .addOrderBy('version.block_num', 'DESC')
-      .addOrderBy('version.created_at', 'DESC')
+      .andWhere('version.block_num > :forkBlockNum', { forkBlockNum })
+      .orderBy('version.entity_id', 'ASC')
+      .addOrderBy('version.block_num', 'ASC')
+      .addOrderBy('version.created_at', 'ASC')
       .getMany();
   }
 

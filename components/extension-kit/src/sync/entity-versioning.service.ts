@@ -73,85 +73,54 @@ export class EntityVersioningService {
   }
 
   /**
-   * Восстановить версии сущностей после форка
+   * Вернуть сущности к состоянию на блоке форка.
+   *
+   * Версия хранит состояние сущности ДО изменения и блок самого изменения.
+   * После форка недействительны изменения с блоком больше блока форка, поэтому
+   * для каждой сущности берётся самое раннее такое изменение: состояние перед
+   * ним и есть состояние на блоке форка. Сущность без изменений после форка
+   * остаётся как есть.
+   *
+   * До 04.10.2026 брались версии с блоком НЕ больше блока форка, и живая
+   * запись перезаписывалась состоянием перед её последним изменением: любой
+   * форк откатывал на шаг назад все записи с историей, включая те, которых он
+   * не касался. Так у пайщика из зеркала пропадала подпись программной оферты
+   * (находка полного прогона внешнего слоя, C28-85).
    */
   async restoreVersionsAfterFork<TEntity extends IBaseDatabaseData>(
     repository: Repository<TEntity>,
     entityTable: string,
     forkBlockNum: number
   ): Promise<void> {
-    // Получаем все версии для восстановления
-    const versionsToRestore = await this.entityVersionRepository.getVersionsForRecovery(entityTable, forkBlockNum);
+    // Изменения после форка, от ранних к поздним.
+    const invalidated = await this.entityVersionRepository.getVersionsForRecovery(entityTable, forkBlockNum);
 
-    // Группируем по entity_id, оставляя только последнюю версию для каждой сущности
-    const latestVersions = new Map<string, any>();
-    for (const version of versionsToRestore) {
-      const existingVersion = latestVersions.get(version.entity_id);
-
-      if (!existingVersion) {
-        // Первая версия для этой сущности
-        latestVersions.set(version.entity_id, version);
-        continue;
-      }
-
-      // Сравниваем версии
-      const shouldReplace = this.shouldReplaceVersion(existingVersion, version);
-
-      if (shouldReplace) {
-        latestVersions.set(version.entity_id, version);
-      }
+    const firstInvalidated = new Map<string, EntityVersionTypeormEntity>();
+    for (const version of invalidated) {
+      if (!firstInvalidated.has(version.entity_id)) firstInvalidated.set(version.entity_id, version);
     }
 
-    // Восстанавливаем каждую сущность из её последней версии
-    for (const [entityId, version] of latestVersions) {
-      // Проверяем, существует ли сущность
+    for (const [entityId, version] of firstInvalidated) {
+      const state = version.previous_data as Record<string, unknown> | null;
+      if (!state) continue;
+
+      // Сущность появилась уже после форка: на блоке форка её не было, и
+      // возвращать нечего — живую запись убрал архив.
+      const stateBlock = state.block_num;
+      if (stateBlock !== null && stateBlock !== undefined && Number(stateBlock) > forkBlockNum) continue;
+
       const existingEntity = await repository.findOne({
         where: { _id: entityId } as any,
       });
 
       if (existingEntity) {
-        // Обновляем существующую сущность данными из версии
-        Object.assign(existingEntity, version.previous_data);
+        Object.assign(existingEntity, state);
         await repository.save(existingEntity);
       } else {
-        // Создаем новую сущность из версии
-        const restoredEntity = repository.create(version.previous_data as any);
+        const restoredEntity = repository.create(state as any);
         await repository.save(restoredEntity);
       }
     }
-  }
-
-  /**
-   * Определить, должна ли новая версия заменить существующую
-   */
-  private shouldReplaceVersion(existingVersion: any, newVersion: any): boolean {
-    const existingBlockNum = existingVersion.block_num;
-    const newBlockNum = newVersion.block_num;
-
-    // Если обе версии имеют null block_num, сравниваем по created_at
-    if (existingBlockNum === null && newBlockNum === null) {
-      return newVersion.created_at > existingVersion.created_at;
-    }
-
-    // Если новая версия имеет null block_num, а существующая конкретный номер,
-    // то новая версия (локальное изменение) должна иметь приоритет
-    if (newBlockNum === null && existingBlockNum !== null) {
-      return true;
-    }
-
-    // Если существующая версия имеет null block_num, а новая конкретный номер,
-    // то сохраняем существующую (локальное изменение приоритетнее)
-    if (existingBlockNum === null && newBlockNum !== null) {
-      return false;
-    }
-
-    // Если обе версии имеют конкретные номера блоков, сравниваем их
-    if (existingBlockNum !== null && newBlockNum !== null) {
-      return newBlockNum > existingBlockNum;
-    }
-
-    // Fallback: сравниваем по created_at
-    return newVersion.created_at > existingVersion.created_at;
   }
 
   /**

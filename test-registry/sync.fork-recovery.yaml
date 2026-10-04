@@ -1,0 +1,100 @@
+feature: sync.fork-recovery
+title: Возврат зеркал узла к состоянию на блоке форка
+
+# После форка цепи узел убирает записи зеркал, которые изменились позже блока
+# форка, и возвращает их к состоянию на этом блоке. Версия записи хранит её
+# состояние ДО изменения и блок самого изменения, поэтому возврат идёт по
+# первому изменению после форка. Записи без изменений после форка остаются
+# как есть.
+#
+# Находка полного прогона внешнего слоя 04.10.2026 (C28-85): возврат брал
+# версии с блоком НЕ больше блока форка и перезаписывал живую запись состоянием
+# перед её последним изменением. Любой форк откатывал на шаг назад все записи с
+# историей, включая те, которых он не касался: после остановки и возврата цепи
+# у пайщика из зеркала пропала подпись оферты Стола заказов, и стол показал ему
+# страницу подключения.
+
+sources:
+  backend:
+    - components/extension-kit/src/sync/entity-versioning.service.ts
+    - components/extension-kit/src/sync/entity-version.repository.ts
+
+cases:
+  - id: sync.fork.happy.01
+    level: backend
+    kind: happy
+    scenario: запись зеркала менялась после блока форка несколько раз
+    expect: запись возвращается к состоянию перед первым изменением после форка — к состоянию на блоке форка
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "изменение, которое попало в отменённую ветку цепи, на стенде с одним производителем блоков снаружи не создать"
+    status: written
+
+  - id: sync.fork.side.01
+    level: backend
+    kind: side
+    scenario: цепь остановлена и возвращена, пайщик подписал оферту задолго до этого
+    expect: запись без изменений после форка остаётся как есть — подпись оферты на месте
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    api: components/api-tests/src/faults/chain-down.test.ts
+    status: written
+
+  - id: sync.fork.side.02
+    level: backend
+    kind: side
+    scenario: запись менялась дважды в одном блоке после форка
+    expect: берётся самое раннее изменение
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "изменение в отменённой ветке цепи снаружи не создать"
+    status: written
+
+  - id: sync.fork.side.03
+    level: backend
+    kind: side
+    scenario: запись появилась уже после блока форка
+    expect: запись не воссоздаётся — на блоке форка её не было
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "изменение в отменённой ветке цепи снаружи не создать"
+    status: written
+
+  - id: sync.fork.side.04
+    level: backend
+    kind: side
+    scenario: у записи есть локальное изменение без блока
+    expect: форк его не откатывает
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "локальные изменения зеркал снаружи не создаются"
+    status: written
+
+  - id: sync.fork.side.05
+    level: backend
+    kind: side
+    scenario: в таблице несколько записей, после форка менялась одна
+    expect: возвращается только она
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "изменение в отменённой ветке цепи снаружи не создать"
+    status: written
+
+  - id: sync.fork.side.06
+    level: backend
+    kind: side
+    scenario: живая запись с изменением после форка осталась в таблице
+    expect: запись возвращается к состоянию на блоке форка, второй раз не создаётся
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "изменение в отменённой ветке цепи снаружи не создать"
+    status: written
+
+  - id: sync.fork.side.07
+    level: backend
+    kind: side
+    scenario: хранилище версий выбирает версии для возврата
+    expect: выбираются изменения с блоком больше блока форка, от ранних к поздним
+    test: components/controller/tests/unit/blockchain/entity-versioning-restore.test.ts
+    external: unreachable
+    external_reason: "запрос к хранилищу версий снаружи не виден"
+    status: written
