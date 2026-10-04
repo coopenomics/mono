@@ -12,9 +12,9 @@
  * главной цепи. Узел кооператива читает цепь сам — ему, в отличие от card.coop, для этого
  * не нужны ни JWKS, ни посредники.
  */
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_ENTRY_SESSION_STORE } from '../infrastructure/database/cardcoop-stores';
 import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import canonicalize from 'canonicalize';
 import { Signature } from '@wharfkit/antelope';
 import { AnoContract } from 'cooptypes';
@@ -23,9 +23,9 @@ import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import {
   CardcoopEntryOutcome,
-  CardcoopEntrySessionTypeormEntity,
+  CardcoopEntrySessionRecord,
   CardcoopEntryStatus,
-} from '../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+} from '../infrastructure/records/cardcoop-entry-session.record';
 import { t } from '../i18n';
 
 /** Аккаунт цепи, на котором живут заверения сети. */
@@ -55,8 +55,8 @@ export interface DisclosureDecisionNotification {
 @Injectable()
 export class CardcoopDisclosureIntakeService {
   constructor(
-    @InjectRepository(CardcoopEntrySessionTypeormEntity)
-    private readonly sessions: Repository<CardcoopEntrySessionTypeormEntity>,
+    @Inject(CARDCOOP_ENTRY_SESSION_STORE)
+    private readonly sessions: TableStore<CardcoopEntrySessionRecord>,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -78,7 +78,7 @@ export class CardcoopDisclosureIntakeService {
     apiUrl: string,
     sessionId: string,
     fromCoopname: string
-  ): Promise<CardcoopEntrySessionTypeormEntity> {
+  ): Promise<CardcoopEntrySessionRecord> {
     const session = await this.candidateSession(sessionId);
 
     if (!session.memberships.some((entry) => entry.coopname === fromCoopname)) {
@@ -204,7 +204,7 @@ export class CardcoopDisclosureIntakeService {
    * включая правильный по форме, — анкетой не становится.
    */
   private async acceptProfile(
-    session: CardcoopEntrySessionTypeormEntity,
+    session: CardcoopEntrySessionRecord,
     envelope: { payload: Record<string, unknown>; signature: string },
     fromCoopname: string
   ): Promise<void> {
@@ -248,8 +248,8 @@ export class CardcoopDisclosureIntakeService {
   }
 
   /** Сессия кандидата; пайщику раскрытие не нужно — его анкета и так у нас. */
-  private async candidateSession(id: string): Promise<CardcoopEntrySessionTypeormEntity> {
-    const session = await this.sessions.findOne({ where: { id } });
+  private async candidateSession(id: string): Promise<CardcoopEntrySessionRecord> {
+    const session = await this.sessions.findOne({ id });
     if (!session || session.outcome !== CardcoopEntryOutcome.Candidate) {
       throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_NOT_FOUND');
     }
@@ -257,9 +257,9 @@ export class CardcoopDisclosureIntakeService {
   }
 
   /** Сессия по согласию; отсутствие — норма: уведомление могло пережить сессию. */
-  private async byDisclosure(disclosureId?: string): Promise<CardcoopEntrySessionTypeormEntity | null> {
+  private async byDisclosure(disclosureId?: string): Promise<CardcoopEntrySessionRecord | null> {
     if (!disclosureId) return null;
-    return this.sessions.findOne({ where: { disclosureId } });
+    return this.sessions.findOne({ disclosureId });
   }
 }
 

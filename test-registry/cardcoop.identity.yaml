@@ -59,6 +59,7 @@ title: Реквизиты пайщика в подтверждении член�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/**
 
 cases:

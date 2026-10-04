@@ -1,4 +1,3 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
 
 /**
  * Начатый выход пайщика из кооператива: соответствие «процесс выхода → пайщик».
@@ -12,18 +11,13 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
  * отклонил — она удаляется. Незавершённый выход держать вечно незачем, но и
  * чистить его по времени нельзя: совет может рассматривать заявление долго.
  */
-@Entity('cardcoop_pending_exits')
-export class CardcoopPendingExitTypeormEntity {
+export class CardcoopPendingExitRecord {
   /** Хэш процесса выхода — им цепь называет процесс во всех действиях. */
-  @PrimaryColumn({ name: 'exit_hash', type: 'varchar', length: 64 })
   exitHash!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   username!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   coopname!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

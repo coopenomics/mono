@@ -1,5 +1,5 @@
 import { CardcoopCardService } from '~/extensions/cardcoop/application/cardcoop-card.service';
-import { CardcoopAttestationState } from '~/extensions/cardcoop/infrastructure/entities/cardcoop-attestation.typeorm-entity';
+import { CardcoopAttestationState } from '~/extensions/cardcoop/infrastructure/records/cardcoop-attestation.record';
 
 /**
  * Карта кооператора глазами кооператива (story 7.4).

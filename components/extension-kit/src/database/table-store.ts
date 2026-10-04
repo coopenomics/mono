@@ -1,0 +1,187 @@
+import { sql, type Expression, type ExpressionBuilder, type Kysely, type SqlBool } from 'kysely';
+import { camelRow } from './kysely';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+const CONDITION = Symbol('TableStore.Condition');
+
+interface Condition {
+  [CONDITION]: true;
+  operator: string;
+  value?: unknown;
+}
+
+const condition = (operator: string, value?: unknown): any => ({ [CONDITION]: true, operator, value });
+
+/** Значение колонки пусто. */
+export const isNull = (): any => condition('is null');
+/** Значение колонки задано. */
+export const notNull = (): any => condition('is not null');
+/** Значение колонки не равно заданному. */
+export const notEqual = <T>(value: T): any => condition('<>', value);
+/** Значение колонки меньше заданного. */
+export const lessThan = <T>(value: T): any => condition('<', value);
+/** Значение колонки больше заданного. */
+export const moreThan = <T>(value: T): any => condition('>', value);
+/** Значение колонки не больше заданного. */
+export const lessOrEqual = <T>(value: T): any => condition('<=', value);
+/** Значение колонки не меньше заданного. */
+export const moreOrEqual = <T>(value: T): any => condition('>=', value);
+/** Значение колонки — одно из перечня. */
+export const oneOf = <T>(values: readonly T[]): any => condition('in', values);
+
+/** Условие отбора: равенство по полям либо условие из помощников выше; массив — «или». */
+export type Where<TRecord> = { [K in keyof TRecord]?: TRecord[K] | null };
+export type WhereInput<TRecord> = Where<TRecord> | Where<TRecord>[];
+
+export interface FindOptions<TRecord> {
+  order?: { [K in keyof TRecord]?: 'ASC' | 'DESC' };
+  limit?: number;
+  offset?: number;
+}
+
+export interface TableStoreOptions<TRecord> {
+  table: string;
+  /** Поля первичного ключа записи. */
+  primaryKey: Array<keyof TRecord & string>;
+  /** Поля json/jsonb: при записи сериализуются. */
+  json?: Array<keyof TRecord & string>;
+  /** Поле времени правки: при каждой правке ставится текущее время базы. */
+  updatedAt?: keyof TRecord & string;
+  /** Имена колонок совпадают с именами полей (иначе поле `camelCase` — колонка `snake_case`). */
+  sameNames?: boolean;
+}
+
+const toSnake = (key: string): string => key.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`);
+
+/**
+ * Шлюз одной таблицы для кода, который работает с записями целиком: прочитал,
+ * поправил, сохранил (C28-81). Запросы — обычные запросы Kysely; отбор — по
+ * равенству полей и простым условиям. Всё сложнее (соединения, агрегаты,
+ * подзапросы) пишется в хранилище прямо на Kysely.
+ */
+export class TableStore<TRecord extends object> {
+  private readonly json: Set<string>;
+
+  constructor(private readonly db: Kysely<any>, private readonly options: TableStoreOptions<TRecord>) {
+    this.json = new Set(options.json ?? []);
+  }
+
+  /** Заготовка записи: обычный объект, в базу не пишется. */
+  create(fields: Partial<TRecord>): TRecord {
+    return { ...fields } as TRecord;
+  }
+
+  async findOne(where: WhereInput<TRecord>, options: FindOptions<TRecord> = {}): Promise<TRecord | null> {
+    const [record] = await this.find(where, { ...options, limit: 1 });
+    return record ?? null;
+  }
+
+  async find(where: WhereInput<TRecord> = {}, options: FindOptions<TRecord> = {}): Promise<TRecord[]> {
+    let query = this.db.selectFrom(this.options.table).selectAll().where((eb) => this.filter(eb, where));
+    for (const [field, direction] of Object.entries(options.order ?? {})) {
+      query = query.orderBy(this.column(field), direction === 'DESC' ? 'desc' : 'asc');
+    }
+    if (options.offset) query = query.offset(options.offset);
+    if (options.limit) query = query.limit(options.limit);
+    return (await query.execute()).map((row) => this.toRecord(row));
+  }
+
+  async count(where: WhereInput<TRecord> = {}): Promise<number> {
+    const row = await this.db
+      .selectFrom(this.options.table)
+      .select((eb) => eb.fn.countAll<string>().as('count'))
+      .where((eb) => this.filter(eb, where))
+      .executeTakeFirstOrThrow();
+    return Number(row.count);
+  }
+
+  /** Вставка новой записи; возвращает её с ключом и умолчаниями базы. */
+  async insert(fields: Partial<TRecord>): Promise<TRecord> {
+    const row = await this.db.insertInto(this.options.table).values(this.toRow(fields)).returningAll().executeTakeFirstOrThrow();
+    return this.toRecord(row);
+  }
+
+  /**
+   * Сохранение записи: с заданным ключом — вставка либо правка существующей,
+   * без ключа — вставка. Переданный объект дополняется тем, что вернула база
+   * (ключ, даты, умолчания), и возвращается.
+   */
+  async save(record: Partial<TRecord>): Promise<TRecord> {
+    const row = this.toRow(record);
+    const keys = this.options.primaryKey.map((field) => this.column(field));
+    const hasKey = keys.every((key) => row[key] !== undefined && row[key] !== null);
+    const insert = this.db.insertInto(this.options.table).values(row);
+    const saved = await (hasKey
+      ? insert.onConflict((conflict) => conflict.columns(keys).doUpdateSet(this.changes(row, keys)))
+      : insert
+    )
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    return Object.assign(record, this.toRecord(saved)) as TRecord;
+  }
+
+  /** Правка записей по условию; возвращает число затронутых. */
+  async update(where: WhereInput<TRecord>, patch: Partial<TRecord>): Promise<number> {
+    const result = await this.db
+      .updateTable(this.options.table)
+      .set(this.changes(this.toRow(patch), []))
+      .where((eb) => this.filter(eb, where))
+      .executeTakeFirst();
+    return Number(result.numUpdatedRows ?? 0);
+  }
+
+  /** Удаление записей по условию; возвращает число удалённых. */
+  async delete(where: WhereInput<TRecord>): Promise<number> {
+    const result = await this.db
+      .deleteFrom(this.options.table)
+      .where((eb) => this.filter(eb, where))
+      .executeTakeFirst();
+    return Number(result.numDeletedRows ?? 0);
+  }
+
+  private column(field: string): string {
+    return this.options.sameNames ? field : toSnake(field);
+  }
+
+  /** Значения колонок из полей записи; незаданные поля пропускаются. */
+  private toRow(fields: Partial<TRecord>): Record<string, unknown> {
+    const row: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(fields)) {
+      if (value === undefined) continue;
+      row[this.column(field)] = this.json.has(field) && value !== null ? JSON.stringify(value) : value;
+    }
+    return row;
+  }
+
+  private toRecord(row: Record<string, unknown>): TRecord {
+    return this.options.sameNames ? (row as TRecord) : camelRow<TRecord>(row);
+  }
+
+  /** Колонки к правке: всё переданное, кроме ключа, плюс время правки. */
+  private changes(row: Record<string, unknown>, keys: string[]): Record<string, unknown> {
+    const set = Object.fromEntries(Object.entries(row).filter(([column]) => !keys.includes(column)));
+    if (this.options.updatedAt) set[this.column(this.options.updatedAt)] = sql`now()`;
+    // Правка без единого поля — запись остаётся как есть: ключ переписывается сам в себя.
+    if (Object.keys(set).length === 0 && keys.length > 0) set[keys[0]] = sql.ref(`excluded.${keys[0]}`);
+    return set;
+  }
+
+  private filter(eb: ExpressionBuilder<any, any>, where: WhereInput<TRecord>): Expression<SqlBool> {
+    const groups = Array.isArray(where) ? where : [where];
+    return eb.or(groups.map((group) => eb.and(Object.entries(group).map(([field, value]) => this.clause(eb, field, value)))));
+  }
+
+  private clause(eb: ExpressionBuilder<any, any>, field: string, value: unknown): Expression<SqlBool> {
+    const column = this.column(field);
+    if (value === null) return eb(column, 'is', null);
+    if (value !== undefined && typeof value === 'object' && CONDITION in (value as object)) {
+      const { operator, value: operand } = value as Condition;
+      if (operator === 'is null') return eb(column, 'is', null);
+      if (operator === 'is not null') return eb(column, 'is not', null);
+      if (operator === 'in') return (operand as unknown[]).length ? eb(column, 'in', operand as unknown[]) : sql<boolean>`false`;
+      return eb(column, operator as '=', operand);
+    }
+    return eb(column, '=', value);
+  }
+}

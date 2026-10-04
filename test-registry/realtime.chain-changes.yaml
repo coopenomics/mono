@@ -298,3 +298,19 @@ cases:
     test: components/api-tests/src/reports/withheld-tax.test.ts
     api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
+
+  - id: rt.cc.side.15
+    level: backend
+    kind: side
+    scenario: >
+      личная таблица расширения, переведённого на Kysely: учётная запись Matrix
+      пайщика; транскрипция звонка с участниками по идентификаторам чата
+    expect: >
+      владелец строки объявлен по имени колонки базы (`coop_username`), иначе
+      сигнал ушёл бы только совету; сигнал о транскрипции уходит участникам по
+      именам пайщиков; сбой ленты запись расшифровки не роняет
+    test: components/controller/tests/unit/chatcoop/chatcoop-live-feed.test.ts
+    external: unreachable
+    external_reason: "на стенде нет сервера чата с настоящими учётными записями Matrix: подставной узел отвечает за него, а строки matrix_users заводит только живой вход"
+    status: written
+

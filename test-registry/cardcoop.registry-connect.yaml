@@ -30,9 +30,10 @@ title: Подключение кооператива к сети карт (ка�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/registry/**
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-connect-state.typeorm-entity.ts
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-operator-announcement.typeorm-entity.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-connect-state.record.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-operator-announcement.record.ts
 
 # Правка 2026-09-08 (прод): оператор догоняет допуски — на старте он объявляет их не только
 # по недоставленным записям журнала, но и всем активным кооперативам цепи. Причина: допуск

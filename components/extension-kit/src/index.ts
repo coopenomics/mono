@@ -33,6 +33,7 @@ export * from './registry/extension-field-description';
 export * from './registry/installed-entities';
 export * from './registry/installed-database-migrations';
 export * from './database/kysely';
+export * from './database/table-store';
 export * from './dto/pagination.dto';
 export * from './dto/require-fields';
 export * from './dto/transaction-result-response.dto';

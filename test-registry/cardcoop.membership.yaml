@@ -38,6 +38,7 @@ title: Журнал подтверждений и отзыв при прекра
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/membership/**
     - components/controller/src/extensions/cardcoop/infrastructure/**
 
@@ -229,3 +230,21 @@ cases:
 # 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
 # ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
 # входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.
+
+  - id: cc.mbr.side.07
+    level: backend
+    kind: side
+    scenario: >
+      шлюз таблицы, через который сервисы карты читают и сохраняют записи:
+      сохранение новой и существующей записи, правка части полей, отбор с
+      условиями и «или», пустой перечень значений, удаление и счёт
+    expect: >
+      новая запись вставляется и получает ключ базы в тот же объект; существующая
+      правится без переписывания ключа, время правки ставит база; незаданное
+      поле прежнее значение не затирает; условия отбора уходят параметрами;
+      пустой перечень не находит ничего; удаление и счёт отдают числа
+    test: components/controller/tests/unit/database/table-store.test.ts
+    external: unreachable
+    external_reason: "проверяется текст запросов к базе — снаружи он не виден; поведение свидетельств, связей и выхода через API покрыто набором ci/blackbox-cardcoop"
+    status: written
+
