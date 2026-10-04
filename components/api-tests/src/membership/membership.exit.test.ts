@@ -12,6 +12,7 @@ import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, deposit, docMeta, freshMember, gql, gqlError, latestMail, login, payOutExit, signDocument, tokenOf, voteOnDecision, waitFor } from '../core'
+import { chainChangesOf, quietWindow, settleSubscriptions, signalsOf, waitSignal, wsAs } from '../platform/platform-a.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
 
 const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
@@ -118,6 +119,31 @@ describe('выход пайщика из кооператива', () => {
   it(caseName('mem.exit.side.05', 'повторная отмена без заявления — нечего отменять'), async () => {
     const err = await gqlError(leaverToken, CANCEL_EXIT, { c: COOP, u: leaver.account })
     expect(err?.code).toBe('MEMBERSHIP_EXIT_NO_PENDING_REQUEST')
+  })
+
+  it(caseName('mem.exit.happy.06', 'заявление и его отмена дают сигнал ленты изменений пайщику и совету, чужому пайщику — нет'), async () => {
+    // Таблица заявлений пишется через Kysely (C28-81): сигнал шлёт его плагин, а не подписчик TypeORM.
+    const EXITS = { code: 'core', table: 'membership_exit_requests' }
+    const conns = [await wsAs(leaverToken), await wsAs(otherToken), await wsAs(await tokenOf(COUNCIL))]
+    try {
+      const [own, other, council] = conns.map(c => chainChangesOf(c, [EXITS]))
+      await settleSubscriptions()
+
+      await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: exitHash(), statement } })
+      const created = await waitSignal(own, EXITS)
+      expect(created).toEqual({ ...EXITS, scope: COOP, primary_key: created.primary_key, block_num: 0 })
+      expect(created.primary_key).not.toBe('')
+      await waitSignal(council, { ...EXITS, primary_key: created.primary_key })
+
+      await gql<any>(leaverToken, CANCEL_EXIT, { c: COOP, u: leaver.account })
+      // Второй сигнал — об отмене: строка удалена, владелец взят из неё же.
+      await waitFor(async () => (signalsOf(own, { primary_key: created.primary_key }).length >= 2 ? true : null))
+      await quietWindow()
+      expect(signalsOf(other)).toEqual([])
+    }
+    finally {
+      for (const c of conns) c.close()
+    }
   })
 
   it(caseName('mem.exit.happy.03', 'председатель подаёт заявление за пайщика и отменяет его'), async () => {

@@ -1,12 +1,15 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
-import { NotificationDeliveryTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-delivery.typeorm-entity';
+import {
+  NOTIFICATION_DELIVERY_REPOSITORY,
+  NOTIFICATION_OUTBOX_REPOSITORY,
+  type NotificationDeliveryRepository,
+  type NotificationOutboxRepository,
+} from '~/domain/notification/repositories/notification-store.repository';
 import {
   NotificationDeliveryStatus,
   NotificationOutboxStatus,
+  type NotificationOutboxDomainInterface,
 } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
 import {
   EMAIL_CHANNEL_PORT,
@@ -70,10 +73,10 @@ export class OutboxWorkerService implements OnModuleInit {
   private readonly channelPorts: Partial<Record<NotificationChannel, DeliveryChannelPort>>;
 
   constructor(
-    @InjectRepository(NotificationOutboxTypeormEntity)
-    private readonly outboxRepository: Repository<NotificationOutboxTypeormEntity>,
-    @InjectRepository(NotificationDeliveryTypeormEntity)
-    private readonly deliveryRepository: Repository<NotificationDeliveryTypeormEntity>,
+    @Inject(NOTIFICATION_OUTBOX_REPOSITORY)
+    private readonly outboxRepository: NotificationOutboxRepository,
+    @Inject(NOTIFICATION_DELIVERY_REPOSITORY)
+    private readonly deliveryRepository: NotificationDeliveryRepository,
     @Inject(EMAIL_CHANNEL_PORT) emailChannel: EmailChannelPort,
     @Inject(IN_APP_CHANNEL_PORT) inAppChannel: InAppChannelPort,
     @Inject(WEB_PUSH_CHANNEL_PORT) webPushChannel: WebPushChannelPort
@@ -111,19 +114,7 @@ export class OutboxWorkerService implements OnModuleInit {
     const staleBefore = new Date(now.getTime() - SENDING_STALE_MS);
 
     // PENDING со scheduledAt ≤ now ИЛИ зависший SENDING (реклейм после краха/рестарта).
-    const candidates = await this.outboxRepository
-      .createQueryBuilder('o')
-      .where('o.status = :pending AND o.scheduledAt <= :now', {
-        pending: NotificationOutboxStatus.PENDING,
-        now,
-      })
-      .orWhere('o.status = :sending AND o.updatedAt <= :staleBefore', {
-        sending: NotificationOutboxStatus.SENDING,
-        staleBefore,
-      })
-      .orderBy('o.scheduledAt', 'ASC')
-      .take(WORKER_BATCH_SIZE)
-      .getMany();
+    const candidates = await this.outboxRepository.findDue(now, staleBefore, WORKER_BATCH_SIZE);
 
     if (candidates.length === 0) return;
 
@@ -135,11 +126,11 @@ export class OutboxWorkerService implements OnModuleInit {
     }
   }
 
-  private async processRow(row: NotificationOutboxTypeormEntity, now: Date): Promise<void> {
+  private async processRow(row: NotificationOutboxDomainInterface, now: Date): Promise<void> {
     // Claim: PENDING/stale-SENDING → SENDING, счётчик попыток +1.
     row.status = NotificationOutboxStatus.SENDING;
     row.attempts += 1;
-    await this.outboxRepository.save(row);
+    await this.outboxRepository.saveProgress(row);
     const attemptNumber = row.attempts;
 
     const port = this.channelPorts[row.channel];
@@ -163,7 +154,7 @@ export class OutboxWorkerService implements OnModuleInit {
     if (result.skipped) {
       row.status = NotificationOutboxStatus.CANCELED;
       row.lastError = result.error;
-      await this.outboxRepository.save(row);
+      await this.outboxRepository.saveProgress(row);
       // info-уровень: председатель/оператор должен видеть, что и почему не ушло.
       this.logger.log(`Канал пропущен (неприменим к получателю): ${ctx}: ${result.error}`);
       return;
@@ -191,7 +182,7 @@ export class OutboxWorkerService implements OnModuleInit {
    * раз лежал канал»: сутки простоя забили бы его сотней пустых строк на письмо.
    */
   private async parkUntilChannelReturns(
-    row: NotificationOutboxTypeormEntity,
+    row: NotificationOutboxDomainInterface,
     result: ChannelDeliveryResult,
     now: Date,
     waitedMs: number,
@@ -202,7 +193,7 @@ export class OutboxWorkerService implements OnModuleInit {
     row.status = NotificationOutboxStatus.PENDING;
     row.lastError = result.error;
     row.scheduledAt = new Date(now.getTime() + transportBackoffMs(waitedMs));
-    await this.outboxRepository.save(row);
+    await this.outboxRepository.saveProgress(row);
     this.logger.warn(
       `Канал недоступен, письмо ждёт восстановления (лимит попыток не тратится, в запасе ${formatDuration(windowLeft)}): ${waitCtx}: ${result.error}`
     );
@@ -210,26 +201,24 @@ export class OutboxWorkerService implements OnModuleInit {
 
   /** Записать исход состоявшейся попытки: журнал + терминальный статус либо ретрай. */
   private async recordOutcome(
-    row: NotificationOutboxTypeormEntity,
+    row: NotificationOutboxDomainInterface,
     result: ChannelDeliveryResult,
     meta: { attemptNumber: number; ctx: string; now: Date; transportDown: boolean }
   ): Promise<void> {
     const { attemptNumber, ctx, now, transportDown } = meta;
 
     // Журнал попытки (append-only) — источник стола председателя.
-    await this.deliveryRepository.save(
-      this.deliveryRepository.create({
-        outboxId: row.id,
-        coopname: row.coopname,
-        channel: row.channel,
-        recipientSubscriberId: row.recipientSubscriberId,
-        workflowId: row.workflowId,
-        attemptNumber,
-        status: result.delivered ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED,
-        providerResponse: result.providerResponse,
-        error: result.error,
-      })
-    );
+    await this.deliveryRepository.append({
+      outboxId: row.id,
+      coopname: row.coopname,
+      channel: row.channel,
+      recipientSubscriberId: row.recipientSubscriberId,
+      workflowId: row.workflowId,
+      attemptNumber,
+      status: result.delivered ? NotificationDeliveryStatus.SENT : NotificationDeliveryStatus.FAILED,
+      providerResponse: result.providerResponse,
+      error: result.error,
+    });
 
     if (result.delivered) {
       row.status = NotificationOutboxStatus.SENT;
@@ -255,13 +244,13 @@ export class OutboxWorkerService implements OnModuleInit {
       row.scheduledAt = new Date(now.getTime() + this.backoffMs(row.attempts));
       this.logger.warn(`Доставка не удалась, будет ретрай: ${ctx}: ${result.error}`);
     }
-    await this.outboxRepository.save(row);
+    await this.outboxRepository.saveProgress(row);
   }
 
   /** Изоляция исключения адаптера: бросок канала = провал попытки, не падение тика. */
   private async safeSend(
     port: DeliveryChannelPort,
-    row: NotificationOutboxTypeormEntity
+    row: NotificationOutboxDomainInterface
   ): Promise<ChannelDeliveryResult> {
     try {
       return await port.send(this.buildMessage(row));
@@ -270,7 +259,7 @@ export class OutboxWorkerService implements OnModuleInit {
     }
   }
 
-  private buildMessage(row: NotificationOutboxTypeormEntity): ChannelMessage {
+  private buildMessage(row: NotificationOutboxDomainInterface): ChannelMessage {
     return {
       outboxId: row.id,
       coopname: row.coopname,

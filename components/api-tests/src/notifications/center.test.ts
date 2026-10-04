@@ -217,6 +217,37 @@ describe('центр уведомлений: очередь, журнал, ин�
     expect(original.deliveries).toHaveLength(1)
   })
 
+  it(caseName('ntf.center.happy.06', 'журнал и инбокс: отбор по получателю, каналу и статусу, страницы от новых к старым'), async () => {
+    // Отбор сужает: все строки получателя → только канал in_app → только доставленные.
+    const all = await journal(chairToken, { recipientSubscriberId: subscriberId })
+    const inApp = await journal(chairToken, { recipientSubscriberId: subscriberId, channel: 'IN_APP' })
+    expect(inApp.length).toBeGreaterThanOrEqual(2)
+    expect(inApp.length).toBeLessThan(all.length)
+    expect(inApp.every(r => r.channel === 'IN_APP' && r.recipientSubscriberId === subscriberId)).toBe(true)
+    const sent = await journal(chairToken, { recipientSubscriberId: subscriberId, channel: 'IN_APP', status: 'SENT', workflowId: WORKFLOW })
+    expect(sent.map(r => r.id)).toContain(inAppOutboxId)
+    expect(sent.every(r => r.status === 'SENT' && r.workflowId === WORKFLOW)).toBe(true)
+    expect(await journal(chairToken, { recipientSubscriberId: subscriberId, channel: 'IN_APP', status: 'FAILED' })).toEqual([])
+    expect(await journal(chairToken, { recipientSubscriberId: subscriberId, workflowId: 'net-takogo-tipa' })).toEqual([])
+
+    // Страницы журнала: по одной строке, общий счёт прежний, порядок — от новых к старым.
+    const filter = { coopname: COOP, recipientSubscriberId: subscriberId, channel: 'IN_APP' }
+    const page = async (n: number) => (await gql<any>(chairToken, JOURNAL, { f: filter, p: { page: n, limit: 1 } })).getNotifications
+    const [first, second] = [await page(1), await page(2)]
+    expect(first.totalCount).toBe(inApp.length)
+    expect([first.items.length, second.items.length]).toEqual([1, 1])
+    expect([first.items[0].id, second.items[0].id]).toEqual([inApp[0].id, inApp[1].id])
+    expect((await page(inApp.length + 1)).items).toEqual([])
+
+    // Страницы инбокса получателя.
+    const whole = await inbox(recipientToken)
+    const inboxPage = async (n: number) => (await gql<any>(recipientToken, INBOX, { c: COOP, p: { page: n, limit: 1 } })).getInboxNotifications
+    const [one, two] = [await inboxPage(1), await inboxPage(2)]
+    expect(one.totalCount).toBe(whole.length)
+    expect([one.items[0].id, two.items[0].id]).toEqual([whole[0].id, whole[1].id])
+    expect(new Date(whole[0].createdAt).getTime()).toBeGreaterThanOrEqual(new Date(whole[1].createdAt).getTime())
+  })
+
   it(caseName('ntf.center.happy.05', 'отметить всё прочитанным: счётчик в ноль, все строки инбокса прочитаны'), async () => {
     expect(await expectUnreadConsistent(recipientToken)).toBeGreaterThan(0)
     const r = (await gql<any>(recipientToken, MARK_ALL, { c: COOP })).markAllNotificationsRead

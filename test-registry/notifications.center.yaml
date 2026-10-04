@@ -60,6 +60,19 @@ cases:
     api: components/api-tests/src/notifications/center.test.ts
     status: passing
 
+  - id: ntf.center.happy.06
+    level: backend
+    kind: happy
+    scenario: >
+      председатель читает журнал с отбором по получателю, каналу, статусу и типу и
+      листает его по одной строке; получатель листает инбокс
+    expect: >
+      отбор сужает выдачу и не пропускает чужие строки; несуществующий тип и
+      статус без строк дают пустой список; страницы идут от новых к старым, общий
+      счёт не зависит от страницы, страница за концом пуста
+    test: components/api-tests/src/notifications/center.test.ts
+    status: written
+
   - id: ntf.center.happy.05
     level: backend
     kind: happy

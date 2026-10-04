@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  NOTIFICATION_INBOX_REPOSITORY,
+  type NotificationInboxRepository,
+} from '~/domain/notification/repositories/notification-store.repository';
 import type {
   ChannelDeliveryResult,
   ChannelMessage,
@@ -25,8 +26,8 @@ export class InAppChannelAdapter implements InAppChannelPort {
   private readonly logger = new Logger(InAppChannelAdapter.name);
 
   constructor(
-    @InjectRepository(NotificationInboxTypeormEntity)
-    private readonly inboxRepository: Repository<NotificationInboxTypeormEntity>
+    @Inject(NOTIFICATION_INBOX_REPOSITORY)
+    private readonly inboxRepository: NotificationInboxRepository
   ) {}
 
   async send(message: ChannelMessage): Promise<ChannelDeliveryResult> {
@@ -35,7 +36,7 @@ export class InAppChannelAdapter implements InAppChannelPort {
     const body = renderTemplate(template?.body, message);
 
     try {
-      const row = this.inboxRepository.create({
+      const saved = await this.inboxRepository.create({
         coopname: message.coopname,
         outboxId: message.outboxId,
         recipientSubscriberId: message.recipient.subscriberId,
@@ -46,7 +47,6 @@ export class InAppChannelAdapter implements InAppChannelPort {
         payload: message.payload,
         actorSubscriberId: message.actorSubscriberId,
       });
-      const saved = await this.inboxRepository.save(row);
       return { delivered: true, providerResponse: `inbox:${saved.id}` };
     } catch (error: any) {
       this.logger.error(

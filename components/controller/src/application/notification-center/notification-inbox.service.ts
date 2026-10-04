@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { NotificationInboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-inbox.typeorm-entity';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  NOTIFICATION_INBOX_REPOSITORY,
+  type NotificationInboxRepository,
+} from '~/domain/notification/repositories/notification-store.repository';
+import type { NotificationInboxDomainInterface } from '~/domain/notification/interfaces/notification-inbox.domain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { InboxNotificationDTO } from './graphql/inbox-notification.dto';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -17,8 +19,8 @@ import { DomainError } from '@coopenomics/extension-kit';
 @Injectable()
 export class NotificationInboxService {
   constructor(
-    @InjectRepository(NotificationInboxTypeormEntity)
-    private readonly inboxRepository: Repository<NotificationInboxTypeormEntity>
+    @Inject(NOTIFICATION_INBOX_REPOSITORY)
+    private readonly inboxRepository: NotificationInboxRepository
   ) {}
 
   async getInbox(
@@ -29,12 +31,7 @@ export class NotificationInboxService {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 10;
 
-    const [rows, totalCount] = await this.inboxRepository.findAndCount({
-      where: { coopname, recipientSubscriberId: subscriberId },
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [rows, totalCount] = await this.inboxRepository.findPage(coopname, subscriberId, page, limit);
 
     return {
       items: rows.map((r) => this.toDTO(r)),
@@ -45,34 +42,28 @@ export class NotificationInboxService {
   }
 
   async getUnreadCount(coopname: string, subscriberId: string): Promise<number> {
-    return this.inboxRepository.count({
-      where: { coopname, recipientSubscriberId: subscriberId, isRead: false },
-    });
+    return this.inboxRepository.countUnread(coopname, subscriberId);
   }
 
   /** Отметить одно уведомление прочитанным. Ownership: только собственная строка получателя. */
   async markRead(id: string, subscriberId: string): Promise<InboxNotificationDTO> {
-    const row = await this.inboxRepository.findOne({ where: { id, recipientSubscriberId: subscriberId } });
+    const row = await this.inboxRepository.findOwn(id, subscriberId);
     if (!row) throw DomainError.notFound('NOTIFICATION_CENTER_INBOX_ITEM_NOT_FOUND', { id });
 
     if (!row.isRead) {
       row.isRead = true;
       row.readAt = new Date();
-      await this.inboxRepository.save(row);
+      await this.inboxRepository.markRead(row.id, row.readAt);
     }
     return this.toDTO(row);
   }
 
   /** Отметить все непрочитанные прочитанными. Возвращает число затронутых строк. */
   async markAllRead(coopname: string, subscriberId: string): Promise<number> {
-    const result = await this.inboxRepository.update(
-      { coopname, recipientSubscriberId: subscriberId, isRead: false },
-      { isRead: true, readAt: new Date() }
-    );
-    return result.affected ?? 0;
+    return this.inboxRepository.markAllRead(coopname, subscriberId, new Date());
   }
 
-  private toDTO(r: NotificationInboxTypeormEntity): InboxNotificationDTO {
+  private toDTO(r: NotificationInboxDomainInterface): InboxNotificationDTO {
     return {
       id: r.id,
       workflowId: r.workflowId,
