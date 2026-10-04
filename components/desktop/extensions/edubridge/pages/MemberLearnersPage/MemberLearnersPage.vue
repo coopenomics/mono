@@ -9,8 +9,6 @@
     EmptyState(v-else-if="!learners.length" :title="$t('edubridge.memberLearnersPage.emptyTitle')" :body="$t('edubridge.memberLearnersPage.emptyBody')")
       template(#icon)
         q-icon(name="family_restroom" size="32px")
-      template(#action)
-        BaseButton.q-mt-md(variant="primary" @click="addLearnerOpen()") {{ $t('edubridge.memberLearnersPage.addLearner') }}
     q-list(v-else separator)
       q-item(v-for="l in learners" :key="asText(l.id)")
         q-item-section
@@ -21,8 +19,6 @@
           BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberLearnersPage.editAriaLabel')" @click="editLearner(l)")
             template(#icon-left)
               q-icon(name="edit" size="18px")
-    .q-mt-md(v-if="learners.length")
-      BaseButton(variant="secondary" block @click="addLearnerOpen()") {{ $t('edubridge.memberLearnersPage.addLearner') }}
 
   BaseDialog(v-model="learnerDialogOpen" :title="editingLearner ? $t('edubridge.memberLearnersPage.editDialogTitle') : $t('edubridge.memberLearnersPage.newDialogTitle')" size="md")
     LearnerForm(:learner="editingLearner" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")

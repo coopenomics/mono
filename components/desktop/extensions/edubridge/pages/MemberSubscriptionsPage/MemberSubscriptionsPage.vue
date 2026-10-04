@@ -2,11 +2,8 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:member-subscriptions:banner-dismissed")
     | {{ $t('edubridge.memberSubscriptionsPage.hint.line1') }}
-    | {{ $t('edubridge.memberSubscriptionsPage.hint.line2') }}
-    | {{ $t('edubridge.memberSubscriptionsPage.hint.line3') }}
-    | {{ $t('edubridge.memberSubscriptionsPage.hint.line4') }}
-    | {{ $t('edubridge.memberSubscriptionsPage.hint.line5') }}
-    |#[a.edu-subscriptions__link(href="#" @click.prevent="goToPrograms") {{ $t('edubridge.memberSubscriptionsPage.hint.programsLink') }}].
+
+  ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
     BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="820px")
@@ -25,10 +22,6 @@
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
         q-icon(name="school" size="32px")
-      template(#action)
-        BaseButton.q-mt-md(variant="primary" @click="goToCatalog") {{ $t('edubridge.memberSubscriptionsPage.goToCatalog') }}
-
-  ReturnToShareCard.q-mt-md(:key="walletRev")
 
   //- Отмена подписки: сумма возврата считается по Положению ЦПП на сервере,
   //- поэтому ученик видит её до нажатия, а не после.
@@ -57,7 +50,6 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
@@ -90,15 +82,6 @@ import { t } from '../../i18n';
  * Новая подписка оформляется в карточке курса, здесь — только продление
  * существующей: тот же диалог с закреплённым курсом.
  */
-const route = useRoute();
-
-const router = useRouter();
-/** Путь к деньгам: остатки кошельков программ возвращаются при выходе из кооператива. */
-function goToPrograms(): void {
-  void router.push({ name: 'user-programs', params: { coopname: route.params.coopname } });
-}
-
-
 const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
 const courses = ref<ICatalogCourse[]>([]);
@@ -155,10 +138,6 @@ async function load(): Promise<void> {
   }
 }
 
-function goToCatalog(): void {
-  void router.push({ name: 'edubridge-catalog', params: { coopname: route.params.coopname } });
-}
-
 function extend(row: IEnrollment): void {
   lockedCourseId.value = asText(row.course_id);
   extendOpen.value = true;
@@ -208,10 +187,3 @@ useLiveReload([EduLive.enrollments, EduLive.learners, EduLive.courses, EduLive.r
 
 onMounted(load);
 </script>
-
-<style scoped>
-.edu-subscriptions__link {
-  color: var(--p-primary);
-  cursor: pointer;
-}
-</style>

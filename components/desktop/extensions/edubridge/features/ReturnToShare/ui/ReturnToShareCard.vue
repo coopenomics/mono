@@ -1,11 +1,21 @@
 <template lang="pug">
-BaseCard(variant="default" :title="$t('edubridge.returnToShareCard.title')")
-  DataRow(:label="$t('edubridge.returnToShareCard.balanceLabel')" :value="formatAsset2Digits(balance?.available ?? '')" align="spread")
-  .t-sm.t-muted.q-mt-sm
-    | {{ $t('edubridge.returnToShareCard.balanceHint') }}
-  .row.justify-end.q-mt-md
-    BaseButton(variant="secondary" size="sm" :disabled="!canRequest" @click="dialogOpen = true") {{ $t('edubridge.returnToShareCard.stopParticipation') }}
-  .t-meta.t-muted.q-mt-sm(v-if="balance?.has_pending") {{ $t('edubridge.returnToShareCard.pendingNotice') }}
+.edu-wallet
+  WalletCard(
+    neutral
+    icon="school"
+    :title="$t('edubridge.returnToShareCard.title')"
+    :subtitle="$t('edubridge.returnToShareCard.programName')"
+    :hint="$t('edubridge.returnToShareCard.balanceHint')"
+    :balance="wallet.amount"
+    :symbol="wallet.symbol"
+    :balance-label="$t('edubridge.returnToShareCard.balanceLabel')"
+    :loading="!balance"
+    :empty="wallet.isEmpty"
+  )
+  .row.items-center.justify-between.q-mt-sm
+    .t-meta.t-muted
+      template(v-if="balance?.has_pending") {{ $t('edubridge.returnToShareCard.pendingNotice') }}
+    BaseButton(variant="ghost" size="sm" :disabled="!canRequest" @click="dialogOpen = true") {{ $t('edubridge.returnToShareCard.stopParticipation') }}
 
   BaseTable.q-mt-md(v-if="requests.length" :columns="columns" :rows="requests" row-key="id" min-width="480px")
     template(#cell-created_at="{ row }") {{ formatDate(row.created_at) }}
@@ -37,11 +47,12 @@ BaseCard(variant="default" :title="$t('edubridge.returnToShareCard.title')")
 import { computed, onMounted, ref } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow } from 'src/shared/ui/domain';
+import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
+import { DataRow, WalletCard } from 'src/shared/ui/domain';
 import { buildProgramAnnulment, fetchMyReturnRequests, fetchReturnBalance, requestReturn } from '../api';
 import { RETURN_STATUS_LABELS, type IReturnBalance, type IReturnRequest } from '../model';
 import { useLiveReload } from 'src/shared/lib/realtime';
+import { useSystemStore } from 'src/entities/System/model';
 import { EduLive } from '../../../shared/lib/live';
 import { t } from '../../../i18n';
 
@@ -50,6 +61,7 @@ import { t } from '../../../i18n';
  * программы возвращается в паевой только с прекращением участия, по заявлению
  * и согласованию кооператива, — поэтому кнопка подаёт заявление, а не переводит средства.
  */
+const { info } = useSystemStore();
 const balance = ref<IReturnBalance | null>(null);
 const requests = ref<IReturnRequest[]>([]);
 const dialogOpen = ref(false);
@@ -62,6 +74,12 @@ const columns: BaseTableColumn<IReturnRequest>[] = [
 ];
 
 const canRequest = computed(() => Boolean(balance.value) && !balance.value?.has_pending);
+
+/** Карточка кошелька принимает сумму и тикер раздельно. */
+const wallet = computed(() => {
+  const [amount = '0,00', symbol = info?.symbols?.root_govern_symbol ?? ''] = formatAsset2Digits(balance.value?.available ?? '').split(/\s+(?=\S+$)/);
+  return { amount, symbol, isEmpty: !Number.parseFloat(String(balance.value?.available ?? '0')) };
+});
 
 const statusOf = (s: string) => RETURN_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const formatDate = (v: unknown) => new Date(String(v)).toLocaleDateString('ru-RU');
