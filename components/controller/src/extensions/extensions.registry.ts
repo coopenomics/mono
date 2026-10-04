@@ -499,7 +499,7 @@ export const AppRegistry: INamedExtension = {
     // советом у председателя только Extension:configure.
     desktops: [
       { name: 'edubridge', title: i18nT('app.extensionsRegistry.edubridge.windowTitleAdmin'), icon: 'admin_panel_settings' },
-      { name: 'edubridge-member', title: i18nT('app.extensionsRegistry.edubridge.windowTitleMember'), icon: 'family_restroom' },
+      { name: 'edubridge-member', title: i18nT('app.extensionsRegistry.edubridge.windowTitleMember'), icon: 'local_library' },
       { name: 'edubridge-teacher', title: i18nT('app.extensionsRegistry.edubridge.windowTitleTeacher'), icon: 'co_present' },
     ],
     title: i18nT('app.extensionsRegistry.edubridge.title'),

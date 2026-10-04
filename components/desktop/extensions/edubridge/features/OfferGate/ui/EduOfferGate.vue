@@ -19,9 +19,6 @@
           //- Подключение начинается со ставки и рассказа о себе; документы — следом.
           EduGateProfileStep(v-if="step.key === 'profile'" :profile="profile" :symbol="symbol" @saved="onProfileSaved")
           EduGateDocumentStep(v-else :key="step.key" v-bind="stepProps(step.key)")
-            template(v-if="step.key === 'contract'" #before-agree)
-              //- Ставка названа первым шагом: здесь её видно, вернуться к ней — по шагу «О себе и ставка».
-              DataRow(:label="$t('edubridge.eduOfferGate.hourlyRateLabel')" :value="formatAsset2Digits(profile?.hourly_rate ?? '')")
       EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)")
 </template>
 
@@ -32,9 +29,8 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
-import { DataRow, PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
+import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, fetchMyTeacherProfile, signContract, type IContract, type IContractDraft, type ITeacherProfile } from '../../../entities/Teacher';
 import { buildOfferDocument, fetchOnboardingState, signOffer, type EduOfferKind, type IEduOnboardingState } from '../api';

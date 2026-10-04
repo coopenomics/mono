@@ -2,13 +2,12 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:member-learners:banner-dismissed")
     | {{ $t('edubridge.memberLearnersPage.hint.line1') }}
-    | {{ $t('edubridge.memberLearnersPage.hint.line2') }}
 
   BaseCard(variant="default" :title="$t('edubridge.memberLearnersPage.title')")
     CardListSkeleton(v-if="firstLoad" :count="2")
     EmptyState(v-else-if="!learners.length" :title="$t('edubridge.memberLearnersPage.emptyTitle')" :body="$t('edubridge.memberLearnersPage.emptyBody')")
       template(#icon)
-        q-icon(name="family_restroom" size="32px")
+        q-icon(name="groups" size="32px")
     q-list(v-else separator)
       q-item(v-for="l in learners" :key="asText(l.id)")
         q-item-section

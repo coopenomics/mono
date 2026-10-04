@@ -103,11 +103,11 @@ function adminWorkspace(): IWorkspaceConfig {
 /** «Стол ученика»: каталог (гостю — витрина), обучающиеся, подписки. Подписка
     оформляется в карточке курса, поэтому кнопок «получить доступ» на столе нет. */
 function parentWorkspace(): IWorkspaceConfig {
-  return workspace('edubridge-member', t('edubridge.install.memberWorkspaceTitle'), 'family_restroom', 'edubridge-catalog', [
+  return workspace('edubridge-member', t('edubridge.install.memberWorkspaceTitle'), 'local_library', 'edubridge-catalog', [
     publicPage('catalog', 'edubridge-catalog', CatalogPage, { title: t('edubridge.install.catalogRouteTitle'), icon: 'school', requires: 'EduCatalog:read' }),
     publicPage('catalog/:id', 'edubridge-catalog-course', CourseCardPage, { title: t('edubridge.install.catalogCourseRouteTitle'), icon: 'school', requires: 'EduCatalog:read', hidden: true, menuKey: 'edubridge-catalog' }),
     memberPage('onboarding', 'edubridge-member-onboarding', MemberOnboardingPage, { title: t('edubridge.install.memberOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:learner', gate: true }),
-    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: t('edubridge.install.learnersRouteTitle'), icon: 'family_restroom', requires: 'EduLearner:read:own' }),
+    memberPage('learners', 'edubridge-learners', MemberLearnersPage, { title: t('edubridge.install.learnersRouteTitle'), icon: 'groups', requires: 'EduLearner:read:own' }),
     memberPage('subscriptions', 'edubridge-subscriptions', MemberSubscriptionsPage, { title: t('edubridge.install.subscriptionsRouteTitle'), icon: 'card_membership', requires: 'EduEnrollment:read:own' }),
   ]);
 }
