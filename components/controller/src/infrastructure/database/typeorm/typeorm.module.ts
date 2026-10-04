@@ -14,20 +14,17 @@ import { MeetPreKyselyRepository } from '../kysely/repositories/meet-pre.kysely-
 import { MigrationEntity } from './entities/migration.entity';
 import { MIGRATION_REPOSITORY } from '~/domain/system/repositories/migration-domain.repository';
 import { TypeOrmMigrationRepository } from './repositories/typeorm-migration.repository';
-import { CandidateEntity } from './entities/candidate.entity';
 import { CANDIDATE_REPOSITORY } from '~/domain/account/repository/candidate.repository';
-import { TypeOrmCandidateRepository } from './repositories/typeorm-candidate.repository';
+import { CandidateKyselyRepository } from '../kysely/repositories/candidate.kysely-repository';
 import { ChainTextKyselyRepository } from '../kysely/repositories/chain-text.kysely-repository';
 import { CHAIN_TEXT_REPOSITORY } from '~/domain/chain-text/chain-text.repository';
 import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 import { MEET_PROCESSED_REPOSITORY } from '~/domain/meet/repositories/meet-processed.repository';
 import { MeetProcessedKyselyRepository } from '../kysely/repositories/meet-processed.kysely-repository';
-import { PaymentEntity } from './entities/payment.entity';
 import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.repository';
-import { TypeOrmPaymentRepository } from './repositories/typeorm-payment.repository';
-import { PaymentFileEntity } from './entities/payment-file.entity';
+import { PaymentKyselyRepository } from '../kysely/repositories/payment.kysely-repository';
 import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
-import { TypeormPaymentFileRepository } from './repositories/typeorm-payment-file.repository';
+import { PaymentFileKyselyRepository } from '../kysely/repositories/payment-file.kysely-repository';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
 import { WebPushSubscriptionKyselyRepository } from '../kysely/repositories/web-push-subscription.kysely-repository';
 import {
@@ -73,21 +70,16 @@ import { CONSUMER_DEDUP_REPOSITORY_PORT } from '~/domain/parser/ports/consumer-d
 import { TypeOrmConsumerDedupRepository } from './repositories/typeorm-consumer-dedup.repository';
 import { SETTINGS_REPOSITORY } from '~/domain/settings/repositories/settings.repository';
 import { SettingsKyselyRepository } from '../kysely/repositories/settings.kysely-repository';
-import { TokenEntity } from './entities/token.entity';
 import { TOKEN_REPOSITORY } from '~/domain/token/repositories/token.repository';
-import { TokenTypeormRepository } from './repositories/token.typeorm-repository';
-import { UserEntity } from './entities/user.entity';
+import { TokenKyselyRepository } from '../kysely/repositories/token.kysely-repository';
 import { USER_REPOSITORY } from '~/domain/user/repositories/user.repository';
-import { UserTypeormRepository } from './repositories/user.typeorm-repository';
-import { VaultEntity } from './entities/vault.entity';
+import { UserKyselyRepository } from '../kysely/repositories/user.kysely-repository';
 import { VAULT_REPOSITORY } from '~/domain/vault/repositories/vault.repository';
-import { VaultTypeormRepository } from './repositories/vault.typeorm-repository';
-import { IpnEntity } from './entities/ipn.entity';
+import { VaultKyselyRepository } from '../kysely/repositories/vault.kysely-repository';
 import { IPN_REPOSITORY } from '~/domain/gateway/repositories/ipn.repository';
-import { TypeormIpnRepository } from './repositories/typeorm-ipn.repository';
-import { PaymentStateEntity } from './entities/payment-state.entity';
+import { IpnKyselyRepository } from '../kysely/repositories/ipn.kysely-repository';
 import { PAYMENT_STATE_REPOSITORY } from '~/domain/gateway/repositories/payment-state.repository';
-import { TypeormPaymentStateRepository } from './repositories/typeorm-payment-state.repository';
+import { PaymentStateKyselyRepository } from '../kysely/repositories/payment-state.kysely-repository';
 import { MUTATION_LOG_REPOSITORY } from '~/domain/mutation-log/repositories/mutation-log.repository';
 import { MutationLogKyselyRepository } from '../kysely/repositories/mutation-log.kysely-repository';
 import { ProgramWalletTypeormEntity } from './entities/program-wallet.typeorm-entity';
@@ -121,9 +113,6 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     }),
     NestTypeOrmModule.forFeature([
       MigrationEntity,
-      CandidateEntity,
-      PaymentEntity,
-      PaymentFileEntity,
       LedgerOperationEntity,
       AgreementTypeormEntity,
       ActionEntity,
@@ -134,11 +123,6 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
       EntityVersionTypeormEntity,
       InvalidatedEntityTypeormEntity,
       InvalidatedEntityVersionTypeormEntity,
-      TokenEntity,
-      UserEntity,
-      VaultEntity,
-      IpnEntity,
-      PaymentStateEntity,
       ProgramWalletTypeormEntity,
       UserAgreementTypeormEntity,
       UserWalletTypeormEntity,
@@ -177,15 +161,15 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     },
     {
       provide: CANDIDATE_REPOSITORY,
-      useClass: TypeOrmCandidateRepository,
+      useClass: CandidateKyselyRepository,
     },
     {
       provide: PAYMENT_REPOSITORY,
-      useClass: TypeOrmPaymentRepository,
+      useClass: PaymentKyselyRepository,
     },
     {
       provide: PAYMENT_FILE_REPOSITORY,
-      useClass: TypeormPaymentFileRepository,
+      useClass: PaymentFileKyselyRepository,
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
@@ -230,23 +214,23 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     },
     {
       provide: TOKEN_REPOSITORY,
-      useClass: TokenTypeormRepository,
+      useClass: TokenKyselyRepository,
     },
     {
       provide: USER_REPOSITORY,
-      useClass: UserTypeormRepository,
+      useClass: UserKyselyRepository,
     },
     {
       provide: VAULT_REPOSITORY,
-      useClass: VaultTypeormRepository,
+      useClass: VaultKyselyRepository,
     },
     {
       provide: IPN_REPOSITORY,
-      useClass: TypeormIpnRepository,
+      useClass: IpnKyselyRepository,
     },
     {
       provide: PAYMENT_STATE_REPOSITORY,
-      useClass: TypeormPaymentStateRepository,
+      useClass: PaymentStateKyselyRepository,
     },
     {
       provide: MUTATION_LOG_REPOSITORY,

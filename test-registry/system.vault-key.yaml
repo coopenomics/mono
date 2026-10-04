@@ -14,8 +14,7 @@ sources:
     - components/controller/src/application/system/interactors/wif.interactor.ts
     - components/controller/src/application/system/interactors/system.interactor.ts
     - components/controller/src/domain/vault/**
-    - components/controller/src/infrastructure/database/typeorm/entities/vault.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/vault.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/vault.kysely-repository.ts
 
 cases:
   - id: sys.vault.happy.01

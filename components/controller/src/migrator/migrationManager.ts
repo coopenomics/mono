@@ -9,8 +9,9 @@ import { RpcPool } from '../infrastructure/blockchain/rpc-pool.service';
 import { WinstonLoggerService } from '../application/logger/logger-app.service';
 import { MigrationLogger } from './migration-logger';
 import { VaultDomainService } from '../domain/vault/services/vault-domain.service';
-import { VaultTypeormRepository } from '../infrastructure/database/typeorm/repositories/vault.typeorm-repository';
-import { VaultEntity } from '../infrastructure/database/typeorm/entities/vault.entity';
+import { Kysely, PostgresDialect, type PostgresPool } from 'kysely';
+import type { DB } from '../infrastructure/database/kysely/database.types';
+import { VaultKyselyRepository } from '../infrastructure/database/kysely/repositories/vault.kysely-repository';
 import { compareMigrationFilenames, isMigrationFile, parseMigrationFilename } from './migration-filename';
 
 export interface Migration {
@@ -66,7 +67,7 @@ export class MigrationManager {
       username: config.postgres.username,
       password: config.postgres.password,
       database: config.postgres.database,
-      entities: [MigrationEntity, VaultEntity],
+      entities: [MigrationEntity],
       // Таблицы создают миграции схемы — migrateData() прогоняет их до этого шага.
       synchronize: false,
     });
@@ -75,7 +76,9 @@ export class MigrationManager {
     this.migrationRepository = this.dataSource.getRepository(MigrationEntity);
 
     // Создаем настоящий VaultDomainService теперь, когда dataSource готов
-    const vaultRepository = new VaultTypeormRepository(this.dataSource.getRepository(VaultEntity));
+    // Хранилище ключей — на Kysely поверх пула этого же подключения; пул закрывает dataSource.
+    const pool = (this.dataSource.driver as unknown as { master: PostgresPool }).master;
+    const vaultRepository = new VaultKyselyRepository(new Kysely<DB>({ dialect: new PostgresDialect({ pool }) }));
     this.vaultDomainService = new VaultDomainService(vaultRepository);
 
     // Пересоздаем BlockchainService с настоящим VaultDomainService
