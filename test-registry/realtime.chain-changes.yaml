@@ -66,6 +66,8 @@ sources:
     - components/controller/src/application/chain-changes/**
     - components/innercoop/src/core-ports/chain-changes.port.ts
     - components/controller/src/infrastructure/blockchain/local-changes.subscriber.ts
+    - components/controller/src/infrastructure/database/kysely/local-changes.plugin.ts
+    - components/controller/src/infrastructure/database/kysely/kysely.provider.ts
     - components/controller/src/infrastructure/generator/generator.service.ts
     - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
@@ -205,6 +207,18 @@ cases:
     test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
     api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
+
+  - id: rt.cc.happy.09
+    level: backend
+    kind: happy
+    scenario: Запись в объявленную таблицу базы узла через Kysely (вставка, правка, удаление).
+    expect: >
+      сигнал несёт ключ строки и саму строку: запросу без RETURNING он добавляется,
+      свой RETURNING не подменяется; составной ключ — через двоеточие; чтение и
+      ненаблюдаемая таблица сигнала не дают
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: rt.cc.happy.05
     level: backend

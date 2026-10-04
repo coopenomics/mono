@@ -117,6 +117,16 @@ cases:
     test: components/api-tests/src/membership/membership.exit.test.ts
     status: written
 
+  - id: mem.exit.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик подаёт заявление на выход и отменяет его; открыты подписки на ленту изменений
+    expect: >
+      сигнал по таблице заявлений с блоком 0 и ключом строки приходит пайщику и
+      совету и при подаче, и при отмене; чужому пайщику — нет
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
   - id: mem.exit.side.07
     level: backend
     kind: side

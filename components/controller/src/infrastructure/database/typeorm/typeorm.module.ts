@@ -5,6 +5,8 @@ import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/ext
 import { mainDataSourceOptions } from './data-source.options';
 import { kyselyProvider } from '../kysely/kysely.provider';
 import { KYSELY } from '../kysely/kysely.tokens';
+import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
+import { MembershipExitRequestKyselyRepository } from '../kysely/repositories/membership-exit-request.kysely-repository';
 import { TypeOrmExtensionDomainRepository } from './repositories/typeorm-extension.repository';
 import { ExtensionEntity } from './entities/extension.entity';
 import { LogExtensionEntity } from './entities/log-extension.entity';
@@ -166,6 +168,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
   ],
   providers: [
     kyselyProvider,
+    { provide: MEMBERSHIP_EXIT_REQUEST_REPOSITORY, useClass: MembershipExitRequestKyselyRepository },
     {
       provide: EXTENSION_REPOSITORY,
       useClass: TypeOrmExtensionDomainRepository,
@@ -304,6 +307,7 @@ import { NotificationInboxTypeormEntity } from './entities/notification-inbox.ty
   exports: [
     NestTypeOrmModule,
     KYSELY,
+    MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
     TypeOrmDraftRegistryRepository,
     EXTENSION_REPOSITORY,
     LOG_EXTENSION_REPOSITORY,
