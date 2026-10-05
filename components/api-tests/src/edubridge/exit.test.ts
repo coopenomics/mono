@@ -116,10 +116,7 @@ describe('Образование: выход из кооператива уче�
       expect(amount(pending[0].balance)).toBeCloseTo(refund, 4)
     })
 
-    // Находка 4 прогонов 05.10.2026: подтверждение выхода с заявлением об аннулировании соглашений
-    // отклоняет цепь — «Заявление об аннулировании соглашений уже подано» (registrator::exitagree
-    // следом за exitcoop). Включить после починки контракта.
-    it.skip(caseName('edu.access.happy.10', 'заявление на выход подано — подписка закрыта с возвратом на кошелёк программы'), async () => {
+    it(caseName('edu.access.happy.10', 'заявление на выход подано — подписка закрыта с возвратом на кошелёк программы'), async () => {
       await addSbpMethod(token, learner.account)
       const created = (await gql<any>(token, CREATE_EXIT, await exitInput(learner, token))).createMembershipExit
       expect(created.status, 'заявление принято, подписка его не задержала').toBe('AWAITING_CONFIRMATION')
@@ -171,9 +168,7 @@ describe('Образование: выход из кооператива уче�
       expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract.status, 'договор действует').toBe('ACTIVE')
     })
 
-    // Находка 4 прогонов 05.10.2026: подтверждение выхода с заявлением об аннулировании соглашений
-    // отклоняет цепь, заявление преподавателя до неё не доходит. Включить после починки контракта.
-    it.skip(caseName('edu.teach.side.16', 'допуск снят — заявление на выход принимается, с ним прекращается договор преподавателя'), async () => {
+    it(caseName('edu.teach.side.16', 'допуск снят — заявление на выход принимается, с ним прекращается договор преподавателя'), async () => {
       const closed = (await gql<any>(chairman, CLOSE_ASSIGNMENT, { id: assignment.id })).edubridgeCloseAssignment
       expect(closed.status).toBe('CLOSED')
       expect(((await gql<any>(token, MY_ASSIGNMENTS)).edubridgeMyAssignments as any[]).filter(a => a.status === 'ACTIVE')).toEqual([])

@@ -395,7 +395,7 @@ cases:
     scenario: "Заявление о выходе из кооператива подано преподавателем."
     expect: "Подписки закрываются, договор УХД прекращается; сбой прекращения выход не роняет."
     test: components/controller/tests/unit/edubridge/membership-exit.listener.test.ts
-    # внешний тест написан (api-tests/src/edubridge/exit.test.ts) и выключен: подтверждение выхода с заявлением об аннулировании соглашений отклоняет цепь (находка 4 прогонов 05.10.2026)
+    api: components/api-tests/src/edubridge/exit.test.ts
     status: passing
   - id: edu.teach.side.17
     level: backend
