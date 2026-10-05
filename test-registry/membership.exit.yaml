@@ -305,4 +305,4 @@ cases:
     expect: решение совета не исполняется — контракт отказывает, пайщик остаётся в кооперативе, выход ждёт решения
     test: components/api-tests/src/membership/membership.exit.test.ts
     api: components/api-tests/src/membership/membership.exit.test.ts
-    status: written
+    status: passing
