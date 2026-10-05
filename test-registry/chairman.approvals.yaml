@@ -103,3 +103,19 @@ cases:
     test: components/controller/tests/unit/chairman/approval-decision-wait.test.ts
     api: components/api-tests/src/chairman/approvals.test.ts
     status: passing
+
+  - id: chair.appr.side.07
+    level: backend
+    kind: side
+    scenario: >
+      зеркало одобрений председателя на новом каркасе синхронизации: изменение
+      существующей записи, откат форка, архив отменённых записей
+    expect: >
+      перед изменением прежнее состояние уходит в версии с блоком изменения;
+      после форка запись возвращается к состоянию перед самым ранним отменённым
+      изменением, запись без таких изменений не трогается, появившаяся после
+      форка не воскрешается; отменённые записи переносятся в архив
+    test: components/controller/tests/unit/blockchain/chain-versioning.service.test.ts
+    external: unreachable
+    external_reason: "версии и архив форка — внутренние таблицы узла; поведение одобрений через API покрыто случаями фичи, откат форка — набором отказов стенда"
+    status: written

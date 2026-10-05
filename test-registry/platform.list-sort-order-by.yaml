@@ -85,3 +85,17 @@ cases:
     test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
     api: components/api-tests/src/platform/list-sort-order-by.test.ts
     status: passing
+
+  - id: platform.sort.side.04
+    level: backend
+    kind: side
+    scenario: >
+      список решений председателя после перевода хранилища на Kysely: сортировка
+      по неизвестной колонке, по колонке решения, с подзапросом в поле
+    expect: >
+      неизвестная колонка заменяется датой создания, колонка решения
+      применяется, подзапрос отклоняется до обращения к базе
+    test: components/controller/tests/unit/shared/list-sort-order-by.test.ts
+    external: unreachable
+    external_reason: "проверяется текст запроса к базе; видимый снаружи порядок списков покрыт случаями platform.sort.*"
+    status: written

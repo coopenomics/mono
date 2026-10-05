@@ -13,6 +13,9 @@
  * off-chain артефактов, где `block_num` vestigial (наследовано от base, но не
  * заполняется и не должно откатываться форком). Долгосрочно — отделить базу
  * (см. Epic 9, audit-report-4-3.md).
+ *
+ * Зеркала, переведённые на Kysely (C28-81), наследуют `ChainRecord` и
+ * `BaseChainRepository` — правило для них то же.
  */
 
 import { execSync } from 'child_process';
@@ -40,7 +43,7 @@ const OFF_CHAIN_BASE_ENTITIES = new Set([
 
 function extractEntityClassName(filePath: string): string | null {
   const content = fs.readFileSync(filePath, 'utf-8');
-  const m = content.match(/export\s+class\s+(\w+)\s+extends\s+BaseTypeormEntity\b/);
+  const m = content.match(/export\s+class\s+(\w+)\s+extends\s+(?:BaseTypeormEntity|ChainRecord)\b/);
   return m ? m[1] : null;
 }
 
@@ -58,7 +61,7 @@ describe('Story 4.3: BaseBlockchainRepository contract', () => {
   it('каждая entity extends BaseTypeormEntity имеет repo extends BaseBlockchainRepository (либо в OFF_CHAIN_BASE_ENTITIES allowlist)', () => {
     // Найти все TS-файлы с «extends BaseTypeormEntity»
     const entityFiles = execSync(
-      `grep -rEln "extends BaseTypeormEntity" --include="*.ts" ${SRC_ROOT}`,
+      `grep -rEln "extends (BaseTypeormEntity|ChainRecord)" --include="*.ts" ${SRC_ROOT}`,
       { encoding: 'utf-8' }
     )
       .split('\n')
@@ -66,7 +69,7 @@ describe('Story 4.3: BaseBlockchainRepository contract', () => {
 
     // Найти все TS-файлы с «extends BaseBlockchainRepository»
     const repoFiles = execSync(
-      `grep -rEln "extends BaseBlockchainRepository" --include="*.ts" ${SRC_ROOT}`,
+      `grep -rEln "extends (BaseBlockchainRepository|BaseChainRepository)" --include="*.ts" ${SRC_ROOT}`,
       { encoding: 'utf-8' }
     )
       .split('\n')

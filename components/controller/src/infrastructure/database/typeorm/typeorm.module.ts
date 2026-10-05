@@ -47,6 +47,7 @@ import {
   EntityVersionTypeormEntity,
   EntityVersionRepository,
   EntityVersioningService,
+  ChainVersioningService,
   InvalidatedEntityTypeormEntity,
   InvalidatedEntityVersionTypeormEntity,
   InvalidatedEntityRepository,
@@ -256,8 +257,11 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     EntityVersioningService,
     InvalidatedEntityRepository,
     InvalidatedEntityVersionRepository,
+    // Версии и архив форка для зеркал, переведённых на Kysely (C28-81).
+    ChainVersioningService,
   ],
   exports: [
+    ChainVersioningService,
     NestTypeOrmModule,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,

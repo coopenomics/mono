@@ -7,8 +7,6 @@
  * репозитории не поднимаются, расширение не стартует. Поэтому состав
  * объявляется здесь и попадает в подключение через запись реестра.
  */
-import { ApprovalTypeormEntity } from './infrastructure/entities/approval-typeorm.entity';
 
-export const chairmanEntities = [
-  ApprovalTypeormEntity,
-];
+// Зеркало одобрений переведено на Kysely (C28-81): сущностей TypeORM у расширения нет.
+export const chairmanEntities = [];

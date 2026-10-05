@@ -78,6 +78,11 @@ export class TableStore<TRecord extends object> {
     return new TableStore<TRecord>(db, this.options);
   }
 
+  /** Имя таблицы шлюза. */
+  get table(): string {
+    return this.options.table;
+  }
+
   /** Kysely этого шлюза — для запросов сложнее отбора по равенству. */
   get kysely(): Kysely<any> {
     return this.db;

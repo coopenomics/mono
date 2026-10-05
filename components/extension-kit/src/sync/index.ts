@@ -29,6 +29,11 @@ export * from './entity-version.typeorm-entity';
 export * from './entity-version.repository';
 export * from './entity-versioning.service';
 export * from './base-blockchain.repository';
+// Вариант каркаса на Kysely (C28-81): зеркала переводятся на него по доменам,
+// прежние классы уходят, когда на них не останется ни одного наследника.
+export * from './chain-record';
+export * from './chain-versioning.service';
+export * from './base-chain.repository';
 // Форк цепи: маркер, по которому реестр ядра находит синхронизаторы, и архив
 // снесённых форком записей. Сам реестр живёт в ядре — он обходит граф
 // приложения, а не принадлежит каркасу расширения.

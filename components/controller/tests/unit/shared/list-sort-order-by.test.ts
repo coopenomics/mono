@@ -20,6 +20,9 @@ import { PaginationInputDTO, PaginationUtils } from '@coopenomics/extension-kit'
 import { LOG_EXTENSION_SORT_COLUMNS } from '~/infrastructure/database/kysely/repositories/log-extension.kysely-repository';
 import { sortColumn, sortDirection } from '@coopenomics/extension-kit';
 import { ApprovalTypeormRepository } from '~/extensions/chairman/infrastructure/repositories/approval.typeorm-repository';
+import { CHAIRMAN_APPROVAL_STORE, chairmanStoreProviders } from '~/extensions/chairman/infrastructure/database/chairman-stores';
+import { recordingKysely } from '../helpers/kysely-recorder';
+import { storeFrom } from '../helpers/table-store';
 
 const INJECTION = 'created_at, (SELECT CASE WHEN (1=1) THEN pg_sleep(5) END)';
 
@@ -31,15 +34,6 @@ function makeQueryBuilder() {
   qb.getCount = jest.fn().mockResolvedValue(0);
   qb.getMany = jest.fn().mockResolvedValue([]);
   return qb;
-}
-
-function makeOrmRepository(columns: string[]) {
-  const qb = makeQueryBuilder();
-  const repository = {
-    metadata: { columns: columns.map((name) => ({ propertyName: name, databaseName: name })) },
-    createQueryBuilder: jest.fn(() => qb),
-  };
-  return { repository, qb };
 }
 
 describe('Поле сортировки на входе', () => {
@@ -111,26 +105,29 @@ describe('Журнал расширений (getExtensionLogs)', () => {
 });
 
 describe('Решения председателя (chairmanApprovals)', () => {
+  const build = () => {
+    const { db, queries } = recordingKysely([{ rows: [{ count: '0' }] }, { rows: [] }]);
+    const store = storeFrom(chairmanStoreProviders, CHAIRMAN_APPROVAL_STORE, db);
+    return { approvals: new ApprovalTypeormRepository(store as never, {} as never), queries };
+  };
+
   it('неизвестная колонка заменяется умолчанием', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'status', 'created_at']);
-    const approvals = new ApprovalTypeormRepository(repository as never, {} as never);
+    const { approvals, queries } = build();
     await approvals.findAllPaginated(undefined, { page: 1, limit: 10, sortBy: 'password', sortOrder: 'ASC' });
-    expect(qb.orderBy).toHaveBeenCalledWith('approval.created_at', 'ASC');
+    expect(queries[1].sql).toContain('order by "created_at" asc');
   });
 
   it('сортирует по колонке решения', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'status', 'created_at']);
-    const approvals = new ApprovalTypeormRepository(repository as never, {} as never);
+    const { approvals, queries } = build();
     await approvals.findAllPaginated(undefined, { page: 1, limit: 10, sortBy: 'status', sortOrder: 'DESC' });
-    expect(qb.orderBy).toHaveBeenCalledWith('approval.status', 'DESC');
+    expect(queries[1].sql).toContain('order by "status" desc');
   });
 
   it('подзапрос в поле сортировки отклоняется до построения запроса', async () => {
-    const { repository, qb } = makeOrmRepository(['id', 'status', 'created_at']);
-    const approvals = new ApprovalTypeormRepository(repository as never, {} as never);
+    const { approvals, queries } = build();
     await expect(
       approvals.findAllPaginated(undefined, { page: 1, limit: 10, sortBy: INJECTION, sortOrder: 'ASC' })
     ).rejects.toThrow('Недопустимое поле сортировки');
-    expect(qb.orderBy).not.toHaveBeenCalled();
+    expect(queries).toHaveLength(0);
   });
 });
