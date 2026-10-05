@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { ProjectFreeDecisionGenerateDocumentInputDTO } from '../../document/documents-dto/project-free-decision-document.dto';
 import { Throttle } from '@nestjs/throttler';
@@ -23,8 +23,8 @@ export class FreeDecisionResolver {
     description: 'Сгенерировать документ проекта свободного решения',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('FreeDecision', 'propose')
   async generateProjectOfFreeDecision(
     @Args('data', { type: () => ProjectFreeDecisionGenerateDocumentInputDTO })
     data: ProjectFreeDecisionGenerateDocumentInputDTO,
@@ -39,8 +39,8 @@ export class FreeDecisionResolver {
     description: 'Сгенерировать протокол решения по предложенной повестке',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('FreeDecision', 'generate')
   async generateFreeDecision(
     @Args('data', { type: () => FreeDecisionGenerateDocumentInputDTO })
     data: FreeDecisionGenerateDocumentInputDTO,
@@ -56,8 +56,8 @@ export class FreeDecisionResolver {
     description:
       'Опубликовать предложенную повестку и проект решения для голосования совета. Возвращает созданный пункт повестки (или null, если он ещё не проиндексирован) для немедленного отображения на фронте.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('FreeDecision', 'propose')
   async publishProjectOfFreeDecision(
     @Args('data', { type: () => PublishProjectFreeDecisionInputDTO })
     data: PublishProjectFreeDecisionInputDTO
@@ -70,8 +70,8 @@ export class FreeDecisionResolver {
     description:
       'Создать повестку дня и проект решения, и сохранить в хранилище для дальнейшей генерации документа и его публикации',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('FreeDecision', 'propose')
   async createProjectOfFreeDecision(
     @Args('data', { type: () => CreateProjectFreeDecisionInputDTO })
     data: CreateProjectFreeDecisionInputDTO

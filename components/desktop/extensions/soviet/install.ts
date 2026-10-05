@@ -31,7 +31,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('soviet.install.title'),
           icon: 'fa-regular fa-circle',
-          roles: ['chairman', 'member'],
+          requires: 'Agenda:read',
         },
         path: '/:coopname/soviet',
         name: 'soviet',
@@ -43,7 +43,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.agendaTitle'),
               icon: 'fa-solid fa-check-to-slot',
-              roles: ['chairman', 'member'],
+              requires: 'Agenda:read',
             },
           },
           {
@@ -53,7 +53,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.participantsRegistryTitle'),
               icon: 'fa-solid fa-users',
-              roles: ['chairman', 'member'],
+              requires: 'Participant:read:all',
             },
           },
           {
@@ -65,7 +65,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(ParticipantDetailsPage),
             meta: {
               title: t('soviet.install.participantTitle'),
-              roles: ['chairman', 'member'],
+              requires: 'Participant:read:all',
               hidden: true,
               menuKey: 'participants',
             },
@@ -78,7 +78,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           //   meta: {
           //     title: 'Персонал',
           //     icon: 'fa-solid fa-user-shield',
-          //     roles: ['chairman'],
+          //     requires: 'Personnel:read',
           //   },
           // },
           {
@@ -88,7 +88,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.documentsRegistryTitle'),
               icon: 'fa-solid fa-file-invoice',
-              roles: ['chairman', 'member'],
+              requires: 'Document:read:all',
             },
             children: [
               {
@@ -100,7 +100,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 component: markRaw(DocumentTemplatesPage),
                 meta: {
                   title: t('soviet.install.documentTemplatesTitle'),
-                  roles: ['chairman', 'member'],
+                  requires: 'DocumentTemplate:read',
                   hidden: true,
                 },
               },
@@ -111,7 +111,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 component: markRaw(DocumentDetailsPage),
                 meta: {
                   title: t('soviet.install.documentTitle'),
-                  roles: ['chairman', 'member'],
+                  requires: 'Document:read:all',
                   hidden: true,
                 },
               },
@@ -124,7 +124,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.paymentsRegistryTitle'),
               icon: 'fa-solid fa-file-invoice',
-              roles: ['chairman', 'member'],
+              requires: 'Payment:read:all',
             },
           },
           {
@@ -139,7 +139,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.expensesRegistryTitle'),
               icon: 'receipt_long',
-              roles: ['chairman', 'member'],
+              requires: 'Expense:read:all',
             },
           },
           {
@@ -149,7 +149,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.meetsRegistryTitle'),
               icon: 'fa-solid fa-users-between-lines',
-              roles: ['chairman', 'member'],
+              requires: 'Meet:create',
             },
             children: [
               {
@@ -166,7 +166,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('soviet.install.cooperativesRegistryTitle'),
               icon: 'fa-solid fa-handshake',
-              roles: ['chairman', 'member'],
+              requires: 'Union:read',
               conditions: 'coopname === "voskhod"',
               requiresAuth: true,
             },
