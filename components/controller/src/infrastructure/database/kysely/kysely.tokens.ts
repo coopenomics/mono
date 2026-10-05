@@ -1,7 +1,8 @@
 import type { Kysely } from 'kysely';
 import type { DB } from './database.types';
 
-/** Запросы к основной базе кооператива через Kysely. */
-export const KYSELY = Symbol.for('Controller.Database.Kysely');
+/** Токен общий с расширениями — живёт в каркасе расширения. */
+export { KYSELY } from '@coopenomics/extension-kit';
 
+/** Kysely со всеми таблицами основной базы — для хранилищ ядра. */
 export type Database = Kysely<DB>;

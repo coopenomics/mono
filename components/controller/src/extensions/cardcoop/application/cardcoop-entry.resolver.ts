@@ -10,7 +10,7 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopEntryService } from '../entry/entry.service';
 import { CardcoopDisclosureIntakeService } from '../entry/disclosure-intake.service';
-import type { CardcoopEntrySessionTypeormEntity } from '../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+import type { CardcoopEntrySessionRecord } from '../infrastructure/records/cardcoop-entry-session.record';
 import {
   CardcoopEntryDTO,
   CardcoopEntryInputDTO,
@@ -92,7 +92,7 @@ export class CardcoopEntryResolver {
    * отдельным запросом ей неоткуда, а без него человеку, ждущему согласия, некуда нажать —
    * кабинет карты открыт не был, он пришёл переходом (3B5-55).
    */
-  private toDto(session: CardcoopEntrySessionTypeormEntity): CardcoopEntryDTO {
+  private toDto(session: CardcoopEntrySessionRecord): CardcoopEntryDTO {
     return {
       id: session.id,
       outcome: session.outcome,

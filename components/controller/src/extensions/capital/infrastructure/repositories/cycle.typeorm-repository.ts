@@ -1,19 +1,18 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_CYCLE_STORE } from '../database/capital-stores';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { CycleRepository } from '../../domain/repositories/cycle.repository';
 import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
 import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
 import { CycleMapper } from '../mappers/cycle.mapper';
 import { CycleStatus } from '../../domain/enums/cycle-status.enum';
 import type { CycleFilterInputDTO } from '../../application/dto/generation/cycle-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CycleTypeormRepository implements CycleRepository {
   constructor(
-    @InjectRepository(CycleTypeormEntity)
-    private readonly cycleTypeormRepository: Repository<CycleTypeormEntity>
+    @Inject(CAPITAL_CYCLE_STORE)
+    private readonly cycleTypeormRepository: TableStore<CycleTypeormEntity>
   ) {}
 
   async create(cycle: CycleDomainEntity): Promise<CycleDomainEntity> {
@@ -23,7 +22,7 @@ export class CycleTypeormRepository implements CycleRepository {
   }
 
   async findById(_id: string): Promise<CycleDomainEntity | null> {
-    const entity = await this.cycleTypeormRepository.findOne({ where: { _id } });
+    const entity = await this.cycleTypeormRepository.findOne({ _id });
     return entity ? CycleMapper.toDomain(entity) : null;
   }
 
@@ -33,38 +32,31 @@ export class CycleTypeormRepository implements CycleRepository {
   }
 
   async findByStatus(status: CycleStatus): Promise<CycleDomainEntity[]> {
-    const entities = await this.cycleTypeormRepository.find({ where: { status } });
+    const entities = await this.cycleTypeormRepository.find({ status });
     return entities.map(CycleMapper.toDomain);
   }
 
   async findActiveCycles(): Promise<CycleDomainEntity[]> {
-    const entities = await this.cycleTypeormRepository.find({
-      where: { status: CycleStatus.ACTIVE },
-    });
+    const entities = await this.cycleTypeormRepository.find({ status: CycleStatus.ACTIVE });
     return entities.map(CycleMapper.toDomain);
   }
 
   async update(entity: CycleDomainEntity): Promise<CycleDomainEntity> {
     const typeormEntity = CycleMapper.toEntity(entity);
-    await this.cycleTypeormRepository.update(entity._id, typeormEntity);
-    const updatedEntity = await this.cycleTypeormRepository.findOne({
-      where: { _id: entity._id },
-    });
+    await this.cycleTypeormRepository.update({ _id: entity._id }, typeormEntity);
+    const updatedEntity = await this.cycleTypeormRepository.findOne({ _id: entity._id });
     return updatedEntity ? CycleMapper.toDomain(updatedEntity) : entity;
   }
 
   async delete(_id: string): Promise<void> {
-    await this.cycleTypeormRepository.delete(_id);
+    await this.cycleTypeormRepository.delete({ _id: _id });
   }
 
   /**
    * Найти цикл с задачами
    */
   async findByIdWithIssues(cycleId: string): Promise<CycleDomainEntity | null> {
-    const entity = await this.cycleTypeormRepository.findOne({
-      where: { _id: cycleId },
-      relations: ['issues'],
-    });
+    const entity = await this.cycleTypeormRepository.findOne({ _id: cycleId });
     return entity ? CycleMapper.toDomain(entity) : null;
   }
 
@@ -72,11 +64,7 @@ export class CycleTypeormRepository implements CycleRepository {
    * Найти активный цикл с задачами
    */
   async findActiveCycleWithIssues(): Promise<CycleDomainEntity | null> {
-    const entity = await this.cycleTypeormRepository.findOne({
-      where: { status: CycleStatus.ACTIVE },
-      relations: ['issues'],
-      order: { _created_at: 'DESC' },
-    });
+    const entity = await this.cycleTypeormRepository.findOne({ status: CycleStatus.ACTIVE }, { order: { _created_at: 'DESC' } });
     return entity ? CycleMapper.toDomain(entity) : null;
   }
 
@@ -116,21 +104,16 @@ export class CycleTypeormRepository implements CycleRepository {
     }
 
     // Получаем общее количество записей
-    const totalCount = await this.cycleTypeormRepository.count({ where });
+    const totalCount = await this.cycleTypeormRepository.count(where);
 
     // Получаем записи с пагинацией
     const orderBy: any = {};
     // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
     // ORDER BY и роняло список ошибкой 500 (C28-80).
-    const sortColumn = resolveSortColumn(this.cycleTypeormRepository, validatedOptions.sortBy, 'start_date');
+    const sortColumn = this.cycleTypeormRepository.sortField(validatedOptions.sortBy, 'start_date');
     orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
-    const entities = await this.cycleTypeormRepository.find({
-      where,
-      skip: offset,
-      take: limit,
-      order: orderBy,
-    });
+    const entities = await this.cycleTypeormRepository.find(where, { order: orderBy, limit: limit, offset: offset });
 
     // Преобразуем в доменные сущности
     const items = entities.map((entity) => CycleMapper.toDomain(entity));

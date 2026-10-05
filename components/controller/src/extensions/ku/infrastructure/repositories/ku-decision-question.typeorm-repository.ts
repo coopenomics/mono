@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { KU_DECISION_QUESTION_STORE } from '../database/ku-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { KuDecisionQuestionRepository } from '../../domain/repositories/ku-decision-question.repository';
 import { KuDecisionQuestionDomainEntity } from '../../domain/entities/ku-decision-question.entity';
 import { KuDecisionQuestionTypeormEntity } from '../entities/ku-decision-question.typeorm-entity';
@@ -14,15 +14,14 @@ import type {
 
 @Injectable()
 export class KuDecisionQuestionTypeormRepository
-  extends BaseBlockchainRepository<KuDecisionQuestionDomainEntity, KuDecisionQuestionTypeormEntity>
+  extends BaseChainRepository<KuDecisionQuestionDomainEntity, KuDecisionQuestionTypeormEntity>
   implements KuDecisionQuestionRepository, IBlockchainSyncRepository<KuDecisionQuestionDomainEntity>
 {
   constructor(
-    @InjectRepository(KuDecisionQuestionTypeormEntity)
-    repository: Repository<KuDecisionQuestionTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(KU_DECISION_QUESTION_STORE) repository: TableStore<KuDecisionQuestionTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -44,18 +43,15 @@ export class KuDecisionQuestionTypeormRepository
   }
 
   async findByDecisionId(coopname: string, decisionId: number): Promise<KuDecisionQuestionDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname, decision_id: decisionId },
-      order: { number: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname, decision_id: decisionId }, { order: { number: 'ASC' } });
     return entities.map((entity) => KuDecisionQuestionMapper.toDomain(entity));
   }
 
   async update(entity: KuDecisionQuestionDomainEntity): Promise<KuDecisionQuestionDomainEntity> {
     const updateData = KuDecisionQuestionMapper.toUpdateEntity(entity);
-    await this.repository.update(entity._id, updateData);
+    await this.repository.update({ _id: entity._id }, updateData);
 
-    const updatedEntity = await this.repository.findOne({ where: { _id: entity._id } });
+    const updatedEntity = await this.repository.findOne({ _id: entity._id });
     if (!updatedEntity) {
       // i18n-ignore: внутренний инвариант согласованности после обновления записи в БД, до пайщика не доходит
       throw new Error(`Вопрос повестки ${entity.id} не найден после обновления`);

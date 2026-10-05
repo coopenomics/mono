@@ -1,18 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_METRIC_CONTRIBUTION_STORE } from '../database/capital-stores';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { MetricContributionRepository } from '../../domain/repositories/metric-contribution.repository';
 import { MetricContributionDomainEntity } from '../../domain/entities/metric-contribution.entity';
 import { MetricContributionSource } from '../../domain/enums/metric-contribution-source.enum';
 import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
 import { MetricContributionMapper } from '../mappers/metric-contribution.mapper';
-import { PaginationInputDTO, PaginationResult, PaginationUtils } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MetricContributionTypeormRepository implements MetricContributionRepository {
   constructor(
-    @InjectRepository(MetricContributionTypeormEntity)
-    private readonly repo: Repository<MetricContributionTypeormEntity>
+    @Inject(CAPITAL_METRIC_CONTRIBUTION_STORE)
+    private readonly repo: TableStore<MetricContributionTypeormEntity>
   ) {}
 
   async create(contribution: MetricContributionDomainEntity): Promise<MetricContributionDomainEntity> {
@@ -34,7 +33,7 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
 
   async sumDeltaByMetricHash(metricHash: string): Promise<number> {
     const result = await this.repo
-      .createQueryBuilder('c')
+      .sqlBuilder('c')
       .select('COALESCE(SUM(c.delta), 0)', 'total')
       .where('c.metric_hash = :metricHash', { metricHash: metricHash.toLowerCase() })
       .getRawOne<{ total: string }>();
@@ -48,7 +47,7 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
     }
     const normalized = metricHashes.map((h) => h.toLowerCase());
     const rows = await this.repo
-      .createQueryBuilder('c')
+      .sqlBuilder('c')
       .select('c.metric_hash', 'metric_hash')
       .addSelect('COALESCE(SUM(c.delta), 0)', 'total')
       .where('c.metric_hash IN (:...hashes)', { hashes: normalized })
@@ -74,13 +73,8 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
 
     const where = { metric_hash: metricHash.toLowerCase() };
-    const totalCount = await this.repo.count({ where });
-    const entities = await this.repo.find({
-      where,
-      skip: offset,
-      take: limit,
-      order: { occurred_at: 'DESC' },
-    });
+    const totalCount = await this.repo.count(where);
+    const entities = await this.repo.find(where, { order: { occurred_at: 'DESC' }, limit: limit, offset: offset });
     return PaginationUtils.createPaginationResult(
       entities.map(MetricContributionMapper.toDomain),
       totalCount,
@@ -91,16 +85,13 @@ export class MetricContributionTypeormRepository implements MetricContributionRe
   async findChronologicalByMetricHash(
     metricHash: string
   ): Promise<MetricContributionDomainEntity[]> {
-    const entities = await this.repo.find({
-      where: { metric_hash: metricHash.toLowerCase() },
-      order: { occurred_at: 'ASC' },
-    });
+    const entities = await this.repo.find({ metric_hash: metricHash.toLowerCase() }, { order: { occurred_at: 'ASC' } });
     return entities.map(MetricContributionMapper.toDomain);
   }
 
   async sumIssueDoneDeltaByIssueAndMetric(issueHash: string, metricHash: string): Promise<number> {
     const result = await this.repo
-      .createQueryBuilder('c')
+      .sqlBuilder('c')
       .select('COALESCE(SUM(c.delta), 0)', 'total')
       .where('c.issue_hash = :issueHash', { issueHash: issueHash.toLowerCase() })
       .andWhere('c.metric_hash = :metricHash', { metricHash: metricHash.toLowerCase() })

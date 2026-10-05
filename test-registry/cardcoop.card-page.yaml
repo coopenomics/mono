@@ -23,6 +23,7 @@ title: Карта кооператора в столе кооператива (S
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/application/cardcoop-card.service.ts
     - components/controller/src/extensions/cardcoop/application/cardcoop-card.resolver.ts
     - components/controller/src/extensions/cardcoop/application/dto/**

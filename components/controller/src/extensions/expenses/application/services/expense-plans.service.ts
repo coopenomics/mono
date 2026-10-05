@@ -1,8 +1,8 @@
+import { TableStore, lessOrEqual, notEqual } from '@coopenomics/extension-kit';
+import { EXPENSES_PLAN_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { LessThanOrEqual, Not, Repository } from 'typeorm';
 import { BranchContract } from 'cooptypes';
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { ExpensePlanEntity } from '../../infrastructure/entities/expense-plan.entity';
@@ -72,16 +72,13 @@ export class ExpensePlansService {
   private isSpawning = false;
 
   constructor(
-    @InjectRepository(ExpensePlanEntity)
-    private readonly planRepo: Repository<ExpensePlanEntity>,
+    @Inject(EXPENSES_PLAN_STORE)
+    private readonly planRepo: TableStore<ExpensePlanEntity>,
     @Inject(CHAIN_PORT) private readonly blockchainService: IChainPort
   ) {}
 
   async listPlans(coopname: string, braname?: string | null): Promise<ExpensePlanView[]> {
-    const rows = await this.planRepo.find({
-      where: braname ? { coopname, braname } : { coopname },
-      order: { dueDate: 'ASC', id: 'ASC' },
-    });
+    const rows = await this.planRepo.find(braname ? { coopname, braname } : { coopname }, { order: { dueDate: 'ASC', id: 'ASC' } });
     return rows.map((r) => this.toView(r));
   }
 
@@ -139,7 +136,7 @@ export class ExpensePlansService {
   }
 
   async deletePlan(coopname: string, initiator: string, planId: number): Promise<void> {
-    const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
+    const row = await this.planRepo.findOne({ id: planId, coopname });
     if (!row) {
       throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
@@ -169,7 +166,7 @@ export class ExpensePlansService {
    * запущена, и повторно её не запустить.
    */
   async attachProposal(coopname: string, planId: number, proposalHash: string): Promise<void> {
-    const row = await this.planRepo.findOne({ where: { id: planId, coopname } });
+    const row = await this.planRepo.findOne({ id: planId, coopname });
     if (!row) {
       throw DomainError.notFound('EXPENSES_PLAN_NOT_FOUND');
     }
@@ -192,7 +189,7 @@ export class ExpensePlansService {
     if (status !== ExpenseProposalStatus.CLOSED && status !== ExpenseProposalStatus.DECLINED) return;
 
     const hash = proposal_hash.toLowerCase();
-    const row = await this.planRepo.findOne({ where: { coopname, proposalHash: hash } });
+    const row = await this.planRepo.findOne({ coopname, proposalHash: hash });
     if (!row) return;
 
     if (status === ExpenseProposalStatus.CLOSED) {
@@ -218,13 +215,10 @@ export class ExpensePlansService {
     this.isSpawning = true;
     try {
       const due = await this.planRepo.find({
-        where: {
-          recurrence: Not(ExpensePlanRecurrence.NONE),
+          recurrence: notEqual(ExpensePlanRecurrence.NONE),
           nextSpawned: false,
-          dueDate: LessThanOrEqual(new Date()),
-        },
-        order: { id: 'ASC' },
-      });
+          dueDate: lessOrEqual(new Date()),
+        }, { order: { id: 'ASC' } });
 
       for (const row of due) {
         try {

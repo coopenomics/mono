@@ -9,11 +9,11 @@
  * состояние запоминается отпечатком. Так ротация секрета клиента или смена адреса доезжают
  * сами, а неизменившаяся установка не стучится в сеть на каждом рестарте.
  */
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_CONNECT_STATE_STORE } from '../infrastructure/database/cardcoop-stores';
 import { createHash } from 'node:crypto';
 import { retryWithCurrentApiUrl } from '../infrastructure/current-api-url-retry';
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import canonicalize from 'canonicalize';
 import {
   ACCOUNT_PORT,
@@ -25,7 +25,7 @@ import {
 } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
-import { CardcoopConnectStateTypeormEntity } from '../infrastructure/entities/cardcoop-connect-state.typeorm-entity';
+import { CardcoopConnectStateRecord } from '../infrastructure/records/cardcoop-connect-state.record';
 import { CardcoopRegistryDocumentType, type CardcoopConnectPayload } from './registry.types';
 import { t } from '../i18n';
 
@@ -54,8 +54,8 @@ export class CardcoopConnectService implements OnModuleDestroy {
   private retryTimer: NodeJS.Timeout | null = null;
 
   constructor(
-    @InjectRepository(CardcoopConnectStateTypeormEntity)
-    private readonly state: Repository<CardcoopConnectStateTypeormEntity>,
+    @Inject(CARDCOOP_CONNECT_STATE_STORE)
+    private readonly state: TableStore<CardcoopConnectStateRecord>,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(INTEGRATION_SETTINGS_PORT) private readonly integrations: IIntegrationSettingsPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
@@ -101,7 +101,7 @@ export class CardcoopConnectService implements OnModuleDestroy {
       if (!stable) return;
 
       const hash = createHash('sha256').update(canonicalize(stable) as string, 'utf8').digest('hex');
-      const known = await this.state.findOne({ where: { id: SELF } });
+      const known = await this.state.findOne({ id: SELF });
       // Отпечатка мало: реквизиты клиента «Входа с CardCOOP» сеть выдаёт только в ответе на
       // подключение, и если они у нас не осели (ответ потерялся, запись завели до story 9.2),
       // вход по карте молча не работал бы до следующей правки параметров. Нет реквизитов —
@@ -177,7 +177,7 @@ export class CardcoopConnectService implements OnModuleDestroy {
     apiUrl: string,
     stable: Omit<CardcoopConnectPayload, 'issued_at' | 'chain_id'>,
     hash: string,
-    known: CardcoopConnectStateTypeormEntity | null
+    known: CardcoopConnectStateRecord | null
   ): Promise<void> {
     const envelope = await this.attestationService.signDocument({
       ...stable,

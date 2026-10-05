@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_PROCESS_INSTANCE_STORE } from '../../infrastructure/database/capital-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProcessInstanceTypeormEntity } from '../entities/process-instance.entity';
 import type { ProcessInstanceRepository } from '../../domain/repositories/process.repository';
 import type { ProcessInstanceDomainEntity } from '../../domain/entities/process-instance.entity';
@@ -22,8 +22,8 @@ function toDomain(entity: ProcessInstanceTypeormEntity): ProcessInstanceDomainEn
 @Injectable()
 export class ProcessInstanceTypeormRepository implements ProcessInstanceRepository {
   constructor(
-    @InjectRepository(ProcessInstanceTypeormEntity)
-    private readonly repo: Repository<ProcessInstanceTypeormEntity>,
+    @Inject(CAPITAL_PROCESS_INSTANCE_STORE)
+    private readonly repo: TableStore<ProcessInstanceTypeormEntity>,
   ) {}
 
   async create(data: Partial<ProcessInstanceDomainEntity>): Promise<ProcessInstanceDomainEntity> {
@@ -33,22 +33,22 @@ export class ProcessInstanceTypeormRepository implements ProcessInstanceReposito
   }
 
   async findById(id: string): Promise<ProcessInstanceDomainEntity | null> {
-    const entity = await this.repo.findOneBy({ id });
+    const entity = await this.repo.findOne({ id });
     return entity ? toDomain(entity) : null;
   }
 
   async findByTemplateId(templateId: string): Promise<ProcessInstanceDomainEntity[]> {
-    const entities = await this.repo.find({ where: { template_id: templateId }, order: { started_at: 'DESC' } });
+    const entities = await this.repo.find({ template_id: templateId }, { order: { started_at: 'DESC' } });
     return entities.map(toDomain);
   }
 
   async findByProjectHash(projectHash: string): Promise<ProcessInstanceDomainEntity[]> {
-    const entities = await this.repo.find({ where: { project_hash: projectHash }, order: { started_at: 'DESC' } });
+    const entities = await this.repo.find({ project_hash: projectHash }, { order: { started_at: 'DESC' } });
     return entities.map(toDomain);
   }
 
   async update(id: string, data: Partial<ProcessInstanceDomainEntity>): Promise<ProcessInstanceDomainEntity> {
-    await this.repo.update(id, data as any);
+    await this.repo.update({ id }, data as any);
     return (await this.findById(id))!;
   }
 }

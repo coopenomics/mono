@@ -1,11 +1,8 @@
 // i18n-ignore-file: отчёт о схеме для журнала деплоя и оператора, до пайщика не доходит
-// Реестр расширений (состав сущностей и их миграций) подключает database-migrations.
-import { DataSource } from 'typeorm';
+// Реестр расширений (состав их миграций) подключает database-migrations.
 import config from '~/config/config';
-import {
-  DATABASE_MIGRATIONS_TABLE,
-  mainDataSourceOptions,
-} from '~/infrastructure/database/typeorm/data-source.options';
+import { createMainPool } from '~/infrastructure/database/postgres/postgres-connection';
+import { DATABASE_MIGRATIONS_TABLE, pendingSchemaMigrations } from '~/infrastructure/database/schema/schema-migrations';
 import { runDatabaseMigrations } from './database-migrations';
 
 export interface SchemaReport {
@@ -14,8 +11,6 @@ export interface SchemaReport {
   executed: string[];
   /** Миграции этой версии, которых в базе ещё нет. */
   pending: string[];
-  /** SQL, которым TypeORM привёл бы базу к сущностям этой версии. */
-  drift: string[];
 }
 
 /**
@@ -38,20 +33,13 @@ export async function reportSchema(options: { database?: string; apply?: boolean
     await runDatabaseMigrations(database);
   }
 
-  const dataSource = new DataSource(mainDataSourceOptions(database));
-  await dataSource.initialize();
+  const pool = createMainPool(database);
   try {
-    const rows: Array<{ name: string }> = await dataSource
-      .query(`SELECT name FROM "${DATABASE_MIGRATIONS_TABLE}" ORDER BY id`)
-      .catch(() => []);
-    const executed = rows.map((row) => row.name);
-    const pending = dataSource.migrations
-      .map((migration) => migration.name ?? migration.constructor.name)
-      .filter((name) => !executed.includes(name));
-    const log = await dataSource.driver.createSchemaBuilder().log();
-    return { database, executed, pending, drift: log.upQueries.map((query) => query.query) };
+    const pending = await pendingSchemaMigrations(pool);
+    const rows = await pool.query<{ name: string }>(`SELECT name FROM "${DATABASE_MIGRATIONS_TABLE}" ORDER BY id`);
+    return { database, executed: rows.rows.map((row) => row.name), pending };
   } finally {
-    await dataSource.destroy();
+    await pool.end();
   }
 }
 
@@ -60,8 +48,6 @@ export function formatSchemaReport(report: SchemaReport): string {
   const lines = [
     `База ${report.database}: применено миграций схемы ${report.executed.length}, ждут применения ${report.pending.length}`,
     ...report.pending.map((name) => `  ждёт: ${name}`),
-    `Отличия базы от сущностей этой версии: ${report.drift.length}`,
-    ...report.drift.map((sql) => `  ${sql}`),
   ];
   return lines.join('\n');
 }

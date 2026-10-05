@@ -1,3 +1,4 @@
 node_modules
 bin
 src/infrastructure/database/kysely/database.types.ts
+src/extensions/*/infrastructure/database/*.database.types.ts

@@ -14,7 +14,7 @@ title: Выход пайщика из кооператива — заявлен�
 sources:
   backend:
     - components/controller/src/application/membership-exit/**/*.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/membership-exit-request.entity.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/membership-exit-request.kysely-repository.ts
     - components/controller/src/application/document/documents-dto/membership-exit-*.ts
     - components/controller/src/domain/account/services/participant-status-sync.service.ts
 
@@ -114,6 +114,16 @@ cases:
     kind: happy
     scenario: пайщик подтверждает выход по ссылке из письма
     expect: заявление уходит в цепь (registrator::exitcoop), черновик и токен удаляются, статус PENDING
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
+  - id: mem.exit.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик подаёт заявление на выход и отменяет его; открыты подписки на ленту изменений
+    expect: >
+      сигнал по таблице заявлений с блоком 0 и ключом строки приходит пайщику и
+      совету и при подаче, и при отмене; чужому пайщику — нет
     test: components/api-tests/src/membership/membership.exit.test.ts
     status: written
 

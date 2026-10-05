@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { Kysely } from 'kysely';
+import { DomainError, inTransaction, rawQuery, type TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_CONTENT_REVISION_STORE } from '../../infrastructure/database/capital-stores';
 import { createHash } from 'crypto';
 import { ContentRevisionTypeormEntity } from '../../infrastructure/entities/content-revision.typeorm-entity';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
@@ -11,7 +12,6 @@ import {
   normalizeDescription,
   type ContentSnapshot,
 } from '../../domain/utils/content-merge.util';
-import { DomainError } from '@coopenomics/extension-kit';
 
 /** Таблица и колонка-ключ каждой сущности с историей редакций. */
 const ENTITY_TABLES: Record<ContentEntityType, { table: string; hashColumn: string; hasFormat: boolean }> = {
@@ -21,6 +21,10 @@ const ENTITY_TABLES: Record<ContentEntityType, { table: string; hashColumn: stri
 };
 
 export const SYSTEM_AUTHOR = 'system';
+
+/** Соединение транзакции: запросы внутри неё идут только через него. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Transaction = Kysely<any>;
 
 export interface PrepareContentWriteInput {
   entity_type: ContentEntityType;
@@ -70,13 +74,13 @@ export class ContentRevisionService {
   private readonly logger = new Logger(ContentRevisionService.name);
 
   constructor(
-    @InjectRepository(ContentRevisionTypeormEntity)
-    private readonly revisionRepository: Repository<ContentRevisionTypeormEntity>
+    @Inject(CAPITAL_CONTENT_REVISION_STORE)
+    private readonly revisionRepository: TableStore<ContentRevisionTypeormEntity>
   ) {}
 
   /** Готовит запись содержимого: блокировка, ленивый первичный снимок, слияние, новая редакция. */
   async prepareWrite(input: PrepareContentWriteInput): Promise<PreparedContentWrite> {
-    return this.revisionRepository.manager.transaction(async (em) => {
+    return inTransaction(this.revisionRepository.kysely, async (em) => {
       const current = await this.lockRow(em, input.entity_type, input.entity_hash);
       const currentRev = await this.ensureSeeded(em, input.entity_type, input.entity_hash, current);
 
@@ -98,9 +102,7 @@ export class ContentRevisionService {
         if (baseRev > currentRev) {
           throw DomainError.internal('CAPITAL_CONTENT_REVISION_STALE', { baseRev, currentRev, entityType: input.entity_type, entityHash: input.entity_hash });
         }
-        const baseRow = await em.findOne(ContentRevisionTypeormEntity, {
-          where: { entity_type: input.entity_type, entity_hash: input.entity_hash, rev: baseRev },
-        });
+        const baseRow = await this.revisionRepository.on(em).findOne({ entity_type: input.entity_type, entity_hash: input.entity_hash, rev: baseRev });
         const base: ContentSnapshot | null = baseRow
           ? { title: baseRow.title, description: normalizeDescription(baseRow.description) }
           : null;
@@ -154,7 +156,7 @@ export class ContentRevisionService {
 
       const nextRev = currentRev + 1;
       await this.writeRow(em, input.entity_type, input.entity_hash, result, nextRev);
-      await em.insert(ContentRevisionTypeormEntity, {
+      await this.revisionRepository.on(em).insert({
         entity_type: input.entity_type,
         entity_hash: input.entity_hash,
         rev: nextRev,
@@ -185,7 +187,7 @@ export class ContentRevisionService {
    * снимок `rev` удаляется, строка возвращается к `rev - 1`.
    */
   async rollbackWrite(entityType: ContentEntityType, entityHash: string, rev: number): Promise<void> {
-    await this.revisionRepository.manager.transaction(async (em) => {
+    await inTransaction(this.revisionRepository.kysely, async (em) => {
       const current = await this.lockRow(em, entityType, entityHash);
       if (current.content_rev !== rev) {
         this.logger.warn(
@@ -193,9 +195,7 @@ export class ContentRevisionService {
         );
         return;
       }
-      const prev = await em.findOne(ContentRevisionTypeormEntity, {
-        where: { entity_type: entityType, entity_hash: entityHash, rev: rev - 1 },
-      });
+      const prev = await this.revisionRepository.on(em).findOne({ entity_type: entityType, entity_hash: entityHash, rev: rev - 1 });
       if (!prev) return;
       await this.writeRow(
         em,
@@ -204,7 +204,7 @@ export class ContentRevisionService {
         { title: prev.title, description: normalizeDescription(prev.description) },
         rev - 1
       );
-      await em.delete(ContentRevisionTypeormEntity, { entity_type: entityType, entity_hash: entityHash, rev });
+      await this.revisionRepository.on(em).delete({ entity_type: entityType, entity_hash: entityHash, rev });
     });
   }
 
@@ -218,22 +218,21 @@ export class ContentRevisionService {
     origin: ContentRevisionOrigin,
     author: string = SYSTEM_AUTHOR
   ): Promise<void> {
-    await this.revisionRepository.manager.transaction(async (em) => {
+    await inTransaction(this.revisionRepository.kysely, async (em) => {
       const current = await this.lockRow(em, entityType, entityHash);
       const currentRev = await this.ensureSeeded(em, entityType, entityHash, current);
-      const last = await em.findOne(ContentRevisionTypeormEntity, {
-        where: { entity_type: entityType, entity_hash: entityHash, rev: currentRev },
-      });
+      const last = await this.revisionRepository.on(em).findOne({ entity_type: entityType, entity_hash: entityHash, rev: currentRev });
       const snapshot: ContentSnapshot = { title: current.title, description: current.description };
       if (last && last.title === snapshot.title && normalizeDescription(last.description) === snapshot.description) {
         return;
       }
       const nextRev = currentRev + 1;
-      await em.query(
+      await rawQuery(
+        em,
         `UPDATE ${ENTITY_TABLES[entityType].table} SET content_rev = $1 WHERE ${ENTITY_TABLES[entityType].hashColumn} = $2`,
         [nextRev, entityHash]
       );
-      await em.insert(ContentRevisionTypeormEntity, {
+      await this.revisionRepository.on(em).insert({
         entity_type: entityType,
         entity_hash: entityHash,
         rev: nextRev,
@@ -256,7 +255,7 @@ export class ContentRevisionService {
     author: string,
     origin: ContentRevisionOrigin
   ): Promise<void> {
-    await this.revisionRepository.manager.transaction(async (em) => {
+    await inTransaction(this.revisionRepository.kysely, async (em) => {
       const current = await this.lockRow(em, entityType, entityHash);
       await this.ensureSeeded(em, entityType, entityHash, current, author, origin);
     });
@@ -264,10 +263,7 @@ export class ContentRevisionService {
 
   async listRevisions(entityType: ContentEntityType, entityHash: string): Promise<ContentRevisionTypeormEntity[]> {
     await this.ensureSeededStandalone(entityType, entityHash);
-    return this.revisionRepository.find({
-      where: { entity_type: entityType, entity_hash: entityHash },
-      order: { rev: 'DESC' },
-    });
+    return this.revisionRepository.find({ entity_type: entityType, entity_hash: entityHash }, { order: { rev: 'DESC' } });
   }
 
   async getRevision(
@@ -276,12 +272,13 @@ export class ContentRevisionService {
     rev: number
   ): Promise<ContentRevisionTypeormEntity | null> {
     await this.ensureSeededStandalone(entityType, entityHash);
-    return this.revisionRepository.findOne({ where: { entity_type: entityType, entity_hash: entityHash, rev } });
+    return this.revisionRepository.findOne({ entity_type: entityType, entity_hash: entityHash, rev });
   }
 
   async getCurrentRev(entityType: ContentEntityType, entityHash: string): Promise<number> {
     const { table, hashColumn } = ENTITY_TABLES[entityType];
-    const rows: Array<{ content_rev: number }> = await this.revisionRepository.manager.query(
+    const rows = await rawQuery<{ content_rev: number }>(
+      this.revisionRepository.kysely,
       `SELECT content_rev FROM ${table} WHERE ${hashColumn} = $1`,
       [entityHash]
     );
@@ -299,14 +296,14 @@ export class ContentRevisionService {
     }
   }
 
-  private async lockRow(em: EntityManager, entityType: ContentEntityType, entityHash: string): Promise<LockedRow> {
+  private async lockRow(em: Transaction, entityType: ContentEntityType, entityHash: string): Promise<LockedRow> {
     const { table, hashColumn, hasFormat } = ENTITY_TABLES[entityType];
     const formatCol = hasFormat ? 'content_format' : 'NULL AS content_format';
-    const rows: Array<{ title: string; description: string | null; content_rev: number; content_format: string | null }> =
-      await em.query(
-        `SELECT title, description, content_rev, ${formatCol} FROM ${table} WHERE ${hashColumn} = $1 FOR UPDATE`,
-        [entityHash]
-      );
+    const rows = await rawQuery<{ title: string; description: string | null; content_rev: number; content_format: string | null }>(
+      em,
+      `SELECT title, description, content_rev, ${formatCol} FROM ${table} WHERE ${hashColumn} = $1 FOR UPDATE`,
+      [entityHash]
+    );
     const row = rows[0];
     if (!row) {
       throw DomainError.notFound('CAPITAL_CONTENT_ENTITY_NOT_FOUND', { entityType, entityHash });
@@ -321,7 +318,7 @@ export class ContentRevisionService {
 
   /** Если редакций ещё нет (content_rev = 0) — записывает rev 1 из текущего текста. Возвращает актуальный rev. */
   private async ensureSeeded(
-    em: EntityManager,
+    em: Transaction,
     entityType: ContentEntityType,
     entityHash: string,
     current: LockedRow,
@@ -331,8 +328,8 @@ export class ContentRevisionService {
     if (current.content_rev > 0) return current.content_rev;
     const { table, hashColumn } = ENTITY_TABLES[entityType];
     const snapshot: ContentSnapshot = { title: current.title, description: current.description };
-    await em.query(`UPDATE ${table} SET content_rev = 1 WHERE ${hashColumn} = $1`, [entityHash]);
-    await em.insert(ContentRevisionTypeormEntity, {
+    await rawQuery(em, `UPDATE ${table} SET content_rev = 1 WHERE ${hashColumn} = $1`, [entityHash]);
+    await this.revisionRepository.on(em).insert({
       entity_type: entityType,
       entity_hash: entityHash,
       rev: 1,
@@ -350,14 +347,15 @@ export class ContentRevisionService {
   }
 
   private async writeRow(
-    em: EntityManager,
+    em: Transaction,
     entityType: ContentEntityType,
     entityHash: string,
     content: ContentSnapshot,
     rev: number
   ): Promise<void> {
     const { table, hashColumn } = ENTITY_TABLES[entityType];
-    await em.query(
+    await rawQuery(
+        em,
       `UPDATE ${table} SET title = $1, description = $2, content_rev = $3 WHERE ${hashColumn} = $4`,
       [content.title, content.description, rev, entityHash]
     );

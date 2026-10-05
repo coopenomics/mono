@@ -1,6 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Cooperative, Ledger2 } from 'cooptypes';
 import { Workflows } from '@coopenomics/notifications';
 import { config } from '~/config';
@@ -16,7 +14,10 @@ import { IMonoAccount } from '@coopenomics/innercoop';
 import { PAYMENT_METHOD_REPOSITORY, type PaymentMethodRepository } from '~/domain/common/repositories/payment-method.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
-import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/entities/membership-exit-request.entity';
+import {
+  MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
+  type MembershipExitRequestRepository,
+} from '~/domain/membership-exit/repositories/membership-exit-request.repository';
 import { tokenTypes } from '~/types/token.types';
 import { CreateMembershipExitInputDTO } from '../dto/create-membership-exit-input.dto';
 import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
@@ -44,8 +45,8 @@ export class MembershipExitService {
     private readonly paymentMethodRepository: PaymentMethodRepository,
     @Inject(PAYMENT_REPOSITORY)
     private readonly paymentRepository: PaymentRepository,
-    @InjectRepository(MembershipExitRequestEntity)
-    private readonly exitRequestRepository: Repository<MembershipExitRequestEntity>
+    @Inject(MEMBERSHIP_EXIT_REQUEST_REPOSITORY)
+    private readonly exitRequestRepository: MembershipExitRequestRepository
   ) {}
 
   async generateMembershipExitApplication(
@@ -110,9 +111,7 @@ export class MembershipExitService {
     }
 
     // Уже есть заявление, ожидающее подтверждения по email?
-    const existing = await this.exitRequestRepository.findOne({
-      where: { coopname: data.coopname, username: data.username },
-    });
+    const existing = await this.exitRequestRepository.findByMember(data.coopname, data.username);
     if (existing) {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_PENDING_CONFIRMATION');
     }
@@ -120,15 +119,13 @@ export class MembershipExitService {
     const user = await this.userDomainService.getUserByUsername(data.username);
     const confirmToken = await this.tokenApplicationService.generateConfirmExitToken(user.id);
 
-    await this.exitRequestRepository.save(
-      this.exitRequestRepository.create({
-        coopname: data.coopname,
-        username: data.username,
-        exit_hash: data.exit_hash,
-        statement: data.statement as unknown as Record<string, any>,
-        token: confirmToken,
-      })
-    );
+    await this.exitRequestRepository.create({
+      coopname: data.coopname,
+      username: data.username,
+      exit_hash: data.exit_hash,
+      statement: data.statement as unknown as Record<string, unknown>,
+      token: confirmToken,
+    });
 
     const confirmationUrl = `${config.frontend_url}/${config.coopname}/user/membership-exit/confirm?token=${confirmToken}`;
     this.logger.debug(`Ссылка подтверждения выхода (${data.username}): ${confirmationUrl}`);
@@ -163,7 +160,7 @@ export class MembershipExitService {
   async confirmMembershipExit(token: string): Promise<MembershipExitResultDTO> {
     await this.tokenApplicationService.verifyToken({ token, types: [tokenTypes.CONFIRM_EXIT] });
 
-    const request = await this.exitRequestRepository.findOne({ where: { token } });
+    const request = await this.exitRequestRepository.findByToken(token);
     if (!request) {
       throw DomainError.notFound('MEMBERSHIP_EXIT_REQUEST_NOT_FOUND');
     }
@@ -175,7 +172,7 @@ export class MembershipExitService {
       statement: request.statement as any,
     });
 
-    await this.exitRequestRepository.delete({ id: request.id });
+    await this.exitRequestRepository.deleteById(request.id);
     await this.tokenApplicationService.findOneAndDelete(token, tokenTypes.CONFIRM_EXIT);
 
     this.logger.log(
@@ -199,12 +196,12 @@ export class MembershipExitService {
       throw DomainError.forbidden('MEMBERSHIP_EXIT_CANCEL_SELF_ONLY');
     }
 
-    const request = await this.exitRequestRepository.findOne({ where: { coopname, username } });
+    const request = await this.exitRequestRepository.findByMember(coopname, username);
     if (!request) {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_NO_PENDING_REQUEST');
     }
 
-    await this.exitRequestRepository.delete({ id: request.id });
+    await this.exitRequestRepository.deleteById(request.id);
     await this.tokenApplicationService.findOneAndDelete(request.token, tokenTypes.CONFIRM_EXIT);
 
     this.logger.log(`Заявление на выход отменено до подтверждения (username=${username})`);
@@ -231,7 +228,7 @@ export class MembershipExitService {
     }
 
     // Off-chain фаза: заявление подписано, но ещё не подтверждено по email.
-    const pending = await this.exitRequestRepository.findOne({ where: { coopname, username } });
+    const pending = await this.exitRequestRepository.findByMember(coopname, username);
     if (pending) {
       return {
         exit_hash: pending.exit_hash,

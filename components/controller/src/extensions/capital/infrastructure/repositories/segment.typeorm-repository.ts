@@ -1,20 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { CAPITAL_RESULT_STORE, CAPITAL_VOTE_STORE, CAPITAL_CONTRIBUTOR_STORE, CAPITAL_PROJECT_STORE, CAPITAL_SEGMENT_STORE } from '../database/capital-stores';
+import { AssetUtils, attachOne, DomainError, PaginationInputDTO, PaginationResult, PaginationUtils, type SqlBuilder, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { SegmentRepository } from '../../domain/repositories/segment.repository';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
 import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
 import { SegmentMapper } from '../mappers/segment.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
 import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
 import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
+import type { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, AssetUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
@@ -24,15 +23,24 @@ const NULL_PROJECT_HASH = '00000000000000000000000000000000000000000000000000000
  */
 @Injectable()
 export class SegmentTypeormRepository
-  extends BaseBlockchainRepository<SegmentDomainEntity, SegmentTypeormEntity>
+  extends BaseChainRepository<SegmentDomainEntity, SegmentTypeormEntity>
   implements SegmentRepository, IBlockchainSyncRepository<SegmentDomainEntity>
 {
   constructor(
-    @InjectRepository(SegmentTypeormEntity)
-    repository: Repository<SegmentTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_SEGMENT_STORE) repository: TableStore<SegmentTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService,
+    @Inject(CAPITAL_CONTRIBUTOR_STORE) private readonly contributors: TableStore<ContributorTypeormEntity>,
+    @Inject(CAPITAL_PROJECT_STORE) private readonly projects: TableStore<ProjectTypeormEntity>,
+    @Inject(CAPITAL_VOTE_STORE) private readonly votes: TableStore<VoteTypeormEntity>,
+    @Inject(CAPITAL_RESULT_STORE) private readonly results: TableStore<ResultTypeormEntity>
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
+  }
+
+  /** Участник и проект сегмента: из них берутся имя участника, название и состояние проекта. */
+  private async attachRelations(segments: SegmentTypeormEntity[]): Promise<void> {
+    await attachOne(segments, this.contributors, 'contributor', { coopname: 'coopname', username: 'username' });
+    await attachOne(segments, this.projects, 'project', { project_hash: 'project_hash' });
   }
 
   protected getMapper() {
@@ -57,9 +65,9 @@ export class SegmentTypeormRepository
    * Применяет фильтры к QueryBuilder
    */
   private applyFiltersToQueryBuilder(
-    queryBuilder: SelectQueryBuilder<SegmentTypeormEntity>,
+    queryBuilder: SqlBuilder<SegmentTypeormEntity>,
     filter?: SegmentFilterInputDTO
-  ): SelectQueryBuilder<SegmentTypeormEntity> {
+  ): SqlBuilder<SegmentTypeormEntity> {
     if (!filter) {
       return queryBuilder;
     }
@@ -142,8 +150,7 @@ export class SegmentTypeormRepository
 
     // Получаем результаты с максимальным id для каждой комбинации
     const resultPromises = Object.values(groupedKeys).map(async ({ username, project_hash }) => {
-      const result = await this.repository.manager
-        .createQueryBuilder(ResultTypeormEntity, 'r')
+      const result = await this.results.sqlBuilder('r')
         .where('r.username = :username AND r.project_hash = :project_hash', { username, project_hash })
         .orderBy('r.id', 'DESC')
         .limit(1)
@@ -193,8 +200,7 @@ export class SegmentTypeormRepository
 
     const parentTitles = new Map<string, string>();
     if (parentHashes.length > 0) {
-      const parents = await this.repository.manager
-        .createQueryBuilder(ProjectTypeormEntity, 'p')
+      const parents = await this.projects.sqlBuilder('p')
         .select(['p.project_hash', 'p.title'])
         .where('p.project_hash IN (:...parentHashes)', { parentHashes })
         .getMany();
@@ -208,8 +214,7 @@ export class SegmentTypeormRepository
 
     const votedKeys = new Set<string>();
     if (projectHashes.length > 0 && usernames.length > 0) {
-      const votes = await this.repository.manager
-        .createQueryBuilder(VoteTypeormEntity, 'v')
+      const votes = await this.votes.sqlBuilder('v')
         .select(['v.project_hash', 'v.voter'])
         .where('v.project_hash IN (:...projectHashes)', { projectHashes })
         .andWhere('v.voter IN (:...usernames)', { usernames })
@@ -250,8 +255,7 @@ export class SegmentTypeormRepository
    * @param coopname Имя кооператива для фильтрации
    */
   private async getChildProjects(parentHash: string, coopname: string): Promise<ProjectTypeormEntity[]> {
-    return await this.repository.manager
-      .createQueryBuilder(ProjectTypeormEntity, 'p')
+    return await this.projects.sqlBuilder('p')
       .where('p.parent_hash = :parentHash', { parentHash })
       .andWhere('p.coopname = :coopname', { coopname })
       .getMany();
@@ -376,8 +380,7 @@ export class SegmentTypeormRepository
 
     if (filter?.project_hash) {
       // Получаем проект
-      const project = await this.repository.manager
-        .createQueryBuilder(ProjectTypeormEntity, 'p')
+      const project = await this.projects.sqlBuilder('p')
         .where('p.project_hash = :project_hash', { project_hash: filter.project_hash })
         .getOne();
 
@@ -406,17 +409,10 @@ export class SegmentTypeormRepository
     }
 
     // Создаем query builder для гибкого построения запроса
-    let queryBuilder = this.repository.createQueryBuilder('s').select('s').where('1=1');
-
-    // Добавляем join с contributor для получения display_name
-    queryBuilder = queryBuilder.leftJoinAndSelect(
-      's.contributor',
-      'contributor',
-      'contributor.coopname = s.coopname AND contributor.username = s.username'
-    );
+    let queryBuilder = this.repository.sqlBuilder('s').select('s').where('1=1');
 
     // Добавляем join с проектами для получения статуса проекта
-    queryBuilder = queryBuilder.leftJoinAndSelect('s.project', 'project');
+    queryBuilder = queryBuilder.leftJoin('capital_projects', 'project', 'project.project_hash = s.project_hash');
 
     // Если нужно агрегировать, заменяем фильтр по project_hash на фильтр по массиву хэшей
     if (shouldAggregate && projectHashes.length > 0) {
@@ -439,6 +435,7 @@ export class SegmentTypeormRepository
     if (shouldAggregate) {
       // Для агрегации получаем все записи
       entities = await queryBuilder.orderBy('s._created_at', 'DESC').getMany();
+      await this.attachRelations(entities);
 
       // Агрегируем сегменты по username (передаем хэш родительского проекта)
       entities = this.aggregateSegmentsByUsername(entities, filter?.project_hash);
@@ -478,7 +475,7 @@ export class SegmentTypeormRepository
     } else {
       // Для обычного режима применяем пагинацию в запросе
       // Применяем сортировку
-      const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+      const sortColumn = this.repository.sortField(validatedOptions.sortBy, '_created_at');
       queryBuilder = queryBuilder.orderBy(
         `s.${sortColumn}`,
         validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
@@ -488,10 +485,11 @@ export class SegmentTypeormRepository
       const totalCount = await queryBuilder.getCount();
 
       // Применяем пагинацию
-      queryBuilder = queryBuilder.skip(offset).take(limit);
+      queryBuilder = queryBuilder.offset(offset).limit(limit);
 
       // Получаем записи
       entities = await queryBuilder.getMany();
+      await this.attachRelations(entities);
 
       // Заполняем результаты для сегментов
       await this.populateResultsForSegments(entities);
@@ -519,7 +517,7 @@ export class SegmentTypeormRepository
    */
   async findAllByProjectHash(coopname: string, project_hash: string): Promise<SegmentDomainEntity[]> {
     const entities = await this.repository
-      .createQueryBuilder('s')
+      .sqlBuilder('s')
       .where('s.coopname = :coopname', { coopname })
       .andWhere('s.project_hash = :project_hash', { project_hash })
       .getMany();
@@ -535,8 +533,7 @@ export class SegmentTypeormRepository
 
     if (filter?.project_hash) {
       // Получаем проект
-      const project = await this.repository.manager
-        .createQueryBuilder(ProjectTypeormEntity, 'p')
+      const project = await this.projects.sqlBuilder('p')
         .where('p.project_hash = :project_hash', { project_hash: filter.project_hash })
         .getOne();
 
@@ -565,17 +562,10 @@ export class SegmentTypeormRepository
     }
 
     // Создаем query builder для гибкого построения запроса
-    let queryBuilder = this.repository.createQueryBuilder('s').select('s').where('1=1');
-
-    // Добавляем join с contributor для получения display_name
-    queryBuilder = queryBuilder.leftJoinAndSelect(
-      's.contributor',
-      'contributor',
-      'contributor.coopname = s.coopname AND contributor.username = s.username'
-    );
+    let queryBuilder = this.repository.sqlBuilder('s').select('s').where('1=1');
 
     // Добавляем join с проектами для получения статуса проекта
-    queryBuilder = queryBuilder.leftJoinAndSelect('s.project', 'project');
+    queryBuilder = queryBuilder.leftJoin('capital_projects', 'project', 'project.project_hash = s.project_hash');
 
     // Если нужно агрегировать, заменяем фильтр по project_hash на фильтр по массиву хэшей
     if (shouldAggregate && projectHashes.length > 0 && filter?.username) {
@@ -591,6 +581,7 @@ export class SegmentTypeormRepository
 
       // Получаем все сегменты для агрегации
       const entities = await queryBuilder.orderBy('s._created_at', 'DESC').getMany();
+      await this.attachRelations(entities);
 
       if (entities.length === 0) {
         return null;
@@ -618,6 +609,7 @@ export class SegmentTypeormRepository
 
       // Получаем первую запись с сортировкой по дате создания (новые сначала)
       const entity = await queryBuilder.orderBy('s._created_at', 'DESC').getOne();
+      if (entity) await this.attachRelations([entity]);
 
       // Возвращаем null, если запись не найдена
       if (!entity) {
@@ -639,12 +631,10 @@ export class SegmentTypeormRepository
   async markAsCompleted(coopname: string, project_hash: string, username: string): Promise<SegmentDomainEntity | null> {
     // Найдем сегмент для обновления
     const entity = await this.repository.findOne({
-      where: {
         coopname,
         project_hash,
         username,
-      },
-    });
+      });
 
     if (!entity) {
       throw DomainError.notFound('CAPITAL_SEGMENT_NOT_FOUND_BY_KEY', { projectHash: project_hash, username });

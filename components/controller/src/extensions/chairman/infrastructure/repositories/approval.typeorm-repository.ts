@@ -1,28 +1,52 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Expression, SqlBool } from 'kysely';
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
 import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
 import { ApprovalMapper } from '../mappers/approval.mapper';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
+import { CHAIRMAN_APPROVAL_STORE } from '../database/chairman-stores';
 import type { ApprovalRepository } from '../../domain/repositories/approval.repository';
 import type { ApprovalFilterInput } from '../../application/dto/approval-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
+import {
+  PaginationInputDTO,
+  PaginationResult,
+  PaginationUtils,
+  oneOf,
+  sortColumn,
+  sortDirection,
+  type TableStore,
+} from '@coopenomics/extension-kit';
 
-/**
- * TypeORM реализация репозитория одобрений
- */
+/** Колонки, по которым список одобрений можно сортировать. */
+const SORTABLE = [
+  'created_at',
+  'id',
+  'coopname',
+  'username',
+  'status',
+  'approval_hash',
+  'callback_contract',
+  'callback_action_approve',
+  'callback_action_decline',
+  'meta',
+  'block_num',
+  'present',
+  '_id',
+  '_created_at',
+  '_updated_at',
+] as const;
+
+/** Хранилище зеркала одобрений председателя. */
 @Injectable()
 export class ApprovalTypeormRepository
-  extends BaseBlockchainRepository<ApprovalDomainEntity, ApprovalTypeormEntity>
+  extends BaseChainRepository<ApprovalDomainEntity, ApprovalTypeormEntity>
   implements ApprovalRepository
 {
   constructor(
-    @InjectRepository(ApprovalTypeormEntity)
-    repository: Repository<ApprovalTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CHAIRMAN_APPROVAL_STORE) repository: TableStore<ApprovalTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -58,49 +82,25 @@ export class ApprovalTypeormRepository
     // Получаем параметры для SQL запроса
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
-    // Строим query builder для сложных условий поиска
-    const queryBuilder = this.repository.createQueryBuilder('approval');
+    const query = this.repository.kysely.selectFrom('chairman_approvals').where((eb) => {
+      const conditions: Expression<SqlBool>[] = [];
+      if (filter?.coopname) conditions.push(eb('coopname', '=', filter.coopname));
+      if (filter?.username) conditions.push(eb('username', '=', filter.username));
+      if (filter?.statuses && filter.statuses.length > 0) conditions.push(eb('status', 'in', filter.statuses));
+      // Поиск по части хэша.
+      if (filter?.approval_hash) conditions.push(eb('approval_hash', 'ilike', `%${filter.approval_hash}%`));
+      if (filter?.created_from) conditions.push(eb('created_at', '>=', filter.created_from));
+      if (filter?.created_to) conditions.push(eb('created_at', '<=', filter.created_to));
+      return eb.and(conditions);
+    });
 
-    // Добавляем условия фильтрации
-    if (filter?.coopname) {
-      queryBuilder.andWhere('approval.coopname = :coopname', { coopname: filter.coopname });
-    }
-    if (filter?.username) {
-      queryBuilder.andWhere('approval.username = :username', { username: filter.username });
-    }
-    if (filter?.statuses && filter.statuses.length > 0) {
-      queryBuilder.andWhere('approval.status IN (:...statuses)', { statuses: filter.statuses });
-    }
-    if (filter?.approval_hash) {
-      // Используем LIKE для частичного поиска
-      queryBuilder.andWhere('approval.approval_hash ILIKE :approval_hash', { approval_hash: `%${filter.approval_hash}%` });
-    }
-    if (filter?.created_from) {
-      queryBuilder.andWhere('approval.created_at >= :created_from', { created_from: filter.created_from });
-    }
-    if (filter?.created_to) {
-      queryBuilder.andWhere('approval.created_at <= :created_to', { created_to: filter.created_to });
-    }
+    const total = await query.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirstOrThrow();
+    const totalCount = Number(total.count);
 
-    // Получаем общее количество записей
-    const totalCount = await queryBuilder.getCount();
-
-    // Добавляем сортировку
-    if (validatedOptions.sortBy) {
-      const sortBy = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
-      queryBuilder.orderBy(`approval.${sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder.orderBy('approval.created_at', 'DESC');
-    }
-
-    // Добавляем пагинацию
-    queryBuilder.skip(offset).take(limit);
-
-    // Получаем записи
-    const entities = await queryBuilder.getMany();
-
-    // Преобразуем в доменные сущности
-    const items = entities.map((entity) => ApprovalMapper.toDomain(entity));
+    const column = sortColumn(SORTABLE, validatedOptions.sortBy, 'created_at');
+    const direction = validatedOptions.sortBy ? sortDirection(validatedOptions.sortOrder) : 'desc';
+    const rows = await query.selectAll().orderBy(column, direction).offset(offset).limit(limit).execute();
+    const items = this.repository.records(rows).map((entity) => ApprovalMapper.toDomain(entity));
 
     // Возвращаем результат с пагинацией
     return PaginationUtils.createPaginationResult(items, totalCount, validatedOptions);
@@ -108,16 +108,12 @@ export class ApprovalTypeormRepository
 
   // Специфичные методы репозитория одобрений
   async findByCoopname(coopname: string): Promise<ApprovalDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname },
-    });
+    const entities = await this.repository.find({ coopname });
     return entities.map(ApprovalMapper.toDomain);
   }
 
   async findByUsername(username: string): Promise<ApprovalDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { username },
-    });
+    const entities = await this.repository.find({ username });
     return entities.map(ApprovalMapper.toDomain);
   }
 
@@ -128,22 +124,17 @@ export class ApprovalTypeormRepository
     statuses?: string[];
   }): Promise<ApprovalDomainEntity[]> {
     if (!query.actions.length || (query.usernames && !query.usernames.length)) return [];
-    const qb = this.repository
-      .createQueryBuilder('approval')
-      .where('approval.coopname = :coopname', { coopname: query.coopname })
-      .andWhere('approval.callback_action_approve IN (:...actions)', { actions: query.actions });
-    if (query.usernames) qb.andWhere('approval.username IN (:...usernames)', { usernames: query.usernames });
-    if (query.statuses?.length) qb.andWhere('approval.status IN (:...statuses)', { statuses: query.statuses });
-    const entities = await qb.orderBy('approval.created_at', 'DESC').getMany();
+    const where: Record<string, unknown> = { coopname: query.coopname, callback_action_approve: oneOf(query.actions) };
+    if (query.usernames) where.username = oneOf(query.usernames);
+    if (query.statuses?.length) where.status = oneOf(query.statuses);
+    const entities = await this.repository.find(where, { order: { created_at: 'DESC' } });
     return entities.map((entity) => ApprovalMapper.toDomain(entity));
   }
 
   async findByApprovalHash(approvalHash: string): Promise<ApprovalDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { approval_hash: approvalHash.toLowerCase() },
-    });
+    const entity = await this.repository.findOne({ approval_hash: approvalHash.toLowerCase() });
     return entity ? ApprovalMapper.toDomain(entity) : null;
   }
 
-  // Все типовые CRUD методы наследуются от BaseBlockchainRepository
+  // Типовые чтение, запись и откат форка наследуются от BaseChainRepository
 }

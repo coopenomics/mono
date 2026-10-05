@@ -83,3 +83,15 @@ cases:
     expect: при следующем чтении списка пунктов место на карте запрашивается заново по новому адресу
     test: components/api-tests/src/marketplace/ku-details.test.ts
     status: written
+
+  - id: mkt.ku.side.05
+    level: backend
+    kind: side
+    scenario: >
+      хранилище реквизитов участка: перечень действующих участков кооператива
+    expect: >
+      отбор по кооперативу и статусу «действует», порядок — по дате заведения
+    test: components/controller/tests/unit/marketplace/marketplace-kysely-queries.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запроса к базе — снаружи они не видны; реквизиты участка через API покрыты случаями mkt.ku.*"
+    status: written

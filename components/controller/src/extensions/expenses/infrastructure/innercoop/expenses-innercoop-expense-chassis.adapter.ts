@@ -1,6 +1,7 @@
+import { sql } from 'kysely';
+import { EXPENSES_PROPOSAL_STORE } from '../database/expenses-stores';
+import { oneOf, type TableStore } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
 import type {
   IExpenseChassisPort,
   InnerExpenseItem,
@@ -38,8 +39,8 @@ import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
 @Injectable()
 export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPort {
   constructor(
-    @InjectRepository(ExpenseProposalTypeormEntity)
-    private readonly repository: Repository<ExpenseProposalTypeormEntity>,
+    @Inject(EXPENSES_PROPOSAL_STORE)
+    private readonly repository: TableStore<ExpenseProposalTypeormEntity>,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     private readonly plans: ExpensePlansService,
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
@@ -111,18 +112,14 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
   }
 
   async readProposalByHash(coopname: string, proposalHash: string): Promise<InnerExpenseProposalRead | null> {
-    const entity = await this.repository.findOne({
-      where: { coopname, proposal_hash: proposalHash.toLowerCase() },
-    });
+    const entity = await this.repository.findOne({ coopname, proposal_hash: proposalHash.toLowerCase() });
     return entity ? this.toRead(entity) : null;
   }
 
   async readProposalsByHashes(coopname: string, proposalHashes: string[]): Promise<InnerExpenseProposalRead[]> {
     if (proposalHashes.length === 0) return [];
     const normalized = proposalHashes.map((h) => h.toLowerCase());
-    const entities = await this.repository.find({
-      where: { coopname, proposal_hash: In(normalized) },
-    });
+    const entities = await this.repository.find({ coopname, proposal_hash: oneOf(normalized) });
     return entities.map((e) => this.toRead(e));
   }
 
@@ -132,22 +129,22 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
     ownerAction?: string,
     pagination?: InnerExpensePagination,
   ): Promise<InnerExpensePaginatedResult<InnerExpenseProposalRead>> {
-    const sortBy = pagination?.sortBy === 'createdAt' ? 'expense_proposal.created_at' : 'expense_proposal.updated_at';
-    const sortOrder = pagination?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+    const sortBy = pagination?.sortBy === 'createdAt' ? 'created_at' : 'updated_at';
+    const sortOrder = pagination?.sortOrder === 'ASC' ? 'asc' : 'desc';
     const limit = pagination?.limit ?? 50;
     const offset = pagination?.offset ?? 0;
 
-    const qb = this.repository
-      .createQueryBuilder('expense_proposal')
-      .where('expense_proposal.coopname = :coopname', { coopname })
-      .andWhere(`expense_proposal.callback ->> 'contract' = :ownerContract`, { ownerContract });
+    // Записки владельца: контракт и действие обратного вызова лежат в json-колонке.
+    let query = this.repository.kysely
+      .selectFrom('expense_proposals')
+      .where('coopname', '=', coopname)
+      .where(sql<boolean>`callback ->> 'contract' = ${ownerContract}`);
+    if (ownerAction) query = query.where(sql<boolean>`callback ->> 'action' = ${ownerAction}`);
 
-    if (ownerAction) {
-      qb.andWhere(`expense_proposal.callback ->> 'action' = :ownerAction`, { ownerAction });
-    }
-
-    const totalCount = await qb.getCount();
-    const entities = await qb.orderBy(sortBy, sortOrder).skip(offset).take(limit).getMany();
+    const total = await query.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirstOrThrow();
+    const totalCount = Number(total.count);
+    const rows = await query.selectAll().orderBy(sortBy, sortOrder).offset(offset).limit(limit).execute();
+    const entities = this.repository.records(rows);
     return { items: entities.map((e) => this.toRead(e)), totalCount };
   }
 

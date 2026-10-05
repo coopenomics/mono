@@ -1,21 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { isNull, notNull, oneOf, platformSettings, TableStore } from '@coopenomics/extension-kit';
+import { CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE, CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE } from '../../infrastructure/database/capital-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-commit.typeorm-entity';
 import { IssueLinkedGitCommitShaTypeormEntity } from '../entities/issue-linked-git-commit-sha.typeorm-entity';
 import type {
   IssueLinkedGitCommitRepository,
   IssueLinkedGitCommitRow,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
-import { platformSettings } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitCommitRepository {
   constructor(
-    @InjectRepository(IssueLinkedGitCommitTypeormEntity)
-    private readonly repo: Repository<IssueLinkedGitCommitTypeormEntity>,
-    @InjectRepository(IssueLinkedGitCommitShaTypeormEntity)
-    private readonly shaRepo: Repository<IssueLinkedGitCommitShaTypeormEntity>
+    @Inject(CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE)
+    private readonly repo: TableStore<IssueLinkedGitCommitTypeormEntity>,
+    @Inject(CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE)
+    private readonly shaRepo: TableStore<IssueLinkedGitCommitShaTypeormEntity>
   ) {}
 
   private toRow(e: IssueLinkedGitCommitTypeormEntity): IssueLinkedGitCommitRow {
@@ -44,15 +43,11 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   async insertLinkedCommit(
     row: Omit<IssueLinkedGitCommitRow, 'id' | 'consumed_by_commit_hash'>
   ): Promise<void> {
-    const knownSha = await this.shaRepo.findOne({
-      where: { coopname: row.coopname, github_sha: row.github_sha },
-    });
+    const knownSha = await this.shaRepo.findOne({ coopname: row.coopname, github_sha: row.github_sha });
     if (knownSha) {
       return;
     }
-    const legacy = await this.repo.findOne({
-      where: { coopname: row.coopname, github_sha: row.github_sha },
-    });
+    const legacy = await this.repo.findOne({ coopname: row.coopname, github_sha: row.github_sha });
     if (legacy) {
       await this.registerShaAlias({
         linkedCommitId: legacy.id,
@@ -81,7 +76,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
       first_seen_branch: row.first_seen_branch,
       in_default_branch: row.in_default_branch,
     });
-    const id = inserted.identifiers[0]?.id as string | undefined;
+    const id: string | undefined = inserted.id;
     if (id) {
       await this.registerShaAlias({
         linkedCommitId: id,
@@ -93,12 +88,12 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async findByAnySha(coopname: string, githubSha: string): Promise<IssueLinkedGitCommitRow | null> {
-    const alias = await this.shaRepo.findOne({ where: { coopname, github_sha: githubSha } });
+    const alias = await this.shaRepo.findOne({ coopname, github_sha: githubSha });
     if (alias) {
-      const row = await this.repo.findOne({ where: { id: alias.linked_commit_id } });
+      const row = await this.repo.findOne({ id: alias.linked_commit_id });
       return row ? this.toRow(row) : null;
     }
-    const direct = await this.repo.findOne({ where: { coopname, github_sha: githubSha } });
+    const direct = await this.repo.findOne({ coopname, github_sha: githubSha });
     return direct ? this.toRow(direct) : null;
   }
 
@@ -110,14 +105,12 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
     patchId: string;
   }): Promise<IssueLinkedGitCommitRow | null> {
     const row = await this.repo.findOne({
-      where: {
         coopname: args.coopname,
         github_owner: args.githubOwner,
         github_repo: args.githubRepo,
         issue_hash: args.issueHash.toLowerCase(),
         patch_id: args.patchId,
-      },
-    });
+      });
     return row ? this.toRow(row) : null;
   }
 
@@ -127,9 +120,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
     githubSha: string;
     seenBranch: string | null;
   }): Promise<void> {
-    const exists = await this.shaRepo.findOne({
-      where: { coopname: args.coopname, github_sha: args.githubSha },
-    });
+    const exists = await this.shaRepo.findOne({ coopname: args.coopname, github_sha: args.githubSha });
     if (exists) {
       return;
     }
@@ -153,11 +144,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
   }
 
   async findRowsWithoutPatchId(limit: number): Promise<IssueLinkedGitCommitRow[]> {
-    const rows = await this.repo.find({
-      where: { patch_id: IsNull() },
-      order: { created_at: 'ASC' },
-      take: limit,
-    });
+    const rows = await this.repo.find({ patch_id: isNull() }, { order: { created_at: 'ASC' }, limit: limit });
     return rows.map((e) => this.toRow(e));
   }
 
@@ -175,10 +162,7 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
 
   async findByIssueHash(issueHash: string): Promise<IssueLinkedGitCommitRow[]> {
     const coopname = platformSettings().coopname;
-    const rows = await this.repo.find({
-      where: { coopname, issue_hash: issueHash.toLowerCase() },
-      order: { committed_at: 'DESC' },
-    });
+    const rows = await this.repo.find({ coopname, issue_hash: issueHash.toLowerCase() }, { order: { committed_at: 'DESC' } });
     return rows.map((e) => this.toRow(e));
   }
 
@@ -188,23 +172,18 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
       return [];
     }
     const coopname = platformSettings().coopname;
-    const rows = await this.repo.find({
-      where: { coopname, issue_hash: In(uniq) },
-    });
+    const rows = await this.repo.find({ coopname, issue_hash: oneOf(uniq) });
     return rows.map((e) => this.toRow(e));
   }
 
   async findUnconsumedByProjectAndUsername(projectHash: string, username: string): Promise<IssueLinkedGitCommitRow[]> {
     const coopname = platformSettings().coopname;
     const rows = await this.repo.find({
-      where: {
         coopname,
         project_hash: projectHash.toLowerCase(),
         username,
-        consumed_by_commit_hash: IsNull(),
-      },
-      order: { committed_at: 'ASC' },
-    });
+        consumed_by_commit_hash: isNull(),
+      }, { order: { committed_at: 'ASC' } });
     return rows.map((e) => this.toRow(e));
   }
 
@@ -212,18 +191,16 @@ export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitComm
     if (ids.length === 0) {
       return;
     }
-    await this.repo.update({ id: In(ids) }, { consumed_by_commit_hash: commitHash });
+    await this.repo.update({ id: oneOf(ids) }, { consumed_by_commit_hash: commitHash });
   }
 
   async hasConsumedRowsByIssueHash(issueHash: string): Promise<boolean> {
     const coopname = platformSettings().coopname;
     const n = await this.repo.count({
-      where: {
         coopname,
         issue_hash: issueHash.toLowerCase(),
-        consumed_by_commit_hash: Not(IsNull()),
-      },
-    });
+        consumed_by_commit_hash: notNull(),
+      });
     return n > 0;
   }
 

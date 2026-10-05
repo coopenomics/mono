@@ -2,40 +2,17 @@
  * Записи мимо подписчика базы узла сами шлют сигнал ленты изменений.
  *
  * Инварианты:
- *   - patchConfig расширения (сырой SQL) — сигнал по extensions с именем расширения;
  *   - запись и удаление личных данных, способов оплаты, пользовательских данных и
  *     переменных кооператива в генераторе — сигнал по своей таблице ленты со
  *     строкой (владелец — username);
  *   - прочие коллекции генератора (документы, проекты) — тишина;
  *   - без ленты (узел без сервиса) — запись проходит, ошибок нет.
  */
-import { TypeOrmExtensionDomainRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-extension.repository';
 import { GeneratorInfrastructureService } from '~/infrastructure/generator/generator.service';
 
 function feed() {
   return { publishLocal: jest.fn().mockResolvedValue(undefined) } as any;
 }
-
-describe('patchConfig расширения', () => {
-  const row = { name: 'capital', enabled: true, config: { a: 1 }, schema_version: 1, created_at: new Date(), updated_at: new Date() };
-
-  it('после записи — сигнал по extensions', async () => {
-    const ormRepo = { query: jest.fn().mockResolvedValue([[row], 1]) } as any;
-    const chainChanges = feed();
-    const repo = new TypeOrmExtensionDomainRepository(ormRepo, chainChanges);
-
-    await repo.patchConfig('capital', { a: 1 } as any);
-
-    expect(chainChanges.publishLocal).toHaveBeenCalledWith('extensions', 'capital');
-  });
-
-  it('без ленты — запись проходит', async () => {
-    const ormRepo = { query: jest.fn().mockResolvedValue([[row], 1]) } as any;
-    const repo = new TypeOrmExtensionDomainRepository(ormRepo, null);
-
-    await expect(repo.patchConfig('capital', { a: 1 } as any)).resolves.toBeDefined();
-  });
-});
 
 describe('Генератор: записи в MongoDB', () => {
   function build(chainChanges: any) {

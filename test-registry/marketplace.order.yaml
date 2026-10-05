@@ -563,3 +563,18 @@ cases:
     test: components/controller/src/extensions/marketplace/sync/marketplace-order-sync.service.spec.ts
     api: components/boot/src/tests/marketplace-money.test.ts
     status: written
+
+  - id: mkt.order.side.42
+    level: backend
+    kind: side
+    scenario: >
+      хранилище заказов: набор заказов в партию, сумма активных заказов по
+      предложению и участку, открытые расчёты с поставщиком
+    expect: >
+      в партию попадают только заказы без партии — условие стоит в самой правке,
+      пустой перечень в базу не ходит; сумма считается одним запросом и отдаётся
+      числом; свой кооператив и выплаченные заказы в расчёты не попадают
+    test: components/controller/tests/unit/marketplace/marketplace-kysely-queries.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны; сами партии, расчёты и выдача через API покрыты случаями mkt.order.* во внешнем слое"
+    status: written

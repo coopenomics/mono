@@ -1,11 +1,17 @@
 import { createHash } from 'crypto';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import config from '~/config/config';
-import { NotificationOutboxTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-outbox.typeorm-entity';
-import { NotificationDeliveryTypeormEntity } from '~/infrastructure/database/typeorm/entities/notification-delivery.typeorm-entity';
-import { NotificationOutboxStatus } from '~/domain/notification/interfaces/notification-outbox.domain.interface';
+import {
+  NOTIFICATION_DELIVERY_REPOSITORY,
+  NOTIFICATION_OUTBOX_REPOSITORY,
+  type NotificationDeliveryRepository,
+  type NotificationOutboxRepository,
+} from '~/domain/notification/repositories/notification-store.repository';
+import {
+  NotificationOutboxStatus,
+  type NotificationDeliveryDomainInterface,
+  type NotificationOutboxDomainInterface,
+} from '~/domain/notification/interfaces/notification-outbox.domain.interface';
 import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
 import type { NotificationsFilterInput } from './graphql/notifications-filter.input';
 import type {
@@ -25,10 +31,10 @@ import { DomainError } from '@coopenomics/extension-kit';
 @Injectable()
 export class NotificationJournalService {
   constructor(
-    @InjectRepository(NotificationOutboxTypeormEntity)
-    private readonly outboxRepository: Repository<NotificationOutboxTypeormEntity>,
-    @InjectRepository(NotificationDeliveryTypeormEntity)
-    private readonly deliveryRepository: Repository<NotificationDeliveryTypeormEntity>
+    @Inject(NOTIFICATION_OUTBOX_REPOSITORY)
+    private readonly outboxRepository: NotificationOutboxRepository,
+    @Inject(NOTIFICATION_DELIVERY_REPOSITORY)
+    private readonly deliveryRepository: NotificationDeliveryRepository
   ) {}
 
   async listNotifications(
@@ -42,18 +48,17 @@ export class NotificationJournalService {
     const page = pagination.page ?? 1;
     const limit = pagination.limit ?? 10;
 
-    const where: Record<string, unknown> = { coopname: filter.coopname };
-    if (filter.workflowId) where.workflowId = filter.workflowId;
-    if (filter.channel) where.channel = filter.channel;
-    if (filter.status) where.status = filter.status;
-    if (filter.recipientSubscriberId) where.recipientSubscriberId = filter.recipientSubscriberId;
-
-    const [rows, totalCount] = await this.outboxRepository.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [rows, totalCount] = await this.outboxRepository.findPage(
+      {
+        coopname: filter.coopname,
+        workflowId: filter.workflowId,
+        channel: filter.channel,
+        status: filter.status,
+        recipientSubscriberId: filter.recipientSubscriberId,
+      },
+      page,
+      limit
+    );
 
     return {
       items: rows.map((r) => this.toNotificationDTO(r)),
@@ -64,14 +69,11 @@ export class NotificationJournalService {
   }
 
   async getNotification(id: string): Promise<NotificationDetailDTO> {
-    const row = await this.outboxRepository.findOne({ where: { id } });
+    const row = await this.outboxRepository.findById(id);
     if (!row) throw DomainError.notFound('NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND', { id });
     this.assertOwnCoop(row.coopname);
 
-    const deliveries = await this.deliveryRepository.find({
-      where: { outboxId: id },
-      order: { createdAt: 'ASC' },
-    });
+    const deliveries = await this.deliveryRepository.findByOutboxId(id);
 
     return {
       ...this.toNotificationDTO(row),
@@ -85,11 +87,11 @@ export class NotificationJournalService {
    * worker подхватывает и шлёт заново. Исходная строка/журнал не меняются.
    */
   async resendNotification(id: string): Promise<NotificationDTO> {
-    const source = await this.outboxRepository.findOne({ where: { id } });
+    const source = await this.outboxRepository.findById(id);
     if (!source) throw DomainError.notFound('NOTIFICATION_CENTER_JOURNAL_ITEM_NOT_FOUND', { id });
     this.assertOwnCoop(source.coopname);
 
-    const resend = this.outboxRepository.create({
+    const saved = await this.outboxRepository.create({
       coopname: source.coopname,
       workflowId: source.workflowId,
       channel: source.channel,
@@ -104,7 +106,6 @@ export class NotificationJournalService {
       maxAttempts: source.maxAttempts,
       scheduledAt: new Date(),
     });
-    const saved = await this.outboxRepository.save(resend);
     return this.toNotificationDTO(saved);
   }
 
@@ -115,7 +116,7 @@ export class NotificationJournalService {
     }
   }
 
-  private resendIdempotencyKey(source: NotificationOutboxTypeormEntity): string {
+  private resendIdempotencyKey(source: NotificationOutboxDomainInterface): string {
     // Уникален относительно исходного ключа — иначе ON CONFLICT DO NOTHING съест переотправку.
     return createHash('sha256')
       .update(`${source.idempotencyKey}|resend|${new Date().toISOString()}|${source.id}`)
@@ -123,7 +124,7 @@ export class NotificationJournalService {
       .slice(0, 64);
   }
 
-  private toNotificationDTO(r: NotificationOutboxTypeormEntity): NotificationDTO {
+  private toNotificationDTO(r: NotificationOutboxDomainInterface): NotificationDTO {
     return {
       id: r.id,
       coopname: r.coopname,
@@ -139,7 +140,7 @@ export class NotificationJournalService {
     };
   }
 
-  private toAttemptDTO(d: NotificationDeliveryTypeormEntity): NotificationAttemptDTO {
+  private toAttemptDTO(d: NotificationDeliveryDomainInterface): NotificationAttemptDTO {
     return {
       id: d.id,
       attemptNumber: d.attemptNumber,

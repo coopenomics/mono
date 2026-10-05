@@ -1,4 +1,4 @@
-import type { DataSource } from 'typeorm';
+import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
 import type { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import type { VaultDomainService } from '~/domain/vault/services/vault-domain.service';
 import { WalletContract } from 'cooptypes';

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { DraftContract } from 'cooptypes';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
-import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
+import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { ForkRegistryService } from '~/shared/sync/fork';
 import type { IForkAwareSyncer } from '@coopenomics/extension-kit/sync';
 import type { IDelta } from '~/types/common';
@@ -23,7 +23,7 @@ import type { IDelta } from '~/types/common';
 @Injectable()
 export class DraftRegistrySyncService implements OnModuleInit, IForkAwareSyncer {
   constructor(
-    private readonly repository: TypeOrmDraftRegistryRepository,
+    private readonly repository: DraftRegistryKyselyRepository,
     private readonly logger: WinstonLoggerService,
     private readonly forkRegistry: ForkRegistryService
   ) {

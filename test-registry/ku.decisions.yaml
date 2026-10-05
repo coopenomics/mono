@@ -251,3 +251,17 @@ cases:
     test: components/controller/tests/unit/document/document-version-by-meta.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
+
+  - id: ku.dec.side.11
+    level: backend
+    kind: side
+    scenario: >
+      зеркала решений и заявок участка на новом каркасе синхронизации: новая
+      запись из цепи, устаревшая дельта, блок из базы строкой
+    expect: >
+      новой записи ключ выдаёт база; устаревшая дельта запись не затирает; блоки
+      сравниваются числами
+    test: components/controller/tests/unit/sync/base-chain-repository.test.ts
+    external: unreachable
+    external_reason: "порядок дельт снаружи не виден; решения и заявки участка через API покрыты случаями ku.*"
+    status: written

@@ -1,5 +1,4 @@
-import { getDataSourceToken } from '@nestjs/typeorm';
-import type { DataSource } from 'typeorm';
+import { MAIN_DATABASE, type MainDatabase as DataSource } from '@coopenomics/extension-kit';
 import type {
   ExtensionSchemaMigrationAfterContext,
   IExtensionSchemaMigration,
@@ -59,11 +58,7 @@ export const marketplaceBootstrapV15Migration: IExtensionSchemaMigration<Partial
   },
 
   async afterMigrate(ctx: ExtensionSchemaMigrationAfterContext): Promise<void> {
-    // getDataSourceToken отдаёт union (string | Function | Type<DataSource>);
-    // для DI-резолва достаточно строкового/символьного варианта.
-    const dataSource = ctx.resolve<DataSource>(
-      getDataSourceToken('marketplace') as string | symbol
-    );
+    const dataSource = ctx.resolve<DataSource>(MAIN_DATABASE);
     if (!dataSource) return;
 
     const result: Array<{ id: string }> = await dataSource.query(

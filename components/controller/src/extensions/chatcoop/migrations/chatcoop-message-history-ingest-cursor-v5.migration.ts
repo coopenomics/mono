@@ -1,6 +1,6 @@
 // v5: курсор инжеста истории Matrix (/messages) + флаг завершения backfill — в chatcoop_managed_matrix_rooms.
 
-import { DataSource } from 'typeorm';
+import { MAIN_DATABASE, type MainDatabase as DataSource } from '@coopenomics/extension-kit';
 import type {
   ExtensionSchemaMigrationAfterContext,
   IExtensionSchemaMigration,
@@ -19,7 +19,7 @@ export const chatcoopMessageHistoryIngestCursorV5Migration: IExtensionSchemaMigr
 
   async afterMigrate(ctx: ExtensionSchemaMigrationAfterContext): Promise<void> {
     const { logInfo } = ctx;
-    const ds = ctx.resolve<DataSource>(DataSource);
+    const ds = ctx.resolve<DataSource>(MAIN_DATABASE);
     await ds.query(
       `ALTER TABLE chatcoop_managed_matrix_rooms ADD COLUMN IF NOT EXISTS message_history_pagination_token TEXT NULL`
     );

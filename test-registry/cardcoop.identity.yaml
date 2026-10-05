@@ -59,6 +59,7 @@ title: Реквизиты пайщика в подтверждении член�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/**
 
 cases:
@@ -162,6 +163,22 @@ cases:
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
 # и HTTP-статус ответа прежние. Сценарии фичи и её проверки не менялись.
+
+  - id: cc.identity.side.04
+    level: backend
+    kind: side
+    scenario: >
+      миграции таблиц расширения применяет собственный исполнитель узла: часть
+      миграций уже применена, миграция падает, всё применено
+    expect: >
+      непринятые миграции ядра и расширений идут одной лентой по метке времени,
+      каждая в своей транзакции вместе с записью об её применении; упавшая
+      откатывается целиком и останавливает ленту; повторный прогон ничего не
+      применяет
+    test: components/controller/tests/unit/database/schema-migrations.test.ts
+    external: unreachable
+    external_reason: "порядок и транзакции наката схемы снаружи не видны; сама схема проверяется накатом на пустую базу (pnpm schema:check) и сверкой типов запросов"
+    status: written
 
 # 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
 # ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не

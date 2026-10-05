@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { EXPENSES_PROPOSAL_STORE } from '../database/expenses-stores';
+import { type PaginationInputDTO, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { resolveSortColumn, type PaginationInputDTO } from '@coopenomics/extension-kit';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
 import { ExpenseProposalMapper } from '../mappers/expense-proposal.mapper';
@@ -13,15 +12,14 @@ import type { IExpenseProposalBlockchainData } from '../../domain/interfaces/exp
 
 @Injectable()
 export class ExpenseProposalTypeormRepository
-  extends BaseBlockchainRepository<ExpenseProposalDomainEntity, ExpenseProposalTypeormEntity>
+  extends BaseChainRepository<ExpenseProposalDomainEntity, ExpenseProposalTypeormEntity>
   implements ExpenseProposalRepository, IBlockchainSyncRepository<ExpenseProposalDomainEntity>
 {
   constructor(
-    @InjectRepository(ExpenseProposalTypeormEntity)
-    repository: Repository<ExpenseProposalTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(EXPENSES_PROPOSAL_STORE) repository: TableStore<ExpenseProposalTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -49,17 +47,17 @@ export class ExpenseProposalTypeormRepository
   }
 
   async findByProposalHash(proposalHash: string): Promise<ExpenseProposalDomainEntity | null> {
-    const entity = await this.repository.findOne({ where: { proposal_hash: proposalHash.toLowerCase() } });
+    const entity = await this.repository.findOne({ proposal_hash: proposalHash.toLowerCase() });
     return entity ? ExpenseProposalMapper.toDomain(entity) : null;
   }
 
   async findByCoopname(coopname: string): Promise<ExpenseProposalDomainEntity[]> {
-    const entities = await this.repository.find({ where: { coopname } });
+    const entities = await this.repository.find({ coopname });
     return entities.map((e) => ExpenseProposalMapper.toDomain(e));
   }
 
   async findByUsername(coopname: string, username: string): Promise<ExpenseProposalDomainEntity[]> {
-    const entities = await this.repository.find({ where: { coopname, username } });
+    const entities = await this.repository.find({ coopname, username });
     return entities.map((e) => ExpenseProposalMapper.toDomain(e));
   }
 
@@ -86,15 +84,10 @@ export class ExpenseProposalTypeormRepository
     const limit = Math.max(1, Math.min(200, options?.limit ?? 10));
     // Имя вне колонок и пустое имя — сортировка по умолчанию: до 25.09.2026 они
     // уходили в ORDER BY и роняли список ошибкой 500 (C28-80).
-    const sortBy = resolveSortColumn(this.repository, options?.sortBy, '_created_at');
+    const sortBy = this.repository.sortField(options?.sortBy, '_created_at');
     const sortOrder = sortBy === options?.sortBy && options?.sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
-    const [entities, totalCount] = await this.repository.findAndCount({
-      where,
-      order: { [sortBy]: sortOrder },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    const [entities, totalCount] = await this.repository.findAndCount(where, { order: { [sortBy]: sortOrder }, limit: limit, offset: (page - 1) * limit });
     return {
       items: entities.map((e) => ExpenseProposalMapper.toDomain(e)),
       totalCount,

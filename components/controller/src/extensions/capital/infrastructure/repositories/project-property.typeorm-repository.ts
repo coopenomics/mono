@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CAPITAL_PROJECT_PROPERTY_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProjectPropertyDomainEntity } from '../../domain/entities/project-property.entity';
 import { ProjectPropertyTypeormEntity } from '../entities/project-property.typeorm-entity';
 import { ProjectPropertyMapper } from '../mappers/project-property.mapper';
 import type { ProjectPropertyRepository } from '../../domain/repositories/project-property.repository';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProjectPropertyBlockchainData } from '../../domain/interfaces/project-property-blockchain.interface';
 import type { IProjectPropertyDatabaseData } from '../../domain/interfaces/project-property-database.interface';
 /**
@@ -13,15 +13,14 @@ import type { IProjectPropertyDatabaseData } from '../../domain/interfaces/proje
  */
 @Injectable()
 export class ProjectPropertyTypeormRepository
-  extends BaseBlockchainRepository<ProjectPropertyDomainEntity, ProjectPropertyTypeormEntity>
+  extends BaseChainRepository<ProjectPropertyDomainEntity, ProjectPropertyTypeormEntity>
   implements ProjectPropertyRepository
 {
   constructor(
-    @InjectRepository(ProjectPropertyTypeormEntity)
-    repository: Repository<ProjectPropertyTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_PROJECT_PROPERTY_STORE) repository: TableStore<ProjectPropertyTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {

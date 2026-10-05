@@ -14,13 +14,15 @@ import { ControllerChainDataSource } from './controller-chain-data.source';
 describe('ControllerChainDataSource', () => {
   const query = jest.fn();
   const findTemplateAt = jest.fn();
+  const findTranslationsAt = jest.fn();
   const actionsFind = jest.fn();
   const getInfo = jest.fn();
   const resolveFields = jest.fn();
 
   const source = new ControllerChainDataSource(
-    { query } as any,
-    { findTemplateAt } as any,
+    // Запросы журнала дельт уходят в базу готовым текстом с параметрами.
+    { executeQuery: async (compiled: any) => ({ rows: await query(compiled.sql, compiled.parameters) }) } as any,
+    { findTemplateAt, findTranslationsAt } as any,
     { find: actionsFind } as any,
     { getInfo } as any,
     // Утверждённых редакций в этих пробах нет: читается текущее состояние.
@@ -31,6 +33,7 @@ describe('ControllerChainDataSource', () => {
   beforeEach(() => {
     query.mockReset().mockResolvedValue([]);
     findTemplateAt.mockReset().mockResolvedValue(null);
+    findTranslationsAt.mockReset().mockResolvedValue([]);
     actionsFind.mockReset().mockResolvedValue({ results: [], page: 1, limit: 10, total: 0 });
     getInfo.mockReset().mockResolvedValue({ head_block_num: 42 });
     resolveFields.mockReset().mockImplementation(async (rows: unknown[]) => rows);
@@ -54,7 +57,7 @@ describe('ControllerChainDataSource', () => {
   });
 
   it('переводы отдаются по одному на язык', async () => {
-    query.mockResolvedValue([{ value: { lang: 'ru' } }, { value: { lang: 'en' } }]);
+    findTranslationsAt.mockResolvedValue([{ lang: 'ru' }, { lang: 'en' }]);
 
     const rows = await source.getTableRows({
       code: 'draft',
@@ -65,9 +68,9 @@ describe('ControllerChainDataSource', () => {
     });
 
     expect(rows).toEqual([{ lang: 'ru' }, { lang: 'en' }]);
-    const [sql, params] = query.mock.calls[0];
-    expect(sql).toContain('DISTINCT ON (lang)');
-    expect(params).toEqual(['100', 500]);
+    // Выборку «по одной свежей записи на язык» держит реестр шаблонов (свой тест).
+    expect(findTranslationsAt).toHaveBeenCalledWith('100', 500);
+    expect(query).not.toHaveBeenCalled();
   });
 
   it('прочие таблицы читаются из журнала дельт с ограничением по блоку', async () => {

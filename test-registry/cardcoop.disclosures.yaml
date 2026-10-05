@@ -28,6 +28,7 @@ title: Выдача анкеты пайщика по гранту card.coop (к�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/disclosure/**
     - components/controller/src/extensions/cardcoop/application/disclosure.controller.ts
     - components/controller/src/extensions/cardcoop/identity/identity.service.ts

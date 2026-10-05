@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { CAPITAL_TIMER_SESSION_STORE } from '../database/capital-stores';
+import { isNull, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { TimerSessionEntity } from '../entities/timer-session.entity';
 import type { TimerSessionRepository } from '../../domain/repositories/timer-session.repository';
 import { TimerSessionDomainEntity } from '../../domain/entities/timer-session.entity';
@@ -8,8 +8,8 @@ import { TimerSessionDomainEntity } from '../../domain/entities/timer-session.en
 @Injectable()
 export class TimerSessionTypeormRepository implements TimerSessionRepository {
   constructor(
-    @InjectRepository(TimerSessionEntity)
-    private readonly repository: Repository<TimerSessionEntity>
+    @Inject(CAPITAL_TIMER_SESSION_STORE)
+    private readonly repository: TableStore<TimerSessionEntity>
   ) {}
 
   async create(session: TimerSessionDomainEntity): Promise<TimerSessionDomainEntity> {
@@ -18,35 +18,29 @@ export class TimerSessionTypeormRepository implements TimerSessionRepository {
   }
 
   async update(session: TimerSessionDomainEntity): Promise<TimerSessionDomainEntity> {
-    await this.repository.update(session._id, {
+    await this.repository.update({ _id: session._id }, {
       stopped_at: session.stopped_at ?? null,
       paused_at: session.paused_at ?? null,
       total_paused_ms: Number(session.total_paused_ms || 0),
       _updated_at: new Date(),
     });
-    const updated = await this.repository.findOne({ where: { _id: session._id } });
+    const updated = await this.repository.findOne({ _id: session._id });
     if (!updated) throw new Error('Timer session not found after update');
     return this.toDomain(updated);
   }
 
   async findOpenByContributor(contributorHash: string): Promise<TimerSessionDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { contributor_hash: contributorHash, stopped_at: IsNull() },
-      order: { started_at: 'DESC' },
-    });
+    const entity = await this.repository.findOne({ contributor_hash: contributorHash, stopped_at: isNull() }, { order: { started_at: 'DESC' } });
     return entity ? this.toDomain(entity) : null;
   }
 
   async findById(id: string): Promise<TimerSessionDomainEntity | null> {
-    const entity = await this.repository.findOne({ where: { _id: id } });
+    const entity = await this.repository.findOne({ _id: id });
     return entity ? this.toDomain(entity) : null;
   }
 
   async findAllOpen(): Promise<TimerSessionDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { stopped_at: IsNull() },
-      order: { started_at: 'ASC' },
-    });
+    const entities = await this.repository.find({ stopped_at: isNull() }, { order: { started_at: 'ASC' } });
     return entities.map((e) => this.toDomain(e));
   }
 

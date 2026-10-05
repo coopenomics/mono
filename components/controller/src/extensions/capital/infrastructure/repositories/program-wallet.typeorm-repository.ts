@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CAPITAL_PROGRAM_WALLET_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProgramWalletDomainEntity } from '../../domain/entities/program-wallet.entity';
 import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
 import { ProgramWalletMapper } from '../mappers/program-wallet.mapper';
 import type { ProgramWalletRepository } from '../../domain/repositories/program-wallet.repository';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramWalletDatabaseData } from '../../domain/interfaces/program-wallet-database.interface';
 import type { IProgramWalletBlockchainData } from '../../domain/interfaces/program-wallet-blockchain.interface';
 
@@ -14,15 +14,14 @@ import type { IProgramWalletBlockchainData } from '../../domain/interfaces/progr
  */
 @Injectable()
 export class ProgramWalletTypeormRepository
-  extends BaseBlockchainRepository<ProgramWalletDomainEntity, ProgramWalletTypeormEntity>
+  extends BaseChainRepository<ProgramWalletDomainEntity, ProgramWalletTypeormEntity>
   implements ProgramWalletRepository
 {
   constructor(
-    @InjectRepository(ProgramWalletTypeormEntity)
-    repository: Repository<ProgramWalletTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_PROGRAM_WALLET_STORE) repository: TableStore<ProgramWalletTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {

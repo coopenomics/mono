@@ -1,46 +1,36 @@
 /**
- * Проверка «сущности = миграции» (C28-79).
+ * Проверка миграций схемы (C28-79, C28-81).
  *
- *   pnpm schema:check                    — гейт: пустая база, все миграции,
- *                                          затем TypeORM не должен видеть ни одного
- *                                          отличия от сущностей. Иначе код 1.
- *   pnpm schema:check --database <база>  — только чтение: чем существующая база
- *                                          отличается от сущностей и какие
- *                                          миграции в ней ещё не применены
+ *   pnpm schema:check                    — гейт: на пустой базе применяются все
+ *                                          миграции, повторный прогон не
+ *                                          применяет ни одной. Иначе код 1.
+ *   pnpm schema:check --database <база>  — только чтение: какие миграции в
+ *                                          существующей базе ещё не применены
  *                                          (тот же отчёт, что --schema-report
  *                                          собранного контроллера на узле).
  *
- * Гейт ловит правку сущности без миграции: колонка добавлена в класс, а в
- * истории миграций её нет — значит, на узлах кооперативов её не будет.
+ * Гейт ловит миграцию, которая не применяется на чистой базе, и сломанный учёт
+ * применённых миграций. Что типы запросов соответствуют схеме из миграций,
+ * проверяет `pnpm schema:types --verify`.
  */
-import { pendingSchemaSql, withDataSource, withScratchDatabase } from './schema-tools';
+import './schema-tools';
+import { withScratchDatabase } from './schema-tools';
+import { runDatabaseMigrations } from '~/migrator/database-migrations';
 import { formatSchemaReport, reportSchema } from '~/migrator/schema-report';
 
-function report(title: string, statements: string[]): void {
-  process.stdout.write(`${title}: ${statements.length}\n`);
-  for (const sql of statements) process.stdout.write(`  ${sql}\n`);
-}
-
 async function checkFresh(): Promise<number> {
-  return withScratchDatabase('schema_check', (database) =>
-    withDataSource(database, async (dataSource) => {
-      const applied = await dataSource.runMigrations({ transaction: 'each' });
-      process.stdout.write(`Миграций применено на пустой базе: ${applied.length}\n`);
-      // Повторный прогон обязан ничего не делать — миграции идемпотентны по учёту.
-      const again = await dataSource.runMigrations({ transaction: 'each' });
-      if (again.length) {
-        process.stdout.write(`Повторный прогон применил ещё ${again.length} — учёт миграций сломан\n`);
-        return 1;
-      }
-      const { up } = await pendingSchemaSql(dataSource);
-      if (!up.length) {
-        process.stdout.write('Схема из миграций совпадает с сущностями\n');
-        return 0;
-      }
-      report('Сущности расходятся с миграциями — нужна миграция (pnpm schema:generate)', up);
+  return withScratchDatabase('schema_check', async (database) => {
+    const applied = await runDatabaseMigrations(database);
+    process.stdout.write(`Миграций применено на пустой базе: ${applied.length}\n`);
+    // Повторный прогон обязан ничего не делать — миграции идемпотентны по учёту.
+    const again = await runDatabaseMigrations(database);
+    if (again.length) {
+      process.stdout.write(`Повторный прогон применил ещё ${again.length} — учёт миграций сломан\n`);
       return 1;
-    })
-  );
+    }
+    process.stdout.write('Миграции схемы применяются на пустой базе, повторный прогон чист\n');
+    return 0;
+  });
 }
 
 async function checkDatabase(database: string): Promise<number> {
