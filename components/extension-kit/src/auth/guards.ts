@@ -1,10 +1,8 @@
-import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 import type { Observable } from 'rxjs';
 import { hasServerSecret } from './server-secret';
-import { ROLES_ANY_STATUS_KEY, ROLES_DENY_SELF_KEY } from './decorators';
 import { DomainError } from '../errors/domain-error';
 
 /**
@@ -13,9 +11,6 @@ import { DomainError } from '../errors/domain-error';
  * Доменный источник значения — `MonoAccountStatus.Active` в ядре.
  */
 const ACTIVE_USER_STATUS = 'active';
-
-/** Роль обычного пайщика: доступ по ней получает только принятый советом. */
-const PARTICIPANT_ROLE = 'user';
 
 /** JWT-гард для GraphQL. При валидном `server-secret` проверка не выполняется. */
 @Injectable()
@@ -113,72 +108,8 @@ export class HttpJwtAuthGuard extends AuthGuard('jwt') {
 }
 
 /**
- * Проверка доступа по ролям из `@AuthRoles`.
- *
- * 1. Валидный `server-secret` — доступ разрешён.
- * 2. Роли не заданы — доступ открыт.
- * 3. Пользователь обращается к своим ресурсам (`username` вложенный в `data`/`filter`
- *    либо плоским аргументом совпадает с `user.username`) — разрешено, если
- *    операция не объявила `AuthRoles(..., { allowSelf: false })`.
- * 4. У пользователя есть одна из разрешённых ролей — разрешено. Роль `user`
- *    при этом означает принятого пайщика: учётная запись в статусе вступления
- *    или исключения по ней не проходит (если операция не объявила
- *    `AuthRoles(..., { anyStatus: true })`). Совет по своей роли проходит в
- *    любом статусе: членов совета, заведённых при установке, цепь в
- *    `active` не переводит.
- * 5. Иначе — отказ.
- */
-@Injectable()
-export class RolesGuard implements CanActivate {
-  // Токен указан явно: пакет собирается esbuild'ом, а он не умеет
-  // `emitDecoratorMetadata`. Без `@Inject` Nest не увидел бы `design:paramtypes`,
-  // построил бы гард без аргументов, и `reflector` оказался бы `undefined` —
-  // отказ приходил бы не отказом, а 500 на первом же запросе с ролями.
-  constructor(@Inject(Reflector) private reflector: Reflector) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const ctx = GqlExecutionContext.create(context);
-    const request = ctx.getContext().req;
-
-    if (hasServerSecret(request?.headers)) {
-      return true;
-    }
-
-    const allowedRoles = this.reflector.get<string[]>('roles', context.getHandler());
-    if (!allowedRoles) {
-      return true;
-    }
-
-    const { user } = request;
-
-    const args = ctx.getArgs();
-    const data = args.data;
-    const filter = args.filter;
-
-    const denySelf = this.reflector.get<boolean>(ROLES_DENY_SELF_KEY, context.getHandler()) === true;
-
-    if (!denySelf && (
-        (data && data.username && user.username === data.username) ||
-        (filter && filter.username && user.username === filter.username) ||
-        (args.username && user.username === args.username))) {
-      return true;
-    }
-
-    if (allowedRoles.includes(user.role)) {
-      const anyStatus = this.reflector.get<boolean>(ROLES_ANY_STATUS_KEY, context.getHandler()) === true;
-      if (user.role === PARTICIPANT_ROLE && !anyStatus && user.status !== ACTIVE_USER_STATUS) {
-        throw DomainError.forbidden('KIT_MEMBERS_ONLY');
-      }
-      return true;
-    }
-
-    throw DomainError.unauthorized('KIT_INSUFFICIENT_RIGHTS');
-  }
-}
-
-/**
  * Разрешает доступ только пайщикам в статусе `active`.
- * При валидном `server-secret` проверка не выполняется — как в `RolesGuard`.
+ * При валидном `server-secret` проверка не выполняется — как в гарде прав (`RightsGuard`).
  */
 @Injectable()
 export class ActiveUserStatusGuard implements CanActivate {

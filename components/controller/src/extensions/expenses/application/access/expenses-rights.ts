@@ -1,5 +1,20 @@
-import { Injectable } from '@nestjs/common';
-import { memberRolesOf, type AppRights, type MemberRole, type RightsCaller, type RightsTable } from '@coopenomics/extension-kit';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  desktopGrantsOf,
+  memberRolesOf,
+  type AppRights,
+  type MemberRole,
+  type RightsCaller,
+  type RightsTable,
+} from '@coopenomics/extension-kit';
+import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort } from '@coopenomics/innercoop';
+
+/**
+ * Своего стола у расходов на сервере нет: их страницы открываются со стола
+ * пайщика и стола совета. Права страниц выдаются вместе с правами стола
+ * пайщика — он есть у каждого вошедшего.
+ */
+const EXPENSES_PAGES_DESKTOP = 'participant';
 
 /**
  * Права пайщика в расходах: своя служебная записка и свои строки подотчёта,
@@ -43,11 +58,21 @@ export const expensesRightsTable: RightsTable<MemberRole, never> = {
   ],
 };
 
-/** Описание прав расходов для общего гарда операций (`RightsGuard`). */
+/**
+ * Описание прав расходов: по нему работают общий гард операций
+ * (`RightsGuard`) и права страниц расходов.
+ */
 @Injectable()
-export class ExpensesRights implements AppRights<MemberRole, never> {
+export class ExpensesRights implements AppRights<MemberRole, never>, OnModuleInit {
   readonly extensionName = 'expenses';
   readonly table = expensesRightsTable;
+
+  constructor(@Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort) {}
+
+  onModuleInit(): void {
+    const hook = desktopGrantsOf(this);
+    this.grantsRegistry.register({ extensionName: EXPENSES_PAGES_DESKTOP, resolveGrants: (ctx) => hook.resolveGrants(ctx) });
+  }
 
   async roles(caller: RightsCaller): Promise<MemberRole[]> {
     return memberRolesOf(caller);

@@ -10,6 +10,7 @@
  * Роль в проекте ведёт таблица ролей проекта в сервисах — здесь её нет.
  */
 import { join } from 'node:path';
+import { desktopGrantsOf } from '@coopenomics/extension-kit';
 import { CapitalRights } from '~/extensions/capital/application/access/capital-rights';
 import { NO_RIGHT, OWN, candidate, chairman, councilMember, guardOver, participant, requirementAt, type Caller } from '../rights/core-rights.harness';
 
@@ -199,5 +200,22 @@ describe('Благорост: операции под общим гардом', 
       // Своё имя: проходит каждый вошедший, включая кандидата.
       if (path) await expect(pass(requirement, caller, named(path, caller.username))).resolves.toBe(true);
     }
+  });
+});
+
+describe('Благорост: права страниц рабочего стола', () => {
+  const grantsFor = async (caller: Caller) =>
+    desktopGrantsOf(new CapitalRights({ register: jest.fn() } as any)).resolveGrants({
+      username: caller.username,
+      userRole: caller.role,
+      userStatus: caller.status,
+    });
+
+  it('страницы стола открыты каждому вошедшему, страницы совета — совету, настройки — председателю', async () => {
+    expect(await grantsFor(candidate)).toContain('CapitalDesk:use');
+    expect(await grantsFor(participant)).not.toContain('CapitalDesk:council');
+    expect(await grantsFor(councilMember)).toContain('CapitalDesk:council');
+    expect(await grantsFor(councilMember)).not.toContain('CapitalDesk:manage');
+    expect(await grantsFor(chairman)).toEqual(expect.arrayContaining(['CapitalDesk:use', 'CapitalDesk:council', 'CapitalDesk:manage']));
   });
 });

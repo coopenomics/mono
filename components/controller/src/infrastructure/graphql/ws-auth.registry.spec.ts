@@ -24,7 +24,7 @@ jest.mock('~/config/logger', () => ({
 
 import * as jwt from 'jsonwebtoken';
 import { Reflector } from '@nestjs/core';
-import { RolesGuard } from '@coopenomics/extension-kit';
+import { RIGHT_METADATA_KEY, RightsGuard, councilRolesOf, type AppRights, type CouncilRole } from '@coopenomics/extension-kit';
 import { tokenTypes } from '~/types/token.types';
 
 const SUB = '11111111-1111-4111-8111-111111111111';
@@ -115,9 +115,16 @@ describe('ws-auth.registry', () => {
 
   describe('гарды на подписке судят как на запросе', () => {
     /** Контекст исполнения GraphQL-операции: [root, args, context, info]. */
-    function executionContext(gqlContext: unknown, roles: string[]) {
+    /** Описание прав с одним правом председателя — как у подписки председателя. */
+    const rights: AppRights<CouncilRole, never> = {
+      extensionName: 'probe',
+      table: { council: [], chairman: [{ when: [], rights: { Feed: ['read'] } }] },
+      roles: async (caller) => councilRolesOf(caller.role),
+    };
+
+    function executionContext(gqlContext: unknown) {
       const handler = () => undefined;
-      Reflect.defineMetadata('roles', roles, handler);
+      Reflect.defineMetadata(RIGHT_METADATA_KEY, { resource: 'Feed', action: 'read' }, handler);
       const args = [null, {}, gqlContext, {}];
       return {
         getArgs: () => args,
@@ -139,18 +146,18 @@ describe('ws-auth.registry', () => {
       return mod.buildWsContext(context);
     }
 
-    it('председатель проходит RolesGuard подписки председателя', async () => {
-      const guard = new RolesGuard(new Reflector());
+    it('председатель проходит гард прав подписки председателя', async () => {
+      const guard = new RightsGuard(new Reflector(), rights);
       const ctx = await connectedAs(USER);
 
-      expect(guard.canActivate(executionContext(ctx, ['chairman']))).toBe(true);
+      await expect(guard.canActivate(executionContext(ctx))).resolves.toBe(true);
     });
 
-    it('пайщик без роли — RolesGuard подписки отказывает', async () => {
-      const guard = new RolesGuard(new Reflector());
+    it('пайщик без права — гард прав подписки отказывает', async () => {
+      const guard = new RightsGuard(new Reflector(), rights);
       const ctx = await connectedAs({ ...USER, role: 'user' });
 
-      expect(() => guard.canActivate(executionContext(ctx, ['chairman']))).toThrow();
+      await expect(guard.canActivate(executionContext(ctx))).rejects.toMatchObject({ code: 'KIT_INSUFFICIENT_RIGHTS' });
     });
   });
 });

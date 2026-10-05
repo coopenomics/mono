@@ -655,7 +655,7 @@ cases:
       пайщики и совет. До 17.09.2026 хватало любого токена — он выдаётся при
       регистрации учётной записи, до приёма советом. Правило общее для роли
       `user` в RolesGuard (extension-kit)
-    test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
     api: components/api-tests/src/capital/fund-allocation.test.ts
     status: passing
 

@@ -431,7 +431,7 @@ cases:
       кто угодно с улицы. Правило — общее для роли `user` в RolesGuard
       (extension-kit); свои доли по имени кандидат по-прежнему получает
       через самообход
-    test: components/controller/tests/unit/auth/roles-guard-allow-self.test.ts
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
     api: components/api-tests/src/capital/project-contributors.test.ts
     status: passing
   - id: capital.pc.side.fact-01

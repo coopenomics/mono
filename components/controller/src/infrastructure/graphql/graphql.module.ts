@@ -18,7 +18,7 @@ import logger from '~/config/logger';
 import { authenticateWsConnection, buildWsContext } from './ws-auth.registry';
 
 /**
- * Объявление директивы `@auth`, которую ставит декоратор `AuthRoles`.
+ * Объявление директивы `@auth`, которую ставит на поле объекта декоратор `CouncilField`.
  *
  * Объявление обязательно: без него graphql-tools отбрасывает аргументы, о
  * которых не знает, — директива продолжает работать, но «молча» теряет часть

@@ -1,14 +1,5 @@
 {
-  "authroles": {
-    "components/controller/src/application/branch/dto/branch.dto.ts": 3,
-    "components/controller/src/extensions/capital/application/dto/debt_management/debt.dto.ts": 3,
-    "components/controller/src/extensions/capital/application/dto/expenses_management/expense.dto.ts": 3,
-    "components/controller/src/extensions/capital/application/dto/participation_management/contributor.dto.ts": 1
-  },
+  "authroles": {},
   "market-guards": {},
-  "route-roles": {
-    "components/desktop/extensions/capital/routes/projectTreeChildren.ts": 1,
-    "components/desktop/extensions/expenses/install.ts": 6,
-    "components/desktop/src/app/providers/routes/index.ts": 1
-  }
+  "route-roles": {}
 }

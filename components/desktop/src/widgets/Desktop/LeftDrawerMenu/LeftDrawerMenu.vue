@@ -143,8 +143,7 @@ const filteredRoutes = computed<RouteRecordRaw[]>(() => {
     const meta = (r.meta ?? {}) as MenuMeta;
     if (meta.hidden) return false;
     if (!evalCondition(meta.conditions, ctx)) return false;
-    // Canon-grants: для grant-стола проверяется meta.requires против выданных
-    // бэкендом прав; для legacy-стола fallback на meta.roles по core-роли.
+    // Требование страницы meta.requires сверяется с выданными бэкендом правами.
     return desktop.isPageVisible(r.meta, wsName);
   });
 });

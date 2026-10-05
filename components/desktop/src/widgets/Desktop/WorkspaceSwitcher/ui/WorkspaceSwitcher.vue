@@ -31,12 +31,9 @@ const palette = useCommandPaletteStore();
 
 const activeWorkspaceName = computed(() => desktop.activeWorkspaceName);
 
-// Видимость столов — единый канон авторизации (grants) с fallback на legacy
-// roles, инкапсулированный в DesktopStore.isWorkspaceVisible. Не дублируем
-// здесь собственную role-логику: иначе grant-управляемые столы расширений
-// (напр. marketplace до завершения онбординга ЦПП) с пустым meta.roles
-// прошли бы legacy-ветку и были «видны всем», расходясь с CmdkMenu и
-// WorkspaceMenu, которые уже зовут этот канон.
+// Видимость столов — единый канон авторизации по правам от сервера,
+// инкапсулированный в DesktopStore.isWorkspaceVisible. Собственной логики
+// здесь нет: её зовут и CmdkMenu, и WorkspaceMenu.
 const workspaces = computed(() =>
   desktop.workspaceMenus.filter((ws) => desktop.isWorkspaceVisible(ws)),
 );
