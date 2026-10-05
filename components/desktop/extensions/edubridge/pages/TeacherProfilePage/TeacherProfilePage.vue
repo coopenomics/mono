@@ -2,7 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-profile:banner-dismissed")
     | {{ $t('edubridge.teacherProfilePage.hintContract') }}
-    | {{ $t('edubridge.teacherProfilePage.hintUsername') }}
 
   CardListSkeleton(v-if="firstLoad" :count="2")
 

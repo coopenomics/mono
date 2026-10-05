@@ -2,8 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-members:banner-dismissed")
     | {{ $t('edubridge.adminMembersPage.hint.line1') }}
-    | {{ $t('edubridge.adminMembersPage.hint.line2') }}
-    | {{ $t('edubridge.adminMembersPage.hint.line3') }}
 
   BaseInput.q-mb-md(v-model="search" :label="$t('edubridge.adminMembersPage.searchLabel')" type="search" clearable @update:model-value="debouncedLoad")
 

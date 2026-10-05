@@ -2,8 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
     | {{ $t('edubridge.adminEconomyPage.hint.line1') }}
-    | {{ $t('edubridge.adminEconomyPage.hint.line2') }}
-    | {{ $t('edubridge.adminEconomyPage.hint.line3') }}
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 

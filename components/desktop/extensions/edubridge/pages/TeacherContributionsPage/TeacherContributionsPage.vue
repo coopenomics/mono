@@ -2,9 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-contributions:banner-dismissed")
     | {{ $t('edubridge.teacherContributionsPage.hint.line1') }}
-    | {{ $t('edubridge.teacherContributionsPage.hint.line2') }}
-    | {{ $t('edubridge.teacherContributionsPage.hint.line3') }}
-    | {{ $t('edubridge.teacherContributionsPage.hint.line4') }}
 
   BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="900px")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}

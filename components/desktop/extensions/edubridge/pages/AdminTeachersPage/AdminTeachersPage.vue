@@ -2,8 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-teachers:banner-dismissed")
     | {{ $t('edubridge.adminTeachersPage.hint.line1') }}
-    | {{ $t('edubridge.adminTeachersPage.hint.line2') }}
-    | {{ $t('edubridge.adminTeachersPage.hint.line3') }}
 
   BaseTable(
     v-if="loading || teachers.length"

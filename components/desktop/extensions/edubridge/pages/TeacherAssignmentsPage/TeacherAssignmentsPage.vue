@@ -2,7 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-assignments:banner-dismissed")
     | {{ $t('edubridge.teacherAssignmentsPage.hint.line1') }}
-    | {{ $t('edubridge.teacherAssignmentsPage.hint.line2') }}
 
   CardListSkeleton(v-if="firstLoad" :count="2")
   template(v-else)
