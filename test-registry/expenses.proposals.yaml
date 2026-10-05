@@ -366,3 +366,17 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе — снаружи они не видны; файлы и реквизиты служебной записки через API покрыты случаями exp.prop.* и набором expense-files-owner"
     status: written
+
+  - id: exp.prop.side.15
+    level: backend
+    kind: side
+    scenario: >
+      зеркало предложений о расходах на новом каркасе синхронизации: новая
+      запись из цепи, устаревшая дельта, свежая дельта
+    expect: >
+      новой записи ключ выдаёт база; устаревшая дельта не затирает более свежую
+      запись; перед обновлением прежнее состояние уходит в версии
+    test: components/controller/tests/unit/sync/base-chain-repository.test.ts
+    external: unreachable
+    external_reason: "порядок дельт и версии записей снаружи не видны; ход служебной записки через API покрыт случаями exp.prop.*"
+    status: written

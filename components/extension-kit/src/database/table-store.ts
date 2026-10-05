@@ -31,6 +31,10 @@ export const moreOrEqual = <T>(value: T): any => condition('>=', value);
 export const ilike = (pattern: string): any => condition('ilike', pattern);
 /** Значение колонки — одно из перечня. */
 export const oneOf = <T>(values: readonly T[]): any => condition('in', values);
+/** Значение колонки в границах (обе включительно); незаданная граница не ограничивает. */
+export const within = <T>(from?: T | null, to?: T | null): any => condition('range', [from, to]);
+/** Json-колонка содержит заданный фрагмент (оператор `@>`). */
+export const contains = (fragment: unknown): any => condition('contains', fragment);
 
 /** Условие отбора: равенство по полям либо условие из помощников выше; массив — «или». */
 export type Where<TRecord> = { [K in keyof TRecord]?: unknown };
@@ -52,6 +56,8 @@ export interface TableStoreOptions<TRecord> {
   numbers?: Array<keyof TRecord & string>;
   /** Поле времени правки: при каждой правке ставится текущее время базы. */
   updatedAt?: keyof TRecord & string;
+  /** Поля записи — перечень, из которого выбирается поле сортировки по запросу клиента. */
+  columns?: Array<keyof TRecord & string>;
   /** Имена колонок совпадают с именами полей (иначе поле `camelCase` — колонка `snake_case`). */
   sameNames?: boolean;
 }
@@ -81,6 +87,15 @@ export class TableStore<TRecord extends object> {
   /** Имя таблицы шлюза. */
   get table(): string {
     return this.options.table;
+  }
+
+  /**
+   * Поле сортировки по запросу клиента: только из перечня полей записи, иначе
+   * умолчание. Имя вне перечня до запроса не доходит.
+   */
+  sortField(requested: string | undefined, fallback: keyof TRecord & string): keyof TRecord & string {
+    const known = (this.options.columns ?? []) as string[];
+    return requested && known.includes(requested) ? (requested as keyof TRecord & string) : fallback;
   }
 
   /** Kysely этого шлюза — для запросов сложнее отбора по равенству. */
@@ -242,6 +257,14 @@ export class TableStore<TRecord extends object> {
       const { operator, value: operand } = value as Condition;
       if (operator === 'is null') return eb(column, 'is', null);
       if (operator === 'is not null') return eb(column, 'is not', null);
+      if (operator === 'range') {
+        const [from, to] = operand as [unknown, unknown];
+        const bounds: Expression<SqlBool>[] = [];
+        if (from !== null && from !== undefined) bounds.push(eb(column, '>=', from));
+        if (to !== null && to !== undefined) bounds.push(eb(column, '<=', to));
+        return eb.and(bounds);
+      }
+      if (operator === 'contains') return sql<boolean>`${sql.ref(column)} @> ${JSON.stringify(operand)}::jsonb`;
       if (operator === 'in') return (operand as unknown[]).length ? eb(column, 'in', operand as unknown[]) : sql<boolean>`false`;
       return eb(column, operator as '=', operand);
     }

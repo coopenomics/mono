@@ -7,10 +7,6 @@
  * репозитории не поднимаются, расширение не стартует. Поэтому состав
  * объявляется здесь и попадает в подключение через запись реестра.
  */
-import { ExpenseProposalTypeormEntity } from './infrastructure/entities/expense-proposal.typeorm-entity';
-
-// Реестр файлов, снимки реквизитов и планы расходов переведены на Kysely
-// (C28-81) — их таблицы объявлены шлюзами в `infrastructure/database/expenses-stores.ts`.
-export const expensesEntities = [
-  ExpenseProposalTypeormEntity,
-];
+// Расширение переведено на Kysely (C28-81): сущностей TypeORM у него нет,
+// таблицы объявлены шлюзами в `infrastructure/database/expenses-stores.ts`.
+export const expensesEntities = [];

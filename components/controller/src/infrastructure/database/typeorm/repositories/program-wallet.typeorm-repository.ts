@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CORE_PROGRAM_WALLET_STORE } from '../../kysely/core-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProgramWalletDomainEntity } from '~/domain/wallet/entities/program-wallet-domain.entity';
 import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
 import { ProgramWalletMapper } from '../mappers/program-wallet.mapper';
 import type { ProgramWalletRepository } from '~/domain/wallet/repositories/program-wallet.repository';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramWalletBlockchainData } from '~/domain/wallet/interfaces/program-wallet-blockchain.interface';
 import type { IProgramWalletDatabaseData } from '~/domain/wallet/interfaces/program-wallet-database.interface';
 
@@ -16,15 +16,14 @@ import type { IProgramWalletDatabaseData } from '~/domain/wallet/interfaces/prog
  */
 @Injectable()
 export class ProgramWalletTypeormRepository
-  extends BaseBlockchainRepository<ProgramWalletDomainEntity, ProgramWalletTypeormEntity>
+  extends BaseChainRepository<ProgramWalletDomainEntity, ProgramWalletTypeormEntity>
   implements ProgramWalletRepository, IBlockchainSyncRepository<ProgramWalletDomainEntity>
 {
   constructor(
-    @InjectRepository(ProgramWalletTypeormEntity)
-    repository: Repository<ProgramWalletTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CORE_PROGRAM_WALLET_STORE) repository: TableStore<ProgramWalletTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -49,9 +48,7 @@ export class ProgramWalletTypeormRepository
    * Найти кошелек по имени пользователя и ID программы
    */
   async findByUsernameAndProgramId(username: string, program_id: string): Promise<ProgramWalletDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { username, program_id },
-    });
+    const entity = await this.repository.findOne({ username, program_id });
 
     return entity ? ProgramWalletMapper.toDomain(entity) : null;
   }
@@ -60,10 +57,7 @@ export class ProgramWalletTypeormRepository
    * Найти все кошельки пользователя
    */
   async findByUsername(username: string): Promise<ProgramWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { username },
-      order: { program_id: 'ASC' },
-    });
+    const entities = await this.repository.find({ username }, { order: { program_id: 'ASC' } });
 
     return entities.map((entity) => ProgramWalletMapper.toDomain(entity));
   }
@@ -72,10 +66,7 @@ export class ProgramWalletTypeormRepository
    * Найти все кошельки кооператива
    */
   async findByCoopname(coopname: string): Promise<ProgramWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname },
-      order: { username: 'ASC', program_id: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname }, { order: { username: 'ASC', program_id: 'ASC' } });
 
     return entities.map((entity) => ProgramWalletMapper.toDomain(entity));
   }
@@ -84,10 +75,7 @@ export class ProgramWalletTypeormRepository
    * Найти все кошельки программы
    */
   async findByProgramId(program_id: string): Promise<ProgramWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { program_id },
-      order: { username: 'ASC' },
-    });
+    const entities = await this.repository.find({ program_id }, { order: { username: 'ASC' } });
 
     return entities.map((entity) => ProgramWalletMapper.toDomain(entity));
   }

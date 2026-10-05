@@ -18,6 +18,7 @@ export const chairmanStoreProviders: Provider[] = [
         json: ['document', 'approved_document'],
         updatedAt: '_updated_at',
         sameNames: true,
+        columns: ['_id', 'block_num', 'present', 'status', '_created_at', '_updated_at', 'id', 'coopname', 'username', 'document', 'approval_hash', 'callback_contract', 'callback_action_approve', 'callback_action_decline', 'meta', 'created_at', 'approved_document'],
       }),
   },
 ];

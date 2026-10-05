@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CORE_USER_AGREEMENT_STORE } from '../../kysely/core-stores';
+import { type TableStore, contains } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { UserAgreementDomainEntity } from '~/domain/wallet/entities/user-agreement-domain.entity';
 import { UserAgreementTypeormEntity } from '../entities/user-agreement.typeorm-entity';
 import { UserAgreementMapper } from '../mappers/user-agreement.mapper';
 import type { UserAgreementRepository } from '~/domain/wallet/repositories/user-agreement.repository';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IUserAgreementBlockchainData } from '~/domain/wallet/interfaces/user-agreement-blockchain.interface';
 import type { IUserAgreementDatabaseData } from '~/domain/wallet/interfaces/user-agreement-database.interface';
 
@@ -19,15 +19,14 @@ import type { IUserAgreementDatabaseData } from '~/domain/wallet/interfaces/user
  */
 @Injectable()
 export class UserAgreementTypeormRepository
-  extends BaseBlockchainRepository<UserAgreementDomainEntity, UserAgreementTypeormEntity>
+  extends BaseChainRepository<UserAgreementDomainEntity, UserAgreementTypeormEntity>
   implements UserAgreementRepository, IBlockchainSyncRepository<UserAgreementDomainEntity>
 {
   constructor(
-    @InjectRepository(UserAgreementTypeormEntity)
-    repository: Repository<UserAgreementTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CORE_USER_AGREEMENT_STORE) repository: TableStore<UserAgreementTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -49,27 +48,17 @@ export class UserAgreementTypeormRepository
   }
 
   async findByUsername(coopname: string, username: string): Promise<UserAgreementDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { coopname, username },
-    });
+    const entity = await this.repository.findOne({ coopname, username });
     return entity ? UserAgreementMapper.toDomain(entity) : null;
   }
 
   async findByCoopname(coopname: string): Promise<UserAgreementDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname },
-      order: { username: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname }, { order: { username: 'ASC' } });
     return entities.map(UserAgreementMapper.toDomain);
   }
 
   async findByProgramId(coopname: string, program_id: number): Promise<UserAgreementDomainEntity[]> {
-    const entities = await this.repository
-      .createQueryBuilder('ua')
-      .where('ua.coopname = :coopname', { coopname })
-      .andWhere(`ua.programs @> :program::jsonb`, { program: JSON.stringify([{ program_id }]) })
-      .orderBy('ua.username', 'ASC')
-      .getMany();
+    const entities = await this.repository.find({ coopname, programs: contains([{ program_id }]) }, { order: { username: 'ASC' } });
     return entities.map(UserAgreementMapper.toDomain);
   }
 }

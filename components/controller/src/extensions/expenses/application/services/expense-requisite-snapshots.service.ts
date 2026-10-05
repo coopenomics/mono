@@ -1,8 +1,6 @@
 import { TableStore } from '@coopenomics/extension-kit';
 import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database/expenses-stores';
 import { Inject, Injectable, Logger } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
 import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity'

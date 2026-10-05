@@ -1,34 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CORE_AGREEMENT_STORE } from '../../kysely/core-stores';
+import { PaginationUtils, type TableStore, oneOf, within } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { AgreementDomainEntity } from '~/domain/agreement/entities/agreement.entity';
 import { AgreementTypeormEntity } from '../entities/agreement.typeorm-entity';
 import { AgreementMapper } from '../mappers/agreement.mapper';
 import type { AgreementRepository, AgreementFilterInput } from '~/domain/agreement/repositories/agreement.repository';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IAgreementBlockchainData } from '~/domain/agreement/interfaces/agreement-blockchain.interface';
 import type { IAgreementDatabaseData } from '~/domain/agreement/interfaces/agreement-database.interface';
 import type {
   PaginationInputDomainInterface,
   PaginationResultDomainInterface,
 } from '~/domain/common/interfaces/pagination.interface';
-import { PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория соглашений
  */
 @Injectable()
 export class AgreementTypeormRepository
-  extends BaseBlockchainRepository<AgreementDomainEntity, AgreementTypeormEntity>
+  extends BaseChainRepository<AgreementDomainEntity, AgreementTypeormEntity>
   implements AgreementRepository, IBlockchainSyncRepository<AgreementDomainEntity>
 {
   constructor(
-    @InjectRepository(AgreementTypeormEntity)
-    repository: Repository<AgreementTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CORE_AGREEMENT_STORE) repository: TableStore<AgreementTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -67,48 +65,21 @@ export class AgreementTypeormRepository
     // Получаем параметры для SQL запроса
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
-    // Строим query builder для сложных условий поиска
-    const queryBuilder = this.repository.createQueryBuilder('agreement');
+    const where: Record<string, unknown> = {};
+    if (filter?.coopname) where.coopname = filter.coopname;
+    if (filter?.username) where.username = filter.username;
+    if (filter?.type) where.type = filter.type;
+    if (filter?.program_id !== undefined) where.program_id = filter.program_id;
+    if (filter?.statuses && filter.statuses.length > 0) where.blockchain_status = oneOf(filter.statuses);
+    if (filter?.created_from || filter?.created_to) where._created_at = within(filter.created_from, filter.created_to);
 
-    // Добавляем условия фильтрации
-    if (filter?.coopname) {
-      queryBuilder.andWhere('agreement.coopname = :coopname', { coopname: filter.coopname });
-    }
-    if (filter?.username) {
-      queryBuilder.andWhere('agreement.username = :username', { username: filter.username });
-    }
-    if (filter?.type) {
-      queryBuilder.andWhere('agreement.type = :type', { type: filter.type });
-    }
-    if (filter?.program_id !== undefined) {
-      queryBuilder.andWhere('agreement.program_id = :program_id', { program_id: filter.program_id });
-    }
-    if (filter?.statuses && filter.statuses.length > 0) {
-      queryBuilder.andWhere('agreement.blockchain_status IN (:...statuses)', { statuses: filter.statuses });
-    }
-    if (filter?.created_from) {
-      queryBuilder.andWhere('agreement._created_at >= :created_from', { created_from: filter.created_from });
-    }
-    if (filter?.created_to) {
-      queryBuilder.andWhere('agreement._created_at <= :created_to', { created_to: filter.created_to });
-    }
-
-    // Получаем общее количество записей
-    const totalCount = await queryBuilder.getCount();
-
-    // Добавляем сортировку
-    if (validatedOptions.sortBy) {
-      const sortBy = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
-      queryBuilder.orderBy(`agreement.${sortBy}`, validatedOptions.sortOrder);
-    } else {
-      queryBuilder.orderBy('agreement._created_at', 'DESC');
-    }
-
-    // Добавляем пагинацию
-    queryBuilder.skip(offset).take(limit);
-
-    // Получаем записи
-    const entities = await queryBuilder.getMany();
+    // Имя вне полей записи заменяется датой создания; порядок по умолчанию — свежие первыми.
+    const sortBy = this.repository.sortField(validatedOptions.sortBy, '_created_at');
+    const [entities, totalCount] = await this.repository.findAndCount(where, {
+      order: { [sortBy]: validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC' },
+      offset,
+      limit,
+    });
 
     // Преобразуем в доменные сущности
     const items = entities.map((entity) => AgreementMapper.toDomain(entity));
@@ -119,30 +90,22 @@ export class AgreementTypeormRepository
 
   // Специфичные методы репозитория соглашений
   async findByCoopname(coopname: string): Promise<AgreementDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname },
-    });
+    const entities = await this.repository.find({ coopname });
     return entities.map(AgreementMapper.toDomain);
   }
 
   async findByUsername(username: string): Promise<AgreementDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { username },
-    });
+    const entities = await this.repository.find({ username });
     return entities.map(AgreementMapper.toDomain);
   }
 
   async findByType(type: string): Promise<AgreementDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { type },
-    });
+    const entities = await this.repository.find({ type });
     return entities.map(AgreementMapper.toDomain);
   }
 
   async findByProgramId(program_id: number): Promise<AgreementDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { program_id: program_id },
-    });
+    const entities = await this.repository.find({ program_id: program_id });
     return entities.map(AgreementMapper.toDomain);
   }
 }

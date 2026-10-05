@@ -37,12 +37,12 @@ import { NotificationDeliveryKyselyRepository } from '../kysely/repositories/not
 import { NotificationInboxKyselyRepository } from '../kysely/repositories/notification-inbox.kysely-repository';
 import { LEDGER_OPERATION_REPOSITORY } from '~/domain/ledger/repositories/ledger-operation.repository';
 import { LedgerOperationKyselyRepository } from '../kysely/repositories/ledger-operation.kysely-repository';
-import { AgreementTypeormEntity } from './entities/agreement.typeorm-entity';
 import { AGREEMENT_REPOSITORY } from '~/domain/agreement/repositories/agreement.repository';
 import { AgreementTypeormRepository } from './repositories/agreement.typeorm-repository';
 import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mapper';
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { DraftRegistryKyselyRepository } from '../kysely/repositories/draft-registry.kysely-repository';
+import { coreStoreProviders } from '../kysely/core-stores';
 import {
   EntityVersionTypeormEntity,
   EntityVersionRepository,
@@ -77,16 +77,13 @@ import { PAYMENT_STATE_REPOSITORY } from '~/domain/gateway/repositories/payment-
 import { PaymentStateKyselyRepository } from '../kysely/repositories/payment-state.kysely-repository';
 import { MUTATION_LOG_REPOSITORY } from '~/domain/mutation-log/repositories/mutation-log.repository';
 import { MutationLogKyselyRepository } from '../kysely/repositories/mutation-log.kysely-repository';
-import { ProgramWalletTypeormEntity } from './entities/program-wallet.typeorm-entity';
 import { PROGRAM_WALLET_REPOSITORY } from '~/domain/wallet/repositories/program-wallet.repository';
 import { ProgramWalletTypeormRepository } from './repositories/program-wallet.typeorm-repository';
 import { ProgramWalletDeltaMapper } from './blockchain/mappers/program-wallet-delta.mapper';
-import { UserAgreementTypeormEntity } from './entities/user-agreement.typeorm-entity';
 import { USER_AGREEMENT_REPOSITORY } from '~/domain/wallet/repositories/user-agreement.repository';
 import { UserAgreementTypeormRepository } from './repositories/user-agreement.typeorm-repository';
 import { UserAgreementDeltaMapper } from './blockchain/mappers/user-agreement-delta.mapper';
 import { UserAgreementSyncService } from './blockchain/services/user-agreement-sync.service';
-import { UserWalletTypeormEntity } from './entities/user-wallet.typeorm-entity';
 import { USER_WALLET_REPOSITORY } from '~/domain/wallet/repositories/user-wallet.repository';
 import { UserWalletTypeormRepository } from './repositories/user-wallet.typeorm-repository';
 import { UserWalletDeltaMapper } from './blockchain/mappers/user-wallet-delta.mapper';
@@ -108,13 +105,9 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     }),
     NestTypeOrmModule.forFeature([
       MigrationEntity,
-      AgreementTypeormEntity,
       EntityVersionTypeormEntity,
       InvalidatedEntityTypeormEntity,
       InvalidatedEntityVersionTypeormEntity,
-      ProgramWalletTypeormEntity,
-      UserAgreementTypeormEntity,
-      UserWalletTypeormEntity,
     ]),
   ],
   providers: [
@@ -259,9 +252,12 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     InvalidatedEntityVersionRepository,
     // Версии и архив форка для зеркал, переведённых на Kysely (C28-81).
     ChainVersioningService,
+    // Шлюзы таблиц зеркал ядра: кошельки и соглашения.
+    ...coreStoreProviders,
   ],
   exports: [
     ChainVersioningService,
+    ...coreStoreProviders,
     NestTypeOrmModule,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
