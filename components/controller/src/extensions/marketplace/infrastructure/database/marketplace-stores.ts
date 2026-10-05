@@ -343,6 +343,7 @@ export const marketplaceStoreProviders: Provider[] = [
       new TableStore<MarketplaceSupplierEntity>(db, {
         table: 'marketplace_supplier',
         primaryKey: ['id'],
+        dates: ['contract_date'],
         sameNames: true,
       }),
   },

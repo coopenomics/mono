@@ -124,6 +124,16 @@ describe('TableStore', () => {
     expect(queries[0].parameters).toEqual(['new']);
   });
 
+  it('поле типа date в записи — строка ГГГГ-ММ-ДД, а не объект даты', async () => {
+    const { db } = recordingKysely([{ rows: [{ id: 's1', day: new Date(2026, 9, 5), created_at: new Date(2026, 9, 5, 12, 30) }] }]);
+    const store = new TableStore<{ id: string; day: string; createdAt: Date }>(db, { table: 'work', primaryKey: ['id'], dates: ['day'] });
+
+    const [record] = await store.find();
+
+    expect(record.day).toBe('2026-10-05');
+    expect(record.createdAt).toBeInstanceOf(Date);
+  });
+
   it('таблица вне ленты: число затронутых строк берётся из счётчика базы', async () => {
     const { store } = make([{ affected: 3 }, { affected: 0 }]);
 

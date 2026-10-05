@@ -55,6 +55,8 @@ export interface TableStoreOptions<TRecord> {
   json?: Array<keyof TRecord & string>;
   /** Поля numeric/bigint: база отдаёт их строкой, в записи они числа. */
   numbers?: Array<keyof TRecord & string>;
+  /** Поля типа `date` (без времени): драйвер отдаёт дату объектом, в записи она строка `ГГГГ-ММ-ДД`. */
+  dates?: Array<keyof TRecord & string>;
   /** Поле времени правки: при каждой правке ставится текущее время базы. */
   updatedAt?: keyof TRecord & string;
   /** Поля записи — перечень, из которого выбирается поле сортировки по запросу клиента. */
@@ -241,6 +243,9 @@ export class TableStore<TRecord extends object> {
     for (const field of this.numbers) {
       if (record[field] !== null && record[field] !== undefined) record[field] = Number(record[field]);
     }
+    for (const field of this.options.dates ?? []) {
+      if (record[field] instanceof Date) record[field] = dateOnly(record[field] as Date);
+    }
     return record as TRecord;
   }
 
@@ -283,4 +288,10 @@ export class TableStore<TRecord extends object> {
     }
     return eb(column, '=', value);
   }
+}
+
+/** Дата без времени строкой `ГГГГ-ММ-ДД`: драйвер разбирает её в местную полночь, поэтому берутся местные части. */
+function dateOnly(value: Date): string {
+  const pad = (part: number): string => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 }

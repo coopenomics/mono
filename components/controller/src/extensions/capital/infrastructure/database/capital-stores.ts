@@ -271,6 +271,7 @@ export const capitalStoreProviders: Provider[] = [
       new TableStore<CycleTypeormEntity>(db, {
         table: 'capital_cycles',
         primaryKey: ['_id'],
+        dates: ['start_date', 'end_date'],
         updatedAt: '_updated_at',
         sameNames: true,
         columns: ['_id', 'block_num', 'present', 'status', '_created_at', '_updated_at', 'name', 'start_date', 'end_date'],
@@ -502,6 +503,7 @@ export const capitalStoreProviders: Provider[] = [
       new TableStore<TimeEntryEntity>(db, {
         table: 'capital_time_entries',
         primaryKey: ['_id'],
+        dates: ['date'],
         updatedAt: '_updated_at',
         sameNames: true,
         columns: ['_id', 'block_num', 'present', 'status', '_created_at', '_updated_at', 'contributor_hash', 'issue_hash', 'project_hash', 'coopname', 'date', 'hours', 'commit_hash', 'is_committed', 'entry_type', 'estimate_snapshot'],
