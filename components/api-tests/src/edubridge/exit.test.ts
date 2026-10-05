@@ -49,7 +49,7 @@ const exitPreview = exitReturnPreview
 /** Вход подачи заявления на выход: документы под свежим хэшем выхода. */
 async function exitInput(who: Who, token: string): Promise<{ d: Record<string, unknown> }> {
   const exit_hash = crypto.randomBytes(32).toString('hex')
-  return { d: { coopname: COOP, username: who.account, exit_hash, ...await exitDocuments(who, token, exit_hash) } }
+  return { d: { coopname: COOP, username: who.account, exit_hash, ...await exitDocuments(who, token, exit_hash, { withPrograms: true }) } }
 }
 
 /** Пайщик подтверждает выход по ссылке из письма — заявление уходит в цепь. */
