@@ -74,6 +74,26 @@ describe('ChainVersioningService', () => {
     expect(queries).toHaveLength(1);
   });
 
+  it('откат форка: из нескольких записей возвращается только та, что менялась после форка, по самому раннему изменению', async () => {
+    // Версии читаются от ранних к поздним, только с блоком больше блока форка:
+    // запись без таких версий и локальное изменение без блока сюда не попадают.
+    const versions = [
+      { id: 'v1', entity_table: 'capital_projects', entity_id: 'p1', block_num: 11, previous_data: { _id: 'p1', block_num: 9, present: true, title: 'на блоке форка' } },
+      { id: 'v2', entity_table: 'capital_projects', entity_id: 'p1', block_num: 11, previous_data: { _id: 'p1', block_num: 11, present: true, title: 'второе изменение того же блока' } },
+      { id: 'v3', entity_table: 'capital_projects', entity_id: 'p4', block_num: 14, previous_data: { _id: 'p4', block_num: 13, present: true, title: 'создана после форка' } },
+    ];
+    const { service, store, queries } = setup([{ rows: versions }, { rows: [] }, { rows: [{ _id: 'p1', block_num: 9, present: true, title: 'на блоке форка' }] }]);
+
+    await service.restoreVersionsAfterFork(store, 10);
+
+    expect(queries[0].sql).toContain('"block_num" > $2');
+    expect(queries[0].sql).toContain('order by "entity_id" asc, "block_num" asc, "created_at" asc');
+    // Одно чтение живой записи и одна запись — только для p1.
+    expect(queries).toHaveLength(3);
+    expect(queries[2].parameters).toEqual(expect.arrayContaining(['p1', 9, 'на блоке форка']));
+    expect(queries[2].parameters).not.toEqual(expect.arrayContaining(['p4']));
+  });
+
   it('архив форка: отменённые записи переносятся в архив и убираются из таблицы', async () => {
     const rows = [{ _id: 'p3', block_num: 14, present: true, title: 'отменена' }];
     const { service, store, queries } = setup([{ rows }, { rows: [] }, { affected: 1 }]);

@@ -63,6 +63,8 @@ describe.skipIf(!FAULTS_ENABLED)('цепь стенда остановлена �
   let gateWhileDown: GqlResponse<any>
   let offerRetried: GqlResponse<any>
   let restartWhileDown: GqlResponse<any>
+  let memberGateBefore: GqlResponse<any>
+  let memberGateAfter: GqlResponse<any>
   let cppWhileDown: GqlResponse<any>
 
   beforeAll(async () => {
@@ -108,6 +110,8 @@ describe.skipIf(!FAULTS_ENABLED)('цепь стенда остановлена �
     const chairmanToken = await tokenOf(CHAIRMAN)
     const market = ((await gql<any>(chairmanToken, EXTENSIONS, { d: { name: 'market' } })).getExtensions as any[]).find(e => e.name === 'market')
 
+    memberGateBefore = await gqlRaw(memberToken, ONBOARDING_STATE)
+
     await stopService(CHAIN_NODE)
     try {
       stateWhileDown = await waitFor(async () => {
@@ -143,6 +147,9 @@ describe.skipIf(!FAULTS_ENABLED)('цепь стенда остановлена �
 
     retried = await gqlRaw(memberToken, FINALIZE, input)
     offerRetried = await gqlRaw(newcomerToken, SIGN_OFFER, { i: { document: signedOffer } })
+    // Подпись новичка уже разобрана узлом, значит, форк от возврата цепи — тоже:
+    // он стоит в потоке раньше.
+    memberGateAfter = await gqlRaw(memberToken, ONBOARDING_STATE)
   }, 900_000)
 
   afterAll(async () => {
@@ -193,5 +200,12 @@ describe.skipIf(!FAULTS_ENABLED)('цепь стенда остановлена �
   it(caseName('mkt.onb.break.04', 'цепь недоступна в момент старта расширения — расширение всё равно поднимается и отвечает'), () => {
     expect(restartWhileDown.errors, JSON.stringify(restartWhileDown.errors)).toEqual([])
     expect(cppWhileDown.data.marketplaceCppStatus.status, 'принятая прежде ЦПП видна и без цепи').toBe('active')
+  })
+
+  it(caseName('sync.fork.side.01', 'остановка и возврат цепи не стирают подпись оферты у пайщика, которого форк не касался'), () => {
+    expect(memberGateBefore.data?.marketplaceOnboardingState?.source, 'пайщик из засева подписал оферту до остановки цепи').toBe('AGREEMENT_SIGNED')
+    expect(memberGateAfter.errors, JSON.stringify(memberGateAfter.errors)).toEqual([])
+    expect(memberGateAfter.data.marketplaceOnboardingState.source, 'подпись на месте после возврата цепи').toBe('AGREEMENT_SIGNED')
+    expect(memberGateAfter.data.marketplaceOnboardingState.requires_gate).toBe(false)
   })
 })
