@@ -63,10 +63,10 @@ sources:
   backend:
     - components/extension-kit/src/utils/sort-column.utils.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/issue.kysely-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/commit.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/contributor.kysely-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/story.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/time-entry.kysely-repository.ts
     - components/controller/src/extensions/capital/application/dto/property_management/project-filter.input.ts
