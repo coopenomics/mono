@@ -153,3 +153,13 @@ cases:
     external_reason: "проверяется разбор ответа базы с дописанным RETURNING; видимое снаружи поведение покрыто случаями rep.draft.side.04 и rep.cal.happy.01 — они и поймали дефект"
     status: written
 
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: rep.draft.side.08
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

@@ -1,7 +1,16 @@
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { ForbiddenException, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, ExpenseProposalStatementGenerateDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  ExpenseProposalStatementGenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseProposalDecisionGenerateDocumentInputDTO } from '../documents-dto/expense-proposal-decision-document.dto';
 import { ExpensesMutationsService } from '../services/expenses-mutations.service';
@@ -64,8 +73,8 @@ export class ExpenseMutationsResolver {
     description: 'Сгенерировать документ СЗ-заявления (registry 2010) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'create')
   async generateExpenseProposalStatementDocument(
     @Args('data', { type: () => ExpenseProposalStatementGenerateDocumentInputDTO })
     data: ExpenseProposalStatementGenerateDocumentInputDTO,
@@ -80,8 +89,8 @@ export class ExpenseMutationsResolver {
     description: 'Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'decide')
   async generateExpenseProposalDecisionDocument(
     @Args('data', { type: () => ExpenseProposalDecisionGenerateDocumentInputDTO })
     data: ExpenseProposalDecisionGenerateDocumentInputDTO,
@@ -95,18 +104,11 @@ export class ExpenseMutationsResolver {
     name: 'createExpenseProposal',
     description: 'Подать СЗ-расход (создать смету с подписью пайщика/председателя).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'create')
   async createExpenseProposal(
-    @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO,
-    @CurrentUser() user: IMonoAccount
+    @Args('data', { type: () => CreateExpenseProposalInputDTO }) data: CreateExpenseProposalInputDTO
   ): Promise<TransactionDTO> {
-    // RolesGuard пропускает запрос при data.username === user.username независимо
-    // от роли — здесь это сломало бы ограничение «СЗ подаёт совет», поэтому роль
-    // проверяется явно.
-    if (user.role !== 'chairman' && user.role !== 'member') {
-      throw DomainError.forbidden('EXPENSES_PROPOSAL_FORBIDDEN');
-    }
     return this.expensesMutations.createExpenseProposal(data);
   }
 
@@ -114,8 +116,8 @@ export class ExpenseMutationsResolver {
     name: 'payExpenseItem',
     description: 'Оплатить строку расхода (выдача аванса ADVANCE или прямая оплата DIRECT).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'pay')
   async payExpenseItem(
     @Args('data', { type: () => PayExpenseItemInputDTO }) data: PayExpenseItemInputDTO
   ): Promise<TransactionDTO> {
@@ -126,8 +128,8 @@ export class ExpenseMutationsResolver {
     name: 'reportExpenseItem',
     description: 'Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseItem', 'report')
   async reportExpenseItem(
     @Args('data', { type: () => ReportExpenseItemInputDTO }) data: ReportExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
@@ -140,8 +142,8 @@ export class ExpenseMutationsResolver {
     name: 'returnExpenseItem',
     description: 'Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseItem', 'return')
   async returnExpenseItem(
     @Args('data', { type: () => ReturnExpenseItemInputDTO }) data: ReturnExpenseItemInputDTO,
     @CurrentUser() user: IMonoAccount
@@ -154,8 +156,8 @@ export class ExpenseMutationsResolver {
     name: 'overspendExpenseItem',
     description: 'Доплатить сумму перерасхода по строке расхода (ADVANCE-механика).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'overspend')
   async overspendExpenseItem(
     @Args('data', { type: () => OverspendExpenseItemInputDTO }) data: OverspendExpenseItemInputDTO
   ): Promise<TransactionDTO> {
@@ -166,9 +168,8 @@ export class ExpenseMutationsResolver {
     name: 'submitExpenseReport',
     description: 'Финализировать СЗ-отчёт по смете расхода (все items закрыты — оплата/чек/возврат).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Закрытие расхода — финализация СЗ-отчёта советом: председатель / член совета.
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'submit-report')
   async submitExpenseReport(
     @Args('data', { type: () => SubmitExpenseReportInputDTO }) data: SubmitExpenseReportInputDTO
   ): Promise<TransactionDTO> {

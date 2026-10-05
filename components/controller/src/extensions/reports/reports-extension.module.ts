@@ -27,6 +27,8 @@ import { BALANCE_CORRECTION_REPOSITORY } from './domain/repositories/balance-cor
 import { REPORT_REQUISITES_REPOSITORY } from './domain/repositories/report-requisites.repository';
 import { REPORT_DRAFT_REPOSITORY } from './domain/repositories/report-draft.repository';
 import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-submission-mark.repository';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { ReportsRights } from './application/access/reports-rights';
 
 // ORGANIZATION_REPOSITORY и INDIVIDUAL_REPOSITORY приходят из @Global()
 // GeneratorRepositoriesModule, поэтому их явно импортировать в imports не надо.
@@ -34,6 +36,11 @@ import { REPORT_SUBMISSION_MARK_REPOSITORY } from './domain/repositories/report-
   imports: [
   ],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    ReportsRights,
+    { provide: APP_RIGHTS, useExisting: ReportsRights },
+    RightsGuard,
+
     ReportsLiveFeedService,
     ReportRegistryService,
     ReportPreviewService,

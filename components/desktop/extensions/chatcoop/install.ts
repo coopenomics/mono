@@ -18,7 +18,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('chatcoop.install.extensionName'),
           icon: 'fa-solid fa-comments',
-          roles: ['chairman', 'member', 'user'],
+          requires: 'ChatAccount:manage:own',
         },
         path: '/:coopname/chatcoop',
         name: 'chatcoop',
@@ -30,7 +30,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.quickClientNavTitle'),
               icon: 'fa-solid fa-comments',
-              roles: ['chairman', 'member', 'user'],
+              requires: 'ChatRoom:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -43,7 +43,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.mobileClientNavTitle'),
               icon: 'fa-solid fa-mobile-alt',
-              roles: ['chairman', 'member', 'user'],
+              requires: 'ChatRoom:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -56,7 +56,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.calendarNavTitle'),
               icon: 'fa-solid fa-calendar-days',
-              roles: ['chairman', 'member', 'user'],
+              requires: 'Calendar:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -69,7 +69,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.transcriptionsNavTitle'),
               icon: 'fa-solid fa-file-lines',
-              roles: ['chairman', 'member', 'user'],
+              requires: 'Transcription:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -82,7 +82,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.secretaryRoomsNavTitle'),
               icon: 'fa-solid fa-user-shield',
-              roles: ['chairman', 'member'],
+              requires: 'SecretaryRoom:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -95,7 +95,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chatcoop.install.transcriptionDetailNavTitle'),
               icon: 'fa-solid fa-file-lines',
-              roles: ['chairman', 'member', 'user'],
+              requires: 'Transcription:read',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,

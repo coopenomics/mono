@@ -308,3 +308,14 @@ cases:
 # 2026-10-02: внешние случаи карты кооператора идут отдельным набором (`stack.sh cardcoop`,
 # ветка-полигон ci/blackbox-cardcoop) против подставной сети карт и в общий прогон не
 # входят — решение владельца; интеграции с настоящей сетью карт нужен свой стенд.
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: cc.att.side.08
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

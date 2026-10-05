@@ -19,7 +19,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('powerup.install.title'),
           icon: 'fa-solid fa-server',
-          roles: ['chairman', 'member'],
+          requires: 'Powerup:read',
         },
         path: '/:coopname/powerup',
         name: 'powerup',
@@ -31,7 +31,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('powerup.install.monitorTitle'),
               icon: 'fa-solid fa-chart-line',
-              roles: ['chairman', 'member'],
+              requires: 'Powerup:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -43,7 +43,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('powerup.install.settingsTitle'),
               icon: 'fa-solid fa-cogs',
-              roles: ['chairman'],
+              requires: 'Powerup:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -55,7 +55,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('powerup.install.logsTitle'),
               icon: 'fa-solid fa-list',
-              roles: ['chairman', 'member'],
+              requires: 'Powerup:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },

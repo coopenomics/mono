@@ -84,3 +84,13 @@ cases:
     test: components/api-tests/src/chatcoop/account.test.ts
     status: written
 
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: chat.acc.side.05
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

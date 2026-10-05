@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   CHAIN_CHANGES_PORT,
   CHAIN_PORT,
@@ -24,6 +25,7 @@ import {
 
 export const reportsPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     // Справка о доходах (приложение № 1 к 6-НДФЛ) заполняется паспортом и
     // датой рождения получателя выплаты — без карточки физлица её не собрать.

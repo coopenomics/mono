@@ -33,6 +33,8 @@ import { KuTrustRequestSyncService } from './application/syncers/ku-trust-reques
 import { KuService } from './application/services/ku.service';
 import { KuEventsService } from './application/services/ku-events.service';
 import { KuResolver } from './application/resolvers/ku.resolver';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { KuRights } from './application/access/ku-rights';
 
 // Дефолтные параметры конфигурации
 export const defaultConfig = {};
@@ -68,6 +70,11 @@ export class KuExtension extends BaseExtensionModule {
 @Module({
   imports: [KuDatabaseModule, ],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    KuRights,
+    { provide: APP_RIGHTS, useExisting: KuRights },
+    RightsGuard,
+
     // Extension
     KuExtension,
 

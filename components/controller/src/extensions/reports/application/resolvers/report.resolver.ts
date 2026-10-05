@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards, Logger, Inject } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, DomainError, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportRegistryService } from '../../domain/services/report-registry.service';
 import { ReportPreviewService } from '../../domain/services/report-preview.service';
@@ -64,8 +64,8 @@ export class ReportResolver {
     name: 'getAvailableReports',
     description: 'Получить список доступных типов отчётов',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async getAvailableReports(): Promise<AvailableReportDTO[]> {
     const coopname = platformSettings().coopname;
     const available = this.reportRegistry.getAvailableReports();
@@ -96,8 +96,8 @@ export class ReportResolver {
     name: 'getReportPreview',
     description: 'Предрасчёт полей отчёта без XML — для отображения формы перед генерацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async getReportPreview(
     @Args('input', { type: () => ReportPreviewInputDTO }) input: ReportPreviewInputDTO,
   ): Promise<ReportPreviewDTO> {
@@ -135,8 +135,8 @@ export class ReportResolver {
     name: 'getReportHistory',
     description: 'История сгенерированных отчётов (постраничная, без XML)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async getReportHistory(
     @Args('filter', { type: () => ReportHistoryFilterInputDTO, nullable: true })
     filter?: ReportHistoryFilterInputDTO,
@@ -175,8 +175,8 @@ export class ReportResolver {
     name: 'getReport',
     description: 'Получить сгенерированный отчёт по UUID — XML возвращается дословно',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'read')
   async getReport(@Args('id', { type: () => String }) id: string): Promise<GeneratedReportDTO> {
     const coopname = platformSettings().coopname;
     const record = await this.reportRepo.findById(id);
@@ -202,8 +202,8 @@ export class ReportResolver {
       'Сгенерировать XML отчёта из edits-состояния формы (результат редактора). ' +
       'Перед записью XML проходит XSD-валидацию; всё сохраняется в архив отчётов.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Report', 'generate')
   async generateReportFromEdits(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,

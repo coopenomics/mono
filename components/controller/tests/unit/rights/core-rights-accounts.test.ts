@@ -338,12 +338,13 @@ describe('права страниц столов ядра', () => {
   // core.acc.happy.06
   it('кандидат видит страницы своих данных; собрания и подключение — страницы принятого пайщика', async () => {
     const grants = await grantsFor(candidate);
-    for (const grant of ['Cooperative:read', 'Account:read:own', 'Wallet:read:own', 'Document:read:own', 'Payment:read:own', 'PaymentMethod:manage:own', 'Card:read:own']) {
+    for (const grant of ['Cooperative:read', 'Account:read:own', 'Wallet:read:own', 'Document:read:own', 'Payment:read:own', 'PaymentMethod:manage:own']) {
       expect(grants).toContain(grant);
     }
     expect(grants).not.toContain('Meet:read');
     expect(grants).not.toContain('ProviderSubscription:read:own');
-    expect(await grantsFor(participant)).toEqual(expect.arrayContaining(['Meet:read', 'ProviderSubscription:read:own']));
+    expect(grants).not.toContain('Card:read:own');
+    expect(await grantsFor(participant)).toEqual(expect.arrayContaining(['Meet:read', 'ProviderSubscription:read:own', 'Card:read:own']));
   });
 
   // core.acc.side.10

@@ -10,6 +10,7 @@ import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { z } from 'zod';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 import { t } from './i18n';
+import { PowerupRights } from './powerup-rights';
 
 // Функция для проверки и сериализации FieldDescription
 function describeField(description: DeserializedDescriptionOfExtension): string {
@@ -397,7 +398,7 @@ export class PowerupExtension extends BaseExtensionModule implements OnModuleDes
 }
 
 @Module({
-  providers: [PowerupExtension], // Регистрируем PowerupExtension как провайдер
+  providers: [PowerupExtension, PowerupRights], // расширение и описание прав страниц его стола
   exports: [PowerupExtension], // Экспортируем его для доступа в других модулях
 })
 export class PowerupExtensionModule {

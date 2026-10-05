@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards, Logger } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, sanitizeUserText } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, sanitizeUserText, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TranscriptionManagementService } from '../../domain/services/transcription-management.service';
 import { MatrixApiService } from '../services/matrix-api.service';
@@ -108,8 +108,8 @@ export class TranscriptionResolver {
     name: 'chatcoopGetTranscriptions',
     description: 'Получить список транскрипций звонков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Transcription', 'read')
   async getTranscriptions(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionsInputDTO, nullable: true })
@@ -147,8 +147,8 @@ export class TranscriptionResolver {
     description: 'Получить детальную транскрипцию с сегментами',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Transcription', 'read')
   async getTranscription(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => GetTranscriptionInputDTO }) data: GetTranscriptionInputDTO
@@ -174,9 +174,8 @@ export class TranscriptionResolver {
     name: 'chatcoopUpdateTranscriptionMemo',
     description: 'Обновить заметку (memo) к транскрипции звонка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Заметку правит тот же круг, что и читает запись: доступ к самой комнате проверяется ниже.
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Transcription', 'annotate')
   async updateTranscriptionMemo(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('data', { type: () => UpdateCallTranscriptionMemoInputDTO }) data: UpdateCallTranscriptionMemoInputDTO

@@ -11,6 +11,7 @@ import {
   RIGHT_METADATA_KEY,
   RightsGuard,
   SELF,
+  type AppRights,
   type IRightRequirement,
   type RightSource,
 } from '@coopenomics/extension-kit';
@@ -35,7 +36,13 @@ const REQUIREMENT = /@RequireRight\('([A-Za-z0-9]+)',\s*(\[[^\]]*\]|'[^']*')\s*(
  * называется именем GraphQL (`name: '…'`) либо именем метода.
  */
 export function requirementOf(file: string, operation: string): IRightRequirement {
-  const src = readFileSync(join(APPLICATION, file), 'utf8');
+  return requirementAt(join(APPLICATION, file), operation);
+}
+
+/** То же по полному пути исходника — для резолверов расширений. */
+export function requirementAt(path: string, operation: string): IRightRequirement {
+  const file = path;
+  const src = readFileSync(path, 'utf8');
   const named = src.indexOf(`name: '${operation}'`);
   const method = src.search(new RegExp(`^  async ${operation}\\(`, 'm'));
   const from = named >= 0 ? named : method < 0 ? -1 : src.lastIndexOf('@RequireRight(', method);
@@ -72,8 +79,12 @@ export function makeGuard(stand: CoreStand = {}) {
     findById: jest.fn(async (id: number) => (stand.files?.[id] ? { payment_hash: stand.files[id] } : null)),
   };
   const rights = new CoreRights(registry as any, meetRepo as any, paymentRepo as any, fileRepo as any);
-  /** Проход гарда; отказ — исключение. */
-  async function pass(requirement: IRightRequirement, caller: Caller | null, args: Record<string, unknown> = {}): Promise<boolean> {
+  return { pass: guardOver(rights), rights, registry, meetRepo };
+}
+
+/** Проход общего гарда над описанием прав `rights`; отказ — исключение. */
+export function guardOver(rights: AppRights<any, any>) {
+  return async function pass(requirement: IRightRequirement, caller: Caller | null, args: Record<string, unknown> = {}): Promise<boolean> {
     const reflector = {
       getAllAndOverride: jest.fn((key: string) => (key === RIGHT_METADATA_KEY ? requirement : undefined)),
     } as unknown as Reflector;
@@ -91,6 +102,5 @@ export function makeGuard(stand: CoreStand = {}) {
       switchToWs: () => undefined,
     };
     return guard.canActivate(context as any);
-  }
-  return { pass, rights, registry, meetRepo };
+  };
 }

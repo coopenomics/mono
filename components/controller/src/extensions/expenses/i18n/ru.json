@@ -18,7 +18,6 @@
     "EXPENSES_PLAN_PAYMENT_ALREADY_STARTED": "По этому плановому расходу оплата уже запущена",
     "EXPENSES_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ для совершения операции",
     "EXPENSES_PROPOSAL_ACCESS_DENIED": "Служебная записка доступна совету, подавшему её и получателям строк",
-    "EXPENSES_PROPOSAL_FORBIDDEN": "Создавать служебные записки на расход могут только председатель и члены совета",
     "EXPENSES_RECIPIENT_REQUISITES_MISSING": "Не указаны реквизиты получателя {recipient} (платёжный метод) по строке расхода",
     "EXPENSES_REPORT_ALREADY_SUBMITTED": "Отчёт по этой позиции уже подан — повторный отчёт недоступен",
     "EXPENSES_REPORT_ONLY_FOR_ADVANCE": "Отчёт о фактической сумме применим только к авансу под отчёт",

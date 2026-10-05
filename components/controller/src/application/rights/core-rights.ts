@@ -1,13 +1,12 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
-  councilRolesOf,
   desktopGrantsOf,
+  memberRolesOf,
   type AppRights,
   type RightFacts,
   type RightsCaller,
   type RightsTable,
 } from '@coopenomics/extension-kit';
-import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { MEET_REPOSITORY, type MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
@@ -50,7 +49,6 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Wallet: ['read:own'],
         Inbox: ['read:own'],
         Process: ['read:own'],
-        Card: ['read:own'],
       },
     },
   ],
@@ -68,6 +66,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         ProviderSubscription: ['read:own'],
         PushSubscription: ['manage:own'],
         ExtensionOnboarding: ['read'],
+        // Страница карты кооператора на столе пайщика; операцию карты ведёт её расширение.
+        Card: ['read:own'],
       },
     },
   ],
@@ -102,6 +102,7 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         ProviderPayment: ['generate:own', 'update:own'],
         PushSubscription: ['manage:own'],
         ExtensionOnboarding: ['read'],
+        Card: ['read:own'],
         // Страницы стола совета, операции под которыми переводятся со своими
         // приложениями (расходы, кооперативы союза).
         Expense: ['read:all'],
@@ -139,9 +140,7 @@ export const corePublicGrants: readonly string[] = ['Cooperative:read', 'Members
 
 /** Роли ядра по роли и статусу пайщика в узле. */
 export function coreRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): CoreRightsRole[] {
-  const roles: CoreRightsRole[] = ['account'];
-  if (caller.status === MonoAccountStatus.Active) roles.push('participant');
-  return [...roles, ...councilRolesOf(caller.role)];
+  return ['account', ...memberRolesOf(caller)];
 }
 
 /** Столы ядра, права страниц которых выдаются из этой таблицы. */

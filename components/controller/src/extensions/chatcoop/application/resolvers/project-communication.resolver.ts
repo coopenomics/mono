@@ -4,7 +4,7 @@ import {
   PROJECT_COMMUNICATION_ARTIFACTS_PORT,
   type IProjectCommunicationArtifactsPort,
 } from '@coopenomics/innercoop';
-import { ActiveUserStatusGuard, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { ActiveUserStatusGuard, GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount, InnerNonProjectRoomKind } from '@coopenomics/innercoop';
 import {
   ChatcoopNonProjectCommunicationRoomDTO,
@@ -41,7 +41,7 @@ function mapNonProjectKind(kind: InnerNonProjectRoomKind): NonProjectRoomKindGql
  * {@link ActiveUserStatusGuard} — только `users.status === active`; inter-service обход по `server-secret`.
  */
 @Resolver()
-@UseGuards(GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard)
+@UseGuards(GqlJwtAuthGuard, ActiveUserStatusGuard, RightsGuard)
 export class ProjectCommunicationResolver {
   private readonly logger = new Logger(ProjectCommunicationResolver.name);
 
@@ -56,7 +56,7 @@ export class ProjectCommunicationResolver {
     name: 'chatcoopListProjectCommunicationRooms',
     description: 'Комнаты Matrix, привязанные к проекту Capital (реестр ChatCoop)',
   })
-  @AuthRoles(['chairman', 'member', 'user'])
+  @RequireRight('ChatRoom', 'read')
   async listProjectCommunicationRooms(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetProjectCommunicationRoomsInputDTO }) data: GetProjectCommunicationRoomsInputDTO
@@ -80,7 +80,7 @@ export class ProjectCommunicationResolver {
     name: 'chatcoopListNonProjectCommunicationRooms',
     description: 'Комнаты Matrix вне проектов Capital (пайщики/совет/секретарь) — для синхронизации в blago',
   })
-  @AuthRoles(['chairman', 'member', 'user'])
+  @RequireRight('ChatRoom', 'read')
   async listNonProjectCommunicationRooms(
     @CurrentUser() user: IMonoAccount
   ): Promise<ChatcoopNonProjectCommunicationRoomDTO[]> {
@@ -103,7 +103,7 @@ export class ProjectCommunicationResolver {
     description:
       'UTC-даты (YYYY-MM-DD), в которых есть сообщения новее afterOriginServerTsExclusive, для комнаты Matrix',
   })
-  @AuthRoles(['chairman', 'member', 'user'])
+  @RequireRight('ChatRoom', 'read')
   async listUtcDatesWithNewRoomMessages(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => ListUtcDatesWithNewRoomMessagesInputDTO })
@@ -121,7 +121,7 @@ export class ProjectCommunicationResolver {
     name: 'chatcoopGetRoomMessagesForUtcDate',
     description: 'Строки истории сообщений Matrix за календарные сутки UTC',
   })
-  @AuthRoles(['chairman', 'member', 'user'])
+  @RequireRight('ChatRoom', 'read')
   async getRoomMessagesForUtcDate(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetRoomMessagesForUtcDateInputDTO }) data: GetRoomMessagesForUtcDateInputDTO
@@ -146,7 +146,7 @@ export class ProjectCommunicationResolver {
     description: 'Максимальный origin_server_ts в истории комнаты (мс), если есть сообщения',
     nullable: true,
   })
-  @AuthRoles(['chairman', 'member', 'user'])
+  @RequireRight('ChatRoom', 'read')
   async getMaxOriginServerTsForRoom(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => GetMaxOriginServerTsForRoomInputDTO }) data: GetMaxOriginServerTsForRoomInputDTO

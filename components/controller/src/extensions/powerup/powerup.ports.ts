@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   CHAIN_RESOURCES_PORT,
   LOGGER_PORT,
 } from '@coopenomics/innercoop';
@@ -18,6 +19,7 @@ import {
 export const powerupPorts = {
   required: [
     CHAIN_RESOURCES_PORT,
+    DESKTOP_GRANTS_REGISTRY_PORT,
     LOGGER_PORT,
   ],
   optional: [

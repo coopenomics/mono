@@ -64,3 +64,14 @@ cases:
     expect: совет видит запись в списке комнаты, читает её с репликами и сохраняет заметку; пайщику вне совета — отказ доступа к комнате, заметка не меняется
     test: components/api-tests/src/chatcoop/transcriptions.test.ts
     status: written
+
+  # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: chat.tr.side.04
+    level: backend
+    kind: side
+    scenario: операции расширения зовут пайщик, член совета, председатель и кандидат
+    expect: право есть у названных в таблице прав расширения, остальным отказ KIT_INSUFFICIENT_RIGHTS; кандидат прав пайщика не имеет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

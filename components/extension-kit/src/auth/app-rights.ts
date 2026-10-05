@@ -93,6 +93,21 @@ export function councilRolesOf(role: string | null | undefined): CouncilRole[] {
   return [];
 }
 
+/** Исполнители приложения пайщиков: принятый пайщик, член совета, председатель. */
+export type MemberRole = 'participant' | CouncilRole;
+
+/** Статус учётной записи принятого пайщика. */
+const ACCEPTED_STATUS = 'active';
+
+/**
+ * Роли пайщика в приложении: `participant` — принятый пайщик (кандидат и
+ * вышедший прав пайщика не имеют), роли совета — по роли узла в любом статусе.
+ */
+export function memberRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): MemberRole[] {
+  const accepted: MemberRole[] = caller.status === ACCEPTED_STATUS ? ['participant'] : [];
+  return [...accepted, ...councilRolesOf(caller.role)];
+}
+
 /** Исход проверки права операции. */
 export type RightOutcome =
   | { allowed: true; scope: IGrantedScope }
