@@ -24,7 +24,6 @@ import {
   CREATE_ASSIGNMENT,
   MY_ASSIGNMENTS,
   MY_CONTRACT,
-  PLANNED_RATE,
   PROGRAM_WALLET,
   REFUND_PREVIEW,
   RETURN_BALANCE,
@@ -155,9 +154,7 @@ describe('Образование: выход из кооператива уче�
     beforeAll(async () => {
       teacher = freshMember({ prefix: 'eduy' })
       token = await login(teacher)
-      // Договор остаётся на подписи у председателя: его подпись отклоняет цепь
-      // (находка 2 отчёта первого прогона), а допуску и препятствию выходу это не мешает.
-      await onboardTeacher(teacher, token, PLANNED_RATE, { approve: false })
+      await onboardTeacher(teacher, token)
       const led = await publishCourse(chairman, section, 30)
       assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, {
         d: { teacher_username: teacher.account, course_id: led.id, period_from: dayFromNow(0), period_to: dayFromNow(90) },
@@ -171,11 +168,11 @@ describe('Образование: выход из кооператива уче�
       expect(preview.blockers[0]).toContain(assignment.course_title)
 
       expectCode(await gqlError(token, CREATE_EXIT, await exitInput(teacher, token)), 'MEMBERSHIP_EXIT_BLOCKED')
-      expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract.status, 'договор не прекращён').toBe('PENDING_APPROVAL')
+      expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract.status, 'договор действует').toBe('ACTIVE')
     })
 
-    // Находка 2: председатель не может подписать договор чужого преподавателя, действующего
-    // договора на стенде не получить — прекращать нечего. Включить после починки контракта.
+    // Находка 4 прогонов 05.10.2026: подтверждение выхода с заявлением об аннулировании соглашений
+    // отклоняет цепь, заявление преподавателя до неё не доходит. Включить после починки контракта.
     it.skip(caseName('edu.teach.side.16', 'допуск снят — заявление на выход принимается, с ним прекращается договор преподавателя'), async () => {
       const closed = (await gql<any>(chairman, CLOSE_ASSIGNMENT, { id: assignment.id })).edubridgeCloseAssignment
       expect(closed.status).toBe('CLOSED')
