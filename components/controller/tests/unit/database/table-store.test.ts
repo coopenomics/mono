@@ -134,6 +134,27 @@ describe('TableStore', () => {
     expect(record.createdAt).toBeInstanceOf(Date);
   });
 
+  /**
+   * Подгруженная связь лежит в записи рядом с её полями. До 05.10.2026 шлюз
+   * писал в базу все поля переданного объекта, и сохранение записи со связью
+   * уходило с несуществующей колонкой (находка перевода образования).
+   */
+  it('перечень полей задан: подгруженная связь и прочие лишние поля в базу не пишутся', async () => {
+    const { db, queries } = recordingKysely([{ rows: [{ id: 'c1', title: 'Курс' }] }, { affected: 1 }]);
+    const store = new TableStore<{ id: string; title: string; section?: unknown }>(db, {
+      table: 'courses',
+      primaryKey: ['id'],
+      sameNames: true,
+      columns: ['id', 'title'],
+    });
+
+    await store.save({ id: 'c1', title: 'Курс', section: { id: 's1' } });
+    await store.update({ id: 'c1' }, { title: 'Новый', section: { id: 's2' } });
+
+    expect(queries[0].sql).toBe('insert into "courses" ("id", "title") values ($1, $2) on conflict ("id") do update set "title" = $3 returning *');
+    expect(queries[1].sql).toBe('update "courses" set "title" = $1 where "id" = $2');
+  });
+
   it('таблица вне ленты: число затронутых строк берётся из счётчика базы', async () => {
     const { store } = make([{ affected: 3 }, { affected: 0 }]);
 
