@@ -136,7 +136,7 @@ cases:
     expect: Подписки его обучающихся закрываются с расчётом возврата по Положению; возврат ложится на кошелёк программы.
     test: components/api-tests/src/edubridge/exit.test.ts
     api: components/api-tests/src/edubridge/exit.test.ts
-    status: written
+    status: passing
   - id: edu.access.break.05
     level: backend
     kind: break
