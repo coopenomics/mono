@@ -1,4 +1,14 @@
-import { rightConditions, rightMatches, rightsByRole, rightsHeld, type RightScope, type RightsGroup, type RightsTable } from '@coopenomics/extension-kit';
+import {
+  rightConditions,
+  rightGrants,
+  rightMatches,
+  rightsByRole,
+  rightsHeld,
+  type RightGrant,
+  type RightScope,
+  type RightsGroup,
+  type RightsTable,
+} from '@coopenomics/extension-kit';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 
 /**
@@ -14,13 +24,14 @@ import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
  *   - `:own`        — только над объектом, владелец которого == текущий пайщик.
  *   - `:all`        — над всеми объектами в скоупе.
  *   - `:to-self`    — частный случай read: объекты, адресованные пайщику.
- *   - `:own-KU`     — только в рамках КУ, председатель которого == пайщик (Эпик 2).
+ *   - `:own-KU`     — только в рамках КУ, где пайщик председатель или доверенный (Эпик 2).
+ *   - `:chaired-KU` — только в рамках КУ, где пайщик председатель.
  *   - `:first`      — первая подпись в multisig (Эпик 2/6).
  *
- * Ownership-проверка (`:own`/`:own-KU`/`:to-self`) сама matrix НЕ делает —
- * resolver обязан верифицировать `member_id == record.owner`/`record.recipient`
- * после прохождения guard'а. Guard отвечает за «эта роль вообще может
- * action над resource» (capability), а не за data-uniqueness ownership.
+ * Принадлежность объекта (`:own`/`:own-KU`/`:chaired-KU`/`:to-self`) сверяет
+ * guard: операция называет источник объекта третьим аргументом `@RequireRight`,
+ * справочник объектов (`MarketplaceRightSubjects`) отдаёт владельца, участок и
+ * получателя, правило охвата записано в каркасе расширений (C28-87).
  *
  * Phase 2 migration: содержимое транслируется в CASL `defineAbility`,
  * `canAccess` подменяется на `ability.can(action, subject)` без изменения
@@ -105,7 +116,8 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
       when: COOP,
       rights: {
         Offer: ['create:own', 'update:own', 'delete:own', 'read'],
-        Order: ['read:to-self'],
+        // `respond:to-self` — принять или отклонить заказы, адресованные поставщику.
+        Order: ['read:to-self', 'respond:to-self'],
         Shipment: ['create:own'],
         // Поставщик подписывает акт приёмки первым (по приходу имущества).
         // `cancel:own` — отказ от черновика приёмки до своей подписи: в цепи
@@ -159,12 +171,12 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         // заказ из остатка до своей подписи на акте выдачи.
         Stock: ['read:own-KU', 'publish:own-KU'],
         StockProposal: ['create:own-KU', 'read:own-KU', 'cancel:own-KU'],
-        // requirement b6 «Экономика КУ»: председатель настраивает отсечку и веса
-        // распределения членских взносов своего КУ (configure — внутри сервис
-        // дополнительно сверяет, что инициатор — именно trustee); председатель и
-        // доверенные видят экономику своих КУ и распоряжаются персональными
-        // средствами (перевод в «Стол заказов», материальная помощь).
-        Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
+        // requirement b6 «Экономика КУ»: председатель участка настраивает отсечку
+        // и веса распределения членских взносов и подаёт расход участка на
+        // решение совета — охват `chaired-KU`, доверенному эти действия закрыты;
+        // председатель и доверенные видят экономику своих КУ и распоряжаются
+        // персональными средствами (перевод в «Стол заказов», материальная помощь).
+        Economy: ['read', 'read:own-KU', 'configure:chaired-KU', 'propose-expense:chaired-KU', 'use:own'],
         // Эпик 8: председатель КУ подтверждает фактическое списание со склада
         // своего участка по решению совета (подпись Служебной записки 1111 →
         // confirmwroff) и видит список таких ожидающих подтверждения групп.
@@ -273,9 +285,8 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
 };
 
 /**
- * Охват прав, у которых он в имени не записан. Сверку сегодня выполняют
- * резолверы и сервисы; таблица называет охват явно, чтобы он переехал в общий
- * гард вместе с переводом на CASL.
+ * Охват прав, у которых он в имени не записан. Гард читает его отсюда и
+ * сверяет объект так же, как у прав с охватом в имени.
  */
 export const marketplaceRightScopes: Record<string, MarketplaceScope> = {
   'Order:create': 'own',
@@ -313,8 +324,8 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
  * должна проходить тот же гейт — иначе председатель кооператива получает
  * Forbidden на сводном складе, имея более широкое право.
  *
- * Ownership-фильтрацию данных (вернуть ровно свои/свой-КУ записи) матрица НЕ
- * делает — это ответственность resolver'а. Для проверки «может ли роль вообще
+ * Отбор списка по своим участкам матрица не делает: участки отбора операции
+ * отдаёт guard (`@GrantedScope()`). Для проверки «может ли роль вообще
  * читать resource в любой форме» используйте `roleHasAnyAction`.
  */
 export function canAccess(
@@ -349,6 +360,11 @@ export function roleHasAnyAction(
 /** Условия строк таблицы, которые дают право ролям пайщика. */
 export function conditionsFor(roles: MarketplaceRole[], resource: string, action: string): MarketplaceCondition[][] {
   return rightConditions(marketplaceRightsTable, roles, resource, action);
+}
+
+/** Строки таблицы, которые дают право ролям пайщика, с признаком широкого охвата. */
+export function grantsFor(roles: MarketplaceRole[], resource: string, action: string): RightGrant<MarketplaceCondition>[] {
+  return rightGrants(marketplaceRightsTable, roles, resource, action);
 }
 
 /** Права ролей, действующие при выполненных условиях `held`. */

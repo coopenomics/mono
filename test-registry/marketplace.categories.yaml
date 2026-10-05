@@ -35,6 +35,10 @@ title: Доступные категории кооператива — огра
 # каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
 # случаев этой фичи прежний.
 
+# Правка 2026-10-05 (C28-87, пункт 1а): таблица прав получила пятый охват
+# `chaired-KU` и право поставщика `Order:respond:to-self`; права категорий
+# (`Whitelist:manage`) прежние, набор случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

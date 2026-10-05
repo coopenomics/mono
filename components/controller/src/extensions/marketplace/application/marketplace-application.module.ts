@@ -24,6 +24,7 @@ import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver
 import { MarketplaceCycleResolver } from './resolvers/marketplace-cycle.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
+import { MarketplaceRightSubjects } from './access/marketplace-right-subjects.service';
 import { MarketplaceRightsService } from './access/marketplace-rights.service';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
@@ -269,6 +270,7 @@ import {
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
     MarketplaceRightsService,
+    MarketplaceRightSubjects,
 
     // Канон авторизации столов: провайдер грантов market для getDesktop
     // (само-регистрируется в глобальном ExtensionGrantsRegistry).
@@ -494,6 +496,7 @@ import {
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
     MarketplaceRightsService,
+    MarketplaceRightSubjects,
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,

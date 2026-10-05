@@ -155,14 +155,14 @@ describe('выдача одного заказа по этапам: заказа
     const statement = own.marketplaceIssuanceStatementPayload
 
     const read = await gqlError(strangerToken, STATEMENT_PAYLOAD, { d: { order_id: order.orderId } })
-    expect(read?.code, 'заявление чужого заказа не выдаётся').toBe('MARKETPLACE_ORDER_FOREIGN_MEMBER')
+    expect(read?.code, 'заявление чужого заказа не выдаётся').toBe('KIT_RIGHT_SCOPE_OWN')
 
     const signedByStranger = await signDocument(stranger.wif, statement, stranger.account, 1)
     const sign = await gqlError(strangerToken, SIGN_STATEMENT, { d: { order_id: order.orderId, signed_statement: signedByStranger } })
-    expect(sign?.code, 'подпись чужого пайщика не двигает выдачу').toBe('MARKETPLACE_ORDER_FOREIGN_MEMBER')
+    expect(sign?.code, 'подпись чужого пайщика не двигает выдачу').toBe('KIT_RIGHT_SCOPE_OWN')
 
     const bundle = await gqlError(strangerToken, FINALIZE, finalizeInput(proposalId, [{ order_hash: order.orderHash, signed_statement: signedByStranger }]))
-    expect(bundle?.code, 'бандл подписывает только его адресат').toBe('MARKETPLACE_STOCK_PROPOSAL_NOT_ADDRESSEE')
+    expect(bundle?.code, 'бандл подписывает только его адресат').toBe('KIT_RIGHT_SCOPE_OWN')
 
     const saga = await sagaOf(memberToken, order.orderId)
     expect(saga.stage, 'на цепь ничего не ушло — ход выдачи на том же этапе').toBe('FACT_FIXED')
@@ -204,11 +204,11 @@ describe('выдача одного заказа по этапам: заказа
     const act = await actPayload(memberToken, order.orderId)
 
     const read = await gqlError(strangerToken, ACT_PAYLOAD, { d: { order_id: order.orderId } })
-    expect(read?.code, 'акт чужого заказа не выдаётся').toBe('MARKETPLACE_ORDER_FOREIGN_MEMBER')
+    expect(read?.code, 'акт чужого заказа не выдаётся').toBe('KIT_RIGHT_SCOPE_OWN')
 
     const signed = await signDocument(stranger.wif, act, stranger.account, 1)
     const sign = await gqlError(strangerToken, SIGN_ACT, { d: { order_id: order.orderId, signed_act: signed } })
-    expect(sign?.code, 'акт не адресован этому пайщику').toBe('MARKETPLACE_ORDER_FOREIGN_MEMBER')
+    expect(sign?.code, 'акт не адресован этому пайщику').toBe('KIT_RIGHT_SCOPE_OWN')
 
     expect((await sagaOf(memberToken, order.orderId)).stage, 'на цепь ничего не ушло').toBe('DECISION_AUTHORIZED')
   })

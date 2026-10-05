@@ -1,15 +1,9 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight, SELF } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCreateShipmentInputDTO,
@@ -42,9 +36,7 @@ export class MarketplaceShipmentResolver {
     @Inject(MARKETPLACE_SHIPMENT_CREATE_SERVICE)
     private readonly createService: MarketplaceShipmentCreateService,
     @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
-    private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    private readonly shipmentRepo: MarketplaceShipmentDomainRepository
   ) {}
 
   @Mutation(() => MarketplaceCreateShipmentResultDTO, {
@@ -55,7 +47,7 @@ export class MarketplaceShipmentResolver {
       'обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own', { of: 'Cycle', id: 'data.cycle_id' })
   async marketplaceCreateShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateShipmentInputDTO
@@ -83,7 +75,7 @@ export class MarketplaceShipmentResolver {
       'Список партий поставки текущего поставщика — для стола подготовки поставки и истории.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own', SELF)
   async marketplaceListShipments(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListShipmentsInputDTO
@@ -107,29 +99,12 @@ export class MarketplaceShipmentResolver {
       'Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Shipment', 'read:own-KU')
+  @RequireRight('Shipment', 'read:own-KU', { ku: 'data.braname' })
   async marketplaceListShipmentsByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListShipmentsByBranameInputDTO
   ): Promise<MarketplaceShipmentDTO[]> {
     const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-
-    // Ownership-фильтрация — ответственность резолвера (matrix даёт только
-    // capability). Роль с `Shipment:read:all` видит партии любого КУ; роль
-    // только с `read:own-KU` (оператор/председатель КУ) обязана быть членом
-    // запрашиваемого участка, иначе утечёт лента поставок чужого КУ.
-    if (!canAccess(roles, 'Shipment', 'read:all')) {
-      const isMember = await this.kuChairmanService.isMemberOfBranch(
-        coopname,
-        data.braname,
-        member.username
-      );
-      if (!isMember) {
-        throw DomainError.forbidden('MARKETPLACE_SHIPMENT_FEED_NOT_TRUSTEE');
-      }
-    }
-
     const filter: MarketplaceShipmentListFilter = {
       coopname,
       braname: data.braname,
@@ -146,16 +121,13 @@ export class MarketplaceShipmentResolver {
     description: 'Получить партию поставки по идентификатору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own', { of: 'Shipment', id: 'data.shipment_id' })
   async marketplaceGetShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceGetShipmentInputDTO
   ): Promise<MarketplaceShipmentDTO> {
     const shipment = await this.shipmentRepo.findById(data.shipment_id);
     if (!shipment || shipment.coopname !== platformSettings().coopname) {
-      throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
-    }
-    if (shipment.offerer_account !== member.username) {
       throw DomainError.notFound('MARKETPLACE_SHIPMENT_NOT_FOUND');
     }
     return toMarketplaceShipmentDTO(shipment);

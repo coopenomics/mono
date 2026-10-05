@@ -112,11 +112,11 @@ describe('списание скоропорта: состав проекта и 
 
     it(caseName('mkt.wof.side.02', 'имущество чужого участка — председатель другого участка получает отказ доступа'), async () => {
       const payload = await gqlError(odnToken, MEMO_PAYLOAD, { d: { braname: KRG, proposal_id: draft.id } })
-      expect(payload?.code, 'записку по чужому участку не выдают').toBe('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE')
+      expect(payload?.code, 'записку по чужому участку не выдают').toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
       const signed = await signDocument(odnChairman.wif, statement, odnChairman.account, 1)
       const confirm = await gqlError(odnToken, CONFIRM, { d: { braname: KRG, proposal_id: draft.id, signed_memo: signed } })
-      expect(confirm?.code, 'списать имущество чужого участка нельзя').toBe('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE')
+      expect(confirm?.code, 'списать имущество чужого участка нельзя').toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
       const after = (await gql<any>(chairmanToken, PROPOSAL, { id: draft.id })).marketplaceWriteoffProposal
       expect(after.items.every((i: any) => !i.executed), 'ни одна позиция не списана').toBe(true)

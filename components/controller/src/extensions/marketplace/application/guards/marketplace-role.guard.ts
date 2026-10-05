@@ -1,15 +1,30 @@
-import { hasServerSecret, DomainError, platformSettings, RIGHT_METADATA_KEY, type IRightRequirement } from '@coopenomics/extension-kit';
+import {
+  checkRightScope,
+  hasServerSecret,
+  DomainError,
+  GRANTED_SCOPE_KEY,
+  platformSettings,
+  RIGHT_METADATA_KEY,
+  type GrantedAction,
+  type IGrantedScope,
+  type IRightRequirement,
+} from '@coopenomics/extension-kit';
 import { Inject, CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 
-import type { MarketplaceCondition } from '../access/marketplace-access-matrix';
+import { marketplaceRightScopes, type MarketplaceCondition } from '../access/marketplace-access-matrix';
+import { MarketplaceRightSubjects } from '../access/marketplace-right-subjects.service';
 import { MarketplaceRightsService } from '../access/marketplace-rights.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MARKETPLACE_ROLES_METADATA_KEY } from '../decorators/marketplace-role.decorator';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
 
 /**
  * Guard проверки авторизации marketplace.
@@ -27,6 +42,10 @@ import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
  * Право сверяется с таблицей вместе с условием строки (C28-87): роль, которой
  * право положено, получает отказ, пока условие не выполнено — программа не
  * принята советом, заказчик не подключён, хранение выключено.
+ *
+ * Следом сверяется охват: операция называет источник объекта, справочник
+ * объектов отдаёт владельца, участок и получателя, каркас расширений сверяет
+ * их с пайщиком. Итог кладётся в запрос — операция читает его `@GrantedScope()`.
  */
 /** Отказ по условию строки таблицы прав: что именно ждёт выполнения. */
 const CONDITION_DENIALS: Record<MarketplaceCondition, string> = {
@@ -41,7 +60,10 @@ export class MarketplaceRoleGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    private readonly rights: MarketplaceRightsService
+    private readonly rights: MarketplaceRightsService,
+    private readonly subjects: MarketplaceRightSubjects,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService
   ) {
     this.logger.setContext(MarketplaceRoleGuard.name);
   }
@@ -69,6 +91,9 @@ export class MarketplaceRoleGuard implements CanActivate {
     // ядра расширению нельзя — это ровно тот секрет, который не должен
     // разъезжаться по коду.
     if (hasServerSecret(request?.headers)) {
+      // Межсервисный вызов работает по всему кооперативу.
+      const everything: IGrantedScope = { scopes: ['all'], kus: null };
+      if (request) request[GRANTED_SCOPE_KEY] = everything;
       return true;
     }
 
@@ -97,44 +122,53 @@ export class MarketplaceRoleGuard implements CanActivate {
     }
 
     if (!requiredAccess) return true;
-    return this.checkAccess(currentMember, memberRoles, requiredAccess, `${className}.${handlerName}`);
+    return this.checkAccess(
+      currentMember,
+      memberRoles,
+      requiredAccess,
+      ctx.getArgs<Record<string, unknown>>() ?? {},
+      `${className}.${handlerName}`
+    ).then((scope) => {
+      if (request) request[GRANTED_SCOPE_KEY] = scope;
+      return true;
+    });
   }
 
   /**
-   * Право по таблице вместе с условием строки. Асинхронная часть гарда:
-   * проверка одной роли выше отвечает сразу.
+   * Право по таблице вместе с условием строки, затем охват. Асинхронная
+   * часть гарда: проверка одной роли выше отвечает сразу.
    */
   private async checkAccess(
     currentMember: IMarketplaceCurrentMember,
     memberRoles: MarketplaceRole[],
     requiredAccess: IRightRequirement,
+    args: Record<string, unknown>,
     operation: string
-  ): Promise<boolean> {
+  ): Promise<IGrantedScope> {
+    const coopname = platformSettings().coopname;
     // action может быть массивом — OR: достаточно, чтобы роль удовлетворяла
-    // хотя бы одному (см. IRightRequirement).
+    // хотя бы одному (см. IRightRequirement). Собираются все данные действия:
+    // от них зависит, по какому охвату сверять объект.
     const actions = Array.isArray(requiredAccess.action)
       ? requiredAccess.action
       : [requiredAccess.action];
-    let ok = false;
+    const granted: GrantedAction[] = [];
     let missing: MarketplaceCondition | undefined;
     for (const action of actions) {
       const check = await this.rights.check(
-        platformSettings().coopname,
+        coopname,
         currentMember.username,
         memberRoles,
         requiredAccess.resource,
         action
       );
-      if (check.allowed) {
-        ok = true;
-        break;
-      }
-      missing = missing ?? check.missing;
+      if (check.allowed) granted.push({ action, wide: check.wide === true });
+      else missing = missing ?? check.missing;
     }
-    if (!ok && missing) {
+    if (granted.length === 0 && missing) {
       throw DomainError.forbidden(CONDITION_DENIALS[missing]);
     }
-    if (!ok) {
+    if (granted.length === 0) {
       this.logger.warn(
         `forbidden-attempt: member=${currentMember.username} action=${operation} requested_access=${requiredAccess.resource}:${actions.join('|')} actual_marketplace_roles=[${memberRoles.join(', ')}] actual_core_roles=[${currentMember.core_roles.join(', ')}]`
       );
@@ -143,6 +177,23 @@ export class MarketplaceRoleGuard implements CanActivate {
       );
     }
 
-    return true;
+    const scope = await checkRightScope({
+      resource: requiredAccess.resource,
+      granted,
+      source: requiredAccess.source,
+      implied: marketplaceRightScopes,
+      args,
+      username: currentMember.username,
+      kus: () => this.kuChairmanService.listBranamesForMember(coopname, currentMember.username),
+      chairedKus: () => this.kuChairmanService.listChairedBranames(coopname, currentMember.username),
+      locate: (kind, ids) => this.subjects.locate(coopname, kind, ids),
+    });
+    if (!scope.allowed) {
+      this.logger.warn(
+        `forbidden-attempt: member=${currentMember.username} action=${operation} requested_access=${requiredAccess.resource}:${actions.join('|')} scope_denial=${scope.denial} actual_marketplace_roles=[${memberRoles.join(', ')}]`
+      );
+      throw DomainError.forbidden(scope.denial ?? 'KIT_INSUFFICIENT_RIGHTS');
+    }
+    return scope.scope;
   }
 }

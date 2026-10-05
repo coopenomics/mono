@@ -188,9 +188,9 @@ describe('экономика участка: общий кошелёк, сетк
     }
 
     const foreignSet = await refusal(odnToken, SET_WEIGHT, { d: { braname: KRG, username: TRUSTED_KRG, weight: 9 } })
-    expect(foreignSet?.codeText, foreignSet?.message).toBe('MARKETPLACE_DISTRIBUTION_SETTINGS_FORBIDDEN')
+    expect(foreignSet?.codeText, foreignSet?.message).toBe('KIT_RIGHT_SCOPE_CHAIRED_KU')
     const foreignDel = await refusal(odnToken, DEL_WEIGHT, { d: { braname: KRG, username: TRUSTED_KRG } })
-    expect(foreignDel?.codeText, foreignDel?.message).toBe('MARKETPLACE_DISTRIBUTION_SETTINGS_FORBIDDEN')
+    expect(foreignDel?.codeText, foreignDel?.message).toBe('KIT_RIGHT_SCOPE_CHAIRED_KU')
 
     expect(grid(await branchEconomy(krgToken, KRG)), 'сетка участка не изменилась').toBe(before)
   })
@@ -239,10 +239,10 @@ describe('экономика участка: общий кошелёк, сетк
     const before = await branchEconomy(krgToken, KRG)
 
     const foreign = await refusal(odnToken, DISTRIBUTE, { d: { braname: KRG, amount: 1 } })
-    expect(foreign?.codeText, foreign?.message).toBe('MARKETPLACE_DISTRIBUTION_SETTINGS_FORBIDDEN')
+    expect(foreign?.codeText, foreign?.message).toBe('KIT_RIGHT_SCOPE_CHAIRED_KU')
     // Обычный пайщик участка распределять не вправе вовсе.
     const member = await refusal(memberToken, DISTRIBUTE, { d: { braname: KRG, amount: 1 } })
-    expect(['403', 'MARKETPLACE_DISTRIBUTION_SETTINGS_FORBIDDEN', 'KIT_INSUFFICIENT_RIGHTS'], member?.message).toContain(member?.codeText)
+    expect(['403', 'KIT_RIGHT_SCOPE_CHAIRED_KU', 'KIT_INSUFFICIENT_RIGHTS'], member?.message).toContain(member?.codeText)
 
     const after = await branchEconomy(krgToken, KRG)
     expect(after.common_balance).toBe(before.common_balance)

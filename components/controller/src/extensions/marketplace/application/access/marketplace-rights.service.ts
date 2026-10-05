@@ -8,13 +8,15 @@ import { MarketplaceOnboardingSource } from '../dto/marketplace-onboarding-state
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import { MarketplaceOnboardingService } from '../onboarding/marketplace-onboarding.service';
 import { MarketplaceExtensionConfigService } from '../services/marketplace-extension-config.service';
-import { conditionsFor, rightsFor, type MarketplaceCondition } from './marketplace-access-matrix';
+import { grantsFor, rightsFor, type MarketplaceCondition } from './marketplace-access-matrix';
 
 /** Исход проверки права: при отказе по условию — какое условие ждёт выполнения. */
 export interface MarketplaceRightCheck {
   allowed: boolean;
   /** Право роли положено, но условие строки таблицы ещё не выполнено. */
   missing?: MarketplaceCondition;
+  /** Право дано охватом `all` при узком требовании: объект сверять незачем. */
+  wide?: boolean;
 }
 
 /** Сколько помнить, что заказчик подключён: подпись и выбор участка назад не откатываются. */
@@ -109,23 +111,28 @@ export class MarketplaceRightsService {
     resource: string,
     action: string
   ): Promise<MarketplaceRightCheck> {
-    const sets = conditionsFor(roles, resource, action);
-    if (sets.length === 0) return { allowed: false };
-    if (sets.some((set) => set.length === 0)) return { allowed: true };
+    const grants = grantsFor(roles, resource, action);
+    if (grants.length === 0) return { allowed: false };
+    // Безусловная строка даёт право сразу; условия читаются, только когда среди
+    // остальных строк есть широкий охват — от него зависит сверка объекта.
+    if (grants.some((grant) => grant.when.length === 0) && !grants.some((grant) => grant.wide)) return { allowed: true };
 
     const held = this.coopConditions(await this.extensionConfig.get());
-    const satisfied = () => sets.some((set) => set.every((condition) => held.has(condition)));
-    if (satisfied()) return { allowed: true };
+    const satisfied = () => grants.filter((grant) => grant.when.every((condition) => held.has(condition)));
+    const granted = (rows: typeof grants): MarketplaceRightCheck => ({ allowed: true, wide: rows.some((grant) => grant.wide) });
+    let rows = satisfied();
+    if (rows.length > 0) return granted(rows);
 
-    const needsOnboarding = sets.some((set) => set.includes('orderer-onboarded'));
+    const needsOnboarding = grants.some((grant) => grant.when.includes('orderer-onboarded'));
     if (needsOnboarding && held.has('coop-accepted') && (await this.isOrdererOnboarded(coopname, username))) {
       held.add('orderer-onboarded');
-      if (satisfied()) return { allowed: true };
+      rows = satisfied();
+      if (rows.length > 0) return granted(rows);
     }
 
     // Ближайшая к выполнению строка: та, где не хватает меньше всего условий.
-    const missing = sets
-      .map((set) => set.filter((condition) => !held.has(condition)))
+    const missing = grants
+      .map((grant) => grant.when.filter((condition) => !held.has(condition)))
       .sort((a, b) => a.length - b.length)[0];
     const order: MarketplaceCondition[] = ['coop-accepted', 'containers-enabled', 'cells-enabled', 'orderer-onboarded'];
     return { allowed: false, missing: order.find((condition) => missing.includes(condition)) };

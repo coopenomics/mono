@@ -304,7 +304,7 @@ describe('заказ: остаток предложения и упаковки'
 
   it(caseName('mkt.order.side.15', 'отмену чужого заказа запрашивает другой пайщик — отказ, заказ активен'), async () => {
     const err = await gqlError(ot, CANCEL, { i: { order_id: cancelledPotatoId } })
-    expect(err?.code).toBe('MARKETPLACE_ORDER_CANCEL_FORBIDDEN_NOT_OWNER')
+    expect(err?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect((await getOrder(mt, cancelledPotatoId)).status).toBe('ACTIVE')
   })
 
@@ -380,14 +380,14 @@ describe('заказ: остаток предложения и упаковки'
     })
 
     it(caseName('mkt.order.side.13', 'действие по заказу на чужое предложение — отказ «только поставщику-владельцу»'), async () => {
-      expect((await gqlError(ot, ACCEPT, { i: { order_ids: [potatoOrderId] } }))?.code).toBe('MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER')
-      expect((await gqlError(ot, DECLINE, { i: { order_ids: [potatoOrderId], reason: 'нет товара' } }))?.code).toBe('MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER')
+      expect((await gqlError(ot, ACCEPT, { i: { order_ids: [potatoOrderId] } }))?.code).toBe('KIT_RIGHT_SCOPE_TO_SELF')
+      expect((await gqlError(ot, DECLINE, { i: { order_ids: [potatoOrderId], reason: 'нет товара' } }))?.code).toBe('KIT_RIGHT_SCOPE_TO_SELF')
       expect((await getOrder(mt, potatoOrderId)).status).toBe('ACTIVE')
     })
 
     it(caseName('mkt.order.side.20', 'массовый приём с непроходным заказом — отказ до цепи, ни один заказ не принят'), async () => {
       const cases: Array<[string, string]> = [
-        [packagedOrderId, 'MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER'],
+        [packagedOrderId, 'KIT_RIGHT_SCOPE_TO_SELF'],
         [crypto.randomUUID(), 'MARKETPLACE_ORDER_NOT_FOUND'],
         [cancelledPotatoId, 'MARKETPLACE_ORDER_ACCEPT_WRONG_STATE'],
       ]
@@ -403,7 +403,7 @@ describe('заказ: остаток предложения и упаковки'
     it(caseName('mkt.order.side.21', 'массовый отказ с непроходным заказом — отказ до цепи, ни один отказ не отправлен'), async () => {
       const cases: Array<[string, string]> = [
         [crypto.randomUUID(), 'MARKETPLACE_ORDER_NOT_FOUND'],
-        [packagedOrderId, 'MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER'],
+        [packagedOrderId, 'KIT_RIGHT_SCOPE_TO_SELF'],
         [cancelledPotatoId, 'MARKETPLACE_ORDER_DECLINE_WRONG_STATE'],
       ]
       for (const [bad, code] of cases) {

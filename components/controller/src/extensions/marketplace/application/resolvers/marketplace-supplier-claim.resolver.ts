@@ -1,6 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
+import { DocumentAggregateDTO, GqlJwtAuthGuard, platformSettings, RequireRight, SELF } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
@@ -45,7 +45,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Гарантийные претензии, выставленные текущему поставщику, — новые сверху.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('SupplierClaim', 'read:to-self')
+  @RequireRight('SupplierClaim', 'read:to-self', SELF)
   async marketplaceListSupplierClaims(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierClaimDTO[]> {
@@ -58,13 +58,11 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Одна гарантийная претензия с рекламацией, фотографиями и пройденными шагами возврата.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('SupplierClaim', ['read:to-self', 'read:all'])
+  @RequireRight('SupplierClaim', ['read:to-self', 'read:all'], { of: 'SupplierClaim', id: 'claim_id' })
   async marketplaceSupplierClaim(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceSupplierClaimDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
-    this.assertVisible(claim, member);
     const [dto] = await this.toDTOs([claim], true);
     return dto;
   }
@@ -74,7 +72,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('SupplierClaim', 'read:to-self')
+  @RequireRight('SupplierClaim', 'read:to-self', SELF)
   async marketplaceSupplierClaimSummary(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierClaimSummaryDTO> {
@@ -86,7 +84,7 @@ export class MarketplaceSupplierClaimResolver {
     description: 'Поставщик признаёт гарантийную претензию: сумма становится долгом и удерживается из следующих выплат.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('SupplierClaim', 'respond:to-self')
+  @RequireRight('SupplierClaim', 'respond:to-self', { of: 'SupplierClaim', id: 'data.claim_id' })
   async marketplaceAdmitSupplierClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAdmitSupplierClaimInputDTO
@@ -102,12 +100,6 @@ export class MarketplaceSupplierClaimResolver {
 
   // ── helpers ──────────────────────────────────────────────────────────
 
-  private assertVisible(claim: MarketplaceSupplierClaimDomainEntity, member: IMarketplaceCurrentMember): void {
-    if (claim.supplier_account === member.username) return;
-    const roles = member.marketplace_roles ?? [];
-    if (roles.includes('admin') || roles.includes('board') || roles.includes('board_readonly')) return;
-    throw DomainError.forbidden('MARKETPLACE_SUPPLIER_CLAIM_FOREIGN');
-  }
 
   /** Контакты участков, где лежит имущество по претензиям, — по одному запросу на участок. */
   private async contactsByBranch(claims: MarketplaceSupplierClaimDomainEntity[]): Promise<Map<string, BranchContacts>> {

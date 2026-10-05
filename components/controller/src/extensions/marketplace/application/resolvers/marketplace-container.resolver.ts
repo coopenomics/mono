@@ -1,12 +1,15 @@
-import { Inject, Injectable, UseGuards } from '@nestjs/common';
+import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
-import { canAccess } from '../access/marketplace-access-matrix';
-import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
+import {
+  GqlJwtAuthGuard,
+  GrantedScope,
+  platformSettings,
+  RequireRight,
+  SELF,
+  type IGrantedScope,
+} from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceContainerDTO,
   MarketplaceContainerTypeDTO,
@@ -19,27 +22,19 @@ import {
   toMarketplaceContainerDTO,
   toMarketplaceContainerTypeDTO,
 } from '../dto/marketplace-container.dto';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import { MarketplaceContainerService } from '../services/marketplace-container.service';
 
 @Resolver()
 @Injectable()
 export class MarketplaceContainerResolver {
-  constructor(
-    private readonly containerService: MarketplaceContainerService,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
-  ) {}
+  constructor(private readonly containerService: MarketplaceContainerService) {}
 
   @Query(() => [MarketplaceContainerTypeDTO], {
     name: 'marketplaceListContainerTypes',
     description: 'Справочник типов боксов кооператива: габариты и объём.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU', SELF)
   async marketplaceListContainerTypes(
     @Args('is_active', { nullable: true }) is_active?: boolean
   ): Promise<MarketplaceContainerTypeDTO[]> {
@@ -76,25 +71,16 @@ export class MarketplaceContainerResolver {
     description: 'Боксы кооперативных участков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU', { list: 'data.braname' })
   async marketplaceListContainers(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @GrantedScope() scope: IGrantedScope,
     @Args('data', { nullable: true }) data?: MarketplaceListContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
     const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-
-    let branameFilter: string | string[] | undefined = data?.braname;
-    if (!canAccess(roles, 'Container', 'read:all')) {
-      const own = await this.resolveOwnBranames(coopname, member.username, data?.braname);
-      if (own === null) return [];
-      branameFilter = own;
-    }
-
-    // Пустой список участков означал бы `braname IN ()` — реестр стола
-    // администратора (право read:all, участок не выбран) оставался пустым,
-    // хотя тара в кооперативе есть. Без фильтра передаём undefined.
-    const containers = await this.containerService.list(coopname, branameFilter, {
+    // Участки отбора отдаёт гард: свои у оператора, запрошенный либо все — у
+    // председателя (тогда отбора нет, и в запрос к базе уходит undefined).
+    if (scope.kus && scope.kus.length === 0) return [];
+    const containers = await this.containerService.list(coopname, scope.kus ?? undefined, {
       is_active: data?.is_active,
       container_type_id: data?.container_type_id,
       unplaced_only: data?.unplaced_only,
@@ -107,22 +93,11 @@ export class MarketplaceContainerResolver {
     description: 'Бокс по коду с этикетки или отсканированного QR.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU', { of: 'ContainerCode', id: 'data.code' })
   async marketplaceResolveContainerByCode(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveContainerByCodeInputDTO
   ): Promise<MarketplaceContainerDTO> {
-    const coopname = platformSettings().coopname;
-    const container = await this.containerService.getByCode(coopname, data.code);
-
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (!canAccess(roles, 'Container', 'read:all')) {
-      await this.kuChairmanService.assertIsMemberOfBranch(
-        coopname,
-        container.braname,
-        member.username
-      );
-    }
+    const container = await this.containerService.getByCode(platformSettings().coopname, data.code);
     return toMarketplaceContainerDTO(container);
   }
 
@@ -132,14 +107,11 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU', { ku: 'data.braname' })
   async marketplaceCreateContainers(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateContainersInputDTO
   ): Promise<MarketplaceContainerDTO[]> {
     const coopname = platformSettings().coopname;
-    await this.kuChairmanService.assertIsMemberOfBranch(coopname, data.braname, member.username);
-
     const containers = await this.containerService.createContainers({
       coopname,
       braname: data.braname,
@@ -156,19 +128,11 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU', { of: 'Container', id: 'data.container_id' })
   async marketplaceMoveContainer(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceMoveContainerInputDTO
   ): Promise<MarketplaceContainerDTO> {
     const coopname = platformSettings().coopname;
-    const container = await this.containerService.getById(coopname, data.container_id);
-    await this.kuChairmanService.assertIsMemberOfBranch(
-      coopname,
-      container.braname,
-      member.username
-    );
-
     const moved = await this.containerService.moveToCell({
       coopname,
       container_id: data.container_id,
@@ -183,19 +147,11 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка правит подпись бокса или выводит его из оборота. Вывести можно только пустой бокс.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU', { of: 'Container', id: 'data.container_id' })
   async marketplaceUpdateContainer(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateContainerInputDTO
   ): Promise<MarketplaceContainerDTO> {
     const coopname = platformSettings().coopname;
-    const container = await this.containerService.getById(coopname, data.container_id);
-    await this.kuChairmanService.assertIsMemberOfBranch(
-      coopname,
-      container.braname,
-      member.username
-    );
-
     const updated = await this.containerService.update({
       coopname,
       container_id: data.container_id,
@@ -203,21 +159,5 @@ export class MarketplaceContainerResolver {
       is_active: data.is_active,
     });
     return toMarketplaceContainerDTO(updated);
-  }
-
-  private async resolveOwnBranames(
-    coopname: string,
-    username: string,
-    requested?: string
-  ): Promise<string | string[] | null> {
-    const own = await this.kuChairmanService.listBranamesForMember(coopname, username);
-    if (own.length === 0) return null;
-    if (requested) {
-      if (!own.includes(requested)) {
-        throw DomainError.forbidden('MARKETPLACE_CONTAINERS_NOT_TRUSTEE');
-      }
-      return requested;
-    }
-    return own;
   }
 }

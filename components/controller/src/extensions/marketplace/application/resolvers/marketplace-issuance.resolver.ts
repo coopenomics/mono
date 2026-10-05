@@ -6,18 +6,14 @@ import {
   GeneratedDocumentDTO,
   DocumentAggregateDTO,
   DomainError,
+  GrantedScope,
   RequireRight,
+  type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceFixIssuanceFactInputDTO,
@@ -67,8 +63,6 @@ export class MarketplaceIssuanceResolver {
     private readonly service: MarketplaceIssuanceService,
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
     private readonly displayService: MarketplaceOrderDisplayService
   ) {}
@@ -80,13 +74,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Лента выдачи участка: заказы от приёма кооперативом до закрытия выдачи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'read:own-KU')
+  @RequireRight('Issuance', 'read:own-KU', { ku: 'data.delivery_braname' })
   async marketplaceListIssuancesByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListIssuancesByBranameInputDTO
   ): Promise<MarketplaceOrderDTO[]> {
     const coopname = platformSettings().coopname;
-    await this.assertBranameAllowed(member, data.delivery_braname);
     const orders = await this.orderRepo.listForIssuanceByBraname(coopname, data.delivery_braname);
     // withWarehouseQuantity: оператор обязан видеть, сколько по заказу реально
     // принято на склад — выдача ограничена этим количеством, не заказанным.
@@ -103,13 +96,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'create')
+  @RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
   async marketplaceReadyIssue(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceReadyIssueInputDTO
   ): Promise<MarketplaceOrderDTO> {
     const coopname = platformSettings().coopname;
-    await this.assertOperatorOfOrder(member, data.order_id);
     const order = await this.service.readyIssue({ coopname, order_id: data.order_id, operator_account: member.username });
     const display = await this.displayService.enrich([order], {
       withParticipantNames: true,
@@ -124,13 +116,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Оператор у стойки сверил состав и отправляет факт на подпись заказчику: рождается ход выдачи и заявление о возврате паевого взноса имуществом. Подписи оператора нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'create')
+  @RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
   async marketplaceFixIssuanceFact(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceFixIssuanceFactInputDTO
   ): Promise<MarketplaceIssuanceStatementPayloadDTO> {
     const coopname = platformSettings().coopname;
-    await this.assertOperatorOfOrder(member, data.order_id);
     const { saga, statement } = await this.service.fixFact({
       coopname,
       operator_account: member.username,
@@ -147,13 +138,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Акт с подписью заказчика для закрывающей подписи оператора участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'close')
+  @RequireRight('Issuance', 'close', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceClosePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
   ): Promise<MarketplaceIssuanceClosePayloadDTO> {
     const coopname = platformSettings().coopname;
-    await this.assertOperatorOfOrder(member, data.order_id);
     const saga = await this.service.getSagaByOrder(coopname, data.order_id);
     if (!saga) throw DomainError.forbidden('MARKETPLACE_ISSUANCE_NOT_STARTED');
     const aggregate = await this.service.getCloseSignablePayload(coopname, data.order_id);
@@ -165,13 +155,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Закрывающая подпись акта председателем, доверенным или оператором участка выдачи: паевой взнос возвращён имуществом, заказ получен. Имущество передаётся после этого ответа.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'close')
+  @RequireRight('Issuance', 'close', { of: 'Order', id: 'data.order_id' })
   async marketplaceCloseIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
     const coopname = platformSettings().coopname;
-    await this.assertOperatorOfOrder(member, data.order_id);
     const saga = await this.service.closeIssuance({ coopname, operator_account: member.username, order_id: data.order_id, signed_act: data.signed_act });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
@@ -181,13 +170,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Оператор отменяет начатую выдачу (заказчик не подписал акт или ушёл): заказ снова готов к выдаче, средства не двигались.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'cancel')
+  @RequireRight('Issuance', 'cancel', { of: 'Order', id: 'data.order_id' })
   async marketplaceCancelIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO> {
     const coopname = platformSettings().coopname;
-    await this.assertOperatorOfOrder(member, data.order_id);
     const saga = await this.service.cancelIssuance({ coopname, operator_account: member.username, order_id: data.order_id });
     return toMarketplaceIssuanceSagaDTO(saga);
   }
@@ -199,7 +187,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Заявление о возврате паевого взноса имуществом к подписи заказчиком по начатой выдаче.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'sign:statement')
+  @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceStatementPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
@@ -216,7 +204,7 @@ export class MarketplaceIssuanceResolver {
       'с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'sign:statement')
+  @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceConvertPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
@@ -230,7 +218,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'sign:statement')
+  @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceSignIssuanceStatement(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceStatementInputDTO
@@ -244,7 +232,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Акт приёма-передачи к первой подписи заказчиком после решения совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'sign:act')
+  @RequireRight('Issuance', 'sign:act', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceActPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
@@ -258,7 +246,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Первая подпись акта заказчиком: дальше оператор закрывает выдачу.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'sign:act')
+  @RequireRight('Issuance', 'sign:act', { of: 'Order', id: 'data.order_id' })
   async marketplaceSignIssuanceAct(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSignIssuanceActInputDTO
@@ -275,16 +263,12 @@ export class MarketplaceIssuanceResolver {
     description: 'Ход выдачи по заказу: заказчик видит свой, персонал участка — по своему участку.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', ['read:own', 'read:own-KU'])
+  @RequireRight('Issuance', ['read:own', 'read:own-KU'], { of: 'IssuanceSaga', id: 'data.order_id' })
   async marketplaceIssuanceSaga(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO | null> {
-    const coopname = platformSettings().coopname;
-    const saga = await this.service.getSagaByOrder(coopname, data.order_id);
-    if (!saga) return null;
-    if (saga.member_account !== member.username) await this.assertBranameAllowed(member, saga.braname);
-    return toMarketplaceIssuanceSagaDTO(saga);
+    const saga = await this.service.getSagaByOrder(platformSettings().coopname, data.order_id);
+    return saga ? toMarketplaceIssuanceSagaDTO(saga) : null;
   }
 
   @Query(() => [MarketplaceIssuanceSagaDTO], {
@@ -292,37 +276,21 @@ export class MarketplaceIssuanceResolver {
     description: 'Незавершённые выдачи: свои у заказчика, по участку у стойки оператора.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', ['read:own', 'read:own-KU'])
+  @RequireRight('Issuance', ['read:own', 'read:own-KU'], { list: 'data.braname' })
   async marketplaceListIssuanceSagas(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @GrantedScope() scope: IGrantedScope,
     @Args('data', { nullable: true }) data?: MarketplaceListIssuanceSagasInputDTO
   ): Promise<MarketplaceIssuanceSagaDTO[]> {
     const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
     const active_only = data?.active_only ?? true;
-    if (data?.braname && canAccess(roles, 'Issuance', 'read:own-KU')) {
-      await this.assertBranameAllowed(member, data.braname);
+    // Участок в запросе — стойка оператора: гард сверил, что участок его.
+    // Без участка, как и у заказчика без роли оператора, — свои выдачи.
+    if (data?.braname && scope.kus) {
       const list = await this.service.listSagas({ coopname, braname: data.braname, proposal_id: data.proposal_id, active_only });
       return list.map(toMarketplaceIssuanceSagaDTO);
     }
     const list = await this.service.listSagas({ coopname, member_account: member.username, proposal_id: data?.proposal_id, active_only });
     return list.map(toMarketplaceIssuanceSagaDTO);
-  }
-
-  // ── private ──────────────────────────────────────────────────────────
-
-  private async assertBranameAllowed(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (canAccess(roles, 'Issuance', 'read:all')) return;
-    const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
-    if (!own.includes(braname)) {
-      throw DomainError.forbidden('MARKETPLACE_ACTION_NOT_TRUSTEE');
-    }
-  }
-
-  private async assertOperatorOfOrder(member: IMarketplaceCurrentMember, order_id: string): Promise<void> {
-    const order = await this.orderRepo.findById(order_id);
-    if (!order || order.coopname !== platformSettings().coopname) throw DomainError.forbidden('MARKETPLACE_ORDER_NOT_FOUND_BY_ID', { orderId: order_id });
-    await this.assertBranameAllowed(member, order.delivery_braname);
   }
 }

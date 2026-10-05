@@ -22,6 +22,14 @@
 //   node scripts/check-legacy-rights.mjs --update
 // Снимок не обновится, если долг где-то вырос.
 //
+// Вторая часть гейта — охваты прав. Право с узким охватом (`own`, `own-KU`,
+// `chaired-KU`, `to-self`) сверяет общая проверка каркаса расширений, поэтому:
+//   - операция с таким правом называет источник объекта сверки третьим
+//     аргументом `@RequireRight` (`SELF`, `{ ku }`, `{ of, id }`, `{ list }`);
+//   - резолвер сам состав участка не читает: частная сверка в теле операции
+//     расходится с таблицей прав и с рабочим столом.
+// Долга здесь нет: нарушение роняет вердикт сразу.
+//
 // Запуск: node scripts/check-legacy-rights.mjs   (входит в `pnpm check`)
 
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
@@ -124,4 +132,54 @@ if (grown.length) {
 }
 if (lowered && !process.argv.includes('--update')) {
   console.log('  долг снизился — обновите снимок: node scripts/check-legacy-rights.mjs --update');
+}
+
+// ─── охваты прав: источник объекта у операции, сверка — в общем гарде ────────
+
+const NARROW_SCOPE = /:(own|own-KU|chaired-KU|to-self)$/;
+const EXTENSIONS_ROOT = 'components/controller/src/extensions';
+// Чтение состава участка, которое сверкой охвата не является.
+const BRANCH_READ_ALLOWED = {
+  'components/controller/src/extensions/marketplace/application/resolvers/marketplace-membership.resolver.ts':
+    'marketplaceWhoAmI отдаёт пайщику список его участков как данные',
+};
+const BRANCH_CHECK = /\b(?:isMemberOfBranch|assertIsMemberOfBranch|listBranamesForMember|canActAsBraname|assertCanActAsBraname)\s*\(/g;
+
+/** Права, у которых охват в имени не записан: `Ресурс:действие` из перечня приложения. */
+function impliedScopes() {
+  const out = new Set();
+  for (const full of walk(join(REPO_ROOT, EXTENSIONS_ROOT))) {
+    if (!full.endsWith('.ts')) continue;
+    const block = /RightScopes\s*:\s*Record<string,[^>]*>\s*=\s*\{([^}]*)\}/.exec(readFileSync(full, 'utf8'));
+    if (!block) continue;
+    for (const m of block[1].matchAll(/'([A-Za-z]+:[^']+)'\s*:/g)) out.add(m[1]);
+  }
+  return out;
+}
+
+const implied = impliedScopes();
+const scopeProblems = [];
+let scoped = 0;
+for (const full of walk(join(REPO_ROOT, EXTENSIONS_ROOT))) {
+  const rel = relative(REPO_ROOT, full);
+  if (!rel.endsWith('.resolver.ts')) continue;
+  const src = readFileSync(full, 'utf8');
+  const requirements = [...src.matchAll(/^[ \t]*@RequireRight\(\s*'([A-Za-z]+)'\s*,\s*(\[[^\]]*\]|'[^']*')\s*(,[^)]*)?\)/gm)];
+  if (requirements.length === 0) continue;
+  for (const m of requirements) {
+    const actions = [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+    if (!actions.some((action) => NARROW_SCOPE.test(action) || implied.has(`${m[1]}:${action}`))) continue;
+    scoped += 1;
+    if (!m[3]) scopeProblems.push(`${rel} — ${m[1]}:${actions.join('|')}: источник объекта сверки не назван`);
+  }
+  const checks = (src.match(BRANCH_CHECK) ?? []).length;
+  if (checks && !BRANCH_READ_ALLOWED[rel]) {
+    scopeProblems.push(`${rel} — состав участка читается в резолвере (${checks}): сверку охвата ведёт общий гард`);
+  }
+}
+console.log(`  охваты прав: ${scoped} требований с узким охватом, источник назван у ${scoped - scopeProblems.filter((p) => p.includes('источник')).length}`);
+if (scopeProblems.length) {
+  console.log('  охват права сверяет общий гард — назовите источник в @RequireRight и уберите сверку из резолвера (C28-87):');
+  for (const problem of scopeProblems) console.log(`    ✗ ${problem}`);
+  process.exit(1);
 }

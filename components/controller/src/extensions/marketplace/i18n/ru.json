@@ -3,7 +3,6 @@
     "MARKETPLACE_ACCEPTED_AT_INVALID_FORMAT": "Некорректный формат accepted_at: '{acceptedAt}' — ожидается ISO-8601",
     "MARKETPLACE_ACCEPTED_AT_IN_FUTURE": "accepted_at не может быть в будущем ({acceptedAt})",
     "MARKETPLACE_ACTION_FORBIDDEN_NOT_OFFER_OWNER": "Действие доступно только поставщику-владельцу Offer'а.",
-    "MARKETPLACE_ACTION_NOT_TRUSTEE": "Действие доступно только на участке, где вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_ACT_CLOSE_CONTENT_MISMATCH": "Подписанный акт не совпадает с актом заказчика — подпись отклонена.",
     "MARKETPLACE_ACT_CLOSE_WRONG_OPERATOR": "Закрывающую подпись должен поставить оператор, закрывающий выдачу.",
     "MARKETPLACE_ACT_CONTENT_MISMATCH": "Подписанный акт не совпадает с выданным к подписи — подпись отклонена.",
@@ -52,7 +51,6 @@
     "MARKETPLACE_CHECKOUT_OFFER_NOT_DELIVERED": "Товар не возят на выбранный пункт выдачи.",
     "MARKETPLACE_CHECKOUT_ORDER_NOT_RECORDED": "Заказ проведён, но не записан — обратитесь к администратору.",
     "MARKETPLACE_CONTAINERS_DISABLED": "Учёт боксов в кооперативе выключен",
-    "MARKETPLACE_CONTAINERS_NOT_TRUSTEE": "Боксы доступны только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_CONTAINER_BATCH_LIMIT_EXCEEDED": "За один раз можно завести не больше {maxPerBatch} боксов (запрошено {requestedCount}).",
     "MARKETPLACE_CONTAINER_BRANCH_MISMATCH_ITEM": "Бокс «{containerCode}» числится за участком {containerBranch}, а имущество — за {itemBranch}.",
     "MARKETPLACE_CONTAINER_BRANCH_MISMATCH_RECEPTION": "Бокс «{containerCode}» числится за участком {containerBranch}, а приёмка идёт на {receptionBranch}.",
@@ -103,7 +101,6 @@
     "MARKETPLACE_INVENTORY_INSUFFICIENT_FOR_RESERVE": "Свободного остатка недостаточно: не хватает {needed} ед. для резерва под заказ.",
     "MARKETPLACE_INVENTORY_ITEM_NOT_FOUND": "Позиция склада не найдена.",
     "MARKETPLACE_INVENTORY_ITEM_REQUIRED": "Не указана позиция склада.",
-    "MARKETPLACE_INVENTORY_NOT_TRUSTEE": "Склад доступен только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_INVENTORY_RELOCATE_ONLY_UNLABELED": "Перераскладывать можно только непромаркированную позицию (на складе, без штрих-кода).",
     "MARKETPLACE_ISSUANCE_ALREADY_STARTED": "Выдача по заказу уже начата (этап «{stage}») — дождитесь её завершения или отмените.",
     "MARKETPLACE_ISSUANCE_CANCEL_CHAIN_FAILED": "Отмена выдачи не принята цепью: {errorMessage}.",
@@ -180,7 +177,6 @@
     "MARKETPLACE_ORDER_READY_WRONG_STATUS": "Заказ в статусе «{status}» — отметить готовность к выдаче нельзя.",
     "MARKETPLACE_ORDER_TOTAL_ZERO": "Итоговая сумма заказа получилась нулевой — проверьте количество и цену.",
     "MARKETPLACE_ORDER_UNIT_PRICE_INVALID": "Некорректная цена за единицу: \"{unitPrice}\"",
-    "MARKETPLACE_ORDER_VIEW_FORBIDDEN": "Нет прав на просмотр заказа.",
     "MARKETPLACE_PACKAGE_COUNT_INVALID": "Число упаковок должно быть целым и больше нуля.",
     "MARKETPLACE_PACKAGE_COUNT_LIMIT_EXCEEDED": "Слишком много упаковок (максимум {maxPackages}).",
     "MARKETPLACE_PACKAGE_FREE_COUNT_REQUIRED": "Укажите, сколько упаковок каждого вида свободно к заказу (целое число, не меньше нуля), или включите «без ограничения».",
@@ -199,7 +195,6 @@
     "MARKETPLACE_PACKAGING_REQUIRED": "Для товара, отпускаемого упаковкой, нужно выбрать упаковку.",
     "MARKETPLACE_PAYMENT_DETAILS_NOT_FOUND": "Реквизиты не найдены. Добавьте их в разделе «Реквизиты» стола пайщика и выберите снова.",
     "MARKETPLACE_PERSONAL_WALLET_INSUFFICIENT_FUNDS": "Недостаточно средств на персональном кошельке: доступно {balance}, запрошено {requested}",
-    "MARKETPLACE_PICKUP_FEED_NOT_TRUSTEE": "Лента самовывоза доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_PRICE_PRECISION_INVALID": "Цена должна быть числом с не более чем четырьмя знаками после запятой (например, «100.50»).",
     "MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCEPTORDER": "Не найден приватный ключ кооператива для submit acceptorder",
     "MARKETPLACE_PRIVATE_KEY_NOT_FOUND_ACCRETRN": "Не найден приватный ключ кооператива для submit accretrn",
@@ -233,24 +228,16 @@
     "MARKETPLACE_RECEPTION_ACT_META_ORDER_ID_MISSING": "Каждый подписанный акт приёмки должен содержать meta.order_id, по которому он привязывается к Order группы.",
     "MARKETPLACE_RECEPTION_ACT_NOT_FOUND": "АПП приёмки не найден.",
     "MARKETPLACE_RECEPTION_ALREADY_CREATED": "АПП для партии {shipmentId} уже сформирована (id={existingId}); повторное создание запрещено.",
-    "MARKETPLACE_RECEPTION_CANCEL_FORBIDDEN": "Отмена приёмки доступна оператору участка или поставщику этого акта.",
-    "MARKETPLACE_RECEPTION_CANCEL_NOT_TRUSTEE": "Отмена приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RECEPTION_CANCEL_WRONG_STATUS": "Отменить приёмку можно только до подписи поставщика. Текущий статус: «{status}».",
     "MARKETPLACE_RECEPTION_CHAIRMAN_ACT_MISSING": "Нет подписанного акта приёмки председателя для Order {orderId}; нужны акты по всем Order'ам группы.",
     "MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_BEFORE_SUPPLIER": "АПП {receptionId}: нет supplier-подписанных документов — закрывающая подпись председателя недоступна до подписи поставщика.",
     "MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_CHAIN_FAILED": "Закрывающая подпись на цепи не выполнена: {errorMessage}. Повторите подписание.",
     "MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_NO_TX_HASH": "signchair по Order {orderId}: цепь не вернула tx_hash. Повторите подписание группы.",
     "MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_WRONG_STATUS": "АПП находится в статусе «{status}», закрывающая подпись председателя недопустима.",
-    "MARKETPLACE_RECEPTION_FEED_NOT_TRUSTEE": "Лента приёмок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
-    "MARKETPLACE_RECEPTION_NOT_FOUND": "Акт приёмки не найден.",
-    "MARKETPLACE_RECEPTION_NOT_TRUSTEE": "Приёмка доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RECEPTION_PLACEMENT_SINGLE_LOCATION_REQUIRED": "Для одного заказа укажите одно место: либо бокс, либо ячейку. Ячейка бокса определяется по самому боксу.",
     "MARKETPLACE_RECEPTION_PLACEMENT_UNKNOWN_ORDER": "Указано место для заказа, которого нет в этой приёмке.",
-    "MARKETPLACE_RECEPTION_PREVIEW_FORBIDDEN_SUPPLIER": "Превью акта приёмки доступно только поставщику этой партии.",
-    "MARKETPLACE_RECEPTION_PREVIEW_NOT_TRUSTEE": "Превью акта приёмки доступно только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RECEPTION_SIGNATURE_INVALID": "Недействительная подпись акта приёмки.",
     "MARKETPLACE_RECEPTION_SIGN_FORBIDDEN_NOT_OWNER": "АПП подписывает только поставщик-владелец Offer'ов.",
-    "MARKETPLACE_RECEPTION_SINGLE_FEED_NOT_TRUSTEE": "Лента приёмки доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RECEPTION_SOURCE_DOCUMENT_NOT_FOUND": "АПП {receptionId}: исходный документ по doc_hash {docHash} не найден в сторе. Требуется пересоздать АПП (тело документа не сохранено).",
     "MARKETPLACE_RECEPTION_SUPPLIER_ACT_MISSING": "Нет подписанного акта приёмки для Order {orderId}; нужны акты по всем Order'ам группы ({groupOrdersCount}).",
     "MARKETPLACE_RECEPTION_SUPPLIER_SIGN_CHAIN_FAILED": "Подпись на цепи не выполнена: {errorMessage}. Повторите подписание.",
@@ -268,7 +255,6 @@
     "MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_REQUIRED": "Укажите комментарий к решению.",
     "MARKETPLACE_RETURN_CLAIM_DECISION_COMMENT_TOO_LONG": "Комментарий не должен превышать 500 символов.",
     "MARKETPLACE_RETURN_CLAIM_DOCUMENT_NOT_SIGNED": "Документ не подписан: signatures пуст.",
-    "MARKETPLACE_RETURN_CLAIM_FOREIGN": "Это чужое заявление на возврат.",
     "MARKETPLACE_RETURN_CLAIM_IMAGE_UNSUPPORTED_TYPE": "Поддерживаются только изображения JPEG/PNG/WEBP; получен {contentType}.",
     "MARKETPLACE_RETURN_CLAIM_INSPECTION_PHOTO_LIMIT": "Можно приложить не более 10 фотографий очного осмотра.",
     "MARKETPLACE_RETURN_CLAIM_INSPECTION_RESULT_MISMATCH": "Результат осмотра в подписанном заявлении отличается от введённого — подпишите заявление заново.",
@@ -290,11 +276,9 @@
     "MARKETPLACE_RETURN_CLAIM_PHOTO_LIMIT": "Можно приложить не более 10 фотографий.",
     "MARKETPLACE_RETURN_CLAIM_PHOTO_REQUIRED": "Приложите хотя бы одну фотографию товара.",
     "MARKETPLACE_RETURN_CLAIM_PHOTO_TOO_LARGE": "Фото #{photoIndex}: размер {sizeMb} МБ превышает лимит 10 МБ.",
-    "MARKETPLACE_RETURN_CLAIM_PREPARE_NOT_TRUSTEE": "Заявление об отмене сделки готовится только для участка, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_ISSUED": "Нельзя вернуть больше единиц, чем было выдано (выдано {factQty}).",
     "MARKETPLACE_RETURN_CLAIM_QUANTITY_EXCEEDS_REMAINING": "Нельзя вернуть больше, чем осталось после прежних возвратов (осталось {remaining} из выданных {factQty}).",
     "MARKETPLACE_RETURN_CLAIM_QUANTITY_MUST_BE_POSITIVE": "Возвращаемое количество должно быть больше нуля.",
-    "MARKETPLACE_RETURN_CLAIM_READ_NOT_TRUSTEE": "Чтение заявлений возможно только для участка, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_RETURN_CLAIM_REASON_REQUIRED": "Опишите причину возврата.",
     "MARKETPLACE_RETURN_CLAIM_REASON_TOO_LONG": "Причина возврата не должна превышать 2000 символов.",
     "MARKETPLACE_RETURN_CLAIM_RECEIVE_PROPERTY_CHAIN_FAILED": "Приём имущества на цепи не выполнен: {message}.",
@@ -323,7 +307,6 @@
     "MARKETPLACE_SHIPMENT_COMPOSITION_MISMATCH": "Состав поставки не соответствует акцептованной заявке: {message}",
     "MARKETPLACE_SHIPMENT_CYCLE_NOT_FOUND": "Консолидированная заявка не найдена.",
     "MARKETPLACE_SHIPMENT_CYCLE_WRONG_COOP": "Заявка принадлежит другому кооперативу.",
-    "MARKETPLACE_SHIPMENT_FEED_NOT_TRUSTEE": "Лента поставок доступна только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_SHIPMENT_GROUP_BRANAME_REQUIRED": "У одной из групп не указан braname.",
     "MARKETPLACE_SHIPMENT_ID_REQUIRED": "Не указан shipment_id.",
     "MARKETPLACE_SHIPMENT_INVALID_DELIVERY_VARIANT": "Недопустимый вариант доставки: {variant}.",
@@ -351,7 +334,6 @@
     "MARKETPLACE_STOCK_ITEM_RESERVED": "Позиция «{productName}» зарезервирована под заказ из остатка.",
     "MARKETPLACE_STOCK_ITEM_WRONG_COOP": "Позиция принадлежит другому кооперативу.",
     "MARKETPLACE_STOCK_NOT_STOCK_ORDER": "Это не заказ из остатка кооператива.",
-    "MARKETPLACE_STOCK_NOT_TRUSTEE": "Остаток доступен только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_STOCK_NO_ITEMS_SELECTED": "Не выбраны позиции остатка.",
     "MARKETPLACE_STOCK_OFFER_IS_SUPPLIER_OFFER": "Это предложение поставщика — оформите обычный заказ.",
     "MARKETPLACE_STOCK_OFFER_NOT_ACTIVE": "Предложение не активно (статус «{offerStatus}»).",
@@ -410,7 +392,6 @@
     "MARKETPLACE_SUBSCRIPTION_MEMBER_UNRESOLVED": "Не удалось определить пайщика из токена подписки.",
     "MARKETPLACE_SUPPLIER_APPROVAL_FORBIDDEN": "Одобрять и отклонять заявки поставщиков может только председатель кооператива.",
     "MARKETPLACE_SUPPLIER_CLAIM_ALREADY_ACKNOWLEDGED": "Претензия уже признана.",
-    "MARKETPLACE_SUPPLIER_CLAIM_FOREIGN": "Претензия выставлена другому поставщику.",
     "MARKETPLACE_SUPPLIER_CLAIM_NOT_ADDRESSEE": "Отвечать по претензии может только поставщик, которому она выставлена.",
     "MARKETPLACE_SUPPLIER_CLAIM_NOT_FOUND": "Гарантийная претензия {id} не найдена.",
     "MARKETPLACE_SUPPLIER_NOT_FOUND_IN_REGISTRY": "Поставщик {memberAccount} не найден в реестре.",
@@ -422,7 +403,6 @@
     "MARKETPLACE_UNIT_OF_MEASURE_INVALID": "Выбрана недопустимая единица измерения.",
     "MARKETPLACE_WARRANTY_DAYS_INVALID": "Гарантийный срок возврата должен быть целым неотрицательным числом дней.",
     "MARKETPLACE_WRITEOFF_ALREADY_SUBMITTED": "Проект с этим расчётом уже отправлен в совет (id={id}, статус={status}).",
-    "MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE": "Подтвердить списание можно только по участку, на котором вы являетесь председателем или доверенным лицом.",
     "MARKETPLACE_WRITEOFF_CONFIRM_NO_TX_HASH": "Подтверждение списания: цепь не вернула tx_hash (confirmwroff). Повторите.",
     "MARKETPLACE_WRITEOFF_DRAFT_ALREADY_EXISTS": "У кооператива уже есть открытый черновик списания (id={draftId}). Удалите его перед созданием нового.",
     "MARKETPLACE_WRITEOFF_DRAFT_EMPTY": "Черновик пуст — добавьте позиции перед отправкой в совет",
@@ -531,9 +511,6 @@
       "distributionTitle": "Распределение членских взносов кооперативного участка",
       "targetMembershipFeeLabel": "Целевой членский взнос"
     },
-    "economyResolver": {
-      "accessHint": "Экономика участка доступна его председателю и доверенным"
-    },
     "extensionModule": {
       "agreementTitle": "Целевая потребительская программа «Стол заказов»"
     },
@@ -551,9 +528,6 @@
     },
     "issuanceSync": {
       "reasonNotSpecified": "причина не указана"
-    },
-    "kuChairman": {
-      "accessHint": "Доступно председателю и доверенным этого кооперативного участка"
     },
     "ledgerInvariants": {
       "account86CreditMissing": "без перевода в членский (o.mkt.conv) и удержания при отказе (o.mkt.penal)",
@@ -638,9 +612,6 @@
     },
     "orderCreate": {
       "chainNoTxHash": "Создание заказа: цепь не вернула tx_hash. Повторите попытку."
-    },
-    "orderResolver": {
-      "registryAccessHint": "Реестр заказов участка доступен его председателю и доверенным"
     },
     "orderSupplierAction": {
       "acceptedLabel": "Принят поставщиком к поставке",

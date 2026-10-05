@@ -1,15 +1,15 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  GrantedScope,
+  platformSettings,
+  RequireRight,
+  type IGrantedScope,
+} from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import { MarketplaceOrderDisplayService } from '../services/marketplace-order-display.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
@@ -45,8 +45,6 @@ export class MarketplaceInventoryResolver {
     private readonly labelService: MarketplaceInventoryLabelService,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
     private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService,
     private readonly orderDisplay: MarketplaceOrderDisplayService
   ) {}
 
@@ -56,12 +54,11 @@ export class MarketplaceInventoryResolver {
       'Оператор КУ кладёт позицию склада в бокс либо в ячейку напрямую, или снимает её с места.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Inventory', 'label')
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceAssignInventoryPlacement(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAssignInventoryPlacementInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.assignPlacement({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -80,12 +77,11 @@ export class MarketplaceInventoryResolver {
       'Оператор КУ раскладывает одну принятую позицию склада по нескольким полкам, разбивая её на отдельные записи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Inventory', 'label')
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceSplitInventory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceSplitInventoryInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.splitInventory({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -107,12 +103,11 @@ export class MarketplaceInventoryResolver {
       'Оператор КУ наклеивает на позицию склада внутренний штрих-код (Code128 или EAN-13) для быстрого поиска на полке.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Inventory', 'label')
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceGenerateInventoryLabel(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceGenerateInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.generateLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -130,12 +125,11 @@ export class MarketplaceInventoryResolver {
       'Оператор КУ привязывает к позиции склада штрих-код с заранее напечатанной этикетки (считанный сканером).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Inventory', 'label')
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceBindInventoryBarcode(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceBindInventoryBarcodeInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.bindLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -154,12 +148,11 @@ export class MarketplaceInventoryResolver {
       'Оператор КУ снимает штрих-код с позиции склада, чтобы переклеить этикетку (позиция возвращается в состояние «Принято»).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Inventory', 'label')
+  @RequireRight('Inventory', 'label', { of: 'Inventory', id: 'data.inventory_id' })
   async marketplaceClearInventoryLabel(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceClearInventoryLabelInputDTO
   ): Promise<MarketplaceInventoryMutationResultDTO> {
-    await this.assertOperatesItemBranch(member, data.inventory_id);
     const result = await this.labelService.clearLabel({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -175,36 +168,16 @@ export class MarketplaceInventoryResolver {
     description: 'Список наклеек инвентаря КУ — для admin-стола склада и операторских разделов.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Warehouse', 'read:own-KU')
+  @RequireRight('Warehouse', 'read:own-KU', { list: 'data.braname' })
   async marketplaceListInventory(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
+    @GrantedScope() scope: IGrantedScope,
     @Args('data', { nullable: true }) data?: MarketplaceListInventoryInputDTO
   ): Promise<MarketplaceInventoryItemDTO[]> {
     const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-
-    // Ownership-фильтрация данных — ответственность резолвера, а не матрицы
-    // (matrix отвечает только за capability). Роль с `Warehouse:read:all`
-    // (admin/совет) видит склад всего кооператива; роль только с
-    // `read:own-KU` (оператор/председатель КУ) ограничивается своими КУ.
-    let branameFilter: string | string[] | undefined = data?.braname;
-    if (!canAccess(roles, 'Warehouse', 'read:all')) {
-      const ownBranames = await this.kuChairmanService.listBranamesForMember(
-        coopname,
-        member.username
-      );
-      if (ownBranames.length === 0) {
-        return [];
-      }
-      if (data?.braname) {
-        if (!ownBranames.includes(data.braname)) {
-          throw DomainError.forbidden('MARKETPLACE_INVENTORY_NOT_TRUSTEE');
-        }
-        branameFilter = data.braname;
-      } else {
-        branameFilter = ownBranames;
-      }
-    }
+    // Участки отбора отдаёт гард: свои у оператора, запрошенный либо все — у
+    // председателя и совета.
+    if (scope.kus && scope.kus.length === 0) return [];
+    const branameFilter = scope.kus ?? undefined;
 
     const filter: MarketplaceInventoryListFilter = {
       coopname,
@@ -240,25 +213,5 @@ export class MarketplaceInventoryResolver {
       dto.category_id = display?.category_id ?? null;
       return dto;
     });
-  }
-
-  /**
-   * Позицию склада трогает только председатель или доверенный её участка:
-   * право `Inventory:label` говорит «оператор вообще», а чей это склад —
-   * сверяется здесь. Без сверки оператор одного участка перекладывал и
-   * перемаркировал имущество на складе другого (C28-87).
-   */
-  private async assertOperatesItemBranch(
-    member: IMarketplaceCurrentMember,
-    inventory_id: string
-  ): Promise<void> {
-    const coopname = platformSettings().coopname;
-    const item = await this.inventoryRepo.findById(inventory_id);
-    // Позиции нет или она чужого кооператива — «не найдено» скажет сервис.
-    if (!item || item.coopname !== coopname) return;
-    const isMember = await this.kuChairmanService.isMemberOfBranch(coopname, item.braname, member.username);
-    if (!isMember) {
-      throw DomainError.forbidden('MARKETPLACE_ACTION_NOT_TRUSTEE');
-    }
   }
 }

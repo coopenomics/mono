@@ -68,58 +68,64 @@ async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCur
 | `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin, board]`      |
 | `[]` (admin платформы)            | любые                 | `[]` (guard membership уже отбросит 403)       |
 
-## Централизованная access-matrix (Story 1.8)
+## Таблица прав (Story 1.8, C28-87)
 
 `extensions/marketplace/application/access/marketplace-access-matrix.ts` —
-единое место, где описано «какая marketplace-роль может что делать с
-каким resource». Структура CASL-совместимая
-(`Record<role, Record<resource, action[]>>`).
+единое место, где описано «какая роль Стола заказов при каких условиях что
+может делать с каким ресурсом»: `marketplaceRightsTable`, роль → условия →
+право `Ресурс:действие`. Из неё собираются и проверка операции, и набор прав
+для страниц рабочего стола.
 
 ```ts
 // resolver:
 @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-@RequireMarketplaceAccess('Order', 'create')
-@Mutation(() => OrderDTO)
-async marketplaceCreateOrder(...) { ... }
+@RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
+@Mutation(() => MarketplaceOrderDTO)
+async marketplaceReadyIssue(...) { ... }
 ```
 
 `MarketplaceRoleGuard` читает обе семантики:
 - `@RequireMarketplaceRole('admin')` (Story 1.6) — OR по ролям.
-- `@RequireMarketplaceAccess('Order', 'create')` (Story 1.8) — через `canAccess`.
+- `@RequireRight('Order', 'create')` — право по таблице вместе с условием
+  строки, затем охват.
 
 Если оба декоратора заданы — guard требует выполнения обоих (логическое И).
 
-### Нотация actions
+### Охваты
 
-| Action          | Семантика                                              |
-|-----------------|--------------------------------------------------------|
-| `create`        | Создание новой записи resource                         |
-| `read`          | Чтение любого экземпляра resource                      |
-| `read:own`      | Чтение только своих (`owner == username`)              |
-| `read:all`      | Чтение всех (без фильтра по ownership)                 |
-| `read:to-self`  | Чтение объектов, адресованных пайщику (recipient)      |
-| `read:own-KU`   | Чтение в рамках своего КУ (Эпик 2)                     |
-| `update:own`    | Изменение только своих                                 |
-| `delete:own`    | Удаление только своих                                  |
-| `cancel:own`    | Отмена своих                                           |
-| `moderate`      | Модерация (admin)                                      |
-| `manage`        | Полные права (admin)                                   |
-| `sign:first`    | Первая подпись в multisig                              |
-| `sign`          | Подпись (board)                                        |
-| `decide`        | Голосование по решению (board)                         |
-| `configure`    | Настройка расширения (admin/совет)                     |
+Третья часть имени права из закрытого списка — охват: множество объектов
+ресурса, на которые право действует.
 
-**Важно**: ownership-проверка (`:own`/`:own-KU`/`:to-self`) — задача
-resolver-а *после* прохождения guard. Guard отвечает за capability
-(«эта роль вообще может»), не за data-uniqueness.
+| Охват        | Определение                                              | Условие правила                          |
+|--------------|----------------------------------------------------------|------------------------------------------|
+| `own`        | объекты, которые принадлежат пайщику                     | владелец объекта равен пайщику           |
+| `own-KU`     | объекты участков, где пайщик председатель или доверенный | участок объекта входит в эти участки     |
+| `chaired-KU` | объекты участков, где пайщик председатель                | участок объекта входит в эти участки     |
+| `to-self`    | объекты, которые направлены пайщику                      | получатель объекта равен пайщику         |
+| `all`        | все объекты ресурса в кооперативе                        | условия нет; покрывает охваты выше       |
 
-## Phase 2 migration (CASL)
+Охват прав, у которых он в имени не записан (`Receiving:create`,
+`Issuance:sign:act`), назван в `marketplaceRightScopes`.
 
-Структура Guard остаётся, меняется только источник policy:
-`marketplace-access-matrix.ts` транслируется в платформенный CASL
-`defineAbility`, `canAccess` подменяется на `ability.can(action, subject)`.
-Декораторы остаются совместимыми. Behavior Guard — **тот же**.
+### Источник объекта у операции
 
-Цель этой изоляции: бизнес-код resolver-ов
-(`@RequireMarketplaceAccess('Order', 'create')`) не меняется при переходе
-на CASL.
+Охват сверяет guard, а не резолвер. Операция называет третьим аргументом
+`@RequireRight`, откуда взять владельца, участок или получателя:
+
+| Источник                              | Когда                                                   |
+|---------------------------------------|---------------------------------------------------------|
+| `SELF`                                | операция работает с данными вызвавшего: корзина, свои заказы |
+| `{ ku: 'data.braname' }`              | участок назван в запросе                                |
+| `{ of: 'Order', id: 'data.order_id' }`| объект по номеру (или списку номеров); `match: 'any'` — хватает одного подходящего |
+| `{ list: 'data.braname' }`            | список: guard отдаёт операции участки отбора (`@GrantedScope()`) |
+
+Виды объектов и их поля — в `access/marketplace-right-subjects.service.ts`
+(справочник объектов: владелец, участок, получатель). Правило каждого охвата
+записано один раз в каркасе расширений (`extension-kit/src/auth/rights.ts`)
+условием CASL. Отказ по охвату — коды каркаса `KIT_RIGHT_SCOPE_OWN`,
+`KIT_RIGHT_SCOPE_OWN_KU`, `KIT_RIGHT_SCOPE_CHAIRED_KU`, `KIT_RIGHT_SCOPE_TO_SELF`.
+Объекта нет — guard пропускает запрос, «не найдено» отвечает сама операция.
+
+Гейт `scripts/check-legacy-rights.mjs` требует источник у каждого требования
+с узким охватом и запрещает резолверу читать состав участка: частная сверка в
+теле операции расходится с таблицей прав и с рабочим столом.

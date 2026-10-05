@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import {
@@ -120,7 +120,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик публикует Offer (статус → PENDING_MODERATION)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'create:own')
+  @RequireRight('Offer', 'create:own', SELF)
   async marketplaceCreateOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceCreateOfferInputDTO
@@ -152,7 +152,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own', { of: 'Offer', id: 'input.id' })
   async marketplaceUpdateOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceUpdateOfferInputDTO
@@ -167,7 +167,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик снимает свой Offer (статус → WITHDRAWN)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'delete:own')
+  @RequireRight('Offer', 'delete:own', { of: 'Offer', id: 'input.id' })
   async marketplaceWithdrawOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceWithdrawOfferInputDTO
@@ -181,7 +181,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own', { of: 'Offer', id: 'input.id' })
   async marketplaceRepublishOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceRepublishOfferInputDTO
@@ -195,7 +195,7 @@ export class MarketplaceOfferResolver {
     description: 'Список собственных Offer\'ов поставщика (любой статус)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'create:own')
+  @RequireRight('Offer', 'create:own', SELF)
   async marketplaceListMyOffers(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListMyOffersInputDTO

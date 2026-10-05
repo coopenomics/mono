@@ -1,114 +1,79 @@
 /**
- * Unit-тесты ownership-скоупинга apl-reception-резолверов (#208).
+ * Приёмка: чужой участок и чужой акт закрыты отказом по охвату (#208, C28-87).
  *
- * Зеркало #205/#206/#207 на стороне приёмки. Инвариант: matrix даёт
- * capability, скоуп ДАННЫХ — ответственность резолвера:
- *   - listByBraname (operator, Receiving:create) → член запрашиваемого КУ;
- *   - supplierSignablePayloads (offerer, sign:first) → поставщик этой приёмки;
- *   - chairmanSignablePayloads (operator, sign:closing) → член КУ приёмки
- *       (сервис делает `void chairman_account`, скоупа сам не делает).
- * В каждом блоке: владелец/член → метод дёргается; чужой → ForbiddenException,
- * нижележащий метод не дёргается.
+ * Зеркало #205/#206/#207 на стороне приёмки. Сверку ведёт общий гард по
+ * источнику, который называет операция:
+ *   - лента приёмок участка (operator, `Receiving:create`) → участок из запроса;
+ *   - документы к подписи поставщика (offerer, `sign:first`) → поставщик акта;
+ *   - документы к закрывающей подписи (operator, `sign:closing`) → участок акта.
+ * В каждом блоке: владелец или оператор участка проходит, чужой получает
+ * отказ до входа в операцию.
  */
-// Конфиг подменяем поверх настоящего (он валиден благодаря tests/setup-env.ts):
-// импорт резолвера тянет за собой модули расширений, а те читают blockchain/postgres
-// прямо на верхнем уровне — от объекта с одним `coopname` они падают на импорте.
-jest.mock('~/config/config', () => ({
-  __esModule: true,
-  default: { ...jest.requireActual('~/config/config').default, coopname: 'voskhod' },
-}));
+import { memberOf, makeScopeGuard, requirementOf, type ScopeWorld } from './right-scope.harness';
 
-import { ForbiddenException } from '@nestjs/common';
-import { MarketplaceAplReceptionResolver } from '~/extensions/marketplace/application/resolvers/marketplace-apl-reception.resolver';
+const RESOLVER = 'marketplace-apl-reception.resolver.ts';
 
-const receptionOf = (overrides: Record<string, unknown>) =>
-  ({ coopname: 'voskhod', braname: 'krg', offerer_account: 'op', ...overrides } as any);
-
-const makeResolver = (reception: any, isMember: boolean) => {
-  const service = {
-    getSupplierSignablePayloads: jest.fn().mockResolvedValue([]),
-    getChairmanSignablePayloads: jest.fn().mockResolvedValue([]),
-  } as any;
-  const receptionRepo = {
-    findById: jest.fn().mockResolvedValue(reception),
-    listByBraname: jest.fn().mockResolvedValue([]),
-  } as any;
-  const kuChairmanService = {
-    isMemberOfBranch: jest.fn().mockResolvedValue(isMember),
-  } as any;
-  const displayService = {
-    enrich: jest.fn().mockResolvedValue(new Map()),
-  } as any;
-  const resolver = new MarketplaceAplReceptionResolver(
-    service,
-    receptionRepo,
-    kuChairmanService,
-    displayService
-  );
-  return { resolver, service, receptionRepo, kuChairmanService, displayService };
+const world: ScopeWorld = {
+  branches: { krg: { trustee: 'chairkrg', trusted: ['trustkrg'] }, msk: { trustee: 'chairmsk' } },
+  objects: { Reception: { r1: { offerer_account: 'sup1', braname: 'krg' } } },
 };
 
-const asMember = (roles: string[]) =>
-  ({ username: 'op', core_roles: ['User'], marketplace_roles: roles } as any);
+const chairKrg = memberOf('chairkrg', 'orderer', 'operator');
+const chairMsk = memberOf('chairmsk', 'orderer', 'operator');
+const supplier = memberOf('sup1', 'orderer', 'offerer');
+const otherSupplier = memberOf('sup2', 'orderer', 'offerer');
 
-describe('marketplaceListAplReceptionsByBraname ownership-scoping', () => {
-  it('operator-член запрашиваемого КУ → лента отдаётся', async () => {
-    const { resolver, receptionRepo, kuChairmanService } = makeResolver(receptionOf({}), true);
-    await resolver.marketplaceListAplReceptionsByBraname(asMember(['operator']), {
-      braname: 'krg',
-    } as any);
-    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
-    expect(receptionRepo.listByBraname).toHaveBeenCalledWith('voskhod', 'krg');
+describe('marketplaceListAplReceptionsByBraname: участок из запроса', () => {
+  const requirement = () => requirementOf(RESOLVER, 'marketplaceListAplReceptionsByBraname');
+
+  it('оператор запрошенного участка → лента отдаётся', async () => {
+    const { granted, kuChairmanService } = makeScopeGuard(world);
+    await expect(granted(requirement(), chairKrg, { data: { braname: 'krg' } })).resolves.toMatchObject({
+      scopes: ['own-KU'],
+    });
+    expect(kuChairmanService.listBranamesForMember).toHaveBeenCalledWith(expect.any(String), 'chairkrg');
   });
 
-  it('operator НЕ член запрашиваемого КУ → ForbiddenException, репозиторий не дёргается', async () => {
-    const { resolver, receptionRepo } = makeResolver(receptionOf({}), false);
-    await expect(
-      resolver.marketplaceListAplReceptionsByBraname(asMember(['operator']), {
-        braname: 'msk',
-      } as any)
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(receptionRepo.listByBraname).not.toHaveBeenCalled();
-  });
-});
-
-describe('marketplaceAplReceptionSupplierSignablePayloads ownership-scoping', () => {
-  it('поставщик своей приёмки → превью отдаётся', async () => {
-    const { resolver, service } = makeResolver(receptionOf({ offerer_account: 'op' }), false);
-    await resolver.marketplaceAplReceptionSupplierSignablePayloads(asMember(['offerer']), {
-      apl_reception_id: 'r1',
-    } as any);
-    expect(service.getSupplierSignablePayloads).toHaveBeenCalledWith('voskhod', 'r1');
-  });
-
-  it('НЕ поставщик приёмки → ForbiddenException, сервис не дёргается', async () => {
-    const { resolver, service } = makeResolver(receptionOf({ offerer_account: 'someoneelse' }), false);
-    await expect(
-      resolver.marketplaceAplReceptionSupplierSignablePayloads(asMember(['offerer']), {
-        apl_reception_id: 'r1',
-      } as any)
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(service.getSupplierSignablePayloads).not.toHaveBeenCalled();
+  it('оператор другого участка → отказ по охвату', async () => {
+    const { granted } = makeScopeGuard(world);
+    await expect(granted(requirement(), chairMsk, { data: { braname: 'krg' } })).rejects.toMatchObject({
+      code: 'KIT_RIGHT_SCOPE_OWN_KU',
+    });
   });
 });
 
-describe('marketplaceAplReceptionChairmanSignablePayloads ownership-scoping', () => {
-  it('operator-член КУ приёмки → превью отдаётся', async () => {
-    const { resolver, service, kuChairmanService } = makeResolver(receptionOf({}), true);
-    await resolver.marketplaceAplReceptionChairmanSignablePayloads(asMember(['operator']), {
-      apl_reception_id: 'r1',
-    } as any);
-    expect(kuChairmanService.isMemberOfBranch).toHaveBeenCalledWith('voskhod', 'krg', 'op');
-    expect(service.getChairmanSignablePayloads).toHaveBeenCalledWith('voskhod', 'r1', 'op');
+describe('marketplaceAplReceptionSupplierSignablePayloads: поставщик акта', () => {
+  const requirement = () => requirementOf(RESOLVER, 'marketplaceAplReceptionSupplierSignablePayloads');
+
+  it('поставщик своей приёмки → документы отдаются', async () => {
+    const { granted } = makeScopeGuard(world);
+    await expect(granted(requirement(), supplier, { data: { apl_reception_id: 'r1' } })).resolves.toMatchObject({
+      scopes: ['own'],
+    });
   });
 
-  it('operator НЕ член КУ приёмки → ForbiddenException, сервис не дёргается', async () => {
-    const { resolver, service } = makeResolver(receptionOf({ braname: 'msk' }), false);
-    await expect(
-      resolver.marketplaceAplReceptionChairmanSignablePayloads(asMember(['operator']), {
-        apl_reception_id: 'r1',
-      } as any)
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(service.getChairmanSignablePayloads).not.toHaveBeenCalled();
+  it('другой поставщик → отказ по охвату', async () => {
+    const { granted } = makeScopeGuard(world);
+    await expect(granted(requirement(), otherSupplier, { data: { apl_reception_id: 'r1' } })).rejects.toMatchObject({
+      code: 'KIT_RIGHT_SCOPE_OWN',
+    });
+  });
+});
+
+describe('marketplaceAplReceptionChairmanSignablePayloads: участок акта', () => {
+  const requirement = () => requirementOf(RESOLVER, 'marketplaceAplReceptionChairmanSignablePayloads');
+
+  it('оператор участка приёмки → документы отдаются', async () => {
+    const { granted } = makeScopeGuard(world);
+    await expect(granted(requirement(), chairKrg, { data: { apl_reception_id: 'r1' } })).resolves.toMatchObject({
+      scopes: ['own-KU'],
+    });
+  });
+
+  it('оператор другого участка → отказ по охвату', async () => {
+    const { granted } = makeScopeGuard(world);
+    await expect(granted(requirement(), chairMsk, { data: { apl_reception_id: 'r1' } })).rejects.toMatchObject({
+      code: 'KIT_RIGHT_SCOPE_OWN_KU',
+    });
   });
 });
