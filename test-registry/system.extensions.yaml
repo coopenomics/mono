@@ -20,15 +20,11 @@ sources:
     - components/controller/src/application/appstore/**
     - components/controller/src/application/desktop/**
     - components/controller/src/domain/extension/**
-    - components/controller/src/infrastructure/database/typeorm/entities/settings.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/system-status.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/extension.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/log-extension.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/mutation-log.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/settings.typeorm-repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-log-extension.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/mutation-log.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/system-status.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/settings.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/extension.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/log-extension.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/mutation-log.kysely-repository.ts
     - components/controller/src/application/common/interceptors/mutation-logging.interceptor.ts
 
 cases:

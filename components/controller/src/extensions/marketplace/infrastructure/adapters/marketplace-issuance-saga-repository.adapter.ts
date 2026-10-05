@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, Repository } from 'typeorm';
+import { TableStore, lessThan, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_ISSUANCE_SAGA_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceIssuanceSagaDomainEntity } from '../../domain/entities/marketplace-issuance-saga.entity';
 import {
   MARKETPLACE_ISSUANCE_SAGA_ACTIVE_STAGES,
@@ -21,20 +21,18 @@ const ACTIVE_STAGES = [...MARKETPLACE_ISSUANCE_SAGA_ACTIVE_STAGES];
 @Injectable()
 export class MarketplaceIssuanceSagaRepositoryAdapter implements MarketplaceIssuanceSagaDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceIssuanceSagaEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceIssuanceSagaEntity>,
+    @Inject(MARKETPLACE_ISSUANCE_SAGA_STORE)
+private readonly repo: TableStore<MarketplaceIssuanceSagaEntity>,
     private readonly mapper: MarketplaceIssuanceSagaMapper
   ) {}
 
   async createOrReuse(input: MarketplaceIssuanceSagaCreateInput): Promise<MarketplaceIssuanceSagaDomainEntity> {
-    const existing = await this.repo.findOne({
-      where: { coopname: input.coopname, order_hash: input.order_hash.toLowerCase(), stage: In(ACTIVE_STAGES) },
-    });
+    const existing = await this.repo.findOne({ coopname: input.coopname, order_hash: input.order_hash.toLowerCase(), stage: oneOf(ACTIVE_STAGES) });
     if (existing) {
       // Повтор у стойки: факт мог измениться до подписи заявления.
       if (existing.stage === MarketplaceIssuanceSagaStages.FACT_FIXED) {
         await this.repo.update({ id: existing.id }, { fact: input.fact, operator_account: input.operator_account, proposal_id: input.proposal_id });
-        return this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id: existing.id } }));
+        return this.mapper.toDomain(await this.repo.findOneOrFail({ id: existing.id }));
       }
       return this.mapper.toDomain(existing);
     }
@@ -65,20 +63,17 @@ export class MarketplaceIssuanceSagaRepositoryAdapter implements MarketplaceIssu
   }
 
   async findById(id: string): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findByOrderHash(coopname: string, order_hash: string): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
-    const row = await this.repo.findOne({
-      where: { coopname, order_hash: order_hash.toLowerCase() },
-      order: { created_at: 'DESC' },
-    });
+    const row = await this.repo.findOne({ coopname, order_hash: order_hash.toLowerCase() }, { order: { created_at: 'DESC' } });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findActiveByOrderId(coopname: string, order_id: string): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, order_id, stage: In(ACTIVE_STAGES) } });
+    const row = await this.repo.findOne({ coopname, order_id, stage: oneOf(ACTIVE_STAGES) });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -86,10 +81,10 @@ export class MarketplaceIssuanceSagaRepositoryAdapter implements MarketplaceIssu
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.member_account) where.member_account = filter.member_account;
     if (filter.proposal_id) where.proposal_id = filter.proposal_id;
-    if (filter.braname) where.braname = Array.isArray(filter.braname) ? In(filter.braname) : filter.braname;
-    if (filter.stage) where.stage = Array.isArray(filter.stage) ? In(filter.stage) : filter.stage;
-    else if (filter.active_only) where.stage = In(ACTIVE_STAGES);
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    if (filter.braname) where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
+    if (filter.stage) where.stage = Array.isArray(filter.stage) ? oneOf(filter.stage) : filter.stage;
+    else if (filter.active_only) where.stage = oneOf(ACTIVE_STAGES);
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -99,14 +94,14 @@ export class MarketplaceIssuanceSagaRepositoryAdapter implements MarketplaceIssu
     patch: MarketplaceIssuanceSagaPatch
   ): Promise<MarketplaceIssuanceSagaDomainEntity | null> {
     const fromStages = Array.isArray(from) ? from : [from];
-    const res = await this.repo.update({ id, stage: In(fromStages) }, patch as Record<string, unknown>);
-    if (!res.affected) return null;
-    return this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    const res = await this.repo.update({ id, stage: oneOf(fromStages) }, patch as Record<string, unknown>);
+    if (!res) return null;
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
   }
 
   async update(id: string, patch: MarketplaceIssuanceSagaPatch): Promise<MarketplaceIssuanceSagaDomainEntity> {
     await this.repo.update({ id }, patch as Record<string, unknown>);
-    return this.mapper.toDomain(await this.repo.findOneOrFail({ where: { id } }));
+    return this.mapper.toDomain(await this.repo.findOneOrFail({ id }));
   }
 
   async findStale(
@@ -115,11 +110,7 @@ export class MarketplaceIssuanceSagaRepositoryAdapter implements MarketplaceIssu
     olderThan: Date,
     limit: number
   ): Promise<MarketplaceIssuanceSagaDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname, stage: In(stages), updated_at: LessThan(olderThan) },
-      order: { updated_at: 'ASC' },
-      take: limit,
-    });
+    const rows = await this.repo.find({ coopname, stage: oneOf(stages), updated_at: lessThan(olderThan) }, { order: { updated_at: 'ASC' }, limit: limit });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 }

@@ -1,9 +1,8 @@
 import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import type { Kysely } from 'kysely';
+import { KYSELY } from '@coopenomics/extension-kit';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
-import { CallTranscriptionTypeormEntity } from '../entities/call-transcription.typeorm-entity';
-import { MatrixUserTypeormEntity } from '../entities/matrix-user.typeorm-entity';
+import type { DB } from '../database/chatcoop.database.types';
 import { canonicalizeMatrixUserId } from '../../domain/utils/matrix-user-id.util';
 
 /** Код расширения «Чат кооператива» в ленте изменений. */
@@ -14,7 +13,7 @@ const TRANSCRIPTIONS_TABLE = 'chatcoop_call_transcriptions';
 /**
  * Владельцы транскрипции в сигнале — участники звонка по именам пайщиков. В
  * строке такого поля нет (там идентификаторы Matrix), поэтому автоматический
- * сигнал подписчика базы уходит только совету, а участникам его шлёт
+ * сигнал слоя базы уходит только совету, а участникам его шлёт
  * `publishTranscription`.
  */
 const TRANSCRIPTION_OWNERS = 'participant_usernames';
@@ -27,10 +26,7 @@ const TRANSCRIPTION_OWNERS = 'participant_usernames';
 @Injectable()
 export class ChatcoopLiveFeedService implements OnModuleInit {
   constructor(
-    @InjectRepository(CallTranscriptionTypeormEntity)
-    private readonly transcriptions: Repository<CallTranscriptionTypeormEntity>,
-    @InjectRepository(MatrixUserTypeormEntity)
-    private readonly matrixUsers: Repository<MatrixUserTypeormEntity>,
+    @Inject(KYSELY) private readonly db: Kysely<DB>,
     @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly chainChanges: IChainChangesPort | null = null
   ) {}
 
@@ -39,7 +35,7 @@ export class ChatcoopLiveFeedService implements OnModuleInit {
       { code: CODE, table: 'chatcoop_calendar_events' },
       { code: CODE, table: 'chatcoop_managed_matrix_rooms', staff_only: true },
       { code: CODE, table: TRANSCRIPTIONS_TABLE, owner_field: TRANSCRIPTION_OWNERS },
-      { code: CODE, table: 'matrix_users', owner_field: 'coopUsername' },
+      { code: CODE, table: 'matrix_users', owner_field: 'coop_username' },
     ]);
   }
 
@@ -52,12 +48,19 @@ export class ChatcoopLiveFeedService implements OnModuleInit {
   async publishTranscription(transcriptionId: string): Promise<void> {
     if (!this.chainChanges) return;
     try {
-      const row = await this.transcriptions.findOne({ where: { id: transcriptionId } });
+      const row = await this.db
+        .selectFrom('chatcoop_call_transcriptions')
+        .select('participants')
+        .where('id', '=', transcriptionId)
+        .executeTakeFirst();
       if (!row) return;
-      const ids = [...new Set((row.participants ?? []).map(canonicalizeMatrixUserId))];
-      const users = ids.length ? await this.matrixUsers.find({ where: { matrixUserId: In(ids) } }) : [];
+      const participants = (row.participants as unknown as string[] | null) ?? [];
+      const ids = [...new Set(participants.map(canonicalizeMatrixUserId))];
+      const users = ids.length
+        ? await this.db.selectFrom('matrix_users').select('coop_username').where('matrix_user_id', 'in', ids).execute()
+        : [];
       await this.chainChanges.publishLocal(TRANSCRIPTIONS_TABLE, transcriptionId, {
-        [TRANSCRIPTION_OWNERS]: users.map((u) => u.coopUsername),
+        [TRANSCRIPTION_OWNERS]: users.map((u) => u.coop_username),
       });
     } catch {
       // Сигнал — подсказка «перечитай», не данные: без него экран догонит дочиткой.

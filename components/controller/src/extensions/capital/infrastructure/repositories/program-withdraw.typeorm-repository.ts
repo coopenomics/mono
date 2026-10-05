@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CAPITAL_PROGRAM_WITHDRAW_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProgramWithdrawDomainEntity } from '../../domain/entities/program-withdraw.entity';
 import { ProgramWithdrawTypeormEntity } from '../entities/program-withdraw.typeorm-entity';
 import { ProgramWithdrawMapper } from '../mappers/program-withdraw.mapper';
 import type { ProgramWithdrawRepository } from '../../domain/repositories/program-withdraw.repository';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramWithdrawDatabaseData } from '../../domain/interfaces/program-withdraw-database.interface';
 import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/program-withdraw-blockchain.interface';
 
@@ -14,15 +14,14 @@ import type { IProgramWithdrawBlockchainData } from '../../domain/interfaces/pro
  */
 @Injectable()
 export class ProgramWithdrawTypeormRepository
-  extends BaseBlockchainRepository<ProgramWithdrawDomainEntity, ProgramWithdrawTypeormEntity>
+  extends BaseChainRepository<ProgramWithdrawDomainEntity, ProgramWithdrawTypeormEntity>
   implements ProgramWithdrawRepository
 {
   constructor(
-    @InjectRepository(ProgramWithdrawTypeormEntity)
-    repository: Repository<ProgramWithdrawTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_PROGRAM_WITHDRAW_STORE) repository: TableStore<ProgramWithdrawTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {

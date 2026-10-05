@@ -4,11 +4,10 @@ import { z } from 'zod';
 import { merge } from 'lodash';
 import { BaseExtensionModule, DomainToBlockchainUtils, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
 import { CHAIN_CHANGES_PORT, LOGGER_PORT, type IChainChangesPort, type ILoggerPort } from '@coopenomics/innercoop';
-import { SovietRobotDatabaseModule } from './infrastructure/database/soviet-robot-database.module';
 import { ROBOT_DECISION_REPOSITORY } from './domain/repositories/robot-decision.repository';
 import { ROBOT_KEY_REPOSITORY } from './domain/repositories/robot-key.repository';
-import { RobotDecisionTypeormRepository } from './infrastructure/repositories/robot-decision.typeorm-repository';
-import { RobotKeyTypeormRepository } from './infrastructure/repositories/robot-key.typeorm-repository';
+import { RobotDecisionKyselyRepository } from './infrastructure/repositories/robot-decision.kysely-repository';
+import { RobotKeyKyselyRepository } from './infrastructure/repositories/robot-key.kysely-repository';
 import { RobotChainService } from './application/services/robot-chain.service';
 import { RobotKeyService } from './application/services/robot-key.service';
 import { RobotRegistryService } from './application/services/robot-registry.service';
@@ -120,11 +119,10 @@ export class SovietRobotExtension extends BaseExtensionModule {
 }
 
 @Module({
-  imports: [SovietRobotDatabaseModule],
   providers: [
     SovietRobotExtension,
-    { provide: ROBOT_DECISION_REPOSITORY, useClass: RobotDecisionTypeormRepository },
-    { provide: ROBOT_KEY_REPOSITORY, useClass: RobotKeyTypeormRepository },
+    { provide: ROBOT_DECISION_REPOSITORY, useClass: RobotDecisionKyselyRepository },
+    { provide: ROBOT_KEY_REPOSITORY, useClass: RobotKeyKyselyRepository },
     DomainToBlockchainUtils,
     RobotChainService,
     RobotKeyService,

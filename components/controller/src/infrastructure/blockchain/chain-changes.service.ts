@@ -172,8 +172,8 @@ export function chainChangesStaffTopic(coopname: string, code: string, table: st
 
 /**
  * Лента изменений (см. `chain-changes.port.ts`). Потребитель цепи зовёт
- * `publish`, когда дельта сохранена и её слушатели отработали; подписчик базы
- * (`LocalChangesSubscriber`) зовёт `publishLocal` после фиксации записи —
+ * `publish`, когда дельта сохранена и её слушатели отработали; слой базы
+ * (`LocalChangesPlugin`) зовёт `publishLocal` после фиксации записи —
  * сигнал никогда не опережает базу, и стол по нему читает уже новое.
  */
 @Injectable()

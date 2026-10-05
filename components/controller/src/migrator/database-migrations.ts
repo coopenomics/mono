@@ -1,41 +1,11 @@
-// Реестр расширений заполняет состав сущностей и их миграций; без него
-// миграции расширений не попали бы в ленту при запуске из CLI мигратора.
-// Настройки контура — раньше реестра: расширения читают их уже при импорте.
+// Реестр расширений заполняет состав миграций; без него миграции расширений
+// не попали бы в ленту при запуске из CLI мигратора. Настройки контура —
+// раньше реестра: расширения читают их уже при импорте.
 import '~/config/platform-bootstrap';
 import '~/extensions/extensions.registry';
-import { DataSource, type Logger } from 'typeorm';
 import logger from '~/config/logger';
-import { mainDataSourceOptions } from '~/infrastructure/database/typeorm/data-source.options';
-
-/**
- * Прогресс наката: TypeORM сообщает о каждой применённой миграции через
- * `logSchemaBuild`, и по нему видно, где накат сейчас, а не только итог в конце.
- * Остальные сообщения (запросы и прочее) здесь не нужны.
- */
-class MigrationProgressLogger implements Logger {
-  private total = 0;
-  private done = 0;
-
-  logSchemaBuild(message: string): void {
-    const pending = message.match(/^(\d+) migrations are new migrations/);
-    if (pending) {
-      this.total = Number(pending[1]);
-      logger.info(`Миграции схемы: к применению ${this.total}`);
-      return;
-    }
-    const executed = message.match(/^Migration (\S+) has been .*executed successfully/);
-    if (executed) logger.info(`Миграция схемы [${++this.done}/${this.total}]: ${executed[1]}`);
-  }
-
-  logMigration(message: string): void {
-    logger.warn(`Миграции схемы: ${message}`);
-  }
-
-  logQuery(): void {}
-  logQueryError(): void {}
-  logQuerySlow(): void {}
-  log(): void {}
-}
+import { createMainPool } from '~/infrastructure/database/postgres/postgres-connection';
+import { runSchemaMigrations } from '~/infrastructure/database/schema/schema-migrations';
 
 /**
  * Применить непринятые миграции схемы (таблицы, колонки, индексы).
@@ -49,13 +19,14 @@ class MigrationProgressLogger implements Logger {
  * @returns Имена применённых миграций (пусто, если нечего применять).
  */
 export async function runDatabaseMigrations(database?: string): Promise<string[]> {
-  const dataSource = new DataSource({ ...mainDataSourceOptions(database), logger: new MigrationProgressLogger() });
-  await dataSource.initialize();
+  const pool = createMainPool(database);
   try {
-    const applied = await dataSource.runMigrations({ transaction: 'each' });
+    const applied = await runSchemaMigrations(pool, (name, index, total) =>
+      logger.info(`Миграция схемы [${index}/${total}]: ${name}`)
+    );
     if (!applied.length) logger.info('Миграции схемы: применять нечего');
-    return applied.map((migration) => migration.name);
+    return applied;
   } finally {
-    await dataSource.destroy();
+    await pool.end();
   }
 }

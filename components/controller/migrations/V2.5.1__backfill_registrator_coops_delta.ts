@@ -1,4 +1,4 @@
-import type { DataSource } from 'typeorm';
+import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
 import mongoose from 'mongoose';
 import config from '~/config/config';
 

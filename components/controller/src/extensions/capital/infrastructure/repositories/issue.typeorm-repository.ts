@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_ISSUE_STORE } from '../database/capital-stores';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { IssueRepository } from '../../domain/repositories/issue.repository';
 import { IssueDomainEntity } from '../../domain/entities/issue.entity';
@@ -9,14 +9,13 @@ import { IssueMapper } from '../mappers/issue.mapper';
 import type { IssuePriority } from '../../domain/enums/issue-priority.enum';
 import { IssueStatus } from '../../domain/enums/issue-status.enum';
 import type { IssueFilterInputDTO } from '../../application/dto/generation/issue-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 @Injectable()
 export class IssueTypeormRepository implements IssueRepository {
   constructor(
-    @InjectRepository(IssueTypeormEntity)
-    private readonly issueTypeormRepository: Repository<IssueTypeormEntity>,
+    @Inject(CAPITAL_ISSUE_STORE)
+    private readonly issueTypeormRepository: TableStore<IssueTypeormEntity>,
     private readonly eventEmitter: EventEmitter2
   ) {}
 
@@ -32,25 +31,23 @@ export class IssueTypeormRepository implements IssueRepository {
   }
 
   async findById(_id: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({ where: { _id } });
+    const entity = await this.issueTypeormRepository.findOne({ _id });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
   async findByIssueHash(issueHash: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({ where: { issue_hash: issueHash.toLowerCase() } });
+    const entity = await this.issueTypeormRepository.findOne({ issue_hash: issueHash.toLowerCase() });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
   async findByCoopnameAndClientId(coopname: string, clientId: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({
-      where: { coopname, id: clientId },
-    });
+    const entity = await this.issueTypeormRepository.findOne({ coopname, id: clientId });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
   async getNextFreeIssueId(coopname: string): Promise<string> {
     const raw = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .select(
         `MAX(CAST(SUBSTRING(issue.id FROM 5) AS INTEGER))`,
         'max_num',
@@ -70,22 +67,18 @@ export class IssueTypeormRepository implements IssueRepository {
   }
 
   async findByProjectHash(projectHash: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { project_hash: projectHash },
-    });
+    const entities = await this.issueTypeormRepository.find({ project_hash: projectHash });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByCreatedBy(createdBy: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { created_by: createdBy },
-    });
+    const entities = await this.issueTypeormRepository.find({ created_by: createdBy });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByCreators(creatorsUsernames: string[]): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .where('issue.creators && :creatorsUsernames', { creatorsUsernames })
       .getMany();
 
@@ -94,7 +87,7 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findByStatusAndCreators(status: IssueStatus, creatorsUsernames: string[]): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .where('issue.status = :status', { status })
       .andWhere('issue.creators && :creatorsUsernames', { creatorsUsernames })
       .getMany();
@@ -104,7 +97,7 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findCompletedByProjectAndCreators(projectHash: string, creatorsUsernames: string[]): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .where('issue.status = :status', { status: IssueStatus.DONE })
       .andWhere('issue.project_hash = :projectHash', { projectHash })
       .andWhere('issue.creators && :creatorsUsernames', { creatorsUsernames })
@@ -114,36 +107,28 @@ export class IssueTypeormRepository implements IssueRepository {
   }
 
   async findBySubmaster(submasterUsername: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { submaster: submasterUsername },
-    });
+    const entities = await this.issueTypeormRepository.find({ submaster: submasterUsername });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByCycleId(cycleId: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { cycle_id: cycleId },
-    });
+    const entities = await this.issueTypeormRepository.find({ cycle_id: cycleId });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByStatus(status: IssueStatus): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { status },
-    });
+    const entities = await this.issueTypeormRepository.find({ status });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByPriority(priority: IssuePriority): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { priority },
-    });
+    const entities = await this.issueTypeormRepository.find({ priority });
     return entities.map(IssueMapper.toDomain);
   }
 
   async findByStatuses(statuses: IssueStatus[]): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .where('issue.status = ANY(:statuses)', { statuses })
       .getMany();
     return entities.map(IssueMapper.toDomain);
@@ -151,7 +136,7 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async findByPriorities(priorities: IssuePriority[]): Promise<IssueDomainEntity[]> {
     const entities = await this.issueTypeormRepository
-      .createQueryBuilder('issue')
+      .sqlBuilder('issue')
       .where('issue.priority = ANY(:priorities)', { priorities })
       .getMany();
     return entities.map(IssueMapper.toDomain);
@@ -159,7 +144,7 @@ export class IssueTypeormRepository implements IssueRepository {
 
   async update(entity: IssueDomainEntity): Promise<IssueDomainEntity> {
     // Берем полную сущность из БД для корректного обновления complex полей (arrays)
-    const existingEntity = await this.issueTypeormRepository.findOne({ where: { _id: entity._id } });
+    const existingEntity = await this.issueTypeormRepository.findOne({ _id: entity._id });
     if (!existingEntity) {
       throw new Error(`Issue with _id ${entity._id} not found`);
     }
@@ -178,17 +163,14 @@ export class IssueTypeormRepository implements IssueRepository {
   }
 
   async delete(_id: string): Promise<void> {
-    await this.issueTypeormRepository.delete(_id);
+    await this.issueTypeormRepository.delete({ _id: _id });
   }
 
   /**
    * Найти задачу с комментариями
    */
   async findByIdWithComments(issueId: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({
-      where: { _id: issueId },
-      relations: ['comments'],
-    });
+    const entity = await this.issueTypeormRepository.findOne({ _id: issueId });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
@@ -196,10 +178,7 @@ export class IssueTypeormRepository implements IssueRepository {
    * Найти задачу с историями
    */
   async findByIdWithStories(issueId: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({
-      where: { _id: issueId },
-      relations: ['stories'],
-    });
+    const entity = await this.issueTypeormRepository.findOne({ _id: issueId });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
@@ -207,10 +186,7 @@ export class IssueTypeormRepository implements IssueRepository {
    * Найти задачу со всеми связанными данными
    */
   async findByIdWithAllRelations(issueId: string): Promise<IssueDomainEntity | null> {
-    const entity = await this.issueTypeormRepository.findOne({
-      where: { _id: issueId },
-      relations: ['comments', 'stories', 'project', 'cycle'],
-    });
+    const entity = await this.issueTypeormRepository.findOne({ _id: issueId });
     return entity ? IssueMapper.toDomain(entity) : null;
   }
 
@@ -218,11 +194,7 @@ export class IssueTypeormRepository implements IssueRepository {
    * Найти задачи проекта с комментариями
    */
   async findByProjectHashWithComments(projectHash: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { project_hash: projectHash },
-      relations: ['comments'],
-      order: { sort_order: 'ASC' },
-    });
+    const entities = await this.issueTypeormRepository.find({ project_hash: projectHash }, { order: { sort_order: 'ASC' } });
     return entities.map(IssueMapper.toDomain);
   }
 
@@ -230,11 +202,7 @@ export class IssueTypeormRepository implements IssueRepository {
    * Найти задачи проекта с историями
    */
   async findByProjectHashWithStories(projectHash: string): Promise<IssueDomainEntity[]> {
-    const entities = await this.issueTypeormRepository.find({
-      where: { project_hash: projectHash },
-      relations: ['stories'],
-      order: { sort_order: 'ASC' },
-    });
+    const entities = await this.issueTypeormRepository.find({ project_hash: projectHash }, { order: { sort_order: 'ASC' } });
     return entities.map(IssueMapper.toDomain);
   }
 
@@ -257,7 +225,7 @@ export class IssueTypeormRepository implements IssueRepository {
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
     // Создаем query builder для гибкого построения запроса
-    let queryBuilder = this.issueTypeormRepository.createQueryBuilder('i').select('i').where('1=1'); // Начальное условие для удобства добавления AND
+    let queryBuilder = this.issueTypeormRepository.sqlBuilder('i').select('i').where('1=1'); // Начальное условие для удобства добавления AND
 
     // Применяем базовые фильтры
     if (filter?.title) {
@@ -331,14 +299,14 @@ export class IssueTypeormRepository implements IssueRepository {
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    const sortColumn = resolveSortColumn(this.issueTypeormRepository, validatedOptions.sortBy, '_created_at');
+    const sortColumn = this.issueTypeormRepository.sortField(validatedOptions.sortBy, '_created_at');
     queryBuilder = queryBuilder.orderBy(
       `i.${sortColumn}`,
       validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
     );
 
     // Применяем пагинацию
-    queryBuilder = queryBuilder.skip(offset).take(limit);
+    queryBuilder = queryBuilder.offset(offset).limit(limit);
 
     // Получаем записи
     const entities = await queryBuilder.getMany();

@@ -1,64 +1,39 @@
-import { Entity, Column, Index } from 'typeorm';
 import { InvestStatus } from '../../domain/enums/invest-status.enum';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { ChainRecord } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_invests';
-@Entity(EntityName)
-@Index(`idx_${EntityName}_blockchain_id`, ['id'])
-@Index(`idx_${EntityName}_invest_hash`, ['invest_hash'])
-@Index(`idx_${EntityName}_username`, ['username'])
-@Index(`idx_${EntityName}_project_hash`, ['project_hash'])
-@Index(`idx_${EntityName}_status`, ['status'])
-@Index(`idx_${EntityName}_created_at`, ['_created_at'])
-export class InvestTypeormEntity extends BaseTypeormEntity {
+export class InvestTypeormEntity extends ChainRecord {
   static getTableName(): string {
     return EntityName;
   }
-  @Column({ type: 'integer', nullable: true, unique: true })
   id!: number;
 
   // Поля из блокчейна (invests.hpp)
-  @Column({ type: 'varchar', length: 12 })
   coopname!: string;
 
-  @Column({ type: 'varchar', length: 12 })
   username!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   invest_hash!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   project_hash!: string;
 
-  @Column({ type: 'varchar', length: 20 })
   blockchain_status!: string;
 
   // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
-  @Column({ type: 'varchar' })
   amount!: string;
 
-  @Column({ type: 'timestamp' })
   invested_at!: Date;
 
-  @Column({ type: 'json' })
   statement!: ISignedDocument;
 
-  @Column({ type: 'varchar', length: 12, nullable: true })
   coordinator!: string;
 
-  @Column({ type: 'varchar', nullable: true })
   coordinator_amount!: string;
 
   // Цепь даты создания записи не хранит — колонка необязательна (время появления в базе — `_created_at`).
-  @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
 
   // Доменные поля (расширения)
-  @Column({
-    type: 'enum',
-    enum: InvestStatus,
-    default: InvestStatus.PENDING,
-  })
   status!: InvestStatus;
 }

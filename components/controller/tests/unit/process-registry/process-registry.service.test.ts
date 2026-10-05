@@ -25,25 +25,12 @@
  */
 
 import { ProcessRegistryService } from '../../../src/domain/process-registry/services/process-registry.service';
-import type { DeltaEntity } from '../../../src/infrastructure/database/typeorm/entities/delta.entity';
-import type { ActionEntity } from '../../../src/infrastructure/database/typeorm/entities/action.entity';
+import type { DeltaDomainInterface as DeltaEntity } from '../../../src/domain/parser/interfaces/delta-domain.interface';
+import type { ActionDomainInterface as ActionEntity } from '../../../src/domain/parser/interfaces/action-domain.interface';
+import type { ProcessDocumentActionsQuery } from '../../../src/domain/process-registry/ports/process-journal.port';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 
-type AnyQB = any;
-
 // ---------- helpers ----------
-
-function mockQB(rows: any[]): AnyQB {
-  const qb: AnyQB = {
-    rows,
-    where: jest.fn(() => qb),
-    andWhere: jest.fn(() => qb),
-    orderBy: jest.fn(() => qb),
-    addOrderBy: jest.fn(() => qb),
-    getMany: jest.fn(async () => rows),
-  };
-  return qb;
-}
 
 function makeDelta(partial: Partial<DeltaEntity>): DeltaEntity {
   return {
@@ -87,42 +74,39 @@ function makeAction(partial: Partial<ActionEntity>): ActionEntity {
 }
 
 /**
- * Phase A теперь по `actionRepository.createQueryBuilder` — Phase B по
- * `deltaRepository.createQueryBuilder` для каждой HashLocation.
+ * Якорные действия процесса читает `findActionsByProcess`, изменения сущностных
+ * таблиц — `findEntityDeltas` на каждую локацию, действия с документами вне
+ * таблиц — `findDocumentActions`.
  */
 function makeService({
   actions,
   entityDeltasPerLocation,
   linkedActions = [],
-  actionQueries = [],
+  documentQueries = [],
 }: {
   actions: ActionEntity[];
   // Дельты по порядку локаций из PROCESS_HASH_LOCATOR[processType] —
   // порядок определяется конфигом, не тестом. Для одиночной локации (большинство
   // процессов) достаточно одного массива.
   entityDeltasPerLocation: DeltaEntity[][];
-  // Второй запрос по blockchain_actions — действия с хэшем процесса в данных
-  // (документы вне сущностных таблиц). Первый запрос — якорь Phase A.
+  // Действия с хэшем процесса в данных (документы вне сущностных таблиц).
   linkedActions?: ActionEntity[];
-  // Сюда складываются созданные query builder'ы действий — для проверки условий.
-  actionQueries?: AnyQB[];
+  // Сюда складываются запросы действий с документами — для проверки условий.
+  documentQueries?: ProcessDocumentActionsQuery[];
 }): ProcessRegistryService {
   let deltaCallIdx = 0;
-  const deltaRepo: any = {
-    createQueryBuilder: jest.fn(() => {
+  const journal: any = {
+    findActionsByProcess: jest.fn(async () => actions),
+    findEntityDeltas: jest.fn(async () => {
       const rows = entityDeltasPerLocation[deltaCallIdx] ?? [];
       deltaCallIdx += 1;
-      return mockQB(rows);
+      return rows;
     }),
-    manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
-  };
-  const actionRepo: any = {
-    createQueryBuilder: jest.fn(() => {
-      const qb = mockQB(actionQueries.length === 0 ? actions : linkedActions);
-      actionQueries.push(qb);
-      return qb;
+    findDocumentActions: jest.fn(async (query: ProcessDocumentActionsQuery) => {
+      documentQueries.push(query);
+      return linkedActions;
     }),
-    manager: { query: jest.fn(async () => [{ cnt: '0' }]) },
+    query: jest.fn(async () => [{ cnt: '0' }]),
   };
 
   const aggregator: any = {
@@ -147,7 +131,7 @@ function makeService({
     error: jest.fn(),
   };
 
-  return new ProcessRegistryService(deltaRepo, actionRepo, aggregator, redisClient, logger);
+  return new ProcessRegistryService(journal, aggregator, redisClient, logger);
 }
 
 // ---------- тесты ----------
@@ -387,20 +371,18 @@ describe('ProcessRegistryService.getProcess', () => {
 
     test('(h4) поиск действий ограничен окном процесса, кооперативом и хэшем, ledger2 исключён', async () => {
       const order = makeDelta({ code: 'marketplace', table: 'orders', value: { hash: HASH, coopname: COOP }, block_num: 250 as any });
-      const actionQueries: AnyQB[] = [];
+      const documentQueries: ProcessDocumentActionsQuery[] = [];
       const svc = makeService({
         actions: [supplyAnchor()],
         entityDeltasPerLocation: [[order]],
-        actionQueries,
+        documentQueries,
       });
       await svc.getProcess(HASH, COOP);
 
-      expect(actionQueries).toHaveLength(2);
-      const linked = actionQueries[1];
-      expect(linked.where).toHaveBeenCalledWith('a.block_num BETWEEN :from AND :to', { from: 100, to: 250 });
-      expect(linked.andWhere).toHaveBeenCalledWith('a.account <> :ledger2', { ledger2: 'ledger2' });
-      expect(linked.andWhere).toHaveBeenCalledWith(`a.data ->> 'coopname' = :coop`, { coop: COOP });
-      expect(linked.andWhere).toHaveBeenCalledWith(`a.data::text ILIKE :pattern`, { pattern: `%${HASH}%` });
+      // Сами условия запроса (окно блоков, кооператив, хэш без учёта регистра) собирает хранилище журнала.
+      expect(documentQueries).toEqual([
+        { hash: HASH.toLowerCase(), coopname: COOP, fromBlock: 100, toBlock: 250, excludeAccount: 'ledger2' },
+      ]);
     });
   });
 
@@ -631,7 +613,7 @@ describe('ProcessRegistryService.getProcess', () => {
 // ---------- listProcesses ----------
 
 /**
- * `listProcesses` идёт через raw SQL (`manager.query`): первый вызов — COUNT,
+ * `listProcesses` идёт сводными запросами журнала (`journal.query`): первый вызов — COUNT,
  * второй — страница строк. Мок отдаёт готовые строки агрегата и запоминает
  * запросы, чтобы проверить условия фильтра.
  */
@@ -640,7 +622,7 @@ function makeListService(rows: any[]): { svc: ProcessRegistryService; query: jes
     if (/COUNT\(/i.test(sql)) return [{ cnt: String(rows.length) }];
     return rows;
   });
-  const repo: any = { createQueryBuilder: jest.fn(() => mockQB([])), manager: { query } };
+  const journal: any = { query };
   const aggregator: any = { buildDocumentAggregate: jest.fn() };
   const redisClient: any = {
     publisher: { status: 'not-ready', get: jest.fn(), set: jest.fn() },
@@ -655,7 +637,7 @@ function makeListService(rows: any[]): { svc: ProcessRegistryService; query: jes
     error: jest.fn(),
   };
   return {
-    svc: new ProcessRegistryService(repo, repo, aggregator, redisClient, logger),
+    svc: new ProcessRegistryService(journal, aggregator, redisClient, logger),
     query,
   };
 }

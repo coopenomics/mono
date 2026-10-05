@@ -175,9 +175,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     const result = await repository.findByUserWithTargets('voskhod', 'ant');
 
     expect(result).toEqual([]);
-    expect(projectRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ present: true }) })
-    );
+    expect(projectRepo.find).toHaveBeenCalledWith(expect.objectContaining({ present: true }));
   });
 
   // cap.fav.side.09
@@ -225,12 +223,8 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ target_hash: 'issue1', title: 'Задача' });
     expect(result[1]).toMatchObject({ target_hash: 'story1', title: 'Артефакт' });
-    expect(issueRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
-    );
-    expect(storyRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
-    );
+    expect(issueRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
+    expect(storyRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
   });
 
   // cap.fav.side.06

@@ -26,7 +26,7 @@ import { CardcoopCardService } from './application/cardcoop-card.service';
 import { CardcoopCardResolver } from './application/cardcoop-card.resolver';
 import { CardcoopExitEventsService } from './membership/exit-events.service';
 import { CardcoopJoinEventsService } from './membership/join-events.service';
-import { CardcoopDatabaseModule } from './infrastructure/database/cardcoop-database.module';
+import { cardcoopStoreProviders } from './infrastructure/database/cardcoop-stores';
 import { CardcoopLinkWebhookController } from './application/link-webhook.controller';
 import { CardcoopDisclosureController } from './application/disclosure.controller';
 import { CardcoopConnectService } from './registry/connect.service';
@@ -57,9 +57,9 @@ import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
 export { CardcoopExtension, Schema, defaultConfig, type IConfig };
 
 @Module({
-  imports: [CardcoopDatabaseModule],
   controllers: [CardcoopLinkWebhookController, CardcoopDisclosureController, CardcoopEntryController],
   providers: [
+    ...cardcoopStoreProviders,
     CardcoopExtension,
     CardcoopCardService,
     CardcoopCardResolver,

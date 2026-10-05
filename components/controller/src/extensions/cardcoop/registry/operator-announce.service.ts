@@ -14,10 +14,10 @@
  * Включается настройкой «Я — оператор сети»: событие цепи видит каждая установка, а
  * объявлять допуск вправе только оператор — у остальных card.coop объявление и не примет.
  */
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_OPERATOR_ANNOUNCEMENT_STORE } from '../infrastructure/database/cardcoop-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { RegistratorContract } from 'cooptypes';
 import {
   CHAIN_PORT,
@@ -29,7 +29,7 @@ import {
 import { platformSettings } from '@coopenomics/extension-kit';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
-import { CardcoopOperatorAnnouncementTypeormEntity } from '../infrastructure/entities/cardcoop-operator-announcement.typeorm-entity';
+import { CardcoopOperatorAnnouncementRecord } from '../infrastructure/records/cardcoop-operator-announcement.record';
 import { CardcoopRegistryDocumentType, type CardcoopAdmissionPayload } from './registry.types';
 import { isNetworkOperator } from './operator';
 import { t } from '../i18n';
@@ -53,8 +53,8 @@ enum ChainCoopStatus {
 @Injectable()
 export class CardcoopOperatorAnnounceService {
   constructor(
-    @InjectRepository(CardcoopOperatorAnnouncementTypeormEntity)
-    private readonly announcements: Repository<CardcoopOperatorAnnouncementTypeormEntity>,
+    @Inject(CARDCOOP_OPERATOR_ANNOUNCEMENT_STORE)
+    private readonly announcements: TableStore<CardcoopOperatorAnnouncementRecord>,
     private readonly extension: CardcoopExtension,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
@@ -122,14 +122,14 @@ export class CardcoopOperatorAnnounceService {
    * @returns Имена кооперативов без доставленного объявления, по разу каждое.
    */
   private async awaitingAdmission(): Promise<string[]> {
-    const pending = await this.announcements.find({ where: { delivered: false } });
+    const pending = await this.announcements.find({ delivered: false });
     const names = new Set(pending.map((record) => record.coopname));
 
     try {
       const rows = await this.chain.getAllRows<ChainCoopRow>(CONTRACT, CONTRACT, 'coops');
       for (const row of rows) {
         if (row.status !== ChainCoopStatus.Active) continue;
-        const known = await this.announcements.findOne({ where: { coopname: row.username } });
+        const known = await this.announcements.findOne({ coopname: row.username });
         if (known?.delivered) continue;
         names.add(row.username);
       }
@@ -158,7 +158,7 @@ export class CardcoopOperatorAnnounceService {
 
   private async announceSelf(): Promise<void> {
     const own = platformSettings().coopname;
-    const known = await this.announcements.findOne({ where: { coopname: own } });
+    const known = await this.announcements.findOne({ coopname: own });
     if (known?.delivered) return;
     try {
       await this.announce(own);
@@ -190,7 +190,7 @@ export class CardcoopOperatorAnnounceService {
       envelope
     );
 
-    const known = await this.announcements.findOne({ where: { coopname: subject } });
+    const known = await this.announcements.findOne({ coopname: subject });
     const record = known ?? this.announcements.create({ coopname: subject });
     record.displayName = payload.display_name;
     record.delivered = result.delivered;

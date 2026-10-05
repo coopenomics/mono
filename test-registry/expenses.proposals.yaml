@@ -351,3 +351,32 @@ cases:
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing
+
+  - id: exp.prop.side.14
+    level: backend
+    kind: side
+    scenario: >
+      хранилища снимков реквизитов и файлов расхода: пустой набор строк
+      служебной записки, поиск файлов записки, повтор загрузки файла
+    expect: >
+      пустой набор в базу не пишется; файлы ищутся по хэшу записки в нижнем
+      регистре, свежие первыми; повтор загрузки узнаётся по контрольной сумме
+      внутри кооператива
+    test: components/controller/tests/unit/expenses/expenses-kysely-stores.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны; файлы и реквизиты служебной записки через API покрыты случаями exp.prop.* и набором expense-files-owner"
+    status: written
+
+  - id: exp.prop.side.15
+    level: backend
+    kind: side
+    scenario: >
+      зеркало предложений о расходах на новом каркасе синхронизации: новая
+      запись из цепи, устаревшая дельта, свежая дельта
+    expect: >
+      новой записи ключ выдаёт база; устаревшая дельта не затирает более свежую
+      запись; перед обновлением прежнее состояние уходит в версии
+    test: components/controller/tests/unit/sync/base-chain-repository.test.ts
+    external: unreachable
+    external_reason: "порядок дельт и версии записей снаружи не видны; ход служебной записки через API покрыт случаями exp.prop.*"
+    status: written

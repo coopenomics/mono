@@ -36,7 +36,7 @@ describe('Самоподключение кооператива к сети ка
   let attestationService: any;
 
   const stateRepo = () => ({
-    findOne: jest.fn(async ({ where }: any) => stateRows.get(where.id) ?? null),
+    findOne: jest.fn(async (where: any) => stateRows.get(where.id) ?? null),
     create: (data: any) => ({ ...data }),
     save: jest.fn(async (row: any) => {
       stateRows.set(row.id, row);
@@ -201,7 +201,7 @@ describe('Объявление допуска оператором сети', ()
 
   const build = (announceAsOperator: boolean) => {
     const repo = {
-      findOne: jest.fn(async ({ where }: any) => announcementRows.get(where.coopname) ?? null),
+      findOne: jest.fn(async (where: any) => announcementRows.get(where.coopname) ?? null),
       find: jest.fn(async () => [...announcementRows.values()].filter((row) => !row.delivered)),
       create: (data: any) => ({ ...data }),
       save: jest.fn(async (row: any) => {

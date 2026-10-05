@@ -163,8 +163,6 @@ import { MarketplaceWriteoffService } from './services/marketplace-writeoff.serv
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
 import { MarketplaceWriteoffSyncService } from './services/marketplace-writeoff-sync.service';
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
@@ -177,7 +175,6 @@ import {
   MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
 } from './services/marketplace-ledger-invariants.service';
 import { MarketplaceLedgerInvariantsResolver } from './resolvers/marketplace-ledger-invariants.resolver';
-import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
 import {
@@ -220,7 +217,6 @@ import {
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
     // крон-закрытие выданных заказов — marketplace_orders
-    TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
     // импортировать сюда нельзя (цикл AppModule → →
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).

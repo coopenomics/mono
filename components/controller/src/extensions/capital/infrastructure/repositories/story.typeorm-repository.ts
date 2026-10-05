@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { CAPITAL_STORY_STORE } from '../database/capital-stores';
+import { isNull, PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StoryRepository } from '../../domain/repositories/story.repository';
 import { StoryDomainEntity } from '../../domain/entities/story.entity';
@@ -8,14 +8,13 @@ import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 import { StoryMapper } from '../mappers/story.mapper';
 import type { StoryStatus } from '../../domain/enums/story-status.enum';
 import type { StoryFilterInputDTO } from '../../application/dto/generation/story-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
 
 @Injectable()
 export class StoryTypeormRepository implements StoryRepository {
   constructor(
-    @InjectRepository(StoryTypeormEntity)
-    private readonly storyTypeormRepository: Repository<StoryTypeormEntity>,
+    @Inject(CAPITAL_STORY_STORE)
+    private readonly storyTypeormRepository: TableStore<StoryTypeormEntity>,
     private readonly eventEmitter: EventEmitter2
   ) {}
 
@@ -31,12 +30,12 @@ export class StoryTypeormRepository implements StoryRepository {
   }
 
   async findById(_id: string): Promise<StoryDomainEntity | null> {
-    const entity = await this.storyTypeormRepository.findOne({ where: { _id } });
+    const entity = await this.storyTypeormRepository.findOne({ _id });
     return entity ? StoryMapper.toDomain(entity) : null;
   }
 
   async findByStoryHash(storyHash: string): Promise<StoryDomainEntity | null> {
-    const entity = await this.storyTypeormRepository.findOne({ where: { story_hash: storyHash } });
+    const entity = await this.storyTypeormRepository.findOne({ story_hash: storyHash });
     return entity ? StoryMapper.toDomain(entity) : null;
   }
 
@@ -48,12 +47,9 @@ export class StoryTypeormRepository implements StoryRepository {
   async findByProjectHash(projectHash: string): Promise<StoryDomainEntity[]> {
     // Ищем только проектные истории (без привязки к задачам)
     const entities = await this.storyTypeormRepository.find({
-      where: {
         project_hash: projectHash,
-        issue_hash: IsNull(), // Только проектные истории
-      },
-      order: { sort_order: 'ASC' },
-    });
+        issue_hash: isNull(), // Только проектные истории
+      }, { order: { sort_order: 'ASC' } });
     return entities.map(StoryMapper.toDomain);
   }
 
@@ -63,8 +59,8 @@ export class StoryTypeormRepository implements StoryRepository {
   async findAllByProjectHash(projectHash: string): Promise<StoryDomainEntity[]> {
     // Используем query builder для более сложного запроса
     const entities = await this.storyTypeormRepository
-      .createQueryBuilder('story')
-      .leftJoin('story.issue', 'issue')
+      .sqlBuilder('story')
+      .leftJoin('capital_issues', 'issue', 'issue.issue_hash = story.issue_hash')
       .where('story.project_hash = :projectHash', { projectHash })
       .andWhere('(story.issue_hash IS NULL OR issue.project_hash = :projectHash)', { projectHash })
       .orderBy('story.sort_order', 'ASC')
@@ -81,7 +77,7 @@ export class StoryTypeormRepository implements StoryRepository {
       return [];
     }
 
-    const query = this.storyTypeormRepository.createQueryBuilder('story');
+    const query = this.storyTypeormRepository.sqlBuilder('story');
 
     const conditions: string[] = [];
     const parameters: any = {};
@@ -108,45 +104,31 @@ export class StoryTypeormRepository implements StoryRepository {
    */
   async findProjectStories(projectHash: string): Promise<StoryDomainEntity[]> {
     const entities = await this.storyTypeormRepository.find({
-      where: {
         project_hash: projectHash,
-        issue_hash: IsNull(),
-      },
-      order: { sort_order: 'ASC' },
-    });
+        issue_hash: isNull(),
+      }, { order: { sort_order: 'ASC' } });
     return entities.map(StoryMapper.toDomain);
   }
 
   async findByIssueHash(issueHash: string): Promise<StoryDomainEntity[]> {
-    const entities = await this.storyTypeormRepository.find({
-      where: { issue_hash: issueHash },
-      order: { sort_order: 'ASC' },
-    });
+    const entities = await this.storyTypeormRepository.find({ issue_hash: issueHash }, { order: { sort_order: 'ASC' } });
     return entities.map(StoryMapper.toDomain);
   }
 
   async findByCreatedBy(createdBy: string): Promise<StoryDomainEntity[]> {
-    const entities = await this.storyTypeormRepository.find({
-      where: { created_by: createdBy },
-      order: { _created_at: 'DESC' },
-    });
+    const entities = await this.storyTypeormRepository.find({ created_by: createdBy }, { order: { _created_at: 'DESC' } });
     return entities.map(StoryMapper.toDomain);
   }
 
   async findByStatus(status: StoryStatus): Promise<StoryDomainEntity[]> {
-    const entities = await this.storyTypeormRepository.find({
-      where: { status },
-      order: { sort_order: 'ASC' },
-    });
+    const entities = await this.storyTypeormRepository.find({ status }, { order: { sort_order: 'ASC' } });
     return entities.map(StoryMapper.toDomain);
   }
 
   async update(entity: StoryDomainEntity): Promise<StoryDomainEntity> {
     const typeormEntity = StoryMapper.toEntity(entity);
-    await this.storyTypeormRepository.update(entity._id, typeormEntity);
-    const updatedEntity = await this.storyTypeormRepository.findOne({
-      where: { _id: entity._id },
-    });
+    await this.storyTypeormRepository.update({ _id: entity._id }, typeormEntity);
+    const updatedEntity = await this.storyTypeormRepository.findOne({ _id: entity._id });
     const updatedStory = updatedEntity ? StoryMapper.toDomain(updatedEntity) : entity;
     
     // Испускаем событие для синхронизации с GitHub
@@ -156,7 +138,7 @@ export class StoryTypeormRepository implements StoryRepository {
   }
 
   async delete(_id: string): Promise<void> {
-    await this.storyTypeormRepository.delete(_id);
+    await this.storyTypeormRepository.delete({ _id: _id });
   }
 
   async updateProjectHashByIssueHash(issueHash: string, projectHash: string): Promise<void> {
@@ -184,7 +166,7 @@ export class StoryTypeormRepository implements StoryRepository {
     // Получаем параметры для SQL запроса
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
-    let queryBuilder = this.storyTypeormRepository.createQueryBuilder('s').select('s').where('1=1');
+    let queryBuilder = this.storyTypeormRepository.sqlBuilder('s').select('s').where('1=1');
 
     if (filter?.title) {
       queryBuilder = queryBuilder.andWhere('s.title = :title', { title: filter.title });
@@ -224,13 +206,13 @@ export class StoryTypeormRepository implements StoryRepository {
     const totalCount = await queryBuilder.getCount();
 
     // Получаем записи с пагинацией
-    const sortColumn = resolveSortColumn(this.storyTypeormRepository, validatedOptions.sortBy, 'sort_order');
+    const sortColumn = this.storyTypeormRepository.sortField(validatedOptions.sortBy, 'sort_order');
     queryBuilder = queryBuilder.orderBy(
       `s.${sortColumn}`,
       validatedOptions.sortBy ? validatedOptions.sortOrder : 'ASC'
     );
 
-    const entities = await queryBuilder.skip(offset).take(limit).getMany();
+    const entities = await queryBuilder.offset(offset).limit(limit).getMany();
 
     // Преобразуем в доменные сущности
     const items = entities.map((entity) => StoryMapper.toDomain(entity));

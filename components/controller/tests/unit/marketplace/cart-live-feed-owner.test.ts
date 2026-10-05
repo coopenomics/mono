@@ -11,7 +11,7 @@ import { MarketplaceCartRepositoryAdapter } from '~/extensions/marketplace/infra
 function makeAdapter() {
   const cart = { id: 'cart-1', coopname: 'voskhod', orderer_account: 'ekaterina', delivery_braname: 'krg', updated_at: new Date(0) };
   const cartRepo = {
-    findOneBy: jest.fn(async () => ({ ...cart })),
+    findOne: jest.fn(async () => ({ ...cart })),
     save: jest.fn(async (row: any) => row),
     update: jest.fn(),
   } as any;

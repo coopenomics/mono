@@ -6,7 +6,7 @@ import { CardcoopDisclosureIntakeService } from '~/extensions/cardcoop/entry/dis
 import {
   CardcoopEntryOutcome,
   CardcoopEntryStatus,
-} from '~/extensions/cardcoop/infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+} from '~/extensions/cardcoop/infrastructure/records/cardcoop-entry-session.record';
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
@@ -64,7 +64,7 @@ const repos = () => {
     // Связи, ждущие приёма советом (story 7.5): у их владельцев учётная запись уже есть.
     pendingLinks: { findOne: jest.fn(async (): Promise<any> => null) },
     sessionsRepo: {
-      delete: jest.fn(async () => ({ affected: 0 })),
+      delete: jest.fn(async () => 0),
       create: (data: any) => ({ ...data }),
       save: jest.fn(async (row: any) => {
         // Время создания и правки ведёт база; в тестах оно нужно потому, что по нему
@@ -74,7 +74,7 @@ const repos = () => {
         sessions.set(row.id, row);
         return row;
       }),
-      findOne: jest.fn(async ({ where }: any) =>
+      findOne: jest.fn(async (where: any) =>
         where.id
           ? sessions.get(where.id) ?? null
           : [...sessions.values()].find((row) => row.disclosureId === where.disclosureId) ?? null),

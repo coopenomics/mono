@@ -3,7 +3,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { DraftContract } from 'cooptypes';
 import config from '~/config/config';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
-import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
+import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 
 /** Сколько живёт снимок утверждений кооператива без события контракта. */
 const APPROVALS_CACHE_TTL_MS = 60_000;
@@ -34,7 +34,7 @@ export class EffectiveTemplateBlockResolver {
 
   constructor(
     private readonly blockchainService: BlockchainService,
-    private readonly draftRegistry: TypeOrmDraftRegistryRepository
+    private readonly draftRegistry: DraftRegistryKyselyRepository
   ) {}
 
   async resolve(registryId: string | number): Promise<number | undefined> {

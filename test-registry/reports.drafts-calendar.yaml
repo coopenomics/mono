@@ -18,12 +18,9 @@ sources:
     - components/controller/src/extensions/reports/domain/utils/dirty-merge.ts
     - components/controller/src/extensions/reports/domain/services/report-edits-builder.service.ts
     - components/controller/src/extensions/reports/domain/services/reports-calendar-registry.ts
-    - components/controller/src/extensions/reports/infrastructure/entities/report-draft.entity.ts
-    - components/controller/src/extensions/reports/infrastructure/entities/report-submission-mark.entity.ts
-    - components/controller/src/extensions/reports/infrastructure/entities/balance-correction.entity.ts
-    - components/controller/src/extensions/reports/infrastructure/repositories/report-draft.typeorm-repository.ts
-    - components/controller/src/extensions/reports/infrastructure/repositories/report-submission-mark.typeorm-repository.ts
-    - components/controller/src/extensions/reports/infrastructure/repositories/balance-correction.typeorm-repository.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/report-draft.kysely-repository.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/report-submission-mark.kysely-repository.ts
+    - components/controller/src/extensions/reports/infrastructure/repositories/balance-correction.kysely-repository.ts
   ui:
     - components/desktop/extensions/reports/widgets/reports-calendar/**
     - components/desktop/extensions/reports/widgets/report-forms/**
@@ -123,3 +120,36 @@ cases:
     test: ~
     status: missing
     decision_needed: true
+
+  - id: rep.draft.side.06
+    level: backend
+    kind: side
+    scenario: >
+      хранилища отчётов: черновик и отметка о сдаче годового отчёта (период
+      пуст) и квартального; удаление черновика по чужому ключу; частичная
+      правка реквизитов; пакет корректировок балансов; последний отчёт за год
+    expect: >
+      пустой период сравнивается как «пусто», а не как значение; существующая
+      отметка правится, вторая не заводится; черновик удаляется только у своего
+      владельца; не переданный реквизит не трогается; корректировки уходят
+      одним запросом; без периода отдаётся последний отчёт любого периода
+    test: components/controller/tests/unit/reports/reports.kysely-repositories.test.ts
+    external: unreachable
+    external_reason: "проверяется текст и число запросов к базе — снаружи они не видны; само поведение черновиков, отметок и реквизитов через API покрыто случаями rep.draft.* и rep.cal.*"
+    status: written
+
+  - id: rep.draft.side.07
+    level: backend
+    kind: side
+    scenario: >
+      черновики и отметки объявлены в ленте изменений, поэтому удаление
+      возвращает сами строки, а не счётчик; удаляется существующий черновик и
+      снимается отметка, которой нет
+    expect: >
+      удалённый черновик отвечает «удалён»; снятие отсутствующей отметки
+      отвечает «нечего снимать» и запрос не падает
+    test: components/controller/tests/unit/reports/reports.kysely-repositories.test.ts
+    external: unreachable
+    external_reason: "проверяется разбор ответа базы с дописанным RETURNING; видимое снаружи поведение покрыто случаями rep.draft.side.04 и rep.cal.happy.01 — они и поймали дефект"
+    status: written
+

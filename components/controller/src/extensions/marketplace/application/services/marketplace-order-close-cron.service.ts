@@ -1,7 +1,7 @@
+import { TableStore, isNull, lessOrEqual } from '@coopenomics/extension-kit';
+import { MARKETPLACE_ORDER_STORE } from '../../infrastructure/database/marketplace-stores';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import type { MarketContract } from 'cooptypes';
@@ -43,8 +43,8 @@ export function isMarkdownPending(order: { markdown_due: string | null; markdown
 @Injectable()
 export class MarketplaceOrderCloseCronService implements OnModuleInit {
   constructor(
-    @InjectRepository(MarketplaceOrderEntity, 'marketplace')
-    private readonly orderRepo: Repository<MarketplaceOrderEntity>,
+    @Inject(MARKETPLACE_ORDER_STORE)
+private readonly orderRepo: TableStore<MarketplaceOrderEntity>,
     @Inject(MARKETPLACE_CANONICAL_BLOCKCHAIN_PORT)
     private readonly chainPort: MarketplaceCanonicalBlockchainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -69,14 +69,10 @@ export class MarketplaceOrderCloseCronService implements OnModuleInit {
       status: MarketplaceOrderStatuses.RECEIVED,
       on_chain_present: true,
     };
-    const candidates = await this.orderRepo.find({
-      where: [
-        { ...base, warranty_until: IsNull() },
-        { ...base, warranty_until: LessThanOrEqual(now) },
-      ],
-      take: CLOSE_BATCH_LIMIT,
-      order: { warranty_until: 'ASC' },
-    });
+    const candidates = await this.orderRepo.find([
+        { ...base, warranty_until: isNull() },
+        { ...base, warranty_until: lessOrEqual(now) },
+      ], { order: { warranty_until: 'ASC' }, limit: CLOSE_BATCH_LIMIT });
 
     if (candidates.length === 0) return;
 

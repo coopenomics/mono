@@ -1,28 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_EXPENSE_STORE } from '../database/capital-stores';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ExpenseRepository } from '../../domain/repositories/expense.repository';
 import { ExpenseDomainEntity } from '../../domain/entities/expense.entity';
 import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
 import { ExpenseMapper } from '../mappers/expense.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { IExpenseBlockchainData } from '../../domain/interfaces/expense-blockchain.interface';
 import type { IExpenseDatabaseData } from '../../domain/interfaces/expense-database.interface';
 import type { ExpenseFilterInputDTO } from '../../application/dto/expenses_management/expense-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ExpenseTypeormRepository
-  extends BaseBlockchainRepository<ExpenseDomainEntity, ExpenseTypeormEntity>
+  extends BaseChainRepository<ExpenseDomainEntity, ExpenseTypeormEntity>
   implements ExpenseRepository, IBlockchainSyncRepository<ExpenseDomainEntity>
 {
   constructor(
-    @InjectRepository(ExpenseTypeormEntity)
-    repository: Repository<ExpenseTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_EXPENSE_STORE) repository: TableStore<ExpenseTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -51,17 +48,17 @@ export class ExpenseTypeormRepository
   }
 
   async findByUsername(username: string): Promise<ExpenseDomainEntity[]> {
-    const entities = await this.repository.find({ where: { username } });
+    const entities = await this.repository.find({ username });
     return entities.map((entity) => ExpenseMapper.toDomain(entity));
   }
 
   async findByProjectHash(projectHash: string): Promise<ExpenseDomainEntity[]> {
-    const entities = await this.repository.find({ where: { project_hash: projectHash } });
+    const entities = await this.repository.find({ project_hash: projectHash });
     return entities.map((entity) => ExpenseMapper.toDomain(entity));
   }
 
   async findByStatus(status: string): Promise<ExpenseDomainEntity[]> {
-    const entities = await this.repository.find({ where: { status: status as any } });
+    const entities = await this.repository.find({ status: status as any });
     return entities.map((entity) => ExpenseMapper.toDomain(entity));
   }
 
@@ -101,16 +98,11 @@ export class ExpenseTypeormRepository
     const order: any = {};
     // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
     // ORDER BY и роняло список ошибкой 500 (C28-80).
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, 'created_at');
     order[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
     // Выполняем запрос с пагинацией
-    const [entities, total] = await this.repository.findAndCount({
-      where,
-      order,
-      skip: offset,
-      take: limit,
-    });
+    const [entities, total] = await this.repository.findAndCount(where, { order: order, limit: limit, offset: offset });
 
     // Конвертируем в доменные сущности
     const items = entities.map((entity) => ExpenseMapper.toDomain(entity));

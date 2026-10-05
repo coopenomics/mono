@@ -1,6 +1,6 @@
 import { CoreBaseline1790197276751 } from './1790197276751-baseline';
 import { PaymentsQuantityNumeric1790316882052 } from './1790316882052-payments-quantity-numeric';
-import type { MigrationInterface } from 'typeorm';
+import type { SchemaMigrationClass } from '@coopenomics/extension-kit';
 
 /**
  * Миграции таблиц ядра — в порядке появления (метка времени в имени класса).
@@ -12,7 +12,7 @@ import type { MigrationInterface } from 'typeorm';
  * Миграции таблиц расширений объявляются в их записях реестра
  * (`databaseMigrations`) и идут той же лентой.
  */
-export const coreDatabaseMigrations: ReadonlyArray<new () => MigrationInterface> = [
+export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [
   CoreBaseline1790197276751,
   PaymentsQuantityNumeric1790316882052,
 ];

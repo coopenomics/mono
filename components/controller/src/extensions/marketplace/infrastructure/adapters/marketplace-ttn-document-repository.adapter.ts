@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_TTN_DOCUMENT_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceTtnDocumentDomainEntity } from '../../domain/entities/marketplace-ttn-document.entity';
 import type {
   MarketplaceTtnDocumentCreateInput,
@@ -14,8 +14,8 @@ export class MarketplaceTtnDocumentRepositoryAdapter
   implements MarketplaceTtnDocumentDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceTtnDocumentEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceTtnDocumentEntity>,
+    @Inject(MARKETPLACE_TTN_DOCUMENT_STORE)
+private readonly repo: TableStore<MarketplaceTtnDocumentEntity>,
     private readonly mapper: MarketplaceTtnDocumentMapper
   ) {}
 
@@ -41,7 +41,7 @@ export class MarketplaceTtnDocumentRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceTtnDocumentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -49,7 +49,7 @@ export class MarketplaceTtnDocumentRepositoryAdapter
     coopname: string,
     shipment_id: string
   ): Promise<MarketplaceTtnDocumentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, shipment_id } });
+    const row = await this.repo.findOne({ coopname, shipment_id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -57,7 +57,7 @@ export class MarketplaceTtnDocumentRepositoryAdapter
     coopname: string,
     ttn_number: string
   ): Promise<MarketplaceTtnDocumentDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, ttn_number } });
+    const row = await this.repo.findOne({ coopname, ttn_number });
     return row ? this.mapper.toDomain(row) : null;
   }
 }

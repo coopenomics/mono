@@ -1,6 +1,5 @@
-import { Entity, Column, Index } from 'typeorm';
 import type { IProgramAgreement } from '~/domain/wallet/interfaces/user-agreement-blockchain.interface';
-import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { ChainRecord } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'user_agreements';
 
@@ -11,21 +10,14 @@ export const EntityName = 'user_agreements';
  * `IProgramAgreement[]`. Удалённая запись блокчейна → `present=false`,
  * строка остаётся для версионирования и форк-процедур.
  */
-@Entity(EntityName)
-@Index(`idx_${EntityName}_coopname`, ['coopname'])
-@Index(`idx_${EntityName}_username`, ['username'])
-@Index(`idx_${EntityName}_coopname_username`, ['coopname', 'username'], { unique: true })
-export class UserAgreementTypeormEntity extends BaseTypeormEntity {
+export class UserAgreementTypeormEntity extends ChainRecord {
   static getTableName(): string {
     return EntityName;
   }
 
-  @Column({ type: 'varchar', length: 12 })
   coopname!: string;
 
-  @Column({ type: 'varchar', length: 12 })
   username!: string;
 
-  @Column({ type: 'jsonb', default: () => "'[]'" })
   programs!: IProgramAgreement[];
 }

@@ -1,17 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, DecisionTrackedEvent,
-  ProgramKey,
-  type InnerParticipantRegisteredEvent,
-} from '@coopenomics/innercoop';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
+import { ACCOUNT_PORT, DecisionTrackedEvent, type IAccountPort, type ILoggerPort, type InnerOnboardingCompletedPayload, type InnerParticipantRegisteredEvent, LOGGER_PORT, ONBOARDING_COMPLETED_EVENT, ProgramKey } from '@coopenomics/innercoop';
+import { EXTENSION_REPOSITORY, ExtensionDomainRepository, generateRandomHash, platformSettings } from '@coopenomics/extension-kit';
 import type { IConfig } from '../../capital-extension.module';
-import { CONTRIBUTOR_REPOSITORY } from '../../domain/repositories/contributor.repository';
-import { ContributorRepository } from '../../domain/repositories/contributor.repository';
+import { CONTRIBUTOR_REPOSITORY, ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorStatus } from '../../domain/enums/contributor-status.enum';
-import { ONBOARDING_COMPLETED_EVENT, type InnerOnboardingCompletedPayload } from '@coopenomics/innercoop';
-import { generateRandomHash } from '@coopenomics/extension-kit';
 import { GENERATOR_INTAKE_FORM_ID } from '../../constants/capital-agreement-ids';
 import type { GeneratorIntakeAnswer } from '../registration/generator-intake.schema';
 

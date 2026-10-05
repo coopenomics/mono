@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DraftContract, MeetContract } from 'cooptypes';
 import type { IActionQuery, IChainDataSource, ITableQuery } from '@coopenomics/factory';
-import { DataSource } from 'typeorm';
-import { TypeOrmDraftRegistryRepository } from '~/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository';
+import { KYSELY, type Database } from '~/infrastructure/database/kysely/kysely.tokens';
+import { rawQuery } from '@coopenomics/extension-kit';
+import { DraftRegistryKyselyRepository } from '~/infrastructure/database/kysely/repositories/draft-registry.kysely-repository';
 import { BlockchainActionHistoryService } from '~/domain/parser/services/blockchain-action-history.service';
 import { BlockchainService } from '~/infrastructure/blockchain/blockchain.service';
 import { isHexHash } from '~/shared/sql/hex-value.util';
@@ -24,8 +25,8 @@ import { ChainTextService } from '~/domain/chain-text/chain-text.service';
 @Injectable()
 export class ControllerChainDataSource implements IChainDataSource {
   constructor(
-    private readonly dataSource: DataSource,
-    private readonly draftRegistry: TypeOrmDraftRegistryRepository,
+    @Inject(KYSELY) private readonly db: Database,
+    private readonly draftRegistry: DraftRegistryKyselyRepository,
     private readonly actionHistory: BlockchainActionHistoryService,
     private readonly blockchainService: BlockchainService,
     private readonly effectiveBlock: EffectiveTemplateBlockResolver,
@@ -93,18 +94,7 @@ export class ControllerChainDataSource implements IChainDataSource {
       if (draftId === undefined) return null;
       const blockNum = query.block_num ?? (await this.effectiveBlock.resolve(String(draftId)));
 
-      // Языки заранее не известны — берём все версии этого шаблона на нужный
-      // блок и оставляем по одной свежей записи на язык.
-      const rows = await this.dataSource.query(
-        `SELECT DISTINCT ON (lang) value
-           FROM draft_translations
-          WHERE draft_id = $1::bigint
-            AND ($2::bigint IS NULL OR block_num <= $2::bigint)
-          ORDER BY lang, block_num DESC`,
-        [String(draftId), blockNum ?? null]
-      );
-
-      return rows.map((r: { value: unknown }) => r.value) as T[];
+      return (await this.draftRegistry.findTranslationsAt(String(draftId), blockNum ?? undefined)) as T[];
     }
 
     return null;
@@ -134,7 +124,8 @@ export class ControllerChainDataSource implements IChainDataSource {
       conditions.push(`${hex ? `lower(${expression})` : expression} = ${placeholder}`);
     });
 
-    const rows = await this.dataSource.query(
+    const rows = await rawQuery<any>(
+      this.db,
       `SELECT DISTINCT ON (primary_key) value, present
          FROM blockchain_deltas d
         WHERE code = $1 AND scope = $2 AND "table" = $3

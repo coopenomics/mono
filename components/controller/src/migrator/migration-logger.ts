@@ -1,13 +1,13 @@
-import { Repository } from 'typeorm';
-import { MigrationEntity } from '../infrastructure/database/typeorm/entities/migration.entity';
+import type { TableStore } from '@coopenomics/extension-kit';
+import type { MigrationRecord as MigrationEntity } from '../infrastructure/database/kysely/records/migration.record';
 import logger from '../config/logger';
 
 export class MigrationLogger {
   private logs: string[] = [];
   private version: string;
-  private migrationRepository: Repository<MigrationEntity>;
+  private migrationRepository: TableStore<MigrationEntity>;
 
-  constructor(version: string, migrationRepository: Repository<MigrationEntity>) {
+  constructor(version: string, migrationRepository: TableStore<MigrationEntity>) {
     this.version = version;
     this.migrationRepository = migrationRepository;
   }

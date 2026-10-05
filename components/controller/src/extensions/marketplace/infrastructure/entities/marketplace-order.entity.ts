@@ -1,11 +1,3 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
 import type {
   MarketplaceOrderCreateTxSnapshot,
   MarketplaceOrderIssuanceFactSnapshot,
@@ -15,7 +7,6 @@ import {
   MarketplaceUnitsOfMeasure,
   type MarketplaceUnitOfMeasure,
 } from '../../domain/entities/marketplace-offer.types';
-import { numericQuantityTransformer } from './numeric-quantity.transformer';
 
 /**
  * Story 4.1: TypeORM-сущность Order'а Стола заказов. Зеркало
@@ -33,58 +24,39 @@ import { numericQuantityTransformer } from './numeric-quantity.transformer';
  * DDL создаётся через TypeORM `synchronize:true` (паттерн PR #382 для
  * остальных marketplace_* таблиц).
  */
-@Entity({ name: 'marketplace_order' })
-@Index('IDX_marketplace_order_order_hash_unique', ['coopname', 'order_hash'], { unique: true })
-@Index(['coopname', 'orderer_account', 'status'])
-@Index(['coopname', 'supplier_account', 'status'])
-@Index(['coopname', 'status', 'created_at'])
-@Index(['offer_id', 'status'])
-@Index(['coopname', 'shipment_id'])
-@Index(['coopname', 'orderer_account', 'checkout_id'])
 export class MarketplaceOrderEntity {
-  @PrimaryGeneratedColumn('uuid')
   public id!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public coopname!: string;
 
   /**
    * Sync-key — 64-символьный hex без `0x`, lowercase. Соответствует
    * `marketplace::orders.hash` (checksum256 на цепи).
    */
-  @Column({ type: 'varchar', length: 64 })
   public order_hash!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public orderer_account!: string;
 
-  @Column({ type: 'uuid' })
   public offer_id!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   public offer_hash!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public supplier_account!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public delivery_braname!: string;
 
   // Дробное количество (Эпик 17): numeric в базовой единице; transformer
   // возвращает number. Точность 3 — граммы/миллилитры (KG/LTR); PCS — целое.
-  @Column({ type: 'numeric', precision: 18, scale: 3, transformer: numericQuantityTransformer })
   public quantity!: number;
 
   // Единица измерения заказа, денормализованная из Offer'а при создании (как и
   // price_per_unit): нужна для сборки on-chain asset-количества (символ KG/LTR/
   // PCS) на выдаче/приёмке/возврате и для форматирования в актах/UI.
-  @Column({ type: 'varchar', length: 16, default: MarketplaceUnitsOfMeasure.PIECE })
   public unit_of_measure!: MarketplaceUnitOfMeasure;
 
   // numeric → string в TypeORM; PR #382 паттерн (см. marketplace_offer).
   // Эпик 18: цена за единицу отпуска — за базовую единицу при отпуске по мере,
   // за упаковку при упаковочном (package_size > 0).
-  @Column({ type: 'numeric', precision: 18, scale: 4 })
   public price_per_unit!: string;
 
   /**
@@ -93,7 +65,6 @@ export class MarketplaceOrderEntity {
    * упаковкой (price_per_unit за упаковку, quantity кратно package_size).
    * `synchronize:true` создаёт колонку с default 0.
    */
-  @Column({ type: 'numeric', precision: 18, scale: 3, default: 0, transformer: numericQuantityTransformer })
   public package_size!: number;
 
   /**
@@ -102,17 +73,14 @@ export class MarketplaceOrderEntity {
    * NULL — отпуск по мере либо заказ до появления поля; миграция V2.5.7
    * дозаполняет старые заказы по содержимому упаковки.
    */
-  @Column({ type: 'varchar', length: 64, nullable: true })
   public package_id!: string | null;
 
-  @Column({ type: 'numeric', precision: 24, scale: 4 })
   public total_cost!: string;
 
   /**
    * Backend-only Story 4.2 cycle aggregation key (FK на
    * `marketplace_consolidated_request.id`). На Story 4.1 — всегда null.
    */
-  @Column({ type: 'uuid', nullable: true })
   public cycle_id!: string | null;
 
   /**
@@ -122,7 +90,6 @@ export class MarketplaceOrderEntity {
    * = один `delivery_braname` (инвариант «один заказ — один КУ» enforced
    * на уровне сервиса оформления).
    */
-  @Column({ type: 'uuid', nullable: true })
   public checkout_id!: string | null;
 
   /**
@@ -131,31 +98,22 @@ export class MarketplaceOrderEntity {
    * нескольким частичным партиям сосуществовать на одном (cycle, КУ): приёмка
    * резолвит состав партии по `shipment_id`, а не по (cycle, braname).
    */
-  @Column({ type: 'uuid', nullable: true })
   public shipment_id!: string | null;
 
-  @Column({ type: 'integer' })
   public warranty_period_secs!: number;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public warranty_until!: Date | null;
 
-  @Column({ type: 'varchar', length: 48 })
   public status!: MarketplaceOrderStatus;
 
-  @Column({ type: 'varchar', length: 500, nullable: true })
   public last_status_reason!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public blocked_at!: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public accepted_at!: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public received_at!: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public cancelled_at!: Date | null;
 
   /**
@@ -163,7 +121,6 @@ export class MarketplaceOrderEntity {
    * Используется для отображения свежего движения резерва в `WalletTimeline`
    * (UX-DR8) сразу после успеха.
    */
-  @Column({ type: 'jsonb', nullable: true })
   public create_tx!: MarketplaceOrderCreateTxSnapshot | null;
 
   // ── Story 6.1 / FR21 — открытие выдачи (signiss1) ──────────────────────
@@ -173,11 +130,9 @@ export class MarketplaceOrderEntity {
    * `signiss1` приравнивается `delivery_braname`; промежуточные перемещения
    * по заготовочным КУ контрактом не подписываются.
    */
-  @Column({ type: 'varchar', length: 13, nullable: true })
   public current_warehouse_braname!: string | null;
 
   /** Снапшот фактической выдачи после `signiss2` (factual quantity, fact_cost, diff_state). */
-  @Column({ type: 'jsonb', nullable: true })
   public issuance_fact!: MarketplaceOrderIssuanceFactSnapshot | null;
 
   /**
@@ -185,36 +140,28 @@ export class MarketplaceOrderEntity {
    * выдачу»). Backend-only операционный сигнал — статус не меняется, on-chain
    * не пишется; триггерит push заказчику и бейдж «Готово к выдаче».
    */
-  @Column({ type: 'timestamptz', nullable: true })
   public ready_announced_at!: Date | null;
 
   // ── Паевая модель: выдача по заявлению, протоколу совета и акту (компонент 68) ──
 
   /** Момент подписи заявления о возврате паевого взноса имуществом (`issuestmt`). */
-  @Column({ type: 'timestamptz', nullable: true })
   public issue_statement_at!: Date | null;
 
   /** Номер решения совета по выдаче (soviet.decisions). */
-  @Column({ type: 'varchar', length: 32, nullable: true })
   public issue_decision_id!: string | null;
 
   /** Сторона кооператива, закрывшая выдачу второй подписью акта (`issueact2`). */
-  @Column({ type: 'varchar', length: 13, nullable: true })
   public delivery_signer_account!: string | null;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
   public issue_closed_tx_hash!: string | null;
 
   // ── On-chain mirror (поля от syncer'а через `marketplace::orders` row) ──
 
   /** uint64 id из on-chain row (как string из pg numeric). */
-  @Column({ type: 'varchar', length: 32, nullable: true })
   public on_chain_id!: string | null;
 
-  @Column({ type: 'bigint', nullable: true })
   public on_chain_block_num!: number | null;
 
-  @Column({ type: 'boolean', default: false })
   public on_chain_present!: boolean;
 
   /**
@@ -223,7 +170,6 @@ export class MarketplaceOrderEntity {
    * mirror, не backend-вычисление (см. domain MarketplaceOrderBlockchainData).
    * Null до первой sync-дельты и у заказов, созданных до появления поля.
    */
-  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public membership_fee!: string | null;
 
   /**
@@ -231,15 +177,12 @@ export class MarketplaceOrderEntity {
    * `accepted_cost` (задача 99D-14). Null до приёмки и у заказов, принятых до
    * появления поля на контракте.
    */
-  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public accepted_cost!: string | null;
 
   /** Состояние выплаты поставщику — on-chain mirror `payout_status`. Null до первой sync-дельты. */
-  @Column({ type: 'varchar', length: 12, nullable: true })
   public payout_status!: string | null;
 
   /** Списанная уценка — on-chain mirror `markdown_cost`. Null до первой sync-дельты. */
-  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public markdown_cost!: string | null;
 
   /**
@@ -247,12 +190,9 @@ export class MarketplaceOrderEntity {
    * на цепи (задача 99D-15). Backend-only: крон повторяет `markdown`, пока
    * `markdown_cost` на цепи пуст; закрытие заказа до этого откладывается.
    */
-  @Column({ type: 'numeric', precision: 24, scale: 4, nullable: true })
   public markdown_due!: string | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
   public updated_at!: Date;
 }

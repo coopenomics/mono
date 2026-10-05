@@ -19,9 +19,8 @@ sources:
     - components/controller/src/application/notification-center/**
     - components/controller/src/application/notification/**
     - components/controller/src/domain/notification/**
-    - components/controller/src/infrastructure/database/typeorm/entities/notification-*.typeorm-entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/web-push-subscription.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-web-push-subscription.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/notification-*.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/web-push-subscription.kysely-repository.ts
 
 cases:
   - id: ntf.center.happy.01

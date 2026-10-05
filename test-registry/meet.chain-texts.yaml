@@ -38,7 +38,7 @@ sources:
   backend:
     - components/extension-kit/src/blockchain/chain-text-digest.ts
     - components/controller/src/domain/chain-text/*.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-chain-text.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/chain-text.kysely-repository.ts
     - components/controller/src/infrastructure/blockchain/adapters/meet-blockchain.adapter.ts
     - components/controller/src/application/meet/services/meet-event.service.ts
     - components/controller/src/infrastructure/generator/controller-chain-data.source.ts

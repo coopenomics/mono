@@ -1,23 +1,12 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
-import { ExpenseFileTypeormEntity } from '../entities/expense-file.typeorm-entity';
-import { ExpenseRequisiteSnapshotTypeormEntity } from '../entities/expense-requisite-snapshot.typeorm-entity';
-import { EntityVersionTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { expensesStoreProviders } from './expenses-stores';
 
 /**
- * TypeORM-модуль расширения `expense` — зеркало SP-расходов + реестр файлов
- * + снимки реквизитов получателей.
+ * База расширения `expense`: зеркало предложений о расходах, реестр файлов,
+ * снимки реквизитов получателей и планы расходов — шлюзы таблиц на Kysely.
  */
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      ExpenseProposalTypeormEntity,
-      ExpenseFileTypeormEntity,
-      ExpenseRequisiteSnapshotTypeormEntity,
-      EntityVersionTypeormEntity,
-    ]),
-  ],
-  exports: [TypeOrmModule],
+  providers: [...expensesStoreProviders],
+  exports: [...expensesStoreProviders],
 })
 export class ExpensesDatabaseModule {}

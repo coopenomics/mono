@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { CAPITAL_FAVORITE_STORE, CAPITAL_ISSUE_STORE, CAPITAL_PROJECT_STORE, CAPITAL_STORY_STORE } from '../database/capital-stores';
+import { oneOf, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   FavoriteRepository,
   IFavorite,
@@ -15,22 +15,27 @@ import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
 @Injectable()
 export class FavoriteTypeormRepository implements FavoriteRepository {
   constructor(
-    @InjectRepository(FavoriteTypeormEntity)
-    private readonly repo: Repository<FavoriteTypeormEntity>,
-    @InjectRepository(ProjectTypeormEntity)
-    private readonly projectRepo: Repository<ProjectTypeormEntity>,
-    @InjectRepository(IssueTypeormEntity)
-    private readonly issueRepo: Repository<IssueTypeormEntity>,
-    @InjectRepository(StoryTypeormEntity)
-    private readonly storyRepo: Repository<StoryTypeormEntity>
+    @Inject(CAPITAL_FAVORITE_STORE)
+    private readonly repo: TableStore<FavoriteTypeormEntity>,
+    @Inject(CAPITAL_PROJECT_STORE)
+    private readonly projectRepo: TableStore<ProjectTypeormEntity>,
+    @Inject(CAPITAL_ISSUE_STORE)
+    private readonly issueRepo: TableStore<IssueTypeormEntity>,
+    @Inject(CAPITAL_STORY_STORE)
+    private readonly storyRepo: TableStore<StoryTypeormEntity>
   ) {}
 
   async add(favorite: Omit<IFavorite, 'created_at'>): Promise<void> {
-    await this.repo
-      .createQueryBuilder()
-      .insert()
-      .values({ ...favorite, target_hash: favorite.target_hash.toLowerCase() })
-      .orIgnore()
+    // Повторное добавление того же избранного — без ошибки и без второй строки.
+    await this.repo.kysely
+      .insertInto('capital_favorites')
+      .values({
+        coopname: favorite.coopname,
+        username: favorite.username,
+        target_type: favorite.target_type,
+        target_hash: favorite.target_hash.toLowerCase(),
+      })
+      .onConflict((conflict) => conflict.doNothing())
       .execute();
   }
 
@@ -44,10 +49,7 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
   }
 
   async findByUserWithTargets(coopname: string, username: string): Promise<IFavoriteWithTarget[]> {
-    const favorites = await this.repo.find({
-      where: { coopname, username },
-      order: { created_at: 'ASC' },
-    });
+    const favorites = await this.repo.find({ coopname, username }, { order: { created_at: 'ASC' } });
     if (favorites.length === 0) return [];
 
     const targets = await this.loadTargets(favorites);
@@ -122,7 +124,7 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
    * загоралась, и клик снова слал «добавить».
    */
   private findTargets<T extends { title: string }>(
-    repo: Repository<T>,
+    repo: TableStore<T>,
     hashColumn: keyof T & string,
     extraColumns: Array<keyof T & string>,
     hashes: string[],
@@ -130,12 +132,9 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
   ): Promise<T[]> {
     if (hashes.length === 0) return Promise.resolve([]);
     return repo.find({
-      select: [hashColumn, ...extraColumns] as never,
-      where: {
-        [hashColumn]: In(hashes),
+        [hashColumn]: oneOf(hashes),
         ...(options.onlyPresent ? { present: true } : {}),
-      } as never,
-    });
+      } as never);
   }
 
   async targetExists(target_type: FavoriteTargetType, target_hash: string): Promise<boolean> {
@@ -143,11 +142,11 @@ export class FavoriteTypeormRepository implements FavoriteRepository {
     switch (target_type) {
       case FavoriteTargetType.PROJECT:
       case FavoriteTargetType.COMPONENT:
-        return (await this.projectRepo.countBy({ project_hash: hash, present: true })) > 0;
+        return (await this.projectRepo.count({ project_hash: hash, present: true })) > 0;
       case FavoriteTargetType.ISSUE:
-        return (await this.issueRepo.countBy({ issue_hash: hash })) > 0;
+        return (await this.issueRepo.count({ issue_hash: hash })) > 0;
       case FavoriteTargetType.ARTIFACT:
-        return (await this.storyRepo.countBy({ story_hash: hash })) > 0;
+        return (await this.storyRepo.count({ story_hash: hash })) > 0;
     }
   }
 

@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { CAPITAL_TIME_ENTRY_STORE } from '../database/capital-stores';
+import { oneOf, type PaginationInputDTO, type PaginationResult, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
 import { TimeEntryRepository, IssueFactAggregate } from '../../domain/repositories/time-entry.repository';
 import { TimeEntryDomainEntity } from '../../domain/entities/time-entry.entity';
@@ -8,8 +8,6 @@ import type { ITimeEntryDatabaseData } from '../../domain/interfaces/time-entry-
 import type { TimeEntriesFilterDomainInterface } from '../../domain/interfaces/time-entries-filter-domain.interface';
 import type { ContributorProjectBasicTimeStatsDomainInterface } from '../../domain/interfaces/time-stats-domain.interface';
 import type { TimeEntriesByIssuesDomainInterface } from '../../domain/interfaces/time-entries-by-issues-domain.interface';
-import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { resolveSortColumn } from '@coopenomics/extension-kit';
 
 /**
  * TypeORM реализация репозитория записей времени
@@ -17,8 +15,8 @@ import { resolveSortColumn } from '@coopenomics/extension-kit';
 @Injectable()
 export class TimeEntryTypeormRepository implements TimeEntryRepository {
   constructor(
-    @InjectRepository(TimeEntryEntity)
-    private readonly repository: Repository<TimeEntryEntity>
+    @Inject(CAPITAL_TIME_ENTRY_STORE)
+    private readonly repository: TableStore<TimeEntryEntity>
   ) {}
 
   async create(timeEntry: TimeEntryDomainEntity): Promise<TimeEntryDomainEntity> {
@@ -28,15 +26,13 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findByContributorAndDate(contributorHash: string, date: string): Promise<TimeEntryDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { contributor_hash: contributorHash, date },
-    });
+    const entities = await this.repository.find({ contributor_hash: contributorHash, date });
     return entities.map((entity) => this.toDomain(entity));
   }
 
   async sumCooperativeHoursByContributorAndDate(contributorHash: string, date: string): Promise<number> {
     const row = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('COALESCE(SUM(te.hours), 0)', 'total')
       .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
@@ -48,10 +44,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findUncommittedByContributor(contributorHash: string): Promise<TimeEntryDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { contributor_hash: contributorHash, is_committed: false },
-      order: { date: 'ASC' },
-    });
+    const entities = await this.repository.find({ contributor_hash: contributorHash, is_committed: false }, { order: { date: 'ASC' } });
     return entities.map((entity) => this.toDomain(entity));
   }
 
@@ -60,20 +53,17 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     contributorHash: string
   ): Promise<TimeEntryDomainEntity[]> {
     const entities = await this.repository.find({
-      where: {
         project_hash: projectHash,
         contributor_hash: contributorHash,
         is_committed: false,
-      },
-      order: { date: 'ASC' },
-    });
+      }, { order: { date: 'ASC' } });
     return entities.map((entity) => this.toDomain(entity));
   }
 
   async update(timeEntry: TimeEntryDomainEntity): Promise<TimeEntryDomainEntity> {
     const entity = this.toEntity(timeEntry);
-    await this.repository.update(entity._id, entity);
-    const updatedEntity = await this.repository.findOne({ where: { _id: entity._id } });
+    await this.repository.update({ _id: entity._id }, entity);
+    const updatedEntity = await this.repository.findOne({ _id: entity._id });
     if (!updatedEntity) throw new Error('Time entry not found after update');
     return this.toDomain(updatedEntity);
   }
@@ -85,7 +75,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
   async getTotalUncommittedHours(contributorHash: string, projectHash: string): Promise<number> {
     const result = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('SUM(te.hours)', 'total')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
       .andWhere('te.project_hash = :projectHash', { projectHash })
@@ -101,7 +91,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   ): Promise<ContributorProjectBasicTimeStatsDomainInterface> {
     // Получаем суммарное закоммиченное время
     const committedResult = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('SUM(te.hours)', 'total')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
       .andWhere('te.project_hash = :projectHash', { projectHash })
@@ -110,7 +100,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
     // Получаем суммарное незакоммиченное время
     const uncommittedResult = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('SUM(te.hours)', 'total')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
       .andWhere('te.project_hash = :projectHash', { projectHash })
@@ -129,45 +119,33 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
   async commitTimeEntries(entries: TimeEntryDomainEntity[], commitHash: string): Promise<void> {
     const ids = entries.map((entry) => entry._id);
-    await this.repository.update({ _id: In(ids) }, { commit_hash: commitHash, is_committed: true, _updated_at: new Date() });
+    await this.repository.update({ _id: oneOf(ids) }, { commit_hash: commitHash, is_committed: true, _updated_at: new Date() });
   }
 
   async findCommittedByCommitHash(commitHash: string): Promise<TimeEntryDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { commit_hash: commitHash, is_committed: true },
-    });
+    const entities = await this.repository.find({ commit_hash: commitHash, is_committed: true });
     return entities.map((entity) => this.toDomain(entity));
   }
 
   async revertCommittedEntriesByCommitHash(commitHash: string): Promise<number> {
-    const result = await this.repository
-      .createQueryBuilder()
-      .update(TimeEntryEntity)
-      .set({ is_committed: false, commit_hash: null as unknown as undefined, _updated_at: new Date() })
-      .where('commit_hash = :commitHash', { commitHash })
-      .andWhere('is_committed = true')
-      .execute();
-    return result.affected ?? 0;
+    return this.repository.update(
+      { commit_hash: commitHash, is_committed: true },
+      { is_committed: false, commit_hash: null as unknown as undefined }
+    );
   }
 
   async delete(id: string): Promise<void> {
-    await this.repository.delete(id);
+    await this.repository.delete({ _id: id });
   }
 
   async deleteUncommittedByIssueHash(issueHash: string): Promise<void> {
-    await this.repository
-      .createQueryBuilder()
-      .delete()
-      .from(TimeEntryEntity)
-      .where('issue_hash = :issueHash', { issueHash })
-      .andWhere('is_committed = :committed', { committed: false })
-      .execute();
+    await this.repository.delete({ issue_hash: issueHash, is_committed: false });
   }
 
   async findProjectsByContributor(contributorHash: string): Promise<{ project_hash: string; project_name?: string }[]> {
     // Уникальные project_hash только кооперативных (blockchain) проектов с записями времени
     const result = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('DISTINCT te.project_hash', 'project_hash')
       .innerJoin('capital_projects', 'p', 'te.project_hash = p.project_hash')
       .where('te.contributor_hash = :contributorHash', { contributorHash })
@@ -189,7 +167,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   async findContributorsByProject(projectHash: string): Promise<{ contributor_hash: string }[]> {
     // Получаем уникальные contributor_hash из записей времени по проекту
     const result = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('DISTINCT te.contributor_hash', 'contributor_hash')
       .where('te.project_hash = :projectHash', { projectHash })
       .getRawMany();
@@ -201,7 +179,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     filter: TimeEntriesFilterDomainInterface,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<TimeEntryDomainEntity>> {
-    const query = this.repository.createQueryBuilder('te');
+    const query = this.repository.sqlBuilder('te');
 
     // Добавляем условие по project_hash только если он указан
     if (filter.projectHash) {
@@ -226,7 +204,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
     // Применяем сортировку
     if (options?.sortBy) {
-      const sortColumn = resolveSortColumn(this.repository, options.sortBy, 'date');
+      const sortColumn = this.repository.sortField(options.sortBy, 'date');
       query.orderBy(`te.${sortColumn}`, options.sortOrder || 'DESC');
     } else {
       query.orderBy('te.date', 'DESC').addOrderBy('te._created_at', 'DESC');
@@ -240,7 +218,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     const limit = options?.limit || 10;
     const skip = (page - 1) * limit;
 
-    const entities = await query.skip(skip).take(limit).getMany();
+    const entities = await query.offset(skip).limit(limit).getMany();
 
     const totalPages = Math.ceil(totalCount / limit);
     const currentPage = page;
@@ -265,7 +243,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     offset: number
   ): Promise<TimeEntriesByIssuesDomainInterface[]> {
     const queryBuilder = this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select([
         'te.issue_hash',
         'i.title as issue_title',
@@ -328,7 +306,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
 
   async getAggregatedTimeEntriesCount(filter: TimeEntriesFilterDomainInterface): Promise<number> {
     const queryBuilder = this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select("COUNT(DISTINCT (te.issue_hash || '-' || te.project_hash || '-' || te.contributor_hash))", 'count');
 
     // Применяем фильтры
@@ -354,15 +332,13 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findByIssueAndType(issueHash: string, entryType: 'hourly' | 'estimate'): Promise<TimeEntryDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { issue_hash: issueHash, entry_type: entryType },
-    });
+    const entities = await this.repository.find({ issue_hash: issueHash, entry_type: entryType });
     return entities.map((entity) => this.toDomain(entity));
   }
 
   async getTotalEstimateHoursByIssue(issueHash: string): Promise<{ total: number; estimate_snapshot: number }> {
     const result = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('SUM(te.hours)', 'total')
       .addSelect('MAX(te.estimate_snapshot)', 'estimate_snapshot')
       .where('te.issue_hash = :issueHash', { issueHash })
@@ -376,9 +352,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async hasCommittedTimeByIssueHash(issueHash: string): Promise<boolean> {
-    const n = await this.repository.count({
-      where: { issue_hash: issueHash.toLowerCase(), is_committed: true },
-    });
+    const n = await this.repository.count({ issue_hash: issueHash.toLowerCase(), is_committed: true });
     return n > 0;
   }
 
@@ -390,7 +364,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
   }
 
   async findById(id: string): Promise<TimeEntryDomainEntity | null> {
-    const entity = await this.repository.findOne({ where: { _id: id } });
+    const entity = await this.repository.findOne({ _id: id });
     return entity ? this.toDomain(entity) : null;
   }
 
@@ -401,7 +375,7 @@ export class TimeEntryTypeormRepository implements TimeEntryRepository {
     const normalized = issueHashes.map((h) => h.toLowerCase());
 
     const rows = await this.repository
-      .createQueryBuilder('te')
+      .sqlBuilder('te')
       .select('LOWER(te.issue_hash)', 'issue_hash')
       .addSelect('te.contributor_hash', 'contributor_hash')
       .addSelect('SUM(te.hours)', 'total')

@@ -19,23 +19,14 @@ import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-exte
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
 
-import { capitalEntities } from './capital/capital.entities';
 import { capitalDatabaseMigrations } from './capital/capital.database-migrations';
-import { cardcoopEntities } from './cardcoop/cardcoop.entities';
 import { cardcoopDatabaseMigrations } from './cardcoop/cardcoop.database-migrations';
-import { chairmanEntities } from './chairman/chairman.entities';
 import { chairmanDatabaseMigrations } from './chairman/chairman.database-migrations';
-import { chatcoopEntities } from './chatcoop/chatcoop.entities';
 import { chatcoopDatabaseMigrations } from './chatcoop/chatcoop.database-migrations';
-import { expensesEntities } from './expenses/expenses.entities';
 import { expensesDatabaseMigrations } from './expenses/expenses.database-migrations';
-import { kuEntities } from './ku/ku.entities';
 import { kuDatabaseMigrations } from './ku/ku.database-migrations';
-import { marketplaceEntities } from './marketplace/marketplace.entities';
 import { marketplaceDatabaseMigrations } from './marketplace/marketplace.database-migrations';
-import { sovietRobotEntities } from './soviet-robot/soviet-robot.entities';
 import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.database-migrations';
-import { reportsEntities } from './reports/reports.entities';
 import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
@@ -69,7 +60,6 @@ import {
   ExtensionAvailability,
   ExtensionConfigSuppliedBy,
   isExtensionAvailable,
-  registerExtensionEntities,
   registerExtensionDatabaseMigrations,
   type IRegistryExtension,
 } from '@coopenomics/extension-kit';
@@ -112,7 +102,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/Q3NmVvzN/Chat-GPT-Image-10-2025-20-40-44.png',
     class: SovietRobotExtensionModule,
     extensionClass: SovietRobotExtension,
-    entities: sovietRobotEntities,
     databaseMigrations: sovietRobotDatabaseMigrations,
     ports: sovietRobotPorts,
     schema: SovietRobotSchema,
@@ -167,7 +156,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/HRW1nFY/Chat-GPT-Image-10-2025-20-40-57.png',
     class: CapitalExtensionModule,
     extensionClass: CapitalExtension,
-    entities: capitalEntities,
     databaseMigrations: capitalDatabaseMigrations,
     ports: capitalPorts,
     schema: CapitalSchema,
@@ -193,7 +181,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ChairmanExtensionModule,
     extensionClass: ChairmanExtension,
-    entities: chairmanEntities,
     databaseMigrations: chairmanDatabaseMigrations,
     defaults: { enabled: true, config: chairmanDefaultConfig },
     ports: chairmanPorts,
@@ -220,7 +207,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/MxbHCqqf/Chat-GPT-Image-11-2025-18-26-44.png',
     class: KuExtensionModule,
     extensionClass: KuExtension,
-    entities: kuEntities,
     databaseMigrations: kuDatabaseMigrations,
     ports: kuPorts,
     schema: KuSchema,
@@ -324,7 +310,6 @@ export const AppRegistry: INamedExtension = {
     // контуре. До этого доступность держала `NON_MAINNET_ONLY`, и кооперативы основной сети
     // расширения не получали вовсе — раздел в кабинете был, а записи установки не было.
     defaults: { enabled: true, config: cardcoopDefaultConfig },
-    entities: cardcoopEntities,
     databaseMigrations: cardcoopDatabaseMigrations,
     ports: cardcoopPorts,
     schema: CardcoopSchema,
@@ -388,7 +373,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/3yWV8Wdp/Chat-GPT-Image-8-2025-22-45-36.png',
     class: ChatCoopExtensionModule,
     extensionClass: ChatCoopExtension,
-    entities: chatcoopEntities,
     databaseMigrations: chatcoopDatabaseMigrations,
     migrations: chatcoopMigrations,
     ports: chatcoopPorts,
@@ -415,7 +399,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
     class: ReportsExtensionModule,
     extensionClass: BuiltinExtension,
-    entities: reportsEntities,
     databaseMigrations: reportsDatabaseMigrations,
     ports: reportsPorts,
     defaults: { enabled: true, config: builtinDefaultConfig },
@@ -469,7 +452,6 @@ export const AppRegistry: INamedExtension = {
     image: 'https://i.ibb.co/84SRvtR3/Chat-GPT-Image-15-2025-11-33-17.png',
     class: MarketplaceExtensionModule,
     extensionClass: MarketplaceExtension,
-    entities: marketplaceEntities,
     databaseMigrations: marketplaceDatabaseMigrations,
     migrations: marketplaceMigrations,
     ports: marketplacePorts,
@@ -482,23 +464,6 @@ export const AppRegistry: INamedExtension = {
     },
   },
 };
-
-/**
- * Состав таблиц установленных расширений — то, что уходит в подключение к базе.
- *
- * Собирается из деклараций самих расширений, а не из положения файлов на диске:
- * расширение, установленное пакетом, ни под какой глоб по `src/` не попадёт.
- * Одно и то же расширение может стоять в реестре несколькими записями (у
- * встроенных на один модуль приходится несколько столов), поэтому список
- * схлопывается по классу.
- *
- * Шасси расходов витрины не имеет и записи в реестре тоже: пайщик его не
- * ставит, оно обслуживает другие расширения. Таблицы у него при этом свои,
- * поэтому оно перечислено отдельно.
- */
-registerExtensionEntities([
-  ...new Set([...Object.values(AppRegistry).flatMap((extension) => extension.entities ?? []), ...expensesEntities]),
-]);
 
 /**
  * Миграции таблиц установленных расширений — той же лентой, что и сущности:

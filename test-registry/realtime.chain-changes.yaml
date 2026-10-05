@@ -69,7 +69,7 @@ sources:
     - components/controller/src/infrastructure/database/kysely/local-changes.plugin.ts
     - components/controller/src/infrastructure/database/kysely/kysely.provider.ts
     - components/controller/src/infrastructure/generator/generator.service.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/extension.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-live-feed.service.ts
     - components/extension-kit/src/utils/local-changes-collector.ts
     - components/controller/src/extensions/marketplace/infrastructure/realtime/marketplace-live-feed.subscriber.ts
@@ -204,7 +204,7 @@ cases:
     expect: >
       сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
       откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
-    test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
     api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 
@@ -298,3 +298,48 @@ cases:
     test: components/api-tests/src/reports/withheld-tax.test.ts
     api: components/api-tests/src/reports/withheld-tax.test.ts
     status: passing
+
+  - id: rt.cc.side.15
+    level: backend
+    kind: side
+    scenario: >
+      личная таблица расширения, переведённого на Kysely: учётная запись Matrix
+      пайщика; транскрипция звонка с участниками по идентификаторам чата
+    expect: >
+      владелец строки объявлен по имени колонки базы (`coop_username`), иначе
+      сигнал ушёл бы только совету; сигнал о транскрипции уходит участникам по
+      именам пайщиков; сбой ленты запись расшифровки не роняет
+    test: components/controller/tests/unit/chatcoop/chatcoop-live-feed.test.ts
+    external: unreachable
+    external_reason: "на стенде нет сервера чата с настоящими учётными записями Matrix: подставной узел отвечает за него, а строки matrix_users заводит только живой вход"
+    status: written
+
+  - id: rt.cc.side.16
+    level: backend
+    kind: side
+    scenario: >
+      транзакция каркаса расширения с записью в таблицу ленты: транзакция
+      завершается; транзакция откатывается; запись вне транзакции
+    expect: >
+      сигнал уходит только после фиксации; откаченная запись сигнала не даёт;
+      вне транзакции изменение публикуется сразу
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
+    external: unreachable
+    external_reason: "момент публикации сигнала относительно фиксации снаружи не различить; живое обновление столов покрыто случаями rt.cc.happy.*"
+    status: written
+
+  - id: rt.cc.side.17
+    level: backend
+    kind: side
+    scenario: >
+      Стол заказов объявляет свои таблицы в ленте, а сигналы о записи шлёт слой
+      базы: состав объявленных таблиц, узел без порта ленты, резерв счётчиков
+      предложения готовым запросом
+    expect: >
+      каждая объявленная таблица — таблица расширения (слой базы знает её ключ),
+      корзина личная; без порта объявление молчит; после состоявшегося резерва
+      сигнал публикует хранилище, после несостоявшегося сигнала нет
+    test: components/controller/tests/unit/marketplace/marketplace-live-feed.test.ts
+    external: unreachable
+    external_reason: "состав объявления и момент сигнала снаружи не видны; живое обновление стола заказов покрыто случаями rt.cc.happy.*"
+    status: written

@@ -1,26 +1,24 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_STATE_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { StateRepository } from '../../domain/repositories/state.repository';
 import { StateDomainEntity } from '../../domain/entities/state.entity';
 import { StateTypeormEntity } from '../entities/state.typeorm-entity';
 import { StateMapper } from '../mappers/state.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { IStateBlockchainData } from '../../domain/interfaces/state-blockchain.interface';
 import type { IStateDatabaseData } from '../../domain/interfaces/state-database.interface';
 
 @Injectable()
 export class StateTypeormRepository
-  extends BaseBlockchainRepository<StateDomainEntity, StateTypeormEntity>
+  extends BaseChainRepository<StateDomainEntity, StateTypeormEntity>
   implements StateRepository, IBlockchainSyncRepository<StateDomainEntity>
 {
   constructor(
-    @InjectRepository(StateTypeormEntity)
-    repository: Repository<StateTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_STATE_STORE) repository: TableStore<StateTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -46,7 +44,7 @@ export class StateTypeormRepository
   }
 
   async findByCoopname(coopname: string): Promise<StateDomainEntity | null> {
-    const entity = await this.repository.findOne({ where: { coopname } });
+    const entity = await this.repository.findOne({ coopname });
     return entity ? StateMapper.toDomain(entity) : null;
   }
 }

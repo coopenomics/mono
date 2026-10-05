@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CORE_USER_WALLET_STORE } from '../../kysely/core-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { UserWalletDomainEntity } from '~/domain/wallet/entities/user-wallet-domain.entity';
 import { UserWalletTypeormEntity } from '../entities/user-wallet.typeorm-entity';
 import { UserWalletMapper } from '../mappers/user-wallet.mapper';
 import type { UserWalletRepository } from '~/domain/wallet/repositories/user-wallet.repository';
 import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IUserWalletBlockchainData } from '~/domain/wallet/interfaces/user-wallet-blockchain.interface';
 import type { IUserWalletDatabaseData } from '~/domain/wallet/interfaces/user-wallet-database.interface';
 
@@ -26,15 +26,14 @@ import type { IUserWalletDatabaseData } from '~/domain/wallet/interfaces/user-wa
  */
 @Injectable()
 export class UserWalletTypeormRepository
-  extends BaseBlockchainRepository<UserWalletDomainEntity, UserWalletTypeormEntity>
+  extends BaseChainRepository<UserWalletDomainEntity, UserWalletTypeormEntity>
   implements UserWalletRepository, IBlockchainSyncRepository<UserWalletDomainEntity>
 {
   constructor(
-    @InjectRepository(UserWalletTypeormEntity)
-    repository: Repository<UserWalletTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CORE_USER_WALLET_STORE) repository: TableStore<UserWalletTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -60,33 +59,22 @@ export class UserWalletTypeormRepository
     wallet_name: string,
     username: string
   ): Promise<UserWalletDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { coopname, wallet_name, username, present: true },
-    });
+    const entity = await this.repository.findOne({ coopname, wallet_name, username, present: true });
     return entity ? UserWalletMapper.toDomain(entity) : null;
   }
 
   async findByUsername(coopname: string, username: string): Promise<UserWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname, username, present: true },
-      order: { wallet_name: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname, username, present: true }, { order: { wallet_name: 'ASC' } });
     return entities.map(UserWalletMapper.toDomain);
   }
 
   async findByWallet(coopname: string, wallet_name: string): Promise<UserWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname, wallet_name, present: true },
-      order: { username: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname, wallet_name, present: true }, { order: { username: 'ASC' } });
     return entities.map(UserWalletMapper.toDomain);
   }
 
   async findByCoopname(coopname: string): Promise<UserWalletDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { coopname, present: true },
-      order: { wallet_name: 'ASC', username: 'ASC' },
-    });
+    const entities = await this.repository.find({ coopname, present: true }, { order: { wallet_name: 'ASC', username: 'ASC' } });
     return entities.map(UserWalletMapper.toDomain);
   }
 }

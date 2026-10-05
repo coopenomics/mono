@@ -8,17 +8,17 @@
  * цепи — там ни карты, ни идентификатора нет, только пайщик. Журнал и связывает
  * одно с другим.
  */
+import { TableStore, lessThan, moreThan, notEqual, notNull } from '@coopenomics/extension-kit';
+import { CARDCOOP_ATTESTATION_STORE, CARDCOOP_PENDING_EXIT_STORE, CARDCOOP_PENDING_LINK_STORE } from '../infrastructure/database/cardcoop-stores';
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { retryWithCurrentApiUrl } from '../infrastructure/current-api-url-retry';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
   CardcoopAttestationState,
-  CardcoopAttestationTypeormEntity,
-} from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
-import { CardcoopPendingExitTypeormEntity } from '../infrastructure/entities/cardcoop-pending-exit.typeorm-entity';
-import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
+  CardcoopAttestationRecord,
+} from '../infrastructure/records/cardcoop-attestation.record';
+import { CardcoopPendingExitRecord } from '../infrastructure/records/cardcoop-pending-exit.record';
+import { CardcoopPendingLinkRecord } from '../infrastructure/records/cardcoop-pending-link.record';
 import { CardcoopAttestationService, type AttestationDeliveryResult } from '../attestation/attestation.service';
 import { t } from '../i18n';
 
@@ -59,12 +59,12 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   private retryTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
-    @InjectRepository(CardcoopAttestationTypeormEntity)
-    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
-    @InjectRepository(CardcoopPendingExitTypeormEntity)
-    private readonly pendingExits: Repository<CardcoopPendingExitTypeormEntity>,
-    @InjectRepository(CardcoopPendingLinkTypeormEntity)
-    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>,
+    @Inject(CARDCOOP_ATTESTATION_STORE)
+    private readonly attestations: TableStore<CardcoopAttestationRecord>,
+    @Inject(CARDCOOP_PENDING_EXIT_STORE)
+    private readonly pendingExits: TableStore<CardcoopPendingExitRecord>,
+    @Inject(CARDCOOP_PENDING_LINK_STORE)
+    private readonly pendingLinks: TableStore<CardcoopPendingLinkRecord>,
     private readonly attestationService: CardcoopAttestationService,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -93,7 +93,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
     memberSince: string,
     cardNumber: string | null = null
   ): Promise<void> {
-    const existing = await this.attestations.findOne({ where: { username, cardId } });
+    const existing = await this.attestations.findOne({ username, cardId });
 
     if (existing?.state === CardcoopAttestationState.Active) {
       await this.catchUpCardNumber(existing, cardNumber);
@@ -115,7 +115,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
     // Пока сеть выдавала свидетельство, держатель мог удалить карту (forgetCard):
     // сохранение по стёртой строке вставило бы её заново, и удалённая карта
     // «воскресала» у пайщика (C28-80).
-    if ((await this.attestations.count({ where: { id: record.id } })) === 0) {
+    if ((await this.attestations.count({ id: record.id })) === 0) {
       this.logger.info(`Карта ${cardId} удалена держателем во время выдачи свидетельства — запись не восстанавливается`);
       return;
     }
@@ -135,7 +135,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * @param cardNumber — номер из уведомления; `null` — сеть его не прислала.
    */
   private async catchUpCardNumber(
-    record: CardcoopAttestationTypeormEntity,
+    record: CardcoopAttestationRecord,
     cardNumber: string | null
   ): Promise<void> {
     if (!cardNumber || record.cardNumber === cardNumber) return;
@@ -156,7 +156,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * @param username — пайщик; нужен для внятной строки в журнале.
    */
   private async clearFailedRevoke(
-    record: CardcoopAttestationTypeormEntity,
+    record: CardcoopAttestationRecord,
     username: string
   ): Promise<void> {
     if (!record.lastError && !record.revokedAt) return;
@@ -188,7 +188,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
 
       this.logger.info(
         `Карта ${cardId} удалена держателем — записей о ней у кооператива больше нет (свидетельств: ${
-          removed.affected ?? 0
+          removed
         })`
       );
     } catch (error) {
@@ -211,7 +211,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * @param username — пайщик; нужен только для внятного сообщения в журнале.
    */
   private applyOutcome(
-    record: CardcoopAttestationTypeormEntity,
+    record: CardcoopAttestationRecord,
     result: AttestationDeliveryResult,
     username: string
   ): void {
@@ -262,7 +262,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * @param memberSince — дата приёма, `YYYY-MM-DD`.
    */
   async issuePendingLink(apiUrl: string, username: string, memberSince: string): Promise<void> {
-    const pending = await this.pendingLinks.findOne({ where: { username } });
+    const pending = await this.pendingLinks.findOne({ username });
     if (!pending) return;
 
     await this.issue(apiUrl, username, pending.cardId, memberSince, pending.cardNumber);
@@ -275,8 +275,8 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * @param username — пайщик.
    * @returns Ожидающая связь либо `null`.
    */
-  async pendingLink(username: string): Promise<CardcoopPendingLinkTypeormEntity | null> {
-    return this.pendingLinks.findOne({ where: { username } });
+  async pendingLink(username: string): Promise<CardcoopPendingLinkRecord | null> {
+    return this.pendingLinks.findOne({ username });
   }
 
   /** Запоминает начатый выход: в момент завершения цепь назовёт только процесс, но не пайщика. */
@@ -297,7 +297,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    * поэтому пишем в журнал и выходим.
    */
   async revokeByCompletedExit(apiUrl: string, exitHash: string): Promise<void> {
-    const pending = await this.pendingExits.findOne({ where: { exitHash } });
+    const pending = await this.pendingExits.findOne({ exitHash });
 
     if (!pending) {
       this.logger.warn(`Выход ${exitHash} завершён, но пайщик по нему неизвестен — подтверждение не отозвано`);
@@ -321,12 +321,10 @@ export class CardcoopMembershipService implements OnModuleDestroy {
     // вместе с членством: в сети его нет, отзывать там нечего, а повтор выпуска
     // иначе выдал бы свидетельство уже вышедшему пайщику. До 25.09.2026 такие
     // записи переживали выход (решение владельца 25.09: отзывать, C28-80).
-    const undelivered = await this.attestations.find({
-      where: [
+    const undelivered = await this.attestations.find([
         { username, state: CardcoopAttestationState.Pending },
         { username, state: CardcoopAttestationState.Rejected },
-      ],
-    });
+      ]);
     for (const record of undelivered) {
       record.state = CardcoopAttestationState.Revoked;
       record.revokedAt = new Date();
@@ -334,9 +332,7 @@ export class CardcoopMembershipService implements OnModuleDestroy {
       await this.attestations.save(record);
     }
 
-    const active = await this.attestations.find({
-      where: { username, state: CardcoopAttestationState.Active },
-    });
+    const active = await this.attestations.find({ username, state: CardcoopAttestationState.Active });
 
     for (const record of active) {
       if (!record.attestationId) {
@@ -406,18 +402,14 @@ export class CardcoopMembershipService implements OnModuleDestroy {
    */
   async retryUndelivered(apiUrl: string): Promise<void> {
     try {
-      const pending = await this.attestations.find({
-        where: { state: CardcoopAttestationState.Pending },
-      });
+      const pending = await this.attestations.find({ state: CardcoopAttestationState.Pending });
       for (const record of pending) {
         await this.issue(apiUrl, record.username, record.cardId, record.memberSince, record.cardNumber ?? null);
       }
 
       // Действующая запись с ошибкой последней доставки — это неудавшийся отзыв: успех
       // выпуска стирает ошибку, отказ по существу переводит в rejected, других путей нет.
-      const failedRevokes = await this.attestations.find({
-        where: { state: CardcoopAttestationState.Active, lastError: Not(IsNull()) },
-      });
+      const failedRevokes = await this.attestations.find({ state: CardcoopAttestationState.Active, lastError: notNull() });
       for (const record of failedRevokes) {
         await this.revokeAllFor(apiUrl, record.username);
       }
@@ -426,12 +418,10 @@ export class CardcoopMembershipService implements OnModuleDestroy {
       // заверение оставило бы свидетельства висеть до ручного вмешательства, которого
       // нет. Повтор не вечный: месяц — и запись оставляется в покое (см. константу).
       const rejected = await this.attestations.find({
-        where: {
           state: CardcoopAttestationState.Rejected,
-          updatedAt: LessThan(new Date(Date.now() - RETRY_REJECTED_AFTER_MS)),
-          createdAt: MoreThan(new Date(Date.now() - RETRY_REJECTED_MAX_AGE_MS)),
-        },
-      });
+          updatedAt: lessThan(new Date(Date.now() - RETRY_REJECTED_AFTER_MS)),
+          createdAt: moreThan(new Date(Date.now() - RETRY_REJECTED_MAX_AGE_MS)),
+        });
       for (const record of rejected) {
         await this.issue(apiUrl, record.username, record.cardId, record.memberSince, record.cardNumber ?? null);
       }
@@ -443,13 +433,10 @@ export class CardcoopMembershipService implements OnModuleDestroy {
   }
 
   /** Подтверждения, застрявшие в недоставке, — для показа оператору. */
-  async findUndelivered(): Promise<CardcoopAttestationTypeormEntity[]> {
-    return this.attestations.find({
-      where: [
+  async findUndelivered(): Promise<CardcoopAttestationRecord[]> {
+    return this.attestations.find([
         { state: CardcoopAttestationState.Pending },
-        { state: CardcoopAttestationState.Rejected, lastError: Not(IsNull()) },
-      ],
-      order: { updatedAt: 'DESC' },
-    });
+        { state: CardcoopAttestationState.Rejected, lastError: notNull() },
+      ], { order: { updatedAt: 'DESC' } });
   }
 }

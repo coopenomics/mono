@@ -21,7 +21,6 @@ sources:
     - components/controller/src/extensions/chatcoop/application/controllers/chatcoop-calendar-feed.controller.ts
     - components/controller/src/extensions/chatcoop/application/dto/calendar.dto.ts
     - components/controller/src/extensions/chatcoop/infrastructure/repositories/calendar-*.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/entities/calendar-*.ts
     - components/controller/src/extensions/chatcoop/domain/repositories/calendar-*.ts
 
 cases:
@@ -130,3 +129,22 @@ cases:
     test: components/api-tests/src/chatcoop/calendar.test.ts
     api: components/api-tests/src/chatcoop/calendar.test.ts
     status: passing
+
+  - id: chat.cal.side.08
+    level: backend
+    kind: side
+    scenario: >
+      хранилища чата: правка и удаление события календаря, события комнат
+      проектов в окне дат, смена секрета подписки на календарь, повторная
+      запись комнаты и сообщения, поиск транскрипций участника
+    expect: >
+      номер редакции события растёт в самой базе; несуществующее событие —
+      отказ; в выдачу идут события незашифрованных комнат, задевающие окно;
+      подписка без записи заводится; признак «секретарь в комнате» без
+      значения не трогается; повторное сообщение пропускается; участник
+      находится и по идентификатору с суффиксом сессии
+    test: components/controller/tests/unit/chatcoop/chatcoop.kysely-repositories.test.ts
+    external: unreachable
+    external_reason: "проверяется текст запросов к базе и разбор ответа — снаружи они не видны; само поведение календаря, комнат и транскрипций через API покрыто случаями chat.cal.*, chat.acc.* и chat.tr.*"
+    status: written
+

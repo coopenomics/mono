@@ -1,4 +1,3 @@
-import type { Repository } from 'typeorm';
 import { UserWalletTypeormRepository } from './user-wallet.typeorm-repository';
 import { UserWalletTypeormEntity } from '../entities/user-wallet.typeorm-entity';
 
@@ -44,14 +43,13 @@ describe('UserWalletTypeormRepository — только живые строки',
   const matches = (entity: UserWalletTypeormEntity, where: Record<string, unknown>) =>
     Object.entries(where).every(([key, value]) => (entity as unknown as Record<string, unknown>)[key] === value);
 
-  const typeorm = {
-    find: jest.fn(async ({ where }: { where: Record<string, unknown> }) => table.filter((e) => matches(e, where))),
-    findOne: jest.fn(
-      async ({ where }: { where: Record<string, unknown> }) => table.find((e) => matches(e, where)) ?? null
-    ),
-  } as unknown as Repository<UserWalletTypeormEntity>;
+  // Шлюз таблицы: условие отбора — первый аргумент.
+  const store = {
+    find: jest.fn(async (where: Record<string, unknown>) => table.filter((e) => matches(e, where))),
+    findOne: jest.fn(async (where: Record<string, unknown>) => table.find((e) => matches(e, where)) ?? null),
+  };
 
-  const repo = new UserWalletTypeormRepository(typeorm, {} as never);
+  const repo = new UserWalletTypeormRepository(store as never, {} as never);
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -61,17 +59,18 @@ describe('UserWalletTypeormRepository — только живые строки',
       ['w.mkt.member', '438.0000 RUB'],
       ['w.wal.share', '71048.0000 RUB'],
     ]);
-    expect(typeorm.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { coopname: 'voskhod', username: 'ant', present: true } })
-    );
+    expect(store.find.mock.calls[0][0]).toEqual({ coopname: 'voskhod', username: 'ant', present: true });
   });
 
   it('findByWalletAndUsername: удалённый в цепи кошелёк — null, а не старый остаток', async () => {
     await expect(repo.findByWalletAndUsername('voskhod', 'w.mkt.share', 'ant')).resolves.toBeNull();
     const member = await repo.findByWalletAndUsername('voskhod', 'w.mkt.member', 'ant');
     expect(member?.available).toBe('438.0000 RUB');
-    expect(typeorm.findOne).toHaveBeenCalledWith({
-      where: { coopname: 'voskhod', wallet_name: 'w.mkt.member', username: 'ant', present: true },
+    expect(store.findOne.mock.calls[1][0]).toEqual({
+      coopname: 'voskhod',
+      wallet_name: 'w.mkt.member',
+      username: 'ant',
+      present: true,
     });
   });
 
@@ -81,8 +80,6 @@ describe('UserWalletTypeormRepository — только живые строки',
 
     const all = await repo.findByCoopname('voskhod');
     expect(all.map((r) => r.id).sort()).toEqual(['120', '84', '85']);
-    expect(typeorm.find).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: { coopname: 'voskhod', present: true } })
-    );
+    expect(store.find.mock.calls[1][0]).toEqual({ coopname: 'voskhod', present: true });
   });
 });

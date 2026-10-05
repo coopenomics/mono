@@ -27,7 +27,7 @@ parseMigrationFilename(fileName);
 
 // Шаблон миграции
 // i18n-ignore: шаблон генерируемого файла миграции — исходный код, не текст интерфейса
-const template = `import { DataSource } from 'typeorm';
+const template = `import type { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
 import config from '../src/config/config';
 
 export default {

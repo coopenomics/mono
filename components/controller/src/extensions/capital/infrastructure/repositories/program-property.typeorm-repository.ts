@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CAPITAL_PROGRAM_PROPERTY_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProgramPropertyDomainEntity } from '../../domain/entities/program-property.entity';
 import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeorm-entity';
 import { ProgramPropertyMapper } from '../mappers/program-property.mapper';
 import type { ProgramPropertyRepository } from '../../domain/repositories/program-property.repository';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IProgramPropertyDatabaseData } from '../../domain/interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/program-property-blockchain.interface';
 
@@ -14,15 +14,14 @@ import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/pro
  */
 @Injectable()
 export class ProgramPropertyTypeormRepository
-  extends BaseBlockchainRepository<ProgramPropertyDomainEntity, ProgramPropertyTypeormEntity>
+  extends BaseChainRepository<ProgramPropertyDomainEntity, ProgramPropertyTypeormEntity>
   implements ProgramPropertyRepository
 {
   constructor(
-    @InjectRepository(ProgramPropertyTypeormEntity)
-    repository: Repository<ProgramPropertyTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_PROGRAM_PROPERTY_STORE) repository: TableStore<ProgramPropertyTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {

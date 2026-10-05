@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_WRITEOFF_PROPOSAL_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import { MarketplaceWriteoffProposalDomainEntity } from '../../domain/entities/marketplace-writeoff-proposal.entity';
 import {
@@ -22,8 +22,8 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   implements MarketplaceWriteoffProposalDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceWriteoffProposalEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceWriteoffProposalEntity>,
+    @Inject(MARKETPLACE_WRITEOFF_PROPOSAL_STORE)
+private readonly repo: TableStore<MarketplaceWriteoffProposalEntity>,
     private readonly mapper: MarketplaceWriteoffProposalMapper
   ) {}
 
@@ -62,7 +62,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceWriteoffProposalDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -71,16 +71,14 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     proposal_hash: string
   ): Promise<MarketplaceWriteoffProposalDomainEntity | null> {
     if (!proposal_hash) return null;
-    const row = await this.repo.findOne({ where: { coopname, proposal_hash } });
+    const row = await this.repo.findOne({ coopname, proposal_hash });
     return row ? this.mapper.toDomain(row) : null;
   }
 
   async findOpenDraft(
     coopname: string
   ): Promise<MarketplaceWriteoffProposalDomainEntity | null> {
-    const row = await this.repo.findOne({
-      where: { coopname, status: MarketplaceWriteoffProposalStatuses.DRAFT },
-    });
+    const row = await this.repo.findOne({ coopname, status: MarketplaceWriteoffProposalStatuses.DRAFT });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -88,16 +86,14 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     coopname: string
   ): Promise<MarketplaceWriteoffProposalDomainEntity | null> {
     const row = await this.repo.findOne({
-      where: {
         coopname,
-        status: In([
+        status: oneOf([
           MarketplaceWriteoffProposalStatuses.ON_AGENDA,
           MarketplaceWriteoffProposalStatuses.AUTHORIZED,
           MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
           MarketplaceWriteoffProposalStatuses.EXECUTING,
         ]),
-      },
-    });
+      });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -107,18 +103,15 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     // в кандидаты повторно, иначе один и тот же товар попадёт в два списания.
     // EXECUTED/REJECTED не блокируют (товар либо списан, либо освобождён).
     const rows = await this.repo.find({
-      where: {
         coopname,
-        status: In([
+        status: oneOf([
           MarketplaceWriteoffProposalStatuses.DRAFT,
           MarketplaceWriteoffProposalStatuses.ON_AGENDA,
           MarketplaceWriteoffProposalStatuses.AUTHORIZED,
           MarketplaceWriteoffProposalStatuses.PENDING_CONFIRMATION,
           MarketplaceWriteoffProposalStatuses.EXECUTING,
         ]),
-      },
-      select: { items: true } as never,
-    });
+      });
     const ids = new Set<string>();
     for (const row of rows) {
       for (const item of row.items ?? []) {
@@ -137,17 +130,15 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     filter: MarketplaceWriteoffProposalListFilter,
     pagination?: PaginationInputDTO
   ): Promise<{ items: MarketplaceWriteoffProposalDomainEntity[]; total: number }> {
-    const qb = this.repo
-      .createQueryBuilder('p')
-      .where('p.coopname = :coopname', { coopname: filter.coopname });
-    if (filter.statuses && filter.statuses.length > 0) {
-      qb.andWhere('p.status IN (:...statuses)', { statuses: filter.statuses });
-    }
+    const where: Record<string, unknown> = { coopname: filter.coopname };
+    if (filter.statuses && filter.statuses.length > 0) where.status = oneOf(filter.statuses);
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 50;
-    const skip = (page - 1) * limit;
-    qb.orderBy('p.created_at', 'DESC').skip(skip).take(limit);
-    const [rows, total] = await qb.getManyAndCount();
+    const [rows, total] = await this.repo.findAndCount(where, {
+      order: { created_at: 'DESC' },
+      offset: (page - 1) * limit,
+      limit,
+    });
     return { items: rows.map((r) => this.mapper.toDomain(r)), total };
   }
 
@@ -157,7 +148,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     total_amount: string,
     log: MarketplaceWriteoffProposalDecisionEntry
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_EDIT');
     }
@@ -179,7 +170,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
       log: MarketplaceWriteoffProposalDecisionEntry;
     }
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_SUBMIT_PLAIN');
     }
@@ -203,7 +194,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
       log: MarketplaceWriteoffProposalDecisionEntry;
     }
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     if (row.status !== MarketplaceWriteoffProposalStatuses.ON_AGENDA) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_ON_AGENDA_FOR_AUTHORIZE');
     }
@@ -222,7 +213,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     id: string,
     log: MarketplaceWriteoffProposalDecisionEntry
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     if (row.status !== MarketplaceWriteoffProposalStatuses.AUTHORIZED) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_AUTHORIZED_FOR_EXECUTE_PLAIN');
     }
@@ -237,7 +228,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     item_index: number,
     log: MarketplaceWriteoffProposalDecisionEntry
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     if (item_index < 0 || item_index >= row.items.length) {
       throw DomainError.notFound('MARKETPLACE_WRITEOFF_ITEM_NOT_FOUND_IN_PROJECT');
     }
@@ -254,7 +245,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
     id: string,
     log: MarketplaceWriteoffProposalDecisionEntry
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     row.status = MarketplaceWriteoffProposalStatuses.EXECUTED;
     row.executed_at = new Date();
     row.decision_log = [...(row.decision_log ?? []), log];
@@ -271,7 +262,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
       log: MarketplaceWriteoffProposalDecisionEntry;
     }
   ): Promise<MarketplaceWriteoffProposalDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     row.status = MarketplaceWriteoffProposalStatuses.REJECTED;
     row.reject_reason = patch.reject_reason;
     row.rejected_at = patch.rejected_at;
@@ -282,7 +273,7 @@ export class MarketplaceWriteoffProposalRepositoryAdapter
   }
 
   async cancelDraft(id: string): Promise<void> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     if (!row) throw DomainError.notFound('MARKETPLACE_WRITEOFF_PROJECT_NOT_FOUND');
     if (row.status !== MarketplaceWriteoffProposalStatuses.DRAFT) {
       throw DomainError.badRequest('MARKETPLACE_WRITEOFF_NOT_DRAFT_FOR_DELETE');
