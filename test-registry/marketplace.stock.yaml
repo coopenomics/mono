@@ -50,6 +50,13 @@ title: Обезличенный остаток кооператива — пер
 # оператора. Поведение сервиса и случаи слайса не менялись; сама сверка и её
 # случаи — в marketplace.branch-scope.
 
+# Правка 2026-10-05 (C28-87, пункт 1а): участок позиций остатка, предложения
+# докладки и заказа со склада сверяет общий гард по источнику из
+# `@RequireRight`; из сервисов остатка и докладки убраны методы
+# `branamesOfPositions`, `branameOfOrder` и `branameOfProposal`, заведённые ради
+# сверок в резолвере. Список остатка получает участки отбора от гарда. Набор
+# случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/services/marketplace-stock.service.ts

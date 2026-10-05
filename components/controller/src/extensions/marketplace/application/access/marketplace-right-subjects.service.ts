@@ -76,6 +76,20 @@ export const MARKETPLACE_SUBJECT_KINDS = [
 
 export type MarketplaceSubjectKind = (typeof MARKETPLACE_SUBJECT_KINDS)[number];
 
+/** Поиск объектов одного вида по номеру: найденные и своего кооператива. */
+type Locator = (coopname: string, id: string) => Promise<RightFacts[]>;
+
+/** Объект хранилища по номеру записи. */
+function byId<E extends { coopname: string }>(
+  repo: { findById(id: string): Promise<E | null> },
+  facts: (entity: E) => RightFacts
+): Locator {
+  return async (coopname, id) => {
+    const entity = await repo.findById(id);
+    return entity && entity.coopname === coopname ? [facts(entity)] : [];
+  };
+}
+
 /**
  * Справочник объектов Стола заказов для сверки охвата прав (C28-87).
  *
@@ -87,122 +101,92 @@ export type MarketplaceSubjectKind = (typeof MARKETPLACE_SUBJECT_KINDS)[number];
  */
 @Injectable()
 export class MarketplaceRightSubjects {
+  private readonly locators: Record<MarketplaceSubjectKind, Locator>;
+
   constructor(
     @Inject(MARKETPLACE_ORDER_REPOSITORY)
     private readonly orderRepo: MarketplaceOrderDomainRepository,
     @Inject(MARKETPLACE_OFFER_REPOSITORY)
-    private readonly offerRepo: MarketplaceOfferDomainRepository,
+    offerRepo: MarketplaceOfferDomainRepository,
     @Inject(MARKETPLACE_CONSOLIDATED_REQUEST_REPOSITORY)
-    private readonly cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
+    cycleRepo: MarketplaceConsolidatedRequestDomainRepository,
     @Inject(MARKETPLACE_SHIPMENT_REPOSITORY)
-    private readonly shipmentRepo: MarketplaceShipmentDomainRepository,
+    shipmentRepo: MarketplaceShipmentDomainRepository,
     @Inject(MARKETPLACE_APL_RECEPTION_REPOSITORY)
-    private readonly receptionRepo: MarketplaceAplReceptionDomainRepository,
+    receptionRepo: MarketplaceAplReceptionDomainRepository,
     @Inject(MARKETPLACE_INVENTORY_REPOSITORY)
-    private readonly inventoryRepo: MarketplaceInventoryDomainRepository,
+    inventoryRepo: MarketplaceInventoryDomainRepository,
     @Inject(MARKETPLACE_CONTAINER_REPOSITORY)
     private readonly containerRepo: MarketplaceContainerDomainRepository,
     @Inject(MARKETPLACE_STORAGE_CELL_REPOSITORY)
-    private readonly cellRepo: MarketplaceStorageCellDomainRepository,
+    cellRepo: MarketplaceStorageCellDomainRepository,
     @Inject(MARKETPLACE_RETURN_CLAIM_REPOSITORY)
-    private readonly returnClaimRepo: MarketplaceReturnClaimDomainRepository,
+    returnClaimRepo: MarketplaceReturnClaimDomainRepository,
     @Inject(MARKETPLACE_SUPPLIER_CLAIM_REPOSITORY)
-    private readonly supplierClaimRepo: MarketplaceSupplierClaimDomainRepository,
+    supplierClaimRepo: MarketplaceSupplierClaimDomainRepository,
     @Inject(MARKETPLACE_STOCK_PROPOSAL_REPOSITORY)
-    private readonly proposalRepo: MarketplaceStockProposalDomainRepository,
+    proposalRepo: MarketplaceStockProposalDomainRepository,
     @Inject(MARKETPLACE_ISSUANCE_SAGA_REPOSITORY)
     private readonly sagaRepo: MarketplaceIssuanceSagaDomainRepository,
     @Inject(MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY)
     private readonly writeoffRepo: MarketplaceWriteoffProposalDomainRepository
-  ) {}
+  ) {
+    this.locators = {
+      Order: byId(orderRepo, (order) => ({
+        owner: order.orderer_account,
+        ku: order.delivery_braname,
+        recipient: order.supplier_account,
+      })),
+      Offer: byId(offerRepo, (offer) => ({ owner: offer.supplier_account })),
+      Cycle: byId(cycleRepo, (cycle) => ({ owner: cycle.supplier_account })),
+      Shipment: byId(shipmentRepo, (shipment) => ({ owner: shipment.offerer_account, ku: shipment.braname })),
+      Reception: byId(receptionRepo, (reception) => ({ owner: reception.offerer_account, ku: reception.braname })),
+      Inventory: byId(inventoryRepo, (item) => ({ ku: item.braname })),
+      Container: byId(containerRepo, (container) => ({ ku: container.braname })),
+      ContainerCode: (coopname, code) => this.containerByCode(coopname, code),
+      StorageCell: byId(cellRepo, (cell) => ({ ku: cell.braname })),
+      ReturnClaim: byId(returnClaimRepo, (claim) => ({ owner: claim.orderer_account, ku: claim.delivery_braname })),
+      SupplierClaim: byId(supplierClaimRepo, (claim) => ({ recipient: claim.supplier_account })),
+      StockProposal: byId(proposalRepo, (proposal) => ({ owner: proposal.member_account, ku: proposal.braname })),
+      IssuanceSaga: (coopname, order_id) => this.sagaOfOrder(coopname, order_id),
+      WriteoffProposal: (coopname, id) => this.writeoffBranches(coopname, id),
+    };
+  }
 
   /** Найденные объекты вида `kind` по номерам. */
   async locate(coopname: string, kind: string, ids: string[]): Promise<RightFacts[]> {
-    if (!(MARKETPLACE_SUBJECT_KINDS as readonly string[]).includes(kind)) {
+    const locator = this.locators[kind as MarketplaceSubjectKind];
+    if (!locator) {
+      // i18n-ignore: ошибка разработчика — вид объекта назван в декораторе операции, пайщик этот текст не видит
       throw new Error(`Справочник объектов Стола заказов не знает вид «${kind}»`);
     }
-    const found = await Promise.all(ids.map((id) => this.one(coopname, kind as MarketplaceSubjectKind, id)));
+    const found = await Promise.all(ids.map((id) => locator(coopname, id)));
     return found.flat();
   }
 
-  private async one(coopname: string, kind: MarketplaceSubjectKind, id: string): Promise<RightFacts[]> {
-    switch (kind) {
-      case 'Order': {
-        const order = await this.orderRepo.findById(id);
-        if (!order || order.coopname !== coopname) return [];
-        return [{ owner: order.orderer_account, ku: order.delivery_braname, recipient: order.supplier_account }];
-      }
-      case 'Offer': {
-        const offer = await this.offerRepo.findById(id);
-        if (!offer || offer.coopname !== coopname) return [];
-        return [{ owner: offer.supplier_account }];
-      }
-      case 'Cycle': {
-        const cycle = await this.cycleRepo.findById(id);
-        if (!cycle || cycle.coopname !== coopname) return [];
-        return [{ owner: cycle.supplier_account }];
-      }
-      case 'Shipment': {
-        const shipment = await this.shipmentRepo.findById(id);
-        if (!shipment || shipment.coopname !== coopname) return [];
-        return [{ owner: shipment.offerer_account, ku: shipment.braname }];
-      }
-      case 'Reception': {
-        const reception = await this.receptionRepo.findById(id);
-        if (!reception || reception.coopname !== coopname) return [];
-        return [{ owner: reception.offerer_account, ku: reception.braname }];
-      }
-      case 'Inventory': {
-        const item = await this.inventoryRepo.findById(id);
-        if (!item || item.coopname !== coopname) return [];
-        return [{ ku: item.braname }];
-      }
-      case 'Container': {
-        const container = await this.containerRepo.findById(id);
-        if (!container || container.coopname !== coopname) return [];
-        return [{ ku: container.braname }];
-      }
-      case 'ContainerCode': {
-        // Бокс у стойки находят по коду этикетки, а не по номеру записи.
-        const container = await this.containerRepo.findByCode(coopname, id);
-        return container ? [{ ku: container.braname }] : [];
-      }
-      case 'StorageCell': {
-        const cell = await this.cellRepo.findById(id);
-        if (!cell || cell.coopname !== coopname) return [];
-        return [{ ku: cell.braname }];
-      }
-      case 'ReturnClaim': {
-        const claim = await this.returnClaimRepo.findById(id);
-        if (!claim || claim.coopname !== coopname) return [];
-        return [{ owner: claim.orderer_account, ku: claim.delivery_braname }];
-      }
-      case 'SupplierClaim': {
-        const claim = await this.supplierClaimRepo.findById(id);
-        if (!claim || claim.coopname !== coopname) return [];
-        return [{ recipient: claim.supplier_account }];
-      }
-      case 'StockProposal': {
-        const proposal = await this.proposalRepo.findById(id);
-        if (!proposal || proposal.coopname !== coopname) return [];
-        return [{ owner: proposal.member_account, ku: proposal.braname }];
-      }
-      case 'IssuanceSaga': {
-        // Ход выдачи операция называет номером заказа: действующий, а после
-        // закрытия — последний по хэшу заказа.
-        const active = await this.sagaRepo.findActiveByOrderId(coopname, id);
-        if (active) return [{ owner: active.member_account, ku: active.braname }];
-        const order = await this.orderRepo.findById(id);
-        if (!order || order.coopname !== coopname) return [];
-        const last = await this.sagaRepo.findByOrderHash(coopname, order.order_hash);
-        return last ? [{ owner: last.member_account, ku: last.braname }] : [];
-      }
-      case 'WriteoffProposal': {
-        // Проект списания собирает позиции нескольких участков: по объекту на участок.
-        const proposal = await this.writeoffRepo.findById(id);
-        if (!proposal || proposal.coopname !== coopname) return [];
-        return [...new Set(proposal.items.map((item) => item.braname))].map((ku) => ({ ku }));
-      }
-    }
+  /** Бокс у стойки находят по коду этикетки, а не по номеру записи. */
+  private async containerByCode(coopname: string, code: string): Promise<RightFacts[]> {
+    const container = await this.containerRepo.findByCode(coopname, code);
+    return container ? [{ ku: container.braname }] : [];
+  }
+
+  /**
+   * Ход выдачи операция называет номером заказа: действующий, а после
+   * закрытия — последний по хэшу заказа.
+   */
+  private async sagaOfOrder(coopname: string, order_id: string): Promise<RightFacts[]> {
+    const active = await this.sagaRepo.findActiveByOrderId(coopname, order_id);
+    if (active) return [{ owner: active.member_account, ku: active.braname }];
+    const order = await this.orderRepo.findById(order_id);
+    if (!order || order.coopname !== coopname) return [];
+    const last = await this.sagaRepo.findByOrderHash(coopname, order.order_hash);
+    return last ? [{ owner: last.member_account, ku: last.braname }] : [];
+  }
+
+  /** Проект списания собирает позиции нескольких участков: по объекту на участок. */
+  private async writeoffBranches(coopname: string, id: string): Promise<RightFacts[]> {
+    const proposal = await this.writeoffRepo.findById(id);
+    if (!proposal || proposal.coopname !== coopname) return [];
+    return [...new Set(proposal.items.map((item) => item.braname))].map((ku) => ({ ku }));
   }
 }
