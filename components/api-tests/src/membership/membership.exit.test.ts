@@ -11,13 +11,12 @@
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, deposit, docMeta, freshMember, gql, gqlError, latestMail, login, payOutExit, signDocument, tokenOf, voteOnDecision, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, deposit, freshMember, gql, gqlError, latestMail, login, payOutExit, tokenOf, voteOnDecision, waitFor } from '../core'
 import { chainChangesOf, quietWindow, settleSubscriptions, signalsOf, waitSignal, wsAs } from '../platform/platform-a.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
+import type { ExitDocuments } from './exit-documents.helpers'
+import { exitDocuments } from './exit-documents.helpers'
 
-const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
-  generateMembershipExitApplication(data:$d){ full_title html hash meta binary }
-}`
 const CREATE_EXIT = 'mutation($d:CreateMembershipExitInput!){ createMembershipExit(data:$d){ exit_hash status } }'
 const CANCEL_EXIT = 'mutation($c:String!,$u:String!){ cancelMembershipExit(coopname:$c, username:$u) }'
 const CONFIRM_EXIT = 'mutation($t:String!){ confirmMembershipExit(token:$t){ exit_hash status } }'
@@ -25,8 +24,6 @@ const EXIT_STATUS = 'query($c:String!,$u:String!){ membershipExit(coopname:$c, u
 const RETURN_PREVIEW = 'query($c:String!,$u:String!){ membershipExitReturnPreview(coopname:$c, username:$u){ total share_contribution minimum_contribution } }'
 const USER_WALLETS = 'query($u:String!){ getUserWallets(username:$u){ wallet_name available } }'
 
-/** Поля мета заявления, которые принимает вход подачи (MembershipExitApplicationSignedMetaDocumentInput). */
-const STATEMENT_META_KEYS = ['block_num', 'coopname', 'created_at', 'generator', 'lang', 'links', 'registry_id', 'skip_save', 'timezone', 'title', 'username', 'version']
 const EXIT_REFUND_WALLETS = ['w.reg.minshr', 'w.wal.share', 'w.cap.blago']
 
 function exitHash(): string {
@@ -51,7 +48,7 @@ describe('выход пайщика из кооператива', () => {
   let leaverToken: string
   let otherToken: string
   let chairToken: string
-  let statement: any
+  let documents: ExitDocuments
 
   beforeAll(async () => {
     leaver = freshMember({ prefix: 'exit' })
@@ -59,14 +56,12 @@ describe('выход пайщика из кооператива', () => {
     otherToken = await tokenOf(ROLES.otherMember())
     chairToken = await tokenOf(CHAIRMAN)
 
-    const g = await gql<any>(leaverToken, GENERATE_APPLICATION, { d: { coopname: COOP, username: leaver.account, skip_save: false } })
-    const signed = await signDocument(leaver.wif, g.generateMembershipExitApplication, leaver.account, 1)
-    const meta = docMeta(signed.meta)
-    statement = { ...signed, meta: Object.fromEntries(STATEMENT_META_KEYS.filter(k => k in meta).map(k => [k, meta[k]])) }
+    // Заявление на выход и заявление об аннулировании соглашений об участии в программах.
+    documents = await exitDocuments(leaver, leaverToken, exitHash())
   })
 
   const create = (token: string | null, username: string, hash = exitHash()) =>
-    gqlError(token, CREATE_EXIT, { d: { coopname: COOP, username, exit_hash: hash, statement } })
+    gqlError(token, CREATE_EXIT, { d: { coopname: COOP, username, exit_hash: hash, ...documents } })
 
   it(caseName('mem.exit.side.01', 'без реквизитов для возврата заявление на выход не принимается'), async () => {
     const err = await create(leaverToken, leaver.account)
@@ -78,7 +73,7 @@ describe('выход пайщика из кооператива', () => {
 
   it(caseName('mem.exit.happy.01', 'пайщик подаёт заявление на выход — оно ждёт подтверждения по письму'), async () => {
     await addSbpMethod(leaverToken, leaver.account)
-    const d = await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: firstHash, statement } })
+    const d = await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: firstHash, ...documents } })
     expect(d.createMembershipExit).toEqual({ exit_hash: firstHash, status: 'AWAITING_CONFIRMATION' })
 
     const seen = await exitStatus(leaverToken, leaver.account)
@@ -129,7 +124,7 @@ describe('выход пайщика из кооператива', () => {
       const [own, other, council] = conns.map(c => chainChangesOf(c, [EXITS]))
       await settleSubscriptions()
 
-      await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: exitHash(), statement } })
+      await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: exitHash(), ...documents } })
       const created = await waitSignal(own, EXITS)
       expect(created).toEqual({ ...EXITS, scope: COOP, primary_key: created.primary_key, block_num: 0 })
       expect(created.primary_key).not.toBe('')
@@ -148,7 +143,7 @@ describe('выход пайщика из кооператива', () => {
 
   it(caseName('mem.exit.happy.03', 'председатель подаёт заявление за пайщика и отменяет его'), async () => {
     const hash = exitHash()
-    const d = await gql<any>(chairToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: hash, statement } })
+    const d = await gql<any>(chairToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: hash, ...documents } })
     expect(d.createMembershipExit).toEqual({ exit_hash: hash, status: 'AWAITING_CONFIRMATION' })
     expect((await exitStatus(leaverToken, leaver.account))?.exit_hash).toBe(hash)
 
@@ -190,25 +185,23 @@ describe('выход пайщика из кооператива', () => {
 describe('выход пайщика: подтверждение по письму и повторные заявления', () => {
   let leaver: Who
   let leaverToken = ''
-  let statement: any
+  let documents: ExitDocuments
   let hash = ''
 
   const create = (exit_hash: string) =>
-    gqlError(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash, statement } })
+    gqlError(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash, ...documents } })
 
   beforeAll(async () => {
     leaver = freshMember({ prefix: 'exitc' })
     leaverToken = await login(leaver)
     await addSbpMethod(leaverToken, leaver.account)
-    const g = await gql<any>(leaverToken, GENERATE_APPLICATION, { d: { coopname: COOP, username: leaver.account, skip_save: false } })
-    const signed = await signDocument(leaver.wif, g.generateMembershipExitApplication, leaver.account, 1)
-    const meta = docMeta(signed.meta)
-    statement = { ...signed, meta: Object.fromEntries(STATEMENT_META_KEYS.filter(k => k in meta).map(k => [k, meta[k]])) }
+    // Заявление на выход и заявление об аннулировании соглашений об участии в программах.
+    documents = await exitDocuments(leaver, leaverToken, exitHash())
   }, 300_000)
 
   it(caseName('mem.exit.happy.05', 'пайщик подтверждает выход по ссылке из письма — заявление уходит в цепь, ссылка второй раз не работает'), async () => {
     hash = exitHash()
-    const d = await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: hash, statement } })
+    const d = await gql<any>(leaverToken, CREATE_EXIT, { d: { coopname: COOP, username: leaver.account, exit_hash: hash, ...documents } })
     expect(d.createMembershipExit.status).toBe('AWAITING_CONFIRMATION')
 
     const mail = await latestMail(leaver.email, 'membership-exit/confirm?token=', 120_000)
