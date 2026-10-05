@@ -134,9 +134,9 @@ cases:
     kind: happy
     scenario: Пайщик подал заявление о выходе из кооператива.
     expect: Подписки его обучающихся закрываются с расчётом возврата по Положению; возврат ложится на кошелёк программы.
-    test: components/api-tests/src/edubridge/exit.test.ts
-    api: components/api-tests/src/edubridge/exit.test.ts
-    status: written
+    # внешний тест написан (api-tests/src/edubridge/exit.test.ts) и выключен: подтверждение выхода с заявлением об аннулировании соглашений отклоняет цепь (находка 4 прогонов 05.10.2026)
+    test: ~
+    status: missing
   - id: edu.access.break.05
     level: backend
     kind: break

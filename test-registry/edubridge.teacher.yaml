@@ -464,4 +464,4 @@ cases:
     expect: "Отказ тем же основанием, что и в форме курса; допуск не создаётся, в список «Курс ведут» пайщик не попадает. Договор на подписи у председателя допуску не мешает."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
-    status: written
+    status: passing

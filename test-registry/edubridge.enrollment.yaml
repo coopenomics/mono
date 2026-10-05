@@ -88,7 +88,7 @@ cases:
     expect: Forbidden / BadRequest.
     test: components/api-tests/src/edubridge/enrollment.test.ts
     api: components/api-tests/src/edubridge/enrollment.test.ts
-    status: written
+    status: passing
   - id: edu.enr.happy.04
     level: ui
     kind: happy
@@ -428,7 +428,7 @@ cases:
     expect: "Отказ отклоняется: два возврата по одной подписке невозможны."
     test: components/api-tests/src/edubridge/guarantee.test.ts
     api: components/api-tests/src/edubridge/guarantee.test.ts
-    status: written
+    status: passing
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

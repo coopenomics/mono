@@ -30,7 +30,7 @@ cases:
     expect: Список только published; в карточке нет direction/external_ref/status.
     test: components/api-tests/src/edubridge/rights.test.ts
     api: components/api-tests/src/edubridge/rights.test.ts
-    status: written
+    status: passing
   - id: edu.catalog.side.01
     level: backend
     kind: side
@@ -38,7 +38,7 @@ cases:
     expect: NotFound — черновик для витрины не существует.
     test: components/api-tests/src/edubridge/rights.test.ts
     api: components/api-tests/src/edubridge/rights.test.ts
-    status: written
+    status: passing
   - id: edu.catalog.break.01
     level: backend
     kind: break
@@ -46,7 +46,7 @@ cases:
     expect: Forbidden от EdubridgeAccessGuard.
     test: components/api-tests/src/edubridge/rights.test.ts
     api: components/api-tests/src/edubridge/rights.test.ts
-    status: written
+    status: passing
   - id: edu.catalog.side.02
     level: backend
     kind: side
