@@ -69,13 +69,12 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
     //- Целевой членский взнос один на кооператив: здесь он только виден, а
     //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
-    .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.membershipFee') }}
-      .edu-course-form__fee-line
-        span.t-sm {{ markupPercent === null ? '______' : $t(`edubridge.courseForm.markupPercentLine`, { percent: markupPercent }) }}
-        FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
-        q-space
-        BaseButton(variant="ghost" size="sm" type="button" @click="openEconomySettings") {{ $t('common.action.edit') }}
+    .edu-course-form__fee-line
+      .edu-course-form__fee-label {{ $t('edubridge.courseForm.group.membershipFee') }}
+      FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
+      q-space
+      .edu-course-form__fee-value {{ markupPercent === null ? '______' : $t(`edubridge.courseForm.markupPercentLine`, { percent: markupPercent }) }}
+      BaseButton(variant="secondary" size="sm" type="button" @click="openEconomySettings") {{ $t('common.action.edit') }}
 
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
@@ -347,7 +346,23 @@ defineExpose({ submit: requestSubmit, validate });
 .edu-course-form__fee-line {
   display: flex;
   align-items: center;
-  gap: var(--p-2);
+  gap: var(--p-3);
+  padding: var(--p-3) var(--p-4);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-md);
+}
+.edu-course-form__fee-label {
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
+  color: var(--p-ink-2);
+}
+.edu-course-form__fee-value {
+  font-size: var(--p-fs-body);
+  line-height: var(--p-lh-body);
+  font-weight: 600;
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
 }
 .edu-course-form__check {
   display: flex;
