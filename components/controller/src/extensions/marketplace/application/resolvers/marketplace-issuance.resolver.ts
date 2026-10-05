@@ -275,7 +275,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Ход выдачи по заказу: заказчик видит свой, персонал участка — по своему участку.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'read:own')
+  @RequireRight('Issuance', ['read:own', 'read:own-KU'])
   async marketplaceIssuanceSaga(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
@@ -292,7 +292,7 @@ export class MarketplaceIssuanceResolver {
     description: 'Незавершённые выдачи: свои у заказчика, по участку у стойки оператора.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Issuance', 'read:own')
+  @RequireRight('Issuance', ['read:own', 'read:own-KU'])
   async marketplaceListIssuanceSagas(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListIssuanceSagasInputDTO

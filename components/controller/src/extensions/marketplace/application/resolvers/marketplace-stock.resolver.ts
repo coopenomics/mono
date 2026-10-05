@@ -331,7 +331,7 @@ export class MarketplaceStockResolver {
       'Предложения со склада кооператива: входящие пайщика либо активные предложения стойки оператора.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('StockProposal', 'read:own')
+  @RequireRight('StockProposal', ['read:own', 'read:own-KU'])
   async marketplaceListStockProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListStockProposalsInputDTO

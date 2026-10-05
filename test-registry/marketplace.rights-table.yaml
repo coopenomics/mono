@@ -140,3 +140,15 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  - id: mkt.rights.side.10
+    level: backend
+    kind: side
+    scenario: оператор участка без подключения заказчиком открывает страницу выдачи — читает ход выдач и предложения докладки своего участка
+    expect: >
+      операции проходят по строке оператора: требование называет оба охвата,
+      «своё» заказчика и «свой участок» оператора; с одним охватом заказчика
+      оператор без оферты и пункта выдачи получал отказ подключения
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

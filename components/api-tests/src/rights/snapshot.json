@@ -2635,7 +2635,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
-    "branchTrusted": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -2905,7 +2905,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
-    "branchTrusted": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },
@@ -3115,7 +3115,7 @@
     "newcomer": "deny",
     "supplierPending": "deny",
     "supplierRejected": "deny",
-    "branchTrusted": "deny",
+    "branchTrusted": "pass",
     "capitalMember": "deny",
     "exited": "deny"
   },

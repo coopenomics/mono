@@ -9,6 +9,8 @@
  *   (d) требование роли и требование права действуют вместе;
  *   (e) server-secret пропускает оба требования.
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { configureExtensionAuth, RIGHT_METADATA_KEY } from '@coopenomics/extension-kit';
@@ -80,6 +82,18 @@ const chairman = {
   core_roles: ['User', 'Member', 'Chairman'],
   marketplace_roles: ['orderer', 'board_readonly', 'admin'],
 };
+
+const RESOLVERS = join(__dirname, '../../../src/extensions/marketplace/application/resolvers');
+
+/** Требование права, объявленное у операции в исходнике резолвера. */
+function requirementOf(file: string, operation: string): { resource: string; action: string | string[] } {
+  const src = readFileSync(join(RESOLVERS, file), 'utf8');
+  const from = src.indexOf(`name: '${operation}'`);
+  const found = from < 0 ? null : /@RequireRight\('([A-Za-z]+)',\s*(\[[^\]]*\]|'[^']*')\)/.exec(src.slice(from));
+  if (!found) throw new Error(`требование права операции ${operation} не найдено в ${file}`);
+  const actions = [...found[2].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  return { resource: found[1], action: found[2].startsWith('[') ? actions : actions[0] };
+}
 
 function run(
   access: { resource: string; action: string | string[] },
@@ -186,6 +200,20 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
     await expect(run({ resource: 'Cart', action: 'manage:own' }, council, { onboarded: false })).rejects.toMatchObject({
       code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
     });
+  });
+
+  // mkt.rights.side.10
+  it('оператор без подключения заказчика читает ход выдач и предложения докладки своего участка', async () => {
+    // Страница выдачи оператора зовёт три операции, которые отвечают и заказчику
+    // (своё), и оператору (свой участок). Требование называет оба охвата: с одним
+    // охватом заказчика оператор без оферты и пункта выдачи получал отказ.
+    for (const [file, operation] of [
+      ['marketplace-issuance.resolver.ts', 'marketplaceIssuanceSaga'],
+      ['marketplace-issuance.resolver.ts', 'marketplaceListIssuanceSagas'],
+      ['marketplace-stock.resolver.ts', 'marketplaceListStockProposals'],
+    ]) {
+      await expect(run(requirementOf(file, operation), operator, { onboarded: false })).resolves.toBe(true);
+    }
   });
 
   // mkt.rights.side.03
