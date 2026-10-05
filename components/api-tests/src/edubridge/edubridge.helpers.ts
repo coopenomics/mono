@@ -15,8 +15,8 @@ import crypto from 'node:crypto'
 import { Cooperative } from 'cooptypes'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, amount, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
-import type { TemplateRow } from '../documents/docs-reports.helpers'
-import { agendaByHash, authorizeFreeDecision, blank, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
+import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
+import { agendaAll, agendaByHash, authorizeFreeDecision, blank, declineDecision, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
 
 export const EXTENSION = 'edubridge'
 
@@ -398,4 +398,45 @@ export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANN
   await approveContract(approval)
   await waitFor(async () => ((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract?.status === 'ACTIVE' ? true : null),
     { timeoutMs: 60_000, intervalMs: 1_000, label: `договор преподавателя ${who.account} действует` })
+}
+
+// ── Гарантийные условия ────────────────────────────────────────────────────
+
+export const CLAIM_FIELDS = 'id number status reason links amount created_at decided_at'
+export const MY_GUARANTEES = `query{ edubridgeMyGuarantees{ enrollment_id available guarantee_until amount claim{ ${CLAIM_FIELDS} } } }`
+export const GUARANTEE_STATEMENT = 'mutation($d:EduGuaranteeStatementInput!){ edubridgeGuaranteeStatement(data:$d){ full_title html hash meta binary } }'
+export const SUBMIT_GUARANTEE = `mutation($d:EduSubmitGuaranteeClaimInput!){ edubridgeSubmitGuaranteeClaim(data:$d){ ${CLAIM_FIELDS} } }`
+
+export async function guaranteeOf(token: string, enrollmentId: string): Promise<any | undefined> {
+  const d = await gql<any>(token, MY_GUARANTEES)
+  return (d.edubridgeMyGuarantees as any[]).find(g => g.enrollment_id === enrollmentId)
+}
+
+/** Участник подаёт подписанное заявление об аннулировании подписки по гарантийным условиям. */
+export async function submitGuaranteeClaim(who: Who, token: string, enrollmentId: string, reason: string, links: string[] = []): Promise<any> {
+  const data = { enrollment_id: enrollmentId, reason, links }
+  const statement = (await gql<any>(token, GUARANTEE_STATEMENT, { d: data })).edubridgeGuaranteeStatement
+  const document = await signDocument(who.wif, statement, who.account, 1)
+  return (await gql<any>(token, SUBMIT_GUARANTEE, { d: { ...data, document } })).edubridgeSubmitGuaranteeClaim
+}
+
+/** Вопрос совету по заявлению: проект решения несёт идентификатор заявления. */
+export async function guaranteeAgenda(claimId: string): Promise<AgendaRow> {
+  const chairman = await tokenOf(CHAIRMAN)
+  return waitFor(async () => {
+    const row = (await agendaAll(chairman)).find(a => a.meta.includes(claimId))
+    return row ? agendaByHash(chairman, row.hash) : null
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету по заявлению ${claimId}` })
+}
+
+/** Совет удовлетворяет заявление: голоса «за» и утверждение председателем. */
+export async function councilGrants(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'for')
+  await authorizeFreeDecision(agenda)
+}
+
+/** Совет отклоняет заявление: голоса «против» и отклонение вопроса. */
+export async function councilDeclines(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'against')
+  await declineDecision(agenda.id)
 }

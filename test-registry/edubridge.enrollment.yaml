@@ -403,6 +403,7 @@ cases:
     scenario: "Участник в гарантийный срок подаёт заявление об аннулировании подписки с причиной; совет удовлетворяет заявление."
     expect: "Заявление публикуется в цепи и выносится на совет; по решению совета подписка закрывается с возвратом всей стоимости на паевой, протокол уходит в реестр, заявление получает статус «удовлетворено»."
     test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
     status: written
   - id: edu.enroll.break.10
     level: backend
@@ -410,6 +411,7 @@ cases:
     scenario: "Заявление по гарантии: срок истёк, гарантии у курса нет, подписка закрыта, чужая подписка, пустая причина, нет подписи участника, повторное заявление по той же подписке."
     expect: "Каждый случай — отказ со своим кодом; в цепь и на совет ничего не уходит."
     test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
     status: written
   - id: edu.enroll.side.23
     level: backend
@@ -417,14 +419,16 @@ cases:
     scenario: "Совет отклонил вопрос либо не решил в срок; сбой при вынесении вопроса на совет; решение совета по чужому вопросу и повторное решение."
     expect: "Отклонение и истечение срока закрывают заявление, подписка остаётся; сбой оставляет заявление поданным, очередь довыносит вопрос; чужое и повторное решение заявление не трогают."
     test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
     status: written
   - id: edu.enroll.side.24
     level: backend
     kind: side
     scenario: "Участник отменяет подписку обычным отказом, пока его заявление по гарантии на рассмотрении совета."
     expect: "Отказ отклоняется: два возврата по одной подписке невозможны."
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/guarantee.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
   - id: edu.enroll.ui.06
     level: ui
     kind: happy
