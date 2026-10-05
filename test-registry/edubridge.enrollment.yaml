@@ -41,6 +41,7 @@ cases:
     scenario: Котировка по периоду; паевого не хватает.
     expect: amount по взносу за период, месяцев оплачено — один, enough=false, shortfall = разница, sub_hash детерминирован.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enr.break.01
     level: backend
@@ -48,6 +49,7 @@ cases:
     scenario: Подписка при нехватке паевого.
     expect: BadRequest с подсказкой пополнить главный кошелёк; транзакции нет.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enr.happy.02
     level: backend
@@ -55,6 +57,7 @@ cases:
     scenario: Новая подписка.
     expect: convert + opensub одной транзакцией, статус ACTIVE, доступ PENDING, событие enrollment.opened с trx_id.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enr.happy.03
     level: backend
@@ -82,8 +85,9 @@ cases:
     kind: break
     scenario: Пайщик правит чужого обучающегося / удаляет обучающегося с активной подпиской.
     expect: Forbidden / BadRequest.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/enrollment.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
+    status: written
   - id: edu.enr.happy.04
     level: ui
     kind: happy
@@ -133,6 +137,7 @@ cases:
     scenario: Ученик отменяет подписку до даты активации курса.
     expect: Полная стоимость возвращается на кошелёк программы, подписка закрывается, доступ отзывается.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enroll.break.03
     level: backend
@@ -140,6 +145,7 @@ cases:
     scenario: Отмена чужой подписки и повторная отмена уже отменённой.
     expect: Отказ до обращения в цепь в обоих случаях.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enroll.happy.07
     level: backend
@@ -161,6 +167,7 @@ cases:
     scenario: Отказ в ходе подписки — половина остаточной стоимости по числу проведённых занятий.
     expect: Граница проходит по дате активации; после последнего занятия возврат нулевой.
     test: components/controller/tests/unit/edubridge/refund.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enroll.ui.03
     level: ui
@@ -203,6 +210,7 @@ cases:
     scenario: Остаток кошелька членских взносов программы покрывает взнос целиком.
     expect: Конвертации с паевого нет, в фонд программы уходит полная стоимость подписки.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.enroll.happy.11
     level: backend
@@ -294,6 +302,7 @@ cases:
     scenario: "Второе заявление, пока первое ждёт решения; предпросмотр суммы в паевой."
     expect: "Второе заявление не формируется и не подаётся; предпросмотр — остаток плюс возврат по действующим подпискам."
     test: components/controller/tests/unit/edubridge/return.service.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
     status: passing
   - id: edu.enroll.break.06
     level: backend
@@ -371,6 +380,7 @@ cases:
     scenario: "Выход из кооператива либо из программы при действующих подписках на курсы."
     expect: "Возврат по подпискам на сегодня попадает в заявление 190 строкой кошелька программы; нет подписок либо возврата — строки нет."
     test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
     status: passing
   - id: edu.enroll.contract.08
     level: contract

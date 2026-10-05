@@ -69,6 +69,7 @@ cases:
     scenario: Стол администратора открывает список преподавателей кооператива.
     expect: Каждый подписавший договор виден с именем и фотографией из ядра, номером договора и числом назначений — всего и действующих.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
   - id: edu.teach.side.06
     level: backend
@@ -132,6 +133,7 @@ cases:
     scenario: "Договор УХД двухподписный через одобрение председателя: преподаватель подписывает (signcontract в цепь, PENDING_APPROVAL), пока председатель не подписал — отчёт по занятию и взнос недоступны, хотя допуск к курсу уже есть; коллбэк apprvcontr → ACTIVE, dclinecontr → DECLINED с причиной и повторная подпись; действующий договор повторно не подписывается; документ без подписи преподавателя в цепь не уходит."
     expect: "Статусы переводит только слушатель коллбэков совета; повторная подпись отклонённого договора создаёт новую запись в цепи."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
   - id: edu.teach.side.03
     level: backend
@@ -139,6 +141,7 @@ cases:
     scenario: "Допуск к курсу без документа: назначение создаётся действующим, в цепь ничего не уходит, преподаватель попадает в список «Курс ведут»; снятие допуска закрывает назначение и убирает преподавателя из курса; несуществующее назначение — отказ."
     expect: "Подписи преподавателя и одобрения председателя допуск не требует; действий приложения к договору у расширения нет; снятый допуск сверка по курсу заново не выдаёт."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teach.side.04
     level: backend
@@ -315,6 +318,7 @@ cases:
     scenario: "Заявление о выходе из кооператива подано преподавателем."
     expect: "Подписки закрываются, договор УХД прекращается; сбой прекращения выход не роняет."
     test: components/controller/tests/unit/edubridge/membership-exit.listener.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
     status: passing
   - id: edu.teach.side.17
     level: backend
@@ -350,6 +354,7 @@ cases:
     scenario: "Назначение на курс преподавателя со ставкой выше плановой ставки курса."
     expect: "Отказ: взносы учеников такую ставку не покрывают; со ставкой не выше плановой назначение создаётся."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teach.contract.10
     level: contract
@@ -392,6 +397,7 @@ cases:
     scenario: "Администратор сохраняет курс с преподавателем в «Курс ведут»; при запуске расширение сверяет уже заполненные курсы."
     expect: "Преподаватель сразу получает действующий допуск: расписание курса, период от начала занятий на весь срок программы, ожидаемый результат по учебной программе; уже допущенному — ничего, повторная сверка ничего не создаёт."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teacher.side.sync-01
     level: backend
@@ -399,6 +405,7 @@ cases:
     scenario: "Преподавателя убрали из курса."
     expect: "Действующий допуск снимается; уже снятый повторно не сохраняется; возвращённый в курс получает новый допуск."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teacher.break.sync-01
     level: backend
@@ -406,6 +413,7 @@ cases:
     scenario: "В курс добавлен преподаватель, чья ставка выше плановой ставки курса."
     expect: "Отказ до сохранения курса с объяснением; курс не сохраняется, допуски не выдаются."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teacher.ui.sign-01
     level: ui
@@ -419,6 +427,7 @@ cases:
     scenario: "Первый шаг подключения: преподаватель без договора называет ставку за час и рассказывает о себе; позже правит рассказ, не называя ставку."
     expect: "Профиль сохраняется, рассказ обрезается по краям; правка рассказа оставляет названную ставку; договор берёт ставку из профиля, когда её не передали."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teach.break.profile-01
     level: backend
@@ -426,6 +435,7 @@ cases:
     scenario: "Пустой рассказ о себе; ставка не названа или нулевая; попытка сменить ставку после подписи договора; подпись договора без названной ставки."
     expect: "Отказ с объяснением; профиль не сохраняется, договор в цепь не уходит; закреплённую договором ставку меняет только администратор."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teach.side.profile-01
     level: backend

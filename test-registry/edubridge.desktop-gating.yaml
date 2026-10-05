@@ -25,6 +25,7 @@ cases:
     scenario: Гость (без username) запрашивает стол; ЦПП подключена.
     expect: Гранты edubridge = ['EduCatalog:read']; столы member/teacher скрыты. До подключения ЦПП у гостя грантов нет вовсе.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.gating.happy.02
     level: backend
@@ -39,6 +40,7 @@ cases:
     scenario: ЦПП принята; пайщик без подписанных оферт.
     expect: Гранты содержат 'Onboarding:learner' и 'Onboarding:teacher', рабочих прав learner/teacher нет.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.gating.side.02
     level: backend
@@ -46,6 +48,7 @@ cases:
     scenario: Оферта преподавателя подписана, договор УХД преподавателем ещё не подписан (или отклонён председателем).
     expect: Роли teacher нет, права стола преподавания не выданы, маркер 'Onboarding:teacher' остаётся — шлюз ведёт ко второму шагу (договор). Договор ждёт председателя или действует → роль teacher и стол.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
   - id: edu.gating.side.01
     level: backend
@@ -74,6 +77,7 @@ cases:
     scenario: Матрица доступа — гость, владелец, администратор; столу права отдаются как записаны.
     expect: Гость только EduCatalog:read; контакты и площадки только у владельца; список действий — хотя бы одно; охват :all в :own для стола не разворачивается.
     test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.gating.break.03
     level: backend
@@ -81,6 +85,7 @@ cases:
     scenario: Председатель (владелец программы) без договора преподавателя открывает стол преподавателя.
     expect: Из прав стола преподавателя выдан только маркер подключения; права профиля, назначений, отчётов, взносов и расчёта не выданы — должность личный стол не открывает.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.gating.side.07
     level: backend
@@ -88,6 +93,7 @@ cases:
     scenario: Председатель без оферты ученика открывает стол ученика.
     expect: Каталог курсов и маркер подключения выданы, права страниц «Обучающиеся» и «Подписки» — нет.
     test: components/controller/tests/unit/edubridge/desktop-grants.provider.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.gating.side.08
     level: ui

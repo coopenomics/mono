@@ -28,22 +28,25 @@ cases:
     kind: happy
     scenario: Гость запрашивает каталог и карточку опубликованного курса.
     expect: Список только published; в карточке нет direction/external_ref/status.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
   - id: edu.catalog.side.01
     level: backend
     kind: side
     scenario: Гость запрашивает карточку черновика по прямому id.
     expect: NotFound — черновик для витрины не существует.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
   - id: edu.catalog.break.01
     level: backend
     kind: break
     scenario: Пайщик без EduCourse:manage вызывает edubridgeCreateCourse.
     expect: Forbidden от EdubridgeAccessGuard.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
   - id: edu.catalog.side.02
     level: backend
     kind: side
@@ -78,6 +81,7 @@ cases:
     scenario: В преподаватели курса записан пайщик без договора УХД; несколько преподавателей с договорами.
     expect: Без договора — BadRequest с учётным именем; с договорами — все сохраняются; edubridgeTeacherOptions отдаёт только пайщиков с договором.
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
   - id: edu.catalog.happy.03
     level: ui

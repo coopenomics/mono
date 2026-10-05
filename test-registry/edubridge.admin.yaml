@@ -64,8 +64,9 @@ cases:
     kind: break
     scenario: Администратор (роль admin) вызывает edubridgeConnectors / edubridgeAppointAdmin.
     expect: Forbidden — EduConnector:manage и EduAdmin:manage только у владельца.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/rights.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written
   - id: edu.admin.happy.04
     level: ui
     kind: happy
