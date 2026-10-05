@@ -5,7 +5,7 @@
  * общий хэш выхода; во втором названо, что вернётся по каждой программе.
  */
 import type { Who } from '../core'
-import { COOP, docMeta, gql, signDocument } from '../core'
+import { COOP, docMeta, gql, signDocument, waitFor } from '../core'
 
 const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
   generateMembershipExitApplication(data:$d){ full_title html hash meta binary }
@@ -38,13 +38,9 @@ export interface ExitDocuments {
   annulment?: any
 }
 
-/** Подписанные пайщиком документы выхода под хэшем `exitHash`. */
-export async function exitDocuments(who: Who, token: string, exitHash: string): Promise<ExitDocuments> {
-  const g = await gql<any>(token, GENERATE_APPLICATION, { d: { coopname: COOP, username: who.account, skip_save: false } })
-  const statement = withMeta(await signDocument(who.wif, g.generateMembershipExitApplication, who.account, 1), STATEMENT_META_KEYS)
-
-  const preview = await exitReturnPreview(token, who.account)
-  const programs = (preview.programs as any[])
+/** Программы пайщика с подписанным соглашением — то, что аннулирует выход. */
+function signedPrograms(preview: any): any[] {
+  return (preview.programs as any[])
     .filter(p => Boolean(p.agreement_hash) && p.program_id > 0)
     .map(p => ({
       program_id: p.program_id,
@@ -54,6 +50,27 @@ export async function exitDocuments(who: Who, token: string, exitHash: string): 
       refund: p.refund,
       wallets: (p.wallets as any[]).map(w => ({ wallet_name: w.wallet_name, human_name: w.human_name, balance: w.balance, returns: w.returns })),
     }))
+}
+
+/**
+ * Подписанные пайщиком документы выхода под хэшем `exitHash`.
+ *
+ * `withPrograms` — у пайщика заведомо есть программные соглашения (свежий
+ * пайщик стенда подписывает соглашение «Кошелёк»): помощник дожидается, пока
+ * узел их покажет, чтобы заявление об аннулировании не пропало из-за того, что
+ * подпись соглашения ушла в цепь мимо контроллера и зеркало её ещё не разобрало.
+ */
+export async function exitDocuments(who: Who, token: string, exitHash: string, opts: { withPrograms?: boolean } = {}): Promise<ExitDocuments> {
+  const g = await gql<any>(token, GENERATE_APPLICATION, { d: { coopname: COOP, username: who.account, skip_save: false } })
+  const statement = withMeta(await signDocument(who.wif, g.generateMembershipExitApplication, who.account, 1), STATEMENT_META_KEYS)
+
+  const preview = opts.withPrograms
+    ? await waitFor(async () => {
+      const p = await exitReturnPreview(token, who.account)
+      return signedPrograms(p).length ? p : null
+    }, { timeoutMs: 60_000, intervalMs: 1_000, label: `программные соглашения ${who.account} видны узлу` })
+    : await exitReturnPreview(token, who.account)
+  const programs = signedPrograms(preview)
   if (!programs.length)
     return { statement }
 

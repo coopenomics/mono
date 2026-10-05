@@ -57,7 +57,7 @@ describe('выход пайщика из кооператива', () => {
     chairToken = await tokenOf(CHAIRMAN)
 
     // Заявление на выход и заявление об аннулировании соглашений об участии в программах.
-    documents = await exitDocuments(leaver, leaverToken, exitHash())
+    documents = await exitDocuments(leaver, leaverToken, exitHash(), { withPrograms: true })
   })
 
   const create = (token: string | null, username: string, hash = exitHash()) =>
@@ -196,7 +196,7 @@ describe('выход пайщика: подтверждение по письм�
     leaverToken = await login(leaver)
     await addSbpMethod(leaverToken, leaver.account)
     // Заявление на выход и заявление об аннулировании соглашений об участии в программах.
-    documents = await exitDocuments(leaver, leaverToken, exitHash())
+    documents = await exitDocuments(leaver, leaverToken, exitHash(), { withPrograms: true })
   }, 300_000)
 
   it(caseName('mem.exit.happy.05', 'пайщик подтверждает выход по ссылке из письма — заявление уходит в цепь, ссылка второй раз не работает'), async () => {
