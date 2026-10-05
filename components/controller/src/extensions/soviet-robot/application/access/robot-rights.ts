@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { desktopGrantsOf, type AppRights, type RightsCaller, type RightsTable } from '@coopenomics/extension-kit';
+import { councilRolesOf, desktopGrantsOf, type AppRights, type RightsCaller, type RightsTable } from '@coopenomics/extension-kit';
 import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort } from '@coopenomics/innercoop';
 import { ROBOT_EXTENSION_NAME } from '../../domain/constants';
 
@@ -51,10 +51,7 @@ export const robotRightsTable: RightsTable<RobotRole, never> = {
 
 /** Роли стола по роли пайщика в узле. */
 export function robotRolesOf(role: string | null | undefined): RobotRole[] {
-  const core = String(role ?? '').toLowerCase();
-  if (core === 'chairman') return ['council', 'chairman'];
-  if (core === 'member') return ['council'];
-  return [];
+  return councilRolesOf(role);
 }
 
 /**

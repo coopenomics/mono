@@ -156,7 +156,7 @@ cases:
     level: backend
     kind: side
     scenario: чужой пайщик запрашивает чеки чужого платежа списком и по номеру
-    expect: отказ GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN
+    expect: отказ KIT_RIGHT_SCOPE_OWN — чек читают плательщик и совет, сверку ведёт гард по таблице прав ядра
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing

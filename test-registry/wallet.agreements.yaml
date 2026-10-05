@@ -117,7 +117,7 @@ cases:
     level: backend
     kind: side
     scenario: пайщик подаёт соглашение от имени другого пайщика
-    expect: отказ AGREEMENT_ONLY_FOR_SELF
+    expect: отказ KIT_RIGHT_SCOPE_OWN — имя в запросе сверяет гард по таблице прав ядра
     test: components/api-tests/src/wallet/wallet.agreements.test.ts
     api: components/api-tests/src/wallet/wallet.agreements.test.ts
     status: passing

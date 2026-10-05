@@ -4,6 +4,7 @@ import { AgreementService } from './services/agreement.service';
 import { AgreementInteractor } from './use-cases/agreement.interactor';
 import { DocumentModule } from '~/application/document/document.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль соглашений.
@@ -13,7 +14,7 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
  * Оба репозитория экспортируются глобальным `KyselyModule`.
  */
 @Module({
-  imports: [DocumentModule, DocumentDomainModule],
+  imports: [CoreRightsModule, DocumentModule, DocumentDomainModule],
   controllers: [],
   providers: [AgreementResolver, AgreementService, AgreementInteractor],
   exports: [],

@@ -209,8 +209,8 @@ describe('платежи ядра: паевой платёж, статус, че
   })
 
   it(caseName('pay.core.side.11', 'чужой пайщик не видит чек чужого платежа'), async () => {
-    expect((await gqlError(otherToken, PAYMENT_PROOFS, { c: COOP, h: deposit.hash }))?.code).toBe('GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN')
-    expect((await gqlError(otherToken, PAYMENT_FILE, { id: proofId }))?.code).toBe('GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN')
+    expect((await gqlError(otherToken, PAYMENT_PROOFS, { c: COOP, h: deposit.hash }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, PAYMENT_FILE, { id: proofId }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
   })
 
   it(caseName('pay.core.side.12', 'тот же чек второй раз не прикладывается'), async () => {

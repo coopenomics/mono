@@ -11,9 +11,11 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { GatewayModule } from '~/application/gateway/gateway.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     DocumentDomainModule,
     AccountDomainModule,
     // Сценарии платежей (GATEWAY_INTERACTOR_PORT) раздаёт приложение шлюза.

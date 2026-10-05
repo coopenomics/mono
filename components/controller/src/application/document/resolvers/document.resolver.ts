@@ -3,7 +3,6 @@ import { GetDocumentsInputDTO } from '../dto/get-documents-input.dto';
 import {
   createPaginationResult,
   GqlJwtAuthGuard,
-  RolesGuard,
   CurrentUser,
   GeneratedDocumentDTO,
   DomainError,
@@ -66,7 +65,7 @@ export class DocumentResolver {
     name: 'generateDocument',
     description: 'Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard)
   async generateDocument(
     @Args('input', { type: () => GenerateAnyDocumentInputDTO }) input: GenerateAnyDocumentInputDTO,
     @CurrentUser() currentUser: IMonoAccount

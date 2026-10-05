@@ -9,35 +9,20 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COUNCIL, ROLES, caseName, gql, gqlError, tokenOf, waitFor } from '../core'
-import type { Operation } from '../rights/schema'
-import { SchemaModel } from '../rights/schema'
+import { CHAIRMAN, COUNCIL, ROLES, caseName, gql, tokenOf } from '../core'
+import type { RightsProbe } from '../rights/probe'
+import { NOT_OWN, NO_RIGHT, loadRightsProbe } from '../rights/probe'
 
-const NO_RIGHT = 'KIT_INSUFFICIENT_RIGHTS'
-const NOT_OWN = 'KIT_RIGHT_SCOPE_OWN'
-const THROTTLED = new Set(['429', 'GRAPHQL_RATE_LIMITED', 'THROTTLED'])
 const DESKTOP = 'query{ getDesktop{ workspaces{ name extension_name grants } } }'
 const COUNCIL_PAGES = ['Agenda:read', 'Participant:read:all', 'Document:read:all', 'DocumentTemplate:read', 'Meet:create']
 
 const member: Who = ROLES.member()
 const tokens: Record<string, string> = {}
-let operations: Map<string, Operation>
+let probe: RightsProbe
 
 /** Код отказа операции, вызванной с именем `username` в запросе; null — отказа прав нет. */
-async function rightsDenial(who: Who, name: string, username: string): Promise<string | null> {
-  const op = operations.get(name)
-  if (!op)
-    throw new Error(`операции ${name} нет в схеме`)
-  const variables = structuredClone(op.variables) as { data: Record<string, unknown> }
-  variables.data.username = username
-  // Документы решений ограничены по частоте запросов: на отказ частоты
-  // вызов повторяется, пока сервер не дойдёт до проверки прав.
-  const code = await waitFor(async () => {
-    const err = await gqlError(tokens[who.account], op.document, variables)
-    const got = String(err?.code ?? '')
-    return err?.httpStatus === 429 || THROTTLED.has(got) ? null : got
-  }, { timeoutMs: 90_000, intervalMs: 5_000, label: `ответ ${name} без ограничения частоты` })
-  return code === NO_RIGHT || code.startsWith('KIT_RIGHT_SCOPE_') ? code : null
+function rightsDenial(who: Who, name: string, username: string): Promise<string | null> {
+  return probe.denial(tokens[who.account], name, { 'data.username': username })
 }
 
 async function sovietGrants(who: Who): Promise<string[]> {
@@ -49,7 +34,7 @@ async function sovietGrants(who: Who): Promise<string[]> {
 beforeAll(async () => {
   for (const who of [CHAIRMAN, COUNCIL, member])
     tokens[who.account] = await tokenOf(who)
-  operations = new Map((await SchemaModel.load(tokens[CHAIRMAN.account])).operations().map(o => [o.name, o]))
+  probe = await loadRightsProbe(tokens[CHAIRMAN.account])
 }, 180_000)
 
 describe('ядро, совет: права по таблице', () => {

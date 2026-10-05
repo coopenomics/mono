@@ -10,6 +10,7 @@ import { NotificationEventService } from './services/notification-event.service'
 import { WebPushService } from './services/web-push.service';
 import { AccountDomainModule } from '~/domain/account/account-domain.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль приложения для управления уведомлениями.
@@ -18,7 +19,7 @@ import { UserDomainModule } from '~/domain/user/user-domain.module';
  */
 @Global()
 @Module({
-  imports: [AccountDomainModule, UserDomainModule],
+  imports: [CoreRightsModule, AccountDomainModule, UserDomainModule],
   providers: [
     SubscriptionResolver,
     NotificationResolver,

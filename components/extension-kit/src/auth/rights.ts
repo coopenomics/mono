@@ -386,8 +386,10 @@ async function checkScopeOfSource(input: ScopeCheckInput, source: RightSource | 
 
   let facts: RightFacts[];
   if ('owner' in source) {
+    // Имя не названо — охват «своё» подтвердить нечем: объект без владельца
+    // под правило не подходит, проходит только право на весь кооператив.
     const value = readPath(args, source.owner);
-    facts = value === undefined || value === null ? [] : [{ owner: String(value) }];
+    facts = [value === undefined || value === null || value === '' ? {} : { owner: String(value) }];
   } else if ('ku' in source) {
     const value = readPath(args, source.ku);
     facts = value === undefined || value === null ? [] : [{ ku: String(value) }];

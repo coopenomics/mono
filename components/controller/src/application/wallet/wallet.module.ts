@@ -12,12 +12,14 @@ import { GatewayModule } from '~/application/gateway/gateway.module';
 import { UserInfrastructureModule } from '~/infrastructure/user/user-infrastructure.module';
 import { WalletDomainAdapter } from '~/infrastructure/wallet/adapters/wallet-domain.adapter';
 import { WALLET_DOMAIN_PORT } from '~/domain/wallet/ports/wallet-domain.port';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль wallet для управления выводом средств, депозитными платежами, генерацией документов и программными кошельками
  */
 @Module({
   imports: [
+    CoreRightsModule,
     // Сценарии платежей (GATEWAY_INTERACTOR_PORT) раздаёт приложение шлюза.
     GatewayModule,
     UserInfrastructureModule,

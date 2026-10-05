@@ -71,6 +71,7 @@ import { LoginFactorsService } from './login-2fa/login-factors.service';
 import { LoginTwoFactorController } from './login-2fa/login-two-factor.controller';
 import { KeyRevocationResolver } from './key-revocation/key-revocation.resolver';
 import { ForceRecoveryResolver } from './force-recovery/force-recovery.resolver';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * auth-v2 (CoopID): новый контур аутентификации. Живёт рядом с legacy `auth/`
@@ -79,7 +80,7 @@ import { ForceRecoveryResolver } from './force-recovery/force-recovery.resolver'
  * certificate/id_token — Story 1.8. BLOCKCHAIN_PORT/USER_DOMAIN_SERVICE — @Global.
  */
 @Module({
-  imports: [RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule, AuthMetricsModule, VaultDomainModule, AccountInfrastructureModule],
+  imports: [CoreRightsModule, RedisModule, AuthV2InfrastructureModule, TokenApplicationModule, AuthorizationModule, AuthMetricsModule, VaultDomainModule, AccountInfrastructureModule],
   // SecurityIncidentController/ForceRecoveryController остаются REST только ради magic-link
   // `:token`-эндпоинтов (клик из письма без SDK-контекста); их JWT-методы переведены в
   // GraphQL/SDK (AccountSecurityResolver, KeyRevocationResolver, ForceRecoveryResolver).

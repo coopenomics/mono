@@ -20,9 +20,11 @@ import { VaultDomainModule } from '~/domain/vault/vault-domain.module';
 import { RedisModule } from '~/infrastructure/redis/redis.module';
 import { NodeSyncHealthService } from './services/node-sync-health.service';
 import { NodeSyncResolver } from './resolvers/node-sync.resolver';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     SystemDomainModule,
     RedisModule,
     ProviderModule,

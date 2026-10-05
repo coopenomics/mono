@@ -10,20 +10,21 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Reflector } from '@nestjs/core';
+import { desktopGrantsOf } from '@coopenomics/extension-kit';
+import { coreRolesOf } from '~/application/rights/core-rights';
 import {
-  configureExtensionAuth,
-  desktopGrantsOf,
-  RIGHT_METADATA_KEY,
-  RightsGuard,
-  type IRightRequirement,
-  type RightSource,
-} from '@coopenomics/extension-kit';
-import { CoreRights, coreRolesOf } from '~/application/rights/core-rights';
+  APPLICATION,
+  NO_RIGHT,
+  OWN,
+  candidate,
+  chairman,
+  councilMember,
+  makeGuard,
+  participant,
+  requirementOf,
+  type Caller,
+} from './core-rights.harness';
 
-configureExtensionAuth({ serverSecret: 'svc-secret' });
-
-const APPLICATION = join(__dirname, '../../../src/application');
 const FILES = {
   meet: 'meet/resolvers/meet.resolver.ts',
   freeDecision: 'free-decision/resolvers/free-decision.resolver.ts',
@@ -32,60 +33,6 @@ const FILES = {
   templates: 'document-approval/resolvers/document-approval.resolver.ts',
   document: 'document/resolvers/document.resolver.ts',
 };
-
-/** Источник в коде — литерал объекта или список литералов с одинарными кавычками. */
-function sourceOf(text: string | undefined): RightSource | RightSource[] | undefined {
-  const literal = text?.trim();
-  if (!literal) return undefined;
-  return JSON.parse(literal.replace(/(\w+):/g, '"$1":').replace(/'/g, '"'));
-}
-
-/** Требование права, объявленное у операции в исходнике резолвера. */
-function requirementOf(file: string, operation: string): IRightRequirement {
-  const src = readFileSync(join(APPLICATION, file), 'utf8');
-  const from = src.indexOf(operation.startsWith('async ') ? operation : `name: '${operation}'`);
-  const before = operation.startsWith('async ') ? src.lastIndexOf('@RequireRight(', from) : from;
-  const found = before < 0 ? null : /@RequireRight\('([A-Za-z]+)',\s*(\[[^\]]*\]|'[^']*')\s*(?:,\s*(.*))?\)\n/.exec(src.slice(before));
-  if (!found) throw new Error(`требование права операции ${operation} не найдено в ${file}`);
-  const actions = [...found[2].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-  return { resource: found[1], action: found[2].startsWith('[') ? actions : actions[0], source: sourceOf(found[3]) };
-}
-
-type Caller = { username: string; role: string; status: string };
-const participant: Caller = { username: 'ivan', role: 'user', status: 'active' };
-const candidate: Caller = { username: 'cand', role: 'user', status: 'registered' };
-const councilMember: Caller = { username: 'petr', role: 'member', status: 'active' };
-const chairman: Caller = { username: 'ant', role: 'chairman', status: 'active' };
-
-function makeGuard(meets: Record<string, { presider: string; secretary: string }> = {}) {
-  const registry = { register: jest.fn() };
-  const meetRepo = { findByHash: jest.fn(async (hash: string) => meets[hash] ?? null) };
-  const rights = new CoreRights(registry as any, meetRepo as any);
-  /** Проход гарда; отказ — исключение. */
-  async function pass(requirement: IRightRequirement, caller: Caller | null, args: Record<string, unknown> = {}): Promise<boolean> {
-    const reflector = {
-      getAllAndOverride: jest.fn((key: string) => (key === RIGHT_METADATA_KEY ? requirement : undefined)),
-    } as unknown as Reflector;
-    const guard = new RightsGuard(reflector, rights);
-    const request = { headers: {}, user: caller ?? undefined };
-    const slots = [undefined, args, { req: request }, undefined];
-    const context = {
-      getType: () => 'graphql',
-      getHandler: () => ({ name: 'handler' }),
-      getClass: () => ({ name: 'Resolver' }),
-      getArgs: () => slots,
-      getArgByIndex: (i: number) => slots[i],
-      switchToHttp: () => ({ getRequest: () => request }),
-      switchToRpc: () => undefined,
-      switchToWs: () => undefined,
-    };
-    return guard.canActivate(context as any);
-  }
-  return { pass, rights, registry, meetRepo };
-}
-
-const NO_RIGHT = { code: 'KIT_INSUFFICIENT_RIGHTS' };
-const OWN = { code: 'KIT_RIGHT_SCOPE_OWN' };
 
 describe('роли ядра', () => {
   it('каждый вошедший — учётная запись; принятый — пайщик; совет и председатель — по роли узла', () => {
@@ -199,7 +146,7 @@ describe('собрания: председатель и секретарь со�
 
   // core.rights.side.05
   it('протокол подписывает секретарь собрания на своё имя; остальным отказ', async () => {
-    const { pass } = makeGuard(MEETS);
+    const { pass } = makeGuard({ meets: MEETS });
     const requirement = requirementOf(FILES.meet, 'signBySecretaryOnAnnualGeneralMeet');
     await expect(pass(requirement, councilMember, { data: { hash: 'm1', username: 'petr' } })).resolves.toBe(true);
     await expect(pass(requirement, chairman, { data: { hash: 'm1', username: 'ant' } })).rejects.toMatchObject(OWN);
@@ -209,7 +156,7 @@ describe('собрания: председатель и секретарь со�
 
   // core.rights.side.05
   it('протокол подписывает председатель собрания на своё имя; секретарю отказ', async () => {
-    const { pass } = makeGuard(MEETS);
+    const { pass } = makeGuard({ meets: MEETS });
     const requirement = requirementOf(FILES.meet, 'signByPresiderOnAnnualGeneralMeet');
     await expect(pass(requirement, chairman, { data: { hash: 'm1', username: 'ant' } })).resolves.toBe(true);
     await expect(pass(requirement, councilMember, { data: { hash: 'm1', username: 'petr' } })).rejects.toMatchObject(OWN);
@@ -217,7 +164,7 @@ describe('собрания: председатель и секретарь со�
 
   // core.rights.side.06
   it('документ протокола запрашивают председатель и секретарь собрания; постороннему пайщику отказ', async () => {
-    const { pass } = makeGuard(MEETS);
+    const { pass } = makeGuard({ meets: MEETS });
     const requirement = requirementOf(FILES.meet, 'generateAnnualGeneralMeetDecisionDocument');
     await expect(pass(requirement, chairman, { data: { meet_hash: 'm1', username: 'ant' } })).resolves.toBe(true);
     await expect(pass(requirement, councilMember, { data: { meet_hash: 'm1', username: 'petr' } })).resolves.toBe(true);
@@ -236,7 +183,7 @@ describe('реестр документов', () => {
   // core.rights.happy.04
   it('совет читает документы любого пайщика; остальные вошедшие — свои, включая кандидата', async () => {
     const { pass } = makeGuard();
-    const requirement = requirementOf(FILES.document, 'async getDocuments(');
+    const requirement = requirementOf(FILES.document, 'getDocuments');
     await expect(pass(requirement, councilMember, { data: { username: 'ivan' } })).resolves.toBe(true);
     await expect(pass(requirement, participant, { data: { username: 'ivan' } })).resolves.toBe(true);
     await expect(pass(requirement, candidate, { data: { username: 'cand' } })).resolves.toBe(true);

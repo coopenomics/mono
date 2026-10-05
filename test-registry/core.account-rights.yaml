@@ -1,0 +1,203 @@
+feature: core.account-rights
+title: Ядро — права учётных записей, вступления, кошелька, платежей, участков и настроек по таблице прав
+
+# Остаток ядра переведён с `@AuthRoles` на таблицу прав ядра (C28-87, кусок 2;
+# согласовано владельцем 05.10.2026): 87 операций в 22 резолверах стоят под
+# общим гардом каркаса расширений (`RightsGuard`) над `CoreRights`.
+#
+# Прежний гард ролей пропускал любого вошедшего, когда в запросе названо его
+# имя, а совет — с любым именем. Теперь «своё» — явное право с охватом: имя в
+# запросе сверяется с вошедшим (источник `owner`), запрос без имени охват
+# «своё» не подтверждает. За другого на узле не действует никто; совет читает
+# данные любого пайщика и собирает документы своих решений на имя заявителя.
+# Кандидат и вышедший пайщик сохраняют вступление и свои данные; возврат, взнос
+# и заявление на выход — права принятого пайщика.
+#
+# Чек платежа читают плательщик и совет: сверку ведёт гард по справочнику
+# объектов ядра, проверка роли из сервиса файлов убрана. Страницы столов
+# председателя и пайщика получают права из той же таблицы; страницы без входа
+# называют право «для всех».
+
+sources:
+  backend:
+    - components/controller/src/application/account/resolvers/account.resolver.ts
+    - components/controller/src/application/agreement/resolvers/agreement.resolver.ts
+    - components/controller/src/application/appstore/resolvers/extension.resolver.ts
+    - components/controller/src/application/auth-v2/account-security/account-security.resolver.ts
+    - components/controller/src/application/blockchain-explorer/resolvers/blockchain-explorer.resolver.ts
+    - components/controller/src/application/branch/resolvers/branch.resolver.ts
+    - components/controller/src/application/gateway/resolvers/*.resolver.ts
+    - components/controller/src/application/ledger/resolvers/ledger.resolver.ts
+    - components/controller/src/application/ledger2/resolvers/ledger2.resolver.ts
+    - components/controller/src/application/membership-exit/resolvers/membership-exit.resolver.ts
+    - components/controller/src/application/notification-center/*.resolver.ts
+    - components/controller/src/application/notification/resolvers/*.resolver.ts
+    - components/controller/src/application/onboarding/resolvers/extension-onboarding.resolver.ts
+    - components/controller/src/application/participant/resolvers/participant.resolver.ts
+    - components/controller/src/application/payment-method/resolvers/payment-method.resolver.ts
+    - components/controller/src/application/process-registry/resolvers/process-registry.resolver.ts
+    - components/controller/src/application/provider/resolvers/provider.resolver.ts
+    - components/controller/src/application/registration/resolvers/registration.resolver.ts
+    - components/controller/src/application/system/resolvers/system.resolver.ts
+    - components/controller/src/application/wallet/resolvers/wallet.resolver.ts
+    - components/controller/src/application/desktop/extension-grants.registry.ts
+  ui:
+    - components/desktop/extensions/chairman/install.ts
+    - components/desktop/extensions/participant/install.ts
+
+cases:
+  - id: core.acc.happy.01
+    level: backend
+    kind: happy
+    scenario: кандидат и пайщик читают свою учётную запись, соглашения, платежи, кошельки, анкету вступления, свои процессы; член совета читает то же у любого пайщика
+    expect: "проход: у пайщика по праву с охватом «своё», у совета — по праву на весь кооператив"
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.happy.02
+    level: backend
+    kind: happy
+    scenario: кандидат на своё имя собирает документы вступления и соглашений, подаёт заявление, создаёт вступительный платёж, выбирает участок
+    expect: проход по праву каждого вошедшего с охватом «своё»
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    external: unreachable
+    external_reason: "вступление целиком проходит набор регистрации своими лицами; отдельная проба создала бы на стенде второго кандидата с платежом"
+    status: written
+
+  - id: core.acc.happy.03
+    level: backend
+    kind: happy
+    scenario: кандидат читает входящие уведомления и список участков
+    expect: "проход: это права каждого вошедшего"
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.acc.happy.04
+    level: backend
+    kind: happy
+    scenario: принятый пайщик на своё имя собирает заявление на возврат и на выход, создаёт возврат и взнос, ведёт подписки браузера
+    expect: проход по праву пайщика с охватом «своё»
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    external: unreachable
+    external_reason: "проход создаёт на стенде возврат, взнос и подписку; эти пути проходят наборы кошелька, выхода и уведомлений"
+    status: written
+
+  - id: core.acc.happy.05
+    level: backend
+    kind: happy
+    scenario: член совета и председатель читают реестры пайщиков, главную книгу, обозреватель цепи, журнал уведомлений, процессы, подтверждают соглашения и платежи, добавляют пайщика
+    expect: проход по праву таблицы; рядовой пайщик получает KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.acc.happy.06
+    level: backend
+    kind: happy
+    scenario: гость, кандидат и пайщик открывают стол пайщика
+    expect: гость получает права страниц без входа; кандидат — страницы своих данных; собрания и подключение — страницы принятого пайщика
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.happy.07
+    level: backend
+    kind: happy
+    scenario: на столе председателя сходятся права ядра и права расширения «Председатель»
+    expect: реестр прав столов отдаёт объединение обоих наборов
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.side.01
+    level: backend
+    kind: side
+    scenario: пайщик называет в запросе чужое имя или не называет имени вовсе
+    expect: отказ KIT_RIGHT_SCOPE_OWN; совет без имени читает весь кооператив
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.side.02
+    level: backend
+    kind: side
+    scenario: пайщик, член совета и председатель называют чужое имя в документах вступления и соглашений, заявлении на возврат, взносе, выходе, выборе участка
+    expect: отказ KIT_RIGHT_SCOPE_OWN до входа в операцию; раньше совет проходил узел, и останавливала его цепь
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.side.03
+    level: backend
+    kind: side
+    scenario: кандидат на своё имя создаёт возврат, взнос, заявление на выход, подписку браузера
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — это права принятого пайщика
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.acc.side.04
+    level: backend
+    kind: side
+    scenario: пайщик и кандидат запрашивают на своё имя документ решения совета по заявлению на вступление, возврат, выход
+    expect: отказ KIT_INSUFFICIENT_RIGHTS; совет собирает документ на имя заявителя
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.side.05
+    level: backend
+    kind: side
+    scenario: член совета зовёт операции председателя — участки, приложения, настройки, удаление и правку учётной записи, сброс второго фактора, перенос кошельков, повторную отправку уведомления
+    expect: отказ KIT_INSUFFICIENT_RIGHTS и на своё имя
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.acc.side.06
+    level: backend
+    kind: side
+    scenario: член совета правит способы оплаты другого пайщика
+    expect: отказ KIT_RIGHT_SCOPE_OWN; свои реквизиты ведёт каждый вошедший, чужие — председатель
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: core.acc.side.07
+    level: backend
+    kind: side
+    scenario: пайщик подаёт подписанное соглашение на чужое имя
+    expect: отказ KIT_RIGHT_SCOPE_OWN; совет подаёт за любого пайщика, подпись сверяет операция
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/wallet/wallet.agreements.test.ts
+    status: written
+
+  - id: core.acc.side.08
+    level: backend
+    kind: side
+    scenario: чек платежа читает пайщик, который плательщиком не является
+    expect: отказ KIT_RIGHT_SCOPE_OWN; плательщик и совет чек читают
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/payments/payments.core.test.ts
+    status: written
+
+  - id: core.acc.side.09
+    level: backend
+    kind: side
+    scenario: пайщик запрашивает чеки по номеру платежа, которого нет
+    expect: отказ KIT_RIGHT_SCOPE_OWN — владельца назвать нечем, чужие чеки по номеру не перебираются
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    external: unreachable
+    external_reason: "отказ совпадает с отказом на чужой платёж: снаружи два случая неразличимы, чужой платёж проверяет core.acc.side.08"
+    status: written
+
+  - id: core.acc.side.10
+    level: backend
+    kind: side
+    scenario: член совета и пайщик открывают рабочий стол
+    expect: прав страниц стола председателя нет
+    test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written

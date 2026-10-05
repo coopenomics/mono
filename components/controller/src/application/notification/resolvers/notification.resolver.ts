@@ -2,7 +2,7 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { NotificationService } from '../services/notification.service';
 import { TriggerNotificationWorkflowInputDTO } from '../dto/trigger-notification-workflow-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 /**
  * Резолвер для управления уведомлениями и подписками
  */
@@ -14,8 +14,8 @@ export class NotificationResolver {
     name: 'triggerNotificationWorkflow',
     description: 'Запустить воркфлоу уведомлений (только для председателя или server-secret)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('NotificationJournal', 'resend')
   async triggerNotificationWorkflow(
     @Args('data', { type: () => TriggerNotificationWorkflowInputDTO })
     data: TriggerNotificationWorkflowInputDTO

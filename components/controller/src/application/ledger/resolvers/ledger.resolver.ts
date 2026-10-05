@@ -1,6 +1,6 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { LedgerService } from '../services/ledger.service';
 import { GetLedgerInputDTO } from '../dto/get-ledger-input.dto';
 import { GetLedgerHistoryInputDTO } from '../dto/get-ledger-history-input.dto';
@@ -23,8 +23,8 @@ export class LedgerResolver {
     description:
       'Получить полное состояние плана счетов кооператива. Возвращает все счета из стандартного плана счетов с актуальными данными из блокчейна. Если счет не активен в блокчейне, возвращает нулевые значения.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   async getLedger(
     @Args('data', { type: () => GetLedgerInputDTO })
     data: GetLedgerInputDTO
@@ -40,8 +40,8 @@ export class LedgerResolver {
     description:
       'Получить историю операций по счетам кооператива. Возвращает список операций с возможностью фильтрации по account_id и пагинацией. Операции сортируются по дате создания (новые первыми).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   async getLedgerHistory(
     @Args('data', { type: () => GetLedgerHistoryInputDTO })
     data: GetLedgerHistoryInputDTO

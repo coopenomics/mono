@@ -69,8 +69,28 @@ export interface AppRights<R extends string = string, C extends string = string>
   kus?(username: string): Promise<readonly string[]>;
   /** Участки, где пайщик председатель. */
   chairedKus?(username: string): Promise<readonly string[]>;
+  /**
+   * Права страниц, открытых каждому, включая гостя: страница без входа
+   * называет такое право в `requires`. Операций эти права не открывают.
+   */
+  readonly publicGrants?: readonly string[];
   /** Метки состояния для страниц стола сверх прав таблицы. */
   extraGrants?(caller: RightsCaller, roles: R[], held: ReadonlySet<C>): string[];
+}
+
+/** Исполнители столов совета: член совета и председатель. */
+export type CouncilRole = 'council' | 'chairman';
+
+/**
+ * Роли совета по роли пайщика в узле: председатель — ещё и член совета.
+ * Роль узла следует за составом совета в цепи; совет проходит по роли в любом
+ * статусе учётной записи.
+ */
+export function councilRolesOf(role: string | null | undefined): CouncilRole[] {
+  const core = String(role ?? '').toLowerCase();
+  if (core === 'chairman') return ['council', 'chairman'];
+  if (core === 'member') return ['council'];
+  return [];
 }
 
 /** Исход проверки права операции. */
@@ -210,9 +230,11 @@ export function desktopGrantsOf<R extends string, C extends string>(
   return {
     extensionName: def.extensionName,
     resolveGrants: async (ctx) => {
-      if (!ctx.username) return [];
+      const open = def.publicGrants ?? [];
+      if (!ctx.username) return [...open];
       // Настроек расширения стол мог не передать: тогда условия по ним считаются невыполненными.
-      return desktopGrants(def, { username: ctx.username, role: ctx.userRole, status: ctx.userStatus }, ctx.config ?? null);
+      const held = await desktopGrants(def, { username: ctx.username, role: ctx.userRole, status: ctx.userStatus }, ctx.config ?? null);
+      return open.length > 0 ? [...new Set([...open, ...held])] : held;
     },
   };
 }

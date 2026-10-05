@@ -1,8 +1,17 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { desktopGrantsOf, type AppRights, type RightFacts, type RightsCaller, type RightsTable } from '@coopenomics/extension-kit';
+import {
+  councilRolesOf,
+  desktopGrantsOf,
+  type AppRights,
+  type RightFacts,
+  type RightsCaller,
+  type RightsTable,
+} from '@coopenomics/extension-kit';
 import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { MEET_REPOSITORY, type MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
+import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
+import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/gateway/repositories/payment-file.repository';
 
 /**
  * Исполнители ядра:
@@ -18,19 +27,30 @@ export type CoreRightsRole = 'account' | 'participant' | 'council' | 'chairman';
 /**
  * Таблица прав ядра (C28-87): роль → право `Ресурс:действие`.
  *
- * Сейчас в ней глава совета — общие собрания, решения, повестка, шаблоны
- * документов — и права чтения для страниц стола совета, чьи операции
- * переводятся следующими пунктами (реестры пайщиков, документов, платежей,
- * расходов, кооперативов союза). Следующие главы ядра дописывают свои строки.
+ * Охват «своё» (`:own`) сверяется с именем, названным в запросе: за другого на
+ * узле не действует никто. Совет читает данные любого пайщика (`:all`) и
+ * собирает документы своих решений на имя заявителя.
  */
 export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
   account: [
     {
       when: [],
       rights: {
-        // Свои документы читает каждый вошедший: кандидату нужны документы
-        // вступления, вышедшему пайщику — его прежние.
+        // Свои данные и вступление — каждому вошедшему: кандидат проходит
+        // вступление, вышедший пайщик сохраняет доступ к своим данным.
+        Account: ['read:own'],
         Document: ['read:own'],
+        Agreement: ['read:own', 'generate:own', 'sign:own'],
+        Registration: ['read:own', 'generate:own', 'submit:own', 'pay:own'],
+        BranchChoice: ['select:own'],
+        Branch: ['read'],
+        Payment: ['read:own'],
+        PaymentFile: ['read:own'],
+        PaymentMethod: ['manage:own'],
+        Wallet: ['read:own'],
+        Inbox: ['read:own'],
+        Process: ['read:own'],
+        Card: ['read:own'],
       },
     },
   ],
@@ -41,6 +61,13 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // Собрание видит каждый пайщик; голос, подпись уведомления и подписи
         // председателя и секретаря собрания — только на своё имя.
         Meet: ['read', 'vote:own', 'acknowledge:own', 'sign:own'],
+        Withdraw: ['generate:own', 'create:own'],
+        Deposit: ['create:own'],
+        MembershipExit: ['generate:own'],
+        ProviderPayment: ['generate:own', 'update:own'],
+        ProviderSubscription: ['read:own'],
+        PushSubscription: ['manage:own'],
+        ExtensionOnboarding: ['read'],
       },
     },
   ],
@@ -52,11 +79,31 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         FreeDecision: ['propose', 'generate'],
         Agenda: ['read'],
         DocumentTemplate: ['read'],
-        // Страницы стола совета: операции под ними переводятся с главами ядра
-        // «председатель» и «пайщик», состав читателей тот же.
-        Participant: ['read:all'],
+        // Документы решений совета по заявлениям собираются на имя заявителя.
+        DecisionDocument: ['generate'],
+        Account: ['read:all'],
+        Participant: ['read:all', 'create'],
         Document: ['read:all'],
-        Payment: ['read:all'],
+        // Соглашение, подписанное ключом пайщика, совет вправе подать за него:
+        // подпись сверяет сама операция.
+        Agreement: ['read:all', 'sign:all', 'confirm'],
+        Registration: ['read:all'],
+        Payment: ['read:all', 'confirm'],
+        PaymentFile: ['read:all', 'upload'],
+        Wallet: ['read:all'],
+        Process: ['read:all'],
+        Ledger: ['read'],
+        Chain: ['read'],
+        NotificationJournal: ['read'],
+        Extension: ['read'],
+        // Совет проходит по роли в любом статусе учётной записи, поэтому права
+        // пайщика, нужные столу совета, названы здесь повторно.
+        ProviderSubscription: ['read:own', 'read:all'],
+        ProviderPayment: ['generate:own', 'update:own'],
+        PushSubscription: ['manage:own'],
+        ExtensionOnboarding: ['read'],
+        // Страницы стола совета, операции под которыми переводятся со своими
+        // приложениями (расходы, кооперативы союза).
         Expense: ['read:all'],
         Union: ['read'],
       },
@@ -69,23 +116,36 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Meet: ['restart'],
         Decision: ['authorize'],
         DocumentTemplate: ['propose'],
+        Account: ['update', 'delete'],
+        TwoFactor: ['read', 'reset'],
+        Branch: ['manage'],
+        Extension: ['manage'],
+        ExtensionOnboarding: ['manage'],
+        PaymentMethod: ['manage:all'],
+        Ledger: ['move'],
+        System: ['manage'],
+        NotificationJournal: ['resend'],
+        PushSubscription: ['read'],
       },
     },
   ],
 };
 
+/**
+ * Права страниц, открытых без входа: контакты кооператива и подтверждение
+ * выхода по ссылке из письма.
+ */
+export const corePublicGrants: readonly string[] = ['Cooperative:read', 'MembershipExit:confirm'];
+
 /** Роли ядра по роли и статусу пайщика в узле. */
 export function coreRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): CoreRightsRole[] {
   const roles: CoreRightsRole[] = ['account'];
   if (caller.status === MonoAccountStatus.Active) roles.push('participant');
-  const core = String(caller.role ?? '').toLowerCase();
-  if (core === 'member' || core === 'chairman') roles.push('council');
-  if (core === 'chairman') roles.push('chairman');
-  return roles;
+  return [...roles, ...councilRolesOf(caller.role)];
 }
 
 /** Столы ядра, права страниц которых выдаются из этой таблицы. */
-const CORE_DESKTOPS = ['soviet'];
+const CORE_DESKTOPS = ['soviet', 'chairman', 'participant'];
 
 /**
  * Описание прав ядра: по нему работают общий гард операций ядра (`RightsGuard`)
@@ -95,10 +155,26 @@ const CORE_DESKTOPS = ['soviet'];
 export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleInit {
   readonly extensionName = 'core';
   readonly table = coreRightsTable;
+  readonly publicGrants = corePublicGrants;
+
+  /**
+   * Справочник объектов ядра: вид объекта → его владельцы по номеру.
+   * Собрание называет председателя и секретаря; платёж и файл платежа —
+   * плательщика.
+   */
+  private readonly locators: Readonly<Record<string, (id: string) => Promise<RightFacts[]>>> = {
+    MeetPresider: (hash) => this.meetOfficers(hash, ['presider']),
+    MeetSecretary: (hash) => this.meetOfficers(hash, ['secretary']),
+    MeetOfficer: (hash) => this.meetOfficers(hash, ['presider', 'secretary']),
+    Payment: (hash) => this.paymentOwner(hash),
+    PaymentFile: (id) => this.paymentFileOwner(id),
+  };
 
   constructor(
     private readonly grantsRegistry: ExtensionGrantsRegistry,
-    @Inject(MEET_REPOSITORY) private readonly meets: MeetPreProcessingRepository
+    @Inject(MEET_REPOSITORY) private readonly meets: MeetPreProcessingRepository,
+    @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository,
+    @Inject(PAYMENT_FILE_REPOSITORY) private readonly paymentFiles: PaymentFileRepository
   ) {}
 
   onModuleInit(): void {
@@ -112,22 +188,32 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
     return coreRolesOf(caller);
   }
 
-  /**
-   * Справочник объектов ядра. Собрание называет председателя и секретаря:
-   * `MeetPresider` и `MeetSecretary` отдают одного, `MeetOfficer` — обоих.
-   */
   async locate(kind: string, ids: string[]): Promise<RightFacts[]> {
-    const found = await Promise.all(ids.map((hash) => this.meetOfficers(kind, hash)));
-    return found.flat();
+    const locator = this.locators[kind];
+    if (!locator) {
+      // i18n-ignore: ошибка разработчика — вид объекта назван в декораторе операции, пайщик этот текст не видит
+      throw new Error(`Справочник объектов ядра не знает вид «${kind}»`);
+    }
+    return (await Promise.all(ids.map((id) => locator(id)))).flat();
   }
 
-  private async meetOfficers(kind: string, hash: string): Promise<RightFacts[]> {
+  private async meetOfficers(hash: string, officers: ('presider' | 'secretary')[]): Promise<RightFacts[]> {
     const meet = await this.meets.findByHash(hash);
-    if (!meet) return [];
-    if (kind === 'MeetPresider') return [{ owner: meet.presider }];
-    if (kind === 'MeetSecretary') return [{ owner: meet.secretary }];
-    if (kind === 'MeetOfficer') return [{ owner: meet.presider }, { owner: meet.secretary }];
-    // i18n-ignore: ошибка разработчика — вид объекта назван в декораторе операции, пайщик этот текст не видит
-    throw new Error(`Справочник объектов ядра не знает вид «${kind}»`);
+    return meet ? officers.map((officer) => ({ owner: meet[officer] })) : [];
+  }
+
+  /**
+   * Плательщик платежа. Платежа с таким номером нет — владельца назвать
+   * нечем, и узкий охват не подтверждается: чужие чеки не перебираются по номеру.
+   */
+  private async paymentOwner(hash: string): Promise<RightFacts[]> {
+    const payment = await this.payments.findByHash(hash);
+    return [payment?.username ? { owner: payment.username } : {}];
+  }
+
+  /** Файла с таким номером нет — «не найдено» отвечает сама операция. */
+  private async paymentFileOwner(id: string): Promise<RightFacts[]> {
+    const file = await this.paymentFiles.findById(Number(id));
+    return file ? this.paymentOwner(file.payment_hash) : [];
   }
 }

@@ -79,7 +79,7 @@ const MAKERS: { name: string, make: () => Promise<Who> }[] = [
       // Статус «принят» снимает слушатель события цепи — после разбора блока.
       await waitFor(async () => {
         const r = await gqlRaw(token, 'query($d:GetMeetsInput!){ getMeets(data:$d){ hash } }', { d: { coopname: COOP } })
-        return r.errors[0]?.code === 'KIT_MEMBERS_ONLY' ? true : null
+        return r.errors[0]?.code === 'KIT_INSUFFICIENT_RIGHTS' ? true : null
       }, { timeoutMs: 60_000, intervalMs: 2_000, label: `учётная запись ${who.account} потеряла статус «принят»` })
       return who
     },
