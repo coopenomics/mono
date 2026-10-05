@@ -146,6 +146,13 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     );
   }
 
+  async withdrawShare(data: EdubridgeContract.Actions.Wthshare.IWthshare): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Wthshare.actionName, { ...data, statement: this.chainDoc(data.statement) }, data.coopname)
+    );
+  }
+
   async submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(

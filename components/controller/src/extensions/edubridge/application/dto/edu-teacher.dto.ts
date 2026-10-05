@@ -187,6 +187,18 @@ export class EduSubmitContributionInputDTO {
   @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
 }
 
+@InputType('EduShareWithdrawStatementInput')
+export class EduShareWithdrawStatementInputDTO {
+  @Field(() => String, { description: 'Сумма перевода в Цифровой Кошелёк, с валютой' }) @IsString() @Length(1, 64) amount!: string;
+}
+
+@InputType('EduWithdrawShareInput')
+export class EduWithdrawShareInputDTO {
+  @Field(() => String, { description: 'Сумма перевода в Цифровой Кошелёк, с валютой' }) @IsString() @Length(1, 64) amount!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о трансляции паевого взноса (3015)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
+}
+
 @InputType('EduSignActInput')
 export class EduSignActInputDTO {
   @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;
@@ -211,6 +223,7 @@ export class EduDeclineContributionInputDTO {
 @ObjectType('EduTeacherSettlement')
 export class EduTeacherSettlementDTO {
   @Field(() => String, { description: 'Принято советом взносов РИД на сумму' }) accepted_total!: string;
+  @Field(() => String, { description: 'Паевой взнос по программе «Образование», доступный для перевода в Цифровой Кошелёк' }) program_share!: string;
   @Field(() => String, { description: 'Доступно в главном паевом кошельке (право требования)' }) available!: string;
   @Field(() => Date, { nullable: true, description: 'Дата последнего принятого взноса' }) last_accepted_at!: Date | null;
 }

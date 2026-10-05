@@ -35,14 +35,16 @@ using namespace Edubridge;
  *    истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (5 actions): holdrid, submitrid, acceptrid, declinerid,
- *    recallrid — преподаватель отчитывается по занятию и передаёт материалы
- *    на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по истечении
- *    гарантийного срока курса заявление уходит в совет, и по решению с актом
- *    результат принимается в паевой фонд (o.edu.rid, Дт 04 / Кт 08, и
- *    o.edu.ridshr, w.edu.hold → w.wal.share, Дт 76 / Кт 80). Рекламация
- *    внутри срока и отказ совета снимают материалы с хранения
- *    (o.edu.retrid, Дт 76 / Кт 08).
+ *  - **p.edu.rid** (6 actions): holdrid, submitrid, acceptrid, declinerid,
+ *    recallrid, wthshare — преподаватель отчитывается по занятию и передаёт
+ *    материалы на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по
+ *    истечении гарантийного срока курса заявление уходит в совет, и по
+ *    решению с актом результат принимается в паевой фонд (o.edu.rid,
+ *    Дт 04 / Кт 08, и o.edu.ridshr, w.edu.hold → w.edu.share, Дт 76 / Кт 80).
+ *    Рекламация внутри срока и отказ совета снимают материалы с хранения
+ *    (o.edu.retrid, Дт 76 / Кт 08). Паевой взнос с кошелька программы
+ *    преподаватель переводит в ЦПП «Цифровой Кошелёк» своим заявлением
+ *    (o.edu.wthshr, w.edu.share → w.wal.share).
  *  - **p.edu.teach** (4 actions): signcontract, apprvcontr, dclinecontr,
  *    termcontract — договор УХД преподавателя подписывается двумя сторонами:
  *    первая подпись преподавателя, вторая — председателя совета через
@@ -279,7 +281,7 @@ public:
   /**
    * @brief Приём РИД в паевой фонд по Протоколу совета (3009) и Акту
    * приёма-передачи (3010). Два шага ledger2: o.edu.rid (Дт 04 / Кт 08) и
-   * o.edu.ridshr (TRANSFER w.edu.hold → w.wal.share, Дт 76 / Кт 80).
+   * o.edu.ridshr (TRANSFER w.edu.hold → w.edu.share, Дт 76 / Кт 80).
    * Запись стирается.
    * @ingroup public_edubridge_actions
    */
@@ -306,6 +308,19 @@ public:
   [[eosio::action]] void recallrid(eosio::name coopname,
                                    checksum256 rid_hash,
                                    std::string reason);
+
+  /**
+   * @brief Трансляция паевого взноса преподавателя из ЦПП «Образование» в
+   * ЦПП «Цифровой Кошелёк» по его Заявлению (шаблон 3015), на весь остаток
+   * или его часть. Один шаг ledger2: o.edu.wthshr (TRANSFER w.edu.share →
+   * w.wal.share, без проводки). Возврат паевого взноса идёт уже с Цифрового
+   * Кошелька штатным заявлением о возврате.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void wthshare(eosio::name coopname,
+                                  eosio::name username,
+                                  eosio::asset amount,
+                                  document2 statement);
 
   // ── p.edu.teach ──────────────────────────────────────────────────────
 

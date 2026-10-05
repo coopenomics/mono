@@ -258,6 +258,7 @@ export class Generator implements IGenerator {
       [Actions.EducationConvertStatement.Template.registry_id]: new Actions.EducationConvertStatement.Factory(this.storage), // 3011
       [Actions.EducationGuaranteeStatement.Template.registry_id]: new Actions.EducationGuaranteeStatement.Factory(this.storage), // 3013 — заявление об аннулировании Подписки по Гарантийным условиям
       [Actions.EducationGuaranteeDecision.Template.registry_id]: new Actions.EducationGuaranteeDecision.Factory(this.storage), // 3014 — протокол совета по заявлению 3013
+      [Actions.EducationShareWithdrawStatement.Template.registry_id]: new Actions.EducationShareWithdrawStatement.Factory(this.storage), // 3015 — заявление о трансляции паевого взноса в Цифровой Кошелёк
       // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
       [Actions.MarketplaceShareReturnStatement.Template.registry_id]: new Actions.MarketplaceShareReturnStatement.Factory(this.storage), // 1113
       [Actions.MarketplaceShareReturnDecision.Template.registry_id]: new Actions.MarketplaceShareReturnDecision.Factory(this.storage), // 1114

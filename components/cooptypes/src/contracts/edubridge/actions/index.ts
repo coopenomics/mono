@@ -72,6 +72,11 @@ export * as Declinerid from './declinerid'
  */
 export * as Recallrid from './recallrid'
 
+/**
+ * Трансляция паевого взноса преподавателя в «Цифровой Кошелёк»: o.edu.wthshr.
+ */
+export * as Wthshare from './wthshare'
+
 // ── p.edu.teach (договор УХД и приложения через одобрение председателя) ──
 
 /**

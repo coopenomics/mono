@@ -73,6 +73,25 @@ export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.E
 export const revokeContribution = (data: { contribution_id: string; reason: string }) =>
   m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
+
+/**
+ * Трансляция паевого взноса по программе в Цифровой Кошелёк: заявление (3015)
+ * на названную сумму подписывает преподаватель, перевод проводит кооператив.
+ */
+export async function withdrawShare(amount: string): Promise<ISettlement> {
+  const { username } = who();
+  const statementInput: Mutations.Edubridge.ShareWithdrawStatement.IInput['data'] = { amount };
+  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(
+    Mutations.Edubridge.ShareWithdrawStatement.mutation,
+    Mutations.Edubridge.ShareWithdrawStatement.name,
+    { data: statementInput }
+  );
+  const doc = new DigitalDocument(generated as never);
+  await doc.sign(username);
+  if (!doc.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
+  const data: Mutations.Edubridge.WithdrawShare.IInput['data'] = { amount, document: doc.signedDocument };
+  return m<ISettlement>(Mutations.Edubridge.WithdrawShare.mutation, Mutations.Edubridge.WithdrawShare.name, { data });
+}
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
 /** Подписанный договор преподавателя для просмотра; `null` — документ у договора не сохранён. */
 export const fetchTeacherContractDocument = (username: string) =>

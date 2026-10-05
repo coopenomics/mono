@@ -58,6 +58,11 @@ static constexpr ExitWalletRule EXIT_WALLET_POLICY[] = {
   { ledger2_wallets::MARKETPLACE_SHARE_FUND, ExitWalletPolicy::RETURN_TO_MAIN,
     operations::marketplace::RECALL_SHARE,
     "Свободный паевой взнос ЦПП «Стол заказов»" },
+  // «Образование», преподаватель: п. 9.8 договора участия в хозяйственной
+  // деятельности — при выходе баланс договора переносится на Цифровой Кошелёк.
+  { ledger2_wallets::EDU_SHARE_FUND, ExitWalletPolicy::RETURN_TO_MAIN,
+    operations::edubridge::WITHDRAW_EDU_SHARE,
+    "Паевой взнос преподавателя по ЦПП «Образование» (п. 9.8 договора)" },
 
   // --- Членские взносы: возвратность решает Положение программы -----------
   // «Образование»: п. 4.2.5 Положения возвращает взнос участнику на кошелёк

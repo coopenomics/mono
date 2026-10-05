@@ -63,7 +63,7 @@ describe('EdubridgeDesktopGrantsProvider', () => {
     expect(grants).toContain('Onboarding:teacher');
     expect(grants).toContain('EduAssignment:manage');
     // Права страниц стола преподавателя: профиль и назначения, отчёты, взносы, расчёт.
-    for (const own of ['EduAssignment:read:own', 'EduContribution:create:own', 'EduContribution:read:own', 'EduTeacherWallet:read:own']) {
+    for (const own of ['EduAssignment:read:own', 'EduContribution:create:own', 'EduContribution:read:own', 'EduTeacherWallet:read:own', 'EduTeacherWallet:manage:own']) {
       expect(grants).not.toContain(own);
     }
   });

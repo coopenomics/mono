@@ -47,6 +47,10 @@ export * as SubmitContribution from './submitContribution'
 export * as RidAct from './ridAct'
 /** Подписать акт приёма-передачи */
 export * as SignAct from './signAct'
+/** Заявление о трансляции паевого взноса в Цифровой Кошелёк для подписи */
+export * as ShareWithdrawStatement from './shareWithdrawStatement'
+/** Перевести паевой взнос по программе в Цифровой Кошелёк */
+export * as WithdrawShare from './withdrawShare'
 /** Назначить преподавателю курс */
 export * as CreateAssignment from './createAssignment'
 /** Закрыть назначение */

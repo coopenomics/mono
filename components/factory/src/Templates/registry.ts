@@ -102,6 +102,7 @@ import * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 import * as EducationConvertStatement from './3011.EducationConvertStatement'
 import * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
 import * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
+import * as EducationShareWithdrawStatement from './3015.EducationShareWithdrawStatement'
 
 export const Registry = {
   1: WalletAgreement,
@@ -194,4 +195,5 @@ export const Registry = {
   3011: EducationConvertStatement,
   3013: EducationGuaranteeStatement,
   3014: EducationGuaranteeDecision,
+  3015: EducationShareWithdrawStatement,
 }

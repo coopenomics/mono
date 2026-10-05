@@ -44,7 +44,7 @@ const DISMISS_ADMIN = 'mutation($d:EduAdminInput!){ edubridgeDismissAdmin(data:$
 
 /** Права страниц ученика и преподавателя — их открывает подключение, а не должность. */
 const LEARNER_DESK = ['EduLearner:read:own', 'EduLearner:manage:own', 'EduEnrollment:read:own', 'EduEnrollment:create:own']
-const TEACHER_DESK = ['EduAssignment:read:own', 'EduContribution:read:own', 'EduContribution:create:own', 'EduTeacherWallet:read:own']
+const TEACHER_DESK = ['EduAssignment:read:own', 'EduContribution:read:own', 'EduContribution:create:own', 'EduTeacherWallet:read:own', 'EduTeacherWallet:manage:own']
 /** Управление программой: то, что делят председатель, совет и администратор. */
 const ADMIN_DESK = ['EduCourse:manage', 'EduRegistry:read', 'EduQueue:read', 'EduAssignment:manage', 'EduEconomy:manage']
 /** Только у председателя. */

@@ -51,7 +51,7 @@ const rawContributionSelector = {
 const _validateContribution: MakeAllFieldsRequired<ValueTypes['EduContribution']> = rawContributionSelector
 export const eduContributionSelector = Selector('EduContribution')(rawContributionSelector)
 
-const rawSettlementSelector = { accepted_total: true, available: true, last_accepted_at: true }
+const rawSettlementSelector = { accepted_total: true, program_share: true, available: true, last_accepted_at: true }
 const _validateSettlement: MakeAllFieldsRequired<ValueTypes['EduTeacherSettlement']> = rawSettlementSelector
 export const eduTeacherSettlementSelector = Selector('EduTeacherSettlement')(rawSettlementSelector)
 

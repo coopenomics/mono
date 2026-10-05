@@ -79,7 +79,7 @@ cases:
     level: backend
     kind: happy
     scenario: Таблица политики кошельков при выходе.
-    expect: Возвращаются минимальный и главный паевой, Благорост, паевой Стола заказов и членский взнос «Образования»; главный паевой ровно один.
+    expect: Возвращаются минимальный и главный паевой, Благорост, паевой Стола заказов, членский взнос и паевой взнос преподавателя «Образования»; главный паевой ровно один.
     test: components/cooptypes/test/wallets-registry.snapshot.test.ts
     status: passing
   - id: exit.wallets.break.01
@@ -101,6 +101,13 @@ cases:
     kind: happy
     scenario: Совет одобрил выход пайщика с остатком на кошельке членских взносов «Образования».
     expect: "confirmexit сводит остаток на главный паевой операцией o.edu.retshr и включает его в сумму платежа."
+    test: ~
+    status: missing
+  - id: exit.chain.happy.02
+    level: contract
+    kind: happy
+    scenario: Совет одобрил выход преподавателя с остатком паевого взноса по программе «Образование».
+    expect: "confirmexit сводит остаток w.edu.share на главный паевой операцией o.edu.wthshr и включает его в сумму платежа."
     test: ~
     status: missing
   - id: exit.chain.break.01

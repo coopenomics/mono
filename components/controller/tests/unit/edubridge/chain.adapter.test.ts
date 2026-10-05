@@ -27,6 +27,15 @@ describe('EdubridgeChainAdapter — документ в цепь', () => {
     expect(chain.transact.mock.calls[0][0].data.statement.meta).toBe('{"s":1}');
   });
 
+  it('wthshare уходит действием edubridge::wthshare с заявлением, meta — строкой JSON', async () => {
+    const { adapter, chain } = make();
+    await adapter.withdrawShare({ coopname: 'voskhod', username: 'ant', amount: '1.0000 RUB', statement: doc({ amount: '1.0000 RUB' }) } as any);
+    const action = chain.transact.mock.calls[0][0];
+    expect(action.name).toBe('wthshare');
+    expect(action.data.amount).toBe('1.0000 RUB');
+    expect(action.data.statement.meta).toBe('{"amount":"1.0000 RUB"}');
+  });
+
   it('допуск к курсу в цепь не уходит — действия для приложения к договору у адаптера нет', () => {
     const { adapter } = make();
     expect((adapter as any).signAnnex).toBeUndefined();

@@ -384,9 +384,16 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     human_name: 'Приём результата интеллектуальной деятельности преподавателя в состав нематериальных активов' },
 
   { code: 'o.edu.ridshr',  process_type: 'p.edu.rid',     contract: 'edubridge',
-    name: 'SETTLE_EDU_RID', wallet_op: 'TRANSFER', wallet_from: 'w.edu.hold', wallet_to: 'w.wal.share',
+    name: 'SETTLE_EDU_RID', wallet_op: 'TRANSFER', wallet_from: 'w.edu.hold', wallet_to: 'w.edu.share',
     debit: 76, credit: 80,
     human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
+
+  // Паевой взнос с кошелька программы преподаватель переводит в «Цифровой
+  // Кошелёк» своим заявлением; возврат паевого взноса идёт уже оттуда.
+  { code: 'o.edu.wthshr',  process_type: 'p.edu.rid',     contract: 'edubridge',
+    name: 'WITHDRAW_EDU_SHARE', wallet_op: 'TRANSFER', wallet_from: 'w.edu.share', wallet_to: 'w.wal.share',
+    debit: null, credit: null,
+    human_name: 'Трансляция паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк»' },
 
   { code: 'o.edu.settle',  process_type: 'p.edu.rid',     contract: 'edubridge',
     name: 'SETTLE_TEACHER_RESERVE', wallet_op: 'BURN', wallet_from: 'w.edu.teach', wallet_to: null,

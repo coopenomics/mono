@@ -139,6 +139,13 @@ export interface IRetshare {
   statement: IDocument2
 }
 
+export interface IWthshare {
+  coopname: IName
+  username: IName
+  amount: IAsset
+  statement: IDocument2
+}
+
 export interface IOpensub {
   coopname: IName
   username: IName

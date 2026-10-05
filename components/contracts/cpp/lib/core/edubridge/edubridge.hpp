@@ -161,6 +161,10 @@ namespace Memo {
            std::to_string(rid_id) + " и решению совета";
   }
 
+  inline std::string get_withdraw_share_memo() {
+    return "Трансляция паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк» по заявлению пайщика";
+  }
+
   inline std::string get_release_rid_memo(uint64_t rid_id, const std::string& reason) {
     return "Снятие материалов занятия № " + std::to_string(rid_id) +
            " с ответственного хранения: " + reason;

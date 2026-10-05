@@ -57,6 +57,8 @@ import {
 import { t } from '../../i18n';
 
 const SHARE_WALLET = 'w.wal.share';
+/** Паевой взнос преподавателя по программе — сюда зачисляется принятый результат. */
+const PROGRAM_SHARE_WALLET = 'w.edu.share';
 /** Одно поле vars под все решения о РИД — ядро пишет туда номер и дату последнего решения. */
 const RID_VARS_FIELD = 'education_rid_decision';
 /** Договор в этих статусах не действует, и преподаватель подписывает его заново. */
@@ -76,11 +78,23 @@ const MAX_LESSON_STRETCH = 2;
 /** Ответ цепи на повторную подачу заявления по тем же материалам. */
 const ALREADY_SUBMITTED = /уже подано/i;
 
+/** Сумма, на которую подписано заявление о трансляции паевого взноса. */
+function statementAmount(document: ISignedDocument): string {
+  const raw = document.meta as unknown;
+  try {
+    const meta = (typeof raw === 'string' ? JSON.parse(raw) : raw ?? {}) as Record<string, unknown>;
+    return String(meta.amount ?? '');
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Преподавательский контур: ДУХД → допуск к курсу (назначение) → взнос РИД по
  * заявлению → решение совета (платформенный проект свободного решения) →
- * акт приёма-передачи → `acceptrid` (проводка Дт 04 / Кт 80, право требования
- * в главном паевом кошельке; возврат — штатным механизмом платформы).
+ * акт приёма-передачи → `acceptrid` (Дт 04 / Кт 08 и Дт 76 / Кт 80, паевой
+ * взнос на кошельке программы) → заявление о трансляции в «Цифровой Кошелёк»
+ * (`wthshare`); возврат паевого взноса — оттуда штатным механизмом платформы.
  *
  * Договор УХД — двухподписный, как в «Благоросте»: преподаватель подписывает
  * первым (`signcontract`), контракт ставит документ в очередь одобрений
@@ -1006,13 +1020,65 @@ export class EdubridgeTeacherService {
     const accepted = await this.teachers.listContributions(coopname, { teacher, statuses: [EduContributionStatus.ACCEPTED] });
     const symbol = accepted[0]?.amount.split(' ')[1] ?? platformSettings().blockchain.rootGovernSymbol;
     const total = accepted.reduce((s, c) => s + parseFloat(c.amount), 0);
-    const wallet = await this.wallets.findByWalletAndUsername(coopname, SHARE_WALLET, teacher);
-    const available = Number.parseFloat(wallet?.available ?? '0');
+    const [programShare, available] = await Promise.all([
+      this.walletAvailable(coopname, PROGRAM_SHARE_WALLET, teacher),
+      this.walletAvailable(coopname, SHARE_WALLET, teacher),
+    ]);
     return {
       accepted_total: `${total.toFixed(4)} ${symbol}`,
-      available: `${(Number.isNaN(available) ? 0 : available).toFixed(4)} ${symbol}`,
+      program_share: `${programShare.toFixed(4)} ${symbol}`,
+      available: `${available.toFixed(4)} ${symbol}`,
       last_accepted_at: accepted.map((c) => c.decided_at).filter(Boolean).sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] ?? null,
     };
+  }
+
+  private async walletAvailable(coopname: string, walletName: string, username: string): Promise<number> {
+    const wallet = await this.wallets.findByWalletAndUsername(coopname, walletName, username);
+    const available = Number.parseFloat(wallet?.available ?? '0');
+    return Number.isNaN(available) ? 0 : available;
+  }
+
+  // ── Трансляция паевого взноса в «Цифровой Кошелёк» ─────────────────────────
+  /** Заявление о трансляции паевого взноса (3015) без подписи — на сумму, которую назвал преподаватель. */
+  async shareWithdrawStatement(coopname: string, teacher: string, amount: string): Promise<InnerGeneratedDocument> {
+    const asset = await this.withdrawableAmount(coopname, teacher, amount);
+    const action: Cooperative.Registry.EducationShareWithdrawStatement.Action = {
+      registry_id: Cooperative.Registry.EducationShareWithdrawStatement.registry_id,
+      coopname,
+      username: teacher,
+      lang: 'ru',
+      amount: asset,
+      skip_save: false,
+    };
+    return this.documents.generate({ data: action });
+  }
+
+  /**
+   * Трансляция по подписанному заявлению: `wthshare` в цепь, сумма переходит с
+   * паевого кошелька программы на главный паевой. Возврат паевого взноса
+   * преподаватель оформляет уже в «Цифровом Кошельке».
+   */
+  async withdrawShare(coopname: string, teacher: string, amount: string, document: ISignedDocument): Promise<EduTeacherSettlementDTO> {
+    const asset = await this.withdrawableAmount(coopname, teacher, amount);
+    // Преподаватель подписал заявление на конкретную сумму: в цепь уходит она же.
+    if (statementAmount(document) !== asset) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE');
+    await this.chain.withdrawShare({ coopname, username: teacher, amount: asset, statement: document } as never);
+    this.logger.info(`[EDU.RID] паевой взнос ${asset} преподавателя ${teacher} транслирован в Цифровой Кошелёк`);
+    return this.settlement(coopname, teacher);
+  }
+
+  /** Сумма трансляции в виде цепи: больше нуля и не больше остатка паевого кошелька программы. */
+  private async withdrawableAmount(coopname: string, teacher: string, amount: string): Promise<string> {
+    const { rootGovernSymbol, rootGovernPrecision } = platformSettings().blockchain;
+    const [value, symbol] = amount.trim().split(/\s+/);
+    const parsed = Number.parseFloat(value ?? '');
+    if (!Number.isFinite(parsed) || parsed <= 0 || (symbol && symbol !== rootGovernSymbol)) {
+      throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_AMOUNT_INVALID');
+    }
+    const asset = `${parsed.toFixed(rootGovernPrecision)} ${rootGovernSymbol}`;
+    const programShare = await this.walletAvailable(coopname, PROGRAM_SHARE_WALLET, teacher);
+    if (Number.parseFloat(asset) > programShare) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_INSUFFICIENT');
+    return asset;
   }
 
   private async ownContribution(coopname: string, teacher: string, id: string): Promise<EdubridgeContributionRecord> {

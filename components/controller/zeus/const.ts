@@ -730,6 +730,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduSetTeacherRateInput:{
 
 	},
+	EduShareWithdrawStatementInput:{
+
+	},
 	EduSignActInput:{
 		document:"SignedDigitalDocumentInput"
 	},
@@ -760,6 +763,9 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
+	},
+	EduWithdrawShareInput:{
+		document:"SignedDigitalDocumentInput"
 	},
 	EntrepreneurDetailsInput:{
 
@@ -2127,6 +2133,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeSetTeacherRate:{
 			data:"EduSetTeacherRateInput"
 		},
+		edubridgeShareWithdrawStatement:{
+			data:"EduShareWithdrawStatementInput"
+		},
 		edubridgeSignAct:{
 			data:"EduSignActInput"
 		},
@@ -2153,6 +2162,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeUpdateLearner:{
 			data:"EduUpdateLearnerInput"
+		},
+		edubridgeWithdrawShare:{
+			data:"EduWithdrawShareInput"
 		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
@@ -4008,6 +4020,10 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
+	auth:{
+		roles:"String",
+		self:"String"
+	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5984,7 +6000,8 @@ export const ReturnTypes: Record<string,any> = {
 	EduTeacherSettlement:{
 		accepted_total:"String",
 		available:"String",
-		last_accepted_at:"DateTime"
+		last_accepted_at:"DateTime",
+		program_share:"String"
 	},
 	EmailVerificationRequestDTO:{
 		cooldown_seconds:"Int",
@@ -7683,6 +7700,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSetCourseStatus:"EduCourse",
 		edubridgeSetEconomySettings:"EduEconomySettings",
 		edubridgeSetTeacherRate:"String",
+		edubridgeShareWithdrawStatement:"GeneratedDocument",
 		edubridgeSignAct:"EduContribution",
 		edubridgeSignContract:"EduTeacherContract",
 		edubridgeSignOffer:"EduOnboardingState",
@@ -7692,6 +7710,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTerminateContract:"EduTeacherContract",
 		edubridgeUpdateCourse:"EduCourse",
 		edubridgeUpdateLearner:"EduLearner",
+		edubridgeWithdrawShare:"EduTeacherSettlement",
 		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",

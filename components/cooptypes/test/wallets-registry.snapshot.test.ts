@@ -47,7 +47,7 @@ describe('ledger2 wallets registry (generated from C++)', () => {
   // членский взнос «Образования» — с 20.09.2026 (п. 4.2.5 его Положения).
   it('возврат при выходе: паевые кошельки и членский взнос «Образования»', () => {
     expect([...LEDGER2_EXIT_REFUND_WALLETS].sort()).toEqual(
-      ['w.cap.blago', 'w.edu.member', 'w.mkt.share', 'w.reg.minshr', 'w.wal.share'],
+      ['w.cap.blago', 'w.edu.member', 'w.edu.share', 'w.mkt.share', 'w.reg.minshr', 'w.wal.share'],
     )
     // алиас-обёртка ссылается на тот же сет
     expect(EXIT_REFUND_WALLET_NAMES).toEqual(LEDGER2_EXIT_REFUND_WALLETS)
@@ -79,6 +79,9 @@ describe('ledger2 wallets registry (generated from C++)', () => {
     expect(exitRuleForWallet('w.mkt.member')?.policy).toBe('FORFEIT')
     expect(exitRuleForWallet('w.edu.member')?.policy).toBe('RETURN_TO_MAIN')
     expect(exitRuleForWallet('w.edu.member')?.transfer_op).toBe('o.edu.retshr')
+    // паевой взнос преподавателя по программе при выходе уходит на главный паевой
+    expect(exitRuleForWallet('w.edu.share')?.policy).toBe('RETURN_TO_MAIN')
+    expect(exitRuleForWallet('w.edu.share')?.transfer_op).toBe('o.edu.wthshr')
     expect(exitRuleForWallet('w.sov.fund')).toBeUndefined()
   })
 })

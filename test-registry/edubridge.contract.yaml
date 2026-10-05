@@ -4,8 +4,9 @@ title: Образовательный мост — контракт edubridge, �
 # E3 (задача 7DD-4). Конвертация паевого в членский по заявлению (o.edu.conv,
 # зеркало marketplace::convert), подписки (opensub/extendsub/expiresub — только
 # ключом кооператива, запись живёт в RAM пока активна), взнос РИД
-# (submitrid → решение совета → acceptrid/declinerid; o.edu.rid Дт 04 / Кт 80,
-# ISSUE в главный паевой кошелёк преподавателя). Документы 3000–3011 — рыбы.
+# (submitrid → решение совета → acceptrid/declinerid; o.edu.rid Дт 04 / Кт 08 и
+# o.edu.ridshr Дт 76 / Кт 80 на паевой кошелёк программы w.edu.share; в Цифровой
+# Кошелёк взнос переводит wthshare). Документы 3000–3015 — рыбы.
 
 sources:
   contract:
@@ -59,7 +60,7 @@ cases:
     level: contract
     kind: happy
     scenario: submitrid → acceptrid с протоколом и актом, подписанным преподавателем.
-    expect: ISSUE amount в w.wal.share преподавателя, проводка o.edu.rid, запись edurids стёрта, оба документа в реестре пакетом rid_hash.
+    expect: Сумма с w.edu.hold переходит на w.edu.share преподавателя (o.edu.ridshr, Дт 76 / Кт 80), проводка o.edu.rid (Дт 04 / Кт 08), запись edurids стёрта, оба документа в реестре пакетом rid_hash.
     test: ~
     status: missing
   - id: edu.contract.break.03

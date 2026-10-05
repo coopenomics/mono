@@ -55,6 +55,7 @@ export async function registerEdubridgeDocuments(port: IDocumentDeclarationPort)
     doc(R.EducationRidStatement.registry_id, 'form', 33, { bundle: 'education_forms' }),
     doc(R.EducationRidAct.registry_id, 'form', 34, { bundle: 'education_forms' }),
     doc(R.EducationGuaranteeStatement.registry_id, 'form', 35, { bundle: 'education_forms' }),
+    doc(R.EducationShareWithdrawStatement.registry_id, 'form', 36, { bundle: 'education_forms' }),
 
     doc(R.EducationRidDecision.registry_id, 'service', 90),
     doc(R.EducationGuaranteeDecision.registry_id, 'service', 91),

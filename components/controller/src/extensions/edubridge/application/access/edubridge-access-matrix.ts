@@ -22,7 +22,7 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
   teacher: {
     EduAssignment: ['read:own'],
     EduContribution: ['read:own', 'create:own'],
-    EduTeacherWallet: ['read:own'],
+    EduTeacherWallet: ['read:own', 'manage:own'],
   },
   admin: {
     EduCourse: ['manage'],

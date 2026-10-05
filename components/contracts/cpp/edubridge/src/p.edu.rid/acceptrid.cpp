@@ -9,10 +9,11 @@
  * Две ledger2-операции закрывают ответственное хранение:
  *  - `o.edu.rid` (Дт 04 / Кт 08) — результат принят в состав нематериальных
  *    активов кооператива, хранение на счёте вложений закрыто;
- *  - `o.edu.ridshr` (TRANSFER w.edu.hold → w.wal.share, Дт 76 / Кт 80) —
+ *  - `o.edu.ridshr` (TRANSFER w.edu.hold → w.edu.share, Дт 76 / Кт 80) —
  *    обязательство перед преподавателем гасится признанием паевого фонда,
- *    средства ложатся в его главный паевой кошелёк (право требования;
- *    возврат — штатным createwthd).
+ *    сумма ложится на его паевой кошелёк программы — баланс договора
+ *    (п. 3.1.9). На Цифровой Кошелёк её переводит заявление преподавателя
+ *    (`wthshare`), возврат идёт уже оттуда штатным createwthd.
  *
  * Третья операция закрывает обязательство программы: `o.edu.settle` (BURN с
  * w.edu.teach) списывает резерв выплат преподавателям на стоимость результата.
@@ -68,7 +69,7 @@ void edubridge::acceptrid(eosio::name coopname,
                  amount, username, act.hash,
                  Edubridge::Memo::get_accept_rid_memo(rid_id));
 
-  // ── o.edu.ridshr: TRANSFER w.edu.hold → w.wal.share (Дт 76 / Кт 80) ───
+  // ── o.edu.ridshr: TRANSFER w.edu.hold → w.edu.share (Дт 76 / Кт 80) ───
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::SETTLE_EDU_RID,
                  processes::edubridge::RID,

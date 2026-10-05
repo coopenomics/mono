@@ -40,6 +40,7 @@ export const LEDGER2_WALLET_REGISTRY: readonly WalletMeta[] = [
   { name: "w.edu.teach", human_name: "Резерв выплат преподавателям ЦПП «Образование»", kind: "COOPERATIVE" },
   { name: "w.edu.member", human_name: "ЦПП «Образование» — членский взнос пайщика за доступ к курсу", kind: "USER_SHARED" },
   { name: "w.edu.hold", human_name: "ЦПП «Образование» — материалы преподавателя на ответственном хранении", kind: "USER_SHARED" },
+  { name: "w.edu.share", human_name: "ЦПП «Образование» — паевой взнос преподавателя по договору", kind: "USER_SHARED" },
   { name: "w.cap.gen", human_name: "ЦПП «Генератор» — единый кошелёк программы", kind: "COOPERATIVE" },
   { name: "w.reg.entry", human_name: "Вступительные взносы", kind: "COOPERATIVE" },
   { name: "w.wal.wthdrw", human_name: "Возвраты паевых взносов пайщикам (deprecated, не используется в новых операциях)", kind: "COOPERATIVE" },
@@ -89,6 +90,7 @@ export const LEDGER2_USER_SHARED_PROGRAM_MAPPING: readonly ProgramWalletMapping[
   { wallet_name: "w.reg.pend", required_program_id: 0, program_label: null },
   { wallet_name: "w.edu.member", required_program_id: 5, program_label: "Образование" },
   { wallet_name: "w.edu.hold", required_program_id: 6, program_label: "Образование-преподавание" },
+  { wallet_name: "w.edu.share", required_program_id: 6, program_label: "Образование-преподавание" },
 ] as const
 
 /** Что выход из кооператива делает с кошельком пайщика. */
@@ -116,6 +118,7 @@ export const LEDGER2_EXIT_WALLET_POLICY: readonly ExitWalletRule[] = [
   { wallet_name: "w.reg.minshr", policy: "RETURN_TO_MAIN", transfer_op: "o.reg.mvmin", note: "Минимальный паевой взнос" },
   { wallet_name: "w.cap.blago", policy: "RETURN_TO_MAIN", transfer_op: "o.cap.wthcap", note: "Паевой взнос ЦПП «Благорост»" },
   { wallet_name: "w.mkt.share", policy: "RETURN_TO_MAIN", transfer_op: "o.mkt.recall", note: "Свободный паевой взнос ЦПП «Стол заказов»" },
+  { wallet_name: "w.edu.share", policy: "RETURN_TO_MAIN", transfer_op: "o.edu.wthshr", note: "Паевой взнос преподавателя по ЦПП «Образование» (п. 9.8 договора)" },
   { wallet_name: "w.edu.member", policy: "RETURN_TO_MAIN", transfer_op: "o.edu.retshr", note: "Членский взнос ЦПП «Образование» (п. 4.2.5 Положения)" },
   { wallet_name: "w.mkt.member", policy: "FORFEIT", transfer_op: null, note: "Членский взнос ЦПП «Стол заказов» — Положение возврата не предусматривает" },
   { wallet_name: "w.mkt.order", policy: "BLOCKER", transfer_op: null, note: "под заказы Стола заказов зарезервирован паевой взнос — завершите или отмените заказы" },
@@ -140,5 +143,6 @@ export const LEDGER2_EXIT_REFUND_WALLETS: readonly IName[] = [
   "w.reg.minshr",
   "w.cap.blago",
   "w.mkt.share",
+  "w.edu.share",
   "w.edu.member",
 ] as const

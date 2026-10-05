@@ -20,7 +20,9 @@ import {
   EduLessonDTO,
   EduLessonReportInputDTO,
   EduRevokeContributionInputDTO,
+  EduShareWithdrawStatementInputDTO,
   EduTeacherSettlementDTO,
+  EduWithdrawShareInputDTO,
 } from '../dto/edu-teacher.dto';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
@@ -165,6 +167,20 @@ export class EdubridgeTeacherResolver {
   @RequireEduAccess('EduTeacherWallet', 'read:own')
   edubridgeMySettlement(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduTeacherSettlementDTO> {
     return this.teachers.settlement(coop(), m.username as string);
+  }
+
+  @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeShareWithdrawStatement', description: 'Сформировать заявление о трансляции паевого взноса из ЦПП «Образование» в ЦПП «Цифровой Кошелёк» для подписи' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduTeacherWallet', 'manage:own')
+  async edubridgeShareWithdrawStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduShareWithdrawStatementInputDTO): Promise<GeneratedDocumentDTO> {
+    return new GeneratedDocumentDTO(await this.teachers.shareWithdrawStatement(coop(), m.username as string, data.amount));
+  }
+
+  @Mutation(() => EduTeacherSettlementDTO, { name: 'edubridgeWithdrawShare', description: 'Перевести паевой взнос по программе «Образование» в Цифровой Кошелёк по подписанному заявлению' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduTeacherWallet', 'manage:own')
+  edubridgeWithdrawShare(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduWithdrawShareInputDTO): Promise<EduTeacherSettlementDTO> {
+    return this.teachers.withdrawShare(coop(), m.username as string, data.amount, data.document);
   }
 
   // ── Администратор / владелец ──────────────────────────────────────────────

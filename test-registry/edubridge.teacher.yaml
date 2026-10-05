@@ -8,12 +8,18 @@ title: Образовательный мост — договор УХД, наз
 # проект свободного решения совета с правилом отслеживания → DecisionTrackedEvent
 # → COUNCIL_APPROVED → акт 3010 подписывает преподаватель → acceptrid с
 # протоколом 3009 (Дт 04 / Кт 08 и Дт 76 / Кт 80 с переводом w.edu.hold →
-# w.wal.share). Отклонение — declinerid с причиной.
+# w.edu.share). Отклонение — declinerid с причиной.
 #
 # Материалы занятия до заявления лежат на ответственном хранении: акт 3012 →
 # holdrid (Дт 08 / Кт 76, w.edu.hold). Рекламация внутри срока — recallrid
-# (Дт 76 / Кт 08). Расчёт: сумма принятых и доступное в кошельке;
-# возврат — штатным механизмом платформы.
+# (Дт 76 / Кт 08). Расчёт: сумма принятых, паевой взнос по программе и
+# доступное в Цифровом Кошельке; возврат — штатным механизмом платформы.
+#
+# Правка 05.10.2026 (7DD-22), решение владельца: принятый результат
+# зачисляется паевым взносом на кошелёк программы (w.edu.share), а в ЦПП
+# «Цифровой Кошелёк» переходит заявлением преподавателя о трансляции (3015,
+# wthshare, o.edu.wthshr — без проводки), на весь остаток или его часть.
+# Возврат паевого взноса оформляется уже с Цифрового Кошелька.
 #
 # Правка 24.09.2026 (7DD-22), решение владельца: преподаватель, добавленный в
 # курс, получает назначение сам — иначе курс стоял в «Курс ведут», а на столе
@@ -110,9 +116,72 @@ cases:
     level: backend
     kind: happy
     scenario: Расчёт преподавателя.
-    expect: Сумма принятых взносов и доступное в главном кошельке.
+    expect: Сумма принятых взносов, паевой взнос по программе и доступное в главном кошельке; кошелька программы ещё нет — паевой взнос по программе нулевой.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     status: passing
+  - id: edu.teach.happy.wth-01
+    level: backend
+    kind: happy
+    scenario: Преподаватель называет сумму и подписывает заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) — на часть остатка и на весь остаток.
+    expect: Заявление формируется на сумму в виде цепи; wthshare уходит на сумму заявления; в ответе обновлённый расчёт.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.break.wth-01
+    level: backend
+    kind: break
+    scenario: Сумма трансляции больше паевого взноса по программе, нулевая, отрицательная, нечисловая, пустая либо в чужой валюте.
+    expect: Отказ с причиной; заявление не формируется, в цепь ничего не уходит.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.break.wth-02
+    level: backend
+    kind: break
+    scenario: Подписанное заявление о трансляции названо на другую сумму, чем уходит в перевод.
+    expect: Отказ «сформируйте заявление заново»; в цепь ничего не уходит.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.side.wth-01
+    level: backend
+    kind: side
+    scenario: Цепь отказала в трансляции — остаток кошелька программы изменился между проверкой и отправкой.
+    expect: Отказ цепи доходит до преподавателя как есть.
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: passing
+  - id: edu.teach.happy.wth-02
+    level: backend
+    kind: happy
+    scenario: Заявление о трансляции паевого взноса (3015) объявлено в реестре шаблонов кооператива; действие wthshare уходит в цепь с заявлением.
+    expect: Бланк на утверждение совета в связке форм образования; meta заявления — строкой JSON.
+    test: components/controller/tests/unit/edubridge/document-declarations.test.ts
+    status: passing
+  - id: edu.teach.happy.wth-05
+    level: backend
+    kind: happy
+    scenario: Фабрика собирает заявление о трансляции паевого взноса (3015) на названную сумму.
+    expect: В тексте одна просьба с суммой в виде для человека, без ссылок на договор и приложений; документ воспроизводится с тем же хэшем.
+    test: components/factory/test/education-share-withdraw.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+  - id: edu.teach.happy.wth-03
+    level: contract
+    kind: happy
+    scenario: acceptrid, затем wthshare на часть паевого взноса по программе и на остаток.
+    expect: Приём зачисляет сумму на w.edu.share (o.edu.ridshr, Дт 76 / Кт 80); wthshare переводит названную сумму на w.wal.share (o.edu.wthshr, без проводки), заявление в реестре документов.
+    test: ~
+    status: missing
+  - id: edu.teach.break.wth-03
+    level: contract
+    kind: break
+    scenario: wthshare на сумму больше остатка w.edu.share, с нулевой суммой, с заявлением без подписи пайщика либо подписанным чужим ключом.
+    expect: Каждый вызов отклонён assert'ом, кошельки не меняются.
+    test: ~
+    status: missing
+  - id: edu.teach.happy.wth-04
+    level: ui
+    kind: happy
+    scenario: Преподаватель на странице «Расчёт» вводит сумму, нажимает «Перевести в Цифровой Кошелёк» и подписывает заявление.
+    expect: Паевой взнос по программе уменьшился, доступное в Цифровом Кошельке выросло; блок перевода скрыт при нулевом паевом взносе по программе.
+    test: ~
+    status: missing
   - id: edu.teach.side.01
     level: backend
     kind: side

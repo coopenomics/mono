@@ -22,12 +22,13 @@
 #include "src/p.edu.access/extendsub.cpp"
 #include "src/p.edu.access/expiresub.cpp"
 
-// ── p.edu.rid (5 actions) ────── паевой взнос РИД преподавателя ────────
+// ── p.edu.rid (6 actions) ────── паевой взнос РИД преподавателя ────────
 #include "src/p.edu.rid/holdrid.cpp"
 #include "src/p.edu.rid/submitrid.cpp"
 #include "src/p.edu.rid/acceptrid.cpp"
 #include "src/p.edu.rid/declinerid.cpp"
 #include "src/p.edu.rid/recallrid.cpp"
+#include "src/p.edu.rid/wthshare.cpp"
 
 // ── p.edu.teach (4 actions) ──── договор УХД через одобрение ──
 #include "src/p.edu.teach/signcontract.cpp"

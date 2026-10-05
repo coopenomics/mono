@@ -9,7 +9,7 @@ const R = Cooperative.Registry;
 
 jest.mock('@coopenomics/extension-kit', () => ({
   ...jest.requireActual('@coopenomics/extension-kit'),
-  platformSettings: () => ({ coopname: 'voskhod', blockchain: { rootGovernSymbol: 'RUB' } }),
+  platformSettings: () => ({ coopname: 'voskhod', blockchain: { rootGovernSymbol: 'RUB', rootGovernPrecision: 4 } }),
 }));
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
@@ -70,6 +70,7 @@ function make(
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
     submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})),
     signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
+    withdrawShare: jest.fn(async () => ({})),
   } as any;
   const documents = {
     generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
@@ -83,14 +84,16 @@ function make(
   const tracking = { registerTrackingRule: jest.fn(async () => ({})) } as any;
   // Вопрос в повестке совета находится по хэшу проекта решения.
   const council = { getDecisions: jest.fn(async () => [{ id: 77, hash: 'PROJ' }]) } as any;
-  const wallets = { findByWalletAndUsername: jest.fn(async () => ({ available: '7000.0000 RUB' })) } as any;
+  // Паевой взнос по программе и главный паевой — разные кошельки с разными остатками.
+  const balances: Record<string, string> = { 'w.edu.share': '3000.0000 RUB', 'w.wal.share': '7000.0000 RUB' };
+  const wallets = { findByWalletAndUsername: jest.fn(async (_c: string, wallet: string) => (balances[wallet] ? { available: balances[wallet] } : null)) } as any;
   // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
   const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
   const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
   const funds = { onSettled: jest.fn(async () => undefined) } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, logger, events);
-  return { service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons };
+  return { service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
 }
 
 
@@ -443,12 +446,77 @@ describe('EdubridgeTeacherService', () => {
     expect(c.status).toBe(EduContributionStatus.HELD);
   });
 
-  it('расчёт: сумма принятых и доступное в главном кошельке', async () => {
+  it('расчёт: сумма принятых, паевой взнос по программе и доступное в главном кошельке', async () => {
     const { service, store } = make();
     store.set('Z', { status: EduContributionStatus.ACCEPTED, amount: '5000.0000 RUB', decided_at: new Date('2026-03-02'), teacher_username: 'teach' });
     const s = await service.settlement('voskhod', 'teach');
     expect(s.accepted_total).toBe('5000.0000 RUB');
+    expect(s.program_share).toBe('3000.0000 RUB');
     expect(s.available).toBe('7000.0000 RUB');
+  });
+
+  it('расчёт: кошелька программы у преподавателя ещё нет — паевой взнос по программе нулевой', async () => {
+    const { service, balances } = make();
+    delete balances['w.edu.share'];
+    expect((await service.settlement('voskhod', 'teach')).program_share).toBe('0.0000 RUB');
+  });
+});
+
+describe('EdubridgeTeacherService — трансляция паевого взноса в Цифровой Кошелёк', () => {
+  const stmt = (amount: string) => ({ ...signedBy('teach', 'WTH'), meta: { amount } });
+
+  it('заявление 3015 формируется на названную сумму в виде цепи', async () => {
+    const { service, documents } = make();
+    await service.shareWithdrawStatement('voskhod', 'teach', '1500');
+    expect(documents.generate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ registry_id: R.EducationShareWithdrawStatement.registry_id, username: 'teach', amount: '1500.0000 RUB' }),
+    });
+  });
+
+  it('трансляция: wthshare в цепь на сумму заявления, в ответе обновлённый расчёт', async () => {
+    const { service, chain } = make();
+    const s = await service.withdrawShare('voskhod', 'teach', '1500.0000 RUB', stmt('1500.0000 RUB'));
+    expect(chain.withdrawShare).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', username: 'teach', amount: '1500.0000 RUB' }));
+    expect(s.program_share).toBe('3000.0000 RUB');
+  });
+
+  it('весь остаток кошелька программы переводится целиком', async () => {
+    const { service, chain } = make();
+    await service.withdrawShare('voskhod', 'teach', '3000.0000 RUB', stmt('3000.0000 RUB'));
+    expect(chain.withdrawShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('сумма больше паевого взноса по программе в цепь не уходит', async () => {
+    const { service, chain, documents } = make();
+    await expect(service.shareWithdrawStatement('voskhod', 'teach', '3000.0001')).rejects.toThrow(/превышает паевой взнос по программе/);
+    await expect(service.withdrawShare('voskhod', 'teach', '5000.0000 RUB', stmt('5000.0000 RUB'))).rejects.toThrow(/превышает паевой взнос по программе/);
+    expect(documents.generate).not.toHaveBeenCalled();
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+  });
+
+  it.each(['0', '-5', 'abc', '', '100 USD'])('сумма «%s» отклоняется', async (amount) => {
+    const { service, chain } = make();
+    await expect(service.shareWithdrawStatement('voskhod', 'teach', amount)).rejects.toThrow(/сумму перевода больше нуля/);
+    await expect(service.withdrawShare('voskhod', 'teach', amount, stmt(amount))).rejects.toThrow(/сумму перевода больше нуля/);
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+  });
+
+  it('заявление подписано на другую сумму — трансляция не проводится', async () => {
+    const { service, chain } = make();
+    await expect(service.withdrawShare('voskhod', 'teach', '1500.0000 RUB', stmt('1000.0000 RUB'))).rejects.toThrow(/Сформируйте заявление заново/);
+    expect(chain.withdrawShare).not.toHaveBeenCalled();
+  });
+
+  it('мета заявления строкой JSON читается так же, как объектом', async () => {
+    const { service, chain } = make();
+    await service.withdrawShare('voskhod', 'teach', '1500', { ...signedBy('teach', 'WTH'), meta: JSON.stringify({ amount: '1500.0000 RUB' }) });
+    expect(chain.withdrawShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('отказ цепи доходит до преподавателя', async () => {
+    const { service, chain } = make();
+    chain.withdrawShare.mockRejectedValueOnce(new Error('Паевого взноса по программе недостаточно'));
+    await expect(service.withdrawShare('voskhod', 'teach', '1500.0000 RUB', stmt('1500.0000 RUB'))).rejects.toThrow(/недостаточно/);
   });
 });
 

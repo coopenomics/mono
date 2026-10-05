@@ -53,6 +53,8 @@ export interface EdubridgeChainPort {
   declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;
   /** Снятие материалов с ответственного хранения по рекламации внутри срока. */
   recallRid(data: EdubridgeContract.Actions.Recallrid.IRecallrid): Promise<InnerTransactResult>;
+  /** Трансляция паевого взноса преподавателя с кошелька программы в «Цифровой Кошелёк» по его заявлению. */
+  withdrawShare(data: EdubridgeContract.Actions.Wthshare.IWthshare): Promise<InnerTransactResult>;
   /** Договор УХД преподавателя (первая подпись) — уходит председателю на одобрение. */
   signContract(data: EdubridgeContract.Actions.Signcontract.ISigncontract): Promise<InnerTransactResult>;
   /** Прекращение договора УХД — выход преподавателя из кооператива либо соглашение сторон. */

@@ -65,6 +65,13 @@ describe('Документы ЦПП «Образование» в реестре
     expect(byId.get(R.EducationRidDecision.registry_id)).toMatchObject({ kind: 'service', approval: 'none' });
   });
 
+  it('заявление о трансляции паевого взноса в Цифровой Кошелёк — бланк на утверждение совета', async () => {
+    const { port, registered } = portSpy();
+    await registerEdubridgeDocuments(port);
+    const byId = new Map(registered.map((d) => [d.registry_id, d]));
+    expect(byId.get(R.EducationShareWithdrawStatement.registry_id)).toMatchObject({ kind: 'form', approval: 'required', bundle: 'education_forms' });
+  });
+
   it('перед объявлением снимает прежние декларации расширения', async () => {
     const { port, unregistered } = portSpy();
     await registerEdubridgeDocuments(port);
