@@ -5,7 +5,6 @@ import { BlockchainConsumerService } from './blockchain-consumer.service';
 import { ChainDeltaWaiterService } from './chain-delta-waiter.service';
 import { ActionReleaseGate } from './action-release-gate.service';
 import { ChainChangesService } from './chain-changes.service';
-import { LocalChangesSubscriber } from './local-changes.subscriber';
 import { DraftRegistrySyncService } from './services/draft-registry-sync.service';
 import { BlockchainRepeatService } from './services/blockchain-repeat.service';
 import { RedisModule } from '../redis/redis.module';
@@ -53,7 +52,6 @@ import { BlockchainArchiveRetentionService } from '~/shared/sync/services/blockc
     // Лента изменений цепи для столов — сигнал «перечитай» после разбора дельты.
     ChainChangesService,
     // Сигналы ленты для таблиц базы узла — после фиксации записи.
-    LocalChangesSubscriber,
     DraftRegistrySyncService,
     BlockchainRepeatService,
     {

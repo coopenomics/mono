@@ -89,3 +89,15 @@ export function affectedCount(results: readonly unknown[]): number {
   if (results.length === 1 && typeof counted === 'bigint') return Number(counted);
   return results.length;
 }
+
+/**
+ * Основная база узла для готовых запросов конфигурационных миграций
+ * расширений. Ответ — в прежнем виде: у выборки и вставки строки, у правки и
+ * удаления — пара «строки и число затронутых».
+ */
+export interface MainDatabase {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query(sql: string, parameters?: unknown[]): Promise<any>;
+}
+
+export const MAIN_DATABASE = Symbol.for('Controller.Database.Main');

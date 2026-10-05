@@ -1,4 +1,4 @@
-import type { MigrationInterface } from 'typeorm';
+import type { SchemaMigration } from '../database/schema-migration';
 
 /**
  * Миграции таблиц установленных расширений — то, что контроллер отдаёт TypeORM
@@ -16,7 +16,7 @@ import type { MigrationInterface } from 'typeorm';
  * Список задаётся один раз, до инициализации подключения, — как и состав
  * сущностей (`registerExtensionEntities`).
  */
-export type ExtensionDatabaseMigrationClass = new () => MigrationInterface;
+export type ExtensionDatabaseMigrationClass = new () => SchemaMigration;
 
 let migrations: ReadonlyArray<ExtensionDatabaseMigrationClass> | undefined;
 

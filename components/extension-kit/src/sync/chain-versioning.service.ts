@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Kysely } from 'kysely';
-import { KYSELY } from '../database/kysely';
+import { KYSELY, affectedCount } from '../database/kysely';
 import type { TableStore, Where } from '../database/table-store';
 import { moreThan } from '../database/table-store';
 import { inTransaction } from '../database/transaction';
@@ -116,6 +116,19 @@ export class ChainVersioningService {
       await live.delete({ block_num: moreThan(forkBlockNum) } as Where<TRecord>);
       return rows.length;
     });
+  }
+
+  /**
+   * Чистит архив форка: записи и версии, отменённые блоком раньше заданного.
+   * Возвращает число удалённых записей и версий.
+   */
+  async deleteArchiveOlderThan(minInvalidatedByBlock: number): Promise<{ entities: number; versions: number }> {
+    const entities = await this.db.deleteFrom('invalidated_entities').where('invalidated_by_block', '<', minInvalidatedByBlock).execute();
+    const versions = await this.db
+      .deleteFrom('invalidated_entity_versions')
+      .where('invalidated_by_block', '<', minInvalidatedByBlock)
+      .execute();
+    return { entities: affectedCount(entities), versions: affectedCount(versions) };
   }
 
   /**

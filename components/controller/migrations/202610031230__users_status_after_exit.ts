@@ -1,5 +1,5 @@
 import { SovietContract } from 'cooptypes';
-import { DataSource } from 'typeorm';
+import { DataSource } from '../src/infrastructure/database/postgres/postgres-connection';
 import config from '../src/config/config';
 
 type MigrationLogger = { info: (message: string) => void; error: (message: string) => void; warn: (message: string) => void };

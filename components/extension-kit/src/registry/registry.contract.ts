@@ -1,4 +1,4 @@
-import type { MigrationInterface } from 'typeorm';
+import type { SchemaMigration } from '../database/schema-migration';
 import type { ExtensionConfigPolicy } from '../config/config-policy';
 import type { IExtensionSchemaMigration } from '../migrations/schema-migration.contract';
 
@@ -82,7 +82,7 @@ export interface IRegistryExtension {
    * задаёт метка времени в имени класса, общая лента с миграциями ядра.
    * Не путать с `migrations` ниже — те переводят конфиг расширения.
    */
-  databaseMigrations?: ReadonlyArray<new () => MigrationInterface>;
+  databaseMigrations?: ReadonlyArray<new () => SchemaMigration>;
   /**
    * Миграции схемы конфига расширения — в порядке применения.
    *

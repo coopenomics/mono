@@ -204,7 +204,7 @@ cases:
     expect: >
       сигнал с блоком 0 уходит после фиксации — со строкой (владелец) и ключом;
       откат транзакции сигнала не даёт; запись вне транзакции — сигнал сразу
-    test: components/controller/tests/unit/chain-changes/local-changes.subscriber.test.ts
+    test: components/controller/tests/unit/chain-changes/kysely-local-changes.plugin.test.ts
     api: components/api-tests/src/platform/realtime.chain-changes.test.ts
     status: passing
 

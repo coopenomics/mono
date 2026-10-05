@@ -41,7 +41,6 @@
     "schema:generate": "ts-node -r tsconfig-paths/register scripts/schema-generate.ts",
     "schema:types": "ts-node -r tsconfig-paths/register scripts/schema-types.ts",
     "schema:migrate": "ts-node -r tsconfig-paths/register scripts/schema-migrate.ts",
-    "schema:baseline": "ts-node -r tsconfig-paths/register scripts/schema-baseline.ts",
     "migrate": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate",
     "migrate:schema": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --migrate-schema",
     "schema:report": "cross-env TS_NODE_PROJECT=tsconfig.runtime.json node -r tsconfig-paths/register dist/src/index.js --schema-report",

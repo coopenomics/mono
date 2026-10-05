@@ -1,9 +1,8 @@
 // infrastructure/database/typeorm/typeorm.module.ts
 import { Global, Module } from '@nestjs/common';
-import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { EXTENSION_REPOSITORY, LOG_EXTENSION_REPOSITORY } from '@coopenomics/extension-kit';
-import { mainDataSourceOptions } from './data-source.options';
-import { kyselyProvider } from '../kysely/kysely.provider';
+import { MAIN_DATABASE } from '@coopenomics/extension-kit';
+import { PG_POOL, kyselyProvider, mainDatabaseProvider, pgPoolProvider } from '../kysely/kysely.provider';
 import { KYSELY } from '../kysely/kysely.tokens';
 import { MEMBERSHIP_EXIT_REQUEST_REPOSITORY } from '~/domain/membership-exit/repositories/membership-exit-request.repository';
 import { MembershipExitRequestKyselyRepository } from '../kysely/repositories/membership-exit-request.kysely-repository';
@@ -11,9 +10,8 @@ import { ExtensionKyselyRepository } from '../kysely/repositories/extension.kyse
 import { LogExtensionKyselyRepository } from '../kysely/repositories/log-extension.kysely-repository';
 import { MEET_REPOSITORY } from '~/domain/meet/repositories/meet-pre.repository';
 import { MeetPreKyselyRepository } from '../kysely/repositories/meet-pre.kysely-repository';
-import { MigrationEntity } from './entities/migration.entity';
 import { MIGRATION_REPOSITORY } from '~/domain/system/repositories/migration-domain.repository';
-import { TypeOrmMigrationRepository } from './repositories/typeorm-migration.repository';
+import { MigrationKyselyRepository } from '../kysely/repositories/migration.kysely-repository';
 import { CANDIDATE_REPOSITORY } from '~/domain/account/repository/candidate.repository';
 import { CandidateKyselyRepository } from '../kysely/repositories/candidate.kysely-repository';
 import { ChainTextKyselyRepository } from '../kysely/repositories/chain-text.kysely-repository';
@@ -43,16 +41,7 @@ import { AgreementDeltaMapper } from './blockchain/mappers/agreement-delta.mappe
 import { AgreementSyncService } from './blockchain/services/agreement-sync.service';
 import { DraftRegistryKyselyRepository } from '../kysely/repositories/draft-registry.kysely-repository';
 import { coreStoreProviders } from '../kysely/core-stores';
-import {
-  EntityVersionTypeormEntity,
-  EntityVersionRepository,
-  EntityVersioningService,
-  ChainVersioningService,
-  InvalidatedEntityTypeormEntity,
-  InvalidatedEntityVersionTypeormEntity,
-  InvalidatedEntityRepository,
-  InvalidatedEntityVersionRepository,
-} from '@coopenomics/extension-kit/sync';
+import { ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import { ACTION_REPOSITORY_PORT } from '~/domain/parser/ports/action-repository.port';
 import { DELTA_REPOSITORY_PORT } from '~/domain/parser/ports/delta-repository.port';
 import { FORK_REPOSITORY_PORT } from '~/domain/parser/ports/fork-repository.port';
@@ -93,24 +82,10 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
 
 @Global()
 @Module({
-  imports: [
-    // forRootAsync, а не forRoot: состав таблиц расширений известен только
-    // после того, как загрузился реестр, а он загружается позже подключения к
-    // базе. Фабрика вычисляется при инициализации модуля — к этому моменту
-    // граф уже собран и каждое расширение свой состав объявило.
-    NestTypeOrmModule.forRootAsync({
-      // Схема — только миграциями: новые применяются при подключении, до того
-      // как поднимутся модули, читающие таблицы. См. data-source.options.ts.
-      useFactory: () => ({ ...mainDataSourceOptions(), migrationsRun: true }),
-    }),
-    NestTypeOrmModule.forFeature([
-      MigrationEntity,
-      EntityVersionTypeormEntity,
-      InvalidatedEntityTypeormEntity,
-      InvalidatedEntityVersionTypeormEntity,
-    ]),
-  ],
   providers: [
+    // Пул основной базы (при подключении применяет миграции схемы) и Kysely поверх него.
+    pgPoolProvider,
+    mainDatabaseProvider,
     kyselyProvider,
     { provide: MEMBERSHIP_EXIT_REQUEST_REPOSITORY, useClass: MembershipExitRequestKyselyRepository },
     { provide: NOTIFICATION_OUTBOX_REPOSITORY, useClass: NotificationOutboxKyselyRepository },
@@ -139,7 +114,7 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     ChainTextService,
     {
       provide: MIGRATION_REPOSITORY,
-      useClass: TypeOrmMigrationRepository,
+      useClass: MigrationKyselyRepository,
     },
     {
       provide: CANDIDATE_REPOSITORY,
@@ -246,10 +221,6 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
       provide: SIGNED_DOCUMENT_REPOSITORY,
       useClass: SignedDocumentKyselyRepository,
     },
-    EntityVersionRepository,
-    EntityVersioningService,
-    InvalidatedEntityRepository,
-    InvalidatedEntityVersionRepository,
     // Версии и архив форка для зеркал, переведённых на Kysely (C28-81).
     ChainVersioningService,
     // Шлюзы таблиц зеркал ядра: кошельки и соглашения.
@@ -258,7 +229,8 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
   exports: [
     ChainVersioningService,
     ...coreStoreProviders,
-    NestTypeOrmModule,
+    PG_POOL,
+    MAIN_DATABASE,
     KYSELY,
     MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
     NOTIFICATION_OUTBOX_REPOSITORY,
@@ -300,10 +272,6 @@ import { SignedDocumentKyselyRepository } from '../kysely/repositories/signed-do
     UserWalletDeltaMapper,
     UserWalletSyncService,
     SIGNED_DOCUMENT_REPOSITORY,
-    EntityVersionRepository,
-    EntityVersioningService,
-    InvalidatedEntityRepository,
-    InvalidatedEntityVersionRepository,
   ],
 })
 export class TypeOrmModule {}

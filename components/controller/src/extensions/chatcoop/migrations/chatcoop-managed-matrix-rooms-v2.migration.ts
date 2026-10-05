@@ -1,6 +1,6 @@
 // Миграция схемы chatcoop v2: заполнение реестра Matrix-комнат проектов Capital из таблицы capital_projects (members/council не мигрируем — комната пайщиков создаётся при отсутствии в реестре на старте расширения; совет — в v3).
 
-import { DataSource } from 'typeorm';
+import { MAIN_DATABASE, type MainDatabase as DataSource } from '@coopenomics/extension-kit';
 import type {
   IExtensionSchemaMigration,
   ExtensionSchemaMigrationAfterContext,
@@ -18,7 +18,7 @@ async function backfillCapitalProjectRooms(
 
   let projectRows: { project_hash: string; title: string; matrix_room_id: string }[] = [];
   try {
-    const ds = ctx.resolve<DataSource>(DataSource);
+    const ds = ctx.resolve<DataSource>(MAIN_DATABASE);
     projectRows = (await ds.query(
       `SELECT project_hash, title, matrix_room_id FROM capital_projects WHERE matrix_room_id IS NOT NULL AND matrix_room_id <> ''`
     )) as { project_hash: string; title: string; matrix_room_id: string }[];

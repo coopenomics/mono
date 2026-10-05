@@ -18,7 +18,8 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import config from '~/config/config';
 import fs from 'node:fs';
-import { CONTROLLER_ROOT, EXTENSIONS_DIR, withDataSource, withScratchDatabase } from './schema-tools';
+import { CONTROLLER_ROOT, EXTENSIONS_DIR, withScratchDatabase } from './schema-tools';
+import { runDatabaseMigrations } from '~/migrator/database-migrations';
 
 const OUT_FILE = 'src/infrastructure/database/kysely/database.types.ts';
 
@@ -48,7 +49,7 @@ function generate(url: string, target: { outFile: string; tables?: readonly stri
 async function main() {
   const verify = process.argv.includes('--verify');
   const code = await withScratchDatabase('schema_types', async (database) => {
-    await withDataSource(database, (dataSource) => dataSource.runMigrations({ transaction: 'each' }));
+    await runDatabaseMigrations(database);
     const { host, port, username, password } = config.postgres;
     const url = `postgres://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
     return targets().reduce((status, target) => status || generate(url, target, verify), 0);
