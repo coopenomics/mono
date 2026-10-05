@@ -93,8 +93,8 @@ describe('одобрения председателя', () => {
   it(caseName('chair.appr.side.01', 'список одобрений: совету открыт, пайщику — только свои, гостю закрыт'), async () => {
     expect((await approvalsOf(councilToken, approvedWho.account)).map(a => a._id)).toContain(pendingApproval._id)
     expect((await approvalsOf(approvedToken, approvedWho.account)).map(a => a._id)).toEqual([pendingApproval._id])
-    expectCode(await gqlError(declinedToken, LIST, { f: { coopname: COOP, username: approvedWho.account }, o: PAGE }), 'KIT_INSUFFICIENT_RIGHTS')
-    expectCode(await gqlError(declinedToken, LIST, { f: { coopname: COOP }, o: PAGE }), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(declinedToken, LIST, { f: { coopname: COOP, username: approvedWho.account }, o: PAGE }), 'KIT_RIGHT_SCOPE_OWN')
+    expectCode(await gqlError(declinedToken, LIST, { f: { coopname: COOP }, o: PAGE }), 'KIT_RIGHT_SCOPE_OWN')
     expectCode(await gqlError(declinedToken, ONE, { id: pendingApproval._id }), 'KIT_INSUFFICIENT_RIGHTS')
     expectAuthDenied(await gqlError(null, LIST, { f: { coopname: COOP }, o: PAGE }))
   })

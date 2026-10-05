@@ -7,10 +7,10 @@ import {
   DocumentAggregateDTO,
   RequireRight,
   SELF,
+  RightsGuard,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceAplReceptionByIdInputDTO,
@@ -69,7 +69,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Оператор КУ формирует акт приёмки партии: для Варианта Б с возможной корректировкой фактического количества.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'create', { of: 'Shipment', id: 'data.shipment_id' })
   async marketplaceCreateAplReception(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -93,7 +93,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Express-приёмка самовывоза по факту присутствия: оператор принимает имущество поставщика без предварительно сформированной партии. Backend синтезирует партию самовывоза из принятых заказов поставщика на этом КУ и открывает приёмку.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'create', { ku: 'data.braname' })
   async marketplaceCreateExpressReception(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -118,7 +118,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Поставщик ставит первую подпись на акте приёмки (лично — Вариант А; асинхронно через push — Вариант Б).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'sign:first', { of: 'Reception', id: 'data.apl_reception_id' })
   async marketplaceSignAplReceptionAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -140,7 +140,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Председатель КУ ставит закрывающую подпись на акте приёмки: имущество переходит на баланс кооператива и одновременно приходуется на склад по указанному месту хранения.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'sign:closing', { of: 'Reception', id: 'data.apl_reception_id' })
   async marketplaceSignAplReceptionAsChairman(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -165,7 +165,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Отмена акта приёмки до подписи поставщика — партия возвращается к приёмке для повторного формирования. Доступно оператору КУ и самому поставщику (не согласен с фактом приёмки).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', ['cancel:own', 'cancel:own-KU'], { of: 'Reception', id: 'data.apl_reception_id' })
   async marketplaceCancelAplReception(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -187,7 +187,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Preview-документы акта приёмки для подписи поставщиком — один документ на каждый Order группы. Клиент подписывает hash приватным ключом и возвращает результат в mutation marketplaceSignAplReceptionAsSupplier.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'sign:first', { of: 'Reception', id: 'data.apl_reception_id' })
   async marketplaceAplReceptionSupplierSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -207,7 +207,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Акты приёмки, уже подписанные поставщиком, для закрывающей подписи председателя КУ. Каждый элемент содержит исходный документ для ознакомления и подпись поставщика; председатель накладывает свою подпись поверх.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'sign:closing', { of: 'Reception', id: 'data.apl_reception_id' })
   async marketplaceAplReceptionChairmanSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -227,7 +227,7 @@ export class MarketplaceAplReceptionResolver {
     name: 'marketplaceListAplReceptionsByBraname',
     description: 'Список акций приёмки текущего КУ для operator-стола.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'create', { ku: 'data.braname' })
   async marketplaceListAplReceptionsByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -244,7 +244,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Поставщики с принятыми заказами, ожидающими самовывоза на текущем КУ, — лента express-приёмки для operator-стола.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'create', { ku: 'data.braname' })
   async marketplaceListExpressPickupsByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -261,7 +261,7 @@ export class MarketplaceAplReceptionResolver {
     description:
       'Единицы имущества поставщика, ожидающие приёмки на текущем КУ: задекларированные в партии (по ТТН) и добор по акцепту. Базис агрегирующей приёмки для оператора кооперативного участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Receiving', 'create', { ku: 'data.braname' })
   async marketplaceListSupplierPickupOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -284,7 +284,7 @@ export class MarketplaceAplReceptionResolver {
     name: 'marketplaceListAplReceptionsAsSupplier',
     description: 'Список актов приёмки, ожидающих подписи текущего поставщика.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Shipment', 'create:own', SELF)
   async marketplaceListAplReceptionsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember

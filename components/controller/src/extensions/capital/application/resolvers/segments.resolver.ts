@@ -3,7 +3,16 @@ import { SegmentsService } from '../services/segments.service';
 import { SegmentOutputDTO } from '../dto/segments/segment.dto';
 import { SegmentFilterInputDTO } from '../dto/segments/segment-filter.input';
 import { RefreshSegmentInputDTO } from '../dto/segments/refresh-segment-input.dto';
-import { createPaginationResult, PaginationInputDTO, PaginationResult, GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, DomainError } from '@coopenomics/extension-kit';
+import {
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GqlJwtAuthGuard,
+  CurrentUser,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { UseGuards } from '@nestjs/common';
 // Пагинированные результаты
@@ -23,8 +32,8 @@ export class SegmentsResolver {
     name: 'capitalSegments',
     description: 'Получение списка сегментов кооператива с фильтрацией и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['read:own', 'read'], { owner: 'filter.username' })
   async getSegments(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO,
@@ -58,8 +67,8 @@ export class SegmentsResolver {
     description: 'Получение одного сегмента кооператива по фильтрам',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['read:own', 'read'], { owner: 'filter.username' })
   async getSegment(@Args('filter', { nullable: true }) filter?: SegmentFilterInputDTO): Promise<SegmentOutputDTO | null> {
     return await this.segmentsService.getSegment(filter);
   }
@@ -72,8 +81,8 @@ export class SegmentsResolver {
     description: 'Обновление сегмента в CAPITAL контракте',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['refresh:own', 'refresh'], { owner: 'data.username' })
   async refreshCapitalSegment(
     @Args('data', { type: () => RefreshSegmentInputDTO }) data: RefreshSegmentInputDTO
   ): Promise<SegmentOutputDTO | null> {

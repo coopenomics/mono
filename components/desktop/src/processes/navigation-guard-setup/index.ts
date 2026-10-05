@@ -134,8 +134,8 @@ export function setupNavigationGuard(router: Router, serverResponse?: ServerResp
     }
 
     // Проверка доступа к маршруту: канон авторизации столов (grants).
-    // Стор сам решает — grant-стол (по `meta.requires` против выданных бэкендом
-    // прав) или legacy (по `meta.roles`). Настоящий enforcement — на резолверах.
+    // Стор сверяет `meta.requires` с выданными бэкендом правами. Настоящий
+    // enforcement — на резолверах.
     const matchedNames = to.matched.map((r) => r.name ?? null);
     if (desktops.hasRouteAccess(matchedNames, to.meta)) {
       next();

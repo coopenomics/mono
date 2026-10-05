@@ -22,7 +22,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           meta: {
             title: t('ku.install.title'),
             icon: 'fa-solid fa-users-cog',
-            roles: [],
+            requires: 'KuDecision:read',
           },
           path: '/:coopname/ku',
           name: 'trustee',
@@ -31,7 +31,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('ku.install.branchesTitle'),
                 icon: 'fa-solid fa-map-location-dot',
-                roles: [],
+                requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
@@ -44,7 +44,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('ku.install.branchTitle'),
                 icon: 'fa-solid fa-map-location-dot',
-                roles: [],
+                requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
                 hidden: true,
@@ -58,7 +58,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('ku.install.meetingsTitle'),
                 icon: 'fa-solid fa-people-group',
-                roles: [],
+                requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
               },
@@ -71,7 +71,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('ku.install.meetingTitle'),
                 icon: 'fa-solid fa-people-group',
-                roles: [],
+                requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
                 hidden: true,
@@ -85,7 +85,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('ku.install.myBranchTitle'),
                 icon: 'fa-solid fa-house-user',
-                roles: [],
+                requires: 'KuDecision:read',
                 agreements: agreementsBase,
                 requiresAuth: true,
               },

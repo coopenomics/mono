@@ -31,7 +31,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('reports.install.title'),
           icon: 'fa-solid fa-file-invoice',
-          roles: ['chairman'],
+          requires: 'Report:read',
         },
         path: '/:coopname/reports',
         name: 'reports',
@@ -46,7 +46,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.processesTitle'),
               icon: 'fa-solid fa-diagram-project',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -59,7 +59,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.operationsTitle'),
               icon: 'fa-solid fa-list-ul',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -72,7 +72,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.postingsTitle'),
               icon: 'fa-solid fa-arrows-split-up-and-left',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -85,7 +85,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.walletsTitle'),
               icon: 'fa-solid fa-wallet',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -100,7 +100,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.walletsCoopTitle'),
                   icon: 'fa-solid fa-building',
-                  roles: ['chairman'],
+                  requires: 'Report:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -113,7 +113,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.walletsParticipantsTitle'),
                   icon: 'fa-solid fa-users',
-                  roles: ['chairman'],
+                  requires: 'Report:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -128,7 +128,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.accountsTitle'),
               icon: 'fa-solid fa-sitemap',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -141,7 +141,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.documentsTitle'),
               icon: 'fa-solid fa-file-invoice',
-              roles: ['chairman'],
+              requires: 'Report:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -156,7 +156,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.documentsCalendarTitle'),
                   icon: 'fa-solid fa-calendar-days',
-                  roles: ['chairman'],
+                  requires: 'ReportCalendar:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -169,7 +169,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.documentsFormsTitle'),
                   icon: 'fa-solid fa-list',
-                  roles: ['chairman'],
+                  requires: 'Report:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -182,7 +182,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.documentsArchiveTitle'),
                   icon: 'fa-solid fa-box-archive',
-                  roles: ['chairman'],
+                  requires: 'Report:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -200,7 +200,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.ndflTitle'),
               icon: 'account_balance',
-              roles: ['chairman'],
+              requires: 'WithheldTax:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -213,7 +213,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.settingsTitle'),
               icon: 'fa-solid fa-gear',
-              roles: ['chairman'],
+              requires: 'ReportRequisites:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },

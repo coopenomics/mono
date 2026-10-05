@@ -8,9 +8,11 @@ import { GeneratorInfrastructureModule } from '~/infrastructure/generator/genera
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { FreeDecisionInteractor } from './interactors/free-decision.interactor';
 import { AgendaModule } from '../agenda/agenda.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     DocumentModule,
     FreeDecisionDomainModule,
     DocumentDomainModule,

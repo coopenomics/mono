@@ -2,7 +2,14 @@ import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { BranchService } from '../services/branch.service';
 import { GetBranchesGraphQLInput } from '../dto/get-branches-input.dto';
 import { BranchDTO } from '../dto/branch.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GenerateDocumentOptionsInputDTO,
+  GeneratedDocumentDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { CreateBranchGraphQLInput } from '../dto/create-branch-input.dto';
 import { EditBranchGraphQLInput } from '../dto/edit-branch-input.dto';
@@ -23,7 +30,8 @@ export class BranchResolver {
     name: 'getBranches',
     description: 'Получить список кооперативных участков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'read')
   async getBranches(
     @Args('data', { type: () => GetBranchesGraphQLInput }) data: GetBranchesGraphQLInput,
     @CurrentUser() currentUser: IMonoAccount
@@ -33,8 +41,8 @@ export class BranchResolver {
   }
 
   @Mutation(() => BranchDTO, { name: 'createBranch', description: 'Создать кооперативный участок' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async createBranch(
     @Args('data', { type: () => CreateBranchGraphQLInput }) data: CreateBranchGraphQLInput
   ): Promise<BranchDTO> {
@@ -42,15 +50,15 @@ export class BranchResolver {
   }
 
   @Mutation(() => BranchDTO, { name: 'editBranch', description: 'Изменить кооперативный участок' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async editBranch(@Args('data', { type: () => EditBranchGraphQLInput }) data: EditBranchGraphQLInput): Promise<BranchDTO> {
     return this.branchService.editBranch(data);
   }
 
   @Mutation(() => Boolean, { name: 'deleteBranch', description: 'Удалить кооперативный участок' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async deleteBranch(
     @Args('data', { type: () => DeleteBranchGraphQLInput }) data: DeleteBranchGraphQLInput
   ): Promise<boolean> {
@@ -61,8 +69,8 @@ export class BranchResolver {
     name: 'addTrustedAccount',
     description: 'Добавить доверенное лицо кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async addTrustedAccount(
     @Args('data', { type: () => AddTrustedAccountGraphQLInput }) data: AddTrustedAccountGraphQLInput
   ): Promise<BranchDTO> {
@@ -73,8 +81,8 @@ export class BranchResolver {
     name: 'deleteTrustedAccount',
     description: 'Удалить доверенное лицо кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async deleteTrustedAccount(
     @Args('data', { type: () => DeleteTrustedAccountGraphQLInput }) data: DeleteTrustedAccountGraphQLInput
   ): Promise<BranchDTO> {
@@ -85,8 +93,8 @@ export class BranchResolver {
     name: 'setBranchPrivate',
     description: 'Установить приватность кооперативного участка (выбор только из белого списка)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async setBranchPrivate(
     @Args('data', { type: () => SetBranchPrivateGraphQLInput }) data: SetBranchPrivateGraphQLInput
   ): Promise<BranchDTO> {
@@ -97,8 +105,8 @@ export class BranchResolver {
     name: 'addBranchWhitelist',
     description: 'Добавить пайщика в белый список приватного кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async addBranchWhitelist(
     @Args('data', { type: () => AddBranchWhitelistGraphQLInput }) data: AddBranchWhitelistGraphQLInput
   ): Promise<BranchDTO> {
@@ -109,8 +117,8 @@ export class BranchResolver {
     name: 'deleteBranchWhitelist',
     description: 'Удалить пайщика из белого списка приватного кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Branch', 'manage')
   async deleteBranchWhitelist(
     @Args('data', { type: () => DeleteBranchWhitelistGraphQLInput }) data: DeleteBranchWhitelistGraphQLInput
   ): Promise<BranchDTO> {
@@ -118,8 +126,8 @@ export class BranchResolver {
   }
 
   @Mutation(() => Boolean, { name: 'selectBranch', description: 'Выбрать кооперативный участок' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('BranchChoice', 'select:own', { owner: 'data.username' })
   async selectBranch(
     @Args('data', { type: () => SelectBranchInputDTO }) data: SelectBranchInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -132,8 +140,8 @@ export class BranchResolver {
     name: 'generateSelectBranchDocument',
     description: 'Сгенерировать документ, подтверждающий выбор кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('BranchChoice', 'select:own', { owner: 'data.username' })
   async generateSelectBranchDocument(
     @Args('data', { type: () => SelectBranchGenerateDocumentInputDTO }) data: SelectBranchGenerateDocumentInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })

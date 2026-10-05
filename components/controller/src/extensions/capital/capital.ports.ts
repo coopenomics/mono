@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   CANDIDATE_PORT,
   CHAIN_DELTA_WAIT_PORT,
@@ -40,6 +41,7 @@ import {
 
 export const capitalPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     CANDIDATE_PORT,
     CHAIN_PORT,

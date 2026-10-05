@@ -234,7 +234,6 @@ const baseRoutes: RouteRecordRaw[] = [
           layout: 'default',
           title: t('app.routes.contentAccessLogin'),
           icon: 'fa-solid fa-lock',
-          roles: [],
           widget: {
             title: t('app.routes.contentAccessAuthorization'),
             hideHeader: false,

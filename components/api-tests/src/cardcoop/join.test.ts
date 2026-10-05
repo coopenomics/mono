@@ -51,7 +51,7 @@ describe('cardcoop.join: карта кандидата ждёт решения �
 
     // cc.card.side.06: кандидат остаётся кандидатом — стола с картой до приёма
     // у него нет (решение владельца 25.09.2026).
-    expectCode(await gqlError(candidate.token, MY_CARD), 'KIT_MEMBERS_ONLY')
+    expectCode(await gqlError(candidate.token, MY_CARD), 'KIT_INSUFFICIENT_RIGHTS')
 
     await admitCandidate(candidate.username, ADMITTED_AT)
 

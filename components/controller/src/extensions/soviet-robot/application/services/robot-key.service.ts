@@ -100,7 +100,8 @@ export class RobotKeyService {
   private async assertCouncilMember(coopname: string, member: string): Promise<void> {
     const board = await this.chain.getSovietBoard(coopname);
     if (!board || !board.members.some((m) => m.username === member)) {
-      throw DomainError.internal('SOVIET_ROBOT_KEY_NOT_FROM_COUNCIL_MEMBER');
+      // Ключ передаёт член действующего совета: остальным это отказ в доступе.
+      throw DomainError.forbidden('SOVIET_ROBOT_KEY_NOT_FROM_COUNCIL_MEMBER');
     }
   }
 

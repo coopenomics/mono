@@ -8,7 +8,7 @@
  * черновик тест снимает за собой.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf, waitFor } from '../core'
 import type { Who } from '../core'
 import { KRG, issueOrder, pickOffer } from './flow'
 import { inventoryOfOrder, prepareReceivedOrder } from './issuance.helpers'
@@ -150,8 +150,14 @@ describe('кандидаты на списание: партии по проис
     const w = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 2, receivedQuantity: 2, arrivalPrice: price })
     await issueOrder({ operator: krgChairman, member, orderId: w.orderId, actualQuantity: 2, actualUnitPrice: price })
     claimStatus = (await warrantyReturn({ member, operator: krgChairman, orderId: w.orderId, quantity: 2 })).status
-    const rows = await inventoryOfOrder(krgToken, w.orderId)
-    returnedIds = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED').map(r => r.id)
+    // Возврат приходуется на склад решением совета, а его на стенде принимает
+    // робот уже после ответа оператору: ждём, пока позиция появится на складе.
+    const returned = await waitFor(async () => {
+      const rows = await inventoryOfOrder(krgToken, w.orderId)
+      const found = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED')
+      return found.length > 0 ? found : null
+    }, { timeoutMs: 180_000, intervalMs: 3_000, label: 'возвращённое имущество легло на склад участка' }).catch(() => [])
+    returnedIds = returned.map(r => r.id)
 
     // Четвёртый заказ выдан пайщику и остался у него.
     const issued = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 1, receivedQuantity: 1, arrivalPrice: price })

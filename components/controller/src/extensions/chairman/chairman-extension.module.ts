@@ -34,6 +34,7 @@ import { ChairmanSyncInteractor } from './application/use-cases/chairman-sync.in
 // Resolvers
 import { ApprovalResolver } from './application/resolvers/approval.resolver';
 import { ChairmanOnboardingResolver } from './application/resolvers/onboarding.resolver';
+import { ChairmanRights } from './application/access/chairman-rights';
 
 // Символы для DI
 import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
@@ -41,7 +42,7 @@ import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchai
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
 import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval.record';
-import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
+import { APP_RIGHTS, RightsGuard, computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
 import { t } from './i18n';
@@ -288,6 +289,11 @@ export class ChairmanExtension extends BaseExtensionModule {
 
     // Utils
     DomainToBlockchainUtils,
+
+    // Права стола: описание для общего гарда операций и прав страниц
+    ChairmanRights,
+    { provide: APP_RIGHTS, useExisting: ChairmanRights },
+    RightsGuard,
 
     // Resolvers
     ApprovalResolver,

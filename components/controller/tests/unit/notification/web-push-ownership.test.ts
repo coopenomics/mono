@@ -6,6 +6,9 @@
  * уведомления, — а сам пайщик не мог снять свою (нашёл внешний слой).
  */
 import { SubscriptionResolver } from '~/application/notification/resolvers/web-push-subscription.resolver';
+import { OWN, chairman, councilMember, makeGuard, requirementOf } from '../rights/core-rights.harness';
+
+const RESOLVER = 'notification/resolvers/web-push-subscription.resolver.ts';
 
 const user = (username: string, role = 'user') => ({ username, role }) as any;
 
@@ -20,12 +23,14 @@ function makeResolver() {
 
 describe('подписки на уведомления — только свои', () => {
   it('член совета не создаёт и не читает подписки чужого пайщика', async () => {
-    const { resolver, service } = makeResolver();
-    await expect(resolver.createWebPushSubscription(user('petr', 'member'), { username: 'owner' } as any))
-      .rejects.toMatchObject({ code: 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY' });
-    await expect(resolver.getUserWebPushSubscriptions(user('ant', 'chairman'), { username: 'owner' } as any))
-      .rejects.toMatchObject({ code: 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY' });
-    expect(service.createSubscription).not.toHaveBeenCalled();
+    // Имя в запросе с вошедшим сверяет гард операции по таблице прав ядра.
+    const { pass } = makeGuard();
+    for (const operation of ['createWebPushSubscription', 'getUserWebPushSubscriptions']) {
+      const requirement = requirementOf(RESOLVER, operation);
+      await expect(pass(requirement, councilMember, { data: { username: 'owner' } })).rejects.toMatchObject(OWN);
+      await expect(pass(requirement, chairman, { data: { username: 'owner' } })).rejects.toMatchObject(OWN);
+      await expect(pass(requirement, councilMember, { data: { username: councilMember.username } })).resolves.toBe(true);
+    }
   });
 
   it('пайщик снимает свою подписку', async () => {

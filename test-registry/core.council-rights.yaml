@@ -1,0 +1,150 @@
+feature: core.council-rights
+title: Ядро, совет — права собраний, решений, повестки и шаблонов документов по таблице прав
+
+# Права ядра описаны одной таблицей (C28-87, пункт 3 очереди; согласовано
+# владельцем 05.10.2026): `CoreRights` в application/rights/core-rights.ts —
+# роли «любой вошедший», «пайщик», «член совета», «председатель». Операции
+# совета стоят под общим гардом каркаса расширений (`RightsGuard`), страницы
+# стола совета получают права из той же таблицы.
+#
+# До правки 27 операций стояли под `@AuthRoles`, а гард ролей пропускал любого
+# вошедшего, если в запросе названо его же имя. По этому обходу рядовой пайщик
+# голосовал на собрании и подписывал уведомление, а член совета проходил узел с
+# чужим именем — подмену останавливала только цепь. Теперь это явные права с
+# охватом «своё»: имя в запросе сверяется с вошедшим (источник `owner`), за
+# другого на узле не действует никто. Протокол собрания подписывают и
+# запрашивают председатель и секретарь собрания — узел сверяет их по записи
+# собрания. Кандидат и вышедший пайщик прав пайщика на собраниях не имеют;
+# свои документы читает каждый вошедший.
+
+sources:
+  backend:
+    - components/controller/src/application/rights/**
+    - components/controller/src/application/meet/resolvers/meet.resolver.ts
+    - components/controller/src/application/free-decision/resolvers/free-decision.resolver.ts
+    - components/controller/src/application/decision/resolvers/decision.resolver.ts
+    - components/controller/src/application/agenda/resolvers/agenda.resolver.ts
+    - components/controller/src/application/document-approval/resolvers/document-approval.resolver.ts
+  ui:
+    - components/desktop/extensions/soviet/install.ts
+
+cases:
+  - id: core.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета и председатель зовут операции совета — созыв собрания и его документы, проект и документ свободного решения, повестку, шаблоны документов
+    expect: проход по праву таблицы; рядовой пайщик получает KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: принятый пайщик на своё имя голосует на собрании, запрашивает бюллетень, подписывает уведомление о собрании
+    expect: проход по праву с охватом «своё» — обход «сам себе» прежнего гарда ролей заменён явным правом
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written
+
+  - id: core.rights.happy.03
+    level: backend
+    kind: happy
+    scenario: принятый пайщик и член совета читают собрание и список собраний
+    expect: проход; кандидат получает KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.rights.happy.04
+    level: backend
+    kind: happy
+    scenario: член совета читает документы другого пайщика; пайщик и кандидат читают свои
+    expect: проход; чужие документы пайщику закрыты кодом KIT_RIGHT_SCOPE_OWN
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written
+
+  - id: core.rights.happy.05
+    level: backend
+    kind: happy
+    scenario: член совета открывает рабочий стол
+    expect: права страниц стола совета — повестка, реестры пайщиков, документов, платежей, расходов, шаблоны документов, собрания
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written
+
+  - id: core.rights.side.01
+    level: backend
+    kind: side
+    scenario: член совета повторно созывает собрание, утверждает и отклоняет решение, выносит редакцию документа на совет
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — эти действия у председателя
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.rights.side.02
+    level: backend
+    kind: side
+    scenario: рядовой пайщик и кандидат запрашивают на своё имя документ свободного решения, повестку собрания, решение совета о созыве
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — раньше обход «сам себе» пропускал любого вошедшего
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written
+
+  - id: core.rights.side.03
+    level: backend
+    kind: side
+    scenario: пайщик, член совета и председатель голосуют, подписывают уведомление и протокол с чужим именем в запросе
+    expect: отказ KIT_RIGHT_SCOPE_OWN до входа в операцию; раньше члена совета с чужим именем останавливала только цепь
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written
+
+  - id: core.rights.side.04
+    level: backend
+    kind: side
+    scenario: кандидат на своё имя голосует на собрании и подписывает уведомление
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — права пайщика действуют для принятого
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: core.rights.side.05
+    level: backend
+    kind: side
+    scenario: протокол собрания подписывает пайщик, который в собрании записан другим лицом — секретарь вместо председателя, посторонний пайщик
+    expect: отказ KIT_RIGHT_SCOPE_OWN — узел сверяет председателя и секретаря по записи собрания
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: "сверка идёт вторым источником после имени в запросе; чтобы дойти до неё снаружи, нужно собрание, доведённое до закрытия, а набор собраний держит на стенде одно собрание и проходит его целиком своими лицами"
+    status: written
+
+  - id: core.rights.side.06
+    level: backend
+    kind: side
+    scenario: документ протокола собрания запрашивает пайщик, который в собрании ни председатель, ни секретарь
+    expect: отказ KIT_RIGHT_SCOPE_OWN; председатель и секретарь собрания документ получают
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: "та же сверка по записи собрания, что и у подписи протокола; собрание на стенде одно и ведётся набором собраний"
+    status: written
+
+  - id: core.rights.side.07
+    level: backend
+    kind: side
+    scenario: протокол подписывается по собранию, записи которого в базе узла нет
+    expect: гард пропускает запрос дальше, отвечает сама операция
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: "собрание без записи в базе узла снаружи не создать: запись заводит сам созыв"
+    status: written
+
+  - id: core.rights.side.08
+    level: backend
+    kind: side
+    scenario: рядовой пайщик открывает рабочий стол
+    expect: прав страниц стола совета нет, стол совета ему не показывается
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/soviet/council-rights.test.ts
+    status: written

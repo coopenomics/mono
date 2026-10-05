@@ -79,7 +79,7 @@ const MAKERS: { name: string, make: () => Promise<Who> }[] = [
       // Статус «принят» снимает слушатель события цепи — после разбора блока.
       await waitFor(async () => {
         const r = await gqlRaw(token, 'query($d:GetMeetsInput!){ getMeets(data:$d){ hash } }', { d: { coopname: COOP } })
-        return r.errors[0]?.code === 'KIT_MEMBERS_ONLY' ? true : null
+        return r.errors[0]?.code === 'KIT_INSUFFICIENT_RIGHTS' ? true : null
       }, { timeoutMs: 60_000, intervalMs: 2_000, label: `учётная запись ${who.account} потеряла статус «принят»` })
       return who
     },
@@ -117,7 +117,8 @@ async function makeTrusted(who: Who): Promise<void> {
     const r = await gqlRaw(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
       marketplaceAidStatementSignablePayload(data:$d){ hash }
     }`, { d: { braname: branch.braname, amount: 1 } })
-    return r.errors.some(e => String(e.code) === '403' || /Forbidden/i.test(e.message)) ? null : true
+    // Пока роли оператора нет, гард прав отвечает отказом доступа.
+    return r.errors.some(e => String(e.code) === 'KIT_INSUFFICIENT_RIGHTS') ? null : true
   }, { timeoutMs: 150_000, intervalMs: 5_000, label: `доверенный ${who.account} получил права участка ${branch.braname}` })
 }
 

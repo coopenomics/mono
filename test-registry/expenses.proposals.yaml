@@ -122,7 +122,7 @@ cases:
     scenario: >
       Обычный пайщик подаёт записку от своего и от чужого имени
     expect: >
-      от своего — EXPENSES_PROPOSAL_FORBIDDEN, от чужого — KIT_INSUFFICIENT_RIGHTS; записки нет
+      от своего и от чужого — KIT_INSUFFICIENT_RIGHTS; записки нет
     test: components/api-tests/src/expenses/proposals.test.ts
     api: components/api-tests/src/expenses/proposals.test.ts
     status: passing

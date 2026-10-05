@@ -1,6 +1,16 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { Throttle } from '@nestjs/throttler';
 import { CandidateOutputDTO } from '../dto/candidate.dto';
 import { CandidateFilterInputDTO } from '../dto/candidate-filter.dto';
@@ -53,8 +63,8 @@ export class RegistrationResolver {
     description:
       'Программа вступления и ответы заявителя на анкеты, объявленные расширениями. Доступно председателю и членам совета.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', ['read:own', 'read:all'], { owner: 'username' })
   async getCandidateIntake(
     @Args('username', { type: () => String }) username: string
   ): Promise<CandidateIntakeDTO> {
@@ -85,8 +95,8 @@ export class RegistrationResolver {
       'Генерирует пакет документов для регистрации пайщика. Возвращает список документов с метаданными для отображения на фронтенде.',
   })
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'generate:own', { owner: 'data.username' })
   async generateRegistrationDocuments(
     @Args('data', { type: () => GenerateRegistrationDocumentsInputDTO })
     data: GenerateRegistrationDocumentsInputDTO
@@ -99,8 +109,8 @@ export class RegistrationResolver {
     description: 'Сгенерировать документ заявления о вступлении в кооператив.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'generate:own', { owner: 'data.username' })
   async generateParticipantApplication(
     @Args('data', { type: () => ParticipantApplicationGenerateDocumentInputDTO })
     data: ParticipantApplicationGenerateDocumentInputDTO,
@@ -115,8 +125,8 @@ export class RegistrationResolver {
     description: 'Сгенерировать документ протокол решения собрания совета',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DecisionDocument', 'generate')
   async generateParticipantApplicationDecision(
     @Args('data', { type: () => ParticipantApplicationDecisionGenerateDocumentInputDTO })
     data: ParticipantApplicationDecisionGenerateDocumentInputDTO,
@@ -131,8 +141,8 @@ export class RegistrationResolver {
     description:
       'Зарегистрировать заявление и подписанные положения, подготовив пакет документов к отправке в совет на голосование после поступления оплаты.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'submit:own', { owner: 'data.username' })
   async registerParticipant(
     @Args('data', { type: () => RegisterParticipantInputDTO })
     data: RegisterParticipantInputDTO
@@ -145,8 +155,8 @@ export class RegistrationResolver {
     description:
       'Создание объекта регистрационного платежа производится мутацией createInitialPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Registration', 'pay:own', { owner: 'data.username' })
   async createInitialPayment(
     @Args('data', { type: () => CreateInitialPaymentInputDTO }) data: CreateInitialPaymentInputDTO
   ): Promise<GatewayPaymentDTO> {

@@ -33,13 +33,21 @@ title: Стол заказов — таблица прав с условиями
 # источник у каждого требования с узким охватом и запрещает резолверу читать
 # состав участка. Случаи — mkt.scopes.*.
 
+# Правка 2026-10-05, вторая (C28-87, каркас этапа 1): гард и выдача прав стола
+# стали общими. Приложение объявляет одно описание прав (`AppRights` в
+# extension-kit/src/auth/app-rights.ts): таблицу, свои роли у пайщика, условия
+# строк, справочник объектов. По нему работают `RightsGuard` и `desktopGrantsOf`;
+# тем же способом объявлен стол «Робот совета». `MarketplaceRightsService` стал
+# описанием прав Стола заказов; `MarketplaceRoleGuard`, декоратор
+# `@RequireMarketplaceRole` и `MarketplaceDesktopGrantsProvider` удалены. Отказ
+# «право не положено» — код KIT_INSUFFICIENT_RIGHTS.
+
 sources:
   backend:
     - components/extension-kit/src/auth/rights.ts
     - components/controller/src/extensions/marketplace/application/access/**
-    - components/controller/src/extensions/marketplace/application/guards/marketplace-role.guard.ts
+    - components/extension-kit/src/auth/app-rights.ts
     - components/controller/src/extensions/marketplace/application/membership/marketplace-roles.mapper.ts
-    - components/controller/src/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider.ts
 
 cases:
   - id: mkt.rights.happy.01

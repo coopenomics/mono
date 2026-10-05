@@ -1,8 +1,8 @@
 /**
  * Обвязка тестов сверки охвата прав Стола заказов (C28-87).
  *
- * Гард собирается настоящий: таблица прав, сервис условий, справочник объектов
- * и правила охвата каркаса расширений. Подставные здесь только хранилища и
+ * Гард собирается настоящий: общий `RightsGuard` каркаса расширений над
+ * описанием прав Стола заказов — таблица, условия, справочник объектов. Подставные здесь только хранилища и
  * состав участков. Требование операции читается из исходника резолвера —
  * тест проверяет то, что объявлено в коде, а не свою копию.
  */
@@ -14,6 +14,7 @@ import {
   GRANTED_SCOPE_KEY,
   platformSettings,
   RIGHT_METADATA_KEY,
+  RightsGuard,
   SELF,
   type IGrantedScope,
   type IRightRequirement,
@@ -22,7 +23,6 @@ import {
 import { MarketplaceRightSubjects } from '~/extensions/marketplace/application/access/marketplace-right-subjects.service';
 import { MarketplaceRightsService } from '~/extensions/marketplace/application/access/marketplace-rights.service';
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
-import { MarketplaceRoleGuard } from '~/extensions/marketplace/application/guards/marketplace-role.guard';
 
 configureExtensionAuth({ serverSecret: 'svc-secret' });
 
@@ -152,20 +152,35 @@ export function makeScopeGuard(world: ScopeWorld = {}) {
     }),
   };
   const cart = { findByOrderer: jest.fn().mockResolvedValue(onboarded ? { delivery_braname: 'krg' } : null) };
-  const rights = new MarketplaceRightsService(config as any, onboarding as any, cart as any);
-  const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
+  const supplierRegistry = { isOfferer: jest.fn().mockResolvedValue(false) };
+  const grantsRegistry = { register: jest.fn() };
+  const rights = new MarketplaceRightsService(
+    config as any,
+    onboarding as any,
+    cart as any,
+    supplierRegistry as any,
+    kuChairmanService as any,
+    subjects,
+    grantsRegistry as any
+  );
 
   /** Итог гарда для операции: охват, по которому она выполняется. Отказ — исключение. */
   async function granted(
-    requirement: IRightRequirement,
+    requirement: IRightRequirement | undefined,
     member: ScopeMember,
-    args: Record<string, unknown> = {}
+    args: Record<string, unknown> = {},
+    headers: Record<string, string> = {}
   ): Promise<IGrantedScope> {
     const reflector = {
       getAllAndOverride: jest.fn((key: string) => (key === RIGHT_METADATA_KEY ? requirement : undefined)),
     } as unknown as Reflector;
-    const guard = new MarketplaceRoleGuard(reflector, logger as any, rights, subjects, kuChairmanService as any);
-    const request: Record<string, unknown> = { headers: {}, currentMember: member };
+    const guard = new RightsGuard(reflector, rights);
+    // Вход пайщика и его роли к этому моменту поставили гард входа и гард членства.
+    const request: Record<string, unknown> = {
+      headers,
+      user: { username: member.username, role: 'user', status: 'active' },
+      currentMember: member,
+    };
     const gqlCtx = { req: request, currentMember: member };
     const slots = [undefined, args, gqlCtx, undefined];
     const context = {
@@ -182,5 +197,5 @@ export function makeScopeGuard(world: ScopeWorld = {}) {
     return request[GRANTED_SCOPE_KEY] as IGrantedScope;
   }
 
-  return { granted, repos, kuChairmanService, logger };
+  return { granted, repos, kuChairmanService, rights, onboarding, config };
 }

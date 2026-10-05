@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DOCUMENT_PORT,
@@ -24,6 +25,7 @@ import {
 
 export const expensesPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     CHAIN_PORT,
     DOCUMENT_PORT,
     FILE_STORAGE_PORT,

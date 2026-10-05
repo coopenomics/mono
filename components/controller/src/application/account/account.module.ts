@@ -10,9 +10,11 @@ import { EventsInfrastructureModule } from '~/infrastructure/events/events.modul
 import { AuthV2InfrastructureModule } from '~/infrastructure/auth-v2/auth-v2-infrastructure.module';
 import { EmailVerificationModule } from '~/application/auth/email-verification/email-verification.module';
 import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-limit.guard';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     AccountDomainModule,
     UserDomainModule,
     TokenApplicationModule,

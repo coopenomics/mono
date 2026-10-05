@@ -5,9 +5,10 @@ import { ConfigModule } from '@nestjs/config';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 // Импортируем для регистрации GraphQL enum
 import '~/domain/instance-status.enum';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
-  imports: [ConfigModule, DocumentDomainModule],
+  imports: [CoreRightsModule, ConfigModule, DocumentDomainModule],
   providers: [ProviderService, ProviderResolver],
   exports: [ProviderService],
 })

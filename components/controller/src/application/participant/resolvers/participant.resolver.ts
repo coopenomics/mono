@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { AccountDTO } from '~/application/account/dto/account.dto';
 import { ParticipantService } from '../services/participant.service';
@@ -14,8 +14,8 @@ export class ParticipantResolver {
     description:
       'Добавить активного пайщика, который вступил в кооператив, не используя платформу (заполнив заявление собственноручно, оплатив вступительный и минимальный паевый взносы, и получив протокол решения совета)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Participant', 'create')
   async addParticipant(
     @Args('data', { type: () => AddParticipantInputDTO })
     data: AddParticipantInputDTO

@@ -1,6 +1,15 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+  SELF,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { NotificationInboxService } from './notification-inbox.service';
 import {
@@ -26,8 +35,8 @@ export class NotificationInboxResolver {
     name: 'getInboxNotifications',
     description: 'Лента личного инбокса текущего пользователя',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Inbox', 'read:own', SELF)
   async getInboxNotifications(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string,
@@ -40,8 +49,8 @@ export class NotificationInboxResolver {
     name: 'getUnreadNotificationsCount',
     description: 'Число непрочитанных уведомлений в инбоксе (бейдж на колоколе)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Inbox', 'read:own', SELF)
   async getUnreadNotificationsCount(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string
@@ -54,8 +63,8 @@ export class NotificationInboxResolver {
     name: 'markNotificationRead',
     description: 'Отметить уведомление инбокса прочитанным',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Inbox', 'read:own', SELF)
   async markNotificationRead(
     @CurrentUser() user: IMonoAccount,
     @Args('id') id: string
@@ -67,8 +76,8 @@ export class NotificationInboxResolver {
     name: 'markAllNotificationsRead',
     description: 'Отметить все уведомления инбокса прочитанными',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'], { anyStatus: true })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Inbox', 'read:own', SELF)
   async markAllNotificationsRead(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname') coopname: string

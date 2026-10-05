@@ -10,7 +10,7 @@
  */
 import { Resolver, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard, platformSettings } from '@coopenomics/extension-kit';
+import { CurrentUser, GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { CardcoopCardService } from './cardcoop-card.service';
@@ -27,8 +27,8 @@ export class CardcoopCardResolver {
     name: 'cardcoopMyCard',
     description: 'Карта кооператора в сети «Карта кооператора»: выпущена ли и что с членством',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Card', 'read:own', SELF)
   async myCard(@CurrentUser() user: IMonoAccount): Promise<CardcoopMyCardDTO> {
     return this.cards.forMember(user.username, this.extension.config.api_url, platformSettings().coopname);
   }

@@ -118,7 +118,7 @@ describe('chatcoop: учётная запись чата', () => {
       // Узел узнаёт о приёме из цепи — до этого чат отвечает «только для пайщиков».
       const opened = await waitFor(async () => {
         const r = await gqlError(coopToken, CREATE, { d: { username: matrixName, password: 'Blackbox-пароль-4' } })
-        return r === null ? true : (String(r.code) === 'KIT_MEMBERS_ONLY' ? null : r)
+        return r === null ? true : (String(r.code) === 'KIT_INSUFFICIENT_RIGHTS' ? null : r)
       }, { timeoutMs: 60_000, intervalMs: 1_500, label: 'принятый пайщик-кооператив завёл учётную запись чата' })
       expect(opened, JSON.stringify(opened)).toBe(true)
 

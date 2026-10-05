@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { Ledger2Service } from '../services/ledger2.service';
 import { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
 import { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
@@ -28,8 +28,8 @@ export class Ledger2Resolver {
     description:
       'Актуальные балансы счетов кооператива из ledger2::accounts (id ×1000).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   getLedger2Accounts(
     @Args('coopname', { type: () => String }) coopname: string,
   ): Promise<Ledger2AccountDTO[]> {
@@ -42,8 +42,8 @@ export class Ledger2Resolver {
       'Общекооперативные кошельки из ledger2::wallets (eosio::name w.<contract>.<waltype>). ' +
       'Кошельки пайщиков живут в контракте soviet — сюда не попадают.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   getLedger2Wallets(
     @Args('coopname', { type: () => String }) coopname: string,
   ): Promise<Ledger2WalletDTO[]> {
@@ -55,8 +55,8 @@ export class Ledger2Resolver {
     description:
       'История операций ledger2 с серверными фильтрами (action/accountId/username/date-range).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   getLedger2History(
     @Args('input', { type: () => GetLedger2HistoryInputDTO }) input: GetLedger2HistoryInputDTO,
   ): Promise<Ledger2HistoryResponseDTO> {
@@ -69,8 +69,8 @@ export class Ledger2Resolver {
       'Реестр проводок: пары debit+credit (Дт/Кт/Сумма), восстановленные из blockchain_actions ' +
       'по правилу «ближайший parent apply». Источник для фронт-страницы «Реестр проводок».',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'read')
   getLedger2Postings(
     @Args('input', { type: () => GetLedger2PostingsInputDTO }) input: GetLedger2PostingsInputDTO,
   ): Promise<Ledger2PostingsResponseDTO> {
@@ -83,8 +83,8 @@ export class Ledger2Resolver {
       'Перевод между кошельками одного бух.счёта (operation o.adj.walmove). ' +
       'Только председатель. Backend проверяет связь wallet→account до подписания.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Ledger', 'move')
   walmoveWallets(
     @Args('input', { type: () => WalmoveInputDTO }) input: WalmoveInputDTO,
   ): Promise<Ledger2AdjustmentResultDTO> {

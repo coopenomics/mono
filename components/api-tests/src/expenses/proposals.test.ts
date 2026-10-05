@@ -222,7 +222,7 @@ describe('expenses: служебная записка на расход', () => 
   it(caseName('exp.prop.side.01', 'пайщик не подаёт записку: от своего имени — EXPENSES_PROPOSAL_FORBIDDEN, от чужого — отказ по роли'), async () => {
     const own = { ...draft, author: ROLES.member(), proposal_hash: hash64() }
     const self = await gqlError(member, CREATE_PROPOSAL, { d: createInput(own, statement) })
-    expect(self?.code).toBe('EXPENSES_PROPOSAL_FORBIDDEN')
+    expect(self?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     const foreign = await gqlError(member, CREATE_PROPOSAL, { d: createInput({ ...draft, proposal_hash: own.proposal_hash }, statement) })
     expect(foreign?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     const d = await gql<any>(chairman, GET, { h: own.proposal_hash })

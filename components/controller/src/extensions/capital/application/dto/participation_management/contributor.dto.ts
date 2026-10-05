@@ -3,7 +3,7 @@ import { ContributorStatus } from '../../../domain/enums/contributor-status.enum
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
 import { ContributorDocumentParametersDTO } from './contributor-document-parameters.dto';
 import { CapitalProgramWalletDTO } from './capital-program-wallet.dto';
-import { AuthRoles, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { CouncilField, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Contributor
@@ -146,7 +146,7 @@ export class ContributorOutputDTO extends BaseOutputDTO {
     description: 'Контракт участника',
     nullable: true,
   })
-  @AuthRoles(['chairman', 'member'], { self: ['username'] })
+  @CouncilField(['username'])
   contract?: DocumentAggregateDTO | null;
 
   @Field(() => [String], {

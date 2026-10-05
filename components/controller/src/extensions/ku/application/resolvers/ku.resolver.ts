@@ -1,6 +1,17 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { KuService } from '../services/ku.service';
 import { KuDecisionDTO, KuDecisionFilterInputDTO } from '../dto/ku-decision.dto';
@@ -49,8 +60,8 @@ export class KuResolver {
     name: 'kuCreateDecision',
     description: 'Объявить собрание пайщиков кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'create')
   async kuCreateDecision(
     @Args('data', { type: () => CreateKuDecisionInputDTO }) data: CreateKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -62,8 +73,8 @@ export class KuResolver {
     name: 'kuJoinDecision',
     description: 'Присоединиться к собранию пайщиков кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'join')
   async kuJoinDecision(
     @Args('data', { type: () => JoinKuDecisionInputDTO }) data: JoinKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -75,8 +86,8 @@ export class KuResolver {
     name: 'kuStartDecision',
     description: 'Открыть голосование на собрании пайщиков участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'conduct')
   async kuStartDecision(
     @Args('data', { type: () => StartKuDecisionInputDTO }) data: StartKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -88,8 +99,8 @@ export class KuResolver {
     name: 'kuVoteOnDecision',
     description: 'Подать бюллетень на собрании пайщиков участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'vote')
   async kuVoteOnDecision(
     @Args('data', { type: () => VoteOnKuDecisionInputDTO }) data: VoteOnKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -101,8 +112,8 @@ export class KuResolver {
     name: 'kuCloseDecision',
     description: 'Закрыть голосование и утвердить протокол собрания',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'conduct')
   async kuCloseDecision(
     @Args('data', { type: () => CloseKuDecisionInputDTO }) data: CloseKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -114,8 +125,8 @@ export class KuResolver {
     name: 'kuExecDecision',
     description: 'Направить заявление председателя собрания в совет об учреждении участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'conduct')
   async kuExecDecision(
     @Args('data', { type: () => ExecKuDecisionInputDTO }) data: ExecKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -127,8 +138,8 @@ export class KuResolver {
     name: 'kuCancelDecision',
     description: 'Отменить собрание пайщиков участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'cancel')
   async kuCancelDecision(
     @Args('data', { type: () => CancelKuDecisionInputDTO }) data: CancelKuDecisionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -144,8 +155,8 @@ export class KuResolver {
     name: 'kuRequestTrusted',
     description: 'Подать заявку на приём доверенным лицом кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuTrust', 'request')
   async kuRequestTrusted(
     @Args('data', { type: () => RequestKuTrustedInputDTO }) data: RequestKuTrustedInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -157,8 +168,8 @@ export class KuResolver {
     name: 'kuApproveTrusted',
     description: 'Одобрить заявку доверенного встречной подписью председателя участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuTrust', 'decide')
   async kuApproveTrusted(
     @Args('data', { type: () => ApproveKuTrustedInputDTO }) data: ApproveKuTrustedInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -170,8 +181,8 @@ export class KuResolver {
     name: 'kuDeclineTrusted',
     description: 'Отклонить заявку доверенного лица',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuTrust', 'decide')
   async kuDeclineTrusted(
     @Args('data', { type: () => DeclineKuTrustedInputDTO }) data: DeclineKuTrustedInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -192,8 +203,8 @@ export class KuResolver {
     name: 'kuGenerateMeetingProposal',
     description: 'Сгенерировать предложение повестки собрания пайщиков участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateMeetingProposal(
     @Args('data', { type: () => BranchMeetingProposalGenerateDocumentInputDTO })
     data: BranchMeetingProposalGenerateDocumentInputDTO,
@@ -206,8 +217,8 @@ export class KuResolver {
     name: 'kuGenerateMeetingBallot',
     description: 'Сгенерировать бюллетень голосования на собрании участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateMeetingBallot(
     @Args('data', { type: () => BranchMeetingBallotGenerateDocumentInputDTO })
     data: BranchMeetingBallotGenerateDocumentInputDTO,
@@ -220,8 +231,8 @@ export class KuResolver {
     name: 'kuGenerateMeetingDecision',
     description: 'Сгенерировать протокол решения собрания пайщиков участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateMeetingDecision(
     @Args('data', { type: () => BranchMeetingDecisionGenerateDocumentInputDTO })
     data: BranchMeetingDecisionGenerateDocumentInputDTO,
@@ -234,8 +245,8 @@ export class KuResolver {
     name: 'kuGenerateEstablishmentPetition',
     description: 'Сгенерировать заявление председателя собрания в совет об учреждении участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateEstablishmentPetition(
     @Args('data', { type: () => BranchEstablishmentPetitionGenerateDocumentInputDTO })
     data: BranchEstablishmentPetitionGenerateDocumentInputDTO,
@@ -248,8 +259,8 @@ export class KuResolver {
     name: 'kuGenerateEstablishmentDecision',
     description: 'Сгенерировать решение совета об учреждении кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateEstablishmentDecision(
     @Args('data', { type: () => BranchEstablishmentDecisionGenerateDocumentInputDTO })
     data: BranchEstablishmentDecisionGenerateDocumentInputDTO,
@@ -262,8 +273,8 @@ export class KuResolver {
     name: 'kuGenerateTrustedStatement',
     description: 'Сгенерировать заявление о приёме доверенным лицом участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateTrustedStatement(
     @Args('data', { type: () => BranchTrustedStatementGenerateDocumentInputDTO })
     data: BranchTrustedStatementGenerateDocumentInputDTO,
@@ -276,8 +287,8 @@ export class KuResolver {
     name: 'kuGenerateTrustedLiabilityAgreement',
     description: 'Сгенерировать договор о полной индивидуальной материальной ответственности доверенного лица кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateTrustedLiabilityAgreement(
     @Args('data', { type: () => BranchTrustedLiabilityAgreementGenerateDocumentInputDTO })
     data: BranchTrustedLiabilityAgreementGenerateDocumentInputDTO,
@@ -290,8 +301,8 @@ export class KuResolver {
     name: 'kuGenerateTrusteeLiabilityAgreement',
     description: 'Сгенерировать договор о полной индивидуальной материальной ответственности председателя кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateTrusteeLiabilityAgreement(
     @Args('data', { type: () => BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO })
     data: BranchTrusteeLiabilityAgreementGenerateDocumentInputDTO,
@@ -304,8 +315,8 @@ export class KuResolver {
     name: 'kuGenerateTrusteePowerOfAttorney',
     description: 'Сгенерировать доверенность председателю кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateTrusteePowerOfAttorney(
     @Args('data', { type: () => BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO })
     data: BranchTrusteePowerOfAttorneyGenerateDocumentInputDTO,
@@ -318,8 +329,8 @@ export class KuResolver {
     name: 'kuGenerateTrustedPowerOfAttorney',
     description: 'Сгенерировать доверенность доверенному лицу кооперативного участка',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDocument', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async kuGenerateTrustedPowerOfAttorney(
     @Args('data', { type: () => BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO })
     data: BranchTrustedPowerOfAttorneyGenerateDocumentInputDTO,
@@ -336,8 +347,8 @@ export class KuResolver {
     name: 'kuDecisions',
     description: 'Получить список решений собраний кооперативных участков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'read')
   async kuDecisions(
     @Args('filter', { nullable: true }) filter?: KuDecisionFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -349,8 +360,8 @@ export class KuResolver {
     name: 'kuDecision',
     description: 'Получить решение собрания участка по хэшу (с вопросами повестки)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuDecision', 'read')
   async kuDecision(@Args('hash', { type: () => String }) hash: string): Promise<KuDecisionDTO> {
     return this.kuService.getDecision(hash);
   }
@@ -359,8 +370,8 @@ export class KuResolver {
     name: 'kuTrustRequests',
     description: 'Получить список заявок доверенных лиц кооперативных участков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['user', 'member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('KuTrust', 'read')
   async kuTrustRequests(
     @CurrentUser() currentUser: IMonoAccount,
     @Args('filter', { nullable: true }) filter?: KuTrustRequestFilterInputDTO,

@@ -133,7 +133,7 @@ export const useDesktopStore = defineStore(namespace, () => {
       const meta: RouteMeta =
         routes.length > 0 && routes[0].meta
           ? (routes[0].meta as RouteMeta)
-          : { title: ws.title, icon: '', roles: [] };
+          : { title: ws.title, icon: '' };
 
       // Приоритет иконки: 1) из workspace (с бэкенда), 2) из meta маршрута
       const icon = (ws as any).icon || meta.icon || 'fa-solid fa-desktop';
@@ -152,25 +152,27 @@ export const useDesktopStore = defineStore(namespace, () => {
 
   // ─────────────────── Канон авторизации столов (grants) ───────────────────
   // Единый источник «кто что видит» — backend: getDesktop кладёт в каждый
-  // workspace расширения массив `grants` (capability текущего пользователя).
+  // workspace массив `grants` — права текущего пользователя из таблиц прав.
   // Фронт лишь сверяет требование маршрута `meta.requires` с этим набором
-  // (plain includes) — без собственной policy. Расширения без grants
-  // (`grants === undefined`) работают по-старому: видимость по `meta.roles`.
+  // (plain includes) — без собственной policy и без ролей.
   // Подробности и схема — components/context/notes/EXTENSIONS_SCHEMA_SYSTEM.md.
 
   function workspaceGrants(workspaceName: string): string[] | undefined {
     const ws = currentDesktop.value?.workspaces.find((w) => w.name === workspaceName);
-    // Бэкенд отдаёт `grants: null` для core-столов (нет провайдера грантов) и
-    // массив (возможно пустой `[]`) для grant-управляемых расширений. Схлопываем
-    // null → undefined, чтобы core-столы шли по legacy-ветке `meta.roles`, а
-    // осмысленный пустой набор `[]` (grant-режим без прав) сохранялся как есть.
     const grants = (ws as any)?.grants;
     return grants ?? undefined;
   }
 
-  function currentUserRole(): string {
-    const session = useSessionStore();
-    return session.isChairman ? 'chairman' : session.isMember ? 'member' : 'user';
+  // Права пайщика по всем столам разом. По ним сверяется страница, которая
+  // не входит ни в один стол сервера (страницы расходов, общие маршруты).
+  function allGrants(): string[] {
+    const all = (currentDesktop.value?.workspaces ?? []).flatMap((w) => ((w as any).grants as string[] | null) ?? []);
+    return [...new Set(all)];
+  }
+
+  // Набор прав, по которому сверяется страница стола `workspaceName`.
+  function grantsFor(workspaceName: string | undefined): string[] {
+    return (workspaceName ? workspaceGrants(workspaceName) : undefined) ?? allGrants();
   }
 
   /**
@@ -192,32 +194,17 @@ export const useDesktopStore = defineStore(namespace, () => {
 
   // Видна ли страница (пункт меню / доступ к маршруту) внутри стола.
   function isPageVisible(meta: RouteMeta | undefined, workspaceName: string): boolean {
-    const grants = workspaceGrants(workspaceName);
-    if (grants !== undefined) {
-      // grant-стол: страница объявляет требование `requires` и видна, только
-      // если право выдано бэкендом. Страница без `requires` в grant-столе
-      // скрыта (иначе пустой набор грантов открыл бы её всем).
-      const requires = (meta as any)?.requires as string | undefined;
-      return requires ? grants.includes(requires) : false;
-    }
-    // legacy: по core-роли
-    const roles = (meta as any)?.roles as string[] | undefined;
-    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+    // Страница объявляет требование `requires` и видна, только если право
+    // выдано бэкендом. Страница без `requires` скрыта (иначе пустой набор
+    // прав открыл бы её всем).
+    const requires = (meta as any)?.requires as string | undefined;
+    return requires ? grantsFor(workspaceName).includes(requires) : false;
   }
 
-  // Виден ли стол в переключателе: для grant-стола — есть хотя бы одна
-  // доступная по грантам страница; для legacy — по роли родительского маршрута.
+  // Виден ли стол в переключателе: есть хотя бы одна доступная по правам страница.
   function isWorkspaceVisible(menuItem: WorkspaceMenuItem): boolean {
-    const grants = workspaceGrants(menuItem.workspaceName);
-    if (grants !== undefined) {
-      const children = (menuItem.mainRoute?.children ?? []) as RouteRecordRaw[];
-      return children.some((c) => {
-        const requires = (c.meta as any)?.requires as string | undefined;
-        return requires ? grants.includes(requires) : false;
-      });
-    }
-    const roles = (menuItem.meta as any)?.roles as string[] | undefined;
-    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+    const children = (menuItem.mainRoute?.children ?? []) as RouteRecordRaw[];
+    return children.some((c) => isPageVisible(c.meta as RouteMeta | undefined, menuItem.workspaceName));
   }
 
   /**
@@ -263,22 +250,16 @@ export const useDesktopStore = defineStore(namespace, () => {
     return gate?.name ? { name: String(gate.name) } : null;
   }
 
-  // Доступ к маршруту для навигационного гарда. В grant-столе глушит только при
-  // явном невыполненном `requires`; нет требования → пускаем (настоящий
-  // enforcement — на резолверах бэкенда). Для legacy — по `meta.roles`.
+  // Доступ к маршруту для навигационного гарда. Глушит только при явном
+  // невыполненном `requires`; нет требования → пускаем (настоящий
+  // enforcement — на резолверах бэкенда).
   function hasRouteAccess(
     matchedRouteNames: Array<string | symbol | null | undefined>,
     meta: RouteMeta | undefined,
   ): boolean {
-    const wsName = workspaceNameFromRoute(matchedRouteNames);
-    const grants = wsName ? workspaceGrants(wsName) : undefined;
-    if (grants !== undefined) {
-      const requires = (meta as any)?.requires as string | undefined;
-      if (!requires) return true;
-      return grants.includes(requires);
-    }
-    const roles = (meta as any)?.roles as string[] | undefined;
-    return !roles || roles.length === 0 || roles.includes(currentUserRole());
+    const requires = (meta as any)?.requires as string | undefined;
+    if (!requires) return true;
+    return grantsFor(workspaceNameFromRoute(matchedRouteNames)).includes(requires);
   }
 
   // Храним название активного workspace

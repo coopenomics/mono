@@ -18,28 +18,32 @@
    `@CurrentMarketplaceMember()`.
 5. `server-secret` пропускает guard (inter-service).
 
-## `MarketplaceRoleGuard` (Story 1.6)
+## Общий гард прав `RightsGuard` (C28-87)
 
-Ставится **после** `MarketplaceMembershipGuard`. Читает декоратор
-`@RequireMarketplaceRole('admin', 'board')` через `Reflector` и проверяет
-пересечение (`Array.find(includes)`) с `currentMember.marketplace_roles`.
+Ставится **после** `MarketplaceMembershipGuard`. Гард живёт в каркасе
+расширений (`@coopenomics/extension-kit`) и общий для всех приложений: он
+читает `@RequireRight` операции и сверяет его с описанием прав расширения, в
+модуле которого объявлена операция (токен `APP_RIGHTS`). Описание прав Стола
+заказов — `access/marketplace-rights.service.ts`: таблица, роли пайщика,
+условия строк и справочник объектов. Из него же выдаются права страниц
+рабочего стола (`desktopGrantsOf`), отдельного провайдера нет.
 
-При запрете:
-- бросает `ForbiddenException` с детальным сообщением
-  `Forbidden: marketplace role 'admin' required, member has [orderer]`;
-- пишет structured log `forbidden-attempt` (`member`, `action`,
-  `requested_role`, `actual_marketplace_roles`, `actual_core_roles`).
+Порядок проверки: право по таблице → условие строки → охват.
 
-Если декоратор отсутствует — guard разрешает (по аналогии с core
-`RolesGuard`): «нет требования — нет ограничения».
+При отказе гард отвечает кодом и пишет в журнал `forbidden-attempt`:
+- право ролям не положено — `KIT_INSUFFICIENT_RIGHTS`;
+- условие строки ждёт выполнения — код условия (`MARKETPLACE_COOP_NOT_CONNECTED`,
+  `MARKETPLACE_ORDERER_ONBOARDING_REQUIRED`, …);
+- объект чужой — код охвата `KIT_RIGHT_SCOPE_*`.
 
-`server-secret` пропускает guard.
+Операция без `@RequireRight` гардом пропускается: членство уже проверил
+`MarketplaceMembershipGuard`. `server-secret` пропускает гард.
 
 ## Pattern использования
 
 ```typescript
-@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-@RequireMarketplaceRole('admin')
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+@RequireRight('Offer', 'moderate')
 @Mutation(() => SomeDTO)
 async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCurrentMember) {
   // member.core_roles, member.marketplace_roles доступны
@@ -65,7 +69,7 @@ async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCur
 | `[User]`                          | `isOfferer: true`     | `[orderer, offerer]` (Эпик 3, whitelist)       |
 | `[User]`                          | `isKuChairman: true`  | `[orderer, operator]` (Эпик 2, КУ)             |
 | `[User, Member]`                  | —                     | `[orderer, board_readonly]`                    |
-| `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin, board]`      |
+| `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin]`             |
 | `[]` (admin платформы)            | любые                 | `[]` (guard membership уже отбросит 403)       |
 
 ## Таблица прав (Story 1.8, C28-87)
@@ -78,18 +82,13 @@ async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCur
 
 ```ts
 // resolver:
-@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
 @RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
 @Mutation(() => MarketplaceOrderDTO)
 async marketplaceReadyIssue(...) { ... }
 ```
 
-`MarketplaceRoleGuard` читает обе семантики:
-- `@RequireMarketplaceRole('admin')` (Story 1.6) — OR по ролям.
-- `@RequireRight('Order', 'create')` — право по таблице вместе с условием
-  строки, затем охват.
-
-Если оба декоратора заданы — guard требует выполнения обоих (логическое И).
+Список действий в `@RequireRight('Order', ['read:own', 'read:to-self'])` — «любое из них».
 
 ### Охваты
 

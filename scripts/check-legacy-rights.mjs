@@ -137,7 +137,8 @@ if (lowered && !process.argv.includes('--update')) {
 // ─── охваты прав: источник объекта у операции, сверка — в общем гарде ────────
 
 const NARROW_SCOPE = /:(own|own-KU|chaired-KU|to-self)$/;
-const EXTENSIONS_ROOT = 'components/controller/src/extensions';
+// Ядро и расширения: общий гард один на всех.
+const EXTENSIONS_ROOT = 'components/controller/src';
 // Чтение состава участка, которое сверкой охвата не является.
 const BRANCH_READ_ALLOWED = {
   'components/controller/src/extensions/marketplace/application/resolvers/marketplace-membership.resolver.ts':

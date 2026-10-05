@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
-import type { InnerFileStorageBucket, IMonoAccount } from '@coopenomics/innercoop';
+import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket } from '~/infrastructure/file-storage';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import {
@@ -96,28 +96,16 @@ export class PaymentFilesService {
     return { data: saved, readUrl };
   }
 
-  /**
-   * Чек платежа читают совет и сам плательщик. Роль в guard'е этого не
-   * различает: по ней проходит любой принятый пайщик, а номера файлов идут
-   * подряд — без проверки чужие чеки перебирались бы по номеру.
-   */
-  private async assertMayRead(user: IMonoAccount, paymentHash: string): Promise<void> {
-    if (user.role === 'chairman' || user.role === 'member') return;
-    const payment = await this.payments.findByHash(paymentHash);
-    if (payment && payment.username === user.username) return;
-    throw DomainError.forbidden('GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN');
-  }
-
-  async getReadUrl(fileId: number, user: IMonoAccount): Promise<{ data: IPaymentFileDatabaseData; readUrl: string }> {
+  // Чек платежа читают совет и сам плательщик: сверку ведёт гард операции по
+  // таблице прав ядра (`PaymentFile:read`, владелец — плательщик платежа).
+  async getReadUrl(fileId: number): Promise<{ data: IPaymentFileDatabaseData; readUrl: string }> {
     const file = await this.files.findById(fileId);
     if (!file) throw DomainError.notFound('GATEWAY_PAYMENT_FILE_NOT_FOUND', { fileId });
-    await this.assertMayRead(user, file.payment_hash);
     const readUrl = await this.bucket.getReadUrl(file.storage_key);
     return { data: file, readUrl };
   }
 
-  async listByPayment(coopname: string, paymentHash: string, user: IMonoAccount): Promise<IPaymentFileDatabaseData[]> {
-    await this.assertMayRead(user, paymentHash);
+  async listByPayment(coopname: string, paymentHash: string): Promise<IPaymentFileDatabaseData[]> {
     return this.files.findByPayment(coopname, paymentHash.toLowerCase());
   }
 

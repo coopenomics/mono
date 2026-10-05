@@ -169,7 +169,9 @@ export const RIGHT_METADATA_KEY = 'required_right';
 /**
  * Откуда операция берёт объект сверки охвата. Пути записаны от аргументов
  * операции: `data.order_id`.
- *  - `self` — операция работает с данными вызвавшего, имя берётся из входа;
+ *  - `self`  — операция работает с данными вызвавшего, имя берётся из входа;
+ *  - `owner` — владелец назван в запросе: право с охватом `own` сверяет это
+ *              имя с вошедшим, за другого пайщика действовать нельзя;
  *  - `ku`   — участок назван в запросе;
  *  - `of`   — объект справочника приложения по номеру (или списку номеров);
  *             `match: 'any'` — хватает одного подходящего объекта;
@@ -179,6 +181,7 @@ export const RIGHT_METADATA_KEY = 'required_right';
  */
 export type RightSource =
   | { self: true }
+  | { owner: string }
   | { ku: string }
   | { of: string; id: string; match?: 'all' | 'any' }
   | { list: string | null };
@@ -190,8 +193,12 @@ export const SELF: RightSource = { self: true };
 export interface IRightRequirement {
   resource: string;
   action: string | string[];
-  /** Источник объекта сверки; обязателен у права с узким охватом. */
-  source?: RightSource;
+  /**
+   * Источник объекта сверки; обязателен у права с узким охватом. Несколько
+   * источников сверяются все: «имя в запросе — моё» и «в этом собрании я
+   * секретарь».
+   */
+  source?: RightSource | RightSource[];
 }
 
 /**
@@ -200,7 +207,7 @@ export interface IRightRequirement {
  * `@RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })`.
  * Сверяет требование гард приложения по своей таблице прав.
  */
-export const RequireRight = (resource: string, action: string | string[], source?: RightSource) =>
+export const RequireRight = (resource: string, action: string | string[], source?: RightSource | RightSource[]) =>
   SetMetadata<string, IRightRequirement>(RIGHT_METADATA_KEY, { resource, action, source });
 
 /** Узкий охват действия: из имени права либо из перечня приложения. */
@@ -289,7 +296,7 @@ export interface GrantedAction {
 export interface ScopeCheckInput {
   resource: string;
   granted: readonly GrantedAction[];
-  source?: RightSource;
+  source?: RightSource | RightSource[];
   /** Охват прав, у которых он в имени не записан: `Ресурс:действие` → охват. */
   implied?: Readonly<Record<string, RightScope>>;
   /** Аргументы операции. */
@@ -328,7 +335,21 @@ function unique<T>(items: T[]): T[] {
  * «не найдено» отвечает сама операция.
  */
 export async function checkRightScope(input: ScopeCheckInput): Promise<ScopeCheckResult> {
-  const { resource, source, args } = input;
+  const sources = Array.isArray(input.source) ? input.source : [input.source];
+  let merged: IGrantedScope | undefined;
+  for (const source of sources) {
+    const one = await checkScopeOfSource(input, source);
+    if (!one.allowed) return one;
+    merged = merged
+      ? { scopes: unique([...merged.scopes, ...one.scope.scopes]), kus: one.scope.kus !== undefined ? one.scope.kus : merged.kus }
+      : one.scope;
+  }
+  return { allowed: true, scope: merged ?? { scopes: [] } };
+}
+
+/** Сверка охвата по одному источнику объекта. */
+async function checkScopeOfSource(input: ScopeCheckInput, source: RightSource | undefined): Promise<ScopeCheckResult> {
+  const { resource, args } = input;
   const scopes = unique(
     input.granted.map((grant) => (grant.wide ? 'all' : scopeOfRight(resource, grant.action, input.implied))).filter(
       (scope): scope is RightScope => scope !== null
@@ -364,7 +385,12 @@ export async function checkRightScope(input: ScopeCheckInput): Promise<ScopeChec
   if (wide) return pass({ scopes });
 
   let facts: RightFacts[];
-  if ('ku' in source) {
+  if ('owner' in source) {
+    // Имя не названо — охват «своё» подтвердить нечем: объект без владельца
+    // под правило не подходит, проходит только право на весь кооператив.
+    const value = readPath(args, source.owner);
+    facts = [value === undefined || value === null || value === '' ? {} : { owner: String(value) }];
+  } else if ('ku' in source) {
     const value = readPath(args, source.ku);
     facts = value === undefined || value === null ? [] : [{ ku: String(value) }];
   } else {

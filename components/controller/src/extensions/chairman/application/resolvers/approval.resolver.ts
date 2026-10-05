@@ -3,7 +3,15 @@ import { ApprovalService } from '../services/approval.service';
 import { ApprovalFilterInput } from '../dto/approval-filter.input';
 import { ConfirmApproveInputDTO } from '../dto/confirm-approve-input.dto';
 import { DeclineApproveInputDTO } from '../dto/decline-approve-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { ApprovalDTO } from '../dto/approval.dto';
@@ -27,8 +35,10 @@ export class ApprovalResolver {
     name: 'chairmanApprovals',
     description: 'Получение списка одобрений председателя совета с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  // Совет читает все одобрения, пайщик — одобрения своих документов: имя в
+  // отборе сверяется с вошедшим.
+  @RequireRight('Approval', ['read:own', 'read'], { owner: 'filter.username' })
   async getApprovals(
     @Args('filter', { nullable: true }) filter?: ApprovalFilterInput,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -55,8 +65,8 @@ export class ApprovalResolver {
     description: 'Получение одобрения по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Approval', 'read')
   async getApproval(@Args('id') id: string): Promise<ApprovalDTO | null> {
     return await this.approvalService.getApprovalById(id);
   }
@@ -70,8 +80,8 @@ export class ApprovalResolver {
     name: 'chairmanConfirmApprove',
     description: 'Подтверждение одобрения документа председателем совета',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Approval', 'confirm')
   async confirmApprove(
     @Args('data', { type: () => ConfirmApproveInputDTO }) data: ConfirmApproveInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -86,8 +96,8 @@ export class ApprovalResolver {
     name: 'chairmanDeclineApprove',
     description: 'Отклонение одобрения документа председателем совета',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Approval', 'confirm')
   async declineApprove(
     @Args('data', { type: () => DeclineApproveInputDTO }) data: DeclineApproveInputDTO,
     @CurrentUser() currentUser: IMonoAccount

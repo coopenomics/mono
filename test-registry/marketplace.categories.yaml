@@ -39,6 +39,12 @@ title: Доступные категории кооператива — огра
 # `chaired-KU` и право поставщика `Order:respond:to-self`; права категорий
 # (`Whitelist:manage`) прежние, набор случаев прежний.
 
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

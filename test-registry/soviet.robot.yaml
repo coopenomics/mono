@@ -37,6 +37,15 @@ title: Робот решений совета — делегирование п�
 # и журнал по сигналу, реестр автоматизаций — только статус ключа (черновик
 # правки не затирается). Серверные сценарии и набор случаев прежние.
 
+# Правка 2026-10-05 (C28-87): права стола — по таблице прав (`robot-rights.ts`).
+# Восемь операций стоят под общим гардом каркаса расширений (`RightsGuard`)
+# вместо `@AuthRoles`; права страниц рабочего стола выдаются из того же
+# описания, отдельный провайдер убран. `Robot:admin` заменён двумя правами:
+# `RobotKey:read:all` и `RobotDecision:retry`. Совет проходит по роли в любом
+# статусе учётной записи и на сервере, и на столе. Передача ключа пайщиком вне
+# состава совета отвечает отказом в доступе (была внутренняя ошибка). Колонку
+# подписи протоколов страница показывает по праву `Robot:authorize` от сервера.
+
 sources:
   contract:
     - components/contracts/cpp/soviet/src/automator/*
@@ -447,4 +456,77 @@ cases:
     test: components/controller/tests/unit/database/schema-migrations.test.ts
     external: unreachable
     external_reason: "порядок и транзакции наката схемы снаружи не видны; сама схема проверяется накатом на пустую базу (pnpm schema:check) и сверкой типов запросов"
+    status: written
+
+  - id: robot.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета и председатель зовут операции стола — реестр действий, состав совета, журнал, состояние, передачу и удаление своего ключа
+    expect: проход по праву таблицы; операции над своим ключом берут имя из входа
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: robot.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: член совета открывает рабочий стол
+    expect: права стола робота — Robot:read, Robot:delegate, RobotKey:read:own, RobotKey:manage:own; прав председателя среди них нет
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/soviet/robot-rights.test.ts
+    status: written
+
+  - id: robot.rights.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель открывает рабочий стол
+    expect: к правам члена совета добавлены Robot:authorize, RobotKey:read:all и RobotDecision:retry
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/soviet/robot-rights.test.ts
+    status: written
+
+  - id: robot.rights.side.01
+    level: backend
+    kind: side
+    scenario: рядовой пайщик зовёт операции стола робота
+    expect: отказ KIT_INSUFFICIENT_RIGHTS на каждую из восьми операций
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/soviet/robot-rights.test.ts
+    status: written
+
+  - id: robot.rights.side.02
+    level: backend
+    kind: side
+    scenario: член совета читает ключи всех членов совета и повторяет застрявшее решение
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — эти два действия у председателя; свой ключ член совета читает
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/soviet/robot-rights.test.ts
+    status: written
+
+  - id: robot.rights.side.03
+    level: backend
+    kind: side
+    scenario: член совета со статусом учётной записи «зарегистрирован» зовёт операции стола и открывает рабочий стол
+    expect: проход и полный набор прав стола — совет проходит по роли, статус учётной записи на права стола не влияет
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    external: unreachable
+    external_reason: "в засеве стенда все члены совета — принятые пайщики; снять статус с члена совета снаружи значит провести его выход из кооператива, а вместе с ним меняется и состав совета"
+    status: written
+
+  - id: robot.rights.side.04
+    level: backend
+    kind: side
+    scenario: операция стола вызвана без входа
+    expect: отказ входа, до таблицы прав дело не доходит
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: robot.rights.side.05
+    level: backend
+    kind: side
+    scenario: рядовой пайщик и гость открывают рабочий стол
+    expect: прав стола робота нет, стол им не показывается
+    test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
+    api: components/api-tests/src/soviet/robot-rights.test.ts
     status: written

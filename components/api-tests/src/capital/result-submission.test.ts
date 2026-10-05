@@ -242,7 +242,7 @@ describe('Благорост: приём РИД — путь результат�
     const err = await gqlErrorPaced(await tokenOf(alice), GEN_STATEMENT, { d: { project_hash: component, username: bob.account } })
     // Чужое имя отсекается раньше сборки: проверкой прав на чужие данные либо
     // правилом «только для себя» — до сегмента участника дело не доходит.
-    expect(['KIT_INSUFFICIENT_RIGHTS', 'CAPITAL_DOCUMENT_GENERATION_FOR_SELF_ONLY']).toContain(String(err?.code))
+    expect(['KIT_RIGHT_SCOPE_OWN', 'CAPITAL_DOCUMENT_GENERATION_FOR_SELF_ONLY']).toContain(String(err?.code))
   })
 
   it(caseName('cap.rid.side.38', 'акт по чужому результату со своим именем во входе не генерируется'), async () => {

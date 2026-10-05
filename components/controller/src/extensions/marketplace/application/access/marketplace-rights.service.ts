@@ -1,44 +1,148 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  desktopGrantsOf,
+  platformSettings,
+  type AppRights,
+  type RightFacts,
+  type RightsCaller,
+} from '@coopenomics/extension-kit';
+import { DESKTOP_GRANTS_REGISTRY_PORT, MonoAccountStatus, type IDesktopGrantsRegistryPort } from '@coopenomics/innercoop';
 import {
   MARKETPLACE_CART_REPOSITORY,
   type MarketplaceCartDomainRepository,
 } from '../../domain/repositories/marketplace-cart.repository';
 import type { IConfig } from '../../types';
+import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceOnboardingSource } from '../dto/marketplace-onboarding-state.dto';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
+import { mapUserRoleToCoreRoles } from '../membership/core-roles.mapper';
+import { mapCoreRolesToMarketplaceRoles, type MarketplaceRole } from '../membership/marketplace-roles.mapper';
 import { MarketplaceOnboardingService } from '../onboarding/marketplace-onboarding.service';
 import { MarketplaceExtensionConfigService } from '../services/marketplace-extension-config.service';
-import { grantsFor, rightsFor, type MarketplaceCondition } from './marketplace-access-matrix';
-
-/** Исход проверки права: при отказе по условию — какое условие ждёт выполнения. */
-export interface MarketplaceRightCheck {
-  allowed: boolean;
-  /** Право роли положено, но условие строки таблицы ещё не выполнено. */
-  missing?: MarketplaceCondition;
-  /** Право дано охватом `all` при узком требовании: объект сверять незачем. */
-  wide?: boolean;
-}
+import {
+  MARKETPLACE_KU_CHAIRMAN_SERVICE,
+  type MarketplaceKuChairmanService,
+} from '../services/marketplace-ku-chairman.service';
+import {
+  MARKETPLACE_SUPPLIER_REGISTRY_SERVICE,
+  type MarketplaceSupplierRegistryService,
+} from '../services/marketplace-supplier-registry.service';
+import { marketplaceRightScopes, marketplaceRightsTable, type MarketplaceCondition } from './marketplace-access-matrix';
+import { MarketplaceRightSubjects } from './marketplace-right-subjects.service';
 
 /** Сколько помнить, что заказчик подключён: подпись и выбор участка назад не откатываются. */
 const ONBOARDED_TTL_MS = 60_000;
 
 /**
- * Права пайщика по таблице Стола заказов с учётом условий (C28-87).
+ * Описание прав Стола заказов (C28-87): таблица, роли пайщика, условия строк
+ * и справочник объектов.
  *
- * Единственное место, где условия таблицы сверяются с жизнью: его спрашивают
- * и серверный гард операции, и провайдер прав рабочего стола. Поэтому страница
- * видна ровно тогда, когда сервер выполнит её операции.
+ * Единственное место, где таблица сверяется с жизнью: по нему работают и
+ * общий гард операций (`RightsGuard`), и права страниц рабочего стола. Поэтому
+ * страница видна ровно тогда, когда сервер выполнит её операции.
  */
 @Injectable()
-export class MarketplaceRightsService {
+export class MarketplaceRightsService implements AppRights<MarketplaceRole, MarketplaceCondition>, OnModuleInit {
+  readonly extensionName = 'market';
+  readonly table = marketplaceRightsTable;
+  readonly impliedScopes = marketplaceRightScopes;
+  /** Порядок ключей — порядок, в котором условие называется пайщику. */
+  readonly conditionDenials: Record<MarketplaceCondition, string> = {
+    'coop-accepted': 'MARKETPLACE_COOP_NOT_CONNECTED',
+    'containers-enabled': 'MARKETPLACE_CONTAINERS_DISABLED',
+    'cells-enabled': 'MARKETPLACE_STORAGE_CELLS_DISABLED',
+    'orderer-onboarded': 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
+  };
+  /** Подключение заказчика читается с участием цепи — только когда без него право не складывается. */
+  readonly lazyConditions: MarketplaceCondition[] = ['orderer-onboarded'];
+
   private readonly onboardedUntil = new Map<string, number>();
 
   constructor(
     private readonly extensionConfig: MarketplaceExtensionConfigService,
     private readonly onboardingService: MarketplaceOnboardingService,
     @Inject(MARKETPLACE_CART_REPOSITORY)
-    private readonly cartRepository: MarketplaceCartDomainRepository
+    private readonly cartRepository: MarketplaceCartDomainRepository,
+    @Inject(MARKETPLACE_SUPPLIER_REGISTRY_SERVICE)
+    private readonly supplierRegistry: MarketplaceSupplierRegistryService,
+    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
+    private readonly kuChairmanService: MarketplaceKuChairmanService,
+    private readonly subjects: MarketplaceRightSubjects,
+    @Inject(DESKTOP_GRANTS_REGISTRY_PORT)
+    private readonly grantsRegistry: IDesktopGrantsRegistryPort
   ) {}
+
+  onModuleInit(): void {
+    this.grantsRegistry.register(desktopGrantsOf(this));
+  }
+
+  /**
+   * Роли пайщика на Столе заказов. В запросе к операции их уже посчитал гард
+   * членства; для прав стола считаются здесь по тем же правилам.
+   */
+  async roles(caller: RightsCaller, request?: unknown): Promise<MarketplaceRole[]> {
+    const member = (request as { currentMember?: IMarketplaceCurrentMember } | undefined)?.currentMember;
+    if (member) return member.marketplace_roles as MarketplaceRole[];
+    const coreRoles = mapUserRoleToCoreRoles(caller.role ?? undefined);
+    if (coreRoles.length === 0) return [];
+    // Совет проходит по роли в любом статусе — как в гарде членства и в ядре.
+    if (!coreRoles.includes('Member') && caller.status !== MonoAccountStatus.Active) return [];
+    const coopname = platformSettings().coopname;
+    const [isOfferer, isKuChairman] = await Promise.all([
+      this.supplierRegistry.isOfferer(coopname, caller.username),
+      this.kuChairmanService.isKuChairman(coopname, caller.username),
+    ]);
+    return mapCoreRolesToMarketplaceRoles(coreRoles, { isOfferer, isKuChairman });
+  }
+
+  /**
+   * Какие из условий `wanted` выполнены. Подключение заказчика читается, когда
+   * программа принята: каркас спрашивает его отдельно, только если остальные
+   * условия строки уже выполнены.
+   */
+  async conditions(
+    caller: RightsCaller,
+    roles: MarketplaceRole[],
+    wanted: readonly MarketplaceCondition[],
+    config?: unknown
+  ): Promise<ReadonlySet<MarketplaceCondition>> {
+    const held = new Set<MarketplaceCondition>();
+    const wantsCoop = wanted.some((condition) => condition !== 'orderer-onboarded');
+    if (wantsCoop) {
+      const resolved = config === undefined ? await this.extensionConfig.get() : (config as Partial<IConfig> | null);
+      for (const condition of this.coopConditions(resolved)) held.add(condition);
+    }
+    const accepted = wantsCoop ? held.has('coop-accepted') : true;
+    if (wanted.includes('orderer-onboarded') && accepted && roles.includes('orderer')) {
+      if (await this.isOrdererOnboarded(platformSettings().coopname, caller.username)) held.add('orderer-onboarded');
+    }
+    return held;
+  }
+
+  locate(kind: string, ids: string[]): Promise<RightFacts[]> {
+    return this.subjects.locate(platformSettings().coopname, kind, ids);
+  }
+
+  kus(username: string): Promise<string[]> {
+    return this.kuChairmanService.listBranamesForMember(platformSettings().coopname, username);
+  }
+
+  chairedKus(username: string): Promise<string[]> {
+    return this.kuChairmanService.listChairedBranames(platformSettings().coopname, username);
+  }
+
+  /**
+   * Метки подключения для страниц стола: что пайщику осталось сделать, чтобы
+   * права его ролей начали действовать.
+   */
+  extraGrants(caller: RightsCaller, roles: MarketplaceRole[], held: ReadonlySet<MarketplaceCondition>): string[] {
+    if (!held.has('coop-accepted')) {
+      return mapUserRoleToCoreRoles(caller.role ?? undefined).includes('Chairman') ? ['Onboarding:coop'] : [];
+    }
+    const marks: string[] = [];
+    if (roles.includes('orderer') && !held.has('orderer-onboarded')) marks.push('Onboarding:orderer');
+    if (!roles.includes('offerer')) marks.push('Onboarding:offerer');
+    return marks;
+  }
 
   /** Условия кооператива: программа принята советом, хранение включено. */
   coopConditions(config: Partial<IConfig> | null | undefined): Set<MarketplaceCondition> {
@@ -78,63 +182,5 @@ export class MarketplaceRightsService {
     const onboarded = signed && Boolean(cart?.delivery_braname);
     if (onboarded) this.onboardedUntil.set(key, Date.now() + ONBOARDED_TTL_MS);
     return onboarded;
-  }
-
-  /** Все выполненные условия пайщика — для набора прав рабочего стола. */
-  async heldConditions(
-    coopname: string,
-    username: string,
-    roles: MarketplaceRole[],
-    config?: Partial<IConfig> | null
-  ): Promise<Set<MarketplaceCondition>> {
-    const held = this.coopConditions(config === undefined ? await this.extensionConfig.get() : config);
-    if (held.has('coop-accepted') && roles.includes('orderer') && (await this.isOrdererOnboarded(coopname, username))) {
-      held.add('orderer-onboarded');
-    }
-    return held;
-  }
-
-  /** Права пайщика, действующие сейчас, в виде `Ресурс:действие`. */
-  async rights(coopname: string, username: string, roles: MarketplaceRole[], config?: Partial<IConfig> | null): Promise<string[]> {
-    return rightsFor(roles, await this.heldConditions(coopname, username, roles, config));
-  }
-
-  /**
-   * Вправе ли пайщик на действие сейчас. Подключение заказчика читается
-   * только тогда, когда без него право не складывается: поставщик, оператор
-   * и председатель проходят по своим строкам без лишних запросов.
-   */
-  async check(
-    coopname: string,
-    username: string,
-    roles: MarketplaceRole[],
-    resource: string,
-    action: string
-  ): Promise<MarketplaceRightCheck> {
-    const grants = grantsFor(roles, resource, action);
-    if (grants.length === 0) return { allowed: false };
-    // Безусловная строка даёт право сразу; условия читаются, только когда среди
-    // остальных строк есть широкий охват — от него зависит сверка объекта.
-    if (grants.some((grant) => grant.when.length === 0) && !grants.some((grant) => grant.wide)) return { allowed: true };
-
-    const held = this.coopConditions(await this.extensionConfig.get());
-    const satisfied = () => grants.filter((grant) => grant.when.every((condition) => held.has(condition)));
-    const granted = (rows: typeof grants): MarketplaceRightCheck => ({ allowed: true, wide: rows.some((grant) => grant.wide) });
-    let rows = satisfied();
-    if (rows.length > 0) return granted(rows);
-
-    const needsOnboarding = grants.some((grant) => grant.when.includes('orderer-onboarded'));
-    if (needsOnboarding && held.has('coop-accepted') && (await this.isOrdererOnboarded(coopname, username))) {
-      held.add('orderer-onboarded');
-      rows = satisfied();
-      if (rows.length > 0) return granted(rows);
-    }
-
-    // Ближайшая к выполнению строка: та, где не хватает меньше всего условий.
-    const missing = grants
-      .map((grant) => grant.when.filter((condition) => !held.has(condition)))
-      .sort((a, b) => a.length - b.length)[0];
-    const order: MarketplaceCondition[] = ['coop-accepted', 'containers-enabled', 'cells-enabled', 'orderer-onboarded'];
-    return { allowed: false, missing: order.find((condition) => missing.includes(condition)) };
   }
 }

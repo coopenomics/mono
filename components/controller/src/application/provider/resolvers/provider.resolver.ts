@@ -3,7 +3,15 @@ import { UseGuards } from '@nestjs/common';
 import { ProviderService } from '../services/provider.service';
 import { ProviderSubscriptionDTO } from '../dto/provider-subscription.dto';
 import { CurrentInstanceDTO } from '../dto/current-instance.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GenerateDocumentOptionsInputDTO,
+  GeneratedDocumentDTO,
+  RequireRight,
+  RightsGuard,
+  SELF,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ConvertToAxonStatementGenerateDocumentInputDTO } from '~/application/document/documents-dto/convert-to-axon-statement-document.dto';
 import { ProcessConvertToAxonStatementInputDTO } from '../dto/process-convert-to-axon-statement-input.dto';
@@ -17,8 +25,8 @@ export class ProviderResolver {
     name: 'getProviderSubscriptions',
     description: 'Получить подписки пользователя у провайдера',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:own', SELF)
   async getProviderSubscriptions(
     @CurrentUser() currentUser: IMonoAccount
   ): Promise<ProviderSubscriptionDTO[]> {
@@ -29,8 +37,8 @@ export class ProviderResolver {
     name: 'getProviderSubscriptionById',
     description: 'Получить подписку провайдера по ID',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:all')
   async getProviderSubscriptionById(@Args('id') id: number): Promise<ProviderSubscriptionDTO> {
     return this.providerService.getSubscriptionById(id);
   }
@@ -40,8 +48,8 @@ export class ProviderResolver {
     description: 'Получить текущий инстанс пользователя',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderSubscription', 'read:own', SELF)
   async getCurrentInstance(@CurrentUser() currentUser: IMonoAccount): Promise<CurrentInstanceDTO | null> {
     return this.providerService.getCurrentInstance(currentUser.username);
   }
@@ -51,8 +59,8 @@ export class ProviderResolver {
     description: 'Генерирует заявление на конвертацию паевого взноса в членский взнос',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderPayment', 'generate:own', { owner: 'data.username' })
   async generateConvertToAxonStatement(
     @Args('data', { type: () => ConvertToAxonStatementGenerateDocumentInputDTO })
     data: ConvertToAxonStatementGenerateDocumentInputDTO,
@@ -66,8 +74,8 @@ export class ProviderResolver {
     name: 'processConvertToAxonStatement',
     description: 'Обрабатывает подписанное заявление на конвертацию и выполняет блокчейн-транзакцию',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProviderPayment', 'update:own', { owner: 'data.username' })
   async processConvertToAxonStatement(
     @Args('data', { type: () => ProcessConvertToAxonStatementInputDTO })
     data: ProcessConvertToAxonStatementInputDTO

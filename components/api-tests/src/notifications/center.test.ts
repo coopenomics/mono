@@ -277,7 +277,7 @@ describe('веб-пуш подписки', () => {
   })
 
   it(caseName('ntf.push.side.01', 'чужие подписки пайщику закрыты, гостю закрыто всё, статистика — только председателю'), async () => {
-    expectCode(await gqlError(otherToken, SUB_LIST, { d: { username: member.account } }), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
+    expectCode(await gqlError(otherToken, SUB_LIST, { d: { username: member.account } }), 'KIT_RIGHT_SCOPE_OWN')
     expectAuthDenied(await gqlError(null, SUB_LIST, { d: { username: member.account } }))
     expectAuthDenied(await gqlError(null, SUB_CREATE, { d: { username: member.account, subscription: { endpoint: `${endpoint}-guest`, keys } } }))
     expectCode(await gqlError(councilToken, SUB_STATS), 'KIT_INSUFFICIENT_RIGHTS')
@@ -290,8 +290,8 @@ describe('веб-пуш подписки', () => {
 
   it(caseName('ntf.push.side.03', 'член совета и председатель не подписывают устройство на чужое имя, не читают и не снимают чужие подписки'), async () => {
     const foreign = { d: { username: member.account, subscription: { endpoint: `${endpoint}-council`, keys } } }
-    expectCode(await gqlError(councilToken, SUB_CREATE, foreign), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
-    expectCode(await gqlError(chairToken, SUB_LIST, { d: { username: member.account } }), 'NOTIFICATION_SUBSCRIPTION_SELF_ONLY')
+    expectCode(await gqlError(councilToken, SUB_CREATE, foreign), 'KIT_RIGHT_SCOPE_OWN')
+    expectCode(await gqlError(chairToken, SUB_LIST, { d: { username: member.account } }), 'KIT_RIGHT_SCOPE_OWN')
     // чужая подписка — «не найдена»: существование не выдаётся
     expectCode(await gqlError(councilToken, SUB_OFF, { d: { subscriptionId: subId } }), 'NOTIFICATION_SUBSCRIPTION_NOT_FOUND')
     const list = (await gql<any>(memberToken, SUB_LIST, { d: { username: member.account } })).getUserWebPushSubscriptions

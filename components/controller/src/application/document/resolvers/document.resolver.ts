@@ -1,6 +1,14 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { GetDocumentsInputDTO } from '../dto/get-documents-input.dto';
-import { createPaginationResult, AuthRoles, GqlJwtAuthGuard, RolesGuard, CurrentUser, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
+import {
+  createPaginationResult,
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { DocumentPackageAggregateDTO } from '~/application/agenda/dto/document-package-aggregate.dto';
 import { DocumentService } from '../services/document.service';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
@@ -43,8 +51,10 @@ export class DocumentResolver {
   }
 
   @Query(() => paginationResultAggregate)
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  // Совет читает документы любого пайщика, остальные — свои: имя в запросе
+  // сверяется с вошедшим.
+  @RequireRight('Document', ['read:own', 'read:all'], { owner: 'data.username' })
   async getDocuments(
     @Args('data', { type: () => GetDocumentsInputDTO }) data: GetDocumentsInputDTO
   ): Promise<PaginationResultDomainInterface<DocumentPackageAggregateDomainInterface>> {
@@ -55,7 +65,7 @@ export class DocumentResolver {
     name: 'generateDocument',
     description: 'Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
+  @UseGuards(GqlJwtAuthGuard)
   async generateDocument(
     @Args('input', { type: () => GenerateAnyDocumentInputDTO }) input: GenerateAnyDocumentInputDTO,
     @CurrentUser() currentUser: IMonoAccount

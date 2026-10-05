@@ -3,7 +3,6 @@
     "GATEWAY_ACCOUNT_TYPE_UNKNOWN": "Не удалось определить тип аккаунта для пользователя {username}",
     "GATEWAY_EXPENSE_PAYMENT_MISSING_HASH": "У платежа расхода {hash} отсутствует proposal_hash в blockchain_data",
     "GATEWAY_PAYMENT_CREATE_MISSING_ID": "Не удалось создать платеж - отсутствует ID",
-    "GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN": "Чек платежа доступен совету и самому плательщику",
     "GATEWAY_PAYMENT_FILE_CHECKSUM_MISMATCH": "checksum_sha256 не совпадает с реальным SHA-256 содержимого.",
     "GATEWAY_PAYMENT_FILE_DUPLICATE": "Файл с таким SHA-256 уже зарегистрирован в этом кооперативе (id={id}).",
     "GATEWAY_PAYMENT_FILE_NOT_FOUND": "Файл платежа #{fileId} не найден.",

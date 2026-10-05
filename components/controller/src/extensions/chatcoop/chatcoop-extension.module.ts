@@ -96,6 +96,8 @@ import { MatrixUserKyselyRepository } from './infrastructure/repositories/matrix
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
 import { ChatcoopLiveFeedService } from './infrastructure/realtime/chatcoop-live-feed.service';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { ChatcoopRights } from './application/access/chatcoop-rights';
 @Injectable()
 export class ChatCoopExtension extends BaseExtensionModule {
   constructor(
@@ -528,6 +530,11 @@ export class ChatCoopExtension extends BaseExtensionModule {
     ChatCoopCalendarFeedController,
   ],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    ChatcoopRights,
+    { provide: APP_RIGHTS, useExisting: ChatcoopRights },
+    RightsGuard,
+
     // Extension
     ChatCoopExtension,
 

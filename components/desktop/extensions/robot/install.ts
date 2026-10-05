@@ -8,8 +8,8 @@ import { t } from './i18n';
 
 /**
  * Стол «Робот совета». Видимость страниц задаёт бэкенд набором прав
- * (`Robot:read` — члены совета, `Robot:admin` — председатель); рядовой пайщик
- * стола не видит вовсе.
+ * (`Robot:read` — члены совета, `RobotKey:read:all` — председатель); рядовой
+ * пайщик стола не видит вовсе.
  */
 export default async function (): Promise<IWorkspaceConfig[]> {
   return [
@@ -25,7 +25,6 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             title: t('robot.install.title'),
             icon: 'smart_toy',
             requires: 'Robot:read',
-            roles: [],
           },
           path: '/:coopname/robot',
           name: 'robot',
@@ -59,7 +58,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               meta: {
                 title: t('robot.install.adminTitle'),
                 icon: 'admin_panel_settings',
-                requires: 'Robot:admin',
+                requires: 'RobotKey:read:all',
                 requiresAuth: true,
               },
             },

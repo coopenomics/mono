@@ -3,7 +3,18 @@ import { ExpensesManagementService } from '../services/expenses-management.servi
 import { CreateExpenseInputDTO } from '../dto/expenses_management/create-expense-input.dto';
 import { ExpenseFilterInputDTO } from '../dto/expenses_management/expense-filter.input';
 import { GetExpenseInputDTO } from '../dto/expenses_management/get-expense-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ExpenseOutputDTO } from '../dto/expenses_management/expense.dto';
@@ -24,8 +35,8 @@ export class ExpensesManagementResolver {
     name: 'capitalCreateExpense',
     description: 'Создание расхода в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalExpense', 'create')
   async createCapitalExpense(
     @Args('data', { type: () => CreateExpenseInputDTO }) data: CreateExpenseInputDTO
   ): Promise<TransactionDTO> {
@@ -42,8 +53,8 @@ export class ExpensesManagementResolver {
     name: 'capitalExpenses',
     description: 'Получение списка расходов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalExpense', ['read:own', 'read'], { owner: 'filter.username' })
   async getExpenses(
     @Args('filter', { nullable: true }) filter?: ExpenseFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -59,8 +70,8 @@ export class ExpensesManagementResolver {
     description: 'Получение расхода по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalExpense', 'read')
   async getExpense(@Args('data') data: GetExpenseInputDTO): Promise<ExpenseOutputDTO | null> {
     return await this.expensesManagementService.getExpenseById(data);
   }
@@ -75,8 +86,8 @@ export class ExpensesManagementResolver {
     description: 'Сгенерировать заявление о расходе',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalExpense', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateExpenseStatement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -94,8 +105,8 @@ export class ExpensesManagementResolver {
     description: 'Сгенерировать решение о расходе',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalExpense', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateExpenseDecision(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,

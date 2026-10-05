@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, CurrentUser, AuthRoles, RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard, SELF } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ChatCoopCalendarApplicationService } from '../services/chatcoop-calendar-application.service';
 import {
@@ -45,8 +45,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopListCalendarRooms',
     description: 'Незашифрованные комнаты из реестра ChatCoop для привязки события календаря',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'manage')
   async listRooms(): Promise<ChatCoopCalendarRoomOptionDTO[]> {
     const rows = await this.calendar.listPlaintextRoomsForPicker();
     return rows.map((r) => {
@@ -61,8 +61,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopListCalendarEvents',
     description: 'Список событий календаря кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'read')
   async listEvents(): Promise<ChatCoopCalendarEventDTO[]> {
     const list = await this.calendar.listEvents();
     return list.map(toEventDto);
@@ -72,8 +72,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopCreateCalendarEvent',
     description: 'Создать событие календаря',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'manage')
   async create(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => CreateChatCoopCalendarEventInputDTO }) data: CreateChatCoopCalendarEventInputDTO
@@ -92,8 +92,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopUpdateCalendarEvent',
     description: 'Обновить событие календаря',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'manage')
   async update(
     @CurrentUser() user: IMonoAccount,
     @Args('data', { type: () => UpdateChatCoopCalendarEventInputDTO }) data: UpdateChatCoopCalendarEventInputDTO
@@ -114,8 +114,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopDeleteCalendarEvent',
     description: 'Удалить событие календаря',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'manage')
   async delete(@Args('id') id: string): Promise<boolean> {
     await this.calendar.deleteEvent(id);
     return true;
@@ -125,8 +125,8 @@ export class ChatCoopCalendarResolver {
     name: 'chatcoopCreateCalendarIcsSubscription',
     description: 'Выдать или обновить персональный URL подписки ICS (секрет в query)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Calendar', 'subscribe:own', SELF)
   async createIcs(
     @CurrentUser() user: IMonoAccount
   ): Promise<ChatCoopCalendarIcsUrlResponseDTO> {

@@ -19,7 +19,7 @@ interface IBranchesCacheEntry {
  *      для контекста `mapCoreRolesToMarketplaceRoles` — marketplace-роль
  *      `operator` выдаётся пайщику, если он `trustee` ИЛИ `trusted[i]`
  *      хотя бы одного branch'а кооператива.
- *   2. `MarketplaceRoleGuard` сверяет охват права: `listBranamesForMember`
+ *   2. Общий гард прав сверяет охват права: `listBranamesForMember`
  *      отвечает на `own-KU` (участки, где пайщик председатель или доверенный),
  *      `listChairedBranames` — на `chaired-KU` (участки, где он председатель).
  *

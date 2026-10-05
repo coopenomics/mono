@@ -148,9 +148,9 @@ describe('Благорост — направление средств прог�
   it(caseName('cap.alloc.break.31', 'учётная запись в статусе вступления не видит реестр вложений'), async () => {
     const applicant = await registerApplicant()
     const list = await gqlError(applicant.token, 'query{ capitalInvests{ totalCount } }')
-    expect(list?.code).toBe('KIT_MEMBERS_ONLY')
+    expect(list?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     const one = await gqlError(applicant.token, 'query($d:GetInvestInput!){ capitalInvest(data:$d){ invest_hash } }', { d: { _id: '000000000000000000000000' } })
-    expect(one?.code).toBe('KIT_MEMBERS_ONLY')
+    expect(one?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
 
     // Принятый пайщик реестр видит — правило режет именно статус, а не роль.
     const member = await tokenOf(freshMember({ prefix: 'capmbr' }))

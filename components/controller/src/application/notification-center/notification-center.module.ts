@@ -14,6 +14,7 @@ import { NotificationInboxResolver } from './notification-inbox.resolver';
 import { EmailChannelAdapter } from './channels/email-channel.adapter';
 import { InAppChannelAdapter } from './channels/in-app-channel.adapter';
 import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Центр уведомлений (DC v3) — единый вход уведомлений кооператива.
@@ -28,6 +29,7 @@ import { WebPushChannelAdapter } from './channels/web-push-channel.adapter';
 @Global()
 @Module({
   imports: [
+    CoreRightsModule,
     NotificationModule, // WebPushService для web-push канала
   ],
   providers: [

@@ -1,5 +1,5 @@
 /**
- * Unit-тесты MarketplaceDesktopGrantsProvider — канон видимости столов.
+ * Права страниц Стола заказов из описания прав приложения — канон видимости столов.
  *
  * Покрывают двухуровневый онбординг-гейт:
  *   (L1 кооператив) пока coopAcceptance.accepted !== true → у председателя
@@ -15,7 +15,7 @@
  *   Гость / не-active → [].
  */
 import { MonoAccountStatus } from '@coopenomics/innercoop';
-import { MarketplaceDesktopGrantsProvider } from '~/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider';
+import { desktopGrantsOf } from '@coopenomics/extension-kit';
 import { MarketplaceRightsService } from '~/extensions/marketplace/application/access/marketplace-rights.service';
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
 
@@ -53,8 +53,9 @@ function makeProvider(opts: {
   } as any;
   // Права считает тот же сервис, что и серверный гард: конфиг приложения
   // провайдеру передаёт платформа, поэтому чтение конфига здесь не нужно.
-  const rights = new MarketplaceRightsService({ get: jest.fn() } as any, onboarding, cart);
-  const provider = new MarketplaceDesktopGrantsProvider(registry, whitelist, kuChairman, rights);
+  const rights = new MarketplaceRightsService({ get: jest.fn() } as any, onboarding, cart, whitelist, kuChairman, {} as any, registry);
+  // Права стола выдаёт общий провайдер каркаса по описанию прав Стола заказов.
+  const provider = desktopGrantsOf(rights);
   return { provider, onboarding, cart };
 }
 
@@ -64,7 +65,7 @@ const baseCtx = {
   userStatus: MonoAccountStatus.Active,
 };
 
-describe('MarketplaceDesktopGrantsProvider', () => {
+describe('права страниц Стола заказов', () => {
   it('гость (нет username) → []', async () => {
     const { provider } = makeProvider({});
     expect(await provider.resolveGrants({ coopname: 'voskhod' })).toEqual([]);
