@@ -59,15 +59,3 @@ export class PaymentMethodService {
 }
 
 // ПАГИНАЦИЯ на будущее как-то так. Работа должна быть реализована в репозиториях
-// /**
-//    * Получает список методов оплаты с учётом пагинации и сортировки.
-//    *
-//    * @param paginationInput - Параметры пагинации и сортировки.
-//    * @returns {Promise<PaginationResult<PaymentMethodEntity>>}
-//    */
-// async listPaymentMethods(
-//   paginationInput: PaginationInputDTO
-// ): Promise<PaginationResult<PaymentMethodEntity>> {
-//   const queryBuilder = this.paymentMethodRepository.createQueryBuilder('paymentMethod');
-//   return this.paginationService.paginate(queryBuilder, paginationInput);
-// }

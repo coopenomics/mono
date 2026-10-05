@@ -30,7 +30,6 @@ export * from './migrations/schema-migration.contract';
 export * from './lifecycle/events';
 export * from './registry/registry.contract';
 export * from './registry/extension-field-description';
-export * from './registry/installed-entities';
 export * from './registry/installed-database-migrations';
 export * from './database/kysely';
 export * from './database/table-store';

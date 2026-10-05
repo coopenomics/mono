@@ -1,35 +1,7 @@
 {
-  "imports": {
-    "components/extension-kit/src/sync/base-blockchain.repository.ts": 1,
-    "components/extension-kit/src/sync/base-typeorm.entity.ts": 1,
-    "components/extension-kit/src/sync/entity-version.repository.ts": 2,
-    "components/extension-kit/src/sync/entity-version.typeorm-entity.ts": 1,
-    "components/extension-kit/src/sync/entity-versioning.service.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity-version.repository.ts": 2,
-    "components/extension-kit/src/sync/invalidated-entity-version.typeorm-entity.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity.repository.ts": 2,
-    "components/extension-kit/src/sync/invalidated-entity.typeorm-entity.ts": 1,
-    "components/extension-kit/src/utils/local-changes-collector.ts": 1,
-    "components/extension-kit/src/utils/numeric-column.transformer.ts": 1,
-    "components/extension-kit/src/utils/sort-column.utils.ts": 1
-  },
-  "entities": {
-    "components/extension-kit/src/sync/entity-version.typeorm-entity.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity-version.typeorm-entity.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity.typeorm-entity.ts": 1
-  },
-  "injects": {
-    "components/extension-kit/src/sync/entity-version.repository.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity-version.repository.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity.repository.ts": 1
-  },
-  "builders": {
-    "components/controller/src/application/payment-method/services/payment-method.service.ts": 1,
-    "components/extension-kit/src/sync/base-blockchain.repository.ts": 2,
-    "components/extension-kit/src/sync/entity-version.repository.ts": 4,
-    "components/extension-kit/src/sync/entity-versioning.service.ts": 4,
-    "components/extension-kit/src/sync/invalidated-entity-version.repository.ts": 1,
-    "components/extension-kit/src/sync/invalidated-entity.repository.ts": 2
-  },
+  "imports": {},
+  "entities": {},
+  "injects": {},
+  "builders": {},
   "leaks": {}
 }
