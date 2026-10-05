@@ -97,43 +97,6 @@
           DataRow(:label="$t('edubridge.adminEconomyPage.formula.durationLabel')" :value="$t('edubridge.adminEconomyPage.formula.durationValue')")
           DataRow(:label="$t('edubridge.adminEconomyPage.formula.fullCourseFeeLabel')" :value="$t('edubridge.adminEconomyPage.formula.fullCourseFeeValue')")
           DataRow(:label="$t('edubridge.adminEconomyPage.formula.maxDiscountLabel')" :value="$t(`edubridge.adminEconomyPage.formula.maxDiscountValue`, { maxDiscount })")
-
-    .text-subtitle1.q-mt-lg.q-mb-sm {{ $t('edubridge.adminEconomyPage.teacherRatesTitle') }}
-
-    BaseTable(
-      v-if="loading || teachers.length"
-      :columns="columns"
-      :rows="teachers"
-      row-key="username"
-      :loading="firstLoad"
-      min-width="620px"
-    )
-      template(#cell-teacher="{ row }")
-        IdentityCell(:account-name="row.username" :full-name="row.display_name")
-      template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
-      template(#cell-assignments="{ row }")
-        span(v-if="row.assignments_active") {{ row.assignments_active }}
-        span.t-muted(v-else) {{ $t('edubridge.adminEconomyPage.noCourses') }}
-      template(#cell-actions="{ row }")
-        .row.no-wrap.justify-end
-          BaseButton(variant="ghost" size="sm" @click="openRate(row)") {{ $t('edubridge.adminEconomyPage.editRate') }}
-
-    EmptyState(
-      v-if="!firstLoad && !teachers.length"
-      :title="$t('edubridge.adminEconomyPage.teachersEmptyTitle')"
-      :body="$t('edubridge.adminEconomyPage.teachersEmptyBody')"
-    )
-      template(#icon)
-        q-icon(name="payments" size="32px")
-
-  BaseDialog(v-model="rateOpen" :title="$t('edubridge.adminEconomyPage.rateDialog.title')" size="sm")
-    BaseForm(:loading="savingRate" @submit="onSaveRate")
-      .t-sm.t-muted.q-mb-md(v-if="rateTarget") {{ rateTarget.display_name || rateTarget.username }}
-      BaseInput(v-model="rate" :label="$t('edubridge.adminEconomyPage.rateDialog.rateLabel')" type="number" :suffix="symbol" required)
-      template(#footer)
-        .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="rateOpen = false") {{ $t('edubridge.adminEconomyPage.rateDialog.cancel') }}
-          BaseButton(variant="primary" type="submit" :loading="savingRate") {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -142,9 +105,9 @@ import { useRoute } from 'vue-router';
 import { useSystemStore } from 'src/entities/System/model';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
+import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ReturnRequestsPanel } from '../../features/ReturnToShare';
@@ -156,12 +119,10 @@ import {
   fetchExpenses,
   fetchProgramFund,
   setEconomySettings,
-  setTeacherRate,
   type IExpense,
   type IFundMovement,
   type IProgramFund,
 } from '../../entities/Economy';
-import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
@@ -177,16 +138,11 @@ const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
 
 const fund = ref<IProgramFund | null>(null);
-const teachers = ref<ITeacher[]>([]);
 const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
 const markup = ref('0');
 const maxDiscount = ref(0);
 const savingMarkup = ref(false);
-const rateOpen = ref(false);
-const rateTarget = ref<ITeacher | null>(null);
-const rate = ref('');
-const savingRate = ref(false);
 const expenses = ref<IExpense[]>([]);
 const expenseOpen = ref(false);
 
@@ -228,13 +184,6 @@ const movementColumns: BaseTableColumn<IFundMovement>[] = [
   { key: 'amount', label: i18nT('edubridge.adminEconomyPage.column.amount'), numeric: true, width: '150px', nowrap: true },
 ];
 
-const columns: BaseTableColumn<ITeacher>[] = [
-  { key: 'teacher', label: i18nT('edubridge.adminEconomyPage.column.teacher') },
-  { key: 'hourly_rate', label: i18nT('edubridge.adminEconomyPage.column.hourlyRate'), numeric: true, width: '160px', nowrap: true },
-  { key: 'assignments', label: i18nT('edubridge.adminEconomyPage.column.assignments'), width: '130px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '180px' },
-];
-
 /** Список шасси ждёт дату строкой — приводим к ней раз и навсегда. */
 const toIso = (v: unknown): string | undefined => {
   const input = asDateInput(v);
@@ -249,15 +198,13 @@ const formatDate = (v: unknown) => {
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [settings, list, money, spending] = await Promise.all([
+    const [settings, money, spending] = await Promise.all([
       fetchEconomySettings(),
-      fetchTeachers(),
       fetchProgramFund(),
       fetchExpenses({ page: 1, limit: 50, sortBy: 'createdAt', sortOrder: 'DESC' }),
     ]);
     markup.value = String(settings.markup_percent);
     maxDiscount.value = settings.max_course_discount_percent;
-    teachers.value = list;
     fund.value = money;
     expenses.value = spending.items;
   } catch (e) {
@@ -291,28 +238,6 @@ async function submitExpense(payload: ExpenseCreatePayload): Promise<unknown> {
     items: payload.items,
     statement: payload.statement,
   } as never);
-}
-
-function openRate(row: ITeacher): void {
-  rateTarget.value = row;
-  rate.value = String(parseFloat(row.hourly_rate) || '');
-  rateOpen.value = true;
-}
-
-async function onSaveRate(): Promise<void> {
-  if (!rateTarget.value) return;
-  savingRate.value = true;
-  try {
-    const hourly_rate = formatToAsset(String(rate.value).replace(',', '.'), symbol.value);
-    await setTeacherRate({ username: rateTarget.value.username, hourly_rate });
-    teachers.value = teachers.value.map((t) => (t.username === rateTarget.value?.username ? { ...t, hourly_rate } : t));
-    rateOpen.value = false;
-    SuccessAlert(i18nT('edubridge.adminEconomyPage.rateSaved'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    savingRate.value = false;
-  }
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.

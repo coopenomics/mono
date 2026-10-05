@@ -65,8 +65,14 @@
       template(v-if="tab === 'contract'")
         DataRow(:label="$t('edubridge.adminTeachersPage.contract.numberLabel')" :value="current.contract_number" mono copyable)
         //- Ставка часа в документы не попадает: она живёт в договоре расширения
-        //- и правится в разделе «Экономика».
-        DataRow(:label="$t('edubridge.adminTeachersPage.contract.hourlyRateLabel')" :value="formatAsset2Digits(current.hourly_rate)")
+        //- и правится администратором здесь же.
+        DataRow(:label="$t('edubridge.adminTeachersPage.contract.hourlyRateLabel')")
+          template(#value-override)
+            .row.items-center.no-wrap.q-gutter-sm
+              span {{ formatAsset2Digits(current.hourly_rate) }}
+              BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
+                template(#icon-left)
+                  q-icon(name="edit" size="18px")
         DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByTeacherLabel')" :value="formatDate(current.signed_at)")
         DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByChairmanLabel')" :value="current.approved_at ? formatDate(current.approved_at) : '______'")
         DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsActiveLabel')" :value="String(current.assignments_active)")
@@ -113,22 +119,31 @@
             .row.justify-end.q-gutter-sm
               BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
               BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
+
+  BaseDialog(v-model="rateOpen" :title="$t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
+    BaseForm(:loading="savingRate" @submit="onSaveRate")
+      BaseInput(v-model="rate" :label="$t('edubridge.adminTeachersPage.rate.label')" type="number" :suffix="symbol" autofocus required)
+      template(#footer)
+        .row.justify-end.q-gutter-sm
+          BaseButton(variant="ghost" type="button" :disabled="savingRate" @click="rateOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
+          BaseButton(variant="primary" type="submit" :loading="savingRate") {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
-import { asDateInput, asText } from 'src/shared/lib/utils';
+import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Avatar, BaseBadge, BaseButton, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { AccountBadge, DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { useSystemStore } from 'src/entities/System/model';
 import { ChairmanApprovalActions } from 'src/features/ChairmanApproval';
 import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
 import { courseSectionLabel, fetchCourses, type ICourse } from '../../entities/Course';
+import { setTeacherRate } from '../../entities/Economy';
 import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -165,6 +180,7 @@ const current = ref<ITeacher | null>(null);
 const approvals = ref<ITeacherApproval[]>([]);
 const system = useSystemStore();
 const coopname = computed(() => system.info?.coopname ?? '');
+const symbol = computed(() => system.governSymbol);
 const tab = ref('contract');
 const assignFormOpen = ref(false);
 const terminateFormOpen = ref(false);
@@ -321,6 +337,31 @@ function bumpCounters(delta: number): void {
 function bumpActive(delta: number): void {
   patchCurrent((t) => ({ ...t, assignments_active: Math.max(0, t.assignments_active + delta) }));
 }
+const rateOpen = ref(false);
+const rate = ref('');
+const savingRate = ref(false);
+
+function openRate(): void {
+  rate.value = String(parseFloat(current.value?.hourly_rate ?? '') || '');
+  rateOpen.value = true;
+}
+
+async function onSaveRate(): Promise<void> {
+  if (!current.value) return;
+  savingRate.value = true;
+  try {
+    const hourly_rate = formatToAsset(String(rate.value).replace(',', '.'), symbol.value);
+    await setTeacherRate({ username: current.value.username, hourly_rate });
+    patchCurrent((t) => ({ ...t, hourly_rate }));
+    rateOpen.value = false;
+    SuccessAlert(i18nT('edubridge.adminTeachersPage.rate.saved'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    savingRate.value = false;
+  }
+}
+
 function patchCurrent(fn: (t: ITeacher) => ITeacher): void {
   if (!current.value) return;
   const updated = fn(current.value);

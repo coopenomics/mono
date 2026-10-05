@@ -181,14 +181,10 @@
     "adminEconomyPage": {
       "column": {
         "amount": "Сумма",
-        "assignments": "Курсы",
         "at": "Когда",
-        "hourlyRate": "Ставка часа",
-        "teacher": "Преподаватель",
         "title": "Что произошло",
         "username": "Пайщик"
       },
-      "editRate": "Изменить ставку",
       "expenseDialogTitle": "Расход программы «Образование»",
       "expenseFallbackTitle": "Расход программы",
       "expensesEmptyBody": "Расход оплачивается из фонда программы: подайте служебную записку, решение примет совет.",
@@ -218,12 +214,6 @@
       "movementsEmptyBody": "Здесь появятся взносы учеников и расходы программы.",
       "movementsEmptyTitle": "Движений пока нет",
       "movementsTitle": "Движение средств",
-      "rateDialog": {
-        "cancel": "Отменить",
-        "rateLabel": "Ставка часа",
-        "title": "Ставка часа преподавателя"
-      },
-      "rateSaved": "Ставка сохранена",
       "submitExpense": "Подать расход",
       "tab": {
         "expenses": "Расходы",
@@ -231,13 +221,9 @@
         "returns": "Выход из программы",
         "settings": "Настройки"
       },
-      "teacherRatesTitle": "Ставки часа преподавателей",
-      "teachersEmptyBody": "Ставка появляется здесь, когда преподаватель подпишет договор участия в хозяйственной деятельности.",
-      "teachersEmptyTitle": "Преподавателей нет",
       "wallet": {
         "balanceLabel": "Остаток"
-      },
-      "noCourses": "нет"
+      }
     },
     "adminMembersPage": {
       "access": {
@@ -367,7 +353,13 @@
         "success": "Договор прекращён"
       },
       "aboutTitle": "О себе",
-      "noCourses": "нет"
+      "noCourses": "нет",
+      "rate": {
+        "edit": "Изменить ставку",
+        "dialogTitle": "Ставка часа",
+        "label": "Ставка часа",
+        "saved": "Ставка сохранена"
+      }
     },
     "appointAdminHeaderButton": {
       "label": "Назначить администратора"
