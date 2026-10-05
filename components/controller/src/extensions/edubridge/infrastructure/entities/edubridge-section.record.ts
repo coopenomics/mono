@@ -1,4 +1,4 @@
-import { EdubridgeLevelEntity } from './edubridge-level.entity';
+import { EdubridgeLevelRecord } from './edubridge-level.record';
 
 /**
  * Раздел каталога — область знаний: «Математика», «Духовные практики».
@@ -6,7 +6,7 @@ import { EdubridgeLevelEntity } from './edubridge-level.entity';
  * хранит его строкой — раздел переименовывается и упорядочивается один раз
  * для всех курсов.
  */
-export class EdubridgeSectionEntity {
+export class EdubridgeSectionRecord {
   public id!: string;
 
   public coopname!: string;
@@ -19,7 +19,7 @@ export class EdubridgeSectionEntity {
   /** В архиве: не предлагается новым курсам и в каталоге, у старых курсов остаётся. */
   public archived!: boolean;
 
-  public levels?: EdubridgeLevelEntity[];
+  public levels?: EdubridgeLevelRecord[];
 
   public created_at!: Date;
 

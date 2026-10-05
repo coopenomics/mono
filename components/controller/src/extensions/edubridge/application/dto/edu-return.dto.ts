@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString, IsUUID, MaxLength, ValidateNested } from 'class-v
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduReturnStatus } from '../../domain/enums';
-import type { EdubridgeReturnRequestEntity } from '../../infrastructure/entities';
+import type { EdubridgeReturnRequestRecord } from '../../infrastructure/entities';
 import type { ReturnBalance } from '../services/edubridge-return.service';
 import './edu-enums.registration';
 
@@ -37,7 +37,7 @@ export class EduReturnRequestDTO {
   @Field(() => Date, { nullable: true, description: 'Когда кооператив принял решение' })
   decided_at!: Date | null;
 
-  constructor(e: EdubridgeReturnRequestEntity, displayName?: string | null) {
+  constructor(e: EdubridgeReturnRequestRecord, displayName?: string | null) {
     this.id = e.id;
     this.member_username = e.member_username;
     this.display_name = displayName || null;

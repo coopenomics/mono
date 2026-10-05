@@ -1,7 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort, type InnerChainChangesTable } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { EdubridgeAdminRepository } from '../../infrastructure/repositories/edubridge-admin.repository';
+import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositories/edubridge-admin.kysely-repository';
 
 /**
  * Таблицы образования в ленте изменений. Имена — из `@Entity` сущностей;
@@ -37,7 +37,7 @@ export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
 @Injectable()
 export class EdubridgeLiveFeedService {
   constructor(
-    private readonly admins: EdubridgeAdminRepository,
+    private readonly admins: EdubridgeAdminKyselyRepository,
     @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly feed: IChainChangesPort | null = null
   ) {}
 

@@ -1,6 +1,6 @@
 
 /** Администраторы приложения, назначенные владельцем. Контакты пайщиков им не видны. */
-export class EdubridgeAdminEntity {
+export class EdubridgeAdminRecord {
   public id!: string;
 
   public coopname!: string;

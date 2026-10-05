@@ -3,8 +3,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { EdubridgeContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
 import { EduAccessTaskKind, EduEnrollmentStatus, type EduRecipientType } from '../../domain/enums';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import {
   EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT,
   EDUBRIDGE_ENROLLMENT_OPENED_EVENT,
@@ -26,8 +26,8 @@ const chainEvent = (action: string) => `action::${EdubridgeContract.contractName
 export class EdubridgeAccessListener {
   constructor(
     private readonly outbox: EdubridgeAccessOutboxService,
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(EdubridgeAccessListener.name);

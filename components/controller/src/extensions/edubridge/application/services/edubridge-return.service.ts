@@ -10,8 +10,8 @@ import {
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { EduReturnStatus } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import type { EdubridgeReturnRequestEntity } from '../../infrastructure/entities';
-import { EdubridgeReturnRequestRepository } from '../../infrastructure/repositories/edubridge-return-request.repository';
+import type { EdubridgeReturnRequestRecord } from '../../infrastructure/entities';
+import { EdubridgeReturnRequestKyselyRepository } from '../../infrastructure/repositories/edubridge-return-request.kysely-repository';
 import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
 
 /** Кошелёк членских взносов программы — его остаток уходит в паевой. */
@@ -48,7 +48,7 @@ export interface ReturnBalance {
 @Injectable()
 export class EdubridgeReturnService {
   constructor(
-    private readonly requests: EdubridgeReturnRequestRepository,
+    private readonly requests: EdubridgeReturnRequestKyselyRepository,
     private readonly enrollments: EdubridgeEnrollmentService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
@@ -57,11 +57,11 @@ export class EdubridgeReturnService {
     this.logger.setContext(EdubridgeReturnService.name);
   }
 
-  listMine(coopname: string, member: string): Promise<EdubridgeReturnRequestEntity[]> {
+  listMine(coopname: string, member: string): Promise<EdubridgeReturnRequestRecord[]> {
     return this.requests.findByMember(coopname, member);
   }
 
-  listAll(coopname: string, status?: EduReturnStatus): Promise<EdubridgeReturnRequestEntity[]> {
+  listAll(coopname: string, status?: EduReturnStatus): Promise<EdubridgeReturnRequestRecord[]> {
     return this.requests.findByStatus(coopname, status);
   }
 
@@ -81,7 +81,7 @@ export class EdubridgeReturnService {
   }
 
   /** Пайщик подал подписанное заявление — оно ждёт согласования кооперативом. */
-  async request(coopname: string, member: string, document: ISignedDocument): Promise<EdubridgeReturnRequestEntity> {
+  async request(coopname: string, member: string, document: ISignedDocument): Promise<EdubridgeReturnRequestRecord> {
     if (!document.signatures?.some((s) => s.signer === member)) throw DomainError.badRequest('EDUBRIDGE_RETURN_STATEMENT_NOT_SIGNED');
     assertProgramAnnulment(metaOf(document));
     await this.assertNoPending(coopname, member);
@@ -105,7 +105,7 @@ export class EdubridgeReturnService {
    * Кооператив согласовал: подписки закрываются с возвратом по Положению, весь
    * остаток кошелька программы уходит в паевой, соглашение о программе аннулируется.
    */
-  async approve(coopname: string, id: string, actor: string): Promise<EdubridgeReturnRequestEntity> {
+  async approve(coopname: string, id: string, actor: string): Promise<EdubridgeReturnRequestRecord> {
     const r = await this.pending(coopname, id);
     const member = r.member_username;
     const symbol = platformSettings().blockchain.rootGovernSymbol;
@@ -133,7 +133,7 @@ export class EdubridgeReturnService {
   }
 
   /** Кооператив отклонил заявление — участие продолжается, остаток на кошельке программы. */
-  async decline(coopname: string, id: string, actor: string, reason: string): Promise<EdubridgeReturnRequestEntity> {
+  async decline(coopname: string, id: string, actor: string, reason: string): Promise<EdubridgeReturnRequestRecord> {
     if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_RETURN_DECLINE_REASON_REQUIRED');
     const r = await this.pending(coopname, id);
     r.status = EduReturnStatus.DECLINED;
@@ -143,7 +143,7 @@ export class EdubridgeReturnService {
     return this.requests.save(r);
   }
 
-  private async pending(coopname: string, id: string): Promise<EdubridgeReturnRequestEntity> {
+  private async pending(coopname: string, id: string): Promise<EdubridgeReturnRequestRecord> {
     const r = await this.requests.findById(coopname, id);
     if (!r) throw DomainError.notFound('EDUBRIDGE_RETURN_REQUEST_NOT_FOUND');
     if (r.status !== EduReturnStatus.PENDING) throw DomainError.badRequest('EDUBRIDGE_RETURN_REQUEST_ALREADY_DECIDED');

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import type { EdubridgeLevelEntity, EdubridgeSectionEntity } from '../../infrastructure/entities';
-import { EdubridgeSectionRepository } from '../../infrastructure/repositories/edubridge-section.repository';
+import type { EdubridgeLevelRecord, EdubridgeSectionRecord } from '../../infrastructure/entities';
+import { EdubridgeSectionKyselyRepository } from '../../infrastructure/repositories/edubridge-section.kysely-repository';
 import type { EduReorderInputDTO, EduSaveLevelInputDTO, EduSaveSectionInputDTO, EduSectionsFilterInputDTO } from '../dto/edu-section.dto';
 import { t } from '../../i18n';
 import { DomainError } from '@coopenomics/extension-kit';
 
 export interface SectionWithLevels {
-  section: EdubridgeSectionEntity;
-  levels: EdubridgeLevelEntity[];
+  section: EdubridgeSectionRecord;
+  levels: EdubridgeLevelRecord[];
 }
 
 /**
@@ -19,7 +19,7 @@ export interface SectionWithLevels {
  */
 @Injectable()
 export class EdubridgeSectionsService {
-  constructor(private readonly repo: EdubridgeSectionRepository) {}
+  constructor(private readonly repo: EdubridgeSectionKyselyRepository) {}
 
   async list(coopname: string, filter: EduSectionsFilterInputDTO = {}): Promise<SectionWithLevels[]> {
     const sections = await this.repo.list(coopname);
@@ -53,7 +53,7 @@ export class EdubridgeSectionsService {
     return { section: created, levels: [] };
   }
 
-  async saveLevel(coopname: string, input: EduSaveLevelInputDTO): Promise<EdubridgeLevelEntity> {
+  async saveLevel(coopname: string, input: EduSaveLevelInputDTO): Promise<EdubridgeLevelRecord> {
     const title = clean(input.title);
     if (!title) throw DomainError.badRequest('EDUBRIDGE_LEVEL_TITLE_EMPTY');
     const section = await this.repo.findSection(coopname, input.section_id);
@@ -99,7 +99,7 @@ export class EdubridgeSectionsService {
     return this.withLevels(await this.repo.saveSection(section));
   }
 
-  async archiveLevel(coopname: string, id: string, archived: boolean): Promise<EdubridgeLevelEntity> {
+  async archiveLevel(coopname: string, id: string, archived: boolean): Promise<EdubridgeLevelRecord> {
     const level = await this.repo.findLevel(coopname, id);
     if (!level) throw DomainError.notFound('EDUBRIDGE_LEVEL_NOT_FOUND');
     level.archived = archived;
@@ -135,7 +135,7 @@ export class EdubridgeSectionsService {
     return courses.length;
   }
 
-  private async withLevels(section: EdubridgeSectionEntity): Promise<SectionWithLevels> {
+  private async withLevels(section: EdubridgeSectionRecord): Promise<SectionWithLevels> {
     return { section, levels: await this.repo.levelsOf(section.id) };
   }
 }

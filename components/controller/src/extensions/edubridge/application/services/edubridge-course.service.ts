@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
 import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduContractStatus, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
-import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
-import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
-import { EdubridgeCourseRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
+import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
+import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { SkillspaceConnector, splitSkillspaceRef } from '../../infrastructure/connectors/skillspace.connector';
 import type {
   EduCourseImageUploadInputDTO,
@@ -55,8 +55,8 @@ function validatePlatformRef(carrier: EduAccessCarrier, ref: string): void {
 @Injectable()
 export class EdubridgeCourseService {
   constructor(
-    private readonly courses: EdubridgeCourseRepository,
-    private readonly teachers: EdubridgeTeacherRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly teachers: EdubridgeTeacherKyselyRepository,
     private readonly skillspace: SkillspaceConnector,
     private readonly images: EdubridgeCourseImagesService,
     private readonly names: EdubridgeNamesService,
@@ -93,11 +93,11 @@ export class EdubridgeCourseService {
   }
 
   /** Витрина: только опубликованные. */
-  catalog(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseEntity>> {
+  catalog(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseRecord>> {
     return this.courses.findPage(coopname, { ...filter, status: EduCourseStatus.PUBLISHED }, options);
   }
 
-  async catalogCourse(coopname: string, id: string): Promise<EdubridgeCourseEntity> {
+  async catalogCourse(coopname: string, id: string): Promise<EdubridgeCourseRecord> {
     const course = await this.courses.findById(coopname, id);
     if (!course || course.status !== EduCourseStatus.PUBLISHED) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return course;
@@ -105,17 +105,17 @@ export class EdubridgeCourseService {
 
 
 
-  list(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseEntity>> {
+  list(coopname: string, filter: EduCourseFilter, options?: PaginationInputDTO): Promise<PaginationResult<EdubridgeCourseRecord>> {
     return this.courses.findPage(coopname, filter, options);
   }
 
-  async get(coopname: string, id: string): Promise<EdubridgeCourseEntity> {
+  async get(coopname: string, id: string): Promise<EdubridgeCourseRecord> {
     const course = await this.courses.findById(coopname, id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return course;
   }
 
-  async create(coopname: string, actor: string, input: EduCourseInputDTO): Promise<EdubridgeCourseEntity> {
+  async create(coopname: string, actor: string, input: EduCourseInputDTO): Promise<EdubridgeCourseRecord> {
     await this.validate(coopname, input);
     const fee = await this.economy.feeForCourse(economyParams(input));
     const image = await this.resolveImage(coopname, actor, input.image, null);
@@ -125,7 +125,7 @@ export class EdubridgeCourseService {
       image,
       status: EduCourseStatus.DRAFT,
     });
-    let saved: EdubridgeCourseEntity;
+    let saved: EdubridgeCourseRecord;
     try {
       saved = await this.courses.save(entity);
     } catch (e) {
@@ -138,7 +138,7 @@ export class EdubridgeCourseService {
     return (await this.courses.findById(coopname, saved.id)) ?? saved;
   }
 
-  async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseEntity> {
+  async update(coopname: string, actor: string, input: EduUpdateCourseInputDTO): Promise<EdubridgeCourseRecord> {
     const course = await this.get(coopname, input.id);
     await this.validate(coopname, input, course);
     // Занятия начались — дату активации можно только сдвигать вперёд: от неё
@@ -199,7 +199,7 @@ export class EdubridgeCourseService {
     }
   }
 
-  async setStatus(coopname: string, id: string, status: EduCourseStatus): Promise<EdubridgeCourseEntity> {
+  async setStatus(coopname: string, id: string, status: EduCourseStatus): Promise<EdubridgeCourseRecord> {
     const course = await this.get(coopname, id);
     course.status = status;
     return this.courses.save(course);
@@ -210,7 +210,7 @@ export class EdubridgeCourseService {
    * имеет смысл только у площадок с API, а преподавать могут лишь пайщики с
    * подписанным договором — форма это подсказывает, сервер проверяет сам.
    */
-  private async validate(coopname: string, input: EduCourseInputDTO, current?: EdubridgeCourseEntity): Promise<void> {
+  private async validate(coopname: string, input: EduCourseInputDTO, current?: EdubridgeCourseRecord): Promise<void> {
     // Раздел и уровень — из справочника; архивное — только если уже стоит у курса.
     await this.sections.assertForCourse(coopname, input.section_id, input.level_id, current && { section_id: current.section_id, level_id: current.level_id });
     if (!CARRIERS_BY_DIRECTION[input.direction].includes(input.carrier)) {
@@ -244,7 +244,7 @@ export class EdubridgeCourseService {
     }
   }
 
-  private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseEntity> {
+  private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
     const platform = PLATFORM_CARRIERS.includes(input.carrier);
     return {
       title: input.title,
@@ -264,7 +264,7 @@ export class EdubridgeCourseService {
 }
 
 /** Экономика курса: расписание, ставка, гарантия и посчитанные взносы. */
-function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseEntity> {
+function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {
   return {
     lessons_per_month: input.lessons_per_month,
     lessons_total: input.lessons_total,

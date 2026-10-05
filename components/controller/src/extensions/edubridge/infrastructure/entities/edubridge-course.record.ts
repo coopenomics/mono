@@ -1,5 +1,5 @@
-import { EdubridgeLevelEntity } from './edubridge-level.entity';
-import { EdubridgeSectionEntity } from './edubridge-section.entity';
+import { EdubridgeLevelRecord } from './edubridge-level.record';
+import { EdubridgeSectionRecord } from './edubridge-section.record';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
 
 /** Снимок объекта bucket'а `edubridge:images`; ссылка на чтение подписывается при отдаче. */
@@ -10,7 +10,7 @@ export interface EduCourseImage {
 }
 
 /** Курс каталога: раздел → уровень (справочник), карточка, привязка к курсу площадки. Off-chain. */
-export class EdubridgeCourseEntity {
+export class EdubridgeCourseRecord {
   public id!: string;
 
   public coopname!: string;
@@ -23,12 +23,12 @@ export class EdubridgeCourseEntity {
   /** Раздел каталога — из справочника (`edubridge_sections`). */
   public section_id!: string | null;
 
-  public section?: EdubridgeSectionEntity | null;
+  public section?: EdubridgeSectionRecord | null;
 
   /** Уровень внутри раздела — из справочника (`edubridge_levels`); пусто — без уровня. */
   public level_id!: string | null;
 
-  public level?: EdubridgeLevelEntity | null;
+  public level?: EdubridgeLevelRecord | null;
 
   /**
    * Раздел строкой — до справочника (7DD-23). Только для переноса в

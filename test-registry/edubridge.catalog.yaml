@@ -11,7 +11,7 @@ sources:
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-catalog.resolver.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-course-admin.resolver.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-course.service.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-course.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-course.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-course.dto.ts
     - components/controller/src/extensions/edubridge/application/guards/**
   ui:

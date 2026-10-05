@@ -6,7 +6,7 @@ import { EduReturnStatus } from '../../domain/enums';
  * согласования Общества: заявка ждёт решения кооператива, и только после него
  * подписанное заявление уходит в цепь.
  */
-export class EdubridgeReturnRequestEntity {
+export class EdubridgeReturnRequestRecord {
   public id!: string;
 
   public coopname!: string;

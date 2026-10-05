@@ -10,9 +10,9 @@ import {
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EduAssignmentStatus } from '../../domain/enums';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
-import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
+import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import type { IConfig } from '../../types';
@@ -53,8 +53,8 @@ const MINUTES_IN_HOUR = 60;
 export class EdubridgeEconomyService {
   constructor(
     private readonly config: EdubridgeConfigHolder,
-    private readonly courses: EdubridgeCourseRepository,
-    private readonly teachers: EdubridgeTeacherRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly teachers: EdubridgeTeacherKyselyRepository,
     private readonly names: EdubridgeNamesService,
     @Inject(EXTENSION_REPOSITORY) private readonly extensions: ExtensionDomainRepository<IConfig>,
     @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort,
@@ -227,7 +227,7 @@ export class EdubridgeEconomyService {
   }
 
   /** Параметры курса в виде, понятном расчёту. */
-  paramsOf(course: EdubridgeCourseEntity): EduCourseEconomyInputDTO {
+  paramsOf(course: EdubridgeCourseRecord): EduCourseEconomyInputDTO {
     return {
       lessons_per_month: course.lessons_per_month,
       lessons_total: course.lessons_total,

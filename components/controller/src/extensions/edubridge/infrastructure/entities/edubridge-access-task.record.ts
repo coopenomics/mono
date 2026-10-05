@@ -5,7 +5,7 @@ import { EduAccessCarrier, EduAccessTaskKind, EduAccessTaskStatus } from '../../
  * до успеха (backoff 1→60 мин, N попыток → needs_attention). Дедупликация —
  * по `(kind, enrollment_id, trigger_trx)`.
  */
-export class EdubridgeAccessTaskEntity {
+export class EdubridgeAccessTaskRecord {
   public id!: string;
 
   public coopname!: string;

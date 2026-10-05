@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { EduAccessCarrier, EduConnectorHealth, type EduAccessTaskStatus } from '../../domain/enums';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
-import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
-import { EdubridgeAdminRepository } from '../../infrastructure/repositories/edubridge-admin.repository';
-import { EdubridgeConnectorBindingRepository } from '../../infrastructure/repositories/edubridge-connector-binding.repository';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
-import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeAccessTaskKyselyRepository } from '../../infrastructure/repositories/edubridge-access-task.kysely-repository';
+import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositories/edubridge-admin.kysely-repository';
+import { EdubridgeConnectorBindingKyselyRepository } from '../../infrastructure/repositories/edubridge-connector-binding.kysely-repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
@@ -22,12 +22,12 @@ import { DomainError } from '@coopenomics/extension-kit';
 @Injectable()
 export class EdubridgeAdminService {
   constructor(
-    private readonly admins: EdubridgeAdminRepository,
-    private readonly learners: EdubridgeLearnerRepository,
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly courses: EdubridgeCourseRepository,
-    private readonly tasks: EdubridgeAccessTaskRepository,
-    private readonly bindings: EdubridgeConnectorBindingRepository,
+    private readonly admins: EdubridgeAdminKyselyRepository,
+    private readonly learners: EdubridgeLearnerKyselyRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly tasks: EdubridgeAccessTaskKyselyRepository,
+    private readonly bindings: EdubridgeConnectorBindingKyselyRepository,
     private readonly connectors: AccessCarrierRegistry,
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,

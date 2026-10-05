@@ -1,18 +1,18 @@
-import { EdubridgeSectionEntity } from './edubridge-section.entity';
+import { EdubridgeSectionRecord } from './edubridge-section.record';
 
 /**
  * Уровень внутри раздела: «7 класс», «Ступень 1». Порядок уровней в разделе —
  * их последовательность: на нём строятся правила, какой уровень открывается
  * после какого.
  */
-export class EdubridgeLevelEntity {
+export class EdubridgeLevelRecord {
   public id!: string;
 
   public coopname!: string;
 
   public section_id!: string;
 
-  public section?: EdubridgeSectionEntity;
+  public section?: EdubridgeSectionRecord;
 
   public title!: string;
 

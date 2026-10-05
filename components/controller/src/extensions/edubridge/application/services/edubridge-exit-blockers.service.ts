@@ -3,8 +3,8 @@ import type { InnerExitBlockersProvider, InnerExitPendingReturn } from '@coopeno
 import { platformSettings } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EduAssignmentStatus, EduContributionStatus } from '../../domain/enums';
-import { EdubridgeTeacherRepository } from '../../infrastructure/repositories/edubridge-teacher.repository';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
+import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentService } from './edubridge-enrollment.service';
 import { t } from '../../i18n';
 
@@ -25,8 +25,8 @@ export class EdubridgeExitBlockersService implements InnerExitBlockersProvider {
   readonly extension_name = EDUBRIDGE_EXTENSION_NAME;
 
   constructor(
-    private readonly teachers: EdubridgeTeacherRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly teachers: EdubridgeTeacherKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly enrollments: EdubridgeEnrollmentService
   ) {}
 

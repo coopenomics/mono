@@ -5,7 +5,7 @@
  * договора, поэтому живёт отдельно от договора УХД: договора в этот момент
  * ещё нет.
  */
-export class EdubridgeTeacherProfileEntity {
+export class EdubridgeTeacherProfileRecord {
   public id!: string;
 
   public coopname!: string;

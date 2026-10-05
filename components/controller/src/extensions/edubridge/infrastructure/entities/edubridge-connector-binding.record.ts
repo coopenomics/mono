@@ -4,7 +4,7 @@ import { EduAccessCarrier, EduConnectorHealth } from '../../domain/enums';
  * Подключённая площадка кооператива и её состояние. Ключи API здесь НЕ лежат —
  * они в конфиге расширения под `secret:true`.
  */
-export class EdubridgeConnectorBindingEntity {
+export class EdubridgeConnectorBindingRecord {
   public id!: string;
 
   public coopname!: string;

@@ -4,10 +4,10 @@ import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import type {
-  EdubridgeContributionEntity,
-  EdubridgeLessonEntity,
-  EdubridgeTeacherAssignmentEntity,
-  EdubridgeTeacherContractEntity,
+  EdubridgeContributionRecord,
+  EdubridgeLessonRecord,
+  EdubridgeTeacherAssignmentRecord,
+  EdubridgeTeacherContractRecord,
 } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
@@ -36,7 +36,7 @@ export class EduTeacherContractDTO {
   @Field(() => String, { description: 'Ставка часа: названа при подключении, дальше её правит администратор' })
   hourly_rate!: string;
 
-  constructor(e: EdubridgeTeacherContractEntity) {
+  constructor(e: EdubridgeTeacherContractRecord) {
     this.hourly_rate = e.hourly_rate;
     this.contract_hash = e.contract_hash;
     this.contract_number = e.contract_number;
@@ -80,7 +80,7 @@ export class EduAssignmentDTO {
   @Field(() => Date) created_at!: Date;
 
   /** Курс назначения: преподаватель читает его программу, не переходя на стол ученика. */
-  constructor(e: EdubridgeTeacherAssignmentEntity, course: { title?: string; description?: string; syllabus?: string } | null | undefined) {
+  constructor(e: EdubridgeTeacherAssignmentRecord, course: { title?: string; description?: string; syllabus?: string } | null | undefined) {
     this.id = e.id;
     this.teacher_username = e.teacher_username;
     this.course_id = e.course_id;
@@ -163,7 +163,7 @@ export class EduContributionDTO {
   @Field(() => Date, { nullable: true, description: 'Дата решения' }) decided_at!: Date | null;
   @Field(() => Date) created_at!: Date;
 
-  constructor(e: EdubridgeContributionEntity) {
+  constructor(e: EdubridgeContributionRecord) {
     Object.assign(this, {
       id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
       links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
@@ -264,7 +264,7 @@ export class EduLessonDTO {
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
-  constructor(e: EdubridgeLessonEntity, courseTitle: string) {
+  constructor(e: EdubridgeLessonRecord, courseTitle: string) {
     this.id = e.id;
     this.course_id = e.course_id;
     this.course_title = courseTitle;

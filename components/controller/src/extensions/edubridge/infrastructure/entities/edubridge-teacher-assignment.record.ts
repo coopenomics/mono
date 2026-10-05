@@ -5,7 +5,7 @@ import { EduAssignmentStatus } from '../../domain/enums';
  * Рабочее назначение кооператива — документа и подписей не требует, условия
  * участия преподавателя определяет договор УХД.
  */
-export class EdubridgeTeacherAssignmentEntity {
+export class EdubridgeTeacherAssignmentRecord {
   public id!: string;
 
   public coopname!: string;

@@ -11,7 +11,7 @@ import {
 } from '@coopenomics/innercoop';
 import { EDU_PARENT_AGREEMENT_TYPE, EDU_TEACHER_AGREEMENT_TYPE } from '../../constants/edubridge-agreement-ids';
 import { EduContractStatus } from '../../domain/enums';
-import { EdubridgeAdminEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
+import { EdubridgeAdminRecord, EdubridgeTeacherContractRecord } from '../../infrastructure/entities';
 import type { IEdubridgeRoleFactsPort } from './edubridge-role-facts.port';
 import type { EdubridgeRoleFacts } from './edubridge-roles.mapper';
 
@@ -35,9 +35,9 @@ export class EdubridgeRoleFactsAdapter implements IEdubridgeRoleFactsPort {
     @Inject(PROGRAM_AGREEMENT_PORT) private readonly programAgreements: IProgramAgreementPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     @Inject(EDUBRIDGE_ADMIN_STORE)
-    private readonly admins: TableStore<EdubridgeAdminEntity>,
+    private readonly admins: TableStore<EdubridgeAdminRecord>,
     @Inject(EDUBRIDGE_TEACHER_CONTRACT_STORE)
-    private readonly contracts: TableStore<EdubridgeTeacherContractEntity>
+    private readonly contracts: TableStore<EdubridgeTeacherContractRecord>
   ) {
     this.logger.setContext(EdubridgeRoleFactsAdapter.name);
   }

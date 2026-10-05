@@ -6,7 +6,7 @@
  * занятия вне плана в журнал не попадает, а второй отчёт по тому же занятию
  * отклоняется.
  */
-export class EdubridgeLessonEntity {
+export class EdubridgeLessonRecord {
   public id!: string;
 
   public coopname!: string;

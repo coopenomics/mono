@@ -23,8 +23,8 @@ sources:
   backend:
     - components/controller/src/extensions/edubridge/domain/connectors/**
     - components/controller/src/extensions/edubridge/infrastructure/connectors/**
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-access-task.repository.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-connector-binding.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-access-task.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-connector-binding.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-access-outbox.service.ts
     - components/controller/src/extensions/edubridge/application/listeners/**
     - components/controller/src/extensions/edubridge/application/workers/**

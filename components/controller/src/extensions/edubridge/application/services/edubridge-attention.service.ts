@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { canAccess } from '../access/edubridge-access-matrix';
 import type { EdubridgeRole } from '../membership/edubridge-roles.mapper';
 import { EduAccessTaskStatus } from '../../domain/enums';
-import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
+import { EdubridgeAccessTaskKyselyRepository } from '../../infrastructure/repositories/edubridge-access-task.kysely-repository';
 import { EduAttentionDTO } from '../dto/edu-attention.dto';
 import { EdubridgeApprovalsService } from './edubridge-approvals.service';
 
@@ -17,7 +17,7 @@ const NEEDS_HAND: EduAccessTaskStatus[] = [EduAccessTaskStatus.NEEDS_ATTENTION, 
 export class EdubridgeAttentionService {
   constructor(
     private readonly approvals: EdubridgeApprovalsService,
-    private readonly tasks: EdubridgeAccessTaskRepository
+    private readonly tasks: EdubridgeAccessTaskKyselyRepository
   ) {}
 
   async summary(coopname: string, roles: readonly EdubridgeRole[]): Promise<EduAttentionDTO> {

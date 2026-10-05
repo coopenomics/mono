@@ -2,7 +2,7 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EduAccessCarrier, EduAccessTaskKind, EduAccessTaskStatus, EduConnectorHealth } from '../../domain/enums';
-import type { EdubridgeAccessTaskEntity, EdubridgeAdminEntity, EdubridgeConnectorBindingEntity } from '../../infrastructure/entities';
+import type { EdubridgeAccessTaskRecord, EdubridgeAdminRecord, EdubridgeConnectorBindingRecord } from '../../infrastructure/entities';
 import { EduEnrollmentDTO } from './edu-enrollment.dto';
 import { EduLearnerDTO } from './edu-learner.dto';
 import './edu-enums.registration';
@@ -42,7 +42,7 @@ export class EduAccessTaskDTO {
   @Field(() => Date) created_at!: Date;
   @Field(() => Date) updated_at!: Date;
 
-  constructor(t: EdubridgeAccessTaskEntity) {
+  constructor(t: EdubridgeAccessTaskRecord) {
     Object.assign(this, {
       id: t.id, enrollment_id: t.enrollment_id, kind: t.kind, carrier: t.carrier, status: t.status, attempts: t.attempts,
       next_attempt_at: t.next_attempt_at, last_error: t.last_error, last_result: t.last_result, done_at: t.done_at,
@@ -78,7 +78,7 @@ export class EduConnectorBindingDTO {
   @Field(() => Date, { nullable: true }) last_check_at!: Date | null;
   @Field(() => String, { nullable: true }) last_check_message!: string | null;
 
-  constructor(b: EdubridgeConnectorBindingEntity, configured: boolean, credential_fields: EduConnectorCredentialFieldDTO[] = []) {
+  constructor(b: EdubridgeConnectorBindingRecord, configured: boolean, credential_fields: EduConnectorCredentialFieldDTO[] = []) {
     Object.assign(this, {
       carrier: b.carrier,
       enabled: b.enabled,
@@ -118,7 +118,7 @@ export class EduAdminDTO {
   @Field(() => String, { description: 'ФИО назначившего' }) appointed_by_display_name!: string;
   @Field(() => Date) created_at!: Date;
 
-  constructor(a: EdubridgeAdminEntity, names: { display_name?: string; appointed_by_display_name?: string } = {}) {
+  constructor(a: EdubridgeAdminRecord, names: { display_name?: string; appointed_by_display_name?: string } = {}) {
     Object.assign(this, {
       id: a.id,
       username: a.username,

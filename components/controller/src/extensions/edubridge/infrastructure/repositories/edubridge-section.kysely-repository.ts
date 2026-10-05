@@ -2,22 +2,22 @@ import { Inject, Injectable } from '@nestjs/common';
 import { TableStore, oneOf } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_COURSE_STORE, EDUBRIDGE_LEVEL_STORE, EDUBRIDGE_SECTION_STORE } from '../database/edubridge-stores';
 import { EduCourseStatus } from '../../domain/enums';
-import { EdubridgeCourseEntity, EdubridgeLevelEntity, EdubridgeSectionEntity } from '../entities';
+import { EdubridgeCourseRecord, EdubridgeLevelRecord, EdubridgeSectionRecord } from '../entities';
 
 /** Справочник разделов и уровней каталога. */
 @Injectable()
-export class EdubridgeSectionRepository {
+export class EdubridgeSectionKyselyRepository {
   constructor(
     @Inject(EDUBRIDGE_SECTION_STORE)
-    private readonly sections: TableStore<EdubridgeSectionEntity>,
+    private readonly sections: TableStore<EdubridgeSectionRecord>,
     @Inject(EDUBRIDGE_LEVEL_STORE)
-    private readonly levels: TableStore<EdubridgeLevelEntity>,
+    private readonly levels: TableStore<EdubridgeLevelRecord>,
     @Inject(EDUBRIDGE_COURSE_STORE)
-    private readonly courses: TableStore<EdubridgeCourseEntity>
+    private readonly courses: TableStore<EdubridgeCourseRecord>
   ) {}
 
   /** Разделы с уровнями в порядке справочника. */
-  async list(coopname: string): Promise<EdubridgeSectionEntity[]> {
+  async list(coopname: string): Promise<EdubridgeSectionRecord[]> {
     const rows = await this.sections.find({ coopname }, { order: { sort_order: 'ASC', title: 'ASC' } });
     const levels = rows.length ? await this.levels.find({ section_id: oneOf(rows.map((s) => s.id)) }) : [];
     for (const s of rows) {
@@ -42,23 +42,23 @@ export class EdubridgeSectionRepository {
       .getRawMany();
   }
 
-  findSection(coopname: string, id: string): Promise<EdubridgeSectionEntity | null> {
+  findSection(coopname: string, id: string): Promise<EdubridgeSectionRecord | null> {
     return this.sections.findOne({ coopname, id });
   }
 
-  findSectionByTitle(coopname: string, title: string): Promise<EdubridgeSectionEntity | null> {
+  findSectionByTitle(coopname: string, title: string): Promise<EdubridgeSectionRecord | null> {
     return this.sections.sqlBuilder('s').where('s.coopname = :coopname', { coopname }).andWhere('lower(s.title) = lower(:title)', { title }).getOne();
   }
 
-  findLevel(coopname: string, id: string): Promise<EdubridgeLevelEntity | null> {
+  findLevel(coopname: string, id: string): Promise<EdubridgeLevelRecord | null> {
     return this.levels.findOne({ coopname, id });
   }
 
-  findLevelByTitle(sectionId: string, title: string): Promise<EdubridgeLevelEntity | null> {
+  findLevelByTitle(sectionId: string, title: string): Promise<EdubridgeLevelRecord | null> {
     return this.levels.sqlBuilder('l').where('l.section_id = :sectionId', { sectionId }).andWhere('lower(l.title) = lower(:title)', { title }).getOne();
   }
 
-  levelsOf(sectionId: string): Promise<EdubridgeLevelEntity[]> {
+  levelsOf(sectionId: string): Promise<EdubridgeLevelRecord[]> {
     return this.levels.find({ section_id: sectionId }, { order: { sort_order: 'ASC' } });
   }
 
@@ -72,18 +72,18 @@ export class EdubridgeSectionRepository {
     return Number(r?.max ?? -1) + 1;
   }
 
-  saveSection(s: Partial<EdubridgeSectionEntity>): Promise<EdubridgeSectionEntity> {
+  saveSection(s: Partial<EdubridgeSectionRecord>): Promise<EdubridgeSectionRecord> {
     const { levels: _levels, ...row } = s;
     return this.sections.save(row);
   }
 
-  saveLevel(l: Partial<EdubridgeLevelEntity>): Promise<EdubridgeLevelEntity> {
+  saveLevel(l: Partial<EdubridgeLevelRecord>): Promise<EdubridgeLevelRecord> {
     const { section: _section, ...row } = l;
     return this.levels.save(row);
   }
 
   /** Курсы, ещё не перенесённые в справочник: раздел лежит строкой. */
-  unmigratedCourses(coopname: string): Promise<EdubridgeCourseEntity[]> {
+  unmigratedCourses(coopname: string): Promise<EdubridgeCourseRecord[]> {
     return this.courses
       .sqlBuilder('c')
       .where('c.coopname = :coopname', { coopname })

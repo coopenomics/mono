@@ -1,20 +1,20 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
-import { EdubridgeAccessTaskEntity } from '../entities/edubridge-access-task.entity';
-import { EdubridgeAdminEntity } from '../entities/edubridge-admin.entity';
-import { EdubridgeConnectorBindingEntity } from '../entities/edubridge-connector-binding.entity';
-import { EdubridgeContributionEntity } from '../entities/edubridge-contribution.entity';
-import { EdubridgeCourseEntity } from '../entities/edubridge-course.entity';
-import { EdubridgeEnrollmentEntity } from '../entities/edubridge-enrollment.entity';
-import { EdubridgeLearnerEntity } from '../entities/edubridge-learner.entity';
-import { EdubridgeLessonEntity } from '../entities/edubridge-lesson.entity';
-import { EdubridgeLevelEntity } from '../entities/edubridge-level.entity';
-import { EdubridgeReturnRequestEntity } from '../entities/edubridge-return-request.entity';
-import { EdubridgeSectionEntity } from '../entities/edubridge-section.entity';
-import { EdubridgeTeacherAssignmentEntity } from '../entities/edubridge-teacher-assignment.entity';
-import { EdubridgeTeacherContractEntity } from '../entities/edubridge-teacher-contract.entity';
-import { EdubridgeTeacherProfileEntity } from '../entities/edubridge-teacher-profile.entity';
+import { EdubridgeAccessTaskRecord } from '../entities/edubridge-access-task.record';
+import { EdubridgeAdminRecord } from '../entities/edubridge-admin.record';
+import { EdubridgeConnectorBindingRecord } from '../entities/edubridge-connector-binding.record';
+import { EdubridgeContributionRecord } from '../entities/edubridge-contribution.record';
+import { EdubridgeCourseRecord } from '../entities/edubridge-course.record';
+import { EdubridgeEnrollmentRecord } from '../entities/edubridge-enrollment.record';
+import { EdubridgeLearnerRecord } from '../entities/edubridge-learner.record';
+import { EdubridgeLessonRecord } from '../entities/edubridge-lesson.record';
+import { EdubridgeLevelRecord } from '../entities/edubridge-level.record';
+import { EdubridgeReturnRequestRecord } from '../entities/edubridge-return-request.record';
+import { EdubridgeSectionRecord } from '../entities/edubridge-section.record';
+import { EdubridgeTeacherAssignmentRecord } from '../entities/edubridge-teacher-assignment.record';
+import { EdubridgeTeacherContractRecord } from '../entities/edubridge-teacher-contract.record';
+import { EdubridgeTeacherProfileRecord } from '../entities/edubridge-teacher-profile.record';
 
 /**
  * Шлюзы таблиц расширения: адаптеры хранилищ работают с записями целиком
@@ -41,7 +41,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeAccessTaskEntity>(db, {
+      new TableStore<EdubridgeAccessTaskRecord>(db, {
         table: 'edubridge_access_tasks',
         primaryKey: ['id'],
         json: ['recipient_override'],
@@ -54,7 +54,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeAdminEntity>(db, {
+      new TableStore<EdubridgeAdminRecord>(db, {
         table: 'edubridge_admins',
         primaryKey: ['id'],
         sameNames: true,
@@ -65,7 +65,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeConnectorBindingEntity>(db, {
+      new TableStore<EdubridgeConnectorBindingRecord>(db, {
         table: 'edubridge_connector_bindings',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -77,7 +77,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeContributionEntity>(db, {
+      new TableStore<EdubridgeContributionRecord>(db, {
         table: 'edubridge_contributions',
         primaryKey: ['id'],
         json: ['links', 'statement_document', 'act_signed'],
@@ -90,7 +90,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeCourseEntity>(db, {
+      new TableStore<EdubridgeCourseRecord>(db, {
         table: 'edubridge_courses',
         primaryKey: ['id'],
         json: ['image', 'teacher_usernames'],
@@ -104,7 +104,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeEnrollmentEntity>(db, {
+      new TableStore<EdubridgeEnrollmentRecord>(db, {
         table: 'edubridge_enrollments',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -116,7 +116,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeLearnerEntity>(db, {
+      new TableStore<EdubridgeLearnerRecord>(db, {
         table: 'edubridge_learners',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -128,7 +128,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeLessonEntity>(db, {
+      new TableStore<EdubridgeLessonRecord>(db, {
         table: 'edubridge_lessons',
         primaryKey: ['id'],
         json: ['materials'],
@@ -140,7 +140,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeLevelEntity>(db, {
+      new TableStore<EdubridgeLevelRecord>(db, {
         table: 'edubridge_levels',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -152,7 +152,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeReturnRequestEntity>(db, {
+      new TableStore<EdubridgeReturnRequestRecord>(db, {
         table: 'edubridge_return_requests',
         primaryKey: ['id'],
         json: ['statement_document'],
@@ -165,7 +165,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeSectionEntity>(db, {
+      new TableStore<EdubridgeSectionRecord>(db, {
         table: 'edubridge_sections',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -177,7 +177,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeTeacherAssignmentEntity>(db, {
+      new TableStore<EdubridgeTeacherAssignmentRecord>(db, {
         table: 'edubridge_teacher_assignments',
         primaryKey: ['id'],
         dates: ['period_from', 'period_to'],
@@ -190,7 +190,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeTeacherContractEntity>(db, {
+      new TableStore<EdubridgeTeacherContractRecord>(db, {
         table: 'edubridge_teacher_contracts',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -202,7 +202,7 @@ export const edubridgeStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeTeacherProfileEntity>(db, {
+      new TableStore<EdubridgeTeacherProfileRecord>(db, {
         table: 'edubridge_teacher_profiles',
         primaryKey: ['id'],
         updatedAt: 'updated_at',

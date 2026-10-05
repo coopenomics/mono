@@ -11,15 +11,15 @@ import { OnsiteConnector } from '../infrastructure/connectors/onsite.connector';
 import { SkillspaceConnector } from '../infrastructure/connectors/skillspace.connector';
 import { EdubridgeConnectorCredentialsStore } from '../infrastructure/connectors/connector-credentials.store';
 import { CONNECTOR_CREDENTIALS_SOURCE } from '../domain/connectors/connector-credentials';
-import { EdubridgeAccessTaskRepository } from '../infrastructure/repositories/edubridge-access-task.repository';
-import { EdubridgeConnectorBindingRepository } from '../infrastructure/repositories/edubridge-connector-binding.repository';
-import { EdubridgeCourseRepository } from '../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../infrastructure/repositories/edubridge-enrollment.repository';
-import { EdubridgeLearnerRepository } from '../infrastructure/repositories/edubridge-learner.repository';
-import { EdubridgeTeacherRepository } from '../infrastructure/repositories/edubridge-teacher.repository';
-import { EdubridgeLessonRepository } from '../infrastructure/repositories/edubridge-lesson.repository';
-import { EdubridgeAdminRepository } from '../infrastructure/repositories/edubridge-admin.repository';
-import { EdubridgeReturnRequestRepository } from '../infrastructure/repositories/edubridge-return-request.repository';
+import { EdubridgeAccessTaskKyselyRepository } from '../infrastructure/repositories/edubridge-access-task.kysely-repository';
+import { EdubridgeConnectorBindingKyselyRepository } from '../infrastructure/repositories/edubridge-connector-binding.kysely-repository';
+import { EdubridgeCourseKyselyRepository } from '../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../infrastructure/repositories/edubridge-learner.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { EdubridgeLessonKyselyRepository } from '../infrastructure/repositories/edubridge-lesson.kysely-repository';
+import { EdubridgeAdminKyselyRepository } from '../infrastructure/repositories/edubridge-admin.kysely-repository';
+import { EdubridgeReturnRequestKyselyRepository } from '../infrastructure/repositories/edubridge-return-request.kysely-repository';
 import { EdubridgeReturnService } from './services/edubridge-return.service';
 import { EdubridgeFundsService } from './services/edubridge-funds.service';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
@@ -37,7 +37,7 @@ import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
 import { EdubridgeSectionsResolver } from './resolvers/edubridge-sections.resolver';
 import { EdubridgeSectionsService } from './services/edubridge-sections.service';
-import { EdubridgeSectionRepository } from '../infrastructure/repositories/edubridge-section.repository';
+import { EdubridgeSectionKyselyRepository } from '../infrastructure/repositories/edubridge-section.kysely-repository';
 import { EdubridgeAccessListener } from './listeners/edubridge-access.listener';
 import { EdubridgeApprovalListener } from './listeners/edubridge-approval.listener';
 import { EdubridgeContractDeltaListener } from './listeners/edubridge-contract-delta.listener';
@@ -83,15 +83,15 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeDesktopGrantsProvider,
     EdubridgeCapitalNarrowingPolicy,
     // Репозитории и адаптеры
-    EdubridgeCourseRepository,
-    EdubridgeLearnerRepository,
-    EdubridgeEnrollmentRepository,
-    EdubridgeAccessTaskRepository,
-    EdubridgeTeacherRepository,
-    EdubridgeLessonRepository,
-    EdubridgeAdminRepository,
-    EdubridgeReturnRequestRepository,
-    EdubridgeConnectorBindingRepository,
+    EdubridgeCourseKyselyRepository,
+    EdubridgeLearnerKyselyRepository,
+    EdubridgeEnrollmentKyselyRepository,
+    EdubridgeAccessTaskKyselyRepository,
+    EdubridgeTeacherKyselyRepository,
+    EdubridgeLessonKyselyRepository,
+    EdubridgeAdminKyselyRepository,
+    EdubridgeReturnRequestKyselyRepository,
+    EdubridgeConnectorBindingKyselyRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
     // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
     EdubridgeConnectorCredentialsStore,
@@ -140,7 +140,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeCourseAdminResolver,
     EdubridgeSectionsResolver,
     EdubridgeSectionsService,
-    EdubridgeSectionRepository,
+    EdubridgeSectionKyselyRepository,
     EdubridgeEconomyResolver,
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,

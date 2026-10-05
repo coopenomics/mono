@@ -5,9 +5,9 @@ import { LOGGER_PORT, NOTIFICATION_PORT, type ILoggerPort, type INotificationPor
 import { Workflows } from '@coopenomics/notifications';
 import { EduAccessTaskKind, EduEnrollmentStatus } from '../../domain/enums';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
-import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbox.service';
 import { EdubridgeFundsService } from '../services/edubridge-funds.service';
@@ -24,9 +24,9 @@ export class EdubridgeExpiryWorker {
   private running = false;
 
   constructor(
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly learners: EdubridgeLearnerRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly learners: EdubridgeLearnerKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
     private readonly funds: EdubridgeFundsService,

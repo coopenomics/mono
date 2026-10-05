@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { attachOne, PaginationInputDTO, type PaginationResult, PaginationUtils, TableStore } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_COURSE_STORE, EDUBRIDGE_LEVEL_STORE, EDUBRIDGE_SECTION_STORE } from '../database/edubridge-stores';
 import { EduCourseStatus } from '../../domain/enums';
-import { EdubridgeCourseEntity, EdubridgeLevelEntity, EdubridgeSectionEntity } from '../entities';
+import { EdubridgeCourseRecord, EdubridgeLevelRecord, EdubridgeSectionRecord } from '../entities';
 
 export interface EduCourseFilter {
   section_id?: string;
@@ -13,21 +13,21 @@ export interface EduCourseFilter {
 const SORTABLE = new Set(['title', 'sort_order', 'created_at', 'updated_at']);
 
 /** Связи справочника не колонки курса: в базу они не пишутся. */
-type CourseRow = Omit<EdubridgeCourseEntity, 'section' | 'level'>;
+type CourseRow = Omit<EdubridgeCourseRecord, 'section' | 'level'>;
 
 @Injectable()
-export class EdubridgeCourseRepository {
+export class EdubridgeCourseKyselyRepository {
   constructor(
     @Inject(EDUBRIDGE_COURSE_STORE)
-    private readonly repo: TableStore<EdubridgeCourseEntity>,
+    private readonly repo: TableStore<EdubridgeCourseRecord>,
     @Inject(EDUBRIDGE_SECTION_STORE)
-    private readonly sections: TableStore<EdubridgeSectionEntity>,
+    private readonly sections: TableStore<EdubridgeSectionRecord>,
     @Inject(EDUBRIDGE_LEVEL_STORE)
-    private readonly levels: TableStore<EdubridgeLevelEntity>
+    private readonly levels: TableStore<EdubridgeLevelRecord>
   ) {}
 
   /** Раздел и уровень курса — записи справочника: подгружаются к каждой выборке курсов. */
-  private async withCatalog<T extends EdubridgeCourseEntity | null>(found: T | EdubridgeCourseEntity[]): Promise<void> {
+  private async withCatalog<T extends EdubridgeCourseRecord | null>(found: T | EdubridgeCourseRecord[]): Promise<void> {
     const courses = Array.isArray(found) ? found : found ? [found] : [];
     await attachOne(courses, this.sections, 'section', { id: 'section_id' });
     await attachOne(courses, this.levels, 'level', { id: 'level_id' });
@@ -37,7 +37,7 @@ export class EdubridgeCourseRepository {
     coopname: string,
     filter: EduCourseFilter,
     options?: PaginationInputDTO
-  ): Promise<PaginationResult<EdubridgeCourseEntity>> {
+  ): Promise<PaginationResult<EdubridgeCourseRecord>> {
     const validated = PaginationUtils.validatePaginationOptions(options ?? ({ page: 1, limit: 24, sortOrder: 'ASC' } as PaginationInputDTO));
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validated);
     const sortBy = validated.sortBy && SORTABLE.has(validated.sortBy) ? validated.sortBy : 'sort_order';
@@ -68,24 +68,24 @@ export class EdubridgeCourseRepository {
     return PaginationUtils.createPaginationResult(items, totalCount, validated);
   }
 
-  async findById(coopname: string, id: string): Promise<EdubridgeCourseEntity | null> {
+  async findById(coopname: string, id: string): Promise<EdubridgeCourseRecord | null> {
     const course = await this.repo.findOne({ coopname, id });
     await this.withCatalog(course);
     return course;
   }
 
   /** Все курсы кооператива — для сверки назначений при запуске. */
-  async listAll(coopname: string): Promise<EdubridgeCourseEntity[]> {
+  async listAll(coopname: string): Promise<EdubridgeCourseRecord[]> {
     const courses = await this.repo.find({ coopname });
     await this.withCatalog(courses);
     return courses;
   }
 
-  create(data: Partial<EdubridgeCourseEntity>): EdubridgeCourseEntity {
+  create(data: Partial<EdubridgeCourseRecord>): EdubridgeCourseRecord {
     return this.repo.create(data);
   }
 
-  async save(entity: EdubridgeCourseEntity): Promise<EdubridgeCourseEntity> {
+  async save(entity: EdubridgeCourseRecord): Promise<EdubridgeCourseRecord> {
     const { section: _section, level: _level, ...row } = entity;
     const saved = Object.assign(entity, await this.repo.save(row as CourseRow));
     saved.section = undefined;

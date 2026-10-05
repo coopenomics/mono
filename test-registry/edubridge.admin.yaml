@@ -10,7 +10,7 @@ sources:
   backend:
     - components/controller/src/extensions/edubridge/application/services/edubridge-admin.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-admin.resolver.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-admin.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-admin.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-admin.dto.ts
     - components/controller/src/extensions/edubridge/infrastructure/connectors/**
     - components/controller/src/extensions/edubridge/domain/connectors/**

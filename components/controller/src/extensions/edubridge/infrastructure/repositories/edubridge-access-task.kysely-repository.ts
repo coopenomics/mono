@@ -3,17 +3,17 @@ import { sql } from 'kysely';
 import { TableStore, inTransaction, oneOf } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_ACCESS_TASK_STORE } from '../database/edubridge-stores';
 import { EduAccessTaskStatus } from '../../domain/enums';
-import { EdubridgeAccessTaskEntity } from '../entities';
+import { EdubridgeAccessTaskRecord } from '../entities';
 
 @Injectable()
-export class EdubridgeAccessTaskRepository {
+export class EdubridgeAccessTaskKyselyRepository {
   constructor(
     @Inject(EDUBRIDGE_ACCESS_TASK_STORE)
-    private readonly repo: TableStore<EdubridgeAccessTaskEntity>
+    private readonly repo: TableStore<EdubridgeAccessTaskRecord>
   ) {}
 
   /** Создать задачу; дубль по `(kind, enrollment_id, trigger_trx)` молча игнорируется — идемпотентность. */
-  async enqueue(data: Partial<EdubridgeAccessTaskEntity>): Promise<EdubridgeAccessTaskEntity | null> {
+  async enqueue(data: Partial<EdubridgeAccessTaskRecord>): Promise<EdubridgeAccessTaskRecord | null> {
     const { recipient_override, ...fields } = data;
     const rows = await this.repo.kysely
       .insertInto(this.repo.table)
@@ -35,7 +35,7 @@ export class EdubridgeAccessTaskRepository {
    * Забрать пачку задач к исполнению. `FOR UPDATE SKIP LOCKED` — два экземпляра
    * контроллера не возьмут одну задачу; пометка RUNNING — в той же транзакции.
    */
-  async claimDue(coopname: string, limit: number): Promise<EdubridgeAccessTaskEntity[]> {
+  async claimDue(coopname: string, limit: number): Promise<EdubridgeAccessTaskRecord[]> {
     return inTransaction(this.repo.kysely, async (trx) => {
       const store = this.repo.on(trx);
       const found = await store
@@ -51,19 +51,19 @@ export class EdubridgeAccessTaskRepository {
       const rows = store.records(found);
       if (!rows.length) return [];
       await store.update({ id: oneOf(rows.map((r) => r.id)) }, { status: EduAccessTaskStatus.RUNNING });
-      return rows.map((r) => ({ ...r, status: EduAccessTaskStatus.RUNNING }) as EdubridgeAccessTaskEntity);
+      return rows.map((r) => ({ ...r, status: EduAccessTaskStatus.RUNNING }) as EdubridgeAccessTaskRecord);
     });
   }
 
-  save(task: EdubridgeAccessTaskEntity): Promise<EdubridgeAccessTaskEntity> {
+  save(task: EdubridgeAccessTaskRecord): Promise<EdubridgeAccessTaskRecord> {
     return this.repo.save(task);
   }
 
-  findById(coopname: string, id: string): Promise<EdubridgeAccessTaskEntity | null> {
+  findById(coopname: string, id: string): Promise<EdubridgeAccessTaskRecord | null> {
     return this.repo.findOne({ coopname, id });
   }
 
-  findQueue(coopname: string, statuses?: EduAccessTaskStatus[], limit = 200): Promise<EdubridgeAccessTaskEntity[]> {
+  findQueue(coopname: string, statuses?: EduAccessTaskStatus[], limit = 200): Promise<EdubridgeAccessTaskRecord[]> {
     return this.repo.find({ coopname, ...(statuses?.length ? { status: oneOf(statuses) } : {}) }, { order: { updated_at: 'DESC' }, limit: limit });
   }
 
@@ -72,7 +72,7 @@ export class EdubridgeAccessTaskRepository {
     return this.repo.count({ coopname, status: oneOf(statuses) });
   }
 
-  findByEnrollment(coopname: string, enrollmentId: string): Promise<EdubridgeAccessTaskEntity[]> {
+  findByEnrollment(coopname: string, enrollmentId: string): Promise<EdubridgeAccessTaskRecord[]> {
     return this.repo.find({ coopname, enrollment_id: enrollmentId }, { order: { created_at: 'DESC' } });
   }
 }

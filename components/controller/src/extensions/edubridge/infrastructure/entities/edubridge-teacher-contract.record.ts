@@ -5,7 +5,7 @@ import { EduContractStatus } from '../../domain/enums';
  * преподаватель, вторая — председатель совета через одобрение; зеркало
  * записи `educontracts` контракта.
  */
-export class EdubridgeTeacherContractEntity {
+export class EdubridgeTeacherContractRecord {
   public id!: string;
 
   public coopname!: string;

@@ -5,9 +5,9 @@ import { costOfHours, courseMonths } from '../../domain/economy/course-fee.calcu
 import { isEntryGuaranteeRunning } from '../../domain/economy/guarantee';
 import { reserveTarget, type ReserveCoverage, type ReserveTarget } from '../../domain/economy/teacher-reserve.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity } from '../../infrastructure/entities';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
+import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { refundOf } from './edubridge-refund';
 
 const MINUTES_IN_HOUR = 60;
@@ -31,8 +31,8 @@ const ASSET_SCALE = 10_000;
 @Injectable()
 export class EdubridgeFundsService {
   constructor(
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -40,7 +40,7 @@ export class EdubridgeFundsService {
   }
 
   /** Сколько по подписке должно оставаться удержанным на этот момент. */
-  requiredLock(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, now = new Date()): number {
+  requiredLock(enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, now = new Date()): number {
     const locked = toNumber(enrollment.locked_amount);
     if (isEntryGuaranteeRunning(course, enrollment, now)) return locked;
     return Math.min(locked, toNumber(refundOf(enrollment, course, false, now).refund));
@@ -82,7 +82,7 @@ export class EdubridgeFundsService {
    * из фонда либо возвращает в него лишнее. Сбой закрытие не отменяет: очередь
    * выровняет резерв на следующем проходе.
    */
-  async afterClosed(coopname: string, enrollment: EdubridgeEnrollmentEntity): Promise<void> {
+  async afterClosed(coopname: string, enrollment: EdubridgeEnrollmentRecord): Promise<void> {
     const released = toNumber(enrollment.locked_amount);
     const symbol = symbolOf(enrollment.locked_amount);
     enrollment.locked_amount = null;
@@ -106,7 +106,7 @@ export class EdubridgeFundsService {
   }
 
   /** Обязательство перед преподавателями курса против того, что лежит в резерве. */
-  async target(coopname: string, course: EdubridgeCourseEntity): Promise<ReserveTarget> {
+  async target(coopname: string, course: EdubridgeCourseRecord): Promise<ReserveTarget> {
     const coverage = (await this.enrollments.findByCourse(coopname, course.id)).map(coverageOf).filter((c): c is ReserveCoverage => c !== null);
     const hoursPerMonth = (course.lessons_per_month * course.lesson_minutes) / MINUTES_IN_HOUR;
     return reserveTarget(
@@ -122,7 +122,7 @@ export class EdubridgeFundsService {
 
   private async rebalance(
     coopname: string,
-    course: EdubridgeCourseEntity,
+    course: EdubridgeCourseRecord,
     subHash: string,
     opts: { allotUpTo: number; symbol: string }
   ): Promise<void> {
@@ -141,7 +141,7 @@ export class EdubridgeFundsService {
     }
   }
 
-  private async moveReserve(course: EdubridgeCourseEntity, delta: number, symbol: string): Promise<void> {
+  private async moveReserve(course: EdubridgeCourseRecord, delta: number, symbol: string): Promise<void> {
     if (!delta) return;
     course.teacher_reserve_balance = asset(Math.max(0, toNumber(course.teacher_reserve_balance) + delta), symbol);
     await this.courses.save(course);
@@ -149,7 +149,7 @@ export class EdubridgeFundsService {
 }
 
 /** Оплаченное учеником время курса; подписка без срока оплаты в расчёт не идёт. */
-function coverageOf(e: EdubridgeEnrollmentEntity): ReserveCoverage | null {
+function coverageOf(e: EdubridgeEnrollmentRecord): ReserveCoverage | null {
   if (!e.paid_until) return null;
   // Отменённая подписка оплатила курс только до дня отмены: дальше занятий для неё нет.
   const until = e.status === EduEnrollmentStatus.CANCELLED && e.cancelled_at ? new Date(e.cancelled_at) : new Date(e.paid_until);

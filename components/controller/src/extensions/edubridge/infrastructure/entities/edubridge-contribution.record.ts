@@ -1,7 +1,7 @@
 import { EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 
 /** Паевой взнос преподавателя результатами работы (РИД). `rid_hash` — ключ записи в цепи (`edubridge::edurids`). */
-export class EdubridgeContributionEntity {
+export class EdubridgeContributionRecord {
   public id!: string;
 
   public coopname!: string;

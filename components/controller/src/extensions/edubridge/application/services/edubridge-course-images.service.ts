@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { InnerFileStorageBucket } from '@coopenomics/innercoop';
 import { InjectBucket, UseBucket, DomainError } from '@coopenomics/extension-kit';
-import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 
 const MB = 1024 * 1024;
 

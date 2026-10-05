@@ -1,6 +1,6 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsBoolean, IsOptional, IsString, IsUUID, Length } from 'class-validator';
-import type { EdubridgeLevelEntity, EdubridgeSectionEntity } from '../../infrastructure/entities';
+import type { EdubridgeLevelRecord, EdubridgeSectionRecord } from '../../infrastructure/entities';
 
 @ObjectType('EduLevel')
 export class EduLevelDTO {
@@ -10,7 +10,7 @@ export class EduLevelDTO {
   @Field(() => Int, { description: 'Место уровня в последовательности раздела: меньше — раньше' }) sort_order!: number;
   @Field(() => Boolean, { description: 'В архиве: не предлагается новым курсам и в каталоге' }) archived!: boolean;
 
-  constructor(e: EdubridgeLevelEntity) {
+  constructor(e: EdubridgeLevelRecord) {
     this.id = e.id;
     this.section_id = e.section_id;
     this.title = e.title;
@@ -27,7 +27,7 @@ export class EduSectionDTO {
   @Field(() => Boolean, { description: 'В архиве: не предлагается новым курсам и в каталоге' }) archived!: boolean;
   @Field(() => [EduLevelDTO], { description: 'Уровни раздела в их последовательности' }) levels!: EduLevelDTO[];
 
-  constructor(e: EdubridgeSectionEntity, levels: EdubridgeLevelEntity[]) {
+  constructor(e: EdubridgeSectionRecord, levels: EdubridgeLevelRecord[]) {
     this.id = e.id;
     this.title = e.title;
     this.sort_order = e.sort_order;

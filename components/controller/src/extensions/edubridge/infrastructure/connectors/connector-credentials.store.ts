@@ -3,7 +3,7 @@ import { LOGGER_PORT, SECRET_CIPHER_PORT, type ILoggerPort, type ISecretCipherPo
 import type { EduAccessCarrier } from '../../domain/enums';
 import type { ConnectorCredentials, IConnectorCredentialsSource } from '../../domain/connectors/connector-credentials';
 import { EdubridgeConfigHolder } from '../../application/config/edubridge-config.holder';
-import { EdubridgeConnectorBindingRepository } from '../repositories/edubridge-connector-binding.repository';
+import { EdubridgeConnectorBindingKyselyRepository } from '../repositories/edubridge-connector-binding.kysely-repository';
 
 /**
  * Учётные данные площадок: в привязке коннектора, зашифрованные ключом ядра.
@@ -15,7 +15,7 @@ import { EdubridgeConnectorBindingRepository } from '../repositories/edubridge-c
 @Injectable()
 export class EdubridgeConnectorCredentialsStore implements IConnectorCredentialsSource {
   constructor(
-    private readonly bindings: EdubridgeConnectorBindingRepository,
+    private readonly bindings: EdubridgeConnectorBindingKyselyRepository,
     private readonly config: EdubridgeConfigHolder,
     @Inject(SECRET_CIPHER_PORT) private readonly cipher: ISecretCipherPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort

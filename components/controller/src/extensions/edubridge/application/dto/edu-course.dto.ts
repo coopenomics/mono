@@ -4,15 +4,15 @@ import { Type } from 'class-transformer';
 import { createPaginationResult, validationMessage } from '@coopenomics/extension-kit';
 import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { EduAccessCarrier, EduCourseDirection, EduCourseStatus } from '../../domain/enums';
-import type { EdubridgeCourseEntity } from '../../infrastructure/entities';
-import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.entity';
+import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
+import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import './edu-enums.registration';
 
 /** Сумма в формате цепи: «1000.0000 RUB». */
 const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
 
 /** Раздел и уровень курса из справочника: ссылки и названия для показа. */
-function taxonomyOf(e: EdubridgeCourseEntity) {
+function taxonomyOf(e: EdubridgeCourseRecord) {
   return {
     section_id: e.section_id ?? null,
     section_title: e.section?.title ?? '',
@@ -90,7 +90,7 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { nullable: true, description: 'На сколько взнос разом меньше суммы помесячных' })
   course_discount_amount!: string | null;
 
-  constructor(e: EdubridgeCourseEntity) {
+  constructor(e: EdubridgeCourseRecord) {
     this.id = e.id;
     this.title = e.title;
     Object.assign(this, taxonomyOf(e));
@@ -152,7 +152,7 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => Date, { description: 'Изменён' })
   updated_at!: Date;
 
-  constructor(e: EdubridgeCourseEntity) {
+  constructor(e: EdubridgeCourseRecord) {
     super(e);
     this.direction = e.direction;
     this.carrier = e.carrier;

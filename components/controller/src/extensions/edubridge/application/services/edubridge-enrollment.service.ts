@@ -17,9 +17,9 @@ import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calc
 import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
 import { monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
-import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
+import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import type { EduQuoteDTO } from '../dto/edu-enrollment.dto';
 import {
   EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT,
@@ -65,9 +65,9 @@ interface PlanFunding {
 }
 
 export interface EnrollmentPlan {
-  learner: EdubridgeLearnerEntity;
-  course: EdubridgeCourseEntity;
-  existing: EdubridgeEnrollmentEntity | null;
+  learner: EdubridgeLearnerRecord;
+  course: EdubridgeCourseRecord;
+  existing: EdubridgeEnrollmentRecord | null;
   period: EduEnrollmentPeriod;
   amount: string;
   /** Месяцев оплачивает взнос. */
@@ -88,8 +88,8 @@ export interface EnrollmentPlan {
 @Injectable()
 export class EdubridgeEnrollmentService {
   constructor(
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly learnerService: EdubridgeLearnerService,
     private readonly funds: EdubridgeFundsService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
@@ -101,16 +101,16 @@ export class EdubridgeEnrollmentService {
     this.logger.setContext(EdubridgeEnrollmentService.name);
   }
 
-  async listMine(coopname: string, member: string): Promise<Array<{ enrollment: EdubridgeEnrollmentEntity; course: EdubridgeCourseEntity | null }>> {
+  async listMine(coopname: string, member: string): Promise<Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null }>> {
     const rows = await this.enrollments.findByMember(coopname, member);
-    const result: Array<{ enrollment: EdubridgeEnrollmentEntity; course: EdubridgeCourseEntity | null }> = [];
+    const result: Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null }> = [];
     for (const enrollment of rows) {
       result.push({ enrollment, course: await this.courses.findById(coopname, enrollment.course_id) });
     }
     return result;
   }
 
-  courseOf(enrollment: EdubridgeEnrollmentEntity): Promise<EdubridgeCourseEntity | null> {
+  courseOf(enrollment: EdubridgeEnrollmentRecord): Promise<EdubridgeCourseRecord | null> {
     return this.courses.findById(enrollment.coopname, enrollment.course_id);
   }
 
@@ -158,7 +158,7 @@ export class EdubridgeEnrollmentService {
    * Помесячный взнос оплачивает месяц. Взнос за весь курс разом — месяцы до
    * конца программы со скидкой курса: пришедший в середине вносит за остаток.
    */
-  private termsOf(course: EdubridgeCourseEntity, period: EduEnrollmentPeriod, from: Date): PeriodTerms {
+  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date): PeriodTerms {
     if (period === EduEnrollmentPeriod.MONTH) {
       const fee = feeForMonths(course.fee_month, 1, 0);
       return { months: 1, paidUntil: addMonths(from, 1), baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
@@ -226,7 +226,7 @@ export class EdubridgeEnrollmentService {
     courseId: string,
     period: EduEnrollmentPeriod,
     document: ISignedDocument
-  ): Promise<EdubridgeEnrollmentEntity> {
+  ): Promise<EdubridgeEnrollmentRecord> {
     const plan = await this.plan(coopname, member, learnerId, courseId, period);
     const funding = await this.planFunding(coopname, member, plan);
     this.assertStatementMatches(document, plan, funding);
@@ -283,7 +283,7 @@ export class EdubridgeEnrollmentService {
    * Возврат идёт на кошелёк ЦПП, откуда его можно пустить на другую подписку
    * или вернуть в паевой по заявлению.
    */
-  async cancel(coopname: string, member: string, enrollmentId: string): Promise<EdubridgeEnrollmentEntity> {
+  async cancel(coopname: string, member: string, enrollmentId: string): Promise<EdubridgeEnrollmentRecord> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
     if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
     return this.cancelOne(coopname, enrollment, false);
@@ -295,7 +295,7 @@ export class EdubridgeEnrollmentService {
    * от учеников это не требует. Пока занятия не начались: после первого
    * занятия отменять нечего, есть отказ от подписки.
    */
-  async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentEntity[]> {
+  async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentRecord[]> {
     const course = await this.courses.findById(coopname, courseId);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (course.starts_at && new Date(course.starts_at) <= new Date()) {
@@ -308,7 +308,7 @@ export class EdubridgeEnrollmentService {
       await this.courses.save(course);
     }
     const active = (await this.enrollments.findByCourse(coopname, courseId)).filter((e) => isCancellable(e));
-    const cancelled: EdubridgeEnrollmentEntity[] = [];
+    const cancelled: EdubridgeEnrollmentRecord[] = [];
     const failed: string[] = [];
     for (const enrollment of active) {
       try {
@@ -332,9 +332,9 @@ export class EdubridgeEnrollmentService {
    * (решение владельца 20.09.2026). Ошибка по одной подписке выход не
    * останавливает: остальные всё равно закрываются.
    */
-  async cancelAllForMember(coopname: string, member: string, reason: string): Promise<EdubridgeEnrollmentEntity[]> {
+  async cancelAllForMember(coopname: string, member: string, reason: string): Promise<EdubridgeEnrollmentRecord[]> {
     const active = (await this.enrollments.findByMember(coopname, member)).filter((e) => isCancellable(e));
-    const cancelled: EdubridgeEnrollmentEntity[] = [];
+    const cancelled: EdubridgeEnrollmentRecord[] = [];
     for (const enrollment of active) {
       try {
         cancelled.push(await this.cancelOne(coopname, enrollment, false));
@@ -349,7 +349,7 @@ export class EdubridgeEnrollmentService {
   }
 
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
-  private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentEntity, underfilled: boolean): Promise<EdubridgeEnrollmentEntity> {
+  private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentRecord, underfilled: boolean): Promise<EdubridgeEnrollmentRecord> {
     if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
     const course = await this.courses.findById(coopname, enrollment.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
@@ -408,7 +408,7 @@ export class EdubridgeEnrollmentService {
   }
 
   /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */
-  refundFor(enrollment: EdubridgeEnrollmentEntity, course: EdubridgeCourseEntity, underfilled: boolean): RefundCalculation {
+  refundFor(enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, underfilled: boolean): RefundCalculation {
     return refundOf(enrollment, course, underfilled);
   }
 
@@ -417,7 +417,7 @@ export class EdubridgeEnrollmentService {
    * прежним: возврат по Положению считается от всего оплаченного, а не от
    * последнего платежа. Истёкший срок израсходован целиком — счёт с нуля.
    */
-  private paidBase(plan: EnrollmentPlan): Partial<EdubridgeEnrollmentEntity> {
+  private paidBase(plan: EnrollmentPlan): Partial<EdubridgeEnrollmentRecord> {
     const zero = zeroOf(plan.symbol);
     const base = priorBase(plan);
     return {
@@ -560,6 +560,6 @@ function sumAssets(a: string, b: string): string {
 }
 
 /** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */
-function isCancellable(e: EdubridgeEnrollmentEntity): boolean {
+function isCancellable(e: EdubridgeEnrollmentRecord): boolean {
   return e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING;
 }

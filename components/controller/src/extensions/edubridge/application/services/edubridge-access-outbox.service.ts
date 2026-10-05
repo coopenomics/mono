@@ -10,13 +10,13 @@ import {
   type EduRecipientType,
 } from '../../domain/enums';
 import type { AccessCarrierConnector, AccessRequest, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
-import type { EdubridgeAccessTaskEntity, EdubridgeCourseEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../../infrastructure/entities';
+import type { EdubridgeAccessTaskRecord, EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
-import { EdubridgeAccessTaskRepository } from '../../infrastructure/repositories/edubridge-access-task.repository';
-import { EdubridgeConnectorBindingRepository } from '../../infrastructure/repositories/edubridge-connector-binding.repository';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
-import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeAccessTaskKyselyRepository } from '../../infrastructure/repositories/edubridge-access-task.kysely-repository';
+import { EdubridgeConnectorBindingKyselyRepository } from '../../infrastructure/repositories/edubridge-connector-binding.kysely-repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import {
   EDUBRIDGE_ACCESS_GRANTED_EVENT,
   EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT,
@@ -30,14 +30,14 @@ export const OUTBOX_MAX_ATTEMPTS = 10;
 /** Размер пачки воркера. */
 export const OUTBOX_BATCH = 20;
 interface TaskContext {
-  enrollment: EdubridgeEnrollmentEntity;
-  learner: EdubridgeLearnerEntity;
-  course: EdubridgeCourseEntity;
+  enrollment: EdubridgeEnrollmentRecord;
+  learner: EdubridgeLearnerRecord;
+  course: EdubridgeCourseRecord;
   connector: AccessCarrierConnector;
 }
 
 /** Чем сверка не сошлась: `retry` — площадка недоступна, иначе — курс не тот; `null` — всё сходится. */
-function courseCheckProblem(check: CourseCheckResult, course: EdubridgeCourseEntity): { message: string; retry?: boolean } | null {
+function courseCheckProblem(check: CourseCheckResult, course: EdubridgeCourseRecord): { message: string; retry?: boolean } | null {
   if (check.unavailable) return { message: check.message ?? t('edubridge.accessOutbox.reason.platformUnavailable'), retry: true };
   if (!check.found) return { message: check.message ?? t('edubridge.accessOutbox.reason.courseNotFoundOnPlatform') };
   if (check.title && course.external_title_seen && check.title !== course.external_title_seen) {
@@ -56,7 +56,7 @@ export function backoffMinutes(attempt: number): number {
 
 export interface EnqueueInput {
   coopname: string;
-  enrollment: EdubridgeEnrollmentEntity;
+  enrollment: EdubridgeEnrollmentRecord;
   kind: EduAccessTaskKind;
   carrier: EduAccessCarrier;
   trigger: string;
@@ -72,11 +72,11 @@ export interface EnqueueInput {
 @Injectable()
 export class EdubridgeAccessOutboxService {
   constructor(
-    private readonly tasks: EdubridgeAccessTaskRepository,
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly learners: EdubridgeLearnerRepository,
-    private readonly courses: EdubridgeCourseRepository,
-    private readonly bindings: EdubridgeConnectorBindingRepository,
+    private readonly tasks: EdubridgeAccessTaskKyselyRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly learners: EdubridgeLearnerKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly bindings: EdubridgeConnectorBindingKyselyRepository,
     private readonly connectors: AccessCarrierRegistry,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
@@ -84,7 +84,7 @@ export class EdubridgeAccessOutboxService {
     this.logger.setContext(EdubridgeAccessOutboxService.name);
   }
 
-  async enqueue(input: EnqueueInput): Promise<EdubridgeAccessTaskEntity | null> {
+  async enqueue(input: EnqueueInput): Promise<EdubridgeAccessTaskRecord | null> {
     const task = await this.tasks.enqueue({
       coopname: input.coopname,
       enrollment_id: input.enrollment.id,
@@ -110,7 +110,7 @@ export class EdubridgeAccessOutboxService {
     return batch.length;
   }
 
-  private async run(task: EdubridgeAccessTaskEntity): Promise<void> {
+  private async run(task: EdubridgeAccessTaskRecord): Promise<void> {
     const ctx = await this.loadContext(task);
     if (!ctx) return;
     const { enrollment, learner, course, connector } = ctx;
@@ -130,14 +130,14 @@ export class EdubridgeAccessOutboxService {
   }
 
   /** Исход площадки → состояние задачи: успех/«уже есть» — done, отказ — вмешательство, остальное — повтор. */
-  private settle(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
+  private settle(task: EdubridgeAccessTaskRecord, enrollment: EdubridgeEnrollmentRecord, result: ConnectorResult): Promise<void> {
     if (result.code === 'ok' || result.code === 'exists') return this.done(task, enrollment, result);
     if (result.code === 'fatal') return this.attention(task, result.message ?? t('edubridge.accessOutbox.reason.platformRejected'), undefined, result.error_code);
     return this.fail(task, result);
   }
 
   /** Подписка, обучающийся, курс и коннектор задачи; `null` — задача уже переведена в «требует вмешательства». */
-  private async loadContext(task: EdubridgeAccessTaskEntity): Promise<TaskContext | null> {
+  private async loadContext(task: EdubridgeAccessTaskRecord): Promise<TaskContext | null> {
     const enrollment = await this.enrollments.findById(task.coopname, task.enrollment_id);
     if (!enrollment) {
       await this.attention(task, t('edubridge.accessOutbox.reason.subscriptionNotFound'));
@@ -164,7 +164,7 @@ export class EdubridgeAccessOutboxService {
    * Не чаще раза в CHECK_TTL_MS на курс: экспорт-API площадок лимитирован.
    * `false` — задача уже отложена или переведена в «требует вмешательства».
    */
-  private async courseVerified(task: EdubridgeAccessTaskEntity, course: EdubridgeCourseEntity, connector: AccessCarrierConnector): Promise<boolean> {
+  private async courseVerified(task: EdubridgeAccessTaskRecord, course: EdubridgeCourseRecord, connector: AccessCarrierConnector): Promise<boolean> {
     const checkedRecently = course.external_checked_at && Date.now() - course.external_checked_at.getTime() < CHECK_TTL_MS;
     if (!course.external_ref || checkedRecently) return true;
 
@@ -184,7 +184,7 @@ export class EdubridgeAccessOutboxService {
     return true;
   }
 
-  private async done(task: EdubridgeAccessTaskEntity, enrollment: EdubridgeEnrollmentEntity, result: ConnectorResult): Promise<void> {
+  private async done(task: EdubridgeAccessTaskRecord, enrollment: EdubridgeEnrollmentRecord, result: ConnectorResult): Promise<void> {
     task.status = EduAccessTaskStatus.DONE;
     task.attempts += 1;
     task.last_result = result.code;
@@ -207,7 +207,7 @@ export class EdubridgeAccessOutboxService {
     this.logger.info(`[EDU.OUTBOX] ${task.kind} выполнен для подписки ${enrollment.id} (${result.code})`);
   }
 
-  private async fail(task: EdubridgeAccessTaskEntity, result: ConnectorResult): Promise<void> {
+  private async fail(task: EdubridgeAccessTaskRecord, result: ConnectorResult): Promise<void> {
     task.attempts += 1;
     task.last_result = result.code;
     task.last_error = result.message ?? null;
@@ -220,7 +220,7 @@ export class EdubridgeAccessOutboxService {
     this.logger.warn(`[EDU.OUTBOX] ${task.kind} для подписки ${task.enrollment_id}: попытка ${task.attempts} не удалась — ${result.message}; следующая через ${backoffMinutes(task.attempts)} мин`);
   }
 
-  private async attention(task: EdubridgeAccessTaskEntity, reason: string, courseId?: string, errorCode?: string, counted = false): Promise<void> {
+  private async attention(task: EdubridgeAccessTaskRecord, reason: string, courseId?: string, errorCode?: string, counted = false): Promise<void> {
     task.status = EduAccessTaskStatus.NEEDS_ATTENTION;
     if (!counted) task.attempts += 1;
     task.last_result = errorCode ?? 'fatal';
@@ -237,7 +237,7 @@ export class EdubridgeAccessOutboxService {
   }
 
   /** Ручной повтор из очереди администратора: задача снова pending, счётчик не сбрасываем. */
-  async retry(coopname: string, taskId: string): Promise<EdubridgeAccessTaskEntity> {
+  async retry(coopname: string, taskId: string): Promise<EdubridgeAccessTaskRecord> {
     const task = await this.tasks.findById(coopname, taskId);
     if (!task) throw DomainError.internal('EDUBRIDGE_ACCESS_TASK_NOT_FOUND');
     task.status = EduAccessTaskStatus.PENDING;

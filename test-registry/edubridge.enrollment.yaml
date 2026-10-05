@@ -13,8 +13,8 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-learner.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-member.resolver.ts
     - components/controller/src/extensions/edubridge/infrastructure/adapters/edubridge-chain.adapter.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.repository.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-enrollment.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-learner.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-return.service.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-funds.service.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-refund.ts
@@ -23,8 +23,8 @@ sources:
     - components/controller/src/extensions/edubridge/domain/economy/teacher-reserve.calculator.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-return-request.repository.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-return-request.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-return-request.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-return-request.record.ts
   ui:
     - components/desktop/extensions/edubridge/pages/MemberLearnersPage/**
     - components/desktop/extensions/edubridge/pages/MemberSubscriptionsPage/**

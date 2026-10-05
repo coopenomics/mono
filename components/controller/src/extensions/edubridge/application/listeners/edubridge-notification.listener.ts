@@ -3,9 +3,9 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, NOTIFICATION_PORT, type ILoggerPort, type INotificationPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
-import { EdubridgeCourseRepository } from '../../infrastructure/repositories/edubridge-course.repository';
-import { EdubridgeEnrollmentRepository } from '../../infrastructure/repositories/edubridge-enrollment.repository';
-import { EdubridgeLearnerRepository } from '../../infrastructure/repositories/edubridge-learner.repository';
+import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT } from '../events/edubridge.events';
 import { EdubridgeOwnerDirectory } from '../membership/edubridge-owner.directory';
 
@@ -13,9 +13,9 @@ import { EdubridgeOwnerDirectory } from '../membership/edubridge-owner.directory
 @Injectable()
 export class EdubridgeNotificationListener {
   constructor(
-    private readonly enrollments: EdubridgeEnrollmentRepository,
-    private readonly learners: EdubridgeLearnerRepository,
-    private readonly courses: EdubridgeCourseRepository,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly learners: EdubridgeLearnerKyselyRepository,
+    private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly owners: EdubridgeOwnerDirectory,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort

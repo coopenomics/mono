@@ -15,9 +15,9 @@ sources:
     - components/controller/src/extensions/edubridge/application/services/edubridge-sections.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-sections.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-section.dto.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-section.repository.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-section.entity.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-level.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-section.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-section.record.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-level.record.ts
   ui:
     - components/desktop/extensions/edubridge/pages/AdminSectionsPage/**
     - components/desktop/extensions/edubridge/entities/Section/**

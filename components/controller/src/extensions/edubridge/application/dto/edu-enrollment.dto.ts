@@ -3,7 +3,7 @@ import { IsEnum, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
-import type { EdubridgeCourseEntity, EdubridgeEnrollmentEntity } from '../../infrastructure/entities';
+import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
 /** Подписка обучающегося на курс с состоянием доступа и сроком. */
@@ -48,7 +48,7 @@ export class EduEnrollmentDTO {
   @Field(() => Date, { nullable: true, description: 'Когда подписка отменена' })
   cancelled_at!: Date | null;
 
-  constructor(e: EdubridgeEnrollmentEntity, course?: EdubridgeCourseEntity | null) {
+  constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null) {
     this.id = e.id;
     this.learner_id = e.learner_id;
     this.course_id = e.course_id;

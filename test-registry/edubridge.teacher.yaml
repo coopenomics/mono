@@ -39,10 +39,10 @@ sources:
   backend:
     - components/controller/src/extensions/edubridge/application/services/edubridge-teacher.service.ts
     - components/controller/src/extensions/edubridge/application/listeners/edubridge-approval.listener.ts
-    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-teacher.repository.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-contract.entity.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-assignment.entity.ts
-    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-profile.entity.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-teacher.kysely-repository.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-contract.record.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-assignment.record.ts
+    - components/controller/src/extensions/edubridge/infrastructure/entities/edubridge-teacher-profile.record.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-teacher.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-teacher.dto.ts
     - components/factory/test/education-contract.test.ts

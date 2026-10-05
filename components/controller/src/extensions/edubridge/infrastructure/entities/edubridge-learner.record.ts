@@ -5,7 +5,7 @@ import { EduRecipientType } from '../../domain/enums';
  * Контакт (`recipient_value`) — персональные данные: наружу только владельцу,
  * площадке уходит только он и ничего больше.
  */
-export class EdubridgeLearnerEntity {
+export class EdubridgeLearnerRecord {
   public id!: string;
 
   public coopname!: string;

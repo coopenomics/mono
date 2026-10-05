@@ -5,7 +5,7 @@ import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../
  * по каждой связке. `sub_hash` — ключ записи в цепи (`edubridge::edusubs`),
  * хеши хранятся в нижнем регистре.
  */
-export class EdubridgeEnrollmentEntity {
+export class EdubridgeEnrollmentRecord {
   public id!: string;
 
   public coopname!: string;

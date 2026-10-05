@@ -3,13 +3,13 @@ import { TableStore } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_CONNECTOR_BINDING_STORE } from '../database/edubridge-stores';
 import type { ConnectorResult } from '../../domain/connectors/access-carrier.connector';
 import { EduAccessCarrier, EduConnectorHealth } from '../../domain/enums';
-import { EdubridgeConnectorBindingEntity } from '../entities';
+import { EdubridgeConnectorBindingRecord } from '../entities';
 
 @Injectable()
-export class EdubridgeConnectorBindingRepository {
-  constructor(@Inject(EDUBRIDGE_CONNECTOR_BINDING_STORE) private readonly repo: TableStore<EdubridgeConnectorBindingEntity>) {}
+export class EdubridgeConnectorBindingKyselyRepository {
+  constructor(@Inject(EDUBRIDGE_CONNECTOR_BINDING_STORE) private readonly repo: TableStore<EdubridgeConnectorBindingRecord>) {}
 
-  list(coopname: string): Promise<EdubridgeConnectorBindingEntity[]> {
+  list(coopname: string): Promise<EdubridgeConnectorBindingRecord[]> {
     return this.repo.find({ coopname }, { order: { carrier: 'ASC' } });
   }
 
@@ -20,7 +20,7 @@ export class EdubridgeConnectorBindingRepository {
    * падала на уникальном индексе (кооператив, площадка). Вставка без конфликта
    * и чтение следом отдают всем одну и ту же запись.
    */
-  async ensure(coopname: string, carrier: EduAccessCarrier): Promise<EdubridgeConnectorBindingEntity> {
+  async ensure(coopname: string, carrier: EduAccessCarrier): Promise<EdubridgeConnectorBindingRecord> {
     const existing = await this.repo.findOne({ coopname, carrier });
     if (existing) return existing;
     await this.repo.kysely
@@ -50,7 +50,7 @@ export class EdubridgeConnectorBindingRepository {
     await this.repo.save(b);
   }
 
-  save(b: EdubridgeConnectorBindingEntity): Promise<EdubridgeConnectorBindingEntity> {
+  save(b: EdubridgeConnectorBindingRecord): Promise<EdubridgeConnectorBindingRecord> {
     return this.repo.save(b);
   }
 }

@@ -1,7 +1,7 @@
 import { Field, ID, InputType, ObjectType } from '@nestjs/graphql';
 import { IsBoolean, IsEnum, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 import { EduRecipientType } from '../../domain/enums';
-import type { EdubridgeLearnerEntity } from '../../infrastructure/entities';
+import type { EdubridgeLearnerRecord } from '../../infrastructure/entities';
 import './edu-enums.registration';
 
 /** Обучающийся глазами пайщика. Контакт виден владельцу записи — это его данные. */
@@ -25,7 +25,7 @@ export class EduLearnerDTO {
   @Field(() => Date, { description: 'Добавлен' })
   created_at!: Date;
 
-  constructor(e: EdubridgeLearnerEntity, opts: { showContact: boolean }) {
+  constructor(e: EdubridgeLearnerRecord, opts: { showContact: boolean }) {
     this.id = e.id;
     this.display_name = e.display_name;
     this.recipient_type = e.recipient_type;
