@@ -43,7 +43,7 @@ function make(rows: any[], chainFails: string | null) {
     }),
   } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeEnrollmentService(enrollments, courses, {} as any, funds, chain, {} as any, {} as any, logger, events);
+  const service = new EdubridgeEnrollmentService(enrollments, courses, {} as any, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, {} as any, {} as any, logger, events);
   return { service, enrollments, chain };
 }
 

@@ -36,6 +36,8 @@ export * as SaveTeacherProfile from './saveTeacherProfile'
 export * as SignContract from './signContract'
 /** Заявление о паевом взносе РИД для подписи */
 export * as RidStatement from './ridStatement'
+export * as GuaranteeStatement from './guaranteeStatement'
+export * as SubmitGuaranteeClaim from './submitGuaranteeClaim'
 export * as RidStorageAct from './ridStorageAct'
 /** Подать взнос РИД */
 export * as HoldContribution from './holdContribution'
@@ -67,9 +69,6 @@ export * as DismissAdmin from './dismissAdmin'
 export * as AcceptContribution from './acceptContribution'
 
 /** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
-export * as RequestReturn from './requestReturn'
-export * as ApproveReturn from './approveReturn'
-export * as DeclineReturn from './declineReturn'
 export * as SaveSection from './saveSection'
 export * as SaveLevel from './saveLevel'
 export * as ReorderSections from './reorderSections'

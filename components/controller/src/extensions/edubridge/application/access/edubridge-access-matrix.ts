@@ -17,7 +17,7 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
     EduLearner: ['read:own', 'manage:own'],
     EduEnrollment: ['read:own', 'create:own'],
     EduAccess: ['read:own'],
-    EduReturn: ['read:own', 'create:own'],
+    EduReturn: ['read:own'],
   },
   teacher: {
     EduAssignment: ['read:own'],
@@ -31,7 +31,6 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
     EduAssignment: ['read:all', 'manage'],
     EduContribution: ['read:all', 'decide'],
     EduEconomy: ['read', 'manage'],
-    EduReturn: ['read:all', 'decide'],
   },
   owner: {
     EduCourse: ['manage'],
@@ -40,7 +39,6 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
     EduAssignment: ['read:all', 'manage'],
     EduContribution: ['read:all', 'decide'],
     EduEconomy: ['read', 'manage'],
-    EduReturn: ['read:all', 'decide'],
     EduAdmin: ['manage'],
     EduContacts: ['read'],
     EduConnector: ['manage'],

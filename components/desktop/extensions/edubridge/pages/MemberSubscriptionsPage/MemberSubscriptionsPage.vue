@@ -17,7 +17,9 @@
       template(#cell-actions="{ row }")
         .row.no-wrap.justify-end.q-gutter-xs
           BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
-          BaseButton(v-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") {{ $t('edubridge.memberSubscriptionsPage.cancel') }}
+          //- Пока заявление по гарантии у совета, обычная отмена закрыта: возврат по подписке один.
+          .t-meta.t-muted(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
+          BaseButton(v-else-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") {{ $t('edubridge.memberSubscriptionsPage.cancel') }}
           .t-meta.t-muted(v-else-if="row.refund_reason") {{ refundReason(row.refund_reason) }}
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
@@ -73,6 +75,7 @@ import {
 } from '../../entities/Learner';
 import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
+import { fetchMyGuarantees } from '../../features/Guarantee';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
@@ -117,17 +120,21 @@ const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, varia
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
 const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
+/** Подписки, по которым заявление по гарантии рассматривает совет. */
+const underReview = ref<Set<string>>(new Set());
 const isActive = (row: IEnrollment) =>
   row.status === Zeus.EduEnrollmentStatus.ACTIVE || row.status === Zeus.EduEnrollmentStatus.PENDING;
 
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [l, e, c] = await Promise.all([
+    const [l, e, c, g] = await Promise.all([
       fetchMyLearners(),
       fetchMyEnrollments(),
       fetchCatalog({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } }),
+      fetchMyGuarantees(),
     ]);
+    underReview.value = new Set(g.filter((x) => x.claim?.status === Zeus.EduGuaranteeClaimStatus.SUBMITTED).map((x) => asText(x.enrollment_id)));
     learners.value = l;
     enrollments.value = e;
     courses.value = c.items;
@@ -183,7 +190,7 @@ function onSubscribed(e: IEnrollment): void {
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.
-useLiveReload([EduLive.enrollments, EduLive.learners, EduLive.courses, EduLive.returnRequests], load);
+useLiveReload([EduLive.enrollments, EduLive.learners, EduLive.courses, EduLive.guaranteeClaims], load);
 
 onMounted(load);
 </script>

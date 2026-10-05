@@ -97,6 +97,8 @@ export * as Freereserve from './freereserve'
 
 /** Публикация заявления о взносе, покрытом кошельком программы целиком. */
 export * as Regstatement from './regstatement'
+export * as Warrclaim from './warrclaim'
+export * as Warrgrant from './warrgrant'
 
 export * as Dclinecontr from './dclinecontr'
 

@@ -173,7 +173,7 @@
       }
     },
     "skillspaceConnector": {
-      "courseGone": "Курса уже нет в школе",
+      "courseGone": "Курс удалён из школы",
       "courseIdNotInSchool": "В школе Skillspace нет курса с идентификатором {courseId} — выберите курс из списка школы в карточке курса",
       "courseNotFound": "Skillspace: курс не найден в школе",
       "courseRefMissing": "У курса не задан идентификатор курса Skillspace",
@@ -192,6 +192,14 @@
       "notConfigured": "Skillspace не настроен",
       "notConfiguredFull": "Skillspace не настроен: укажите API-ключ школы",
       "pingOk": "Ключ принят, курсов в школе — {count}"
+    },
+    "guarantee": {
+      "decision": {
+        "decision": "Удовлетворить заявление пайщика {member} № ЗАП-{number}: аннулировать Подписку «{course}» и возвратить на баланс ЦК пайщика списанную стоимость Подписки в размере {amount}. Причина, указанная в заявлении: {reason}",
+        "question": "О заявлении пайщика {member} № ЗАП-{number} об аннулировании Подписки «{course}» по Гарантийным условиям",
+        "title": "Аннулирование Подписки «{course}» по Гарантийным условиям, пайщик {member}"
+      },
+      "untilCourseStart": "начала занятий курса"
     },
     "teacher": {
       "assignmentExpectedResult": "Проведение занятий курса «{courseTitle}» по его учебной программе",
@@ -221,7 +229,7 @@
     "EDUBRIDGE_CONTRACT_DECLINED": "Договор отклонён председателем — подпишите его заново",
     "EDUBRIDGE_CONTRACT_NOT_APPROVED": "Договор ещё не подписан председателем совета",
     "EDUBRIDGE_CONTRACT_NOT_SIGNED_BY_TEACHER": "Договор не подписан преподавателем",
-    "EDUBRIDGE_CONTRACT_PENDING_APPROVAL_TERMINATE": "Договор на подписи у председателя. Прекратить можно только действующий договор",
+    "EDUBRIDGE_CONTRACT_PENDING_APPROVAL_TERMINATE": "Договор ожидает подписи председателя. Прекратить можно только действующий договор",
     "EDUBRIDGE_CONTRACT_REQUIRED": "Сначала подпишите договор участия в хозяйственной деятельности",
     "EDUBRIDGE_CONTRACT_TERMINATED": "Договор прекращён — подпишите его заново",
     "EDUBRIDGE_CONTRACT_TERMINATION_REASON_REQUIRED": "Укажите основание прекращения договора",
@@ -279,23 +287,19 @@
     "EDUBRIDGE_PROGRAM_NOT_FOUND_IN_COOP": "Программа {programId} не найдена в кооперативе {coopname}",
     "EDUBRIDGE_PROGRAM_NOT_OPENED": "Программа ЦПП «Образование» ({offerKind}) не открыта в кооперативе",
     "EDUBRIDGE_REORDER_INCOMPLETE": "Новый порядок должен перечислять все {items} ровно по разу",
-    "EDUBRIDGE_RETURN_CLOSE_PARTIAL": "Не удалось закрыть подписок: {left}. Повторите согласование.",
-    "EDUBRIDGE_RETURN_DECLINE_REASON_REQUIRED": "Укажите причину отказа",
-    "EDUBRIDGE_RETURN_REQUEST_ALREADY_DECIDED": "По заявлению уже принято решение",
-    "EDUBRIDGE_RETURN_REQUEST_ALREADY_PENDING": "Заявление о прекращении участия уже подано и находится на согласовании",
-    "EDUBRIDGE_RETURN_REQUEST_NOT_FOUND": "Заявление не найдено",
-    "EDUBRIDGE_RETURN_SIGNED_WITH_EXIT": "Заявление подписано вместе с выходом из кооператива — его рассматривает совет при выходе",
-    "EDUBRIDGE_RETURN_SINGLE_PROGRAM_REQUIRED": "В заявлении должна быть одна программа — «Образование»",
-    "EDUBRIDGE_RETURN_STATEMENT_NOT_SIGNED": "Заявление не подписано пайщиком",
-    "EDUBRIDGE_RETURN_WRONG_DOCUMENT": "Подписан не тот документ: нужно заявление об аннулировании соглашения об участии в программе",
     "EDUBRIDGE_SECTION_ALREADY_EXISTS": "Раздел «{title}» уже есть",
     "EDUBRIDGE_SECTION_ARCHIVED": "Раздел «{title}» в архиве",
     "EDUBRIDGE_SECTION_NOT_FOUND": "Раздел не найден",
     "EDUBRIDGE_SECTION_NOT_IN_CATALOG": "Раздел не найден в справочнике",
     "EDUBRIDGE_SECTION_TITLE_EMPTY": "Название раздела пустое",
-    "EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL": "Заявление уже отправлено в совет — снять его нельзя",
+    "EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL": "Заявление на рассмотрении совета. Отозвать его нельзя",
     "EDUBRIDGE_STATEMENT_ALREADY_SIGNED": "Заявление по этим материалам уже подписано",
     "EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED": "Подписка уже отменена или закрыта",
+    "EDUBRIDGE_SUBSCRIPTION_GUARANTEE_UNDER_REVIEW": "По подписке подано заявление по гарантийным условиям — оно на рассмотрении совета",
+    "EDUBRIDGE_GUARANTEE_ALREADY_CLAIMED": "Заявление по гарантийным условиям по этой подписке уже подано",
+    "EDUBRIDGE_GUARANTEE_NOT_AVAILABLE": "Срок действия гарантийных условий по подписке истёк либо гарантийные условия для курса не объявлены",
+    "EDUBRIDGE_GUARANTEE_NOT_SIGNED": "Заявление не подписано участником",
+    "EDUBRIDGE_GUARANTEE_REASON_REQUIRED": "Укажите причину аннулирования подписки",
     "EDUBRIDGE_SUBSCRIPTION_CLOSE_NOT_PENDING": "У подписки нет незавершённого закрытия",
     "EDUBRIDGE_SUBSCRIPTION_NOT_FOUND": "Подписка не найдена",
     "EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND": "У преподавателя нет договора участия в хозяйственной деятельности",

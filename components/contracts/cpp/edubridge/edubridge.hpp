@@ -25,7 +25,7 @@ using namespace Edubridge;
  * «Образовательный мост»).
  *
  * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (12 actions): convert, regstatement, opensub,
+ *  - **p.edu.access** (14 actions): convert, regstatement, warrclaim, warrgrant, opensub,
  *    chargefee, lockfee, unlockfee, allotfee, extendsub, freereserve,
  *    cancelsub, retshare, expiresub — членский взнос за доступ к курсу
  *    вносится конвертацией паевого взноса (w.wal.share → w.edu.member,
@@ -156,6 +156,28 @@ public:
   [[eosio::action]] void regstatement(eosio::name coopname,
                                       eosio::name username,
                                       document2 statement);
+
+  /**
+   * @brief Опубликовать Заявление об аннулировании Подписки по Гарантийным
+   * условиям (шаблон 3013): основание для рассмотрения советом. Движений
+   * средств нет, подписка остаётся действующей до решения совета.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void warrclaim(eosio::name coopname,
+                                   eosio::name username,
+                                   checksum256 sub_hash,
+                                   document2 statement);
+
+  /**
+   * @brief Опубликовать протокол решения совета об удовлетворении заявления
+   * по Гарантийным условиям (шаблон 3014). Возврат стоимости проводит
+   * `cancelsub` в той же транзакции.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void warrgrant(eosio::name coopname,
+                                   eosio::name username,
+                                   checksum256 claim_hash,
+                                   document2 decision);
 
   /**
    * @brief Продлить подписку: новый срок оплаты строго больше прежнего.

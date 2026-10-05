@@ -66,7 +66,6 @@ export * as MyContractDocument from './myContractDocument'
 export * as TeacherContractDocument from './teacherContractDocument'
 
 /** Возврат остатка кошелька программы в паевой взнос. */
+export * as MyGuarantees from './myGuarantees'
 export * as ReturnBalance from './returnBalance'
-export * as MyReturnRequests from './myReturnRequests'
-export * as ReturnRequests from './returnRequests'
 export * as Sections from './sections'

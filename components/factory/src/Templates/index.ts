@@ -115,6 +115,8 @@ export * as EducationRidDecision from './3009.EducationRidDecision'
 export * as EducationRidAct from './3010.EducationRidAct'
 export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 export * as EducationConvertStatement from './3011.EducationConvertStatement'
+export * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+export * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
 
 export * from './registry'
 export * from './versions'

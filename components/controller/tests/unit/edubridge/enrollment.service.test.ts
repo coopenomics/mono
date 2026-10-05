@@ -49,7 +49,7 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     })),
   } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, chain, documents, wallets, logger, events);
+  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, documents, wallets, logger, events);
   return { service, enrollments, courses, chain, events, documents, saved, funds };
 }
 

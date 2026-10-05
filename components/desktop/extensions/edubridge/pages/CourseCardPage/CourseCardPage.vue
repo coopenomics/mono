@@ -40,6 +40,9 @@
           .edu-course__teachers
             .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
 
+    //- Гарантийные условия видит участник с подпиской на этот курс.
+    GuaranteeClaim.q-mt-md(v-if="canSeeGuarantee" :course-id="asText(course.id)")
+
     SubscribeDialog(
       v-model="subscribeOpen"
       :learners="learners"
@@ -51,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
 import { FailAlert } from 'src/shared/api';
@@ -62,6 +65,7 @@ import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/u
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { SubscribeDialog } from '../../features/Subscribe';
+import { GuaranteeClaim } from '../../features/Guarantee';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
@@ -84,6 +88,8 @@ const course = ref<ICatalogCourse | null>(null);
 const loading = ref(true);
 const subscribeOpen = ref(false);
 const learners = ref<ILearner[]>([]);
+/** Свои подписки читает только участник, подписавший оферту ученика. */
+const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
 const { fioCache, enrichFio } = useFioCache();
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
 

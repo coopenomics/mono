@@ -119,6 +119,8 @@ export * as EducationRidDecision from './3009.EducationRidDecision'
 export * as EducationRidAct from './3010.EducationRidAct'
 export * as EducationConvertStatement from './3011.EducationConvertStatement'
 export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
+export * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+export * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
 /**
  * Выведенные номера реестра (16.09.2026): 995, 997, 999, 1101 — шаблоны-двойники
  * «для утверждения советом» оферт Генератора, Благороста, Стола заказов и договора

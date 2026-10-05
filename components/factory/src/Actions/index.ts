@@ -108,6 +108,8 @@ export * as EducationRidDecision from './3009.EducationRidDecision'
 export * as EducationRidAct from './3010.EducationRidAct'
 export * as EducationRidStorageAct from './3012.EducationRidStorageAct'
 export * as EducationConvertStatement from './3011.EducationConvertStatement'
+export * as EducationGuaranteeStatement from './3013.EducationGuaranteeStatement'
+export * as EducationGuaranteeDecision from './3014.EducationGuaranteeDecision'
 // Marketplace (Стол заказов) — паевая модель (компонент 68): выдача и гарантийный возврат
 export * as MarketplaceShareReturnStatement from './1113.MarketplaceShareReturnStatement'
 export * as MarketplaceShareReturnDecision from './1114.MarketplaceShareReturnDecision'

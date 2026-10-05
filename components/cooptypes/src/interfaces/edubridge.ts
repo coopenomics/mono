@@ -110,6 +110,20 @@ export interface IRegstatement {
   statement: IDocument2
 }
 
+export interface IWarrclaim {
+  coopname: IName
+  username: IName
+  sub_hash: IChecksum256
+  statement: IDocument2
+}
+
+export interface IWarrgrant {
+  coopname: IName
+  username: IName
+  claim_hash: IChecksum256
+  decision: IDocument2
+}
+
 export interface ICancelsub {
   coopname: IName
   username: IName

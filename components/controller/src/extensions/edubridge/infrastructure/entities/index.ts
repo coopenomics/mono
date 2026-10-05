@@ -9,6 +9,6 @@ export { EdubridgeLessonRecord } from './edubridge-lesson.record';
 export { EdubridgeAdminRecord } from './edubridge-admin.record';
 export { EdubridgeTeacherContractRecord } from './edubridge-teacher-contract.record';
 export { EdubridgeTeacherProfileRecord } from './edubridge-teacher-profile.record';
-export { EdubridgeReturnRequestRecord } from './edubridge-return-request.record';
 export { EdubridgeSectionRecord } from './edubridge-section.record';
+export { EdubridgeGuaranteeClaimRecord } from './edubridge-guarantee-claim.record';
 export { EdubridgeLevelRecord } from './edubridge-level.record';

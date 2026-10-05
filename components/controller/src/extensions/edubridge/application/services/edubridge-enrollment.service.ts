@@ -15,11 +15,13 @@ import {
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
 import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
-import { monthsOfPeriod, type RefundCalculation } from '../../domain/economy/refund.calculator';
+import { monthsOfPeriod, RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeGuaranteeClaimKyselyRepository } from '../../infrastructure/repositories/edubridge-guarantee-claim.kysely-repository';
+import { EduGuaranteeClaimStatus } from '../../domain/enums/guarantee-claim-status.enum';
 import type { EduQuoteDTO } from '../dto/edu-enrollment.dto';
 import {
   EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT,
@@ -92,6 +94,7 @@ export class EdubridgeEnrollmentService {
     private readonly courses: EdubridgeCourseKyselyRepository,
     private readonly learnerService: EdubridgeLearnerService,
     private readonly funds: EdubridgeFundsService,
+    private readonly guaranteeClaims: EdubridgeGuaranteeClaimKyselyRepository,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
@@ -286,7 +289,47 @@ export class EdubridgeEnrollmentService {
   async cancel(coopname: string, member: string, enrollmentId: string): Promise<EdubridgeEnrollmentRecord> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
     if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
+    // Заявление по гарантийным условиям у совета: обычный отказ сейчас дал бы второй возврат по той же подписке.
+    const claim = await this.guaranteeClaims.findByEnrollment(coopname, enrollment.id);
+    if (claim?.status === EduGuaranteeClaimStatus.SUBMITTED) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_GUARANTEE_UNDER_REVIEW');
     return this.cancelOne(coopname, enrollment, false);
+  }
+
+  /**
+   * Совет удовлетворил заявление по гарантийным условиям (п. 4.4.4 Положения):
+   * подписка аннулируется, вся списанная стоимость возвращается сразу на
+   * паевой, протокол совета публикуется той же транзакцией.
+   */
+  async cancelByGuarantee(
+    coopname: string,
+    enrollment: EdubridgeEnrollmentRecord,
+    grant: { claim_hash: string; decision: ISignedDocument }
+  ): Promise<EdubridgeEnrollmentRecord> {
+    if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
+    const refund = enrollment.paid_amount;
+    await this.chain.grantGuarantee(
+      { coopname, username: enrollment.member_username, sub_hash: enrollment.sub_hash, refund, to_share: true } as never,
+      { coopname, username: enrollment.member_username, claim_hash: grant.claim_hash, decision: grant.decision as never }
+    );
+    enrollment.status = EduEnrollmentStatus.CANCELLED;
+    enrollment.cancelled_at = new Date();
+    await this.funds.afterClosed(coopname, enrollment);
+    enrollment.refunded_amount = refund;
+    enrollment.refund_reason = RefundReason.GUARANTEE;
+    enrollment.close_pending_since = null;
+    enrollment.close_error = null;
+    const saved = await this.enrollments.save(enrollment);
+    const payload: IEduEnrollmentEventPayload = {
+      coopname,
+      enrollment_id: saved.id,
+      learner_id: saved.learner_id,
+      course_id: saved.course_id,
+      member_username: saved.member_username,
+      trx_id: saved.sub_hash,
+    };
+    this.events.emit(EDUBRIDGE_ENROLLMENT_CANCELLED_EVENT, payload);
+    this.logger.info(`[EDU.SUB] подписка ${saved.sub_hash} аннулирована по гарантийным условиям: возврат ${refund} на паевой`);
+    return saved;
   }
 
   /**
@@ -619,6 +662,6 @@ function sumAssets(a: string, b: string): string {
 }
 
 /** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */
-function isCancellable(e: EdubridgeEnrollmentRecord): boolean {
+export function isCancellable(e: EdubridgeEnrollmentRecord): boolean {
   return e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING;
 }

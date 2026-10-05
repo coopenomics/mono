@@ -44,11 +44,6 @@
       template(#icon)
         q-icon(name="receipt_long" size="32px")
 
-  //- Прекращение участия в программе по заявлению пайщика и согласованию
-  //- кооператива: остаток кошелька программы уходит в паевой (п. 4.2.5 Положения ЦПП).
-  template(v-else-if="tab === 'returns'")
-    ReturnRequestsPanel(@decided="load")
-
   template(v-else-if="tab === 'expenses'")
     .row.justify-end.q-mb-md
       BaseButton(variant="primary" @click="expenseOpen = true")
@@ -108,7 +103,6 @@ import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/form
 import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
-import { ReturnRequestsPanel } from '../../features/ReturnToShare';
 import { ExpenseCreateDialog, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
 import {
   EDU_EXPENSE_WALLET,
@@ -147,7 +141,6 @@ const expenseOpen = ref(false);
 const tabs: PageTab[] = [
   { key: 'money', label: i18nT('edubridge.adminEconomyPage.tab.money') },
   { key: 'expenses', label: i18nT('edubridge.adminEconomyPage.tab.expenses') },
-  { key: 'returns', label: i18nT('edubridge.adminEconomyPage.tab.returns') },
   { key: 'settings', label: i18nT('edubridge.adminEconomyPage.tab.settings') },
 ];
 // Вкладку можно открыть ссылкой (?tab=settings) — так конструктор курса ведёт

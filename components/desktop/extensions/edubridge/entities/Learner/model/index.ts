@@ -44,4 +44,5 @@ export const REFUND_REASON_LABELS: Record<string, string> = {
   before_start: t('edubridge.refund.reason.before_start'),
   underfilled: t('edubridge.refund.reason.underfilled'),
   refusal: t('edubridge.refund.reason.refusal'),
+  guarantee: t('edubridge.refund.reason.guarantee'),
 };

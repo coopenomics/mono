@@ -122,16 +122,6 @@ export enum EduCouncilOutcome {
   EXPIRED = 'expired',
 }
 
-/** Заявка на возврат остатка кошелька программы в паевой взнос. */
-export enum EduReturnStatus {
-  /** Заявление подписано, ждёт согласования кооперативом. */
-  PENDING = 'pending',
-  /** Кооператив согласовал — средства переведены в паевой взнос. */
-  APPROVED = 'approved',
-  /** Кооператив отклонил — остаток остался на кошельке программы. */
-  DECLINED = 'declined',
-}
-
 export enum EduAssignmentStatus {
   /** Преподаватель допущен к курсу — назначение действует с момента создания. */
   ACTIVE = 'active',

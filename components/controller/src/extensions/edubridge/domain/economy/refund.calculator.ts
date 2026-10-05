@@ -27,6 +27,8 @@ export enum RefundReason {
   UNDERFILLED = 'underfilled',
   /** Ученик отказался в ходе подписки. */
   REFUSAL = 'refusal',
+  /** Совет удовлетворил заявление по гарантийным условиям: вся стоимость, сразу на паевой. */
+  GUARANTEE = 'guarantee',
 }
 
 export interface RefundParams {

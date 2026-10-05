@@ -13,6 +13,8 @@
 #include "src/p.edu.access/allotfee.cpp"
 #include "src/p.edu.access/freereserve.cpp"
 #include "src/p.edu.access/regstatement.cpp"
+#include "src/p.edu.access/warrclaim.cpp"
+#include "src/p.edu.access/warrgrant.cpp"
 #include "src/p.edu.access/cancelsub.cpp"
 #include "src/p.edu.access/retshare.cpp"
 #include "src/p.edu.spend/createexp.cpp"

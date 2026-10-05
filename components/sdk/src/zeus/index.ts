@@ -7159,12 +7159,6 @@ export type ValueTypes = {
 	/** Причина */
 	reason: string | Variable<any, string>
 };
-	["EduDeclineReturnInput"]: {
-	/** Заявка */
-	id: ValueTypes["ID"] | Variable<any, string>,
-	/** Причина отказа */
-	reason: string | Variable<any, string>
-};
 	["EduEconomySettings"]: AliasType<{
 	/** Целевой членский взнос кооператива сверх себестоимости курса, проценты */
 	markup_percent?:boolean | `@${string}`,
@@ -7294,6 +7288,50 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduFundMovement']?: Omit<ValueTypes["EduFundMovement"], "...on EduFundMovement">
 }>;
+	["EduGuaranteeClaim"]: AliasType<{
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount?:boolean | `@${string}`,
+	/** Когда заявление подано */
+	created_at?:boolean | `@${string}`,
+	/** Когда совет рассмотрел заявление */
+	decided_at?:boolean | `@${string}`,
+	/** Идентификатор заявления */
+	id?:boolean | `@${string}`,
+	/** Ссылки на материалы, подтверждающие причину */
+	links?:boolean | `@${string}`,
+	/** Номер заявления */
+	number?:boolean | `@${string}`,
+	/** Причина аннулирования подписки */
+	reason?:boolean | `@${string}`,
+	/** Состояние заявления */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduGuaranteeClaim']?: Omit<ValueTypes["EduGuaranteeClaim"], "...on EduGuaranteeClaim">
+}>;
+	/** Ход заявления об аннулировании подписки по гарантийным условиям */
+["EduGuaranteeClaimStatus"]:EduGuaranteeClaimStatus;
+	["EduGuaranteeState"]: AliasType<{
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount?:boolean | `@${string}`,
+	/** Заявление об аннулировании подписки по гарантийным условиям можно подать */
+	available?:boolean | `@${string}`,
+	/** Поданное заявление */
+	claim?:ValueTypes["EduGuaranteeClaim"],
+	/** Подписка */
+	enrollment_id?:boolean | `@${string}`,
+	/** До какого дня действуют гарантийные условия */
+	guarantee_until?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduGuaranteeState']?: Omit<ValueTypes["EduGuaranteeState"], "...on EduGuaranteeState">
+}>;
+	["EduGuaranteeStatementInput"]: {
+	/** Подписка */
+	enrollment_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Причина аннулирования подписки */
+	reason: string | Variable<any, string>
+};
 	["EduHoldContributionInput"]: {
 	/** Взнос (черновик по проведённому занятию) */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
@@ -7532,10 +7570,6 @@ export type ValueTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
 };
-	["EduRequestReturnInput"]: {
-	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
-	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
-};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ValueTypes["ID"] | Variable<any, string>
@@ -7546,41 +7580,15 @@ export type ValueTypes = {
 	["EduReturnBalance"]: AliasType<{
 	/** Остаток кошелька программы */
 	available?:boolean | `@${string}`,
-	/** Заявление о прекращении участия уже подано и ждёт согласования */
-	has_pending?:boolean | `@${string}`,
 	/** Сколько вернут по действующим подпискам, если закрыть их сегодня */
 	refunds?:boolean | `@${string}`,
 	/** Действующих подписок, которые закроются */
 	subscriptions?:boolean | `@${string}`,
-	/** Сколько уйдёт в паевой взнос при прекращении участия сегодня */
+	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduReturnBalance']?: Omit<ValueTypes["EduReturnBalance"], "...on EduReturnBalance">
 }>;
-	["EduReturnRequest"]: AliasType<{
-	/** Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи */
-	amount?:boolean | `@${string}`,
-	/** Когда подано заявление */
-	created_at?:boolean | `@${string}`,
-	/** Когда кооператив принял решение */
-	decided_at?:boolean | `@${string}`,
-	/** Причина отказа, если кооператив отклонил заявление */
-	decline_reason?:boolean | `@${string}`,
-	/** ФИО пайщика (у организации — наименование) */
-	display_name?:boolean | `@${string}`,
-	/** Идентификатор заявления */
-	id?:boolean | `@${string}`,
-	/** Пайщик, подавший заявление */
-	member_username?:boolean | `@${string}`,
-	/** Идентификатор подписанного заявления */
-	statement_hash?:boolean | `@${string}`,
-	/** Состояние заявления */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on EduReturnRequest']?: Omit<ValueTypes["EduReturnRequest"], "...on EduReturnRequest">
-}>;
-	/** Состояние заявления о возврате членского взноса в паевой взнос */
-["EduReturnStatus"]:EduReturnStatus;
 	["EduRevokeContributionInput"]: {
 	/** Взнос, заявление по которому держится */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
@@ -7671,6 +7679,16 @@ export type ValueTypes = {
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Подписанное заявление о паевом взносе РИД (3008) */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	["EduSubmitGuaranteeClaimInput"]: {
+	/** Подписанное заявление об аннулировании подписки по гарантийным условиям */
+	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Подписка */
+	enrollment_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null | Variable<any, string>,
+	/** Причина аннулирования подписки */
+	reason: string | Variable<any, string>
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -13301,7 +13319,6 @@ editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},Val
 edubridgeAcceptContribution?: [{	data: ValueTypes["EduAcceptContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
-edubridgeApproveReturn?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeArchiveLevel?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
@@ -13313,14 +13330,13 @@ edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
-edubridgeDeclineReturn?: [{	data: ValueTypes["EduDeclineReturnInput"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
-edubridgeRequestReturn?: [{	data: ValueTypes["EduRequestReturnInput"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeRetryEnrollmentClose?: [{	data: ValueTypes["EduRetryEnrollmentCloseInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -13339,6 +13355,7 @@ edubridgeSignAct?: [{	data: ValueTypes["EduSignActInput"] | Variable<any, string
 edubridgeSignContract?: [{	data: ValueTypes["EduSignContractInput"] | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ValueTypes["EduSignOfferInput"] | Variable<any, string>},ValueTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ValueTypes["EduSubmitContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeSubmitGuaranteeClaim?: [{	data: ValueTypes["EduSubmitGuaranteeClaimInput"] | Variable<any, string>},ValueTypes["EduGuaranteeClaim"]],
 edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeTerminateContract?: [{	reason: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -15304,12 +15321,12 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMyContributions?:ValueTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ValueTypes["EduEnrollment"],
+	/** Гарантийные условия по моим подпискам и поданные заявления */
+	edubridgeMyGuarantees?:ValueTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ValueTypes["EduLearner"],
 	/** Мои проведённые занятия */
 	edubridgeMyLessons?:ValueTypes["EduLesson"],
-	/** Мои заявления о прекращении участия в программе */
-	edubridgeMyReturnRequests?:ValueTypes["EduReturnRequest"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
@@ -15322,9 +15339,8 @@ edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable
 edubridgeQueue?: [{	filter?: ValueTypes["EduQueueFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["EduQuote"]],
 edubridgeRefundPreview?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduRefundPreview"]],
-	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
+	/** Остаток кошелька программы и сумма, которая вернётся в паевой взнос при выходе из кооператива сегодня */
 	edubridgeReturnBalance?:ValueTypes["EduReturnBalance"],
-edubridgeReturnRequests?: [{	status?: ValueTypes["EduReturnStatus"] | undefined | null | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeSections?: [{	filter?: ValueTypes["EduSectionsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string | Variable<any, string>},ValueTypes["EduApproval"]],
 edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},ValueTypes["DocumentAggregate"]],
@@ -23720,12 +23736,6 @@ export type ResolverInputTypes = {
 	/** Причина */
 	reason: string
 };
-	["EduDeclineReturnInput"]: {
-	/** Заявка */
-	id: ResolverInputTypes["ID"],
-	/** Причина отказа */
-	reason: string
-};
 	["EduEconomySettings"]: AliasType<{
 	/** Целевой членский взнос кооператива сверх себестоимости курса, проценты */
 	markup_percent?:boolean | `@${string}`,
@@ -23850,6 +23860,48 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduGuaranteeClaim"]: AliasType<{
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount?:boolean | `@${string}`,
+	/** Когда заявление подано */
+	created_at?:boolean | `@${string}`,
+	/** Когда совет рассмотрел заявление */
+	decided_at?:boolean | `@${string}`,
+	/** Идентификатор заявления */
+	id?:boolean | `@${string}`,
+	/** Ссылки на материалы, подтверждающие причину */
+	links?:boolean | `@${string}`,
+	/** Номер заявления */
+	number?:boolean | `@${string}`,
+	/** Причина аннулирования подписки */
+	reason?:boolean | `@${string}`,
+	/** Состояние заявления */
+	status?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Ход заявления об аннулировании подписки по гарантийным условиям */
+["EduGuaranteeClaimStatus"]:EduGuaranteeClaimStatus;
+	["EduGuaranteeState"]: AliasType<{
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount?:boolean | `@${string}`,
+	/** Заявление об аннулировании подписки по гарантийным условиям можно подать */
+	available?:boolean | `@${string}`,
+	/** Поданное заявление */
+	claim?:ResolverInputTypes["EduGuaranteeClaim"],
+	/** Подписка */
+	enrollment_id?:boolean | `@${string}`,
+	/** До какого дня действуют гарантийные условия */
+	guarantee_until?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["EduGuaranteeStatementInput"]: {
+	/** Подписка */
+	enrollment_id: ResolverInputTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
+};
 	["EduHoldContributionInput"]: {
 	/** Взнос (черновик по проведённому занятию) */
 	contribution_id: ResolverInputTypes["ID"],
@@ -24075,10 +24127,6 @@ export type ResolverInputTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ResolverInputTypes["ID"] | undefined | null
 };
-	["EduRequestReturnInput"]: {
-	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
-	document: ResolverInputTypes["SignedDigitalDocumentInput"]
-};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ResolverInputTypes["ID"]
@@ -24089,39 +24137,14 @@ export type ResolverInputTypes = {
 	["EduReturnBalance"]: AliasType<{
 	/** Остаток кошелька программы */
 	available?:boolean | `@${string}`,
-	/** Заявление о прекращении участия уже подано и ждёт согласования */
-	has_pending?:boolean | `@${string}`,
 	/** Сколько вернут по действующим подпискам, если закрыть их сегодня */
 	refunds?:boolean | `@${string}`,
 	/** Действующих подписок, которые закроются */
 	subscriptions?:boolean | `@${string}`,
-	/** Сколько уйдёт в паевой взнос при прекращении участия сегодня */
+	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["EduReturnRequest"]: AliasType<{
-	/** Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи */
-	amount?:boolean | `@${string}`,
-	/** Когда подано заявление */
-	created_at?:boolean | `@${string}`,
-	/** Когда кооператив принял решение */
-	decided_at?:boolean | `@${string}`,
-	/** Причина отказа, если кооператив отклонил заявление */
-	decline_reason?:boolean | `@${string}`,
-	/** ФИО пайщика (у организации — наименование) */
-	display_name?:boolean | `@${string}`,
-	/** Идентификатор заявления */
-	id?:boolean | `@${string}`,
-	/** Пайщик, подавший заявление */
-	member_username?:boolean | `@${string}`,
-	/** Идентификатор подписанного заявления */
-	statement_hash?:boolean | `@${string}`,
-	/** Состояние заявления */
-	status?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	/** Состояние заявления о возврате членского взноса в паевой взнос */
-["EduReturnStatus"]:EduReturnStatus;
 	["EduRevokeContributionInput"]: {
 	/** Взнос, заявление по которому держится */
 	contribution_id: ResolverInputTypes["ID"],
@@ -24211,6 +24234,16 @@ export type ResolverInputTypes = {
 	contribution_id: ResolverInputTypes["ID"],
 	/** Подписанное заявление о паевом взносе РИД (3008) */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	["EduSubmitGuaranteeClaimInput"]: {
+	/** Подписанное заявление об аннулировании подписки по гарантийным условиям */
+	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Подписка */
+	enrollment_id: ResolverInputTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -29681,7 +29714,6 @@ editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes[
 edubridgeAcceptContribution?: [{	data: ResolverInputTypes["EduAcceptContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
 edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
-edubridgeApproveReturn?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduReturnRequest"]],
 edubridgeArchiveLevel?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
@@ -29693,14 +29725,13 @@ edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},R
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
-edubridgeDeclineReturn?: [{	data: ResolverInputTypes["EduDeclineReturnInput"]},ResolverInputTypes["EduReturnRequest"]],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
+edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
-edubridgeRequestReturn?: [{	data: ResolverInputTypes["EduRequestReturnInput"]},ResolverInputTypes["EduReturnRequest"]],
 edubridgeRetryEnrollmentClose?: [{	data: ResolverInputTypes["EduRetryEnrollmentCloseInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
@@ -29719,6 +29750,7 @@ edubridgeSignAct?: [{	data: ResolverInputTypes["EduSignActInput"]},ResolverInput
 edubridgeSignContract?: [{	data: ResolverInputTypes["EduSignContractInput"]},ResolverInputTypes["EduTeacherContract"]],
 edubridgeSignOffer?: [{	input: ResolverInputTypes["EduSignOfferInput"]},ResolverInputTypes["EduOnboardingState"]],
 edubridgeSubmitContribution?: [{	data: ResolverInputTypes["EduSubmitContributionInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeSubmitGuaranteeClaim?: [{	data: ResolverInputTypes["EduSubmitGuaranteeClaimInput"]},ResolverInputTypes["EduGuaranteeClaim"]],
 edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeTerminateContract?: [{	reason: string,	username: string},ResolverInputTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
@@ -31609,12 +31641,12 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMyContributions?:ResolverInputTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments?:ResolverInputTypes["EduEnrollment"],
+	/** Гарантийные условия по моим подпискам и поданные заявления */
+	edubridgeMyGuarantees?:ResolverInputTypes["EduGuaranteeState"],
 	/** Мои обучающиеся */
 	edubridgeMyLearners?:ResolverInputTypes["EduLearner"],
 	/** Мои проведённые занятия */
 	edubridgeMyLessons?:ResolverInputTypes["EduLesson"],
-	/** Мои заявления о прекращении участия в программе */
-	edubridgeMyReturnRequests?:ResolverInputTypes["EduReturnRequest"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
@@ -31627,9 +31659,8 @@ edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},R
 edubridgeQueue?: [{	filter?: ResolverInputTypes["EduQueueFilterInput"] | undefined | null},ResolverInputTypes["EduAccessTask"]],
 edubridgeQuote?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["EduQuote"]],
 edubridgeRefundPreview?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduRefundPreview"]],
-	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
+	/** Остаток кошелька программы и сумма, которая вернётся в паевой взнос при выходе из кооператива сегодня */
 	edubridgeReturnBalance?:ResolverInputTypes["EduReturnBalance"],
-edubridgeReturnRequests?: [{	status?: ResolverInputTypes["EduReturnStatus"] | undefined | null},ResolverInputTypes["EduReturnRequest"]],
 edubridgeSections?: [{	filter?: ResolverInputTypes["EduSectionsFilterInput"] | undefined | null},ResolverInputTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string},ResolverInputTypes["EduApproval"]],
 edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["DocumentAggregate"]],
@@ -39776,12 +39807,6 @@ export type ModelTypes = {
 	/** Причина */
 	reason: string
 };
-	["EduDeclineReturnInput"]: {
-	/** Заявка */
-	id: ModelTypes["ID"],
-	/** Причина отказа */
-	reason: string
-};
 	["EduEconomySettings"]: {
 		/** Целевой членский взнос кооператива сверх себестоимости курса, проценты */
 	markup_percent: number,
@@ -39898,6 +39923,45 @@ export type ModelTypes = {
 	title: string,
 	/** Пайщик, к которому относится движение */
 	username?: string | undefined | null
+};
+	["EduGuaranteeClaim"]: {
+		/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount: string,
+	/** Когда заявление подано */
+	created_at: ModelTypes["DateTime"],
+	/** Когда совет рассмотрел заявление */
+	decided_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Идентификатор заявления */
+	id: ModelTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links: Array<string>,
+	/** Номер заявления */
+	number: string,
+	/** Причина аннулирования подписки */
+	reason: string,
+	/** Состояние заявления */
+	status: ModelTypes["EduGuaranteeClaimStatus"]
+};
+	["EduGuaranteeClaimStatus"]:EduGuaranteeClaimStatus;
+	["EduGuaranteeState"]: {
+		/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount: string,
+	/** Заявление об аннулировании подписки по гарантийным условиям можно подать */
+	available: boolean,
+	/** Поданное заявление */
+	claim?: ModelTypes["EduGuaranteeClaim"] | undefined | null,
+	/** Подписка */
+	enrollment_id: ModelTypes["ID"],
+	/** До какого дня действуют гарантийные условия */
+	guarantee_until?: ModelTypes["DateTime"] | undefined | null
+};
+	["EduGuaranteeStatementInput"]: {
+	/** Подписка */
+	enrollment_id: ModelTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
 };
 	["EduHoldContributionInput"]: {
 	/** Взнос (черновик по проведённому занятию) */
@@ -40108,10 +40172,6 @@ export type ModelTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ModelTypes["ID"] | undefined | null
 };
-	["EduRequestReturnInput"]: {
-	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
-	document: ModelTypes["SignedDigitalDocumentInput"]
-};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ModelTypes["ID"]
@@ -40122,36 +40182,13 @@ export type ModelTypes = {
 	["EduReturnBalance"]: {
 		/** Остаток кошелька программы */
 	available: string,
-	/** Заявление о прекращении участия уже подано и ждёт согласования */
-	has_pending: boolean,
 	/** Сколько вернут по действующим подпискам, если закрыть их сегодня */
 	refunds: string,
 	/** Действующих подписок, которые закроются */
 	subscriptions: number,
-	/** Сколько уйдёт в паевой взнос при прекращении участия сегодня */
+	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string
 };
-	["EduReturnRequest"]: {
-		/** Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи */
-	amount: string,
-	/** Когда подано заявление */
-	created_at: ModelTypes["DateTime"],
-	/** Когда кооператив принял решение */
-	decided_at?: ModelTypes["DateTime"] | undefined | null,
-	/** Причина отказа, если кооператив отклонил заявление */
-	decline_reason: string,
-	/** ФИО пайщика (у организации — наименование) */
-	display_name?: string | undefined | null,
-	/** Идентификатор заявления */
-	id: ModelTypes["ID"],
-	/** Пайщик, подавший заявление */
-	member_username: string,
-	/** Идентификатор подписанного заявления */
-	statement_hash: string,
-	/** Состояние заявления */
-	status: ModelTypes["EduReturnStatus"]
-};
-	["EduReturnStatus"]:EduReturnStatus;
 	["EduRevokeContributionInput"]: {
 	/** Взнос, заявление по которому держится */
 	contribution_id: ModelTypes["ID"],
@@ -40239,6 +40276,16 @@ export type ModelTypes = {
 	contribution_id: ModelTypes["ID"],
 	/** Подписанное заявление о паевом взносе РИД (3008) */
 	document: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["EduSubmitGuaranteeClaimInput"]: {
+	/** Подписанное заявление об аннулировании подписки по гарантийным условиям */
+	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Подписка */
+	enrollment_id: ModelTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
 };
 	["EduSubscribeInput"]: {
 	/** Курс */
@@ -45906,8 +45953,6 @@ export type ModelTypes = {
 	edubridgeAddLearner: ModelTypes["EduLearner"],
 	/** Назначить администратора */
 	edubridgeAppointAdmin: ModelTypes["EduAdmin"],
-	/** Согласовать заявление: подписки пайщика закрываются с возвратом по Положению, весь остаток кошелька программы переходит в его паевой взнос, участие в программе прекращается */
-	edubridgeApproveReturn: ModelTypes["EduReturnRequest"],
 	/** Убрать уровень в архив либо вернуть */
 	edubridgeArchiveLevel: ModelTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
@@ -45930,10 +45975,10 @@ export type ModelTypes = {
 	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
-	/** Отклонить заявление о прекращении участия в программе */
-	edubridgeDeclineReturn: ModelTypes["EduReturnRequest"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
+	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
+	edubridgeGuaranteeStatement: ModelTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
 	edubridgeHoldContribution: ModelTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
@@ -45944,8 +45989,6 @@ export type ModelTypes = {
 	edubridgeReorderSections: Array<ModelTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: ModelTypes["EduLesson"],
-	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
-	edubridgeRequestReturn: ModelTypes["EduReturnRequest"],
 	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
 	edubridgeRetryEnrollmentClose: ModelTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
@@ -45982,6 +46025,8 @@ export type ModelTypes = {
 	edubridgeSignOffer: ModelTypes["EduOnboardingState"],
 	/** Подать взнос РИД: заявление в цепь и проект решения совету */
 	edubridgeSubmitContribution: ModelTypes["EduContribution"],
+	/** Подать подписанное заявление об аннулировании подписки по гарантийным условиям — его рассмотрит совет */
+	edubridgeSubmitGuaranteeClaim: ModelTypes["EduGuaranteeClaim"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: ModelTypes["EduEnrollment"],
 	/** Прекратить договор участия в хозяйственной деятельности по соглашению сторон */
@@ -48335,12 +48380,12 @@ export type ModelTypes = {
 	edubridgeMyContributions: Array<ModelTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<ModelTypes["EduEnrollment"]>,
+	/** Гарантийные условия по моим подпискам и поданные заявления */
+	edubridgeMyGuarantees: Array<ModelTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<ModelTypes["EduLearner"]>,
 	/** Мои проведённые занятия */
 	edubridgeMyLessons: Array<ModelTypes["EduLesson"]>,
-	/** Мои заявления о прекращении участия в программе */
-	edubridgeMyReturnRequests: Array<ModelTypes["EduReturnRequest"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
@@ -48357,10 +48402,8 @@ export type ModelTypes = {
 	edubridgeQuote: ModelTypes["EduQuote"],
 	/** Что вернут при отмене подписки */
 	edubridgeRefundPreview: ModelTypes["EduRefundPreview"],
-	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
+	/** Остаток кошелька программы и сумма, которая вернётся в паевой взнос при выходе из кооператива сегодня */
 	edubridgeReturnBalance: ModelTypes["EduReturnBalance"],
-	/** Заявления пайщиков о прекращении участия в программе */
-	edubridgeReturnRequests: Array<ModelTypes["EduReturnRequest"]>,
 	/** Разделы каталога с уровнями в порядке справочника */
 	edubridgeSections: Array<ModelTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
@@ -56991,12 +57034,6 @@ export type GraphQLTypes = {
 	/** Причина */
 	reason: string
 };
-	["EduDeclineReturnInput"]: {
-		/** Заявка */
-	id: GraphQLTypes["ID"],
-	/** Причина отказа */
-	reason: string
-};
 	["EduEconomySettings"]: {
 	__typename: "EduEconomySettings",
 	/** Целевой членский взнос кооператива сверх себестоимости курса, проценты */
@@ -57125,6 +57162,50 @@ export type GraphQLTypes = {
 	/** Пайщик, к которому относится движение */
 	username?: string | undefined | null,
 	['...on EduFundMovement']: Omit<GraphQLTypes["EduFundMovement"], "...on EduFundMovement">
+};
+	["EduGuaranteeClaim"]: {
+	__typename: "EduGuaranteeClaim",
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount: string,
+	/** Когда заявление подано */
+	created_at: GraphQLTypes["DateTime"],
+	/** Когда совет рассмотрел заявление */
+	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Идентификатор заявления */
+	id: GraphQLTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links: Array<string>,
+	/** Номер заявления */
+	number: string,
+	/** Причина аннулирования подписки */
+	reason: string,
+	/** Состояние заявления */
+	status: GraphQLTypes["EduGuaranteeClaimStatus"],
+	['...on EduGuaranteeClaim']: Omit<GraphQLTypes["EduGuaranteeClaim"], "...on EduGuaranteeClaim">
+};
+	/** Ход заявления об аннулировании подписки по гарантийным условиям */
+["EduGuaranteeClaimStatus"]: EduGuaranteeClaimStatus;
+	["EduGuaranteeState"]: {
+	__typename: "EduGuaranteeState",
+	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
+	amount: string,
+	/** Заявление об аннулировании подписки по гарантийным условиям можно подать */
+	available: boolean,
+	/** Поданное заявление */
+	claim?: GraphQLTypes["EduGuaranteeClaim"] | undefined | null,
+	/** Подписка */
+	enrollment_id: GraphQLTypes["ID"],
+	/** До какого дня действуют гарантийные условия */
+	guarantee_until?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on EduGuaranteeState']: Omit<GraphQLTypes["EduGuaranteeState"], "...on EduGuaranteeState">
+};
+	["EduGuaranteeStatementInput"]: {
+		/** Подписка */
+	enrollment_id: GraphQLTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
 };
 	["EduHoldContributionInput"]: {
 		/** Взнос (черновик по проведённому занятию) */
@@ -57364,10 +57445,6 @@ export type GraphQLTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: GraphQLTypes["ID"] | undefined | null
 };
-	["EduRequestReturnInput"]: {
-		/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
-	document: GraphQLTypes["SignedDigitalDocumentInput"]
-};
 	["EduRetryEnrollmentCloseInput"]: {
 		/** Подписка */
 	enrollment_id: GraphQLTypes["ID"]
@@ -57379,40 +57456,14 @@ export type GraphQLTypes = {
 	__typename: "EduReturnBalance",
 	/** Остаток кошелька программы */
 	available: string,
-	/** Заявление о прекращении участия уже подано и ждёт согласования */
-	has_pending: boolean,
 	/** Сколько вернут по действующим подпискам, если закрыть их сегодня */
 	refunds: string,
 	/** Действующих подписок, которые закроются */
 	subscriptions: number,
-	/** Сколько уйдёт в паевой взнос при прекращении участия сегодня */
+	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string,
 	['...on EduReturnBalance']: Omit<GraphQLTypes["EduReturnBalance"], "...on EduReturnBalance">
 };
-	["EduReturnRequest"]: {
-	__typename: "EduReturnRequest",
-	/** Сумма перевода в паевой взнос: после согласования — переведённая, до него — оценка на день подачи */
-	amount: string,
-	/** Когда подано заявление */
-	created_at: GraphQLTypes["DateTime"],
-	/** Когда кооператив принял решение */
-	decided_at?: GraphQLTypes["DateTime"] | undefined | null,
-	/** Причина отказа, если кооператив отклонил заявление */
-	decline_reason: string,
-	/** ФИО пайщика (у организации — наименование) */
-	display_name?: string | undefined | null,
-	/** Идентификатор заявления */
-	id: GraphQLTypes["ID"],
-	/** Пайщик, подавший заявление */
-	member_username: string,
-	/** Идентификатор подписанного заявления */
-	statement_hash: string,
-	/** Состояние заявления */
-	status: GraphQLTypes["EduReturnStatus"],
-	['...on EduReturnRequest']: Omit<GraphQLTypes["EduReturnRequest"], "...on EduReturnRequest">
-};
-	/** Состояние заявления о возврате членского взноса в паевой взнос */
-["EduReturnStatus"]: EduReturnStatus;
 	["EduRevokeContributionInput"]: {
 		/** Взнос, заявление по которому держится */
 	contribution_id: GraphQLTypes["ID"],
@@ -57503,6 +57554,16 @@ export type GraphQLTypes = {
 	contribution_id: GraphQLTypes["ID"],
 	/** Подписанное заявление о паевом взносе РИД (3008) */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	["EduSubmitGuaranteeClaimInput"]: {
+		/** Подписанное заявление об аннулировании подписки по гарантийным условиям */
+	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Подписка */
+	enrollment_id: GraphQLTypes["ID"],
+	/** Ссылки на материалы, подтверждающие причину */
+	links?: Array<string> | undefined | null,
+	/** Причина аннулирования подписки */
+	reason: string
 };
 	["EduSubscribeInput"]: {
 		/** Курс */
@@ -63550,8 +63611,6 @@ export type GraphQLTypes = {
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
 	/** Назначить администратора */
 	edubridgeAppointAdmin: GraphQLTypes["EduAdmin"],
-	/** Согласовать заявление: подписки пайщика закрываются с возвратом по Положению, весь остаток кошелька программы переходит в его паевой взнос, участие в программе прекращается */
-	edubridgeApproveReturn: GraphQLTypes["EduReturnRequest"],
 	/** Убрать уровень в архив либо вернуть */
 	edubridgeArchiveLevel: GraphQLTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
@@ -63574,10 +63633,10 @@ export type GraphQLTypes = {
 	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
-	/** Отклонить заявление о прекращении участия в программе */
-	edubridgeDeclineReturn: GraphQLTypes["EduReturnRequest"],
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
+	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
+	edubridgeGuaranteeStatement: GraphQLTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
 	edubridgeHoldContribution: GraphQLTypes["EduContribution"],
 	/** Удалить обучающегося без действующих подписок */
@@ -63588,8 +63647,6 @@ export type GraphQLTypes = {
 	edubridgeReorderSections: Array<GraphQLTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: GraphQLTypes["EduLesson"],
-	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
-	edubridgeRequestReturn: GraphQLTypes["EduReturnRequest"],
 	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
 	edubridgeRetryEnrollmentClose: GraphQLTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
@@ -63626,6 +63683,8 @@ export type GraphQLTypes = {
 	edubridgeSignOffer: GraphQLTypes["EduOnboardingState"],
 	/** Подать взнос РИД: заявление в цепь и проект решения совету */
 	edubridgeSubmitContribution: GraphQLTypes["EduContribution"],
+	/** Подать подписанное заявление об аннулировании подписки по гарантийным условиям — его рассмотрит совет */
+	edubridgeSubmitGuaranteeClaim: GraphQLTypes["EduGuaranteeClaim"],
 	/** Получить доступ: конвертировать паевой в членский и открыть/продлить подписку */
 	edubridgeSubscribe: GraphQLTypes["EduEnrollment"],
 	/** Прекратить договор участия в хозяйственной деятельности по соглашению сторон */
@@ -66160,12 +66219,12 @@ export type GraphQLTypes = {
 	edubridgeMyContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
 	edubridgeMyEnrollments: Array<GraphQLTypes["EduEnrollment"]>,
+	/** Гарантийные условия по моим подпискам и поданные заявления */
+	edubridgeMyGuarantees: Array<GraphQLTypes["EduGuaranteeState"]>,
 	/** Мои обучающиеся */
 	edubridgeMyLearners: Array<GraphQLTypes["EduLearner"]>,
 	/** Мои проведённые занятия */
 	edubridgeMyLessons: Array<GraphQLTypes["EduLesson"]>,
-	/** Мои заявления о прекращении участия в программе */
-	edubridgeMyReturnRequests: Array<GraphQLTypes["EduReturnRequest"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
@@ -66182,10 +66241,8 @@ export type GraphQLTypes = {
 	edubridgeQuote: GraphQLTypes["EduQuote"],
 	/** Что вернут при отмене подписки */
 	edubridgeRefundPreview: GraphQLTypes["EduRefundPreview"],
-	/** Что уйдёт в паевой взнос, если прекратить участие в программе сегодня */
+	/** Остаток кошелька программы и сумма, которая вернётся в паевой взнос при выходе из кооператива сегодня */
 	edubridgeReturnBalance: GraphQLTypes["EduReturnBalance"],
-	/** Заявления пайщиков о прекращении участия в программе */
-	edubridgeReturnRequests: Array<GraphQLTypes["EduReturnRequest"]>,
 	/** Разделы каталога с уровнями в порядке справочника */
 	edubridgeSections: Array<GraphQLTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
@@ -69191,6 +69248,13 @@ export enum EduEnrollmentStatus {
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"
 }
+/** Ход заявления об аннулировании подписки по гарантийным условиям */
+export enum EduGuaranteeClaimStatus {
+	APPROVED = "APPROVED",
+	DECLINED = "DECLINED",
+	EXPIRED = "EXPIRED",
+	SUBMITTED = "SUBMITTED"
+}
 /** Оферта ЦПП «Образование»: ученик или преподаватель */
 export enum EduOfferKind {
 	PARENT = "PARENT",
@@ -69207,12 +69271,6 @@ export enum EduRecipientType {
 	EMAIL = "EMAIL",
 	ONSITE = "ONSITE",
 	TELEGRAM = "TELEGRAM"
-}
-/** Состояние заявления о возврате членского взноса в паевой взнос */
-export enum EduReturnStatus {
-	APPROVED = "APPROVED",
-	DECLINED = "DECLINED",
-	PENDING = "PENDING"
 }
 /** Тип результата интеллектуальной деятельности */
 export enum EduRidType {
@@ -70176,10 +70234,11 @@ type ZEUS_VARIABLES = {
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
 	["EduCreateExpenseInput"]: ValueTypes["EduCreateExpenseInput"];
 	["EduDeclineContributionInput"]: ValueTypes["EduDeclineContributionInput"];
-	["EduDeclineReturnInput"]: ValueTypes["EduDeclineReturnInput"];
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
+	["EduGuaranteeClaimStatus"]: ValueTypes["EduGuaranteeClaimStatus"];
+	["EduGuaranteeStatementInput"]: ValueTypes["EduGuaranteeStatementInput"];
 	["EduHoldContributionInput"]: ValueTypes["EduHoldContributionInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduLessonReportInput"]: ValueTypes["EduLessonReportInput"];
@@ -70189,10 +70248,8 @@ type ZEUS_VARIABLES = {
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduReorderInput"]: ValueTypes["EduReorderInput"];
-	["EduRequestReturnInput"]: ValueTypes["EduRequestReturnInput"];
 	["EduRetryEnrollmentCloseInput"]: ValueTypes["EduRetryEnrollmentCloseInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
-	["EduReturnStatus"]: ValueTypes["EduReturnStatus"];
 	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSaveLevelInput"]: ValueTypes["EduSaveLevelInput"];
@@ -70207,6 +70264,7 @@ type ZEUS_VARIABLES = {
 	["EduSignContractInput"]: ValueTypes["EduSignContractInput"];
 	["EduSignOfferInput"]: ValueTypes["EduSignOfferInput"];
 	["EduSubmitContributionInput"]: ValueTypes["EduSubmitContributionInput"];
+	["EduSubmitGuaranteeClaimInput"]: ValueTypes["EduSubmitGuaranteeClaimInput"];
 	["EduSubscribeInput"]: ValueTypes["EduSubscribeInput"];
 	["EduTeacherProfileInput"]: ValueTypes["EduTeacherProfileInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];

@@ -6,7 +6,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 
 function make() {
   const teachers = { onCouncilGaveUp: jest.fn(async () => undefined) } as any;
-  return { listener: new EdubridgeApprovalListener(teachers, logger), teachers };
+  return { listener: new EdubridgeApprovalListener(teachers, { onCouncilGaveUp: jest.fn(async () => undefined) } as any, logger), teachers };
 }
 
 describe('EdubridgeApprovalListener — исход совета по заявлению РИД', () => {

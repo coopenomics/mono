@@ -12,6 +12,7 @@ import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbox.service';
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EdubridgeFundsService } from '../services/edubridge-funds.service';
+import { EdubridgeGuaranteeService } from '../services/edubridge-guarantee.service';
 
 /**
  * Граница оплаченного периода: предупредить заранее, а по наступлению —
@@ -32,6 +33,7 @@ export class EdubridgeExpiryWorker {
     private readonly config: EdubridgeConfigHolder,
     private readonly funds: EdubridgeFundsService,
     private readonly enrollmentService: EdubridgeEnrollmentService,
+    private readonly guarantee: EdubridgeGuaranteeService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -51,6 +53,8 @@ export class EdubridgeExpiryWorker {
       await this.expire(coopname);
       // Подписки, не закрывшиеся при выходе пайщика: возврат по ним должен дойти до кошелька программы.
       await this.enrollmentService.retryPendingClosures(coopname);
+      // Заявления по гарантийным условиям, не дошедшие до совета из-за сбоя.
+      await this.guarantee.publishPending(coopname);
       await this.notifyExpiring(coopname);
     } catch (e) {
       this.logger.error(`[EDU.EXPIRY] сбой: ${(e as Error)?.message ?? e}`);

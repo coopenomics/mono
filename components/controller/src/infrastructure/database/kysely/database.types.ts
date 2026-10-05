@@ -1204,6 +1204,8 @@ export interface EdubridgeCourses {
 export interface EdubridgeEnrollments {
   access_state: Generated<EdubridgeEnrollmentsAccessStateEnum>;
   cancelled_at: Timestamp | null;
+  close_error: string | null;
+  close_pending_since: Timestamp | null;
   coopname: string;
   course_id: string;
   created_at: Generated<Timestamp>;
@@ -1222,6 +1224,27 @@ export interface EdubridgeEnrollments {
   statement_hash: string | null;
   status: Generated<EdubridgeEnrollmentsStatusEnum>;
   sub_hash: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface EdubridgeGuaranteeClaims {
+  amount: string;
+  claim_hash: string;
+  coopname: string;
+  council_agenda_id: string | null;
+  council_decision_id: string | null;
+  council_project_hash: string | null;
+  course_id: string;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decision_hash: string | null;
+  enrollment_id: string;
+  id: Generated<string>;
+  links: Generated<Json>;
+  member_username: string;
+  reason: string;
+  statement_document: Json;
+  status: string;
   updated_at: Generated<Timestamp>;
 }
 
@@ -1306,6 +1329,7 @@ export interface EdubridgeTeacherAssignments {
 
 export interface EdubridgeTeacherContracts {
   approved_at: Timestamp | null;
+  contract_document: Json | null;
   contract_hash: string;
   contract_number: string;
   coopname: string;
@@ -2577,6 +2601,7 @@ export interface DB {
   edubridge_contributions: EdubridgeContributions;
   edubridge_courses: EdubridgeCourses;
   edubridge_enrollments: EdubridgeEnrollments;
+  edubridge_guarantee_claims: EdubridgeGuaranteeClaims;
   edubridge_learners: EdubridgeLearners;
   edubridge_lessons: EdubridgeLessons;
   edubridge_levels: EdubridgeLevels;

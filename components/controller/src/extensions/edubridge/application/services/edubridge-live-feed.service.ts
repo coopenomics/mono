@@ -7,7 +7,7 @@ import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositorie
  * Таблицы образования в ленте изменений. Имена — из `@Entity` сущностей;
  * стол подписывается на те же имена (desktop: `extensions/edubridge/shared/live.ts`).
  *
- * Курсы открыты всем — это каталог. Записи, ученики и возвраты принадлежат
+ * Курсы открыты всем — это каталог. Записи и ученики принадлежат
  * пайщику, договоры, назначения, уроки и взносы — преподавателю: их сигналы
  * получает владелец строки и персонал. Задачи выдачи доступа, привязки
  * площадок и администраторы — только персоналу.
@@ -18,8 +18,8 @@ export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_sections' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_levels' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_enrollments', owner_field: 'member_username' },
+  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_guarantee_claims', owner_field: 'member_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_learners', owner_field: 'member_username' },
-  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_return_requests', owner_field: 'member_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_teacher_contracts', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_teacher_assignments', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_lessons', owner_field: 'teacher_username' },

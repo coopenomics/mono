@@ -115,16 +115,28 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Cancelsub.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
+  async claimGuarantee(data: EdubridgeContract.Actions.Warrclaim.IWarrclaim): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Warrclaim.actionName, { ...data, statement: this.chainDoc(data.statement) }, data.coopname)
+    );
+  }
+
+  async grantGuarantee(
+    cancel: EdubridgeContract.Actions.Cancelsub.ICancelsub,
+    grant: EdubridgeContract.Actions.Warrgrant.IWarrgrant
+  ): Promise<InnerTransactResult> {
+    await this.prepare(cancel.coopname);
+    // Возврат и протокол — одной транзакцией: решение совета без возврата и возврат без основания недопустимы.
+    return this.chain.transact([
+      this.action(EdubridgeContract.Actions.Cancelsub.actionName, cancel as unknown as Record<string, unknown>, cancel.coopname),
+      this.action(EdubridgeContract.Actions.Warrgrant.actionName, { ...grant, decision: this.chainDoc(grant.decision) }, cancel.coopname),
+    ]);
+  }
+
   async freeReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Freereserve.actionName, data, data.coopname));
-  }
-
-  async returnToShare(data: EdubridgeContract.Actions.Retshare.IRetshare): Promise<InnerTransactResult> {
-    await this.prepare(data.coopname);
-    return this.chain.transact(
-      this.action(EdubridgeContract.Actions.Retshare.actionName, { ...data, statement: this.chainDoc(data.statement) }, data.coopname)
-    );
   }
 
   async holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult> {

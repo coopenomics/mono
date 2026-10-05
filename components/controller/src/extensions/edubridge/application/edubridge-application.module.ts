@@ -19,10 +19,12 @@ import { EdubridgeLearnerKyselyRepository } from '../infrastructure/repositories
 import { EdubridgeTeacherKyselyRepository } from '../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeAdminKyselyRepository } from '../infrastructure/repositories/edubridge-admin.kysely-repository';
-import { EdubridgeReturnRequestKyselyRepository } from '../infrastructure/repositories/edubridge-return-request.kysely-repository';
 import { EdubridgeReturnService } from './services/edubridge-return.service';
 import { EdubridgeFundsService } from './services/edubridge-funds.service';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
+import { EdubridgeGuaranteeResolver } from './resolvers/edubridge-guarantee.resolver';
+import { EdubridgeGuaranteeService } from './services/edubridge-guarantee.service';
+import { EdubridgeGuaranteeClaimKyselyRepository } from '../infrastructure/repositories/edubridge-guarantee-claim.kysely-repository';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
 import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-grants.provider';
@@ -86,11 +88,11 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeCourseKyselyRepository,
     EdubridgeLearnerKyselyRepository,
     EdubridgeEnrollmentKyselyRepository,
+    EdubridgeGuaranteeClaimKyselyRepository,
     EdubridgeAccessTaskKyselyRepository,
     EdubridgeTeacherKyselyRepository,
     EdubridgeLessonKyselyRepository,
     EdubridgeAdminKyselyRepository,
-    EdubridgeReturnRequestKyselyRepository,
     EdubridgeConnectorBindingKyselyRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
     // Коннекторы площадок — фабрика по носителю; новая площадка = новый класс в списке
@@ -118,6 +120,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeFundsService,
     EdubridgeEnrollmentService,
     EdubridgeReturnService,
+    EdubridgeGuaranteeService,
     EdubridgeAccessOutboxService,
     EdubridgeTeacherService,
     EdubridgeApprovalsService,
@@ -145,6 +148,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeOnboardingResolver,
     EdubridgeMemberResolver,
     EdubridgeReturnResolver,
+    EdubridgeGuaranteeResolver,
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
