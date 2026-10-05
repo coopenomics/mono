@@ -73,13 +73,11 @@ export class EdubridgeSectionKyselyRepository {
   }
 
   saveSection(s: Partial<EdubridgeSectionRecord>): Promise<EdubridgeSectionRecord> {
-    const { levels: _levels, ...row } = s;
-    return this.sections.save(row);
+    return this.sections.save(s);
   }
 
   saveLevel(l: Partial<EdubridgeLevelRecord>): Promise<EdubridgeLevelRecord> {
-    const { section: _section, ...row } = l;
-    return this.levels.save(row);
+    return this.levels.save(l);
   }
 
   /** Курсы, ещё не перенесённые в справочник: раздел лежит строкой. */

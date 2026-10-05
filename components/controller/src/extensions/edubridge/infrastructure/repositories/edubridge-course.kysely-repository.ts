@@ -12,9 +12,6 @@ export interface EduCourseFilter {
 
 const SORTABLE = new Set(['title', 'sort_order', 'created_at', 'updated_at']);
 
-/** Связи справочника не колонки курса: в базу они не пишутся. */
-type CourseRow = Omit<EdubridgeCourseRecord, 'section' | 'level'>;
-
 @Injectable()
 export class EdubridgeCourseKyselyRepository {
   constructor(
@@ -86,8 +83,9 @@ export class EdubridgeCourseKyselyRepository {
   }
 
   async save(entity: EdubridgeCourseRecord): Promise<EdubridgeCourseRecord> {
-    const { section: _section, level: _level, ...row } = entity;
-    const saved = Object.assign(entity, await this.repo.save(row as CourseRow));
+    // Раздел и уровень — связи справочника: шлюз пишет только свои колонки, а
+    // после сохранения связи подгружаются заново — у курса мог смениться раздел.
+    const saved = await this.repo.save(entity);
     saved.section = undefined;
     saved.level = undefined;
     await this.withCatalog(saved);

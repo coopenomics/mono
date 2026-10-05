@@ -59,7 +59,11 @@ export interface TableStoreOptions<TRecord> {
   dates?: Array<keyof TRecord & string>;
   /** Поле времени правки: при каждой правке ставится текущее время базы. */
   updatedAt?: keyof TRecord & string;
-  /** Поля записи — перечень, из которого выбирается поле сортировки по запросу клиента. */
+  /**
+   * Поля записи. Из перечня выбирается поле сортировки по запросу клиента, и
+   * только поля из него пишутся в базу — подгруженные связи и прочие
+   * добавленные к записи поля в запрос не попадают.
+   */
   columns?: Array<keyof TRecord & string>;
   /** Имена колонок совпадают с именами полей (иначе поле `camelCase` — колонка `snake_case`). */
   sameNames?: boolean;
@@ -228,11 +232,15 @@ export class TableStore<TRecord extends object> {
     return this.options.sameNames ? field : toSnake(field);
   }
 
-  /** Значения колонок из полей записи; незаданные поля пропускаются. */
+  /** Значения колонок из полей записи; незаданные поля и поля вне перечня пропускаются. */
   private toRow(fields: Partial<TRecord>): Record<string, unknown> {
     const row: Record<string, unknown> = {};
+    const known = this.options.columns as string[] | undefined;
     for (const [field, value] of Object.entries(fields)) {
       if (value === undefined) continue;
+      // Поле вне перечня полей записи в базу не идёт: так подгруженная связь
+      // (`attachOne`) не превращается в несуществующую колонку.
+      if (known && !known.includes(field)) continue;
       row[this.column(field)] = this.json.has(field) && value !== null ? JSON.stringify(value) : value;
     }
     return row;
