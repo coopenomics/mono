@@ -4,6 +4,9 @@
  * преподаватель может подписать договор заново; причина остаётся в журнале
  * действий.
  *
+ * `username` — тот, кто отказал в совете (председатель), а не преподаватель:
+ * договор находится по hash.
+ *
  * @ingroup public_edubridge_actions
  */
 void edubridge::dclinecontr(eosio::name coopname,
@@ -16,7 +19,6 @@ void edubridge::dclinecontr(eosio::name coopname,
   auto by_hash = contracts.get_index<"byhash"_n>();
   auto it = by_hash.find(contract_hash);
   if (it == by_hash.end()) return;
-  eosio::check(it->username == username, "Договор принадлежит другому преподавателю");
   eosio::check(it->status == Edubridge::ContractStatus::PENDING, "Действующий договор отклонить нельзя");
 
   contracts.erase(contracts.find(it->id));

@@ -29,18 +29,18 @@ export class EdubridgeApprovalListener {
   @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.Apprvcontr.actionName}`)
   async onContractApproved(action: InnerChainActionRecord): Promise<void> {
     const d = action.data as EdubridgeContract.Actions.Apprvcontr.IApprvcontr;
-    if (!d?.coopname || !d?.username || !d?.contract_hash) return;
-    await this.teachers.onContractApproved(String(d.coopname), String(d.username), String(d.contract_hash));
+    if (!d?.coopname || !d?.contract_hash) return;
+    await this.teachers.onContractApproved(String(d.coopname), String(d.contract_hash));
     // Документ из цепи приходит в её формате (метаданные строкой) — в запись кладётся подписанный документ узла.
     const approved = d.approved_document ? DomainToBlockchainUtils.convertChainDocumentToDomainFormat(d.approved_document as never) : undefined;
-    await this.teachers.saveApprovedContractDocument(String(d.coopname), String(d.username), String(d.contract_hash), approved as never);
+    await this.teachers.saveApprovedContractDocument(String(d.coopname), String(d.contract_hash), approved as never);
   }
 
   @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.Dclinecontr.actionName}`)
   async onContractDeclined(action: InnerChainActionRecord): Promise<void> {
     const d = action.data as EdubridgeContract.Actions.Dclinecontr.IDclinecontr;
-    if (!d?.coopname || !d?.username || !d?.contract_hash) return;
-    await this.teachers.onContractDeclined(String(d.coopname), String(d.username), String(d.contract_hash), String(d.reason ?? ''));
+    if (!d?.coopname || !d?.contract_hash) return;
+    await this.teachers.onContractDeclined(String(d.coopname), String(d.contract_hash), String(d.reason ?? ''));
   }
 
   /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */

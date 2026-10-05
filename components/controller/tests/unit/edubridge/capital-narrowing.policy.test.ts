@@ -7,12 +7,13 @@ import { EdubridgeCapitalNarrowingPolicy } from '~/extensions/edubridge/applicat
 import { EdubridgeConfigHolder } from '~/extensions/edubridge/application/config/edubridge-config.holder';
 import { defaultConfig } from '~/extensions/edubridge/types';
 
-function make(opts: { teacher?: boolean; enabled?: boolean } = {}) {
+function make(opts: { teacher?: boolean; enabled?: boolean; installed?: boolean } = {}) {
   const grantsFilters = { register: jest.fn(), unregister: jest.fn() };
   const offerFilters = { register: jest.fn(), unregister: jest.fn() };
   const facts = { resolve: jest.fn(async () => ({ isLearner: false, hasTeacherOffer: !!opts.teacher, isTeacher: !!opts.teacher, isAdmin: false })) };
-  const holder = new EdubridgeConfigHolder({ get: async () => null } as any);
-  holder.set({ ...defaultConfig, capital_integration: opts.enabled ?? true });
+  const holder = new EdubridgeConfigHolder({ get: async () => null, isEnabled: async () => opts.installed !== false } as any);
+  // Настройку задаёт запущенное расширение; в кооперативе без образования её никто не задаёт.
+  if (opts.installed !== false) holder.set({ ...defaultConfig, capital_integration: opts.enabled ?? true });
   const policy = new EdubridgeCapitalNarrowingPolicy(grantsFilters, offerFilters, facts, holder);
   return { policy, grantsFilters, offerFilters, facts };
 }
@@ -77,5 +78,14 @@ describe('EdubridgeCapitalNarrowingPolicy', () => {
     const { policy } = make({ teacher: false, enabled: false });
     await expect(policy.filterGrants(capitalTarget, ctx('user'))).resolves.toEqual(capitalTarget.grants);
     expect(policy.filterPrograms([{ key: 'CAPITALIZATION', extension_name: 'capital' }] as any)).toEqual(['CAPITALIZATION']);
+  });
+
+  it('пока образование не установлено либо выключено, Благорост не сужается', async () => {
+    const { policy } = make({ teacher: false, installed: false });
+    await expect(policy.filterGrants(capitalTarget, ctx('user'))).resolves.toEqual(capitalTarget.grants);
+    const programs = [{ key: 'CAPITALIZATION', extension_name: 'capital' }] as any[];
+    const agreements = [{ id: 'blagorost_offer', extension_name: 'capital' }] as any[];
+    expect(policy.filterPrograms(programs)).toEqual(['CAPITALIZATION']);
+    expect(policy.filterAgreements(agreements)).toEqual(['blagorost_offer']);
   });
 });

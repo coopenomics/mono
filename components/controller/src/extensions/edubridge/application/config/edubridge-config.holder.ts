@@ -16,12 +16,21 @@ const TTL_MS = 10_000;
 export class EdubridgeConfigHolder {
   private current: IConfig = defaultConfig;
   private loadedAt = 0;
+  /** Расширение установлено и включено. До первого чтения — нет: умолчания настройки не решение кооператива. */
+  private enabled = false;
 
   constructor(@Inject(EXTENSION_CONFIG_PORT) private readonly configPort: IExtensionConfigPort) {}
 
+  /** Настройку задаёт запущенное расширение — значит, оно установлено и включено. */
   set(config: IConfig): void {
     this.current = config;
+    this.enabled = true;
     this.loadedAt = Date.now();
+  }
+
+  /** Последнее известное: работает ли расширение в кооперативе. */
+  isEnabled(): boolean {
+    return this.enabled;
   }
 
   get(): IConfig {
@@ -30,9 +39,13 @@ export class EdubridgeConfigHolder {
 
   async load(): Promise<IConfig> {
     if (Date.now() - this.loadedAt < TTL_MS) return this.current;
-    const stored = await this.configPort.get<Partial<IConfig>>(EDUBRIDGE_EXTENSION_NAME);
-    if (stored) this.set(merge({}, defaultConfig, stored));
-    else this.loadedAt = Date.now();
+    const [stored, enabled] = await Promise.all([
+      this.configPort.get<Partial<IConfig>>(EDUBRIDGE_EXTENSION_NAME),
+      this.configPort.isEnabled(EDUBRIDGE_EXTENSION_NAME),
+    ]);
+    if (stored) this.current = merge({}, defaultConfig, stored);
+    this.enabled = enabled;
+    this.loadedAt = Date.now();
     return this.current;
   }
 }

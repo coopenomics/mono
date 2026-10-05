@@ -172,10 +172,10 @@ export class EdubridgeTeacherService {
    * Председатель подписал договор: в записи остаётся документ уже с двумя
    * подписями — его и показывает карточка преподавателя.
    */
-  async saveApprovedContractDocument(coopname: string, teacher: string, contractHash: string, document: ISignedDocument | undefined): Promise<void> {
+  async saveApprovedContractDocument(coopname: string, contractHash: string, document: ISignedDocument | undefined): Promise<void> {
     if (!document?.hash) return;
-    const c = await this.teachers.findContract(coopname, teacher);
-    if (!c || c.contract_hash !== contractHash.toLowerCase()) return;
+    const c = await this.teachers.findContractByHash(coopname, contractHash);
+    if (!c) return;
     c.contract_document = document as unknown as Record<string, unknown>;
     await this.teachers.saveContract(c);
   }
@@ -215,12 +215,14 @@ export class EdubridgeTeacherService {
   }
 
   /** Коллбэк совета `apprvcontr`: председатель подписал — договор действует. */
-  async onContractApproved(coopname: string, teacher: string, contractHash: string): Promise<void> {
-    const c = await this.teachers.findContract(coopname, teacher);
-    if (!c || c.contract_hash !== contractHash.toLowerCase()) {
-      this.logger.warn(`[EDU.TEACH] apprvcontr для неизвестного договора ${contractHash} (${teacher})`);
+  async onContractApproved(coopname: string, contractHash: string): Promise<void> {
+    // Договор ищется по hash: в обратном вызове совета стоит имя подписавшего председателя.
+    const c = await this.teachers.findContractByHash(coopname, contractHash);
+    if (!c) {
+      this.logger.warn(`[EDU.TEACH] apprvcontr для неизвестного договора ${contractHash}`);
       return;
     }
+    const teacher = c.teacher_username;
     // Статус мог уже прийти дельтой — дату подписи из цепи не перетираем.
     c.status = EduContractStatus.ACTIVE;
     c.approved_at = c.approved_at ?? new Date();
@@ -230,9 +232,10 @@ export class EdubridgeTeacherService {
   }
 
   /** Коллбэк совета `dclinecontr`: председатель отказал — договор можно подписать заново. */
-  async onContractDeclined(coopname: string, teacher: string, contractHash: string, reason: string): Promise<void> {
-    const c = await this.teachers.findContract(coopname, teacher);
-    if (!c || c.contract_hash !== contractHash.toLowerCase()) return;
+  async onContractDeclined(coopname: string, contractHash: string, reason: string): Promise<void> {
+    const c = await this.teachers.findContractByHash(coopname, contractHash);
+    if (!c) return;
+    const teacher = c.teacher_username;
     c.status = EduContractStatus.DECLINED;
     c.decline_reason = reason;
     await this.teachers.saveContract(c);

@@ -542,3 +542,11 @@ cases:
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
+  - id: edu.teach.side.23
+    level: backend
+    kind: side
+    scenario: "Председатель подписывает либо отклоняет договор преподавателя — другого пайщика: в обратном вызове совета стоит имя председателя."
+    expect: "Договор находится по hash: статус и документ ложатся в запись преподавателя; контракт публикует документ на имя преподавателя."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    status: written
+

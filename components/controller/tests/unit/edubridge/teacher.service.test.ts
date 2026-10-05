@@ -26,6 +26,9 @@ function make(
   const profileState: { current: any } = { current: opts.profile ? { coopname: 'voskhod', teacher_username: 'teach', ...opts.profile } : null };
   const teachers = {
     findContract: jest.fn(async () => contractState.current),
+    findContractByHash: jest.fn(async (_c: string, hash: string) =>
+      contractState.current && String(contractState.current.contract_hash).toLowerCase() === hash.toLowerCase() ? contractState.current : null
+    ),
     listContracts: jest.fn(async () => (contractState.current ? [contractState.current] : [])),
     saveContract: jest.fn(async (d: any) => { contractState.current = { ...d }; return contractState.current; }),
     findProfile: jest.fn(async () => profileState.current),
@@ -119,10 +122,10 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
 
   it('коллбэк совета apprvcontr делает договор действующим; dclinecontr — отклонённым с причиной, и его можно подписать заново', async () => {
     const { service, chain } = make({ contract: EduContractStatus.PENDING_APPROVAL });
-    await service.onContractApproved('voskhod', 'teach', 'H');
+    await service.onContractApproved('voskhod', 'H');
     expect((await service.contract('voskhod', 'teach'))!.status).toBe(EduContractStatus.ACTIVE);
 
-    await service.onContractDeclined('voskhod', 'teach', 'H', 'Нет квалификации');
+    await service.onContractDeclined('voskhod', 'H', 'Нет квалификации');
     const declined = (await service.contract('voskhod', 'teach'))!;
     expect(declined.status).toBe(EduContractStatus.DECLINED);
     expect(declined.decline_reason).toBe('Нет квалификации');
@@ -135,7 +138,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
 
   it('ставка часа названа один раз: переподписание с другой ставкой отклоняется', async () => {
     const { service } = make();
-    await service.onContractDeclined('voskhod', 'teach', 'H', 'Нет квалификации');
+    await service.onContractDeclined('voskhod', 'H', 'Нет квалификации');
     await expect(
       service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3', '5000.0000 RUB')
     ).rejects.toThrow(/её меняет администратор/);
@@ -764,7 +767,7 @@ describe('EdubridgeTeacherService — договор следует за таб�
   it('действие apprvcontr после дельты не перетирает дату подписи из цепи', async () => {
     const { service, teachers } = make({ contract: EduContractStatus.PENDING_APPROVAL });
     await service.applyContractFromChain('voskhod', 'teach', 'h', 'active', '2026-09-23T13:49:52');
-    await service.onContractApproved('voskhod', 'teach', 'h');
+    await service.onContractApproved('voskhod', 'h');
     expect(teachers.saveContract.mock.calls[1]![0].approved_at).toEqual(new Date('2026-09-23T13:49:52Z'));
   });
 });
@@ -938,14 +941,14 @@ describe('EdubridgeTeacherService — документ договора для �
 
   it('подпись председателя кладёт в запись документ с двумя подписями', async () => {
     const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
-    await service.saveApprovedContractDocument('voskhod', 'teach', 'H', approved);
+    await service.saveApprovedContractDocument('voskhod', 'H', approved);
     expect(teachers.saveContract.mock.calls[0]![0].contract_document).toBe(approved);
   });
 
   it('документ чужого договора и пустой документ запись не меняют', async () => {
     const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
-    await service.saveApprovedContractDocument('voskhod', 'teach', 'другой', approved);
-    await service.saveApprovedContractDocument('voskhod', 'teach', 'h', undefined);
+    await service.saveApprovedContractDocument('voskhod', 'другой', approved);
+    await service.saveApprovedContractDocument('voskhod', 'h', undefined);
     expect(teachers.saveContract).not.toHaveBeenCalled();
   });
 

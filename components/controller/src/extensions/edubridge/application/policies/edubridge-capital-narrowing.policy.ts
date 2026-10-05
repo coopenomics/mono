@@ -34,7 +34,8 @@ const CAPITAL_EXTENSION_NAME = 'capital';
  *    подпишет тот, кто станет преподавателем, со своего стола.
  *
  * Всё — через конвейеры ядра и только сужением: ни своего интерфейса к
- * «Благоросту», ни правок в нём. Выключается настройкой «Связать с Благоростом».
+ * «Благоросту», ни правок в нём. Выключается настройкой «Связать с Благоростом»
+ * и молчит, пока образование не установлено и не включено.
  */
 @Injectable()
 export class EdubridgeCapitalNarrowingPolicy
@@ -59,13 +60,22 @@ export class EdubridgeCapitalNarrowingPolicy
     this.offerFilters.unregister(this.extensionName);
   }
 
+  /**
+   * Сужение действует, только пока образование установлено и включено в
+   * кооперативе и связь с «Благоростом» не выключена настройкой. Без этого
+   * политика отняла бы «Благорост» у кооператива, который образованием не
+   * пользуется.
+   */
   private get enabled(): boolean {
-    return this.config.get().capital_integration;
+    // Витрина вступления синхронна: берём последнее известное и освежаем его к следующему обращению.
+    void this.config.load().catch(() => undefined);
+    return this.config.isEnabled() && this.config.get().capital_integration;
   }
 
   async filterGrants(target: InnerDesktopGrantsFilterTarget, ctx: InnerDesktopGrantsContext): Promise<readonly string[]> {
     if (target.extensionName !== CAPITAL_EXTENSION_NAME) return target.grants;
-    if (!(await this.config.load()).capital_integration) return target.grants;
+    const config = await this.config.load();
+    if (!this.config.isEnabled() || !config.capital_integration) return target.grants;
     if (ctx.userRole === 'chairman' || ctx.userRole === 'member') return target.grants;
     if (!ctx.username) return [];
     const facts = await this.roleFacts.resolve(ctx.coopname, ctx.username);

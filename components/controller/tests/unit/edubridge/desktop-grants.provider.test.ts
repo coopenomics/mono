@@ -5,7 +5,7 @@ import { EdubridgeConfigHolder } from '~/extensions/edubridge/application/config
 import { defaultConfig } from '~/extensions/edubridge/types';
 
 function make(opts: { accepted?: boolean; teacher?: boolean; offer?: boolean; learner?: boolean } = {}) {
-  const holder = new EdubridgeConfigHolder({ get: async () => null } as any);
+  const holder = new EdubridgeConfigHolder({ get: async () => null, isEnabled: async () => true } as any);
   holder.set({ ...defaultConfig, coopAcceptance: { accepted: opts.accepted ?? true, accepted_at: '' } });
   const facts = {
     resolve: async () => ({ isLearner: !!opts.learner, hasTeacherOffer: !!opts.teacher || !!opts.offer, isTeacher: !!opts.teacher, isAdmin: false }),

@@ -34,6 +34,11 @@ export class EdubridgeTeacherKyselyRepository {
     return this.contracts.findOne({ coopname, teacher_username: teacher });
   }
 
+  /** Договор по hash из цепи: совет в обратном вызове называет подписавшего, а не преподавателя. */
+  findContractByHash(coopname: string, contractHash: string): Promise<EdubridgeTeacherContractRecord | null> {
+    return this.contracts.findOne({ coopname, contract_hash: contractHash.toLowerCase() });
+  }
+
   /** Все преподаватели с подписанным договором — из них выбирают ведущих курса. */
   listContracts(coopname: string): Promise<EdubridgeTeacherContractRecord[]> {
     return this.contracts.find({ coopname }, { order: { signed_at: 'ASC' } });
