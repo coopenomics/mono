@@ -367,4 +367,7 @@ public:
                                       eosio::name username,
                                       checksum256 contract_hash,
                                       std::string reason);
+
+  /// Очистка отработавших записей по правилам контракта (lib/core/cleanup.hpp); плейбук вызывает её на каждом деплое.
+  [[eosio::action]] void cleanup();
 };

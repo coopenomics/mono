@@ -132,6 +132,13 @@ describe('ledger2 — имя нитки процесса (contract, живая �
         name: 'exitcoop',
         authorization: [{ actor: COOP, permission: 'active' }],
         data: { coopname: COOP, username: member, exit_hash: exitHash, statement: fakeDocument },
+      }, {
+        // У пайщика есть соглашение ЦПП «Благорост»: совет подтверждает выход
+        // только с заявлением об аннулировании соглашений (той же транзакцией).
+        account: 'registrator',
+        name: 'exitagree',
+        authorization: [{ actor: COOP, permission: 'active' }],
+        data: { coopname: COOP, username: member, exit_hash: exitHash, annulment: fakeDocument },
       }],
     }, { blocksBehind: 3, expireSeconds: 30 })
 

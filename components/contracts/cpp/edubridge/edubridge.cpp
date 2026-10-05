@@ -35,3 +35,18 @@
 #include "src/p.edu.teach/apprvcontr.cpp"
 #include "src/p.edu.teach/dclinecontr.cpp"
 #include "src/p.edu.teach/termcontract.cpp"
+
+/**
+ * @brief Очистка отработавших записей (lib/core/cleanup.hpp).
+ *
+ * Правил нет: контракт новый, строк прежних версий в цепи нет, а процессы
+ * удаляют свои записи на терминальном шаге сами. Действие есть, потому что
+ * раскатка вызывает `cleanup` у каждого прикладного контракта.
+ *
+ * @note Авторизация требуется от аккаунта контракта.
+ */
+void edubridge::cleanup() {
+  require_auth(get_self());
+  Cleanup::budget budget;
+  Cleanup::report(get_self(), budget);
+}
