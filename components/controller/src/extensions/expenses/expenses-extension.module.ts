@@ -1,14 +1,13 @@
 import './i18n';
 import { Module } from '@nestjs/common';
-import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ExpensesDatabaseModule } from './infrastructure/database/expenses-database.module';
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
 import { ExpenseProposalDeltaMapper } from './infrastructure/blockchain/mappers/expense-proposal-delta.mapper';
 import { ExpensesBlockchainAdapter } from './infrastructure/blockchain/adapters/expenses-blockchain.adapter';
-import { ExpenseProposalTypeormRepository } from './infrastructure/repositories/expense-proposal.typeorm-repository';
-import { ExpenseFileTypeormRepository } from './infrastructure/repositories/expense-file.typeorm-repository';
+import { ExpenseProposalKyselyRepository } from './infrastructure/repositories/expense-proposal.kysely-repository';
+import { ExpenseFileKyselyRepository } from './infrastructure/repositories/expense-file.kysely-repository';
 import { EXPENSE_PROPOSAL_REPOSITORY } from './domain/repositories/expense-proposal.repository';
 import { EXPENSE_FILE_REPOSITORY } from './domain/repositories/expense-file.repository';
 import { EXPENSES_BLOCKCHAIN_PORT } from './domain/interfaces/expenses-blockchain.port';
@@ -24,7 +23,6 @@ import { ExpenseProposalResolver } from './application/resolvers/expense-proposa
 import { ExpenseMutationsResolver } from './application/resolvers/expense-mutations.resolver';
 import { ExpenseFilesResolver } from './application/resolvers/expense-files.resolver';
 import { ExpensesInnercoopExpenseChassisAdapter } from './infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
-import { ExpensePlanEntity } from './infrastructure/entities/expense-plan.entity';
 import {
   EXPENSE_PLANS_SERVICE,
   ExpensePlansService,
@@ -51,7 +49,6 @@ import { ExpensesLiveFeedService } from './application/services/expenses-live-fe
  */
 @Module({
   imports: [
-    NestTypeOrmModule.forFeature([ExpensePlanEntity]),
     ExpensesDatabaseModule,
   ],
   providers: [
@@ -60,15 +57,15 @@ import { ExpensesLiveFeedService } from './application/services/expenses-live-fe
     ...bucketProvidersFor(FILE_STORAGE_PORT, [ExpenseFilesService]),
     ExpenseContractInfoService,
     ExpenseProposalDeltaMapper,
-    ExpenseProposalTypeormRepository,
-    ExpenseFileTypeormRepository,
+    ExpenseProposalKyselyRepository,
+    ExpenseFileKyselyRepository,
     {
       provide: EXPENSE_PROPOSAL_REPOSITORY,
-      useClass: ExpenseProposalTypeormRepository,
+      useClass: ExpenseProposalKyselyRepository,
     },
     {
       provide: EXPENSE_FILE_REPOSITORY,
-      useClass: ExpenseFileTypeormRepository,
+      useClass: ExpenseFileKyselyRepository,
     },
     {
       provide: EXPENSES_BLOCKCHAIN_PORT,

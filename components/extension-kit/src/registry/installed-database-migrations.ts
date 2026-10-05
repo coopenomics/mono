@@ -1,4 +1,4 @@
-import type { MigrationInterface } from 'typeorm';
+import type { SchemaMigration } from '../database/schema-migration';
 
 /**
  * Миграции таблиц установленных расширений — то, что контроллер отдаёт TypeORM
@@ -10,13 +10,12 @@ import type { MigrationInterface } from 'typeorm';
  * в записи реестра, — и файлы миграций лежат в его каталоге: расширение,
  * вынесенное из монолита, уносит историю своих таблиц с собой.
  *
- * Порядок применения задаёт метка времени в имени класса (так TypeORM сортирует
- * миграции), поэтому миграции ядра и расширений идут одной лентой.
+ * Порядок применения задаёт метка времени в имени класса, поэтому миграции ядра
+ * и расширений идут одной лентой.
  *
- * Список задаётся один раз, до инициализации подключения, — как и состав
- * сущностей (`registerExtensionEntities`).
+ * Список задаётся один раз, до инициализации подключения.
  */
-export type ExtensionDatabaseMigrationClass = new () => MigrationInterface;
+export type ExtensionDatabaseMigrationClass = new () => SchemaMigration;
 
 let migrations: ReadonlyArray<ExtensionDatabaseMigrationClass> | undefined;
 

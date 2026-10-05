@@ -127,8 +127,8 @@ export class EdubridgeSectionsService {
   async migrateLegacyCourses(coopname: string): Promise<number> {
     const courses = await this.repo.unmigratedCourses(coopname);
     for (const course of courses) {
-      const section = (await this.saveSection(coopname, { title: course.legacy_subject ?? '' })).section;
-      const grade = clean(course.legacy_grade ?? '');
+      const section = (await this.saveSection(coopname, { title: course.subject ?? '' })).section;
+      const grade = clean(course.grade ?? '');
       const level = grade ? await this.saveLevel(coopname, { section_id: section.id, title: grade }) : null;
       await this.repo.linkCourse(course.id, section.id, level?.id ?? null);
     }

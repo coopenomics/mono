@@ -1,9 +1,9 @@
 import { MetricContributionDomainEntity } from '../../domain/entities/metric-contribution.entity';
 import type { IMetricContributionDatabaseData } from '../../domain/interfaces/metric-contribution-database.interface';
-import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
+import { MetricContributionRecord } from '../entities/metric-contribution.record';
 
 export class MetricContributionMapper {
-  static toDomain(entity: MetricContributionTypeormEntity): MetricContributionDomainEntity {
+  static toDomain(entity: MetricContributionRecord): MetricContributionDomainEntity {
     const databaseData: IMetricContributionDatabaseData = {
       _id: entity._id,
       contribution_hash: entity.contribution_hash,
@@ -22,7 +22,7 @@ export class MetricContributionMapper {
     return new MetricContributionDomainEntity(databaseData);
   }
 
-  static toEntity(domain: MetricContributionDomainEntity): Partial<MetricContributionTypeormEntity> {
+  static toEntity(domain: MetricContributionDomainEntity): Partial<MetricContributionRecord> {
     return {
       _id: domain._id,
       contribution_hash: domain.contribution_hash,

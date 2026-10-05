@@ -3,7 +3,7 @@ import { GraphQLJSON } from 'graphql-type-json';
 import {
   CardcoopEntryOutcome,
   CardcoopEntryStatus,
-} from '../../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+} from '../../infrastructure/records/cardcoop-entry-session.record';
 
 registerEnumType(CardcoopEntryOutcome, {
   name: 'CardcoopEntryOutcome',

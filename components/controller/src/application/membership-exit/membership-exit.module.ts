@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { MembershipExitResolver } from './resolvers/membership-exit.resolver';
 import { MembershipExitService } from './services/membership-exit.service';
 import { MembershipExitAuthorizationListener } from './services/membership-exit-authorization.listener';
@@ -9,7 +8,6 @@ import { NotificationModule } from '../notification/notification.module';
 import { SystemModule } from '../system/system.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
-import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/entities/membership-exit-request.entity';
 import { AuthorizationModule } from '~/application/auth-v2/authorization/authorization.module';
 
 /**
@@ -23,7 +21,6 @@ import { AuthorizationModule } from '~/application/auth-v2/authorization/authori
 @Module({
   imports: [
     ParticipantModule,
-    TypeOrmModule.forFeature([MembershipExitRequestEntity]),
     TokenApplicationModule,
     NotificationModule,
     SystemModule,

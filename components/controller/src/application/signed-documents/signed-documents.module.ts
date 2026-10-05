@@ -8,7 +8,7 @@ import { SignedDocumentBackfillService } from './services/signed-document-backfi
  *
  * Ingestion-листенер ловит blockchain-события soviet с внутренней шины и наполняет PG-проекцию;
  * backfill — разовый перенос истории. Репозиторий (SIGNED_DOCUMENT_REPOSITORY) и генератор
- * предоставляются глобальными модулями (TypeOrmModule / GeneratorInfrastructureModule).
+ * предоставляются глобальными модулями (KyselyModule / GeneratorInfrastructureModule).
  *
  * Это единый источник для getDocuments (read-path) и searchDocuments — OpenSearch удалён.
  */

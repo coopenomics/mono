@@ -1,18 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
-import { EXTENSION_REPOSITORY, ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
-import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
+import { computeOnboardingExpiresAt, DomainError, EXTENSION_REPOSITORY, type ExtensionDomainEntity, ExtensionDomainRepository, platformSettings } from '@coopenomics/extension-kit';
 import { CapitalOnboardingStepInputDTO, CapitalOnboardingStepEnum, CapitalOnboardingStateDTO } from '../dto/onboarding.dto';
 import type { IConfig } from '../../capital-extension.module';
 import { Cooperative } from 'cooptypes';
-import type { ISignedDocument } from '@coopenomics/innercoop';
-import { IDecisionTrackingPort, DECISION_TRACKING_PORT, DecisionEventType } from '@coopenomics/innercoop';
-import { IFreeDecisionPort, FREE_DECISION_PORT } from '@coopenomics/innercoop';
-import { IDocumentApprovalPort, DOCUMENT_APPROVAL_PORT } from '@coopenomics/innercoop';
-import { LOGGER_PORT, type ILoggerPort, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
+import { DECISION_TRACKING_PORT, DecisionEventType, DOCUMENT_APPROVAL_PORT, FREE_DECISION_PORT, IDecisionTrackingPort, IDocumentApprovalPort, IFreeDecisionPort, type ILoggerPort, type ISignedDocument, LOGGER_PORT, ONBOARDING_COMPLETED_EVENT } from '@coopenomics/innercoop';
 import { isCapitalL1Complete } from '../onboarding/capital-l1';
-import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 
 type OnboardingFlagKey =
   | 'onboarding_generator_program_template_done'

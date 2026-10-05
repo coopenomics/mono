@@ -142,3 +142,20 @@ cases:
       воркера шесть часов, резерв отдаётся только другим расширениям
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "воркер серий тикает раз в шесть часов, время стенда через API не перемотать"
+
+  - id: exp.plan.side.10
+    level: backend
+    kind: side
+    scenario: >
+      хранилище плановых расходов: выборка серий для воркера повторов и реестр
+      участка
+    expect: >
+      воркер берёт только повторяющиеся расходы с наступившим сроком, которые
+      ещё не продолжены, по порядку заведения; реестр отбирается по кооперативу
+      и участку и идёт по сроку
+    test: components/controller/tests/unit/expenses/expenses-kysely-stores.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны; ведение реестра и повторы через API покрыты случаями exp.plan.*"
+    status: written

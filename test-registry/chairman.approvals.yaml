@@ -12,8 +12,8 @@ sources:
     - components/controller/src/extensions/chairman/application/services/approval.service.ts
     - components/controller/src/extensions/chairman/application/dto/*approv*.ts
     - components/controller/src/extensions/chairman/domain/**
-    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.typeorm-repository.ts
-    - components/controller/src/extensions/chairman/infrastructure/entities/approval-typeorm.entity.ts
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.kysely-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/entities/approval.record.ts
     - components/controller/src/extensions/chairman/infrastructure/mappers/approval*.ts
     - components/controller/src/extensions/chairman/infrastructure/blockchain/**
 
@@ -105,6 +105,22 @@ cases:
     status: passing
 
   - id: chair.appr.side.07
+    level: backend
+    kind: side
+    scenario: >
+      зеркало одобрений председателя на новом каркасе синхронизации: изменение
+      существующей записи, откат форка, архив отменённых записей
+    expect: >
+      перед изменением прежнее состояние уходит в версии с блоком изменения;
+      после форка запись возвращается к состоянию перед самым ранним отменённым
+      изменением, запись без таких изменений не трогается, появившаяся после
+      форка не воскрешается; отменённые записи переносятся в архив
+    test: components/controller/tests/unit/blockchain/chain-versioning.service.test.ts
+    external: unreachable
+    external_reason: "версии и архив форка — внутренние таблицы узла; поведение одобрений через API покрыто случаями фичи, откат форка — набором отказов стенда"
+    status: written
+
+  - id: chair.appr.side.08
     level: backend
     kind: side
     scenario: >

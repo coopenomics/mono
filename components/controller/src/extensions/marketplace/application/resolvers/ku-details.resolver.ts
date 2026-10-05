@@ -1,11 +1,13 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight } from '@coopenomics/extension-kit';
 import { DetailKUInputDTO } from '../dto/detail-ku-input.dto';
 import { SetKUStatusInputDTO } from '../dto/deactivate-ku-input.dto';
 import { KuDetailsDTO } from '../dto/ku-details.dto';
 import { ListMarketplaceKUInputDTO } from '../dto/list-marketplace-ku-input.dto';
 import { KuDetailsService } from '../services/ku-details.service';
+import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
+import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 
 // GraphQL-резолвер для marketplace-детализации существующих в core КУ.
 // Доступ: операции записи — только chairman (админ кооператива);
@@ -23,8 +25,8 @@ export class KuDetailsResolver {
       'При смене адреса запускает повторный геокодинг — координаты сбрасываются в PENDING ' +
       'и обновляются асинхронно.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('KU', 'manage')
   async marketplaceDetailKU(@Args('data', { type: () => DetailKUInputDTO }) data: DetailKUInputDTO): Promise<KuDetailsDTO> {
     return this.kuDetailsService.detailKU(data);
   }
@@ -33,8 +35,8 @@ export class KuDetailsResolver {
     name: 'marketplaceSetKUStatus',
     description: 'Активирует или деактивирует ПВЗ Стола заказов.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('KU', 'manage')
   async marketplaceSetKUStatus(@Args('data', { type: () => SetKUStatusInputDTO }) data: SetKUStatusInputDTO): Promise<KuDetailsDTO> {
     return this.kuDetailsService.setStatus(data);
   }
@@ -43,8 +45,8 @@ export class KuDetailsResolver {
     name: 'marketplaceRetryKUGeocode',
     description: 'Повторно запускает геокодинг адреса ПВЗ.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('KU', 'manage')
   async marketplaceRetryKUGeocode(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('coreBraname', { type: () => String }) coreBraname: string
@@ -56,8 +58,8 @@ export class KuDetailsResolver {
     name: 'marketplaceListKUDetails',
     description: 'Список marketplace-детализаций ПВЗ кооператива.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('KU', 'read')
   async marketplaceListKUDetails(@Args('data', { type: () => ListMarketplaceKUInputDTO }) data: ListMarketplaceKUInputDTO): Promise<KuDetailsDTO[]> {
     return this.kuDetailsService.list(data);
   }

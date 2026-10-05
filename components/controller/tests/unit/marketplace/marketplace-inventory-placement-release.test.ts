@@ -15,7 +15,7 @@ import { MarketplaceInventoryStatuses } from '~/extensions/marketplace/domain/en
 
 const makeAdapter = () => {
   const repo = {
-    update: jest.fn().mockResolvedValue({ affected: 1 }),
+    update: jest.fn().mockResolvedValue(1),
     findOneOrFail: jest.fn().mockResolvedValue({ id: 'inv-1' }),
   } as any;
   const mapper = { toDomain: (row: unknown) => row } as any;

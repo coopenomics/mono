@@ -6,13 +6,14 @@
  *    Он молча удалял колонки, которых нет в сущности, превращал переименование
  *    в потерю данных и в blue-green выкатке правил общую базу, пока старая
  *    версия ещё работала. Схему меняют миграции (`pnpm schema:generate`).
- * 2. Расширение, у которого есть таблицы (`<имя>.entities.ts`), объявляет и их
+ * 2. Расширение, у которого есть таблицы (шлюзы `infrastructure/database/*-stores.ts`
+ *    либо перечень `<имя>.tables.ts`), объявляет и их
  *    миграции (`<имя>.database-migrations.ts`) — иначе на новом узле его
  *    таблицы не появятся.
  * 3. Ветка, изменившая схему сущности (декоратор или опцию колонки), приносит
  *    и миграцию того же владельца — по диффу от общей с dev точки.
  *
- * Что сущности совпадают с миграциями, проверяет `pnpm schema:check` в CI —
+ * Что миграции применяются на пустой базе, проверяет `pnpm schema:check` в CI —
  * ему нужна живая база.
  */
 import { execSync } from 'node:child_process';
@@ -45,10 +46,13 @@ for (const dir of scanRoots) walk(path.join(root, dir));
 
 const extensionsDir = path.join(root, 'components/controller/src/extensions');
 for (const name of fs.readdirSync(extensionsDir).sort()) {
-  const entities = path.join(extensionsDir, name, `${name}.entities.ts`);
+  const database = path.join(extensionsDir, name, 'infrastructure/database');
+  const ownsTables =
+    fs.existsSync(path.join(extensionsDir, name, `${name}.tables.ts`)) ||
+    (fs.existsSync(database) && fs.readdirSync(database).some((file) => /-stores\.ts$/.test(file)));
   const migrations = path.join(extensionsDir, name, `${name}.database-migrations.ts`);
-  if (fs.existsSync(entities) && !fs.existsSync(migrations)) {
-    problems.push(`расширение ${name}: есть ${name}.entities.ts, но нет ${name}.database-migrations.ts — таблицы не появятся на новом узле`);
+  if (ownsTables && !fs.existsSync(migrations)) {
+    problems.push(`расширение ${name}: есть свои таблицы (шлюзы или ${name}.tables.ts), но нет ${name}.database-migrations.ts — таблицы не появятся на новом узле`);
   }
 }
 

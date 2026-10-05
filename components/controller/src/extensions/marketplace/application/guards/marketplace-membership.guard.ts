@@ -23,7 +23,8 @@ import {
  *    клиент уходит на login).
  * 2. Требует статус пайщика `active` (см. `ParticipantStatusSyncService`, который
  *    повышает `users.status` после `soviet::addpartcpnt`) — иначе ForbiddenException
- *    (HTTP 403, «Доступ только для пайщиков кооператива»).
+ *    (HTTP 403, «Доступ только для пайщиков кооператива»). Член совета и
+ *    председатель проходят по роли в любом статусе — то же правило, что в ядре.
  * 3. Формирует `IMarketplaceCurrentMember` (`username`, `core_roles[]`,
  *    `marketplace_roles[]` — пока []) и кладёт его в `request.currentMember`
  *    и в GraphQL `ctx.currentMember` для последующих resolver-ов через
@@ -80,13 +81,17 @@ export class MarketplaceMembershipGuard implements CanActivate {
       return true;
     }
 
+    const coreRoles = mapUserRoleToCoreRoles(user.role);
+
     // Под межсервисным секретом статус не проверяется: это служебный вызов,
-    // а не запрос пайщика.
-    if (!bypass && user.status !== MonoAccountStatus.Active) {
+    // а не запрос пайщика. Совет проходит по роли в любом статусе, как в
+    // `RolesGuard` ядра: членов совета, заведённых при установке кооператива,
+    // цепь в `active` переводит не всегда.
+    const isCouncil = coreRoles.includes('Member');
+    if (!bypass && !isCouncil && user.status !== MonoAccountStatus.Active) {
       throw DomainError.forbidden('MARKETPLACE_NOT_A_MEMBER');
     }
 
-    const coreRoles = mapUserRoleToCoreRoles(user.role);
     // Оба источника берутся из dedicated-сервисов с TTL-кешем
     // (MarketplaceSupplierRegistryService / MarketplaceKuChairmanService),
     // чтобы guard на каждом GraphQL-запросе не лез в RPC и в БД на N+1.

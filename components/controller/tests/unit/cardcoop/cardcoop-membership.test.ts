@@ -1,5 +1,5 @@
 import { CardcoopMembershipService } from '~/extensions/cardcoop/membership/membership.service';
-import { CardcoopAttestationState } from '~/extensions/cardcoop/infrastructure/entities/cardcoop-attestation.typeorm-entity';
+import { CardcoopAttestationState } from '~/extensions/cardcoop/infrastructure/records/cardcoop-attestation.record';
 
 /**
  * Журнал выданных подтверждений и отзыв при прекращении членства (story 7.3).
@@ -20,9 +20,9 @@ const makeRepo = (rows: any[] = []) => {
       else store.push(row);
       return row;
     }),
-    findOne: jest.fn(async ({ where }: any) => store.find((r) => Object.entries(where).every(([k, v]) => r[k] === v)) ?? null),
-    count: jest.fn(async ({ where }: any) => store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v)).length),
-    find: jest.fn(async ({ where }: any) => {
+    findOne: jest.fn(async (where: any) => store.find((r) => Object.entries(where).every(([k, v]) => r[k] === v)) ?? null),
+    count: jest.fn(async (where: any) => store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v)).length),
+    find: jest.fn(async (where: any) => {
       const clauses = Array.isArray(where) ? where : [where];
       return store.filter((r) => clauses.some((c: any) => Object.entries(c).every(([k, v]) => r[k] === v)));
     }),
@@ -31,7 +31,7 @@ const makeRepo = (rows: any[] = []) => {
       // по ней может быть несколько.
       const matched = store.filter((r) => Object.entries(where).every(([k, v]) => r[k] === v));
       for (const row of matched) store.splice(store.indexOf(row), 1);
-      return { affected: matched.length };
+      return matched.length;
     }),
   };
 };
@@ -207,7 +207,7 @@ describe('Членство пайщика в сети карт', () => {
     };
     const attestations = makeRepo([pendingRow, failedRevoke, rejectedRow]);
     // Игрушечный find не понимает операторов Not/LessThan — раскладываем выборки по state.
-    attestations.find = jest.fn(async ({ where }: any) => {
+    attestations.find = jest.fn(async (where: any) => {
       if (where.state === CardcoopAttestationState.Pending) return [pendingRow];
       if (where.state === CardcoopAttestationState.Active) return [failedRevoke];
       if (where.state === CardcoopAttestationState.Rejected) return [rejectedRow];

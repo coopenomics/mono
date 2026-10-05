@@ -55,7 +55,7 @@ function make() {
       levels.push(created);
       return created;
     }),
-    unmigratedCourses: jest.fn(async () => courses.filter((c) => !c.section_id && c.legacy_subject)),
+    unmigratedCourses: jest.fn(async () => courses.filter((c) => !c.section_id && c.subject)),
     linkCourse: jest.fn(async (id: string, section_id: string, level_id: string | null) => Object.assign(courses.find((c) => c.id === id), { section_id, level_id })),
   } as any;
   return { service: new EdubridgeSectionsService(repo), sections, levels, courses, repo };
@@ -139,8 +139,8 @@ describe('EdubridgeSectionsService — разделы и уровни', () => {
   it('перенос курсов со строками: пары — в справочник, курсы — ссылками; повторно ничего не создаётся', async () => {
     const { service, sections, levels, courses } = make();
     courses.push(
-      { id: 'c1', legacy_subject: 'Тест', legacy_grade: 'Начинающий', section_id: null, level_id: null },
-      { id: 'c2', legacy_subject: 'тест ', legacy_grade: '', section_id: null, level_id: null }
+      { id: 'c1', subject: 'Тест', grade: 'Начинающий', section_id: null, level_id: null },
+      { id: 'c2', subject: 'тест ', grade: '', section_id: null, level_id: null }
     );
 
     await expect(service.migrateLegacyCourses('voskhod')).resolves.toBe(2);

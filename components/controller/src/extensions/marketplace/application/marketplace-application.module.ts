@@ -2,10 +2,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MarketplaceExtensionDomainModule } from '../domain/marketplace-domain.module';
 import { MarketplaceInfrastructureModule } from '../infrastructure/marketplace-infrastructure.module';
-import { CategoryTreeResolver } from './resolvers/category-tree.resolver';
-import { AttributeResolver } from './resolvers/attribute.resolver';
 import { AvailableCategoryAdminResolver } from './resolvers/available-category-admin.resolver';
-import { RequestResolver } from './resolvers/request.resolver';
 import { MarketplaceMembershipResolver } from './resolvers/marketplace-membership.resolver';
 import { KuDetailsResolver } from './resolvers/ku-details.resolver';
 import { MarketplaceOnboardingResolver } from './resolvers/marketplace-onboarding.resolver';
@@ -27,9 +24,9 @@ import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver
 import { MarketplaceCycleResolver } from './resolvers/marketplace-cycle.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
+import { MarketplaceRightsService } from './access/marketplace-rights.service';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
-import { CategoryTreeService, CATEGORY_TREE_SERVICE } from './services/category-tree.service';
 import { KuDetailsService } from './services/ku-details.service';
 import { ACCOUNT_PORT } from '@coopenomics/innercoop';
 import {
@@ -166,8 +163,6 @@ import { MarketplaceWriteoffService } from './services/marketplace-writeoff.serv
 import { MarketplaceWriteoffCronService } from './services/marketplace-writeoff-cron.service';
 import { MarketplaceWriteoffSyncService } from './services/marketplace-writeoff-sync.service';
 import { MarketplaceWriteoffResolver } from './resolvers/marketplace-writeoff.resolver';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { MarketplaceInventoryEntity } from '../infrastructure/entities/marketplace-inventory.entity';
 // Конечный жизненный цикл заказов: крон-закрытие выданных после гарантии
 import { MarketplaceOrderCloseCronService } from './services/marketplace-order-close-cron.service';
 // Задача 99D-15: повтор уценки и инициации выплаты, не дошедших до цепи
@@ -180,7 +175,6 @@ import {
   MARKETPLACE_LEDGER_INVARIANTS_SERVICE,
 } from './services/marketplace-ledger-invariants.service';
 import { MarketplaceLedgerInvariantsResolver } from './resolvers/marketplace-ledger-invariants.resolver';
-import { MarketplaceOrderEntity } from '../infrastructure/entities/marketplace-order.entity';
 // Эпик 16 — корзина и заказ-агрегат
 import { MarketplaceCartResolver } from './resolvers/marketplace-cart.resolver';
 import {
@@ -223,7 +217,6 @@ import {
     // для экранов приёмки/выдачи (MarketplaceOrderDisplayService).
     // Эпик 8: writeoff cron сканер должен видеть marketplace_inventory;
     // крон-закрытие выданных заказов — marketplace_orders
-    TypeOrmModule.forFeature([MarketplaceInventoryEntity, MarketplaceOrderEntity], 'marketplace'),
     // ExtensionDomainService инжектится @Optional() в MarketplaceWriteoffCronService —
     // импортировать сюда нельзя (цикл AppModule → →
     // ExtensionsModule → MarketplaceExtensionModule → MarketplaceExtensionApplicationModule).
@@ -238,10 +231,7 @@ import {
       MarketplaceOfferImagesService,
     ]),
     // GraphQL резолверы
-    CategoryTreeResolver,
-    AttributeResolver,
     AvailableCategoryAdminResolver,
-    RequestResolver,
     MarketplaceMembershipResolver,
     KuDetailsResolver,
     MarketplaceOnboardingResolver,
@@ -278,17 +268,13 @@ import {
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
+    MarketplaceRightsService,
 
     // Канон авторизации столов: провайдер грантов market для getDesktop
     // (само-регистрируется в глобальном ExtensionGrantsRegistry).
     MarketplaceDesktopGrantsProvider,
 
     // Сервисы приложения
-    {
-      provide: CATEGORY_TREE_SERVICE,
-      useClass: CategoryTreeService,
-    },
-    CategoryTreeService,
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
@@ -505,9 +491,9 @@ import {
   ],
   exports: [
     // Экспортируем сервисы для использования в других модулях
-    CATEGORY_TREE_SERVICE,
     MarketplaceMembershipGuard,
     MarketplaceRoleGuard,
+    MarketplaceRightsService,
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,
@@ -527,10 +513,7 @@ import {
     MarketplaceOfferCountersService,
 
     // Экспортируем резолверы для регистрации в GraphQL
-    CategoryTreeResolver,
-    AttributeResolver,
     AvailableCategoryAdminResolver,
-    RequestResolver,
     MarketplaceMembershipResolver,
     KuDetailsResolver,
     MarketplaceOnboardingResolver,

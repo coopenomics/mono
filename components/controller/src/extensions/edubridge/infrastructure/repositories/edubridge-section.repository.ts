@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { EDUBRIDGE_COURSE_STORE, EDUBRIDGE_LEVEL_STORE, EDUBRIDGE_SECTION_STORE } from '../database/edubridge-stores';
 import { EduCourseStatus } from '../../domain/enums';
 import { EdubridgeCourseEntity, EdubridgeLevelEntity, EdubridgeSectionEntity } from '../entities';
 
@@ -8,26 +8,30 @@ import { EdubridgeCourseEntity, EdubridgeLevelEntity, EdubridgeSectionEntity } f
 @Injectable()
 export class EdubridgeSectionRepository {
   constructor(
-    @InjectRepository(EdubridgeSectionEntity) private readonly sections: Repository<EdubridgeSectionEntity>,
-    @InjectRepository(EdubridgeLevelEntity) private readonly levels: Repository<EdubridgeLevelEntity>,
-    @InjectRepository(EdubridgeCourseEntity) private readonly courses: Repository<EdubridgeCourseEntity>
+    @Inject(EDUBRIDGE_SECTION_STORE)
+    private readonly sections: TableStore<EdubridgeSectionEntity>,
+    @Inject(EDUBRIDGE_LEVEL_STORE)
+    private readonly levels: TableStore<EdubridgeLevelEntity>,
+    @Inject(EDUBRIDGE_COURSE_STORE)
+    private readonly courses: TableStore<EdubridgeCourseEntity>
   ) {}
 
   /** Разделы с уровнями в порядке справочника. */
   async list(coopname: string): Promise<EdubridgeSectionEntity[]> {
-    const rows = await this.sections.find({
-      where: { coopname },
-      relations: { levels: true },
-      order: { sort_order: 'ASC', title: 'ASC' },
-    });
-    for (const s of rows) s.levels = [...(s.levels ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, 'ru', { numeric: true }));
+    const rows = await this.sections.find({ coopname }, { order: { sort_order: 'ASC', title: 'ASC' } });
+    const levels = rows.length ? await this.levels.find({ section_id: oneOf(rows.map((s) => s.id)) }) : [];
+    for (const s of rows) {
+      s.levels = levels
+        .filter((l) => l.section_id === s.id)
+        .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title, 'ru', { numeric: true }));
+    }
     return rows;
   }
 
   /** Пары «раздел — уровень», по которым есть опубликованные курсы. */
   async publishedPairs(coopname: string): Promise<Array<{ section_id: string; level_id: string | null }>> {
     return this.courses
-      .createQueryBuilder('c')
+      .sqlBuilder('c')
       .select('c.section_id', 'section_id')
       .addSelect('c.level_id', 'level_id')
       .where('c.coopname = :coopname', { coopname })
@@ -39,47 +43,49 @@ export class EdubridgeSectionRepository {
   }
 
   findSection(coopname: string, id: string): Promise<EdubridgeSectionEntity | null> {
-    return this.sections.findOne({ where: { coopname, id } });
+    return this.sections.findOne({ coopname, id });
   }
 
   findSectionByTitle(coopname: string, title: string): Promise<EdubridgeSectionEntity | null> {
-    return this.sections.createQueryBuilder('s').where('s.coopname = :coopname', { coopname }).andWhere('lower(s.title) = lower(:title)', { title }).getOne();
+    return this.sections.sqlBuilder('s').where('s.coopname = :coopname', { coopname }).andWhere('lower(s.title) = lower(:title)', { title }).getOne();
   }
 
   findLevel(coopname: string, id: string): Promise<EdubridgeLevelEntity | null> {
-    return this.levels.findOne({ where: { coopname, id } });
+    return this.levels.findOne({ coopname, id });
   }
 
   findLevelByTitle(sectionId: string, title: string): Promise<EdubridgeLevelEntity | null> {
-    return this.levels.createQueryBuilder('l').where('l.section_id = :sectionId', { sectionId }).andWhere('lower(l.title) = lower(:title)', { title }).getOne();
+    return this.levels.sqlBuilder('l').where('l.section_id = :sectionId', { sectionId }).andWhere('lower(l.title) = lower(:title)', { title }).getOne();
   }
 
   levelsOf(sectionId: string): Promise<EdubridgeLevelEntity[]> {
-    return this.levels.find({ where: { section_id: sectionId }, order: { sort_order: 'ASC' } });
+    return this.levels.find({ section_id: sectionId }, { order: { sort_order: 'ASC' } });
   }
 
   async nextSectionOrder(coopname: string): Promise<number> {
-    const r = await this.sections.createQueryBuilder('s').select('MAX(s.sort_order)', 'max').where('s.coopname = :coopname', { coopname }).getRawOne<{ max: number | null }>();
+    const r = await this.sections.sqlBuilder('s').select('MAX(s.sort_order)', 'max').where('s.coopname = :coopname', { coopname }).getRawOne<{ max: number | null }>();
     return Number(r?.max ?? -1) + 1;
   }
 
   async nextLevelOrder(sectionId: string): Promise<number> {
-    const r = await this.levels.createQueryBuilder('l').select('MAX(l.sort_order)', 'max').where('l.section_id = :sectionId', { sectionId }).getRawOne<{ max: number | null }>();
+    const r = await this.levels.sqlBuilder('l').select('MAX(l.sort_order)', 'max').where('l.section_id = :sectionId', { sectionId }).getRawOne<{ max: number | null }>();
     return Number(r?.max ?? -1) + 1;
   }
 
   saveSection(s: Partial<EdubridgeSectionEntity>): Promise<EdubridgeSectionEntity> {
-    return this.sections.save(this.sections.create(s));
+    const { levels: _levels, ...row } = s;
+    return this.sections.save(row);
   }
 
   saveLevel(l: Partial<EdubridgeLevelEntity>): Promise<EdubridgeLevelEntity> {
-    return this.levels.save(this.levels.create(l));
+    const { section: _section, ...row } = l;
+    return this.levels.save(row);
   }
 
   /** Курсы, ещё не перенесённые в справочник: раздел лежит строкой. */
   unmigratedCourses(coopname: string): Promise<EdubridgeCourseEntity[]> {
     return this.courses
-      .createQueryBuilder('c')
+      .sqlBuilder('c')
       .where('c.coopname = :coopname', { coopname })
       .andWhere('c.section_id IS NULL')
       .andWhere("coalesce(c.subject, '') <> ''")

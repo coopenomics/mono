@@ -169,16 +169,19 @@ cases:
       осиротевший объект удалится следующей попыткой
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "отказ хранилища снимков посреди решения: остановка хранилища роняет и остальные сценарии сверки, точечно сбой не создать"
 
   - id: cid.vrev.break.08
     level: backend
     kind: break
     scenario: >
-      ответ UPDATE ... RETURNING от TypeORM приходит парой «строки и число
-      задетых», а не плоским списком строк
+      решение по заявке пишется одним UPDATE ... RETURNING; заявка есть и
+      заявки нет; то же правило для кода второго фактора и очистки правил
     expect: >
-      запись читается верно; иначе отзыв верификации падает уже после того,
-      как цепь его провела, и повторить его контракт не даёт
+      запись читается из возвращённой строки, без строки — пусто; иначе отзыв
+      верификации падает уже после того, как цепь его провела, и повторить
+      его контракт не даёт; повтор кода не проходит, число удалённых верное
     test: components/controller/src/infrastructure/auth-v2/postgres-verification-review.repository.spec.ts
     api: components/api-tests/src/coopid/verification-review.test.ts
     status: passing
@@ -194,6 +197,8 @@ cases:
     status: missing
 
   # ── Журнал ────────────────────────────────────────────────────────────────
+    external: unreachable
+    external_reason: "недоступный журнал аудита после успешного действия в цепи: журнал живёт в той же базе, что и весь CoopID"
 
   - id: cid.vrev.happy.04
     level: backend

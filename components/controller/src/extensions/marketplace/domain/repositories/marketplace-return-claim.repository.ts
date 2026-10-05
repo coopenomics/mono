@@ -72,6 +72,12 @@ export interface MarketplaceReturnClaimDomainRepository {
   ): Promise<MarketplaceReturnClaimDomainEntity | null>;
 
   /**
+   * Сколько по заказу уже возвращено: имущество принято у стойки (ждёт решения
+   * совета) или возврат принят советом. Отклонённые заявления не считаются.
+   */
+  sumReturnedQuantity(coopname: string, order_id: string): Promise<number>;
+
+  /**
    * Заявления конкретного пайщика-заказчика, сортировка по created_at desc.
    */
   listByOrderer(

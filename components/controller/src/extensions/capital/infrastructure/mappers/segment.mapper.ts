@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
-import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
+import { SegmentRecord } from '../entities/segment.record';
 import { ResultMapper } from './result.mapper';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
@@ -14,8 +14,8 @@ import { DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 import { DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<SegmentTypeormEntity>, keyof ISegmentBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<SegmentRecord>, keyof ISegmentDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<SegmentRecord>, keyof ISegmentBlockchainData>;
 type toDomainDatabasePart = RequireFields<Partial<SegmentDomainEntity>, keyof ISegmentDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<SegmentDomainEntity>, keyof ISegmentBlockchainData>;
 
@@ -34,7 +34,7 @@ export class SegmentMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: SegmentTypeormEntity): SegmentDomainEntity {
+  static toDomain(entity: SegmentRecord): SegmentDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -135,7 +135,7 @@ export class SegmentMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: SegmentDomainEntity): Partial<SegmentTypeormEntity> {
+  static toEntity(domain: SegmentDomainEntity): Partial<SegmentRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -222,8 +222,8 @@ export class SegmentMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<SegmentDomainEntity>): Partial<SegmentTypeormEntity> {
-    const updateData: Partial<SegmentTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<SegmentDomainEntity>): Partial<SegmentRecord> {
+    const updateData: Partial<SegmentRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain.block_num !== undefined) updateData.block_num = domain.block_num;

@@ -41,7 +41,7 @@ _Критичные правила и паттерны для AI-агентов 
 - **TypeScript 5.x** (strict mode; `noImplicitAny`, `strictNullChecks`)
 - **Node 20 LTS**
 - **NestJS** (`@nestjs/common`, `@nestjs/core`, `@nestjs/event-emitter`)
-- **TypeORM** + **PostgreSQL 14+**
+- **Kysely** (построитель запросов) + **PostgreSQL 14+**; TypeORM выведен из контроллера (C28-81)
 - **Redis 7+** (AOF + RDB **mandatory** для prod — startup validation)
 - **`@coopenomics/parser2` v1.0.0 MVP** (пост-миграция) + **`@coopenomics/coopos-ship-reader`** транзитивно
 - **`@wharfkit/antelope`** — chain SDK для submit
@@ -71,17 +71,20 @@ _Критичные правила и паттерны для AI-агентов 
 - Декораторы `@DomainKey({ primary, sync })` + `@SyncBehaviour({ forkPolicy, dlq })` + `@Versioned({ strategy })` — на sync-service классе. Metadata читается через `Reflect.getMetadata('sync:config', target)`.
 - `@Inject(ENTITY_REPOSITORY)` token — symbol, определён в `domain/repositories/{entity}.repository.ts`.
 - **`@Optional()` с типом `X | null` — только с явным `@Inject(X)`.** Тип-объединение метаданные TypeScript стирают до `Object`, Nest не может его подставить, и `@Optional()` молча отдаёт `null` — без ошибки на старте. Так 23.09.2026 были выключены ожидание разбора блока в `transact` и лента изменений; страховка — `tests/unit/blockchain/optional-deps-injection.test.ts`.
-- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
+- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, Record, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
-**TypeORM:**
-- **Схема — только миграциями, `synchronize: true` запрещён везде** (C28-79, гейт `pnpm check`). Правка сущности → `pnpm schema:generate <имя>` → проверить SQL (переименование колонки TypeORM пишет как DROP+ADD — переписать на `RENAME COLUMN`) → `pnpm schema:check`. Миграции ядра — `src/infrastructure/database/migrations/` (список в `index.ts`), расширения — `src/extensions/<имя>/migrations/database/` + `<имя>.database-migrations.ts` в записи реестра. Учёт — `schema_migrations`; применяются при подключении (`migrationsRun`), первым шагом `pnpm migrate` и `pnpm schema:migrate`. Стартовые `*-baseline.ts` идемпотентны, не править руками. Подробно — `migrations/README.md`. Правка схемы сущности без новой миграции того же владельца роняет `pnpm check` (гейт сверяет дифф ветки от dev); правка без влияния на таблицу помечается `// schema-unchanged: причина`. Новое расширение с таблицами приходит сразу со стартовой миграцией: SQL из `schema:generate`, переведённый в идемпотентную форму (`toIdempotent`) — на стендах таблицы мог завести прежний `synchronize`.
-- **Миграции данных и цепи** — самописный мигратор, каталог `migrations/`, новые файлы `ГГГГММДДччмм__описание.ts` (`pnpm migration:generate`); прежние `V*` заморожены.
-- **TypeORM запатчен** (`patches/typeorm@0.3.20.patch`, `pnpm-workspace.yaml`): наследник, переопределявший колонку базового класса со своим умолчанием, портил опции родителя — умолчание утекало в соседние таблицы и зависело от порядка загрузки сущностей. При обновлении TypeORM проверить, исправлено ли в upstream (в 0.3.31 — нет).
-- `@Column({ type: 'bigint', nullable: true })` для `block_num`. Для `jsonb` — `@Column({ type: 'jsonb' })`.
+**База данных (Kysely, C28-81):**
+- **Запросы — только через Kysely.** Ядро: хранилища `infrastructure/database/kysely/repositories/*.kysely-repository.ts` на токене `KYSELY`, типы таблиц — `database.types.ts` (собираются из миграций: `pnpm schema:types`). Расширение ядро не импортирует: токен и помощники — из `@coopenomics/extension-kit`, записи и шлюзы таблиц (`TableStore`) — в `infrastructure/database/<имя>-stores.ts`. Запросы с соединениями и агрегатами — `store.sqlBuilder(alias)` (готовые фрагменты SQL с именованными параметрами) либо `rawQuery`.
+- **Число затронутых строк — только `affectedCount(await query.execute())`.** Таблице ленты изменений слой базы дописывает `RETURNING`, и Kysely отдаёт строки вместо счётчика; `executeTakeFirst()` на такой таблице вернёт строку либо пустоту.
+- **Транзакция — `inTransaction(db, work)` из каркаса.** Сигналы ленты изменений уходят после фиксации; голый `db.transaction()` этого не делает. Готовый SQL (`rawQuery`, `sqlBuilder`) слой базы не видит — после такой записи автор зовёт `publishLocal` сам.
+- **Схема — только миграциями SQL** (C28-79, гейт `pnpm check`). Правка схемы → `pnpm schema:generate <имя> [расширение]` (заготовка) → вписать SQL (переименование колонки — `RENAME COLUMN`) → `pnpm schema:check` → `pnpm schema:types`. Миграции ядра — `src/infrastructure/database/migrations/` (список в `index.ts`), расширения — `src/extensions/<имя>/migrations/database/` + `<имя>.database-migrations.ts` в записи реестра. Учёт — `schema_migrations`; применяются при подключении к базе, первым шагом `pnpm migrate` и `pnpm schema:migrate`. Стартовые `*-baseline.ts` идемпотентны, не править руками. Подробно — `migrations/README.md`.
+- **Миграции данных и цепи** — самописный мигратор, каталог `migrations/`, новые файлы `ГГГГММДДччмм__описание.ts` (`pnpm migration:generate`); прежние `V*` заморожены. Подключение для них — `DataSource` из `infrastructure/database/postgres/postgres-connection.ts` (готовые запросы поверх `pg`).
+- Ошибку базы драйвер отдаёт как есть: `error.code` (`23505` — нарушение уникальности), `error.constraint`.
+- `bigint` и `numeric` приходят строкой: числовые поля записи перечисляются в `numbers` шлюза, в условии — `String(value)`.
 - `ADD COLUMN NOT NULL` на больших таблицах — **двухэтапно**: ADD nullable → backfill → ALTER NOT NULL.
-- Repository `extends BaseBlockchainRepository<DomainEntity, TypeormEntity>`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
-- **Контракт «entity с block_num → repo extends BaseBlockchainRepository» (Story 4.3).** Любая `*.typeorm-entity.ts` extends `BaseTypeormEntity` ОБЯЗАНА иметь репозиторий extends `BaseBlockchainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
-- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно через DataSource.transaction). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
+- Хранилище зеркала цепи `extends BaseChainRepository<DomainEntity, Record>` (`@coopenomics/extension-kit/sync`), запись — `extends ChainRecord`. `findBySyncKey`, `createIfNotExists`, `deleteByBlockNumGreaterThan`, `restoreFromVersions` — **наследуются**, не реализовывать руками.
+- **Контракт «запись с block_num → хранилище extends BaseChainRepository» (Story 4.3).** Любая запись зеркала (`extends ChainRecord`) ОБЯЗАНА иметь хранилище extends `BaseChainRepository` — иначе `entity_versions` не пишется (silent), а форк-rollback превращается в hard delete без восстановления. CI grep-guard: `tests/unit/blockchain/base-blockchain-repository.contract.test.ts`. Allowlist для 5 off-chain entity (`comment`, `cycle`, `issue`, `story`, `time-entry` — vestigial block_num, не блокчейн-зеркала). Новое исключение в allowlist — только с обоснованием в audit-report.
+- **Архив форка вместо hard-delete (Story 4.4).** `handleFork(N, eventId?)` НЕ удаляет live-ряды и снимки версий — переносит в `invalidated_entities` / `invalidated_entity_versions` (атомарно, одной транзакцией `ChainVersioningService`). Порядок: archiveInvalidatedSince → restoreFromVersions → archiveInvalidatedVersionsSince. `fork_event_id` группирует записи одного форка (для forensic). Retention — `BlockchainArchiveRetentionService` ежечасно удаляет архив старше `LIB - 1000` блоков. LIB читается через `BlockchainService.getInfo()` (вариант C, RPC `/v1/chain/get_info`). Окно `RETENTION_HORIZON_BLOCKS = 1000` ХАРДКОД (свойство сети, не оператора). Env-переключатели: `BLOCKCHAIN_ARCHIVE_RETENTION_ENABLED` (default true), `BLOCKCHAIN_ARCHIVE_RETENTION_CRON` (default `0 * * * *`).
 
 **parser2 integration:**
 - `ParserClient` subscribe с `subscriptionId = "controller-${coopname}"`, `consumerName = "primary"` (детерминирован), `startFromBlock: 'last_known'`.
@@ -223,16 +226,15 @@ node scripts/analyze-cycles.mjs        # ожидаемый вывод: обёр
 
 | Поле записи | Файл-декларация | Что сломается без него |
 |---|---|---|
-| `entities` | `<name>/<name>.entities.ts` | таблицы не создадутся, репозитории не поднимутся |
 | `databaseMigrations` | `<name>/<name>.database-migrations.ts` | таблицы не появятся на новом узле (гейт `check-schema-migrations`) |
 | `migrations` | `<name>/<name>.migrations.ts` | конфиг останется старой версии |
 | `ports` | `<name>/<name>.ports.ts` | расширение не пройдёт гейт capability |
 | `defaults` | — | расширение не поставится в новом кооперативе |
 
-Все четыре проверяются гейтом `pnpm check:boundaries`:
+Проверяются гейтами `pnpm check:boundaries` и «схема базы — только миграциями»:
 
-- **сущность вне декларации** — `check-extension-boundaries.mjs` падает: раньше
-  забывчивость страховал глоб, теперь состав объявляется явно;
+- **таблицы без миграций** — расширение со шлюзами таблиц (`infrastructure/database/*-stores.ts`)
+  либо перечнем `<name>.tables.ts` обязано объявить `<name>.database-migrations.ts`;
 - **порт вне заявки** — тот же скрипт: заявка отвечает на вопрос «что этому
   расширению позволено просить у кооператива» (ADR-16), и молча взятый порт
   делает её недостоверной;
@@ -335,18 +337,18 @@ public readonly trusted: IndividualDTO[];
 - `pool-retry-on-fork` — pool auto-retry после fork.
 
 **Mock ban:**
-- **Не** mock'ать TypeORM в интеграционных тестах (testcontainers Postgres).
+- **Не** подменять базу в интеграционных тестах (testcontainers Postgres); в модульных тестах хранилищ — `tests/unit/helpers/kysely-recorder.ts`.
 - **Не** mock'ать parser2 в e2e — использовать staging SHiP или dockerized parser2.
 
 ### Code Quality & Style
 
 **Naming (жёстко):**
-- Entity classes: `{Name}DomainEntity`, `{Name}TypeormEntity`.
+- Entity classes: `{Name}DomainEntity`; запись таблицы — `{Name}Record` (файл `{name}.record.ts`).
 - Interfaces: `I{Name}DomainInterfaceBlockchainData`, `I{Name}DomainInterfaceDatabaseData`.
 - Mappers: `{Name}DeltaMapper`.
 - Syncers: `{Name}SyncService`.
-- Repositories: `{Name}Repository` (interface) + `{Name}TypeormRepository` (impl) + `{NAME}_REPOSITORY` (DI token).
-- Files: kebab-case с суффиксом (`project.entity.ts`, `project.typeorm-entity.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
+- Repositories: `{Name}Repository` (interface) + `{Name}KyselyRepository` (impl, файл `{name}.kysely-repository.ts`) + `{NAME}_REPOSITORY` (DI token).
+- Files: kebab-case с суффиксом (`project.entity.ts`, `project.record.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
 
 **Paths (жёстко):**
 - Per-contract: `extensions/{contract}/{domain|infrastructure|application}/...`.
@@ -389,7 +391,7 @@ public readonly trusted: IndividualDTO[];
 - Входные параметры: `PaginationInputDTO` из `@coopenomics/extension-kit` (page/limit/sortBy/sortOrder). НЕ изобретать локальные `{ limit, offset }`.
 - Возврат: `createPaginationResult(ItemDTO, 'PaginatedXxx')` → `PaginationResult<T>` с полями `items / totalCount / totalPages / currentPage`.
 - Resolver-сигнатура: `@Args('options', { nullable: true }) options?: PaginationInputDTO` + `Promise<PaginationResult<T>>` (см. `time-tracker.resolver.ts`, `expenses-management.resolver.ts`, `generation.resolver.ts` как канон).
-- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через TypeORM `findAndCount`.
+- Repository слой принимает `PaginationInputDTO` и сам считает offset/limit/sort через `findAndCount` шлюза таблицы.
 
 ### Development Workflow
 
@@ -443,7 +445,6 @@ public readonly trusted: IndividualDTO[];
 - Emit pubsub **до** save в PG — **запрещено** (INV-12). Клиент получит "updated" event на несохранённое состояние.
 - Global channel `entityUpdated(contract, ...)` — **запрещено**. Per-contract isolation обязателен.
 - Emit raw delta в subscription payload — **запрещено**. Payload = domain entity, read из PG.
-- **Своё опознание пайщика в резолвере подписки — запрещено.** Резолвер подписки пишется как обычный запрос: `@CurrentUser()` отдаёт ту же учётную запись, что у HTTP (`username`, `role`, `status`), гарды (`GqlJwtAuthGuard`, `RolesGuard`, `ActiveUserStatusGuard`) судят так же. Обеспечивает это соединение, а не резолвер: `onConnect` опознаёт пайщика той же `JwtAuthStrategy.validate` и кладёт результат и токен в контекст (`infrastructure/graphql/ws-auth.registry.ts`). Дочитка имени по `sub`, чтение `connectionParams`, отдельная проверка сессии в резолвере — признак того, что сломан общий путь; чинить его. Кейс 23.09.2026: ws-контекст нёс только `{ sub }`, подписка кошелька с 14.09 отклонялась 403 на каждом соединении, Стол заказов обходил это сам.
 
 ### ⚠️ Edge cases — обязательно handle
 

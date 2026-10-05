@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, In } from 'typeorm';
+import { CAPITAL_PROJECT_STORE } from '../database/capital-stores';
+import { AssetUtils, DomainError, DomainToBlockchainUtils, notEqual, notNull, oneOf, PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
+import { ProjectRecord } from '../entities/project.record';
 import { ProjectMapper } from '../mappers/project.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
 import type { IProjectDomainInterfaceDatabaseData } from '../../domain/interfaces/project-database.interface';
 import type { ProjectFilterInputDTO } from '../../application/dto/property_management/project-filter.input';
@@ -14,7 +13,6 @@ import type { ArtifactAccessScope } from '../../domain/repositories/artifact-acc
 import { IssueIdGenerationService } from '../../domain/services/issue-id-generation.service';
 import { ProjectOrigin } from '../../domain/enums/project-origin.enum';
 import type { ProjectPriority } from '../../domain/enums/project-priority.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, DomainToBlockchainUtils, AssetUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 /**
  * Среднее по процентным полям проекта и его компонентов.
@@ -37,16 +35,15 @@ function averagePercent(values: Array<number | string | null | undefined>): numb
 }
 
 @Injectable()
-export class ProjectTypeormRepository
-  extends BaseBlockchainRepository<ProjectDomainEntity, ProjectTypeormEntity>
+export class ProjectKyselyRepository
+  extends BaseChainRepository<ProjectDomainEntity, ProjectRecord>
   implements ProjectRepository, IBlockchainSyncRepository<ProjectDomainEntity>
 {
   constructor(
-    @InjectRepository(ProjectTypeormEntity)
-    repository: Repository<ProjectTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_PROJECT_STORE) repository: TableStore<ProjectRecord>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -87,7 +84,7 @@ export class ProjectTypeormRepository
       const parentHashRaw = (blockchainData.parent_hash || '').toLowerCase();
       const emptyParent = DomainToBlockchainUtils.getEmptyHash().toLowerCase();
       if (parentHashRaw && parentHashRaw !== emptyParent) {
-        const parentRow = await this.repository.findOneBy({ project_hash: parentHashRaw });
+        const parentRow = await this.repository.findOne({ project_hash: parentHashRaw });
         const fromParent = parentRow?.development_repository_url?.trim();
         inheritedDevUrl = fromParent && fromParent.length > 0 ? fromParent : null;
       }
@@ -169,14 +166,14 @@ export class ProjectTypeormRepository
     }
   ): Promise<ProjectDomainEntity> {
     const h = projectHash.toLowerCase();
-    const existing = await this.repository.findOneBy({ project_hash: h });
+    const existing = await this.repository.findOne({ project_hash: h });
     if (!existing) {
       throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
     if (existing.origin !== ProjectOrigin.LOCAL) {
       throw DomainError.internal('CAPITAL_LOCAL_FIELDS_UPDATE_PERSONAL_ONLY');
     }
-    const patch: Partial<ProjectTypeormEntity> = {};
+    const patch: Partial<ProjectRecord> = {};
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;
     if (fields.invite !== undefined) patch.invite = fields.invite;
@@ -192,7 +189,7 @@ export class ProjectTypeormRepository
 
   async softDeleteLocal(projectHash: string): Promise<void> {
     const h = projectHash.toLowerCase();
-    const existing = await this.repository.findOneBy({ project_hash: h });
+    const existing = await this.repository.findOne({ project_hash: h });
     if (!existing) {
       throw DomainError.notFound('CAPITAL_PROJECT_BY_HASH_NOT_FOUND', { hash: h });
     }
@@ -204,7 +201,7 @@ export class ProjectTypeormRepository
 
   async findDistinctDevelopmentRepositoryUrls(coopname: string): Promise<string[]> {
     const rows = await this.repository
-      .createQueryBuilder('p')
+      .sqlBuilder('p')
       .select('DISTINCT p.development_repository_url', 'url')
       .where('p.coopname = :coopname', { coopname })
       .andWhere('p.present = :present', { present: true })
@@ -221,19 +218,17 @@ export class ProjectTypeormRepository
   }
 
   async countByCoopnameAndDevelopmentRepositoryUrl(coopname: string, normalizedRepositoryUrl: string): Promise<number> {
-    return this.repository.count({
-      where: { coopname, development_repository_url: normalizedRepositoryUrl, present: true },
-    });
+    return this.repository.count({ coopname, development_repository_url: normalizedRepositoryUrl, present: true });
   }
 
   /** Только строки, актуально присутствующие в блокчейне (см. поле present). */
   override async findAll(): Promise<ProjectDomainEntity[]> {
-    const entities = await this.repository.find({ where: { present: true } });
+    const entities = await this.repository.find({ present: true });
     return entities.map((entity) => ProjectMapper.toDomain(entity));
   }
 
   async findByHash(hash: string): Promise<ProjectDomainEntity | null> {
-    const entity = await this.repository.findOneBy({ project_hash: hash });
+    const entity = await this.repository.findOne({ project_hash: hash });
     if (!entity) {
       return null;
     }
@@ -258,7 +253,7 @@ export class ProjectTypeormRepository
     if (hashes.length === 0) {
       return [];
     }
-    const entities = await this.repository.findBy({ project_hash: In(hashes), present: true });
+    const entities = await this.repository.find({ project_hash: oneOf(hashes), present: true });
 
     // Для каждого родительского проекта агрегируем данные из компонентов
     for (const entity of entities) {
@@ -276,7 +271,7 @@ export class ProjectTypeormRepository
     return projects;
   }
   async findByMaster(master: string): Promise<ProjectDomainEntity[]> {
-    const entities = await this.repository.find({ where: { master, present: true } });
+    const entities = await this.repository.find({ master, present: true });
 
     // Для каждого родительского проекта агрегируем данные из компонентов
     for (const entity of entities) {
@@ -295,7 +290,7 @@ export class ProjectTypeormRepository
   }
 
   async findByStatus(status: string): Promise<ProjectDomainEntity[]> {
-    const entities = await this.repository.find({ where: { status: status as any, present: true } });
+    const entities = await this.repository.find({ status: status as any, present: true });
 
     // Для каждого родительского проекта агрегируем данные из компонентов
     for (const entity of entities) {
@@ -317,10 +312,7 @@ export class ProjectTypeormRepository
    * Найти проект с задачами
    */
   async findByIdWithIssues(projectHash: string): Promise<ProjectDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { project_hash: projectHash, present: true },
-      relations: ['issues'],
-    });
+    const entity = await this.repository.findOne({ project_hash: projectHash, present: true });
     if (!entity) {
       return null;
     }
@@ -345,10 +337,7 @@ export class ProjectTypeormRepository
    * Найти проект с историями
    */
   async findByIdWithStories(projectHash: string): Promise<ProjectDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { project_hash: projectHash, present: true },
-      relations: ['stories'],
-    });
+    const entity = await this.repository.findOne({ project_hash: projectHash, present: true });
     if (!entity) {
       return null;
     }
@@ -373,10 +362,7 @@ export class ProjectTypeormRepository
    * Найти проект со всеми связанными данными
    */
   async findByIdWithAllRelations(projectHash: string): Promise<ProjectDomainEntity | null> {
-    const entity = await this.repository.findOne({
-      where: { project_hash: projectHash, present: true },
-      relations: ['issues', 'stories', 'issues.comments', 'issues.stories'],
-    });
+    const entity = await this.repository.findOne({ project_hash: projectHash, present: true });
     if (!entity) {
       return null;
     }
@@ -423,10 +409,10 @@ export class ProjectTypeormRepository
       where.master = filter.master;
     }
     if (filter?.statuses?.length) {
-      where.status = In(filter.statuses);
+      where.status = oneOf(filter.statuses);
     }
     if (filter?.priorities?.length) {
-      where.priority = In(filter.priorities);
+      where.priority = oneOf(filter.priorities);
     }
     if (filter?.project_hash) {
       where.project_hash = filter.project_hash;
@@ -441,10 +427,10 @@ export class ProjectTypeormRepository
       where.is_planed = filter.is_planed;
     }
     if (filter?.has_voting) {
-      where.voting_deadline = Not(IsNull());
+      where.voting_deadline = notNull();
     }
     if (filter?.has_invite) {
-      where.invite = Not('');
+      where.invite = notEqual('');
     }
     if (filter?.origin && filter.origin !== 'any' && filter.origin !== 'all') {
       where.origin = filter.origin;
@@ -456,21 +442,16 @@ export class ProjectTypeormRepository
     where.present = true;
 
     // Получаем общее количество записей
-    const totalCount = await this.repository.count({ where });
+    const totalCount = await this.repository.count(where);
 
     // Получаем записи с пагинацией
     const orderBy: any = {};
     // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
     // ORDER BY и роняло список ошибкой 500 (C28-80).
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, 'created_at');
     orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
 
-    const entities = await this.repository.find({
-      where,
-      skip: offset,
-      take: limit,
-      order: orderBy,
-    });
+    const entities = await this.repository.find(where, { order: orderBy, limit: limit, offset: offset });
 
     // Для каждого родительского проекта агрегируем данные из компонентов
     for (const entity of entities) {
@@ -520,7 +501,7 @@ export class ProjectTypeormRepository
 
     // Создаем query builder для гибкого построения запроса
     let queryBuilder = this.repository
-      .createQueryBuilder('p')
+      .sqlBuilder('p')
       .select('p')
       .where('1=1')
       .andWhere('p.present = :present', { present: true });
@@ -627,14 +608,14 @@ export class ProjectTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, '_created_at');
     queryBuilder = queryBuilder.orderBy(
       `p.${sortColumn}`,
       validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
     );
 
     // Применяем пагинацию
-    queryBuilder = queryBuilder.skip(offset).take(limit);
+    queryBuilder = queryBuilder.offset(offset).limit(limit);
 
     // Получаем записи
     const entities = await queryBuilder.getMany();
@@ -673,7 +654,7 @@ export class ProjectTypeormRepository
    * Получение проекта по хешу с его компонентами
    */
   async findByHashWithComponents(hash: string): Promise<ProjectDomainEntity | null> {
-    const entity = await this.repository.findOneBy({ project_hash: hash });
+    const entity = await this.repository.findOne({ project_hash: hash });
     if (!entity || !entity.present) {
       return null;
     }
@@ -707,10 +688,7 @@ export class ProjectTypeormRepository
    * Получение компонентов проекта по хешу родительского проекта
    */
   async findComponentsByParentHash(parentHash: string): Promise<ProjectDomainEntity[]> {
-    const entities = await this.repository.find({
-      where: { parent_hash: parentHash, present: true },
-      order: { created_at: 'DESC' },
-    });
+    const entities = await this.repository.find({ parent_hash: parentHash, present: true }, { order: { created_at: 'DESC' } });
 
     const components = entities.map((entity) => ProjectMapper.toDomain(entity));
     await this.populateParentTitles(components);
@@ -734,10 +712,7 @@ export class ProjectTypeormRepository
     }
 
     // Получаем родительские проекты по их хешам
-    const parentEntities = await this.repository.find({
-      where: parentHashes.map((hash) => ({ project_hash: hash })),
-      select: ['project_hash', 'title'],
-    });
+    const parentEntities = await this.repository.find(parentHashes.map((hash) => ({ project_hash: hash })));
 
     // Создаем карту хеш -> название для быстрого поиска
     const parentTitleMap = new Map<string, string>();
@@ -759,7 +734,7 @@ export class ProjectTypeormRepository
    * Определяет, является ли проект компонентом
    * Компонент - это проект с непустым parent_hash, отличным от нулевого хэша
    */
-  private isProjectComponent(project: ProjectTypeormEntity | undefined): boolean {
+  private isProjectComponent(project: ProjectRecord | undefined): boolean {
     if (!project || !project.parent_hash) {
       return false;
     }
@@ -771,10 +746,8 @@ export class ProjectTypeormRepository
    * Получает все дочерние проекты (компоненты) для заданного родительского проекта
    * @param parentHash Хэш родительского проекта
    */
-  private async getChildProjectEntities(parentHash: string): Promise<ProjectTypeormEntity[]> {
-    return await this.repository.find({
-      where: { parent_hash: parentHash, present: true },
-    });
+  private async getChildProjectEntities(parentHash: string): Promise<ProjectRecord[]> {
+    return await this.repository.find({ parent_hash: parentHash, present: true });
   }
 
   /**
@@ -783,7 +756,7 @@ export class ProjectTypeormRepository
    * @param project Родительский проект
    * @param components Массив компонентов проекта
    */
-  private aggregateProjectData(project: ProjectTypeormEntity, components: ProjectTypeormEntity[]): void {
+  private aggregateProjectData(project: ProjectRecord, components: ProjectRecord[]): void {
     if (components.length === 0) {
       return;
     }

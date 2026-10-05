@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_CART_ITEM_STORE, MARKETPLACE_CART_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceCartDomainEntity } from '../../domain/entities/marketplace-cart.entity';
 import type { MarketplaceCartDomainRepository } from '../../domain/repositories/marketplace-cart.repository';
 import { MarketplaceCartEntity } from '../entities/marketplace-cart.entity';
@@ -10,10 +10,10 @@ import { MarketplaceCartMapper } from '../mappers/marketplace-cart.mapper';
 @Injectable()
 export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRepository {
   constructor(
-    @InjectRepository(MarketplaceCartEntity, 'marketplace')
-    private readonly cartRepo: Repository<MarketplaceCartEntity>,
-    @InjectRepository(MarketplaceCartItemEntity, 'marketplace')
-    private readonly itemRepo: Repository<MarketplaceCartItemEntity>,
+    @Inject(MARKETPLACE_CART_STORE)
+private readonly cartRepo: TableStore<MarketplaceCartEntity>,
+    @Inject(MARKETPLACE_CART_ITEM_STORE)
+private readonly itemRepo: TableStore<MarketplaceCartItemEntity>,
     private readonly mapper: MarketplaceCartMapper
   ) {}
 
@@ -21,7 +21,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
     coopname: string,
     orderer_account: string
   ): Promise<MarketplaceCartDomainEntity> {
-    let cart = await this.cartRepo.findOne({ where: { coopname, orderer_account } });
+    let cart = await this.cartRepo.findOne({ coopname, orderer_account });
     if (!cart) {
       // Идемпотентно: при гонке двух первых обращений уникальный индекс
       // (coopname, orderer_account) отсечёт дубль — перечитываем.
@@ -30,7 +30,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
           this.cartRepo.create({ coopname, orderer_account, delivery_braname: null })
         );
       } catch {
-        cart = await this.cartRepo.findOneOrFail({ where: { coopname, orderer_account } });
+        cart = await this.cartRepo.findOneOrFail({ coopname, orderer_account });
       }
     }
     return this.loadAggregate(cart);
@@ -40,7 +40,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
     coopname: string,
     orderer_account: string
   ): Promise<MarketplaceCartDomainEntity | null> {
-    const cart = await this.cartRepo.findOne({ where: { coopname, orderer_account } });
+    const cart = await this.cartRepo.findOne({ coopname, orderer_account });
     return cart ? this.loadAggregate(cart) : null;
   }
 
@@ -51,7 +51,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
     package_id: string,
     quantity: number
   ): Promise<void> {
-    const existing = await this.itemRepo.findOne({ where: { cart_id, offer_id, package_id } });
+    const existing = await this.itemRepo.findOne({ cart_id, offer_id, package_id });
     if (existing) {
       await this.itemRepo.update({ id: existing.id }, { quantity: existing.quantity + quantity });
     } else {
@@ -79,7 +79,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
 
   async removeItems(cart_id: string, offer_ids: string[]): Promise<void> {
     if (offer_ids.length === 0) return;
-    await this.itemRepo.delete({ cart_id, offer_id: In(offer_ids) });
+    await this.itemRepo.delete({ cart_id, offer_id: oneOf(offer_ids) });
     await this.touchCart(cart_id);
   }
 
@@ -92,10 +92,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
   // ── private ──
 
   private async loadAggregate(cart: MarketplaceCartEntity): Promise<MarketplaceCartDomainEntity> {
-    const items = await this.itemRepo.find({
-      where: { cart_id: cart.id },
-      order: { created_at: 'ASC' },
-    });
+    const items = await this.itemRepo.find({ cart_id: cart.id }, { order: { created_at: 'ASC' } });
     return this.mapper.toDomain(cart, items);
   }
 
@@ -116,7 +113,7 @@ export class MarketplaceCartRepositoryAdapter implements MarketplaceCartDomainRe
 
   /** Изменить корзину целой строкой — так подписчик ленты видит её владельца. */
   private async saveCart(cart_id: string, change: (cart: MarketplaceCartEntity) => void): Promise<void> {
-    const cart = await this.cartRepo.findOneBy({ id: cart_id });
+    const cart = await this.cartRepo.findOne({ id: cart_id });
     if (!cart) return;
     change(cart);
     await this.cartRepo.save(cart);

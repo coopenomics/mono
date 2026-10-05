@@ -1,10 +1,9 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import {
   MarketplaceCategoryDTO,
   MarketplaceOfferDTO,
@@ -66,7 +65,7 @@ export class MarketplaceOfferResolver {
     description: 'Категории кооператива (общие и собственные) — справочник для каталога и карточек',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read')
+  @RequireRight('Offer', 'read')
   async marketplaceListCategories(): Promise<MarketplaceCategoryDTO[]> {
     // Полный справочник категорий кооператива: общие baseline + собственные.
     // Не фильтруется по доступности — нужен и для резолва имени категории у
@@ -88,7 +87,7 @@ export class MarketplaceOfferResolver {
     description: 'Категории, доступные для публикации предложений (с учётом whitelist)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read')
+  @RequireRight('Offer', 'read')
   async marketplaceListAvailableCategories(): Promise<MarketplaceCategoryDTO[]> {
     // Категории, в которых поставщик может публиковать: список кооператива,
     // отфильтрованный по whitelist'у. Пустой whitelist = открытый каталог
@@ -121,7 +120,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик публикует Offer (статус → PENDING_MODERATION)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'create:own')
+  @RequireRight('Offer', 'create:own')
   async marketplaceCreateOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceCreateOfferInputDTO
@@ -153,7 +152,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own')
   async marketplaceUpdateOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceUpdateOfferInputDTO
@@ -168,7 +167,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик снимает свой Offer (статус → WITHDRAWN)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'delete:own')
+  @RequireRight('Offer', 'delete:own')
   async marketplaceWithdrawOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceWithdrawOfferInputDTO
@@ -182,7 +181,7 @@ export class MarketplaceOfferResolver {
     description: 'Поставщик возвращает снятый Offer на публикацию (статус → PENDING_MODERATION)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own')
   async marketplaceRepublishOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceRepublishOfferInputDTO
@@ -196,7 +195,7 @@ export class MarketplaceOfferResolver {
     description: 'Список собственных Offer\'ов поставщика (любой статус)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'create:own')
+  @RequireRight('Offer', 'create:own')
   async marketplaceListMyOffers(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListMyOffersInputDTO
@@ -225,7 +224,7 @@ export class MarketplaceOfferResolver {
     description: 'Реестр всех предложений кооператива любого статуса (стол администратора).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'read:all')
+  @RequireRight('Offer', 'read:all')
   async marketplaceListAllOffers(
     @Args('input', { nullable: true }) input?: MarketplaceListAllOffersInputDTO
   ): Promise<MarketplaceOfferPaginationResultDTO> {

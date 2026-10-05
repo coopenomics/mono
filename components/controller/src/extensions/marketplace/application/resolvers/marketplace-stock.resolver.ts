@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { MarketplaceConvertPayloadDTO } from '../dto/marketplace-checkout.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
@@ -74,7 +73,7 @@ export class MarketplaceStockResolver {
       'Обезличенный остаток склада кооператива: позиции, оставшиеся после недовыдач и отказов, доступные к публикации в каталог.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'read:own-KU')
+  @RequireRight('Stock', 'read:own-KU')
   async marketplaceListStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('braname', { nullable: true }) braname?: string
@@ -102,11 +101,12 @@ export class MarketplaceStockResolver {
       'Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @RequireRight('Stock', 'publish:own-KU')
   async marketplacePublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplacePublishStockInputDTO
   ): Promise<MarketplaceOfferDTO[]> {
+    await this.assertOwnsPositions(member, data.inventory_ids);
     const offers = await this.stockService.publishStock({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -122,11 +122,12 @@ export class MarketplaceStockResolver {
     description: 'Оператор снимает свободные позиции остатка с витрины каталога.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @RequireRight('Stock', 'publish:own-KU')
   async marketplaceUnpublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUnpublishStockInputDTO
   ): Promise<MarketplaceUnpublishStockResultDTO> {
+    await this.assertOwnsPositions(member, data.inventory_ids);
     const affected = await this.stockService.unpublishStock({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -145,7 +146,7 @@ export class MarketplaceStockResolver {
       'Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @RequireRight('StockProposal', 'create:own-KU')
   async marketplaceStockIssuancePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceStockIssuancePrepareInputDTO
@@ -177,7 +178,7 @@ export class MarketplaceStockResolver {
       'Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @RequireRight('StockProposal', 'create:own-KU')
   async marketplaceCreateStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStockProposalInputDTO
@@ -208,11 +209,13 @@ export class MarketplaceStockResolver {
     description: 'Оператор отзывает неотвеченное предложение (например, чтобы переформировать его).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @RequireRight('StockProposal', 'cancel:own-KU')
   async marketplaceCancelStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
   ): Promise<MarketplaceStockProposalDTO> {
+    const proposalBraname = await this.proposalService.branameOfProposal(platformSettings().coopname, data.proposal_id);
+    if (proposalBraname) await this.assertBranameAllowed(member, proposalBraname, 'StockProposal', 'cancel');
     const proposal = await this.proposalService.cancelProposal(
       platformSettings().coopname,
       data.proposal_id,
@@ -228,7 +231,7 @@ export class MarketplaceStockResolver {
       'кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceStockProposalSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -264,7 +267,7 @@ export class MarketplaceStockResolver {
       'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceFinalizeStockIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceFinalizeStockIssuanceInputDTO
@@ -287,7 +290,7 @@ export class MarketplaceStockResolver {
     description: 'Пайщик отказывается от предложения со склада кооператива.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceDeclineStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -306,11 +309,13 @@ export class MarketplaceStockResolver {
       'Оператор отменяет заказ со склада кооператива до открытия выдачи (например, при переформировании докладки). Средства возвращаются пайщику, позиции — в остаток.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @RequireRight('StockProposal', 'cancel:own-KU')
   async marketplaceCancelStockOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCancelStockOrderInputDTO
   ): Promise<MarketplaceOrderDTO> {
+    const orderBraname = await this.stockService.branameOfOrder(platformSettings().coopname, data.order_id);
+    if (orderBraname) await this.assertBranameAllowed(member, orderBraname, 'StockProposal', 'cancel');
     const order = await this.stockService.cancelStockOrder(
       platformSettings().coopname,
       data.order_id,
@@ -326,7 +331,7 @@ export class MarketplaceStockResolver {
       'Предложения со склада кооператива: входящие пайщика либо активные предложения стойки оператора.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'read:own')
+  @RequireRight('StockProposal', 'read:own')
   async marketplaceListStockProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListStockProposalsInputDTO
@@ -402,6 +407,17 @@ export class MarketplaceStockResolver {
       return [requested];
     }
     return ownBranames;
+  }
+
+  /**
+   * Остаток публикует и снимает оператор участка, на складе которого он
+   * лежит; администратор с правом `publish:all` — на любом участке.
+   */
+  private async assertOwnsPositions(member: IMarketplaceCurrentMember, inventory_ids: string[]): Promise<void> {
+    const branames = await this.stockService.branamesOfPositions(platformSettings().coopname, inventory_ids);
+    for (const braname of branames) {
+      await this.assertBranameAllowed(member, braname, 'Stock', 'publish');
+    }
   }
 
   private async assertBranameAllowed(

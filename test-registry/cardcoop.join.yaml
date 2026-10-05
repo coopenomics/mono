@@ -21,8 +21,9 @@ title: Связь карты при вступлении и выпуск сви�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/membership/join-events.service.ts
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-pending-link.typeorm-entity.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-pending-link.record.ts
   ui:
     - components/desktop/src/pages/Registrator/SignUp/EmailInput.vue
     - components/desktop/src/pages/Registrator/CardcoopEntry/**

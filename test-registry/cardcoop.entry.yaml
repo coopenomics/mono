@@ -27,11 +27,12 @@ title: Вход по карте кооператора и быстрая рег�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/entry/**
     - components/controller/src/extensions/cardcoop/application/entry.controller.ts
     - components/controller/src/extensions/cardcoop/application/cardcoop-entry.resolver.ts
     - components/controller/src/extensions/cardcoop/application/dto/cardcoop-entry.dto.ts
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-entry-session.typeorm-entity.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-entry-session.record.ts
   ui:
     - components/desktop/src/pages/Registrator/CardcoopEntry/**
     - components/desktop/src/features/User/LoginUser/ui/LoginForm/LoginForm.vue

@@ -61,7 +61,7 @@ sources:
     - components/controller/src/infrastructure/blockchain/adapters/draft-blockchain.adapter.ts
     - components/controller/src/infrastructure/generator/effective-template-block.resolver.ts
     - components/controller/src/infrastructure/generator/controller-chain-data.source.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-draft-registry.repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/draft-registry.kysely-repository.ts
     - components/controller/src/extensions/capital/application/onboarding/register-capital-documents.ts
     - components/controller/src/extensions/marketplace/application/onboarding/register-marketplace-documents.ts
     - components/innercoop/src/core-ports/document-approval.port.ts
@@ -259,6 +259,8 @@ cases:
     expect: повтор с журналом; решение совета не теряется
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "сбой первой записи утверждения в цепь при живой цепи снаружи не создать; остановка цепи целиком проверяется фазой отказов"
 
   - id: doc.appr.happy.10
     level: backend
@@ -292,8 +294,8 @@ cases:
     kind: side
     scenario: Пересборка ранее подписанного документа по блоку подписи
     expect: явный блок подписи важнее утверждённой редакции, документ собирается прежним текстом
-    test: ~
-    status: missing
+    test: components/api-tests/src/documents/approvals.test.ts
+    status: written
 
   - id: doc.appr.happy.11
     level: backend
@@ -447,8 +449,11 @@ cases:
     kind: side
     scenario: Совет вынес редакцию на утверждение или утвердил её; стол сразу перечитывает реестр шаблонов (по ответу или по сигналу ленты изменений).
     expect: кэш редакций и утверждений (60 с) сброшен по дельте draft::drafts / draft::approvals до ответа мутации и до сигнала — реестр отдаёт новое состояние, а не прежнее из кэша
-    test: ~
-    status: missing
+    # Снаружи: ответ вынесения уже отдаёт документ «в повестке» (doc.appr.side.09), повторное
+    # вынесение видит то же решение без ожидания; утверждение читается сразу, как реакция на
+    # решение дошла до цепи (doc.appr.happy.09).
+    test: components/api-tests/src/documents/approvals.test.ts
+    status: written
 
   - id: doc.appr.happy.21
     level: backend

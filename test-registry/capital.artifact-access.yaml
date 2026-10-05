@@ -35,6 +35,12 @@ title: Кто читает документы проекта и его пере�
 # «внутренняя ошибка»: коды и тексты прежние, меняется только статус ответа, и
 # такие отказы больше не попадают в журнал ошибок сервера как поломки.
 
+# Правка 2026-10-03 (C28-87): сервис сверяет право на действие над проектом и
+# удаление задачи с таблицей ролей проекта (assertProjectPermission,
+# can_delete_issue); гард резолвера открыт ролям, которым таблица это
+# разрешает. Чтение документов проекта и приоритеты не менялись; случаи — в
+# capital.project-roles.
+
 sources:
   backend:
     - components/controller/src/extensions/capital/domain/services/access-policy.service.ts
@@ -44,8 +50,8 @@ sources:
     - components/controller/src/extensions/capital/application/services/issue-permissions.service.ts
     - components/controller/src/extensions/capital/application/services/generation.service.ts
     - components/controller/src/extensions/capital/application/services/project-management.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
     - components/controller/src/extensions/capital/infrastructure/inter/capital-inter-project-capital-clearance.adapter.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts
@@ -185,8 +191,8 @@ cases:
     expect: >
       пустой ответ с нулевым счётчиком — количество чужих задач тоже не
       раскрывается
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   - id: cap.access.side.08
     level: backend
@@ -197,8 +203,8 @@ cases:
     expect: >
       счётчик и число страниц считаются по доступным задачам; страницы не
       приходят рваными из-за отсева после выборки
-    test: ~
-    status: missing
+    test: components/api-tests/src/capital/artifact-access.test.ts
+    status: written
 
   # ── Переписка: доступ проверяется по самой комнате ─────────────────────────
 
@@ -317,6 +323,24 @@ cases:
     test: components/cooptypes/test/sanitize-editor-text.test.ts
     api: components/api-tests/src/capital/artifact-access.test.ts
     status: passing
+
+  - id: cap.access.side.11
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст

@@ -12,7 +12,6 @@ export type MarketplaceRole =
   | 'offerer'        // Одобренный поставщик из реестра: публикует предложения
   | 'operator'       // Председатель КУ (Эпик 2): операции по своему КУ
   | 'board_readonly' // Member: read-only к admin-данным
-  | 'board'          // Chairman: полные права в повестке совета
   | 'admin';         // Chairman: full admin
 
 /**
@@ -65,7 +64,6 @@ export function mapCoreRolesToMarketplaceRoles(
 
   if (coreRoles.includes('Chairman')) {
     roles.push('admin');
-    roles.push('board');
   }
 
   return roles;

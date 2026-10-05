@@ -38,6 +38,12 @@ title: Поставка — сборка партии поставщиком, п
 # Правка 2026-09-25 (C28-85): экспресс-приёмка проверяет факт до записи —
 # прежде отказ «факт больше заказа» оставлял заказ в заведённой партии, и
 # повторная экспресс-приёмка его не видела.
+
+# Правка 2026-10-03 (C28-87): сервис отдаёт участок объекта отдельным чтением
+# (партия, позиции склада, заказ, бандл), по нему резолвер сверяет участок
+# оператора. Поведение сервиса и случаи слайса не менялись; сама сверка и её
+# случаи — в marketplace.branch-scope.
+
 sources:
   contract:
     - components/contracts/cpp/marketplace/src/p.mkt.supply/createorder.cpp
@@ -671,3 +677,68 @@ cases:
 # сочетание резерва, возврата и списания в одном процессе — то есть каждую недовыдачу и
 # выдачу по сниженной цене. Нарушение теперь — возврат и списание вместе больше
 # внесённого резерва; случай mkt.supply.side.41 снаружи снова проверяет I6 целиком.
+
+  # Формирование партий поставщиком через API (02.10.2026, C28-85): журнал
+  # проверки состава поставки (marketplace_supply_validation_log) не трогал ни
+  # один сценарий внешнего слоя. Журнал только пишется — читателя у него нет.
+  - id: mkt.ship.happy.01
+    level: backend
+    kind: happy
+    scenario: поставщик формирует партию «везу сам» из выбранного акцептованного заказа
+    expect: партия подготовлена к поставке на сумму заказа, без накладной; заказ привязан к партии, партия читается по номеру и в списке заявки
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.happy.02
+    level: backend
+    kind: happy
+    scenario: поставщик формирует партию с экспедитором и данными перевозки
+    expect: партии присвоен номер накладной, данные перевозки сохранены, заказ привязан к партии
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.side.01
+    level: backend
+    kind: side
+    scenario: в партии указан участок, которого нет в заявке; указан заказ, которого нет среди акцептованных
+    expect: отказ MARKETPLACE_SHIPMENT_COMPOSITION_MISMATCH, партия не заводится, заказ ждёт дальше
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.side.02
+    level: backend
+    kind: side
+    scenario: партия без групп доставки; партия по заявке, которой нет
+    expect: отказ своим кодом на каждый случай
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.side.03
+    level: backend
+    kind: side
+    scenario: партию по заявке поставщика формирует пайщик, не поставщик
+    expect: отказ по правам, партия не заводится
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.side.04
+    level: backend
+    kind: side
+    scenario: заказ, уже включённый в партию, включают во вторую
+    expect: отказ, заказ остаётся в первой партии
+    test: components/api-tests/src/marketplace/shipment.test.ts
+    status: written
+
+  - id: mkt.ship.side.05
+    level: backend
+    kind: side
+    scenario: журнал проверки состава поставки и документ накладной
+    expect: >
+      не решено. Журнал проверки состава (marketplace_supply_validation_log)
+      пишется при каждой попытке, но его никто не читает; документ накладной
+      (marketplace_ttn_document) не формируется вовсе — метод зарезервирован
+      и не вызывается, у партии с экспедитором есть только номер
+    test: ~
+    status: missing
+    decision_needed: true
+

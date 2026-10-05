@@ -414,6 +414,12 @@ export class MarketplaceAplReceptionService {
     return this.documentPort.generate({ data: action });
   }
 
+  /** Участок, на который идёт партия, — резолвер сверяет по нему участок оператора. */
+  async branameOfShipment(coopname: string, shipment_id: string): Promise<string | null> {
+    const shipment = await this.shipmentRepo.findById(shipment_id);
+    return shipment && shipment.coopname === coopname ? shipment.braname : null;
+  }
+
   async create(
     input: MarketplaceAplReceptionCreateInputDto
   ): Promise<MarketplaceAplReceptionResult> {

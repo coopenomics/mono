@@ -1,6 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Cooperative, Ledger2 } from 'cooptypes';
 import { Workflows } from '@coopenomics/notifications';
 import { config } from '~/config';
@@ -19,7 +17,10 @@ import { PaymentTypeEnum } from '~/domain/gateway/enums/payment-type.enum';
 import { USER_AGREEMENT_REPOSITORY, type UserAgreementRepository } from '~/domain/wallet/repositories/user-agreement.repository';
 import { SOVIET_BLOCKCHAIN_PORT, type SovietBlockchainPort } from '~/domain/common/ports/soviet-blockchain.port';
 import { MemberExitRegistryService } from '~/domain/account/services/member-exit-registry.service';
-import { MembershipExitRequestEntity } from '~/infrastructure/database/typeorm/entities/membership-exit-request.entity';
+import {
+  MEMBERSHIP_EXIT_REQUEST_REPOSITORY,
+  type MembershipExitRequestRepository,
+} from '~/domain/membership-exit/repositories/membership-exit-request.repository';
 import { tokenTypes } from '~/types/token.types';
 import { CreateMembershipExitInputDTO } from '../dto/create-membership-exit-input.dto';
 import { MembershipExitResultDTO } from '../dto/membership-exit-result.dto';
@@ -53,8 +54,8 @@ export class MembershipExitService {
     @Inject(SOVIET_BLOCKCHAIN_PORT)
     private readonly sovietBlockchainPort: SovietBlockchainPort,
     private readonly memberExitRegistry: MemberExitRegistryService,
-    @InjectRepository(MembershipExitRequestEntity)
-    private readonly exitRequestRepository: Repository<MembershipExitRequestEntity>
+    @Inject(MEMBERSHIP_EXIT_REQUEST_REPOSITORY)
+    private readonly exitRequestRepository: MembershipExitRequestRepository
   ) {}
 
   async generateMembershipExitApplication(
@@ -87,9 +88,7 @@ export class MembershipExitService {
     if (onchain) {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_ALREADY_SUBMITTED');
     }
-    const existing = await this.exitRequestRepository.findOne({
-      where: { coopname: data.coopname, username: data.username },
-    });
+    const existing = await this.exitRequestRepository.findByMember(data.coopname, data.username);
     if (existing) {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_PENDING_CONFIRMATION');
     }
@@ -159,16 +158,14 @@ export class MembershipExitService {
     const user = await this.userDomainService.getUserByUsername(data.username);
     const confirmToken = await this.tokenApplicationService.generateConfirmExitToken(user.id);
 
-    await this.exitRequestRepository.save(
-      this.exitRequestRepository.create({
-        coopname: data.coopname,
-        username: data.username,
-        exit_hash: data.exit_hash,
-        statement: data.statement as unknown as Record<string, any>,
-        annulment: (data.annulment ?? null) as unknown as Record<string, any> | null,
-        token: confirmToken,
-      })
-    );
+    await this.exitRequestRepository.create({
+      coopname: data.coopname,
+      username: data.username,
+      exit_hash: data.exit_hash,
+      statement: data.statement as unknown as Record<string, unknown>,
+      annulment: (data.annulment ?? null) as unknown as Record<string, unknown> | null,
+      token: confirmToken,
+    });
 
     const confirmationUrl = `${config.frontend_url}/${config.coopname}/user/membership-exit/confirm?token=${confirmToken}`;
     this.logger.debug(`Ссылка подтверждения выхода (${data.username}): ${confirmationUrl}`);
@@ -203,7 +200,7 @@ export class MembershipExitService {
   async confirmMembershipExit(token: string): Promise<MembershipExitResultDTO> {
     await this.tokenApplicationService.verifyToken({ token, types: [tokenTypes.CONFIRM_EXIT] });
 
-    const request = await this.exitRequestRepository.findOne({ where: { token } });
+    const request = await this.exitRequestRepository.findByToken(token);
     if (!request) {
       throw DomainError.notFound('MEMBERSHIP_EXIT_REQUEST_NOT_FOUND');
     }
@@ -216,7 +213,7 @@ export class MembershipExitService {
       annulment: (request.annulment ?? undefined) as any,
     });
 
-    await this.exitRequestRepository.delete({ id: request.id });
+    await this.exitRequestRepository.deleteById(request.id);
     await this.tokenApplicationService.findOneAndDelete(token, tokenTypes.CONFIRM_EXIT);
 
     this.logger.log(
@@ -240,12 +237,12 @@ export class MembershipExitService {
       throw DomainError.forbidden('MEMBERSHIP_EXIT_CANCEL_SELF_ONLY');
     }
 
-    const request = await this.exitRequestRepository.findOne({ where: { coopname, username } });
+    const request = await this.exitRequestRepository.findByMember(coopname, username);
     if (!request) {
       throw DomainError.badRequest('MEMBERSHIP_EXIT_NO_PENDING_REQUEST');
     }
 
-    await this.exitRequestRepository.delete({ id: request.id });
+    await this.exitRequestRepository.deleteById(request.id);
     await this.tokenApplicationService.findOneAndDelete(request.token, tokenTypes.CONFIRM_EXIT);
 
     this.logger.log(`Заявление на выход отменено до подтверждения (username=${username})`);
@@ -272,7 +269,7 @@ export class MembershipExitService {
     }
 
     // Off-chain фаза: заявление подписано, но ещё не подтверждено по email.
-    const pending = await this.exitRequestRepository.findOne({ where: { coopname, username } });
+    const pending = await this.exitRequestRepository.findByMember(coopname, username);
     if (pending) {
       return {
         exit_hash: pending.exit_hash,

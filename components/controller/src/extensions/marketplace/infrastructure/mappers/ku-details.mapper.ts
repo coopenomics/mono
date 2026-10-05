@@ -1,8 +1,8 @@
 import { KuDetailsDomainEntity } from '../../domain/entities/ku-details-domain.entity';
-import { KuDetailsTypeormEntity } from '../entities/ku-details.entity';
+import { KuDetailsRecord } from '../entities/ku-details.entity';
 
 export class KuDetailsMapper {
-  static toDomain(entity: KuDetailsTypeormEntity): KuDetailsDomainEntity {
+  static toDomain(entity: KuDetailsRecord): KuDetailsDomainEntity {
     return new KuDetailsDomainEntity({
       id: entity.id,
       coopname: entity.coopname,
@@ -21,8 +21,8 @@ export class KuDetailsMapper {
     });
   }
 
-  static toEntity(domain: KuDetailsDomainEntity): KuDetailsTypeormEntity {
-    const entity = new KuDetailsTypeormEntity();
+  static toEntity(domain: KuDetailsDomainEntity): KuDetailsRecord {
+    const entity = new KuDetailsRecord();
     if (domain.id !== undefined) entity.id = domain.id;
     entity.coopname = domain.coopname;
     entity.coreBraname = domain.coreBraname;

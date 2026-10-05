@@ -1,4 +1,4 @@
-import { ExpenseFileTypeormEntity } from '../entities/expense-file.typeorm-entity';
+import { ExpenseFileRecord } from '../entities/expense-file.record';
 import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-file-database.interface';
 
 /**
@@ -6,7 +6,7 @@ import type { IExpenseFileDatabaseData } from '../../domain/interfaces/expense-f
  * дополнительной логики.
  */
 export class ExpenseFileMapper {
-  static toDomain(entity: ExpenseFileTypeormEntity): IExpenseFileDatabaseData {
+  static toDomain(entity: ExpenseFileRecord): IExpenseFileDatabaseData {
     return {
       id: entity.id,
       coopname: entity.coopname,
@@ -23,7 +23,7 @@ export class ExpenseFileMapper {
     };
   }
 
-  static toEntity(data: IExpenseFileDatabaseData): Partial<ExpenseFileTypeormEntity> {
+  static toEntity(data: IExpenseFileDatabaseData): Partial<ExpenseFileRecord> {
     return {
       coopname: data.coopname,
       proposal_hash: data.proposal_hash,

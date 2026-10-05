@@ -1,10 +1,10 @@
 import { ComponentMetricDomainEntity } from '../../domain/entities/component-metric.entity';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import type { IComponentMetricDatabaseData } from '../../domain/interfaces/component-metric-database.interface';
-import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
+import { ComponentMetricRecord } from '../entities/component-metric.record';
 
 export class ComponentMetricMapper {
-  static toDomain(entity: ComponentMetricTypeormEntity): ComponentMetricDomainEntity {
+  static toDomain(entity: ComponentMetricRecord): ComponentMetricDomainEntity {
     const databaseData: IComponentMetricDatabaseData = {
       _id: entity._id,
       metric_hash: entity.metric_hash,
@@ -23,7 +23,7 @@ export class ComponentMetricMapper {
     return new ComponentMetricDomainEntity(databaseData);
   }
 
-  static toEntity(domain: ComponentMetricDomainEntity): Partial<ComponentMetricTypeormEntity> {
+  static toEntity(domain: ComponentMetricDomainEntity): Partial<ComponentMetricRecord> {
     return {
       _id: domain._id,
       metric_hash: domain.metric_hash,

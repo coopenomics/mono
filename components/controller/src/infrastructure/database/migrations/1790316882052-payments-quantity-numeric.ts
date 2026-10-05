@@ -1,4 +1,4 @@
-import type { MigrationInterface, QueryRunner } from 'typeorm';
+import type { SchemaMigration as MigrationInterface, SchemaQueryRunner as QueryRunner } from '@coopenomics/extension-kit';
 
 /**
  * Сумма платежа — с копейками.

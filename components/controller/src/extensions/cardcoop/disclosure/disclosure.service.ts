@@ -14,16 +14,16 @@
  * вопрос о членстве человека — ровно то, что сеть запрещает (архитектура §8). Настоящая
  * причина пишется в журнал кооператива.
  */
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_ATTESTATION_STORE, CARDCOOP_USED_GRANT_STORE } from '../infrastructure/database/cardcoop-stores';
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { COOP_CREDENTIAL_PORT, type ICoopCredentialPort, LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings } from '@coopenomics/extension-kit';
 import {
   CardcoopAttestationState,
-  CardcoopAttestationTypeormEntity,
-} from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
-import { CardcoopUsedGrantTypeormEntity } from '../infrastructure/entities/cardcoop-used-grant.typeorm-entity';
+  CardcoopAttestationRecord,
+} from '../infrastructure/records/cardcoop-attestation.record';
+import { CardcoopUsedGrantRecord } from '../infrastructure/records/cardcoop-used-grant.record';
 import { CardcoopAttestationService } from '../attestation/attestation.service';
 import { CardcoopIdentityService } from '../identity/identity.service';
 import { CardcoopGrantRejected, CardcoopGrantVerifier } from './grant-verifier.service';
@@ -38,10 +38,10 @@ import {
 @Injectable()
 export class CardcoopDisclosureService {
   constructor(
-    @InjectRepository(CardcoopAttestationTypeormEntity)
-    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
-    @InjectRepository(CardcoopUsedGrantTypeormEntity)
-    private readonly usedGrants: Repository<CardcoopUsedGrantTypeormEntity>,
+    @Inject(CARDCOOP_ATTESTATION_STORE)
+    private readonly attestations: TableStore<CardcoopAttestationRecord>,
+    @Inject(CARDCOOP_USED_GRANT_STORE)
+    private readonly usedGrants: TableStore<CardcoopUsedGrantRecord>,
     private readonly verifier: CardcoopGrantVerifier,
     private readonly identity: CardcoopIdentityService,
     private readonly attestationService: CardcoopAttestationService,
@@ -103,9 +103,7 @@ export class CardcoopDisclosureService {
    * @throws CardcoopGrantRejected Если действующего подтверждения по этой карте нет.
    */
   private async member(cardId: string): Promise<string> {
-    const record = await this.attestations.findOne({
-      where: { cardId, state: CardcoopAttestationState.Active },
-    });
+    const record = await this.attestations.findOne({ cardId, state: CardcoopAttestationState.Active });
 
     // i18n-ignore: внутренняя причина отказа гранта (CardcoopGrantRejected) — только в логе, пайщику уходит общий текст
     if (!record) throw new CardcoopGrantRejected(`по карте ${cardId} нет действующего подтверждения членства`);

@@ -1,7 +1,5 @@
-import { rowsOf as rowsOfRaw } from './raw-query-result';
-import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import { ChainChangesService } from '~/infrastructure/blockchain/chain-changes.service';
 import type {
   IVerificationReviewRepository,
@@ -32,11 +30,6 @@ export interface ReviewRow {
 
 const VALID_STATUSES = new Set<string>(Object.values(VerificationReviewStatus));
 
-/** Строки ответа query — общий разбор CoopID-хранилищ (raw-query-result.ts). */
-export function rowsOf(raw: unknown): ReviewRow[] {
-  return rowsOfRaw<ReviewRow>(raw);
-}
-
 function toReview(row: ReviewRow): VerificationReview {
   return {
     id: row.id,
@@ -60,17 +53,15 @@ function toReview(row: ReviewRow): VerificationReview {
 
 /**
  * Журнал верификаций в coop_domain_db (таблица `verification_reviews`,
- * миграция V2.5.4). Свой DataSource, как `PostgresVerificationRuleRepository`.
+ * миграция V2.5.4). Общее соединение базы CoopID (`CoopDomainDatabase`).
  */
 /** Имя журнала в ленте изменений — объявлен в `chain-changes.service.ts`. */
 const VERIFICATION_REVIEWS_TABLE = 'verification_reviews';
 
 @Injectable()
-export class PostgresVerificationReviewRepository implements IVerificationReviewRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
-
+export class PostgresVerificationReviewRepository implements IVerificationReviewRepository {
   constructor(
+    @Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase,
     // Журнал живёт в отдельной базе на сыром SQL — подписчик базы узла его не
     // видит, поэтому сигнал ленты изменений публикуется здесь, после записи.
     @Optional() @Inject(ChainChangesService) private readonly feed: ChainChangesService | null = null,
@@ -80,32 +71,8 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
     if (row) void this.feed?.publishLocal(VERIFICATION_REVIEWS_TABLE, String(row.id), row as unknown as Record<string, unknown>);
   }
 
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) return Promise.resolve(this.ds);
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
-  }
-
   async create(draft: VerificationReviewDraft): Promise<VerificationReview> {
-    const ds = await this.getDataSource();
-    const rows: ReviewRow[] = await ds.query(
+    const rows: ReviewRow[] = await this.db.query(
       `INSERT INTO verification_reviews (id, username, procedure, braname, verificator, status, photos)
        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
        RETURNING *`,
@@ -124,14 +91,12 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
   }
 
   async findById(id: string): Promise<VerificationReview | null> {
-    const ds = await this.getDataSource();
-    const rows: ReviewRow[] = await ds.query(`SELECT * FROM verification_reviews WHERE id = $1`, [id]);
+    const rows: ReviewRow[] = await this.db.query(`SELECT * FROM verification_reviews WHERE id = $1`, [id]);
     return rows.length ? toReview(rows[0]) : null;
   }
 
   async findLatestByUsername(username: string): Promise<VerificationReview | null> {
-    const ds = await this.getDataSource();
-    const rows: ReviewRow[] = await ds.query(
+    const rows: ReviewRow[] = await this.db.query(
       `SELECT * FROM verification_reviews WHERE username = $1 ORDER BY created_at DESC LIMIT 1`,
       [username],
     );
@@ -139,7 +104,6 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
   }
 
   async list(filter: VerificationReviewFilter): Promise<VerificationReview[]> {
-    const ds = await this.getDataSource();
     const where: string[] = [];
     const params: unknown[] = [];
     if (filter.status) {
@@ -155,7 +119,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
       where.push(`braname = $${params.length}`);
     }
     params.push(Math.min(filter.limit ?? DEFAULT_LIMIT, DEFAULT_LIMIT));
-    const rows: ReviewRow[] = await ds.query(
+    const rows: ReviewRow[] = await this.db.query(
       `SELECT * FROM verification_reviews
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY created_at DESC
@@ -166,8 +130,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
   }
 
   async countByStatus(status: VerificationReviewStatus): Promise<number> {
-    const ds = await this.getDataSource();
-    const rows: Array<{ count: string }> = await ds.query(
+    const rows: Array<{ count: string }> = await this.db.query(
       `SELECT count(*)::text AS count FROM verification_reviews WHERE status = $1`,
       [status],
     );
@@ -181,8 +144,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
     decision_reason?: string | null;
     clear_photos: boolean;
   }): Promise<VerificationReview | null> {
-    const ds = await this.getDataSource();
-    const raw = await ds.query(
+    const rows = await this.db.query<ReviewRow>(
       `UPDATE verification_reviews
           SET status = $2,
               decided_by = $3,
@@ -193,12 +155,7 @@ export class PostgresVerificationReviewRepository implements IVerificationReview
         RETURNING *`,
       [params.id, params.status, params.decided_by, params.decision_reason ?? null, params.clear_photos],
     );
-    const rows = rowsOf(raw);
     this.signal(rows[0]);
     return rows.length ? toReview(rows[0]) : null;
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) await this.ds.destroy();
   }
 }

@@ -14,8 +14,8 @@ sources:
     - components/controller/src/extensions/chatcoop/application/resolvers/transcription.resolver.ts
     - components/controller/src/extensions/chatcoop/domain/services/transcription-management.service.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/call-transcription.typeorm-repository.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/transcription-segment.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/call-transcription.kysely-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/transcription-segment.kysely-repository.ts
     - components/controller/src/extensions/chatcoop/application/controllers/livekit-webhook.controller.ts
 
 cases:
@@ -61,8 +61,6 @@ cases:
     scenario: >
       Звонок в комнате совета записан и распознан; член совета читает запись с
       сегментами и сохраняет заметку, пайщик вне совета получает отказ
-    expect: >
-      запись с сегментами и заметкой; снаружи не проверить — запись заводит
-      вебхук сервера звонков по комнате реестра Matrix, на стенде их нет
-    test: ~
-    status: missing
+    expect: совет видит запись в списке комнаты, читает её с репликами и сохраняет заметку; пайщику вне совета — отказ доступа к комнате, заметка не меняется
+    test: components/api-tests/src/chatcoop/transcriptions.test.ts
+    status: written

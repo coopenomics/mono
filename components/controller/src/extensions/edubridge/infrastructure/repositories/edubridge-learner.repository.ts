@@ -1,23 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { EDUBRIDGE_LEARNER_STORE } from '../database/edubridge-stores';
 import { EdubridgeLearnerEntity } from '../entities';
 
 @Injectable()
 export class EdubridgeLearnerRepository {
-  constructor(@InjectRepository(EdubridgeLearnerEntity) private readonly repo: Repository<EdubridgeLearnerEntity>) {}
+  constructor(@Inject(EDUBRIDGE_LEARNER_STORE) private readonly repo: TableStore<EdubridgeLearnerEntity>) {}
 
   findByMember(coopname: string, member: string): Promise<EdubridgeLearnerEntity[]> {
-    return this.repo.find({ where: { coopname, member_username: member }, order: { created_at: 'ASC' } });
+    return this.repo.find({ coopname, member_username: member }, { order: { created_at: 'ASC' } });
   }
 
   findById(coopname: string, id: string): Promise<EdubridgeLearnerEntity | null> {
-    return this.repo.findOne({ where: { coopname, id } });
+    return this.repo.findOne({ coopname, id });
   }
 
   findByIds(coopname: string, ids: string[]): Promise<EdubridgeLearnerEntity[]> {
     if (!ids.length) return Promise.resolve([]);
-    return this.repo.createQueryBuilder('l').where('l.coopname = :coopname AND l.id IN (:...ids)', { coopname, ids }).getMany();
+    return this.repo.find({ coopname, id: oneOf(ids) });
   }
 
   create(data: Partial<EdubridgeLearnerEntity>): EdubridgeLearnerEntity {
@@ -28,7 +28,8 @@ export class EdubridgeLearnerRepository {
     return this.repo.save(entity);
   }
 
-  remove(entity: EdubridgeLearnerEntity): Promise<EdubridgeLearnerEntity> {
-    return this.repo.remove(entity);
+  async remove(entity: EdubridgeLearnerEntity): Promise<EdubridgeLearnerEntity> {
+    await this.repo.delete({ id: entity.id });
+    return entity;
   }
 }

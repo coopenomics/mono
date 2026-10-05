@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { TableStore } from '@coopenomics/extension-kit';
+import { EDUBRIDGE_ADMIN_STORE, EDUBRIDGE_ENROLLMENT_STORE, EDUBRIDGE_LEARNER_STORE } from '../database/edubridge-stores';
 import { EduAccessState, EduEnrollmentStatus } from '../../domain/enums';
 import { EdubridgeAdminEntity, EdubridgeEnrollmentEntity, EdubridgeLearnerEntity } from '../entities';
 
@@ -14,24 +14,27 @@ export interface MemberRow {
 @Injectable()
 export class EdubridgeAdminRepository {
   constructor(
-    @InjectRepository(EdubridgeAdminEntity) private readonly admins: Repository<EdubridgeAdminEntity>,
-    @InjectRepository(EdubridgeLearnerEntity) private readonly learners: Repository<EdubridgeLearnerEntity>,
-    @InjectRepository(EdubridgeEnrollmentEntity) private readonly enrollments: Repository<EdubridgeEnrollmentEntity>
+    @Inject(EDUBRIDGE_ADMIN_STORE)
+    private readonly admins: TableStore<EdubridgeAdminEntity>,
+    @Inject(EDUBRIDGE_LEARNER_STORE)
+    private readonly learners: TableStore<EdubridgeLearnerEntity>,
+    @Inject(EDUBRIDGE_ENROLLMENT_STORE)
+    private readonly enrollments: TableStore<EdubridgeEnrollmentEntity>
   ) {}
 
   listAdmins(coopname: string): Promise<EdubridgeAdminEntity[]> {
-    return this.admins.find({ where: { coopname }, order: { created_at: 'ASC' } });
+    return this.admins.find({ coopname }, { order: { created_at: 'ASC' } });
   }
 
   async appoint(coopname: string, username: string, appointedBy: string): Promise<EdubridgeAdminEntity> {
-    const existing = await this.admins.findOne({ where: { coopname, username } });
+    const existing = await this.admins.findOne({ coopname, username });
     if (existing) return existing;
     return this.admins.save(this.admins.create({ coopname, username, appointed_by: appointedBy }));
   }
 
   async dismiss(coopname: string, username: string): Promise<boolean> {
     const r = await this.admins.delete({ coopname, username });
-    return Boolean(r.affected);
+    return Boolean(r);
   }
 
   /**
@@ -40,27 +43,20 @@ export class EdubridgeAdminRepository {
    * GROUP BY, и Postgres отвечал «Subquery uses ungrouped column l.coopname».
    */
   async memberRows(coopname: string, search?: string): Promise<MemberRow[]> {
+    const enrollments = this.enrollments.table;
     const qb = this.learners
-      .createQueryBuilder('l')
+      .sqlBuilder('l')
       .select('l.member_username', 'username')
       .addSelect('COUNT(DISTINCT l.id)', 'learners_count')
       .addSelect(
-        (sub) =>
-          sub
-            .select('COUNT(*)')
-            .from(EdubridgeEnrollmentEntity, 'e')
-            .where('e.coopname = :coopname AND e.member_username = l.member_username AND e.status = :active', { active: EduEnrollmentStatus.ACTIVE }),
+        `(SELECT COUNT(*) FROM ${enrollments} e WHERE e.coopname = :coopname AND e.member_username = l.member_username AND e.status = :active)`,
         'active_enrollments'
       )
       .addSelect(
-        (sub) =>
-          sub
-            .select('COUNT(*)')
-            .from(EdubridgeEnrollmentEntity, 'e2')
-            .where('e2.coopname = :coopname AND e2.member_username = l.member_username AND e2.access_state = :att', { att: EduAccessState.NEEDS_ATTENTION }),
+        `(SELECT COUNT(*) FROM ${enrollments} e2 WHERE e2.coopname = :coopname AND e2.member_username = l.member_username AND e2.access_state = :att)`,
         'attention_count'
       )
-      .where('l.coopname = :coopname', { coopname })
+      .where('l.coopname = :coopname', { coopname, active: EduEnrollmentStatus.ACTIVE, att: EduAccessState.NEEDS_ATTENTION })
       .groupBy('l.member_username')
       .orderBy('l.member_username', 'ASC');
     if (search) qb.andWhere('l.member_username ILIKE :s', { s: `%${search}%` });

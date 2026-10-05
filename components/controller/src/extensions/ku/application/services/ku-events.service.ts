@@ -211,8 +211,14 @@ export class KuEventsService {
   @OnEvent(`action::${BranchContract.contractName.production}::confirmdec`)
   async handleBranchEstablished(actionData: InnerChainActionRecord): Promise<void> {
     try {
-      const action = actionData.data as { coopname: string; hash: string };
+      const action = actionData.data as { coopname: string; hash: string; authorization?: { signatures?: unknown[] } };
       if (action.coopname !== platformSettings().coopname) return;
+
+      // Решение совета показывается на странице собрания: контракт стирает запись
+      // собрания, не записав в неё документ решения, — сохраняем его из действия.
+      if (action.authorization?.signatures?.length) {
+        await this.decisionRepository.saveAuthorization(action.hash, action.authorization);
+      }
 
       const decision = await this.decisionRepository.findByHash(action.hash);
       if (!decision?.braname || !decision.chairman) {

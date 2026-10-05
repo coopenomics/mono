@@ -14,8 +14,6 @@ import {
  * Удаление безопасно по построению — трогает только строки с непустым `expires_at` в
  * прошлом; бессрочные и ещё действующие не затрагиваются. Без отзыва сессий и без
  * аудита: ничьи фактические права не меняются (в отличие от явной revoke в 6.7-UI).
- *
- * Прецедент cron'а в auth-v2 — `CriticalActionsService.expireStale` (Story 6.8).
  */
 @Injectable()
 export class AccessRulesCleanupService {

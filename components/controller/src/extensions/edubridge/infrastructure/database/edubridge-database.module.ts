@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { edubridgeEntities } from '../../edubridge.entities';
+import { edubridgeStoreProviders } from './edubridge-stores';
 
-/** Репозитории таблиц расширения на общем подключении ядра. */
+/**
+ * База расширения `edubridge`: курсы и справочник каталога, обучающиеся и
+ * подписки, преподаватели, очередь выдачи доступа — шлюзы таблиц на Kysely.
+ */
 @Module({
-  imports: [TypeOrmModule.forFeature([...edubridgeEntities])],
-  exports: [TypeOrmModule],
+  providers: [...edubridgeStoreProviders],
+  exports: [...edubridgeStoreProviders],
 })
 export class EdubridgeDatabaseModule {}

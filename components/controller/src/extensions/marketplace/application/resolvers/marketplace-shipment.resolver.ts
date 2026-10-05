@@ -1,8 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
@@ -56,7 +55,7 @@ export class MarketplaceShipmentResolver {
       'обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own')
   async marketplaceCreateShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateShipmentInputDTO
@@ -84,7 +83,7 @@ export class MarketplaceShipmentResolver {
       'Список партий поставки текущего поставщика — для стола подготовки поставки и истории.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own')
   async marketplaceListShipments(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListShipmentsInputDTO
@@ -108,7 +107,7 @@ export class MarketplaceShipmentResolver {
       'Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Shipment', 'read:own-KU')
+  @RequireRight('Shipment', 'read:own-KU')
   async marketplaceListShipmentsByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListShipmentsByBranameInputDTO
@@ -147,7 +146,7 @@ export class MarketplaceShipmentResolver {
     description: 'Получить партию поставки по идентификатору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Shipment', 'create:own')
+  @RequireRight('Shipment', 'create:own')
   async marketplaceGetShipment(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceGetShipmentInputDTO

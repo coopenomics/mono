@@ -1,0 +1,142 @@
+import { CAPITAL_CONTRIBUTOR_STORE, CAPITAL_VOTE_STORE } from '../database/capital-stores';
+import type { ContributorRecord } from '../entities/contributor.record';
+import { attachOne, PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
+import { VoteRepository } from '../../domain/repositories/vote.repository';
+import { VoteDomainEntity } from '../../domain/entities/vote.entity';
+import { VoteRecord } from '../entities/vote.record';
+import { VoteMapper } from '../mappers/vote.mapper';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import type { IVoteDatabaseData } from '../../domain/interfaces/vote-database.interface';
+import type { IVoteBlockchainData } from '../../domain/interfaces/vote-blockchain.interface';
+import type { VoteFilterInputDTO } from '../../application/dto/voting/vote-filter.input';
+
+@Injectable()
+export class VoteKyselyRepository
+  extends BaseChainRepository<VoteDomainEntity, VoteRecord>
+  implements VoteRepository, IBlockchainSyncRepository<VoteDomainEntity>
+{
+  constructor(
+    @Inject(CAPITAL_VOTE_STORE) repository: TableStore<VoteRecord>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService,
+    @Inject(CAPITAL_CONTRIBUTOR_STORE) private readonly contributors: TableStore<ContributorRecord>
+  ) {
+    super(repository, versioning);
+  }
+
+  protected getMapper() {
+    return {
+      toDomain: VoteMapper.toDomain,
+      toEntity: VoteMapper.toEntity,
+    };
+  }
+
+  protected createDomainEntity(databaseData: IVoteDatabaseData, blockchainData: IVoteBlockchainData): VoteDomainEntity {
+    return new VoteDomainEntity(databaseData, blockchainData, {});
+  }
+
+  protected getSyncKey(): string {
+    return VoteDomainEntity.getSyncKey();
+  }
+
+  async create(vote: VoteDomainEntity): Promise<VoteDomainEntity> {
+    const entity = this.repository.create(VoteMapper.toEntity(vote));
+    const savedEntity = await this.repository.save(entity);
+    return VoteMapper.toDomain(savedEntity);
+  }
+
+  async findByVoter(voter: string): Promise<VoteDomainEntity[]> {
+    const entities = await this.repository.find({ voter });
+    return entities.map((entity) => VoteMapper.toDomain(entity));
+  }
+
+  async findByRecipient(recipient: string): Promise<VoteDomainEntity[]> {
+    const entities = await this.repository.find({ recipient });
+    return entities.map((entity) => VoteMapper.toDomain(entity));
+  }
+
+  async findByProjectHash(projectHash: string): Promise<VoteDomainEntity[]> {
+    const entities = await this.repository.find({ project_hash: projectHash });
+    return entities.map((entity) => VoteMapper.toDomain(entity));
+  }
+
+  async findByCoopname(coopname: string): Promise<VoteDomainEntity[]> {
+    const entities = await this.repository.find({ coopname });
+    return entities.map((entity) => VoteMapper.toDomain(entity));
+  }
+
+  /**
+   * Обновление голоса в базе данных
+   * Принимает доменную сущность и обновляет соответствующие поля в TypeORM сущности
+   */
+  async update(entity: VoteDomainEntity): Promise<VoteDomainEntity> {
+    // Преобразуем доменную сущность в данные для обновления
+    const updateData = VoteMapper.toUpdateEntity(entity);
+
+    // Обновляем запись в базе данных
+    await this.repository.update({ _id: entity._id }, updateData);
+
+    // Получаем обновленную сущность из базы данных
+    const updatedEntity = await this.repository.findOne({ _id: entity._id });
+    if (!updatedEntity) {
+      throw new Error(`Vote with id ${entity.id} not found after update`);
+    }
+
+    // Возвращаем обновленную доменную сущность
+    return VoteMapper.toDomain(updatedEntity);
+  }
+
+  async findAllPaginated(
+    filter?: VoteFilterInputDTO,
+    options?: PaginationInputDTO
+  ): Promise<PaginationResult<VoteDomainEntity>> {
+    // Валидируем параметры пагинации
+    const validatedOptions: PaginationInputDTO = options
+      ? PaginationUtils.validatePaginationOptions(options)
+      : {
+          page: 1,
+          limit: 10,
+          sortBy: undefined,
+          sortOrder: 'ASC' as const,
+        };
+
+    // Получаем параметры для SQL запроса
+    const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
+
+    // Строим условия поиска
+    const where: any = {};
+    if (filter?.voter) {
+      where.voter = filter.voter;
+    }
+    if (filter?.recipient) {
+      where.recipient = filter.recipient;
+    }
+    if (filter?.project_hash) {
+      where.project_hash = filter.project_hash;
+    }
+    if (filter?.coopname) {
+      where.coopname = filter.coopname;
+    }
+
+    // Получаем общее количество записей
+    const totalCount = await this.repository.count(where);
+
+    // Получаем записи с пагинацией
+    const orderBy: any = {};
+    // Имя вне колонок — сортировка по умолчанию: до 25.09.2026 оно уходило в
+    // ORDER BY и роняло список ошибкой 500 (C28-80).
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, '_created_at');
+    orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
+
+    const entities = await this.repository.find(where, { order: orderBy, offset, limit });
+    // Имена голосующего и получателя — из записей участников.
+    await attachOne(entities, this.contributors, 'voter_contributor', { username: 'voter' });
+    await attachOne(entities, this.contributors, 'recipient_contributor', { username: 'recipient' });
+
+    // Преобразуем в доменные сущности
+    const items = entities.map((entity) => VoteMapper.toDomain(entity));
+
+    // Возвращаем результат с пагинацией
+    return PaginationUtils.createPaginationResult(items, totalCount, validatedOptions);
+  }
+}

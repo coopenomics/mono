@@ -1,13 +1,13 @@
 import { ProgramPropertyDomainEntity } from '../../domain/entities/program-property.entity';
-import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeorm-entity';
+import { ProgramPropertyRecord } from '../entities/program-property.record';
 import type { IProgramPropertyDatabaseData } from '../../domain/interfaces/program-property-database.interface';
 import type { IProgramPropertyBlockchainData } from '../../domain/interfaces/program-property-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { ProgramPropertyStatus } from '../../domain/enums/program-property-status.enum';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ProgramPropertyTypeormEntity>, keyof IProgramPropertyDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ProgramPropertyTypeormEntity>, keyof IProgramPropertyBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ProgramPropertyRecord>, keyof IProgramPropertyDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ProgramPropertyRecord>, keyof IProgramPropertyBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ProgramPropertyDomainEntity>, keyof IProgramPropertyDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ProgramPropertyDomainEntity>, keyof IProgramPropertyBlockchainData>;
@@ -19,7 +19,7 @@ export class ProgramPropertyMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ProgramPropertyTypeormEntity): ProgramPropertyDomainEntity {
+  static toDomain(entity: ProgramPropertyRecord): ProgramPropertyDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -56,7 +56,7 @@ export class ProgramPropertyMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ProgramPropertyDomainEntity): Partial<ProgramPropertyTypeormEntity> {
+  static toEntity(domain: ProgramPropertyDomainEntity): Partial<ProgramPropertyRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

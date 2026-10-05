@@ -30,9 +30,10 @@ title: Подключение кооператива к сети карт (ка�
 
 sources:
   backend:
+    - components/controller/src/extensions/cardcoop/infrastructure/database/cardcoop-stores.ts
     - components/controller/src/extensions/cardcoop/registry/**
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-connect-state.typeorm-entity.ts
-    - components/controller/src/extensions/cardcoop/infrastructure/entities/cardcoop-operator-announcement.typeorm-entity.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-connect-state.record.ts
+    - components/controller/src/extensions/cardcoop/infrastructure/records/cardcoop-operator-announcement.record.ts
 
 # Правка 2026-09-08 (прод): оператор догоняет допуски — на старте он объявляет их не только
 # по недоставленным записям журнала, но и всем активным кооперативам цепи. Причина: допуск
@@ -243,10 +244,12 @@ cases:
     expect: >
       подключение повторяется, несмотря на совпадение отпечатка: иначе вход по
       карте молча не работал бы до следующей правки параметров
-    status: missing
+    test: components/api-tests/src/cardcoop/entry.test.ts
+    status: written
     note: >
-      Тест не написан: покрытие подключения сейчас держится на живом прогоне
-      ([[3B5-62]]), модульной обвязки под connect.service в реестре нет.
+      Проверяется снаружи отдельным набором карты (02.10.2026, C28-85): подставная
+      сеть принимает подключение без реквизитов клиента, перезапуск расширения при
+      тех же параметрах шлёт подключение снова.
 
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст

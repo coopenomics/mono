@@ -15,10 +15,8 @@ import {
   METRIC_CONTRIBUTION_REPOSITORY,
   type MetricContributionRepository,
 } from '../../domain/repositories/metric-contribution.repository';
-import { PROJECT_REPOSITORY } from '../../domain/repositories/project.repository';
-import type { ProjectRepository } from '../../domain/repositories/project.repository';
-import { ISSUE_REPOSITORY } from '../../domain/repositories/issue.repository';
-import type { IssueRepository } from '../../domain/repositories/issue.repository';
+import { PROJECT_REPOSITORY, type ProjectRepository } from '../../domain/repositories/project.repository';
+import { ISSUE_REPOSITORY, type IssueRepository } from '../../domain/repositories/issue.repository';
 import { ComponentMetricDomainEntity } from '../../domain/entities/component-metric.entity';
 import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
@@ -63,8 +61,7 @@ import {
   type SuperpositionContributionInput,
   type SuperpositionMetricInput,
 } from '../../domain/utils/compute-metric-superposition';
-import type { PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
-import { generateUniqueHash, DomainError, platformSettings } from '@coopenomics/extension-kit';
+import { DomainError, generateUniqueHash, type PaginationInputDTO, type PaginationResult, platformSettings } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
 
 /**

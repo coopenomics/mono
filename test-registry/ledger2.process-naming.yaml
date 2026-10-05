@@ -42,6 +42,7 @@ sources:
     - scripts/check-ledger2-processes.mjs
   backend:
     - components/controller/src/domain/process-registry/**
+    - components/controller/src/infrastructure/database/kysely/repositories/process-journal.kysely-repository.ts
 
 cases:
   # ── Уровень контракта ─────────────────────────────────────────────────────

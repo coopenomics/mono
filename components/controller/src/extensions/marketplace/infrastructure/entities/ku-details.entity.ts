@@ -1,4 +1,3 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import type {
   GeocodeStatus,
   KuDetailsStatus,
@@ -14,67 +13,33 @@ import type {
  * приводит к INACTIVE — запись физически сохраняется ради ссылочной
  * целостности с marketplace `Order` / `Shipment` (Эпики 4-5).
  */
-@Entity('marketplace_ku_details')
-@Index('idx_ku_details_coopname_braname', ['coopname', 'coreBraname'], { unique: true })
-@Index('idx_ku_details_status', ['coopname', 'status'])
-export class KuDetailsTypeormEntity {
-  @PrimaryGeneratedColumn()
+export class KuDetailsRecord {
   id!: number;
 
-  @Column({ name: 'coopname', type: 'varchar', length: 13 })
   coopname!: string;
 
   // i18n-ignore: комментарий к колонке БД, не текст интерфейса
-  @Column({ name: 'core_braname', type: 'varchar', length: 13, comment: 'braname в core coop_ku' })
   coreBraname!: string;
 
-  @Column({
-    name: 'geocoded_address',
-    type: 'varchar',
-    length: 1000,
-    nullable: true,
-    // i18n-ignore: комментарий к колонке БД, не текст интерфейса
-    comment: 'Адрес, по которому посчитаны координаты (кэш-ключ геокода)',
-  })
   geocodedAddress?: string;
 
-  @Column({ name: 'working_hours_json', type: 'jsonb' })
   workingHoursJson!: WorkingHoursDomain;
 
-  @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;
 
-  @Column({
-    name: 'status',
-    type: 'enum',
-    enum: ['ACTIVE', 'INACTIVE'],
-    default: 'ACTIVE',
-  })
   status!: KuDetailsStatus;
 
-  @Column({ name: 'lat', type: 'double precision', nullable: true })
   lat?: number;
 
-  @Column({ name: 'lng', type: 'double precision', nullable: true })
   lng?: number;
 
-  @Column({
-    name: 'geocode_status',
-    type: 'enum',
-    enum: ['PENDING', 'OK', 'FAILED'],
-    default: 'PENDING',
-  })
   geocodeStatus!: GeocodeStatus;
 
-  @Column({ name: 'geocode_error_message', type: 'text', nullable: true })
   geocodeErrorMessage?: string;
 
-  @Column({ name: 'geocoded_at', type: 'timestamp', nullable: true })
   geocodedAt?: Date;
 
-  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 }

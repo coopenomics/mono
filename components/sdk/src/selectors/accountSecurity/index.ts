@@ -1,4 +1,6 @@
 export * from './accountSessionSelector'
+export * from './forceRecoveryAuthorizationSelector'
 export * from './loginFactorsSelector'
 export * from './revokedSessionsResultSelector'
+export * from './revokeKeyResultSelector'
 export * from './twoFactorEnrollmentSelector'

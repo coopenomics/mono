@@ -10,24 +10,24 @@
  * Обмен кода на токен идёт сервер-сервером с секретом клиента, выданным сетью при
  * подключении (story 7.6): в браузере не появляется ни секрет, ни токен.
  */
+import { TableStore, lessThan, notEqual } from '@coopenomics/extension-kit';
+import { CARDCOOP_ATTESTATION_STORE, CARDCOOP_CONNECT_STATE_STORE, CARDCOOP_ENTRY_SESSION_STORE, CARDCOOP_PENDING_LINK_STORE } from '../infrastructure/database/cardcoop-stores';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { CardcoopExtension } from '../cardcoop.extension';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Not, Repository } from 'typeorm';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   CardcoopAttestationState,
-  CardcoopAttestationTypeormEntity,
-} from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
-import { CardcoopConnectStateTypeormEntity } from '../infrastructure/entities/cardcoop-connect-state.typeorm-entity';
-import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
+  CardcoopAttestationRecord,
+} from '../infrastructure/records/cardcoop-attestation.record';
+import { CardcoopConnectStateRecord } from '../infrastructure/records/cardcoop-connect-state.record';
+import { CardcoopPendingLinkRecord } from '../infrastructure/records/cardcoop-pending-link.record';
 import {
   CardcoopEntryOutcome,
-  CardcoopEntrySessionTypeormEntity,
+  CardcoopEntrySessionRecord,
   CardcoopEntryStatus,
-} from '../infrastructure/entities/cardcoop-entry-session.typeorm-entity';
+} from '../infrastructure/records/cardcoop-entry-session.record';
 
 /** Сколько живёт начатый вход: за это время человек успевает пройти согласие на card.coop. */
 const ROUND_TRIP_TTL_MS = 10 * 60 * 1000;
@@ -86,14 +86,14 @@ export class CardcoopEntryService {
   private readonly pending = new Map<string, PendingRoundTrip>();
 
   constructor(
-    @InjectRepository(CardcoopConnectStateTypeormEntity)
-    private readonly connectState: Repository<CardcoopConnectStateTypeormEntity>,
-    @InjectRepository(CardcoopAttestationTypeormEntity)
-    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
-    @InjectRepository(CardcoopEntrySessionTypeormEntity)
-    private readonly sessions: Repository<CardcoopEntrySessionTypeormEntity>,
-    @InjectRepository(CardcoopPendingLinkTypeormEntity)
-    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>,
+    @Inject(CARDCOOP_CONNECT_STATE_STORE)
+    private readonly connectState: TableStore<CardcoopConnectStateRecord>,
+    @Inject(CARDCOOP_ATTESTATION_STORE)
+    private readonly attestations: TableStore<CardcoopAttestationRecord>,
+    @Inject(CARDCOOP_ENTRY_SESSION_STORE)
+    private readonly sessions: TableStore<CardcoopEntrySessionRecord>,
+    @Inject(CARDCOOP_PENDING_LINK_STORE)
+    private readonly pendingLinks: TableStore<CardcoopPendingLinkRecord>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly extension: CardcoopExtension
   ) {
@@ -108,7 +108,7 @@ export class CardcoopEntryService {
   async available(): Promise<boolean> {
     // Председатель может убрать кнопку настройкой, даже когда реквизиты от сети есть.
     if (this.extension.config.entry_enabled === false) return false;
-    const state = await this.connectState.findOne({ where: { id: 'self' } });
+    const state = await this.connectState.findOne({ id: 'self' });
     return Boolean(state?.rpClientId && state.rpClientSecret && state.rpIssuer);
   }
 
@@ -150,7 +150,7 @@ export class CardcoopEntryService {
    * @returns Сессия входа — браузер уводится на её страницу.
    * @throws NotFoundException Если вход не начинался, протух либо обмен не удался.
    */
-  async callback(apiUrl: string, state: string, code: string): Promise<CardcoopEntrySessionTypeormEntity> {
+  async callback(apiUrl: string, state: string, code: string): Promise<CardcoopEntrySessionRecord> {
     const trip = this.pending.get(state);
     this.pending.delete(state);
     if (!trip || Date.now() - trip.createdAt > ROUND_TRIP_TTL_MS) {
@@ -196,12 +196,10 @@ export class CardcoopEntryService {
    * @returns Учётная запись и признак действующего членства; `null` — человек нам неизвестен.
    */
   private async identify(cardId: string): Promise<{ username: string; member: boolean } | null> {
-    const attestation = await this.attestations.findOne({
-      where: { cardId, state: Not(CardcoopAttestationState.Revoked) },
-    });
+    const attestation = await this.attestations.findOne({ cardId, state: notEqual(CardcoopAttestationState.Revoked) });
     if (attestation) return { username: attestation.username, member: true };
 
-    const pending = await this.pendingLinks.findOne({ where: { cardId } });
+    const pending = await this.pendingLinks.findOne({ cardId });
     if (pending) return { username: pending.username, member: false };
 
     return null;
@@ -287,8 +285,8 @@ export class CardcoopEntryService {
    * @returns Сессия.
    * @throws NotFoundException Если сессии нет либо она истекла.
    */
-  async session(id: string): Promise<CardcoopEntrySessionTypeormEntity> {
-    const session = await this.sessions.findOne({ where: { id } });
+  async session(id: string): Promise<CardcoopEntrySessionRecord> {
+    const session = await this.sessions.findOne({ id });
     if (!session) throw DomainError.notFound('CARDCOOP_ENTRY_SESSION_NOT_FOUND');
 
     if (Date.now() - session.createdAt.getTime() > SESSION_TTL_MS) {
@@ -337,7 +335,7 @@ export class CardcoopEntryService {
 
   /** Реквизиты клиента; их отсутствие — вход по карте не подключён. */
   private async requireCreds(): Promise<{ clientId: string; clientSecret: string; issuer: string }> {
-    const state = await this.connectState.findOne({ where: { id: 'self' } });
+    const state = await this.connectState.findOne({ id: 'self' });
     if (!state?.rpClientId || !state.rpClientSecret || !state.rpIssuer) {
       throw DomainError.notFound('CARDCOOP_ENTRY_NOT_CONFIGURED');
     }
@@ -347,7 +345,7 @@ export class CardcoopEntryService {
   /** Стирает просроченные сессии — вместе с анкетами, которые в них могли остаться. */
   private async dropExpiredSessions(): Promise<void> {
     try {
-      await this.sessions.delete({ createdAt: LessThan(new Date(Date.now() - SESSION_TTL_MS)) });
+      await this.sessions.delete({ createdAt: lessThan(new Date(Date.now() - SESSION_TTL_MS)) });
     } catch (error) {
       this.logger.warn(
         `Просроченные сессии входа не вычищены: ${error instanceof Error ? error.message : String(error)}`

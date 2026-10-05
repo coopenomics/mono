@@ -1,12 +1,12 @@
 import { ApprovalDomainEntity } from '../../domain/entities/approval.entity';
-import { ApprovalTypeormEntity } from '../entities/approval-typeorm.entity';
+import { ApprovalRecord } from '../entities/approval.record';
 import type { IApprovalDatabaseData } from '../../domain/interfaces/approval-database.interface';
 import type { IApprovalBlockchainData } from '../../domain/interfaces/approval-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ApprovalTypeormEntity>, keyof IApprovalBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ApprovalRecord>, keyof IApprovalDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ApprovalRecord>, keyof IApprovalBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ApprovalDomainEntity>, keyof IApprovalDatabaseData>;
 
@@ -17,7 +17,7 @@ export class ApprovalMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ApprovalTypeormEntity): ApprovalDomainEntity {
+  static toDomain(entity: ApprovalRecord): ApprovalDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -53,7 +53,7 @@ export class ApprovalMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ApprovalDomainEntity): Partial<ApprovalTypeormEntity> {
+  static toEntity(domain: ApprovalDomainEntity): Partial<ApprovalRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

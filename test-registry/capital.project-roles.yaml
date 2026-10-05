@@ -1,0 +1,68 @@
+feature: capital.project-roles
+title: Благорост — кто управляет проектом и задачей
+
+# Право на действие над проектом и задачей даёт таблица ролей проекта
+# (PROJECT_PERMISSION_MATRIX и PERMISSION_MATRIX в access-policy.service.ts) —
+# та же, по которой рабочий стол рисует кнопки. Гард резолвера пускает роль
+# кооператива, сервис сверяет право на конкретном проекте:
+#   - статус проекта и ведущего меняют председатель и член совета;
+#   - соавторов ведут председатель, член совета и ведущий проекта;
+#   - задачу удаляет ведущий проекта;
+#   - личный проект удаляет его владелец.
+# Председатель действует по своей роли, как и до правки.
+#
+# До 03.10.2026 гард пускал в эти девять операций только председателя: член
+# совета, ведущий и владелец личного проекта видели кнопку и получали отказ.
+# Решение владельца от 03.10.2026 (C28-87): права — как в таблице ролей,
+# таблица не меняется.
+
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/project-management.resolver.ts
+    - components/controller/src/extensions/capital/application/resolvers/generation.resolver.ts
+
+cases:
+  - id: cap.roles.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета назначает ведущего проекта; то же пробует обычный пайщик
+    expect: у члена совета действие проходит, ведущий виден в проекте; обычный пайщик получает KIT_INSUFFICIENT_RIGHTS
+    test: components/api-tests/src/capital/project-roles.test.ts
+    api: components/api-tests/src/capital/project-roles.test.ts
+    status: written
+
+  - id: cap.roles.happy.02
+    level: backend
+    kind: happy
+    scenario: ведущий проекта добавляет соавтора; то же пробует пайщик без роли в проекте
+    expect: у ведущего действие проходит; пайщик без роли получает CAPITAL_PROJECT_AUTHORS_FORBIDDEN
+    test: components/api-tests/src/capital/project-roles.test.ts
+    api: components/api-tests/src/capital/project-roles.test.ts
+    status: written
+
+  - id: cap.roles.side.01
+    level: backend
+    kind: side
+    scenario: статус проекта меняет ведущий без роли в совете и член совета
+    expect: ведущий получает KIT_INSUFFICIENT_RIGHTS; член совета проверку прав проходит, дальше отвечает состояние проекта в цепи
+    test: components/api-tests/src/capital/project-roles.test.ts
+    api: components/api-tests/src/capital/project-roles.test.ts
+    status: written
+
+  - id: cap.roles.side.02
+    level: backend
+    kind: side
+    scenario: задачу проекта удаляют исполнитель задачи, член совета и ведущий проекта
+    expect: исполнитель и член совета получают CAPITAL_ISSUE_DELETE_FORBIDDEN, задача на месте; ведущий удаляет её
+    test: components/api-tests/src/capital/project-roles.test.ts
+    api: components/api-tests/src/capital/project-roles.test.ts
+    status: written
+
+  - id: cap.roles.side.03
+    level: backend
+    kind: side
+    scenario: личный проект пайщика удаляют другой пайщик, член совета и сам владелец
+    expect: другой пайщик и член совета получают CAPITAL_PROJECT_DELETE_FORBIDDEN, проект на месте; владелец удаляет его
+    test: components/api-tests/src/capital/project-roles.test.ts
+    api: components/api-tests/src/capital/project-roles.test.ts
+    status: written

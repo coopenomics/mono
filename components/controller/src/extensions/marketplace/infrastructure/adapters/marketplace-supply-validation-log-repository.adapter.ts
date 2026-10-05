@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { MARKETPLACE_SUPPLY_VALIDATION_LOG_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceSupplyValidationLogDomainEntity } from '../../domain/entities/marketplace-supply-validation-log.entity';
 import type {
   MarketplaceSupplyValidationLogCreateInput,
@@ -14,8 +14,8 @@ export class MarketplaceSupplyValidationLogRepositoryAdapter
   implements MarketplaceSupplyValidationLogDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceSupplyValidationLogEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceSupplyValidationLogEntity>,
+    @Inject(MARKETPLACE_SUPPLY_VALIDATION_LOG_STORE)
+private readonly repo: TableStore<MarketplaceSupplyValidationLogEntity>,
     private readonly mapper: MarketplaceSupplyValidationLogMapper
   ) {}
 
@@ -39,10 +39,7 @@ export class MarketplaceSupplyValidationLogRepositoryAdapter
     coopname: string,
     cycle_id: string
   ): Promise<MarketplaceSupplyValidationLogDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname, cycle_id },
-      order: { created_at: 'DESC' },
-    });
+    const rows = await this.repo.find({ coopname, cycle_id }, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 }

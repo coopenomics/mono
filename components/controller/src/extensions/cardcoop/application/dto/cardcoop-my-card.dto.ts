@@ -1,5 +1,5 @@
 import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
-import { CardcoopAttestationState } from '../../infrastructure/entities/cardcoop-attestation.typeorm-entity';
+import { CardcoopAttestationState } from '../../infrastructure/records/cardcoop-attestation.record';
 
 registerEnumType(CardcoopAttestationState, {
   name: 'CardcoopAttestationState',

@@ -1,11 +1,3 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
 import type {
   MarketplaceReturnClaimDecisionLogEntry,
   MarketplaceReturnClaimDefectCategory,
@@ -32,55 +24,33 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
  *   - `(coopname, order_id)` partial-unique для активного заявления
  *     (чтобы пайщик не создал второе на один Order одновременно).
  */
-@Entity({ name: 'marketplace_return_claim' })
-@Index('IDX_marketplace_return_claim_request_hash_unique', ['coopname', 'request_hash'], { unique: true })
-@Index('IDX_marketplace_return_claim_order_active', ['coopname', 'order_id'], {
-  unique: true,
-  where: "status IN ('PENDING_CHAIRMAN_REVIEW', 'APPROVED_FOR_VISIT', 'PENDING_COUNCIL', 'DECLINED_BY_COUNCIL')",
-})
-@Index(['coopname', 'delivery_braname', 'status'])
-@Index(['coopname', 'orderer_account', 'status'])
 export class MarketplaceReturnClaimEntity {
-  @PrimaryGeneratedColumn('uuid')
   public id!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public coopname!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   public request_hash!: string;
 
-  @Column({ type: 'uuid' })
   public order_id!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   public order_hash!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public orderer_account!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public delivery_braname!: string;
 
-  @Column({ type: 'varchar', length: 13 })
   public supplier_account!: string;
 
-  @Column({ type: 'varchar', length: 48 })
   public status!: MarketplaceReturnClaimStatus;
 
-  @Column({ type: 'text' })
   public reason_text!: string;
 
-  @Column({ type: 'varchar', length: 24, nullable: true })
   public defect_category!: MarketplaceReturnClaimDefectCategory | null;
 
-  @Column({ type: 'varchar', length: 24 })
   public expected_resolution!: MarketplaceReturnClaimExpectedResolution;
 
-  @Column({ type: 'integer' })
   public actual_quantity!: number;
 
-  @Column({ type: 'numeric', precision: 24, scale: 4 })
   public fact_cost!: string;
 
   /**
@@ -89,41 +59,29 @@ export class MarketplaceReturnClaimEntity {
    * него взнос. Значение фиксируется при подаче заявления той же формулой, что
    * и в контракте; у заявлений, поданных до введения возврата взноса, — 0.
    */
-  @Column({ type: 'numeric', precision: 24, scale: 4, default: 0 })
   public fee_refund!: string;
 
-  @Column({ type: 'jsonb' })
   public photos!: MarketplaceReturnClaimPhoto[];
 
-  @Column({ type: 'jsonb', nullable: true })
   public statement!: ISignedDocument | null;
 
   /** Заявление оператора участка в совет об отмене сделки (1116) — после приёма имущества у стойки. */
-  @Column({ type: 'jsonb', nullable: true })
   public cancel_statement!: ISignedDocument | null;
 
-  @Column({ type: 'varchar', length: 32, nullable: true })
   public council_decision_id!: string | null;
 
-  @Column({ type: 'varchar', length: 8, nullable: true })
   public council_decision_mode!: 'ROBOT' | 'MANUAL' | null;
 
-  @Column({ type: 'jsonb', nullable: true })
   public council_protocol!: ISignedDocument | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
   public accepted_at!: Date | null;
 
-  @Column({ type: 'varchar', length: 128 })
   public submretrn_tx_hash!: string;
 
-  @Column({ type: 'jsonb', default: () => "'[]'" })
   public decision_log!: MarketplaceReturnClaimDecisionLogEntry[];
 
-  @Column({ type: 'jsonb', nullable: true })
   public on_site_inspection!: MarketplaceReturnClaimOnSiteInspection | null;
 
-  @Column({ type: 'jsonb', nullable: true })
   public ledger_snapshot!: MarketplaceReturnClaimLedgerSnapshot | null;
 
   /**
@@ -131,12 +89,9 @@ export class MarketplaceReturnClaimEntity {
    * членский взнос ждёт пополнения кошелька (заявка на цепи в `feepend`,
    * задача 99D-15). Крон повторяет `payretfee`; null — взнос не ждёт.
    */
-  @Column({ type: 'timestamptz', nullable: true })
   public fee_refund_pending_at!: Date | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
   public created_at!: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
   public updated_at!: Date;
 }

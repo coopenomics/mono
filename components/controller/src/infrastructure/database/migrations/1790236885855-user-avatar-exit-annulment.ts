@@ -1,4 +1,4 @@
-import type { MigrationInterface, QueryRunner } from 'typeorm';
+import type { SchemaMigration as MigrationInterface, SchemaQueryRunner as QueryRunner } from '@coopenomics/extension-kit';
 
 /**
  * Фотография пайщика (users.avatar_key, avatar_mime) и заявление об аннулировании программных соглашений при выходе (membership_exit_requests.annulment).

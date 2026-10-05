@@ -20,15 +20,11 @@ sources:
     - components/controller/src/application/appstore/**
     - components/controller/src/application/desktop/**
     - components/controller/src/domain/extension/**
-    - components/controller/src/infrastructure/database/typeorm/entities/settings.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/system-status.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/extension.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/log-extension.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/mutation-log.entity.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/settings.typeorm-repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-extension.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-log-extension.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/mutation-log.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/system-status.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/settings.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/extension.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/log-extension.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/mutation-log.kysely-repository.ts
     - components/controller/src/application/common/interceptors/mutation-logging.interceptor.ts
 
 cases:
@@ -130,12 +126,15 @@ cases:
     # На живом стенде установку не повторить без его поломки; запись system_status
     # снаружи не проверяется, чтение — в sys.ext.happy.01.
     status: missing
+    external: unreachable
+    external_reason: установка кооператива проходит один раз при подъёме стенда, до сценариев; повторить её на живом стенде — сломать его
 
   - id: sys.ext.side.07
     level: backend
     kind: side
     scenario: Журнал мутаций (mutation_logs) — каждая мутация пишет строку с именем, пользователем, аргументами без ключей и исходом
     expect: строка есть и для успешной мутации, и для отказа; wif и private_key вычищены
-    # Пишет любая мутация прогона; читает журнал только Благорост (журнал проекта) —
-    # проверка чтения за фичами capital.
-    status: missing
+    # Пишет любая мутация прогона; читает журнал только Благорост (журнал проекта):
+    # события успешных мутаций в журнале проекта, отказанные туда не попадают.
+    test: components/api-tests/src/capital/project-log.test.ts
+    status: written

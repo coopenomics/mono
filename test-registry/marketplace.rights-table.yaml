@@ -1,0 +1,142 @@
+feature: marketplace.rights-table
+title: Стол заказов — таблица прав с условиями на сервере
+
+# Одна таблица прав отвечает и серверу, и рабочему столу (C28-87, пилот единой
+# таблицы; согласована владельцем 04.10.2026). Строка таблицы — право
+# `Ресурс:действие`, охват, роль и условие:
+#   - coop-accepted      — совет принял программу и положение Стола заказов;
+#   - orderer-onboarded  — пайщик подписал оферту программы и выбрал пункт выдачи;
+#   - containers-enabled — кооператив включил боксы;
+#   - cells-enabled      — кооператив включил ячейки хранения.
+# Гард операции и набор прав для страниц считает один сервис
+# (MarketplaceRightsService), поэтому страница видна ровно тогда, когда сервер
+# выполнит её операции.
+#
+# До 04.10.2026 условия знал только провайдер прав стола: пайщик без оферты и
+# пункта выдачи проходил 64 операции Стола заказов прямым запросом, боксы и
+# ячейки отвечали при выключенном хранении. У 29 операций права в таблице не
+# было вовсе (роль председателя либо одна проверка «принятый пайщик») — они
+# получили имена. Общий вид таблицы, чтение её строк и декоратор операции
+# `@RequireRight` живут в каркасе расширений (extension-kit/src/auth/rights.ts):
+# следующие приложения объявляют свою таблицу тем же способом.
+
+sources:
+  backend:
+    - components/extension-kit/src/auth/rights.ts
+    - components/controller/src/extensions/marketplace/application/access/**
+    - components/controller/src/extensions/marketplace/application/guards/marketplace-role.guard.ts
+    - components/controller/src/extensions/marketplace/application/membership/marketplace-roles.mapper.ts
+    - components/controller/src/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider.ts
+
+cases:
+  - id: mkt.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: пайщик без оферты и пункта выдачи зовёт операции подключения — состояние приложения, свои роли, ход подключения, пункты выдачи, своя запись поставщика
+    expect: операции проходят проверку прав; подключение ведётся до того, как открыты права заказчика
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/marketplace/rights-conditions.test.ts
+    status: written
+
+  - id: mkt.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: пайщик подписал оферту и выбрал пункт выдачи, затем читает каталог, корзину и свои заказы
+    expect: операции выполняются; условие «заказчик подключён» выполнено обоими фактами
+    test: components/api-tests/src/marketplace/rights-conditions.test.ts
+    api: components/api-tests/src/marketplace/rights-conditions.test.ts
+    status: written
+
+  - id: mkt.rights.side.01
+    level: backend
+    kind: side
+    scenario: пайщик без оферты и пункта выдачи зовёт каталог, корзину, свои заказы и оформление прямым запросом
+    expect: отказ MARKETPLACE_ORDERER_ONBOARDING_REQUIRED; корзина и заказы остаются нетронутыми
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/marketplace/rights-conditions.test.ts
+    status: written
+
+  - id: mkt.rights.side.02
+    level: backend
+    kind: side
+    scenario: оператор участка без подключения заказчика читает каталог и пробует корзину
+    expect: каталог открыт по роли оператора, корзина закрыта условием заказчика — условие действует на строку роли, а не на право целиком
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    external: unreachable
+    external_reason: "снаружи виден только итог — проход или отказ; по какой строке таблицы право сложилось, ответ сервера не сообщает"
+    status: written
+
+  - id: mkt.rights.side.03
+    level: backend
+    kind: side
+    scenario: совет ещё не принял программу, председатель и пайщик зовут операции Стола заказов
+    expect: >
+      действуют три права подключения кооператива — настройка приложения у
+      председателя, состояние подключения и свои роли у каждого; остальное
+      отвечает MARKETPLACE_COOP_NOT_CONNECTED
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    external: unreachable
+    external_reason: "стенд поднимается с принятой программой; отозвать решение совета о подключении снаружи нельзя"
+    status: written
+
+  - id: mkt.rights.side.04
+    level: backend
+    kind: side
+    scenario: кооператив держит боксы и ячейки выключенными, оператор зовёт их операции
+    expect: отказ MARKETPLACE_CONTAINERS_DISABLED и MARKETPLACE_STORAGE_CELLS_DISABLED; при включённом хранении операции проходят
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    external: unreachable
+    external_reason: "засев стенда включает адресное хранение; выключить его значит сломать наборы склада, которые идут в том же прогоне"
+    status: written
+
+  - id: mkt.rights.side.05
+    level: backend
+    kind: side
+    scenario: поставщик, оператор или председатель зовёт операцию, право на которую даёт его роль
+    expect: подключение заказчика не читается — лишних запросов к цепи и базе на каждый вызов нет
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    external: unreachable
+    external_reason: "число внутренних запросов сервера снаружи не наблюдается"
+    status: written
+
+  - id: mkt.rights.side.06
+    level: backend
+    kind: side
+    scenario: пайщик подписал оферту, пункт выдачи не выбрал, зовёт каталог и корзину
+    expect: отказ MARKETPLACE_ORDERER_ONBOARDING_REQUIRED — подпись при вступлении выбора пункта не заменяет
+    test: components/controller/tests/unit/marketplace/marketplace-desktop-grants-provider.test.ts
+    api: components/api-tests/src/marketplace/rights-conditions.test.ts
+    status: written
+
+  - id: mkt.rights.side.07
+    level: backend
+    kind: side
+    scenario: страница рабочего стола требует право, которого нет ни в одной строке таблицы
+    expect: проверка состава маршрутов падает — страница без права в таблице недостижима ни для кого
+    test: components/controller/tests/unit/marketplace/marketplace-route-grants-coverage.test.ts
+    external: unreachable
+    external_reason: "проверка читает объявление маршрутов рабочего стола, снаружи сервера его нет"
+    status: written
+
+  - id: mkt.rights.side.08
+    level: backend
+    kind: side
+    scenario: цепь недоступна, пайщик читает свои заказы и корзину
+    expect: >
+      пайщик, которого узел уже видел подключённым, остаётся подключённым —
+      состояние оферты читается с участием цепи, а чтение своего от связи с
+      цепью не зависит; пайщика, которого узел подключённым не видел,
+      недоступная цепь не подключает
+    test: components/controller/tests/unit/marketplace/marketplace-rights-service.test.ts
+    external: unreachable
+    external_reason: "узел помнит подключение минуту, и сценарий остановки цепи укладывается в это время; дождаться истечения памяти при остановленной цепи значит держать стенд без цепи дольше, чем позволяет прогон"
+    status: written
+
+  - id: mkt.rights.side.09
+    level: backend
+    kind: side
+    scenario: член совета без подключения заказчиком открывает карточку предложения, витрину и ставку взноса; пробует корзину
+    expect: чтение проходит по строке совета — реестр предложений он ведёт по роли; корзина закрыта условием заказчика
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written

@@ -16,7 +16,8 @@
  */
 import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, caseName, gql, gqlError, tableRows, tokenOf, waitFor } from '../core'
+import { CHAIN_URL, CHAIRMAN, COOP, COUNCIL, ROLES, caseName, gql, gqlError, randomHash, tableRows, tokenOf, waitFor } from '../core'
+import { ADD_METHOD, randomPhone } from '../payments/payments.helpers'
 import { quietWindow } from '../platform/platform-a.helpers'
 import {
   PROPOSE,
@@ -57,6 +58,15 @@ const BLANK = `query($c:String!,$r:Int!,$e:DocumentTemplateEdition!){
   documentTemplateBlank(coopname:$c, registry_id:$r, edition:$e){ registry_id html text_hash }
 }`
 
+const GEN_RETURN_STATEMENT = `mutation($d:ReturnByMoneyGenerateDocumentInput!){
+  generateReturnByMoneyStatementDocument(data:$d){ html hash meta }
+}`
+
+async function chainHead(): Promise<number> {
+  const info: any = await (await fetch(`${CHAIN_URL}/v1/chain/get_info`)).json()
+  return Number(info.head_block_num)
+}
+
 /** Текст документа без разметки и стилей. */
 function textOf(html: string): string {
   return plain(html)
@@ -87,6 +97,10 @@ describe('документы: фабрика утверждений редакц
   /** Исходный текст шаблона 900 — вернуть после правок. */
   let originalContext: string | null = null
   const marker = crypto.randomBytes(4).toString('hex')
+  /** Заявление 900 члена совета: реквизиты заведены до правок шаблона, блоки сняты вокруг них. */
+  let statementMethod = ''
+  let blockBeforeEdits = 0
+  let blockAfterNewEdition = 0
 
   beforeAll(async () => {
     chair = await tokenOf(CHAIRMAN)
@@ -325,6 +339,9 @@ describe('документы: фабрика утверждений редакц
   it(caseName('doc.appr.happy.10', 'утверждена прежняя редакция: правки без смены номера доезжают, текст новой редакции — нет'), async () => {
     const row = await draftRow(RETURN_BY_MONEY)
     originalContext = row.context
+    // Заготовка для doc.appr.side.14: реквизиты получателя и блок до правок шаблона.
+    statementMethod = (await gql<any>(council, ADD_METHOD, { d: { username: COUNCIL.account, is_default: false, sbp_data: { phone: randomPhone() } } })).addPaymentMethod.method_id
+    blockBeforeEdits = await chainHead()
     const m1 = `<p>API-TESTS-EDIT-${marker}-A</p>`
     const m2 = `<p>API-TESTS-EDIT-${marker}-B</p>`
 
@@ -343,6 +360,29 @@ describe('документы: фабрика утверждений редакц
     const approvedHtml = (await blank(chair, RETURN_BY_MONEY, 'Approved')).html
     expect(approvedHtml, 'утверждённая редакция с правкой без смены номера').toContain(`${marker}-A`)
     expect(approvedHtml, 'текст неутверждённой редакции пайщикам не предъявляется').not.toContain(`${marker}-B`)
+    blockAfterNewEdition = await chainHead()
+  })
+
+  it(caseName('doc.appr.side.14', 'пересборка заявления по блоку подписи: явный блок важнее утверждённой редакции — документ собирается текстом того блока'), async () => {
+    expect(blockBeforeEdits, 'блок до правок шаблона снят').toBeGreaterThan(0)
+    const data = { coopname: COOP, username: COUNCIL.account, method_id: statementMethod, quantity: '100.0000', currency: 'RUB', payment_hash: randomHash() }
+    const build = async (block?: number) =>
+      (await gql<any>(council, GEN_RETURN_STATEMENT, { d: block ? { ...data, block_num: block } : data })).generateReturnByMoneyStatementDocument
+
+    // Без блока — редакция, утверждённая советом: с правкой без смены номера, без текста новой редакции.
+    const effective = await build()
+    expect(effective.html).toContain(`${marker}-A`)
+    expect(effective.html).not.toContain(`${marker}-B`)
+
+    // Блок подписи до правок — прежний текст, хотя утверждённая редакция с тех пор поправлена.
+    const signedEarlier = await build(blockBeforeEdits)
+    expect(signedEarlier.html, 'текст на блок подписи — без поздних правок').not.toContain(marker)
+    expect(Number(signedEarlier.meta.block_num)).toBe(blockBeforeEdits)
+
+    // Блок после выхода новой редакции — её текст, хотя совет её не утверждал.
+    const signedLater = await build(blockAfterNewEdition)
+    expect(signedLater.html, 'явный блок важнее утверждённой редакции').toContain(`${marker}-B`)
+    expect(signedEarlier.hash).not.toBe(signedLater.hash)
   })
 
   it(caseName('doc.appr.happy.11', 'оператор поднял редакцию объявленного документа — председатель получает уведомление с названием, номером редакции и ссылкой на реестр шаблонов'), async () => {

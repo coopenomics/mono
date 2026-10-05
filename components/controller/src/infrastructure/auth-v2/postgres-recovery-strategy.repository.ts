@@ -1,45 +1,19 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { DataSource } from 'typeorm';
-import config from '~/config/config';
+import { Inject, Injectable } from '@nestjs/common';
+import { COOP_DOMAIN_DATABASE, type ICoopDomainDatabase } from '~/domain/auth-v2/ports/coop-domain-database.port';
 import type { IRecoveryStrategyRepository } from '~/domain/auth-v2/ports/recovery-strategy.port';
 import { isRecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import type { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 
 /**
  * Хранилище recovery-стратегии в coop_domain_db (таблица `recovery_strategy`,
- * миграция V2.4.4). Свой DataSource, как `PostgresVaultRepository`/2FA-repo.
+ * миграция V2.4.4). Общее соединение базы CoopID (`CoopDomainDatabase`).
  */
 @Injectable()
-export class PostgresRecoveryStrategyRepository implements IRecoveryStrategyRepository, OnModuleDestroy {
-  private ds: DataSource | null = null;
-  private initializing: Promise<DataSource> | null = null;
-
-  private getDataSource(): Promise<DataSource> {
-    if (this.ds?.isInitialized) return Promise.resolve(this.ds);
-    if (!this.initializing) {
-      this.initializing = new DataSource({
-        type: 'postgres',
-        host: config.coopDomainDb.host,
-        port: config.coopDomainDb.port,
-        username: config.coopDomainDb.username,
-        password: config.coopDomainDb.password,
-        database: config.coopDomainDb.database,
-      })
-        .initialize()
-        .then((ds) => {
-          this.ds = ds;
-          return ds;
-        })
-        .finally(() => {
-          this.initializing = null;
-        });
-    }
-    return this.initializing;
-  }
+export class PostgresRecoveryStrategyRepository implements IRecoveryStrategyRepository {
+  constructor(@Inject(COOP_DOMAIN_DATABASE) private readonly db: ICoopDomainDatabase) {}
 
   async get(subjectId: string): Promise<RecoveryStrategy | null> {
-    const ds = await this.getDataSource();
-    const rows: Array<{ strategy: string }> = await ds.query(
+    const rows: Array<{ strategy: string }> = await this.db.query(
       `SELECT strategy FROM recovery_strategy WHERE subject_id=$1`,
       [subjectId],
     );
@@ -49,16 +23,11 @@ export class PostgresRecoveryStrategyRepository implements IRecoveryStrategyRepo
   }
 
   async set(subjectId: string, strategy: RecoveryStrategy): Promise<void> {
-    const ds = await this.getDataSource();
-    await ds.query(
+    await this.db.query(
       `INSERT INTO recovery_strategy (subject_id, strategy, updated_at)
        VALUES ($1, $2, now())
        ON CONFLICT (subject_id) DO UPDATE SET strategy = EXCLUDED.strategy, updated_at = now()`,
       [subjectId, strategy],
     );
-  }
-
-  async onModuleDestroy(): Promise<void> {
-    if (this.ds?.isInitialized) await this.ds.destroy();
   }
 }

@@ -54,3 +54,21 @@ cases:
     test: components/api-tests/src/capital/program-share-registration.test.ts
     api: components/api-tests/src/capital/program-share-registration.test.ts
     status: passing
+
+  - id: cap.areg.side.03
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written

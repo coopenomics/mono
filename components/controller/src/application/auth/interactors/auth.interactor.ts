@@ -17,6 +17,7 @@ import { Workflows } from '@coopenomics/notifications';
 import { normalizeUserEmail } from '~/utils/normalize-user-email';
 import { LoginTwoFactorService } from '~/application/auth-v2/login-2fa/login-two-factor.service';
 import { VaultService } from '~/application/auth-v2/vault/vault.service';
+import { KeyRevocationService } from '~/application/auth-v2/key-revocation/key-revocation.service';
 import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
@@ -31,11 +32,15 @@ export class AuthInteractor {
     @Inject(BLOCKCHAIN_PORT) private readonly blockchainPort: BlockchainPort,
     @Inject(USER_DOMAIN_SERVICE) private readonly userDomainService: UserDomainService,
     private readonly loginTwoFactor: LoginTwoFactorService,
-    private readonly vault: VaultService
+    private readonly vault: VaultService,
+    private readonly keyRevocation: KeyRevocationService
   ) {}
 
   async login(data: LoginInputDomainInterface): Promise<RegisteredAccountDomainInterface> {
     const user = await this.authDomainService.loginUserWithSignature(data.email, data.now, data.signature);
+
+    // Ключ, отозванный председателем, вход не открывает: пайщик сначала восстанавливает доступ.
+    await this.keyRevocation.assertNotRevoked(user.username);
 
     // Гейт миграции: пайщик с установленным паролем (vault-блоб существует)
     // входит только новым контуром. Иначе «вход только по паролю» держался бы
@@ -119,6 +124,9 @@ export class AuthInteractor {
       });
 
       await this.userDomainService.updateUserById(user.id, { public_key: data.public_key });
+
+      // Ключ сменён — отзыв прежнего ключа закрыт, вход новым открыт.
+      await this.keyRevocation.markRecovered(user.username);
 
       await this.tokenApplicationService.deleteTokens({ userId: user.id, type: tokenTypes.RESET_KEY });
     } catch (error: any) {

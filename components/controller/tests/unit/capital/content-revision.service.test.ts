@@ -4,39 +4,44 @@ import { ContentRevisionOrigin } from '../../../src/extensions/capital/domain/en
 import { ContentConflictError } from '../../../src/extensions/capital/domain/errors/content-conflict.error';
 
 /**
- * Мини-БД в памяти: строка сущности + таблица снимков; `em` отвечает на тот же набор
- * вызовов, что и настоящий EntityManager в сервисе (query/findOne/insert/delete).
+ * Мини-БД в памяти: строка сущности + таблица снимков. Готовые запросы сервиса
+ * (блокировка строки, запись текста и номера редакции) отвечает `em`, записи
+ * снимков — шлюз таблицы на том же соединении транзакции.
  */
 function makeFakeDb(row: { title: string; description: string; content_rev: number }) {
   const revisions: any[] = [];
-  const em = {
-    query: jest.fn(async (sql: string, params: any[]) => {
-      if (sql.includes('FOR UPDATE')) return [{ ...row, content_format: null }];
-      if (sql.startsWith('UPDATE') && sql.includes('SET title')) {
-        row.title = params[0];
-        row.description = params[1];
-        row.content_rev = params[2];
-        return [];
-      }
-      if (sql.startsWith('UPDATE') && sql.includes('SET content_rev')) {
-        row.content_rev = params[0];
-        return [];
-      }
-      if (sql.startsWith('SELECT content_rev')) return [{ content_rev: row.content_rev }];
-      throw new Error(`unexpected sql: ${sql}`);
-    }),
-    findOne: jest.fn(async (_e: unknown, opts: any) => revisions.find((r) => r.rev === opts.where.rev) ?? null),
-    insert: jest.fn(async (_e: unknown, rec: any) => {
+  const answer = (sql: string, params: any[]): any[] => {
+    if (sql.includes('FOR UPDATE')) return [{ ...row, content_format: null }];
+    if (sql.startsWith('UPDATE') && sql.includes('SET title')) {
+      row.title = params[0];
+      row.description = params[1];
+      row.content_rev = params[2];
+      return [];
+    }
+    if (sql.startsWith('UPDATE') && sql.includes('SET content_rev')) {
+      row.content_rev = params[0];
+      return [];
+    }
+    if (sql.startsWith('SELECT content_rev')) return [{ content_rev: row.content_rev }];
+    throw new Error(`unexpected sql: ${sql}`);
+  };
+  const em: any = {
+    executeQuery: jest.fn(async (query: { sql: string; parameters: any[] }) => ({ rows: answer(query.sql, query.parameters) })),
+    transaction: () => ({ execute: async (fn: (trx: any) => Promise<any>) => fn(em) }),
+  };
+  const store = {
+    findOne: jest.fn(async (where: any) => revisions.find((r) => r.rev === where.rev) ?? null),
+    insert: jest.fn(async (rec: any) => {
       revisions.push({ ...rec });
+      return rec;
     }),
-    delete: jest.fn(async (_e: unknown, where: any) => {
+    delete: jest.fn(async (where: any) => {
       const i = revisions.findIndex((r) => r.rev === where.rev);
       if (i >= 0) revisions.splice(i, 1);
+      return i >= 0 ? 1 : 0;
     }),
   };
-  const repository = {
-    manager: { transaction: async (fn: (em: any) => Promise<any>) => fn(em) },
-  } as any;
+  const repository = { kysely: em, on: () => store } as any;
   return { row, revisions, em, service: new ContentRevisionService(repository) };
 }
 

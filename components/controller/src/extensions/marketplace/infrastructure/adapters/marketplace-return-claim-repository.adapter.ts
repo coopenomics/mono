@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { TableStore, notNull, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_RETURN_CLAIM_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
 import {
   MARKETPLACE_RETURN_CLAIM_ACTIVE_STATUSES,
+  MarketplaceReturnClaimStatuses,
   type MarketplaceReturnClaimStatus,
 } from '../../domain/entities/marketplace-return-claim.types';
 import type {
@@ -22,8 +23,8 @@ export class MarketplaceReturnClaimRepositoryAdapter
   implements MarketplaceReturnClaimDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceReturnClaimEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceReturnClaimEntity>,
+    @Inject(MARKETPLACE_RETURN_CLAIM_STORE)
+private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
     private readonly mapper: MarketplaceReturnClaimMapper
   ) {}
 
@@ -63,7 +64,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceReturnClaimDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -71,7 +72,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
     coopname: string,
     request_hash: string
   ): Promise<MarketplaceReturnClaimDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { coopname, request_hash } });
+    const row = await this.repo.findOne({ coopname, request_hash });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -79,10 +80,17 @@ export class MarketplaceReturnClaimRepositoryAdapter
     coopname: string,
     order_id: string
   ): Promise<MarketplaceReturnClaimDomainEntity | null> {
-    const row = await this.repo.findOne({
-      where: { coopname, order_id, status: In(ACTIVE_STATUSES) },
-    });
+    const row = await this.repo.findOne({ coopname, order_id, status: oneOf(ACTIVE_STATUSES) });
     return row ? this.mapper.toDomain(row) : null;
+  }
+
+  async sumReturnedQuantity(coopname: string, order_id: string): Promise<number> {
+    const rows = await this.repo.find({
+        coopname,
+        order_id,
+        status: oneOf([MarketplaceReturnClaimStatuses.PENDING_COUNCIL, MarketplaceReturnClaimStatuses.ACCEPTED_BY_COUNCIL]),
+      });
+    return rows.reduce((sum, row) => sum + Number(row.actual_quantity ?? 0), 0);
   }
 
   async listByOrderer(
@@ -91,8 +99,8 @@ export class MarketplaceReturnClaimRepositoryAdapter
     status?: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[]
   ): Promise<MarketplaceReturnClaimDomainEntity[]> {
     const where: Record<string, unknown> = { coopname, orderer_account };
-    if (status) where.status = Array.isArray(status) ? In(status) : status;
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    if (status) where.status = Array.isArray(status) ? oneOf(status) : status;
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -107,9 +115,9 @@ export class MarketplaceReturnClaimRepositoryAdapter
     // ACTIVE_STATUSES — это делало секцию архива всегда пустой.
     const where: Record<string, unknown> = { coopname, delivery_braname };
     if (status !== undefined) {
-      where.status = Array.isArray(status) ? In(status) : status;
+      where.status = Array.isArray(status) ? oneOf(status) : status;
     }
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -117,9 +125,9 @@ export class MarketplaceReturnClaimRepositoryAdapter
     id: string,
     input: MarketplaceReturnClaimApplyDecisionInput
   ): Promise<MarketplaceReturnClaimDomainEntity> {
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    const row = await this.repo.findOneOrFail({ id });
     await this.repo.update({ id }, this.decisionPatch(row, input));
-    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    const fresh = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(fresh);
   }
 
@@ -128,12 +136,12 @@ export class MarketplaceReturnClaimRepositoryAdapter
     from: MarketplaceReturnClaimStatus,
     input: MarketplaceReturnClaimApplyDecisionInput
   ): Promise<MarketplaceReturnClaimDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id, status: from } });
+    const row = await this.repo.findOne({ id, status: from });
     if (!row) return null;
     // Условие по статусу в WHERE — вторая сторона гонки получит affected=0.
     const result = await this.repo.update({ id, status: from }, this.decisionPatch(row, input));
-    if (!result.affected) return null;
-    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    if (!result) return null;
+    const fresh = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(fresh);
   }
 
@@ -143,20 +151,16 @@ export class MarketplaceReturnClaimRepositoryAdapter
     if (patch.council_decision_mode !== undefined) update.council_decision_mode = patch.council_decision_mode;
     if (patch.fee_refund_pending_at !== undefined) update.fee_refund_pending_at = patch.fee_refund_pending_at;
     if (patch.decision_entry) {
-      const row = await this.repo.findOneOrFail({ where: { id } });
+      const row = await this.repo.findOneOrFail({ id });
       update.decision_log = [...(row.decision_log ?? []), patch.decision_entry];
     }
     if (Object.keys(update).length > 0) await this.repo.update({ id }, update);
-    const fresh = await this.repo.findOneOrFail({ where: { id } });
+    const fresh = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(fresh);
   }
 
   async listFeeRefundPending(coopname: string, limit = 50): Promise<MarketplaceReturnClaimDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname, fee_refund_pending_at: Not(IsNull()) },
-      order: { fee_refund_pending_at: 'ASC' },
-      take: limit,
-    });
+    const rows = await this.repo.find({ coopname, fee_refund_pending_at: notNull() }, { order: { fee_refund_pending_at: 'ASC' }, limit: limit });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -165,11 +169,7 @@ export class MarketplaceReturnClaimRepositoryAdapter
     status: MarketplaceReturnClaimStatus | MarketplaceReturnClaimStatus[],
     limit = 50
   ): Promise<MarketplaceReturnClaimDomainEntity[]> {
-    const rows = await this.repo.find({
-      where: { coopname, status: Array.isArray(status) ? In(status) : status },
-      order: { updated_at: 'ASC' },
-      take: limit,
-    });
+    const rows = await this.repo.find({ coopname, status: Array.isArray(status) ? oneOf(status) : status }, { order: { updated_at: 'ASC' }, limit: limit });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 

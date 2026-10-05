@@ -1,4 +1,4 @@
-import type { MigrationInterface } from 'typeorm';
+import type { SchemaMigration } from '../database/schema-migration';
 import type { ExtensionConfigPolicy } from '../config/config-policy';
 import type { IExtensionSchemaMigration } from '../migrations/schema-migration.contract';
 
@@ -66,15 +66,6 @@ export interface IRegistryExtension {
    */
   configPolicy?: ExtensionConfigPolicy;
   /**
-   * Таблицы, которыми расширение владеет, — классы сущностей TypeORM.
-   *
-   * Состав объявляется здесь, а не выводится из положения файлов на диске:
-   * расширение, установленное пакетом в `node_modules`, ни под какой глоб по
-   * `src/` не попадёт, и его таблицы просто не создадутся. Пустой список у
-   * расширения, которое своих таблиц не держит, — нормальное состояние.
-   */
-  entities?: ReadonlyArray<new (...args: any[]) => any>;
-  /**
    * Миграции таблиц расширения — классы миграций TypeORM.
    *
    * Схему базы меняют только миграции: добавил или поменял колонку в сущности
@@ -82,7 +73,7 @@ export interface IRegistryExtension {
    * задаёт метка времени в имени класса, общая лента с миграциями ядра.
    * Не путать с `migrations` ниже — те переводят конфиг расширения.
    */
-  databaseMigrations?: ReadonlyArray<new () => MigrationInterface>;
+  databaseMigrations?: ReadonlyArray<new () => SchemaMigration>;
   /**
    * Миграции схемы конфига расширения — в порядке применения.
    *

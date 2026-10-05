@@ -1,0 +1,104 @@
+feature: capital.project-property
+title: Имущественный взнос в проект — предложение участника и одобрение председателя
+
+# Участник проекта предлагает внести имущество: описание и стоимость.
+# Предложение уходит председателю на одобрение; после одобрения стоимость
+# ложится в имущественную базу проекта и в долю участника, предложение
+# закрывается. Отклонённое предложение закрывается без движения.
+#
+# Заведено 02.10.2026 (C28-85): фича жила вне реестра, зеркало
+# capital_project_properties не трогал ни один сценарий внешнего слоя (карта
+# готовности к уходу с TypeORM, C28-81). У зеркала предложений нет чтения
+# через API — снаружи видны только запись в цепи и итог в базе проекта.
+sources:
+  backend:
+    - components/controller/src/extensions/capital/application/resolvers/property-management.resolver.ts
+    - components/controller/src/extensions/capital/application/services/property-management.service.ts
+    - components/controller/src/extensions/capital/application/use-cases/property-management.interactor.ts
+    - components/controller/src/extensions/capital/application/syncers/project-property-sync.service.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/project-property.record.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project-property.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/mappers/project-property.mapper.ts
+  contract:
+    - components/contracts/cpp/capital/app/property_management/contribute_property_in_project/**
+  ui:
+    - components/desktop/extensions/capital/features/PropertyInvest/**
+
+cases:
+  - id: cap.prop.happy.01
+    level: backend
+    kind: happy
+    scenario: участник проекта с допуском предлагает имущество со стоимостью и описанием
+    expect: предложение заведено в цепи на участника и ждёт председателя; имущественная база проекта не меняется
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель одобряет предложение
+    expect: стоимость легла в имущественную базу проекта и в долю участника (он отмечен внёсшим имущество), предложение закрыто
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.side.01
+    level: backend
+    kind: side
+    scenario: пайщик подаёт предложение от чужого имени
+    expect: отказ по правам, предложение не заводится
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.side.02
+    level: backend
+    kind: side
+    scenario: нулевая стоимость, пустое описание, повтор хеша предложения
+    expect: цепь отказывает, предложение не заводится
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.side.03
+    level: backend
+    kind: side
+    scenario: участник Благороста без допуска к проекту предлагает имущество
+    expect: цепь отказывает — нет приложения к договору УХД по проекту
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.side.04
+    level: backend
+    kind: side
+    scenario: председатель отклоняет предложение
+    expect: предложение закрыто, база проекта и доля участника не меняются
+    test: components/api-tests/src/capital/project-property.test.ts
+    status: written
+
+  - id: cap.prop.side.05
+    level: backend
+    kind: side
+    scenario: предложения участника и их состояние на рабочем столе
+    expect: >
+      не решено. Зеркало предложений (capital_project_properties) пишется из
+      цепи, но ни одна операция API его не читает: участник не видит ни своё
+      предложение, ни его судьбу
+    test: ~
+    status: missing
+    decision_needed: true
+
+  - id: cap.prop.side.06
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written

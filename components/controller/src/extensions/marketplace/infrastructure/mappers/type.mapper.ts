@@ -21,7 +21,6 @@ export class TypeMapper {
             updatedAt: entity.category.updatedAt,
           })
         : ({} as CategoryDomainEntity),
-      categoryTypeAttributes: [],
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     });

@@ -35,7 +35,7 @@ import {
 import { t } from '../../i18n';
 import { CommitOutputDTO } from '../dto/generation/commit.dto';
 import { CycleOutputDTO } from '../dto/generation/cycle.dto';
-import { PaginationInputDTO, PaginationResult, platformSettings, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, EMPTY_HASH, CurrencyValidationUtil, DomainError } from '@coopenomics/extension-kit';
+import { CurrencyValidationUtil, DomainError, EMPTY_HASH, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, generateUniqueHash, PaginationInputDTO, PaginationResult, platformSettings, sanitizeUserText } from '@coopenomics/extension-kit';
 import { StoryStatus } from '../../domain/enums/story-status.enum';
 import { StoryContentFormat } from '../../domain/enums/story-content-format.enum';
 import { normalizeBpmnStoryDescription } from '../../domain/utils/bpmn-story-description.util';
@@ -70,9 +70,7 @@ import { CommitMapperService } from './commit-mapper.service';
 import { ContentRevisionService } from './content-revision.service';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
-import type { IMonoAccount } from '@coopenomics/innercoop';
-import { MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT, type IMatrixRoomMessagingPort, type IProjectCommunicationArtifactsPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
-import { generateUniqueHash, sanitizeUserText } from '@coopenomics/extension-kit';
+import { DOCUMENT_PORT, type IDocumentPort, type IMatrixRoomMessagingPort, type IMonoAccount, type IProjectCommunicationArtifactsPort, MATRIX_ROOM_MESSAGING_PORT, PROJECT_COMMUNICATION_ARTIFACTS_PORT } from '@coopenomics/innercoop';
 
 /**
  * Сервис уровня приложения для генерации в CAPITAL
@@ -1413,10 +1411,19 @@ export class GenerationService {
   /**
    * Удаление задачи по хэшу
    */
-  async deleteIssueByHash(issueHash: string): Promise<boolean> {
+  async deleteIssueByHash(issueHash: string, currentUser: IMonoAccount): Promise<boolean> {
     const issueEntity = await this.issueRepository.findByIssueHash(issueHash);
     if (!issueEntity) {
       throw DomainError.notFound('CAPITAL_ISSUE_HASH_NOT_FOUND', { hash: issueHash });
+    }
+    // Удалить задачу вправе тот, кому это разрешает таблица ролей задачи —
+    // ведущий проекта; по ней же стол показывает кнопку. Председатель
+    // действует по своей роли, как и раньше (C28-87).
+    if (currentUser.role !== 'chairman') {
+      const permissions = await this.permissionsService.calculateIssuePermissions(issueEntity, currentUser);
+      if (!permissions.can_delete_issue) {
+        throw DomainError.forbidden('CAPITAL_ISSUE_DELETE_FORBIDDEN');
+      }
     }
     // Снимаем незакоммиченные билеты до удаления задачи — иначе они останутся сиротами
     // и исказят total_uncommitted_hours/pending_hours. Закоммиченные часы уже в экономике,

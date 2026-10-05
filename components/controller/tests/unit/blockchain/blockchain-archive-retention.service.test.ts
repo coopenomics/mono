@@ -47,6 +47,16 @@ function makeRepoStub(): any {
   };
 }
 
+/** Версии и архив форка: чистка идёт одним вызовом по обеим таблицам архива. */
+function versioningOf(entityRepo: any, versionRepo: any): any {
+  return {
+    deleteArchiveOlderThan: async (threshold: number) => ({
+      entities: await entityRepo.deleteOlderThan(threshold),
+      versions: await versionRepo.deleteOlderThan(threshold),
+    }),
+  };
+}
+
 describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
   it('LIB=100500: threshold=99500 (LIB-1000), удаляет архив старше threshold', async () => {
     const bc = makeBlockchainServiceStub(100500);
@@ -55,7 +65,7 @@ describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
     entityRepo.deleteOlderThan.mockResolvedValueOnce(42);
     versionRepo.deleteOlderThan.mockResolvedValueOnce(17);
 
-    const service = new BlockchainArchiveRetentionService(bc, entityRepo, versionRepo, makeLoggerStub());
+    const service = new BlockchainArchiveRetentionService(bc, versioningOf(entityRepo, versionRepo), makeLoggerStub());
 
     await service.cleanup();
 
@@ -69,7 +79,7 @@ describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
     const entityRepo = makeRepoStub();
     const versionRepo = makeRepoStub();
 
-    const service = new BlockchainArchiveRetentionService(bc, entityRepo, versionRepo, makeLoggerStub());
+    const service = new BlockchainArchiveRetentionService(bc, versioningOf(entityRepo, versionRepo), makeLoggerStub());
 
     await service.cleanup();
 
@@ -83,7 +93,7 @@ describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
     const entityRepo = makeRepoStub();
     const versionRepo = makeRepoStub();
 
-    const service = new BlockchainArchiveRetentionService(bc, entityRepo, versionRepo, makeLoggerStub());
+    const service = new BlockchainArchiveRetentionService(bc, versioningOf(entityRepo, versionRepo), makeLoggerStub());
 
     await service.cleanup();
 
@@ -99,7 +109,7 @@ describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
       const entityRepo = makeRepoStub();
       const versionRepo = makeRepoStub();
 
-      const service = new BlockchainArchiveRetentionService(bc, entityRepo, versionRepo, makeLoggerStub());
+      const service = new BlockchainArchiveRetentionService(bc, versioningOf(entityRepo, versionRepo), makeLoggerStub());
 
       await service.cleanup();
 
@@ -121,7 +131,7 @@ describe('BlockchainArchiveRetentionService.cleanup (Story 4.4)', () => {
     const versionRepo = makeRepoStub();
     const logger = makeLoggerStub();
 
-    const service = new BlockchainArchiveRetentionService(bc as any, entityRepo, versionRepo, logger);
+    const service = new BlockchainArchiveRetentionService(bc as any, versioningOf(entityRepo, versionRepo), logger);
 
     await expect(service.cleanup()).resolves.toBeUndefined();
     expect(entityRepo.deleteOlderThan).not.toHaveBeenCalled();

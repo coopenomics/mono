@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { MARKETPLACE_STOCK_PROPOSAL_STORE } from '../../infrastructure/database/marketplace-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import { MarketplaceStockProposalDomainEntity } from '../../domain/entities/marketplace-stock-proposal.entity';
 import {
   MarketplaceStockProposalStatuses,
@@ -19,8 +19,8 @@ export class MarketplaceStockProposalRepositoryAdapter
   implements MarketplaceStockProposalDomainRepository
 {
   constructor(
-    @InjectRepository(MarketplaceStockProposalEntity, 'marketplace')
-    private readonly repo: Repository<MarketplaceStockProposalEntity>,
+    @Inject(MARKETPLACE_STOCK_PROPOSAL_STORE)
+private readonly repo: TableStore<MarketplaceStockProposalEntity>,
     private readonly mapper: MarketplaceStockProposalMapper
   ) {}
 
@@ -42,7 +42,7 @@ export class MarketplaceStockProposalRepositoryAdapter
   }
 
   async findById(id: string): Promise<MarketplaceStockProposalDomainEntity | null> {
-    const row = await this.repo.findOne({ where: { id } });
+    const row = await this.repo.findOne({ id });
     return row ? this.mapper.toDomain(row) : null;
   }
 
@@ -52,12 +52,12 @@ export class MarketplaceStockProposalRepositoryAdapter
     const where: Record<string, unknown> = { coopname: filter.coopname };
     if (filter.member_account) where.member_account = filter.member_account;
     if (filter.braname) {
-      where.braname = Array.isArray(filter.braname) ? In(filter.braname) : filter.braname;
+      where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
     }
     if (filter.status) {
-      where.status = Array.isArray(filter.status) ? In(filter.status) : filter.status;
+      where.status = Array.isArray(filter.status) ? oneOf(filter.status) : filter.status;
     }
-    const rows = await this.repo.find({ where, order: { created_at: 'DESC' } });
+    const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });
     return rows.map((r) => this.mapper.toDomain(r));
   }
 
@@ -75,8 +75,8 @@ export class MarketplaceStockProposalRepositoryAdapter
         ...(created_order_ids ? { created_order_ids } : {}),
       }
     );
-    if (!res.affected) return null;
-    const row = await this.repo.findOneOrFail({ where: { id } });
+    if (!res) return null;
+    const row = await this.repo.findOneOrFail({ id });
     return this.mapper.toDomain(row);
   }
 }

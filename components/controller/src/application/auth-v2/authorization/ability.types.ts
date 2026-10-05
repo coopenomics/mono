@@ -9,7 +9,7 @@ import type { MongoAbility } from '@casl/ability';
 
 /**
  * Действия. База CRUD + `manage` (CASL-wildcard «всё над субъектом») + доменные
- * глаголы: `confirm` — второй подписант critical-action (Story 6.8); `vote` —
+ * глаголы: `confirm` — подтверждение (платежа в реестре платежей); `vote` —
  * голос в решении (Story 6.3, same-coop policy); `generate` — сформировать
  * документ к подписи (C28-87: перевод генерации документов с `@AuthRoles`).
  */
@@ -23,7 +23,6 @@ export type CoopSubject =
   | 'VerificationRule'
   | 'CoopSettings'
   | 'RecoveryStrategy'
-  | 'CriticalAction'
   | 'Role'
   | 'Capability'
   /** Именованный набор возможностей (Story 6.11) — управляет председатель. */

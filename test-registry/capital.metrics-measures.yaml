@@ -35,6 +35,9 @@ sources:
     - components/controller/src/extensions/capital/application/services/component-metric.service.ts
     - components/controller/src/extensions/capital/application/dto/metrics/**
     - components/controller/src/extensions/capital/domain/entities/measure.entity.ts
+    - components/controller/src/extensions/capital/domain/entities/issue-metric-binding.entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-metric-binding.record.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue-metric-binding.kysely-repository.ts
     - components/controller/src/extensions/capital/domain/utils/build-metric-series.ts
     - components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.ts
     - components/controller/src/extensions/capital/domain/utils/wave-markup.ts
@@ -277,3 +280,69 @@ cases:
     test: components/controller/tests/unit/capital/metric-foreign-coop.test.ts
     api: components/api-tests/src/capital/metrics-measures.test.ts
     status: passing
+
+  - id: cap.mm.bind.happy.01
+    level: backend
+    kind: happy
+    scenario: задаче назначают вклад в две цели её компонента
+    expect: обе привязки сохранены со своими величинами и читаются по задаче
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.happy.02
+    level: backend
+    kind: happy
+    scenario: привязки задачи назначают повторно другим набором
+    expect: новый набор заменяет прежний целиком
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.happy.03
+    level: backend
+    kind: happy
+    scenario: задача с привязкой выполнена, затем возвращена в работу
+    expect: при выполнении факт цели вырос на величину привязки, при возврате в работу вернулся к прежнему
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.01
+    level: backend
+    kind: side
+    scenario: к задаче привязывают цель другого компонента, выключенную цель, цель, которой нет
+    expect: отказ своим кодом на каждый случай, набор привязок задачи прежний
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.02
+    level: backend
+    kind: side
+    scenario: посторонний пайщик меняет привязки чужой задачи; привязки задачи, которой нет
+    expect: постороннему отказ CAPITAL_ISSUE_METRIC_LINK_FORBIDDEN, несуществующей задаче — «не найдено»
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.bind.side.03
+    level: backend
+    kind: side
+    scenario: привязки меняют у выполненной задачи
+    expect: отказ CAPITAL_ISSUE_METRIC_LINKS_LOCKED_DONE, привязки прежние
+    test: components/api-tests/src/capital/metric-bindings.test.ts
+    status: written
+
+  - id: cap.mm.side.16
+    level: backend
+    kind: side
+    scenario: >
+      хранилища зеркал Благороста после перевода на Kysely: условия правки и
+      удаления записей времени, выборка коммитов и историй проекта, чтение
+      проекта и адресов репозиториев; создание записи из дельты и версии перед
+      изменением
+    expect: >
+      условия запросов прежние: правятся и удаляются только подходящие записи,
+      хэши ищутся в нижнем регистре, удалённые в цепи проекты не отдаются;
+      устаревшая дельта запись не затирает, прежнее состояние перед изменением
+      уходит в версии
+    test: components/controller/tests/unit/capital/capital-chain-mirrors.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
+    status: written

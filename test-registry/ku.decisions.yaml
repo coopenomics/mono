@@ -70,18 +70,113 @@ cases:
     level: backend
     kind: side
     scenario: Повторное присоединение к собранию, повторная отмена собрания, повторное отклонение заявки доверенного
-    expect: отказ цепи с кодом CHAIN_ASSERT, состояние не меняется
-    # Сейчас отказ цепи приходит без кода — code 500 («assertion failure with message: …»):
-    # транзакции идут через @wharfkit/session, фильтр GraphQL узнаёт только RpcError eosjs.
-    status: missing
+    expect: отказ с кодом (отказ цепи CHAIN_ASSERT либо правило узла), не внутренняя ошибка; состояние не меняется
+    # До 02.10.2026 отказ цепи приходил без кода (code 500): транзакции шли через
+    # @wharfkit/session, фильтр GraphQL узнавал только RpcError eosjs. Отказ контракта
+    # теперь уходит с кодом — случай проверяется снаружи.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
 
   - id: ku.dec.happy.04
     level: backend
     kind: happy
-    scenario: Собрание проходит голосование, протокол и заявление в совет
-    expect: счётчики голосов в вопросах, протокол и решение совета на странице собрания
-    # Полный путь собрания участка во внешнем слое пока не заведён.
-    status: missing
+    scenario: Собрание об учреждении участка проходит голосование и утверждает протокол
+    expect: >
+      счётчики голосов в вопросах; после протокола собрание не завершается, а
+      ждёт заявления в совет; протокол виден на странице собрания
+    # 02.10.2026 (C28-85): путь учреждения заведён во внешнем слое целиком. Прежнее
+    # ожидание «протокол и решение совета на странице собрания» разнесено по трём
+    # случаям: протокол — здесь и в ku.dec.happy.09, заявление и решение совета —
+    # ku.dec.happy.08, решение совета на странице собрания — ku.dec.happy.10.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.04
+    level: backend
+    kind: side
+    scenario: организатор открывает голосование, когда участников собрания меньше трёх
+    expect: отказ, собрание остаётся открытым для присоединения
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.05
+    level: backend
+    kind: happy
+    scenario: организатор открывает голосование на собрании из трёх участников
+    expect: >
+      собрание в голосовании, председатель назначен, окно голосования отмерено,
+      бюллетеней нет; присоединиться к начатому голосованию нельзя
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.06
+    level: backend
+    kind: happy
+    scenario: участники подают подписанные бюллетени с голосами по каждому вопросу
+    expect: >
+      голоса «за», «против» и «воздержался» считаются по вопросам с именами
+      голосовавших; повторный бюллетень, бюллетень за другого и бюллетень
+      пайщика вне собрания не принимаются
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.07
+    level: backend
+    kind: happy
+    scenario: председатель собрания утверждает протокол после того, как проголосовали все
+    expect: >
+      собрание завершено; закрыть его может только организатор, повторное
+      закрытие не проходит
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.08
+    level: backend
+    kind: happy
+    scenario: >
+      избранный председатель участка подаёт в совет заявление об учреждении с
+      договором о материальной ответственности и доверенностью; совет утверждает
+    expect: >
+      вопрос об учреждении появляется в повестке совета от имени председателя
+      участка, собрание ждёт решения; после решения совета участок появляется
+      с избранным председателем, наименованием и адресом из собрания, собрание
+      завершено; повторное заявление и отмена учреждённого собрания не проходят
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.09
+    level: backend
+    kind: happy
+    scenario: пайщик открывает страницу собрания, по которому совет учредил участок
+    expect: протокол собрания остаётся на странице собрания
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.happy.10
+    level: backend
+    kind: happy
+    scenario: пайщик открывает страницу собрания, по которому совет учредил участок
+    expect: на странице собрания видно решение совета об учреждении
+    # До 02.10.2026 решения на странице не было (C28-85, находка 66): действие совета
+    # стирает запись собрания, не записав в неё документ решения. Теперь его сохраняет узел.
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.05
+    level: backend
+    kind: side
+    scenario: организатор открывает голосование об учреждении без наименования участка, без почты или телефона участка
+    expect: отказ KU_BRANCH_NAME_REQUIRED и KU_BRANCH_CONTACTS_REQUIRED, собрание остаётся открытым
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
+
+  - id: ku.dec.side.06
+    level: backend
+    kind: side
+    scenario: заявление в совет подаёт участник собрания, не избранный председателем участка; гость
+    expect: отказ KU_ACTION_CHAIRMAN_ONLY, гостю отказ входа; вопрос в совет не уходит, собрание ждёт заявления
+    test: components/api-tests/src/ku/decisions.test.ts
+    status: written
 
   - id: ku.trust.happy.01
     level: backend
@@ -156,3 +251,21 @@ cases:
     test: components/controller/tests/unit/document/document-version-by-meta.test.ts
     api: components/api-tests/src/ku/decisions.test.ts
     status: passing
+
+  - id: ku.dec.side.11
+    level: backend
+    kind: side
+    scenario: >
+      зеркала решений и заявок участка на новом каркасе синхронизации: новая
+      запись из цепи, устаревшая дельта, блок из базы строкой
+    expect: >
+      новой записи ключ выдаёт база; устаревшая дельта запись не затирает; блоки
+      сравниваются числами
+    test: components/controller/tests/unit/sync/base-chain-repository.test.ts
+    external: unreachable
+    external_reason: "порядок дельт снаружи не виден; решения и заявки участка через API покрыты случаями ku.*"
+    status: written
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.

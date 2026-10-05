@@ -162,6 +162,11 @@ export class SystemInteractor {
   }
 
   async setWif(data: SetWifInputDomainInterface): Promise<void> {
+    // Узел подписывает только ключом кооператива: личные ключи пайщиков в его
+    // хранилище не принимаются, даже верные.
+    if (data.username !== config.coopname) {
+      throw DomainError.forbidden('SYSTEM_VAULT_COOPERATIVE_KEY_ONLY');
+    }
     await this.wifInteractor.setWif(data);
   }
 

@@ -1,7 +1,4 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import type { DataSource } from 'typeorm';
-import { LocalChangesCollector } from '@coopenomics/extension-kit';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort, type InnerChainChangesTable } from '@coopenomics/innercoop';
 import { MarketContract } from 'cooptypes';
 
@@ -51,26 +48,17 @@ export const MARKETPLACE_LIVE_CHAIN_TABLES: InnerChainChangesTable[] = [
   { code: MarketContract.contractName.production, table: MarketContract.Tables.Config.tableName },
 ];
 
-const WATCHED = new Set(MARKETPLACE_LIVE_TABLES.map((t) => t.table));
 
 /**
- * Живые обновления Стола заказов по общей ленте изменений (C28-83). У
- * расширения своя база, подписчик ядра её не видит: этот наблюдает её сам и
- * публикует сигнал через порт после фиксации записи. Без порта ленты (узел
- * без ядра ленты) — молчит, стол работает как прежде.
+ * Живые обновления Стола заказов по общей ленте изменений (C28-83): объявляет
+ * таблицы расширения. Сигнал о записи шлёт слой базы — запись идёт через
+ * Kysely, и после её фиксации лента получает ключ строки. Без порта ленты
+ * (узел без ядра ленты) объявлять нечего, стол работает как прежде.
  */
 @Injectable()
-export class MarketplaceLiveFeedSubscriber extends LocalChangesCollector {
-  constructor(
-    @InjectDataSource('marketplace') dataSource: DataSource,
-    @Optional() @Inject(CHAIN_CHANGES_PORT) chainChanges: IChainChangesPort | null = null
-  ) {
-    super(
-      (table) => WATCHED.has(table),
-      (table, primary_key, row) => chainChanges?.publishLocal(table, primary_key, row)
-    );
+export class MarketplaceLiveFeedSubscriber {
+  constructor(@Optional() @Inject(CHAIN_CHANGES_PORT) chainChanges: IChainChangesPort | null = null) {
     chainChanges?.declareLocalTables(MARKETPLACE_LIVE_TABLES);
     chainChanges?.declareTables(MARKETPLACE_LIVE_CHAIN_TABLES);
-    dataSource.subscribers.push(this);
   }
 }

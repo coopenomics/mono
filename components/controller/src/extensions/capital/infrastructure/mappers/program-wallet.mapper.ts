@@ -1,11 +1,11 @@
 import { ProgramWalletDomainEntity } from '../../domain/entities/program-wallet.entity';
-import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
+import { ProgramWalletRecord } from '../entities/program-wallet.record';
 import type { IProgramWalletDatabaseData } from '../../domain/interfaces/program-wallet-database.interface';
 import type { IProgramWalletBlockchainData } from '../../domain/interfaces/program-wallet-blockchain.interface';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ProgramWalletTypeormEntity>, keyof IProgramWalletDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ProgramWalletTypeormEntity>, keyof IProgramWalletBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ProgramWalletRecord>, keyof IProgramWalletDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ProgramWalletRecord>, keyof IProgramWalletBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ProgramWalletDomainEntity>, keyof IProgramWalletDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ProgramWalletDomainEntity>, keyof IProgramWalletBlockchainData>;
@@ -17,7 +17,7 @@ export class ProgramWalletMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ProgramWalletTypeormEntity): ProgramWalletDomainEntity {
+  static toDomain(entity: ProgramWalletRecord): ProgramWalletDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -47,7 +47,7 @@ export class ProgramWalletMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ProgramWalletDomainEntity): Partial<ProgramWalletTypeormEntity> {
+  static toEntity(domain: ProgramWalletDomainEntity): Partial<ProgramWalletRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

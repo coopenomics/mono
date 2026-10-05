@@ -15,7 +15,7 @@ import { FavoritesService } from '~/extensions/capital/application/services/favo
 import { FavoritesResolver } from '~/extensions/capital/application/resolvers/favorites.resolver';
 import { FavoriteTargetType } from '~/extensions/capital/domain/enums/favorite-target-type.enum';
 import type { FavoriteRepository } from '~/extensions/capital/domain/repositories/favorite.repository';
-import { FavoriteTypeormRepository } from '~/extensions/capital/infrastructure/repositories/favorite.typeorm-repository';
+import { FavoriteKyselyRepository } from '~/extensions/capital/infrastructure/repositories/favorite.kysely-repository';
 
 const CREATED_AT = new Date('2026-08-18T00:00:00Z');
 
@@ -105,7 +105,7 @@ describe('FavoritesService', () => {
   });
 });
 
-describe('FavoriteTypeormRepository — выдача с живыми целями', () => {
+describe('FavoriteKyselyRepository — выдача с живыми целями', () => {
   it('запись с удалённой целью выпадает из выдачи, живая — с актуальным title и родителем', async () => {
     const favoritesRepo = {
       find: jest.fn().mockResolvedValue([
@@ -134,7 +134,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     const issueRepo = { find: jest.fn().mockResolvedValue([]) };
     const storyRepo = { find: jest.fn().mockResolvedValue([]) };
 
-    const repository = new FavoriteTypeormRepository(
+    const repository = new FavoriteKyselyRepository(
       favoritesRepo as never,
       projectRepo as never,
       issueRepo as never,
@@ -165,7 +165,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     const issueRepo = { find: jest.fn().mockResolvedValue([]) };
     const storyRepo = { find: jest.fn().mockResolvedValue([]) };
 
-    const repository = new FavoriteTypeormRepository(
+    const repository = new FavoriteKyselyRepository(
       favoritesRepo as never,
       projectRepo as never,
       issueRepo as never,
@@ -175,9 +175,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     const result = await repository.findByUserWithTargets('voskhod', 'ant');
 
     expect(result).toEqual([]);
-    expect(projectRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ present: true }) })
-    );
+    expect(projectRepo.find).toHaveBeenCalledWith(expect.objectContaining({ present: true }));
   });
 
   // cap.fav.side.09
@@ -213,7 +211,7 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
       ]),
     };
 
-    const repository = new FavoriteTypeormRepository(
+    const repository = new FavoriteKyselyRepository(
       favoritesRepo as never,
       projectRepo as never,
       issueRepo as never,
@@ -225,19 +223,15 @@ describe('FavoriteTypeormRepository — выдача с живыми целям�
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ target_hash: 'issue1', title: 'Задача' });
     expect(result[1]).toMatchObject({ target_hash: 'story1', title: 'Артефакт' });
-    expect(issueRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
-    );
-    expect(storyRepo.find).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.not.objectContaining({ present: true }) })
-    );
+    expect(issueRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
+    expect(storyRepo.find).toHaveBeenCalledWith(expect.not.objectContaining({ present: true }));
   });
 
   // cap.fav.side.06
   it('снятие цели с избранного у всех пайщиков идёт по хэшу в нижнем регистре', async () => {
     const favoritesRepo = { delete: jest.fn().mockResolvedValue(undefined) };
 
-    const repository = new FavoriteTypeormRepository(
+    const repository = new FavoriteKyselyRepository(
       favoritesRepo as never,
       { find: jest.fn() } as never,
       { find: jest.fn() } as never,

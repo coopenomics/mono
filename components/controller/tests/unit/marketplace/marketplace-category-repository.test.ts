@@ -12,12 +12,15 @@
  */
 import { MarketplaceCategoryRepositoryAdapter } from '~/extensions/marketplace/infrastructure/adapters/marketplace-category-repository.adapter';
 import { MarketplaceCategoryService } from '~/extensions/marketplace/application/services/marketplace-category.service';
+import { MARKETPLACE_CATEGORY_STORE } from '~/extensions/marketplace/infrastructure/database/marketplace-stores';
+import { recordingKysely } from '../helpers/kysely-recorder';
+import { marketplaceStore } from './helpers/marketplace-store';
 
 const COOP = 'voskhod';
 
 function makeAdapter(affected: number) {
   const repo = {
-    delete: jest.fn().mockResolvedValue({ affected }),
+    delete: jest.fn().mockResolvedValue(affected),
   };
   const mapper = { toDomain: jest.fn() };
   const adapter = new MarketplaceCategoryRepositoryAdapter(
@@ -47,15 +50,6 @@ describe('MarketplaceCategoryRepositoryAdapter.deleteCustom', () => {
     await expect(adapter.deleteCustom(COOP, 1)).resolves.toBe(false);
   });
 
-  it('undefined в affected трактуется как «не удалено», а не как успех', async () => {
-    const repo = { delete: jest.fn().mockResolvedValue({}) };
-    const adapter = new MarketplaceCategoryRepositoryAdapter(
-      repo as never,
-      { toDomain: jest.fn() } as never
-    );
-
-    await expect(adapter.deleteCustom(COOP, 1)).resolves.toBe(false);
-  });
 });
 
 /**
@@ -128,16 +122,14 @@ describe('MarketplaceCategoryService.createCustom: дубликат назван
 describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => {
   const uniqueViolation = (constraint: string) =>
     Object.assign(new Error('duplicate key value violates unique constraint'), {
-      driverError: { code: '23505', constraint },
+      code: '23505',
+      constraint,
     });
 
   function makeAdapter(insertImpl: jest.Mock) {
     const repo = {
-      createQueryBuilder: jest.fn().mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ maxId: 12, maxSort: 12 }),
-      }),
+      // Номер считается запросом MAX(id) на каждой попытке.
+      kysely: recordingKysely(Array.from({ length: 3 }, () => ({ rows: [{ maxId: 12, maxSort: 12 }] }))).db,
       create: jest.fn((row) => row),
       insert: insertImpl,
       // save при занятом номере переписал бы чужую строку — создание идёт только вставкой.
@@ -198,33 +190,28 @@ describe('MarketplaceCategoryRepositoryAdapter.createCustom: гонка', () => 
  * откажет.
  */
 describe('MarketplaceCategoryRepositoryAdapter.existsByDisplayName', () => {
-  function makeAdapter(count: number) {
-    const qb = {
-      where: jest.fn().mockReturnThis(),
-      getCount: jest.fn().mockResolvedValue(count),
-    };
-    const repo = { createQueryBuilder: jest.fn().mockReturnValue(qb) };
+  function makeAdapter(found: boolean) {
+    const { db, queries } = recordingKysely([{ rows: found ? [{ id: 7, display_name: 'мёд' }] : [] }]);
     return {
       adapter: new MarketplaceCategoryRepositoryAdapter(
-        repo as never,
+        marketplaceStore(MARKETPLACE_CATEGORY_STORE, db) as never,
         { toDomain: jest.fn() } as never
       ),
-      qb,
+      queries,
     };
   }
 
   it('сравнивает без учёта регистра и без фильтра по кооперативу', async () => {
-    const { adapter, qb } = makeAdapter(1);
+    const { adapter, queries } = makeAdapter(true);
 
     await expect(adapter.existsByDisplayName('Мёд')).resolves.toBe(true);
-    expect(qb.where).toHaveBeenCalledWith('lower(c.display_name) = lower(:name)', {
-      name: 'Мёд',
-    });
-    expect(qb.where).toHaveBeenCalledTimes(1);
+    expect(queries).toHaveLength(1);
+    expect(queries[0].sql).toBe('select * from "marketplace_category" where lower(display_name) = lower($1) limit $2');
+    expect(queries[0].parameters).toEqual(['Мёд', 1]);
   });
 
   it('совпадений нет → название свободно', async () => {
-    const { adapter } = makeAdapter(0);
+    const { adapter } = makeAdapter(false);
 
     await expect(adapter.existsByDisplayName('Мёд')).resolves.toBe(false);
   });

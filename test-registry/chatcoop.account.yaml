@@ -5,15 +5,18 @@ title: Учётная запись «Чата кооператива» — ст�
 # открывать клиент чата; при отсутствии локальной записи сервер ищет
 # пользователя Matrix по почте и привязывает найденного.
 #
-# Заведено 24.09.2026 (C28-80). Сервера Matrix на стенде внешнего слоя нет:
-# заведение записи, проверка имени и привязка по почте снаружи не проверяются.
+# Заведено 24.09.2026 (C28-80). С 02.10.2026 (C28-85) сервер чата на стенде
+# внешнего слоя играет подставной узел: заведение записи, проверка имени и
+# привязка по почте и общий чат пайщика-кооператива с союзом проверяются снаружи.
 
 sources:
   backend:
     - components/controller/src/extensions/chatcoop/application/resolvers/chatcoop.resolver.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-application.service.ts
     - components/controller/src/extensions/chatcoop/domain/services/matrix-user-management.service.ts
-    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.typeorm-repository.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/matrix-user.kysely-repository.ts
+    - components/controller/src/extensions/chatcoop/domain/services/union-chat.service.ts
+    - components/controller/src/extensions/chatcoop/infrastructure/repositories/union-chat.kysely-repository.ts
 
 cases:
   - id: chat.acc.happy.01
@@ -40,10 +43,11 @@ cases:
     scenario: >
       Пайщик заводит учётную запись чата с именем и паролем; повторное заведение
     expect: >
-      статус hasAccount=true с именем; повтор — CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS;
-      снаружи не проверить — нужен сервер Matrix
-    test: ~
-    status: missing
+      серверу чата ушла регистрация с почтой и именем пайщика; статус
+      hasAccount=true с именем и адресом клиента; повтор —
+      CHATCOOP_MATRIX_ACCOUNT_ALREADY_EXISTS
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
 
   - id: chat.acc.happy.03
     level: backend
@@ -51,6 +55,32 @@ cases:
     scenario: >
       У пайщика уже есть пользователь Matrix с той же почтой — статус привязывает его
     expect: >
-      hasAccount=true, запись появляется в реестре; снаружи не проверить — нужен сервер Matrix
-    test: ~
-    status: missing
+      hasAccount=true с именем найденной записи; привязка записана — повторный
+      запрос статуса сервер чата по почте уже не спрашивает
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.side.02
+    level: backend
+    kind: side
+    scenario: пайщик проверяет, свободно ли имя для учётной записи чата
+    expect: имя, которого сервер чата не знает, свободно; известное серверу — занято
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.side.03
+    level: backend
+    kind: side
+    scenario: сервер чата отказал в регистрации
+    expect: отказ CHATCOOP_MATRIX_ACCOUNT_CREATE_FAILED, запись не привязана, статус «нет записи»
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+
+  - id: chat.acc.side.04
+    level: backend
+    kind: side
+    scenario: кооператив-пайщик (организация) получает общий чат с союзом
+    expect: при первой учётной записи кооператива-пайщика заводится комната с представителем союза, повторно не создаётся
+    test: components/api-tests/src/chatcoop/account.test.ts
+    status: written
+

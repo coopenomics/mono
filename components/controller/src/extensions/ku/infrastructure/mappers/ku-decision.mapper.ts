@@ -1,5 +1,5 @@
 import { KuDecisionDomainEntity } from '../../domain/entities/ku-decision.entity';
-import type { KuDecisionTypeormEntity } from '../entities/ku-decision.typeorm-entity';
+import type { KuDecisionRecord } from '../entities/ku-decision.record';
 import type {
   IKuDecisionBlockchainData,
   IKuDecisionDatabaseData,
@@ -9,7 +9,7 @@ import type {
  * Маппер между доменной сущностью решения собрания участка и TypeORM-сущностью
  */
 export class KuDecisionMapper {
-  static toDomain(entity: KuDecisionTypeormEntity): KuDecisionDomainEntity {
+  static toDomain(entity: KuDecisionRecord): KuDecisionDomainEntity {
     const databaseData: IKuDecisionDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -56,7 +56,7 @@ export class KuDecisionMapper {
     return new KuDecisionDomainEntity(databaseData, blockchainData);
   }
 
-  static toEntity(domain: KuDecisionDomainEntity): Partial<KuDecisionTypeormEntity> {
+  static toEntity(domain: KuDecisionDomainEntity): Partial<KuDecisionRecord> {
     return {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -93,8 +93,8 @@ export class KuDecisionMapper {
     };
   }
 
-  static toUpdateEntity(domain: Partial<KuDecisionDomainEntity>): Partial<KuDecisionTypeormEntity> {
-    const updateData: Partial<KuDecisionTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<KuDecisionDomainEntity>): Partial<KuDecisionRecord> {
+    const updateData: Partial<KuDecisionRecord> = {};
 
     // запись могла быть создана placeholder'ом (upsertPrivateData) до прихода синка —
     // bc-поля первой дельты обязаны материализоваться при обновлении

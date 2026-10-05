@@ -20,7 +20,6 @@ export class CategoryMapper {
                 disabled: type.disabled,
                 descriptionCategoryId: type.descriptionCategoryId,
                 category: {} as CategoryDomainEntity, // Временная заглушка для избежания циклических зависимостей
-                categoryTypeAttributes: [],
                 createdAt: type.createdAt,
                 updatedAt: type.updatedAt,
               })

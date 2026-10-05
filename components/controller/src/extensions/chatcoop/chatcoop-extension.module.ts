@@ -1,12 +1,11 @@
 import './i18n';
 import { Module, Injectable, Inject } from '@nestjs/common';
 import { BaseExtensionModule, ActiveUserStatusGuard, ExtensionDomainRepository, ExtensionDomainEntity, EXTENSION_REPOSITORY, platformSettings, DomainError } from '@coopenomics/extension-kit';
-import { ChatCoopDatabaseModule } from './infrastructure/database/chatcoop-database.module';
 import { ChatCoopApplicationService } from './application/services/chatcoop-application.service';
 import { MatrixApiService } from './application/services/matrix-api.service';
 import { MatrixUserManagementService } from './domain/services/matrix-user-management.service';
 import { UnionChatService } from './domain/services/union-chat.service';
-import { UnionChatTypeormRepository } from './infrastructure/repositories/union-chat.typeorm-repository';
+import { UnionChatKyselyRepository } from './infrastructure/repositories/union-chat.kysely-repository';
 import { UNION_CHAT_REPOSITORY } from './domain/repositories/union-chat.repository';
 import { ChatCoopResolver } from './application/resolvers/chatcoop.resolver';
 import { ChatCoopCalendarResolver } from './application/resolvers/chatcoop-calendar.resolver';
@@ -31,8 +30,8 @@ import * as crypto from 'crypto';
 import { TranscriptionManagementService } from './domain/services/transcription-management.service';
 import { CALL_TRANSCRIPTION_REPOSITORY } from './domain/repositories/call-transcription.repository';
 import { TRANSCRIPTION_SEGMENT_REPOSITORY } from './domain/repositories/transcription-segment.repository';
-import { CallTranscriptionTypeormRepository } from './infrastructure/repositories/call-transcription.typeorm-repository';
-import { TranscriptionSegmentTypeormRepository } from './infrastructure/repositories/transcription-segment.typeorm-repository';
+import { CallTranscriptionKyselyRepository } from './infrastructure/repositories/call-transcription.kysely-repository';
+import { TranscriptionSegmentKyselyRepository } from './infrastructure/repositories/transcription-segment.kysely-repository';
 import { SecretaryAgentService } from './application/services/secretary-agent.service';
 import { WhisperSttService } from './application/services/whisper-stt.service';
 import { LiveKitWebhookController } from './application/controllers/livekit-webhook.controller';
@@ -41,9 +40,9 @@ import { COUNCIL_ROOM_MATRIX } from './application/config/matrix-council-room.co
 import { CapitalProjectMatrixSyncService } from './application/services/capital-project-matrix-sync.service';
 import { CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY } from './domain/repositories/managed-matrix-room.repository';
 import type { ChatcoopManagedMatrixRoomRepository } from './domain/repositories/managed-matrix-room.repository';
-import { ManagedMatrixRoomTypeormRepository } from './infrastructure/repositories/managed-matrix-room.typeorm-repository';
+import { ManagedMatrixRoomKyselyRepository } from './infrastructure/repositories/managed-matrix-room.kysely-repository';
 import { ROOM_MESSAGE_HISTORY_REPOSITORY } from './domain/repositories/room-message-history.repository';
-import { RoomMessageHistoryTypeormRepository } from './infrastructure/repositories/room-message-history.typeorm-repository';
+import { RoomMessageHistoryKyselyRepository } from './infrastructure/repositories/room-message-history.kysely-repository';
 import { MatrixRoomMessageHistoryIngestService } from './application/services/matrix-room-message-history-ingest.service';
 import { ChatCoopSecretaryMatrixTokenService } from './application/services/chatcoop-secretary-matrix-token.service';
 import { MatrixRoomMessageHistoryCronService } from './application/services/matrix-room-message-history-cron.service';
@@ -51,13 +50,13 @@ import { ChatcoopInnercoopProjectCommunicationArtifactsAdapter } from './infrast
 import { ChatcoopInnercoopMatrixRoomMessagingAdapter } from './infrastructure/innercoop/chatcoop-innercoop-matrix-room-messaging.adapter';
 import { ChatcoopInnercoopChatCoopCalendarAdapter } from './infrastructure/innercoop/chatcoop-innercoop-chatcoop-calendar.adapter';
 import { ChatCoopCalendarApplicationService } from './application/services/chatcoop-calendar-application.service';
-import { CalendarEventTypeormRepository } from './infrastructure/repositories/calendar-event.typeorm-repository';
-import { CalendarIcsSubscriptionTypeormRepository } from './infrastructure/repositories/calendar-ics-subscription.typeorm-repository';
+import { CalendarEventKyselyRepository } from './infrastructure/repositories/calendar-event.kysely-repository';
+import { CalendarIcsSubscriptionKyselyRepository } from './infrastructure/repositories/calendar-ics-subscription.kysely-repository';
 import { CHATCOOP_CALENDAR_EVENT_REPOSITORY } from './domain/repositories/calendar-event.repository';
 import { CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY } from './domain/repositories/calendar-ics-subscription.repository';
 import { CHATCOOP_STATE_REPOSITORY } from './domain/repositories/chatcoop-state.repository';
 import type { ChatcoopStateRepository } from './domain/repositories/chatcoop-state.repository';
-import { ChatcoopStateTypeormRepository } from './infrastructure/repositories/chatcoop-state.typeorm-repository';
+import { ChatcoopStateKyselyRepository } from './infrastructure/repositories/chatcoop-state.kysely-repository';
 import { t } from './i18n';
 
 // Функция для проверки и сериализации FieldDescription
@@ -91,7 +90,7 @@ export const defaultConfig = {
 export type IConfig = z.infer<typeof Schema>;
 
 // Репозитории
-import { MatrixUserTypeormRepository } from './infrastructure/repositories/matrix-user.typeorm-repository';
+import { MatrixUserKyselyRepository } from './infrastructure/repositories/matrix-user.kysely-repository';
 
 // Символы для DI
 import { MATRIX_USER_REPOSITORY } from './domain/repositories/matrix-user.repository';
@@ -522,7 +521,6 @@ export class ChatCoopExtension extends BaseExtensionModule {
 
 @Module({
   imports: [
-    ChatCoopDatabaseModule,
     ConfigModule,
   ],
   controllers: [
@@ -567,41 +565,41 @@ export class ChatCoopExtension extends BaseExtensionModule {
     // Repositories — Matrix
     {
       provide: MATRIX_USER_REPOSITORY,
-      useClass: MatrixUserTypeormRepository,
+      useClass: MatrixUserKyselyRepository,
     },
     {
       provide: UNION_CHAT_REPOSITORY,
-      useClass: UnionChatTypeormRepository,
+      useClass: UnionChatKyselyRepository,
     },
 
     // Repositories — Transcriptions
     {
       provide: CALL_TRANSCRIPTION_REPOSITORY,
-      useClass: CallTranscriptionTypeormRepository,
+      useClass: CallTranscriptionKyselyRepository,
     },
     {
       provide: TRANSCRIPTION_SEGMENT_REPOSITORY,
-      useClass: TranscriptionSegmentTypeormRepository,
+      useClass: TranscriptionSegmentKyselyRepository,
     },
     {
       provide: CHATCOOP_MANAGED_MATRIX_ROOM_REPOSITORY,
-      useClass: ManagedMatrixRoomTypeormRepository,
+      useClass: ManagedMatrixRoomKyselyRepository,
     },
     {
       provide: CHATCOOP_STATE_REPOSITORY,
-      useClass: ChatcoopStateTypeormRepository,
+      useClass: ChatcoopStateKyselyRepository,
     },
     {
       provide: ROOM_MESSAGE_HISTORY_REPOSITORY,
-      useClass: RoomMessageHistoryTypeormRepository,
+      useClass: RoomMessageHistoryKyselyRepository,
     },
     {
       provide: CHATCOOP_CALENDAR_EVENT_REPOSITORY,
-      useClass: CalendarEventTypeormRepository,
+      useClass: CalendarEventKyselyRepository,
     },
     {
       provide: CHATCOOP_CALENDAR_ICS_SUBSCRIPTION_REPOSITORY,
-      useClass: CalendarIcsSubscriptionTypeormRepository,
+      useClass: CalendarIcsSubscriptionKyselyRepository,
     },
 
     // GraphQL Resolvers

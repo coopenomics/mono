@@ -1,0 +1,67 @@
+feature: marketplace.reference-catalog
+title: Внешний справочник категорий и витрина кооператива
+
+# Справочник Стола заказов — дерево категорий и типы товаров по образцу
+# внешнего каталога. Заполняется вне платформы: загрузчика у узла нет, у
+# хранилищ справочника нет ни одного вызова записи. По справочнику кооператив
+# выбирает доступные категории. Витрина по умолчанию заводится при установке
+# Стола заказов.
+#
+# Заведено 02.10.2026 (C28-85): серверная часть жила вне реестра.
+#
+# Правка 2026-10-03 (C28-87): заявки на товар, характеристики, словари и чтение
+# дерева справочника (22 операции первой версии Стола заказов) убраны вместе с
+# сервисами и сущностями — рабочий стол их не вызывал, обёрток в SDK не было.
+# Решение владельца от 03.10.2026. Случаи про них (happy.02, happy.03,
+# side.01–side.04) сняты; вопрос side.04 «довести или убрать» закрыт.
+# Семь таблиц первой версии (заявки с картинками и значениями характеристик,
+# характеристики, словари и их значения, связь типа с характеристиками) удаляет
+# миграция 1791028868299 — владелец подтвердил 04.10.2026.
+
+# Правка 2026-10-04 (C28-87): права операций сверяются с единой таблицей прав
+# Стола заказов вместе с условием строки (кооператив подключён, заказчик
+# подключён, хранение включено); декоратор операции — общий `@RequireRight` из
+# каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
+# случаев этой фичи прежний.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-vitrine.resolver.ts
+    - components/controller/src/extensions/marketplace/domain/services/category-tree-domain.service.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/category-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/type-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-vitrine-repository.adapter.ts
+
+cases:
+  - id: mkt.ref.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель читает дерево доступных категорий на кооперативе с пустым справочником
+    expect: список пуст, ошибок нет
+    test: components/api-tests/src/marketplace/reference-catalog.test.ts
+    status: written
+
+  - id: mkt.ref.happy.04
+    level: backend
+    kind: happy
+    scenario: пайщик и председатель читают витрину кооператива
+    expect: витрина по умолчанию одна, заведена на кооператив при установке Стола заказов
+    test: components/api-tests/src/marketplace/reference-catalog.test.ts
+    status: written
+
+  - id: mkt.ref.side.05
+    level: backend
+    kind: side
+    scenario: >
+      хранилище справочника: тип имущества читается вместе со своей категорией;
+      занятость названия категории ищется по всему справочнику без учёта
+      регистра; гонка двух созданий за один номер
+    expect: >
+      категория типа читается отдельным запросом по ключу; условие занятости
+      совпадает с выражением уникального индекса; отказ базы по индексу названия
+      становится отказом «название занято», проигранная гонка за номер
+      повторяется
+    test: components/controller/tests/unit/marketplace/marketplace-category-repository.test.ts
+    external: unreachable
+    external_reason: "проверяются запросы к базе и разбор её отказа — снаружи они не видны; чтение справочника через API покрыто случаями mkt.ref.happy.*"
+    status: written

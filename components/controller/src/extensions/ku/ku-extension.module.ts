@@ -12,9 +12,9 @@ import { KuDatabaseModule } from './infrastructure/database/ku-database.module';
 import { KU_DECISION_REPOSITORY } from './domain/repositories/ku-decision.repository';
 import { KU_DECISION_QUESTION_REPOSITORY } from './domain/repositories/ku-decision-question.repository';
 import { KU_TRUST_REQUEST_REPOSITORY } from './domain/repositories/ku-trust-request.repository';
-import { KuDecisionTypeormRepository } from './infrastructure/repositories/ku-decision.typeorm-repository';
-import { KuDecisionQuestionTypeormRepository } from './infrastructure/repositories/ku-decision-question.typeorm-repository';
-import { KuTrustRequestTypeormRepository } from './infrastructure/repositories/ku-trust-request.typeorm-repository';
+import { KuDecisionKyselyRepository } from './infrastructure/repositories/ku-decision.kysely-repository';
+import { KuDecisionQuestionKyselyRepository } from './infrastructure/repositories/ku-decision-question.kysely-repository';
+import { KuTrustRequestKyselyRepository } from './infrastructure/repositories/ku-trust-request.kysely-repository';
 
 // Blockchain
 import { KU_BLOCKCHAIN_PORT } from './domain/interfaces/ku-blockchain.port';
@@ -74,19 +74,19 @@ export class KuExtension extends BaseExtensionModule {
     // Репозитории
     {
       provide: KU_DECISION_REPOSITORY,
-      useClass: KuDecisionTypeormRepository,
+      useClass: KuDecisionKyselyRepository,
     },
     {
       provide: KU_DECISION_QUESTION_REPOSITORY,
-      useClass: KuDecisionQuestionTypeormRepository,
+      useClass: KuDecisionQuestionKyselyRepository,
     },
     {
       provide: KU_TRUST_REQUEST_REPOSITORY,
-      useClass: KuTrustRequestTypeormRepository,
+      useClass: KuTrustRequestKyselyRepository,
     },
-    KuDecisionTypeormRepository,
-    KuDecisionQuestionTypeormRepository,
-    KuTrustRequestTypeormRepository,
+    KuDecisionKyselyRepository,
+    KuDecisionQuestionKyselyRepository,
+    KuTrustRequestKyselyRepository,
 
     // Blockchain
     {

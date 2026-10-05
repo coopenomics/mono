@@ -1,54 +1,11 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { EXTENSION_DATABASE_PORT, type IExtensionDatabasePort } from '@coopenomics/innercoop';
 
 // TypeORM entities
-import { CategoryEntity } from './entities/category.entity';
-import { TypeEntity } from './entities/type.entity';
-import { AttributeEntity } from './entities/attribute.entity';
-import { DictionaryEntity } from './entities/dictionary.entity';
-import { DictionaryValueEntity } from './entities/dictionary-value.entity';
-import { CategoryTypeAttributeEntity } from './entities/category-type-attribute.entity';
-import { AvailableCategoryEntity } from './entities/available-category.entity';
-import { RequestEntity } from './entities/request.entity';
-import { RequestAttributeValueEntity } from './entities/request-attribute-value.entity';
-import { RequestImageEntity } from './entities/request-image.entity';
-import { KuDetailsTypeormEntity } from './entities/ku-details.entity';
-import { MarketplaceVitrineEntity } from './entities/marketplace-vitrine.entity';
-import { MarketplaceSupplierEntity } from './entities/marketplace-supplier.entity';
-import { MarketplaceCategoryEntity } from './entities/marketplace-category.entity';
-import { MarketplaceOfferEntity } from './entities/marketplace-offer.entity';
-import { MarketplaceModerationLogEntity } from './entities/marketplace-moderation-log.entity';
-import { MarketplaceOrderEntity } from './entities/marketplace-order.entity';
-import { MarketplaceConsolidatedRequestEntity } from './entities/marketplace-consolidated-request.entity';
-import { MarketplaceShipmentEntity } from './entities/marketplace-shipment.entity';
-import { MarketplaceSupplyValidationLogEntity } from './entities/marketplace-supply-validation-log.entity';
-import { MarketplaceInventoryEntity } from './entities/marketplace-inventory.entity';
-import { MarketplaceStorageCellEntity } from './entities/marketplace-storage-cell.entity';
-import {
-  MarketplaceContainerEntity,
-  MarketplaceContainerTypeEntity,
-} from './entities/marketplace-container.entity';
-import { MarketplaceStockProposalEntity } from './entities/marketplace-stock-proposal.entity';
-import { MarketplaceAplReceptionEntity } from './entities/marketplace-apl-reception.entity';
-import { MarketplaceOutgoingPaymentRequestEntity } from './entities/marketplace-outgoing-payment-request.entity';
-import { MarketplaceTtnDocumentEntity } from './entities/marketplace-ttn-document.entity';
-import { MarketplaceReturnClaimEntity } from './entities/marketplace-return-claim.entity';
-import { MarketplaceSupplierClaimEntity } from './entities/marketplace-supplier-claim.entity';
-import { MarketplaceIssuanceSagaEntity } from './entities/marketplace-issuance-saga.entity';
-import { MarketplaceWriteoffProposalEntity } from './entities/marketplace-writeoff-proposal.entity';
-import { MarketplaceCartEntity } from './entities/marketplace-cart.entity';
-import { MarketplaceCartItemEntity } from './entities/marketplace-cart-item.entity';
-import { MarketplaceSupplierSettingsEntity } from './entities/marketplace-supplier-settings.entity';
 
 // Repository adapters
 import { CategoryRepositoryAdapter } from './adapters/category-repository.adapter';
 import { TypeRepositoryAdapter } from './adapters/type-repository.adapter';
-import { AttributeRepositoryAdapter } from './adapters/attribute-repository.adapter';
-import { DictionaryRepositoryAdapter } from './adapters/dictionary-repository.adapter';
-import { DictionaryValueRepositoryAdapter } from './adapters/dictionary-value-repository.adapter';
 import { AvailableCategoryRepositoryAdapter } from './adapters/available-category-repository.adapter';
-import { RequestRepositoryAdapter } from './adapters/request-repository.adapter';
 import { KuDetailsRepositoryAdapter } from './adapters/ku-details-repository.adapter';
 import { geocoderPortFactory } from './adapters/geocoder.factory';
 import { MarketplaceVitrineRepositoryAdapter } from './adapters/marketplace-vitrine-repository.adapter';
@@ -109,11 +66,7 @@ import { MarketplaceCartMapper } from './mappers/marketplace-cart.mapper';
 // Repository tokens
 import { CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/category-domain.repository';
 import { TYPE_DOMAIN_REPOSITORY } from '../domain/repositories/type-domain.repository';
-import { ATTRIBUTE_DOMAIN_REPOSITORY } from '../domain/repositories/attribute-domain.repository';
-import { DICTIONARY_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-domain.repository';
-import { DICTIONARY_VALUE_DOMAIN_REPOSITORY } from '../domain/repositories/dictionary-value-domain.repository';
 import { AVAILABLE_CATEGORY_DOMAIN_REPOSITORY } from '../domain/repositories/available-category-domain.repository';
-import { REQUEST_DOMAIN_REPOSITORY } from '../domain/repositories/request-domain.repository';
 import { KU_DETAILS_DOMAIN_REPOSITORY } from '../domain/repositories/ku-details-domain.repository';
 import { GEOCODER_PORT } from '../domain/ports/geocoder.port';
 import { MARKETPLACE_VITRINE_REPOSITORY } from '../domain/repositories/marketplace-vitrine.repository';
@@ -143,121 +96,13 @@ import { MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY } from '../domain/repositories
 import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-cart.repository';
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
+import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
 @Module({
-  imports: [
-    // Создаем отдельное подключение для marketplace
-    // Своё подключение под собственный набор сущностей. Реквизиты приходят от
-    // ядра через порт: где стоит база расширения — знание контура, а не
-    // расширения.
-    TypeOrmModule.forRootAsync({
-      name: 'marketplace', // Имя подключения
-      inject: [EXTENSION_DATABASE_PORT],
-      useFactory: (databases: IExtensionDatabasePort) => {
-        const connection = databases.getConnection('marketplace');
-        if (!connection) {
-          throw new Error(
-            // i18n-ignore: проверка конфигурации при старте, до пайщика не доходит
-            'Расширению marketplace не заведена отдельная база: без неё каталог, склад и заказы читать неоткуда'
-          );
-        }
-        return {
-          type: 'postgres',
-          host: connection.host,
-          port: connection.port,
-          username: connection.username,
-          password: connection.password,
-          database: connection.database,
-          entities: [
-            CategoryEntity,
-            TypeEntity,
-            AttributeEntity,
-            DictionaryEntity,
-            DictionaryValueEntity,
-            CategoryTypeAttributeEntity,
-            AvailableCategoryEntity,
-            RequestEntity,
-            RequestAttributeValueEntity,
-            RequestImageEntity,
-            KuDetailsTypeormEntity,
-            MarketplaceVitrineEntity,
-            MarketplaceSupplierEntity,
-            MarketplaceCategoryEntity,
-            MarketplaceOfferEntity,
-            MarketplaceModerationLogEntity,
-            MarketplaceOrderEntity,
-            MarketplaceConsolidatedRequestEntity,
-            MarketplaceShipmentEntity,
-            MarketplaceSupplyValidationLogEntity,
-            MarketplaceInventoryEntity,
-            MarketplaceStorageCellEntity,
-            MarketplaceContainerTypeEntity,
-            MarketplaceContainerEntity,
-            MarketplaceStockProposalEntity,
-            MarketplaceAplReceptionEntity,
-            MarketplaceOutgoingPaymentRequestEntity,
-            MarketplaceTtnDocumentEntity,
-            MarketplaceReturnClaimEntity,
-            MarketplaceSupplierClaimEntity,
-            MarketplaceIssuanceSagaEntity,
-            MarketplaceWriteoffProposalEntity,
-            MarketplaceCartEntity,
-            MarketplaceCartItemEntity,
-            MarketplaceSupplierSettingsEntity,
-          ],
-          // Таблицы Стола заказов живут в основной базе, и их схему ведут
-          // миграции расширения (запись реестра `databaseMigrations`). Это
-          // подключение только читает и пишет строки — второй synchronize по
-          // той же базе дублировал бы основной.
-          synchronize: false,
-          logging: false,
-        };
-      },
-    }),
-    // Регистрируем entities для этого подключения
-    TypeOrmModule.forFeature(
-      [
-        CategoryEntity,
-        TypeEntity,
-        AttributeEntity,
-        DictionaryEntity,
-        DictionaryValueEntity,
-        CategoryTypeAttributeEntity,
-        AvailableCategoryEntity,
-        RequestEntity,
-        RequestAttributeValueEntity,
-        RequestImageEntity,
-        KuDetailsTypeormEntity,
-        MarketplaceVitrineEntity,
-        MarketplaceSupplierEntity,
-        MarketplaceCategoryEntity,
-        MarketplaceOfferEntity,
-        MarketplaceModerationLogEntity,
-        MarketplaceOrderEntity,
-        MarketplaceConsolidatedRequestEntity,
-        MarketplaceShipmentEntity,
-        MarketplaceSupplyValidationLogEntity,
-        MarketplaceInventoryEntity,
-        MarketplaceStorageCellEntity,
-        MarketplaceContainerTypeEntity,
-        MarketplaceContainerEntity,
-        MarketplaceStockProposalEntity,
-        MarketplaceAplReceptionEntity,
-        MarketplaceOutgoingPaymentRequestEntity,
-        MarketplaceTtnDocumentEntity,
-        MarketplaceReturnClaimEntity,
-        MarketplaceSupplierClaimEntity,
-        MarketplaceIssuanceSagaEntity,
-        MarketplaceWriteoffProposalEntity,
-        MarketplaceCartEntity,
-        MarketplaceCartItemEntity,
-        MarketplaceSupplierSettingsEntity,
-      ],
-      'marketplace'
-    ), // Указываем имя подключения
-  ],
   providers: [
-    // Сигналы общей ленты изменений по своей базе расширения (C28-83).
+    // Шлюзы таблиц расширения на Kysely (C28-81).
+    ...marketplaceStoreProviders,
+    // Объявление таблиц расширения в общей ленте изменений (C28-83).
     MarketplaceLiveFeedSubscriber,
     {
       provide: CATEGORY_DOMAIN_REPOSITORY,
@@ -268,24 +113,8 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
       useClass: TypeRepositoryAdapter,
     },
     {
-      provide: ATTRIBUTE_DOMAIN_REPOSITORY,
-      useClass: AttributeRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_DOMAIN_REPOSITORY,
-      useClass: DictionaryRepositoryAdapter,
-    },
-    {
-      provide: DICTIONARY_VALUE_DOMAIN_REPOSITORY,
-      useClass: DictionaryValueRepositoryAdapter,
-    },
-    {
       provide: AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
       useClass: AvailableCategoryRepositoryAdapter,
-    },
-    {
-      provide: REQUEST_DOMAIN_REPOSITORY,
-      useClass: RequestRepositoryAdapter,
     },
     {
       provide: KU_DETAILS_DOMAIN_REPOSITORY,
@@ -436,13 +265,12 @@ import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.
     },
   ],
   exports: [
+    // Шлюзы, которыми пользуются фоновые задачи слоя application.
+    MARKETPLACE_INVENTORY_STORE,
+    MARKETPLACE_ORDER_STORE,
     CATEGORY_DOMAIN_REPOSITORY,
     TYPE_DOMAIN_REPOSITORY,
-    ATTRIBUTE_DOMAIN_REPOSITORY,
-    DICTIONARY_DOMAIN_REPOSITORY,
-    DICTIONARY_VALUE_DOMAIN_REPOSITORY,
     AVAILABLE_CATEGORY_DOMAIN_REPOSITORY,
-    REQUEST_DOMAIN_REPOSITORY,
     KU_DETAILS_DOMAIN_REPOSITORY,
     GEOCODER_PORT,
     MARKETPLACE_VITRINE_REPOSITORY,

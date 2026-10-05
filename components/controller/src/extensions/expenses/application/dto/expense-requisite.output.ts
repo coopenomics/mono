@@ -1,6 +1,6 @@
 import { Field, ObjectType } from '@nestjs/graphql';
 import { GraphQLJSON } from 'graphql-type-json';
-import type { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
+import type { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record';
 
 /**
  * Снимок реквизитов получателя по строке расхода. Персональные данные —
@@ -33,7 +33,7 @@ export class ExpenseRequisiteOutputDTO {
   @Field(() => String, { nullable: true, description: 'Назначение платежа для поручения кассиру.' })
   payment_purpose?: string | null;
 
-  static fromEntity(entity: ExpenseRequisiteSnapshotTypeormEntity): ExpenseRequisiteOutputDTO {
+  static fromEntity(entity: ExpenseRequisiteSnapshotRecord): ExpenseRequisiteOutputDTO {
     const dto = new ExpenseRequisiteOutputDTO();
     dto.coopname = entity.coopname;
     dto.proposal_hash = entity.proposal_hash;

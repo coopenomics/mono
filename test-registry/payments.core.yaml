@@ -21,10 +21,8 @@ sources:
     - components/controller/src/application/gateway/dto/*.ts
     - components/controller/src/application/payment-method/**/*.ts
     - components/controller/src/domain/gateway/**/*.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-payment*.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/typeorm-ipn.repository.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/payment*.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/ipn.entity.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/payment*.kysely-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/ipn.kysely-repository.ts
     - components/controller/src/infrastructure/database/generator-repositories/repositories/payment-method-generator.repository.ts
 
 cases:
@@ -251,6 +249,8 @@ cases:
     expect: уведомление без подтверждения провайдером платёж не меняет; повтор того же уведомления не обрабатывается второй раз
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "уведомление принимает только расширение ЮKassa, а оно помечено «не ставится нигде»: через API его не установить, адрес API провайдера не настраивается"
 
   - id: pay.core.side.19
     level: backend
@@ -259,6 +259,8 @@ cases:
     expect: повторный опрос той же выписки платежи второй раз не проводит
     test: ~
     status: missing
+    external: unreachable
+    external_reason: "опрос выписки (SberpollExtension.sync) никто не вызывает и расширение нигде не ставится — путь записи в payment_state недостижим ни снаружи, ни изнутри"
 
   - id: pay.core.happy.08
     level: backend

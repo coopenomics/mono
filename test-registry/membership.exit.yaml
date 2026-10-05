@@ -28,8 +28,9 @@ sources:
     - components/cooptypes/src/ledger2/wallets.ts
     - components/factory/src/Actions/190.ProgramAgreementsAnnulmentStatement.ts
     - components/factory/src/Templates/190.ProgramAgreementsAnnulmentStatement.ts
-    - components/controller/src/infrastructure/database/typeorm/entities/membership-exit-request.entity.ts
     - components/controller/src/application/document/documents-dto/membership-exit-*.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/membership-exit-request.kysely-repository.ts
+    - components/controller/src/domain/account/services/participant-status-sync.service.ts
   contract:
     - components/contracts/cpp/lib/core/ledger2/exit_policy.hpp
     - components/contracts/cpp/lib/core/registrator/exit.hpp
@@ -233,24 +234,49 @@ cases:
     kind: happy
     scenario: пайщик подтверждает выход по ссылке из письма
     expect: заявление уходит в цепь (registrator::exitcoop), черновик и токен удаляются, статус PENDING
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
+  - id: mem.exit.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик подаёт заявление на выход и отменяет его; открыты подписки на ленту изменений
+    expect: >
+      сигнал по таблице заявлений с блоком 0 и ключом строки приходит пайщику и
+      совету и при подаче, и при отмене; чужому пайщику — нет
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: mem.exit.side.07
     level: backend
     kind: side
     scenario: вышедший пайщик (аккаунт blocked) подаёт заявление снова
     expect: отказ MEMBERSHIP_EXIT_ALREADY_EXITED
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: mem.exit.side.08
     level: backend
     kind: side
     scenario: заявление подаётся, когда выход уже в цепи
     expect: отказ MEMBERSHIP_EXIT_ALREADY_SUBMITTED
-    test: ~
-    status: missing
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
+
+  - id: mem.exit.side.09
+    level: backend
+    kind: side
+    scenario: выход завершён в цепи — вышедший человек обращается к данным кооператива и к своим
+    expect: >
+      учётная запись уходит из статуса «принят» по событию soviet::delpartcpnt:
+      чтение собраний и другие права пайщика отвечают KIT_MEMBERS_ONLY; ход
+      своего выхода и свои кошельки он читает как прежде. Повторный приём
+      возвращает статус. Решение владельца от 03.10.2026 (C28-87): после выхода
+      остаются вход и своё. Прежние выходы один раз проходит миграция данных
+      202610031230 — по сохранённым действиям цепи
+    test: components/controller/tests/unit/account/participant-join-date.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: written
 
   - id: mem.exit.break.09
     level: backend

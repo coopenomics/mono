@@ -24,21 +24,12 @@ export async function useInitExtensionsProcess(router: Router) {
       for (const config of workspaceConfigs) {
         if (config?.workspace && config?.routes?.length) {
 
-          // Записываем маршруты в соответствующий workspace.
-          // ВАЖНО: setRoutes привязывает маршруты только к workspace, который
-          // backend объявил в AppRegistry (см. desktop.interactor). Если фронт
-          // вернул workspace, которого нет в desktop'е с бэкенда, маршруты
-          // молча потеряются — поэтому предупреждаем явно.
-          const workspaceExists = store.workspaceMenus.some(
-            (w) => w.workspaceName === config.workspace,
-          );
-          if (!workspaceExists) {
-            console.warn(
-              `📦 [InitExtensions] Расширение "${extensionName}" вернуло workspace ` +
-              `"${config.workspace}", которого нет в desktop с бэкенда (AppRegistry). ` +
-              'Маршруты этого стола не будут отображены — добавьте стол в extensions.registry.ts.',
-            );
-          }
+          // Записываем маршруты в соответствующий workspace. setRoutes
+          // привязывает их только к столу, который бэкенд отдал для этого
+          // кооператива (см. desktop.interactor): он отдаёт столы установленных
+          // расширений, а здесь грузятся все расширения сборки. Стола нет —
+          // значит расширение в кооперативе не установлено, это штатно, и
+          // предупреждать не о чем (раньше шло 57 тыс. строк в неделю на узел).
           store.setRoutes(config.workspace, config.routes as any, config.defaultRoute);
           commandStore.register(config.workspace, config.commands);
 

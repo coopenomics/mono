@@ -5,14 +5,14 @@
  * когда card.coop недоступен (NFR-3). Кооператив и так знает всё, что нужно показать, —
  * он сам выдавал свидетельство о членстве и сам получал уведомление о связи.
  */
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { TableStore } from '@coopenomics/extension-kit';
+import { CARDCOOP_ATTESTATION_STORE, CARDCOOP_PENDING_LINK_STORE } from '../infrastructure/database/cardcoop-stores';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   CardcoopAttestationState,
-  CardcoopAttestationTypeormEntity,
-} from '../infrastructure/entities/cardcoop-attestation.typeorm-entity';
-import { CardcoopPendingLinkTypeormEntity } from '../infrastructure/entities/cardcoop-pending-link.typeorm-entity';
+  CardcoopAttestationRecord,
+} from '../infrastructure/records/cardcoop-attestation.record';
+import { CardcoopPendingLinkRecord } from '../infrastructure/records/cardcoop-pending-link.record';
 import type { CardcoopMyCardDTO } from './dto/cardcoop-my-card.dto';
 
 /** Состояния, в которых членство уже не действует: карта есть, а свидетельства нет. */
@@ -21,10 +21,10 @@ const CLOSED_STATES: readonly CardcoopAttestationState[] = [CardcoopAttestationS
 @Injectable()
 export class CardcoopCardService {
   constructor(
-    @InjectRepository(CardcoopAttestationTypeormEntity)
-    private readonly attestations: Repository<CardcoopAttestationTypeormEntity>,
-    @InjectRepository(CardcoopPendingLinkTypeormEntity)
-    private readonly pendingLinks: Repository<CardcoopPendingLinkTypeormEntity>
+    @Inject(CARDCOOP_ATTESTATION_STORE)
+    private readonly attestations: TableStore<CardcoopAttestationRecord>,
+    @Inject(CARDCOOP_PENDING_LINK_STORE)
+    private readonly pendingLinks: TableStore<CardcoopPendingLinkRecord>
   ) {}
 
   /**
@@ -41,17 +41,13 @@ export class CardcoopCardService {
   async forMember(username: string, apiUrl: string, coopname: string): Promise<CardcoopMyCardDTO> {
     const enterUrl = `${apiUrl.replace(/\/+$/, '')}/enter/${coopname}`;
 
-    const records = await this.attestations.find({
-      where: { username },
-      order: { updatedAt: 'DESC' },
-      take: 1,
-    });
+    const records = await this.attestations.find({ username }, { order: { updatedAt: 'DESC' }, limit: 1 });
 
     const record = records[0];
     if (!record) {
       // Карта, связанная при вступлении: свидетельства ещё нет и быть не может — совет не
       // решил, — но карта у человека уже есть, и говорить ему «не выпущена» неправда.
-      const pending = await this.pendingLinks.findOne({ where: { username } });
+      const pending = await this.pendingLinks.findOne({ username });
       if (pending) {
         return {
           issued: true,

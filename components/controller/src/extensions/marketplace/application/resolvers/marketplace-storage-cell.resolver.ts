@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
@@ -38,7 +37,7 @@ export class MarketplaceStorageCellResolver {
     description: 'Ячейки хранения складов кооперативных участков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'read:own-KU')
+  @RequireRight('StorageCell', 'read:own-KU')
   async marketplaceListStorageCells(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListStorageCellsInputDTO
@@ -66,7 +65,7 @@ export class MarketplaceStorageCellResolver {
     description: 'Председатель кооперативного участка заводит ячейку хранения.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  @RequireRight('StorageCell', 'manage:own-KU')
   async marketplaceCreateStorageCell(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStorageCellInputDTO
@@ -90,7 +89,7 @@ export class MarketplaceStorageCellResolver {
       'Председатель кооперативного участка заводит сетку ячеек «секции × ярусы» одним действием. Уже существующие адреса пропускаются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  @RequireRight('StorageCell', 'manage:own-KU')
   async marketplaceCreateStorageGrid(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStorageGridInputDTO
@@ -114,7 +113,7 @@ export class MarketplaceStorageCellResolver {
       'Председатель кооперативного участка правит подпись ячейки или выводит её из оборота. Вывести можно только пустую ячейку.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  @RequireRight('StorageCell', 'manage:own-KU')
   async marketplaceUpdateStorageCell(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateStorageCellInputDTO
@@ -138,7 +137,7 @@ export class MarketplaceStorageCellResolver {
       'Председатель кооперативного участка переименовывает секцию склада целиком — вместе с адресами всех её ячеек.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  @RequireRight('StorageCell', 'manage:own-KU')
   async marketplaceRenameStorageSection(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRenameStorageSectionInputDTO
@@ -161,7 +160,7 @@ export class MarketplaceStorageCellResolver {
       'Председатель кооперативного участка выводит из оборота секцию или ярус склада целиком. Выводится только пустая координата.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StorageCell', 'manage:own-KU')
+  @RequireRight('StorageCell', 'manage:own-KU')
   async marketplaceRetireStorageCells(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRetireStorageCellsInputDTO

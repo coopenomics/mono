@@ -69,6 +69,8 @@ export function freshMember(opts: FreshMemberOptions = {}): Who {
 export interface Candidate {
   username: string
   email: string
+  /** Ключ кандидата: им он входит заново, когда сессия закрыта. */
+  wif: string
   token: string
   subscriberId: string
   isEmailVerified: boolean
@@ -107,6 +109,7 @@ export async function registerCandidate(opts: { prefix?: string, email?: string,
   return {
     username,
     email: pa.email,
+    wif,
     token: r.data.registerAccount.tokens.access.token,
     subscriberId: pa.subscriber_id,
     isEmailVerified: pa.is_email_verified,

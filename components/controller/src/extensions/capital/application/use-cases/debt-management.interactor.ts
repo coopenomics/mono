@@ -45,14 +45,7 @@ export class DebtManagementInteractor {
     filter?: DebtFilterInputDTO,
     options?: PaginationInputDTO
   ): Promise<PaginationResult<DebtDomainEntity>> {
-    // Поскольку DebtRepository может не иметь findAllPaginated, используем findAll
-    const debts = await this.debtRepository.findAll();
-    return {
-      items: debts,
-      totalCount: debts.length,
-      totalPages: 1,
-      currentPage: 1,
-    };
+    return await this.debtRepository.findAllPaginated(filter, options);
   }
 
   /**

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { TableStore, oneOf } from '@coopenomics/extension-kit';
+import { EDUBRIDGE_ADMIN_STORE, EDUBRIDGE_TEACHER_CONTRACT_STORE } from '../../infrastructure/database/edubridge-stores';
 import {
   COUNCIL_PORT,
   LOGGER_PORT,
@@ -9,7 +10,6 @@ import {
   type IProgramAgreementPort,
 } from '@coopenomics/innercoop';
 import { EDU_PARENT_AGREEMENT_TYPE, EDU_TEACHER_AGREEMENT_TYPE } from '../../constants/edubridge-agreement-ids';
-import { In, Repository } from 'typeorm';
 import { EduContractStatus } from '../../domain/enums';
 import { EdubridgeAdminEntity, EdubridgeTeacherContractEntity } from '../../infrastructure/entities';
 import type { IEdubridgeRoleFactsPort } from './edubridge-role-facts.port';
@@ -34,8 +34,10 @@ export class EdubridgeRoleFactsAdapter implements IEdubridgeRoleFactsPort {
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(PROGRAM_AGREEMENT_PORT) private readonly programAgreements: IProgramAgreementPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @InjectRepository(EdubridgeAdminEntity) private readonly admins: Repository<EdubridgeAdminEntity>,
-    @InjectRepository(EdubridgeTeacherContractEntity) private readonly contracts: Repository<EdubridgeTeacherContractEntity>
+    @Inject(EDUBRIDGE_ADMIN_STORE)
+    private readonly admins: TableStore<EdubridgeAdminEntity>,
+    @Inject(EDUBRIDGE_TEACHER_CONTRACT_STORE)
+    private readonly contracts: TableStore<EdubridgeTeacherContractEntity>
   ) {
     this.logger.setContext(EdubridgeRoleFactsAdapter.name);
   }
@@ -44,10 +46,8 @@ export class EdubridgeRoleFactsAdapter implements IEdubridgeRoleFactsPort {
     const [isLearner, hasTeacherOffer, contract, admin] = await Promise.all([
       this.hasProgramSignature(coopname, username, EDU_PARENT_AGREEMENT_TYPE),
       this.hasProgramSignature(coopname, username, EDU_TEACHER_AGREEMENT_TYPE),
-      this.contracts.findOne({
-        where: { coopname, teacher_username: username, status: In([EduContractStatus.PENDING_APPROVAL, EduContractStatus.ACTIVE]) },
-      }),
-      this.admins.findOne({ where: { coopname, username } }),
+      this.contracts.findOne({ coopname, teacher_username: username, status: oneOf([EduContractStatus.PENDING_APPROVAL, EduContractStatus.ACTIVE]) }),
+      this.admins.findOne({ coopname, username }),
     ]);
     return { isLearner, hasTeacherOffer, isTeacher: hasTeacherOffer && Boolean(contract), isAdmin: Boolean(admin) };
   }

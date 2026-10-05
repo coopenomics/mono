@@ -1,16 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
+import { TableStore } from '@coopenomics/extension-kit';
+import { EDUBRIDGE_CONNECTOR_BINDING_STORE } from '../database/edubridge-stores';
 import type { ConnectorResult } from '../../domain/connectors/access-carrier.connector';
 import { EduAccessCarrier, EduConnectorHealth } from '../../domain/enums';
 import { EdubridgeConnectorBindingEntity } from '../entities';
 
 @Injectable()
 export class EdubridgeConnectorBindingRepository {
-  constructor(@InjectRepository(EdubridgeConnectorBindingEntity) private readonly repo: Repository<EdubridgeConnectorBindingEntity>) {}
+  constructor(@Inject(EDUBRIDGE_CONNECTOR_BINDING_STORE) private readonly repo: TableStore<EdubridgeConnectorBindingEntity>) {}
 
   list(coopname: string): Promise<EdubridgeConnectorBindingEntity[]> {
-    return this.repo.find({ where: { coopname }, order: { carrier: 'ASC' } });
+    return this.repo.find({ coopname }, { order: { carrier: 'ASC' } });
   }
 
   /**
@@ -21,15 +21,14 @@ export class EdubridgeConnectorBindingRepository {
    * и чтение следом отдают всем одну и ту же запись.
    */
   async ensure(coopname: string, carrier: EduAccessCarrier): Promise<EdubridgeConnectorBindingEntity> {
-    const existing = await this.repo.findOne({ where: { coopname, carrier } });
+    const existing = await this.repo.findOne({ coopname, carrier });
     if (existing) return existing;
-    await this.repo
-      .createQueryBuilder()
-      .insert()
+    await this.repo.kysely
+      .insertInto(this.repo.table)
       .values({ coopname, carrier, enabled: true, health: EduConnectorHealth.UNKNOWN })
-      .orIgnore()
+      .onConflict((conflict) => conflict.doNothing())
       .execute();
-    return this.repo.findOneOrFail({ where: { coopname, carrier } });
+    return this.repo.findOneOrFail({ coopname, carrier });
   }
 
   /** Отметить результат обращения к площадке. */
