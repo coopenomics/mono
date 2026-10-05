@@ -474,6 +474,7 @@
 `interface` · core-ports
 
 - `get<T = Record<string, any>>(extensionName: string): Promise<T | null>`
+- `isEnabled(extensionName: string): Promise<boolean>`
 
 ## IExtensionDatabasePort
 
