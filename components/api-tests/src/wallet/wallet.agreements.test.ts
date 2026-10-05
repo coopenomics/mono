@@ -81,8 +81,8 @@ describe('кошельки и соглашения пайщика', () => {
   })
 
   it(caseName('wal.agr.side.01', 'чужой пайщик и гость не видят кошельки пайщика'), async () => {
-    expect((await gqlError(otherToken, USER_WALLETS, { u: signer.account }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, PROGRAM_WALLETS, { f: { username: signer.account } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect((await gqlError(otherToken, USER_WALLETS, { u: signer.account }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, PROGRAM_WALLETS, { f: { username: signer.account } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect(String((await gqlError(null, USER_WALLETS, { u: signer.account }))?.code)).toBe('401')
   })
 
@@ -195,7 +195,7 @@ describe('кошельки и соглашения пайщика', () => {
   it(caseName('wal.agr.side.08', 'гость не подаёт соглашение, чужой пайщик не читает соглашения пайщика'), async () => {
     const signed = await signDocument(intruder.wif, intruderDoc, intruder.account, 1)
     expect(String((await gqlError(null, SEND_AGREEMENT, sendInput(intruder.account, 'signature', signed)))?.code)).toBe('401')
-    expect((await gqlError(otherToken, AGREEMENTS, { f: { coopname: COOP, username: signer.account } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect((await gqlError(otherToken, AGREEMENTS, { f: { coopname: COOP, username: signer.account } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
   })
 
   // ── Журнал операций старого плана счетов ─────────────────────────────────

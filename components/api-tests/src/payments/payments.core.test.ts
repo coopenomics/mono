@@ -84,7 +84,7 @@ describe('платежи ядра: паевой платёж, статус, че
 
   it(caseName('pay.core.side.03', 'пайщик не создаёт платёж за другого пайщика'), async () => {
     const err = await gqlError(otherToken, CREATE_DEPOSIT, { d: { username: payer.account, quantity: 500, symbol: 'RUB' } })
-    expect(err?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect(err?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     const own = await listPayments(payerToken, { username: payer.account })
     expect(own.some(p => p.quantity === 500)).toBe(false)
   })
@@ -107,8 +107,8 @@ describe('платежи ядра: паевой платёж, статус, че
   // ── Чужие платежи ────────────────────────────────────────────────────────
 
   it(caseName('pay.core.side.05', 'чужой пайщик и гость не видят платежи пайщика'), async () => {
-    expect((await gqlError(otherToken, GET_PAYMENTS, { d: { username: payer.account } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, GET_PAYMENTS, { d: { hash: deposit.hash } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect((await gqlError(otherToken, GET_PAYMENTS, { d: { username: payer.account } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, GET_PAYMENTS, { d: { hash: deposit.hash } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect(String((await gqlError(null, GET_PAYMENTS, { d: { username: payer.account } }))?.code)).toBe('401')
     // Совет видит платёж пайщика.
     expect((await paymentByHash(await tokenOf(COUNCIL), deposit.hash))?.id).toBe(deposit.id)
@@ -260,10 +260,10 @@ describe('платежи ядра: паевой платёж, статус, че
   })
 
   it(caseName('pay.core.side.15', 'чужой пайщик не читает, не добавляет, не меняет и не удаляет реквизиты пайщика'), async () => {
-    expect((await gqlError(otherToken, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, ADD_METHOD, { d: { username: payer.account, is_default: true, sbp_data: { phone: randomPhone() } } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, UPDATE_BANK, { d: { username: payer.account, method_id: sbp.method_id, is_default: true, data: bankAccount({ bank_name: 'Чужой банк' }) } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
-    expect((await gqlError(otherToken, DELETE_METHOD, { d: { username: payer.account, method_id: sbp.method_id } }))?.code).toBe('KIT_INSUFFICIENT_RIGHTS')
+    expect((await gqlError(otherToken, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, ADD_METHOD, { d: { username: payer.account, is_default: true, sbp_data: { phone: randomPhone() } } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, UPDATE_BANK, { d: { username: payer.account, method_id: sbp.method_id, is_default: true, data: bankAccount({ bank_name: 'Чужой банк' }) } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(otherToken, DELETE_METHOD, { d: { username: payer.account, method_id: sbp.method_id } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
     expect(String((await gqlError(null, GET_METHODS, { d: { username: payer.account, page: 1, limit: 10, sortOrder: 'ASC' } }))?.code)).toBe('401')
 
     const mine = await methodsOf(payerToken, payer.account)
