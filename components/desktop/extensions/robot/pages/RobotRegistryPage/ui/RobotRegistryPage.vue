@@ -72,6 +72,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
+import { useDesktopStore } from 'src/entities/Desktop';
 import { useSessionStore } from 'src/entities/Session';
 import { useDismissibleBanner } from 'src/shared/hooks/useDismissibleBanner';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -85,12 +86,14 @@ import { t } from '../../../i18n';
 type Row = IRobotDecisionType;
 
 const session = useSessionStore();
+const desktop = useDesktopStore();
 const robotStore = useRobotStore();
 const { dismissed, dismiss } = useDismissibleBanner('robot:registry:banner-dismissed');
 const { busy, pendingWif, issueAndDelegate, saveAutomation, revoke, handOverPendingKey } = useRobotDelegation();
 
 const loading = ref(true);
-const isChairman = computed(() => session.isChairman);
+// Подпись протоколов делегирует председатель: право выдаёт сервер по таблице прав стола.
+const isChairman = computed(() => desktop.hasGrant('robot', 'Robot:authorize'));
 const rows = computed<Row[]>(() => robotStore.sortedRegistry);
 const keyStatus = computed(() => robotStore.keyStatus);
 const boardId = computed(() => robotStore.council?.board_id ?? 0);

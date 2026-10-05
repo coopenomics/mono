@@ -9,11 +9,11 @@ import {
   DomainError,
   RequireRight,
   SELF,
+  RightsGuard,
   type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceCancelOrderResultDTO,
@@ -68,7 +68,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceCancelOrder',
     description: 'Отменить свой заказ до его приёма поставщиком; средства разблокируются.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'cancel:own', { of: 'Order', id: 'input.order_id' })
   async marketplaceCancelOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -90,7 +90,7 @@ export class MarketplaceOrderResolver {
     description:
       'Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'respond:to-self', { of: 'Order', id: 'input.order_ids' })
   async marketplaceAcceptOrdersBatch(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -112,7 +112,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceDeclineOrdersBatch',
     description: 'Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'respond:to-self', { of: 'Order', id: 'input.order_ids' })
   async marketplaceDeclineOrdersBatch(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -135,7 +135,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceListMyOrders',
     description: 'Список заказов текущего пайщика (стол заказчика).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'read:own', SELF)
   async marketplaceListMyOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -161,7 +161,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceListSupplierOrders',
     description: 'Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'read:to-self', SELF)
   async marketplaceListSupplierOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -183,7 +183,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceListAllOrders',
     description: 'Реестр всех заказов кооператива с их текущими статусами (стол администратора).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'read:all')
   async marketplaceListAllOrders(
     @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
@@ -206,7 +206,7 @@ export class MarketplaceOrderResolver {
     description:
       'Реестр заказов, идущих на конкретный кооперативный участок, с их текущими статусами (стол ПВЗ).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', 'read:own-KU', { ku: 'braname' })
   async marketplaceListBranchOrders(
     @Args('braname') braname: string,
@@ -229,7 +229,7 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceGetOrder',
     description: 'Получить один заказ по его идентификатору (доступ зависит от роли).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Order', ['read:own', 'read:to-self', 'read:own-KU'], { of: 'Order', id: 'input.order_id' })
   async marketplaceGetOrder(
     @GrantedScope() scope: IGrantedScope,

@@ -1,10 +1,9 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, RequireRight, SELF } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceCartDTO } from '../dto/marketplace-cart.dto';
 import {
@@ -47,7 +46,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceGetCart',
     description: 'Корзина текущего заказчика (создаётся пустой при первом обращении).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceGetCart(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -62,7 +61,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceAddToCart',
     description: 'Добавить товар в корзину (с привязкой корзины к пункту выдачи).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceAddToCart(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -83,7 +82,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceUpdateCartItem',
     description: 'Изменить количество позиции в корзине.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceUpdateCartItem(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -99,7 +98,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceRemoveFromCart',
     description: 'Убрать позицию из корзины.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceRemoveFromCart(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -116,7 +115,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceClearCart',
     description: 'Очистить корзину (убрать все позиции).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceClearCart(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -134,7 +133,7 @@ export class MarketplaceCartResolver {
       'программы оплачивают каждый свою часть: членский взнос — членский кошелёк, тело — свободный паевой «Стола заказов») ' +
       'и заявление 1110 о переводе недостающего с Цифрового кошелька — к подписи заказчиком; если переводить нечего, null.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceCheckoutSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -163,7 +162,7 @@ export class MarketplaceCartResolver {
       'Строки lines — из превью; signed_convert — подписанное заявление 1110, если превью его вернуло: перевод недостающей суммы ' +
       'выполняется отдельной транзакцией до заказов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Cart', 'manage:own', SELF)
   async marketplaceCheckoutCart(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -179,7 +178,7 @@ export class MarketplaceCartResolver {
     name: 'marketplaceSetCartDeliveryPoint',
     description: 'Сменить пункт выдачи (КУ) корзины — каталог зависит от выбранного КУ.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('DeliveryPoint', 'choose:own', SELF)
   async marketplaceSetCartDeliveryPoint(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,

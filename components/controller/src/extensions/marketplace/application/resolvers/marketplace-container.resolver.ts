@@ -6,10 +6,10 @@ import {
   platformSettings,
   RequireRight,
   SELF,
+  RightsGuard,
   type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import {
   MarketplaceContainerDTO,
   MarketplaceContainerTypeDTO,
@@ -33,7 +33,7 @@ export class MarketplaceContainerResolver {
     name: 'marketplaceListContainerTypes',
     description: 'Справочник типов боксов кооператива: габариты и объём.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'read:own-KU', SELF)
   async marketplaceListContainerTypes(
     @Args('is_active', { nullable: true }) is_active?: boolean
@@ -46,7 +46,7 @@ export class MarketplaceContainerResolver {
     name: 'marketplaceCreateContainerType',
     description: 'Заведение типа боксов с габаритами и объёмом.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   // Типы тары — общий справочник кооператива: габариты одинаковы на всех
   // участках, а по объёму считается перевозка боксов между ними. Заводит их
   // председатель на своём столе; участок берёт готовый тип при заведении боксов.
@@ -70,7 +70,7 @@ export class MarketplaceContainerResolver {
     name: 'marketplaceListContainers',
     description: 'Боксы кооперативных участков.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'read:own-KU', { list: 'data.braname' })
   async marketplaceListContainers(
     @GrantedScope() scope: IGrantedScope,
@@ -92,7 +92,7 @@ export class MarketplaceContainerResolver {
     name: 'marketplaceResolveContainerByCode',
     description: 'Бокс по коду с этикетки или отсканированного QR.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'read:own-KU', { of: 'ContainerCode', id: 'data.code' })
   async marketplaceResolveContainerByCode(
     @Args('data') data: MarketplaceResolveContainerByCodeInputDTO
@@ -106,7 +106,7 @@ export class MarketplaceContainerResolver {
     description:
       'Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'manage:own-KU', { ku: 'data.braname' })
   async marketplaceCreateContainers(
     @Args('data') data: MarketplaceCreateContainersInputDTO
@@ -127,7 +127,7 @@ export class MarketplaceContainerResolver {
     description:
       'Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'manage:own-KU', { of: 'Container', id: 'data.container_id' })
   async marketplaceMoveContainer(
     @Args('data') data: MarketplaceMoveContainerInputDTO
@@ -146,7 +146,7 @@ export class MarketplaceContainerResolver {
     description:
       'Председатель кооперативного участка правит подпись бокса или выводит его из оборота. Вывести можно только пустой бокс.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Container', 'manage:own-KU', { of: 'Container', id: 'data.container_id' })
   async marketplaceUpdateContainer(
     @Args('data') data: MarketplaceUpdateContainerInputDTO

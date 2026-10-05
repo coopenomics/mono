@@ -1,10 +1,9 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceConsolidatedRequestDTO,
@@ -34,7 +33,7 @@ export class MarketplaceCycleResolver {
     description:
       'Постраничный список сводных заявок поставщика — для стола поставщика и для прослеживания состояния заказов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'read')
   async marketplaceListConsolidatedRequests(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,

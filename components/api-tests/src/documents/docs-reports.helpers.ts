@@ -545,6 +545,7 @@ export async function makeBranchTrusted(who: Who): Promise<void> {
     const r = await gqlRaw(token, `query($d:MarketplaceAidStatementSignablePayloadInput!){
       marketplaceAidStatementSignablePayload(data:$d){ hash }
     }`, { d: { braname: KRG, amount: 1 } })
-    return r.errors.some(e => String(e.code) === '403' || /Forbidden/i.test(e.message)) ? null : true
+    // Пока роли оператора нет, гард прав отвечает отказом доступа.
+    return r.errors.some(e => String(e.code) === 'KIT_INSUFFICIENT_RIGHTS') ? null : true
   }, { timeoutMs: 150_000, intervalMs: 5_000, label: `доверенный ${who.account} получил права участка` })
 }

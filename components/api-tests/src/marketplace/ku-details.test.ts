@@ -164,9 +164,9 @@ describe('Стол заказов — пункт выдачи участка', (
 
   it(caseName('mkt.ku.side.02', 'пункт выдачи ведёт только председатель — члену совета и пайщику отказ, пункт не меняется'), async () => {
     for (const token of [council, member]) {
-      expectCode(await gqlError(token, DETAIL, { d: { coopname: COOP, coreBraname: BRANCH, description: 'чужая правка', workingHours: hours('21:00') } }), '403')
-      expectCode(await gqlError(token, SET_STATUS, { d: { coopname: COOP, coreBraname: BRANCH, status: 'INACTIVE' } }), '403')
-      expectCode(await gqlError(token, RETRY, { c: COOP, b: BRANCH }), '403')
+      expectCode(await gqlError(token, DETAIL, { d: { coopname: COOP, coreBraname: BRANCH, description: 'чужая правка', workingHours: hours('21:00') } }), 'KIT_INSUFFICIENT_RIGHTS')
+      expectCode(await gqlError(token, SET_STATUS, { d: { coopname: COOP, coreBraname: BRANCH, status: 'INACTIVE' } }), 'KIT_INSUFFICIENT_RIGHTS')
+      expectCode(await gqlError(token, RETRY, { c: COOP, b: BRANCH }), 'KIT_INSUFFICIENT_RIGHTS')
     }
     expect(await ku(chairman, false)).toMatchObject({ description: 'Вход со двора', status: 'ACTIVE' })
   })

@@ -5,6 +5,7 @@ import {
   GqlJwtAuthGuard,
   createPaginationResult,
   PaginationInputDTO,
+  RightsGuard,
   type PaginationResult,
   platformSettings,
   RequireRight,
@@ -12,7 +13,6 @@ import {
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CreateBranchExpenseInputDTO } from '../dto/branch-expense.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -76,7 +76,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Единая ставка членского взноса кооператива: процент, который добавляется к стоимости каждого заказа и после исполнения заказа распределяется кооперативному участку выдачи.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read')
   async marketplaceGetEconomyConfig(): Promise<MarketplaceEconomyConfigDTO> {
     const membership_fee_percent = await this.economyService.getMembershipFeePercent(
@@ -90,7 +90,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Установить единую ставку членского взноса кооператива (одинакова для всех кооперативных участков). Доступно администратору.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'set-fee')
   async marketplaceSetMembershipFee(
     @Args('data') data: MarketplaceSetMembershipFeeInputDTO
@@ -109,7 +109,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Экономика кооперативного участка: общий кошелёк членских взносов, плановые расходы и резерв на 30 дней, веса участников распределения и балансы персональных кошельков.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
   async marketplaceGetBranchEconomy(
     @Args('braname') braname: string
@@ -123,7 +123,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Движения по общему кошельку кооперативного участка: поступления членских взносов с исполненных заказов, изъятия в распределение, оплата плановых расходов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'read:own-KU', { ku: 'braname' })
   async marketplaceGetBranchWalletHistory(
     @Args('braname') braname: string,
@@ -141,7 +141,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Распределить указанную сумму из общего кошелька участка между председателем и доверенными по их весам. Возможно частично и несколько раз; после распределения в общем кошельке должно остаться не меньше планового резерва расходов на 30 дней. Доступно председателю участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })
   async marketplaceDistributeBranchFunds(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -161,7 +161,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })
   async marketplaceSetTrusteeWeight(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -182,7 +182,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Исключить участника из распределения членских взносов участка: доли оставшихся пересчитываются автоматически. Доступно председателю участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'configure:chaired-KU', { ku: 'data.braname' })
   async marketplaceDeleteTrusteeWeight(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -204,7 +204,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Персональные членские средства текущего пайщика, распределённые ему как доверенному кооперативного участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceGetPersonalEconomy(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -221,7 +221,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Движения по персональному кошельку членских средств текущего пайщика: переводы в Стол заказов и завершённая материальная помощь.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceGetPersonalWalletHistory(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -244,7 +244,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Сформировать Заявление на выплату материальной помощи для подписания получателем: идентификатор заявки фиксируется в документе и возвращается в его данных.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceAidStatementSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -264,7 +264,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Подать заявление на материальную помощь с собственного персонального кошелька членских средств: подписанное заявление выносится на рассмотрение совета, и только по его положительному решению заявка передаётся кассиру. Налог с дохода получатель оплачивает самостоятельно.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceCreateAid(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -287,7 +287,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Подать расход кооперативного участка: сумма расхода выделяется из общего кошелька участка, а сам расход выносится на решение совета. После одобрения кассир платит по реквизитам либо выдаёт аванс под отчёт; неизрасходованное возвращается участку. Возвращает идентификатор расхода.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'propose-expense:chaired-KU', { ku: 'data.braname' })
   async marketplaceCreateBranchExpense(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -301,7 +301,7 @@ export class MarketplaceEconomyResolver {
     description:
       'Заявления на материальную помощь: свои — для доверенного; все заявления кооператива — для администратора. Показывает стадию (рассмотрение советом либо ожидание выплаты) и статус выплаты у кассира.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Economy', 'use:own', SELF)
   async marketplaceListAids(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,

@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import {
@@ -15,7 +15,6 @@ import {
   type MarketplaceKuChairmanService,
 } from '../services/marketplace-ku-chairman.service';
 import { MarketplaceWarehouseSettingsService } from '../services/marketplace-warehouse-settings.service';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 
 /**
  * Story 1.3: тестовый whoami-эндпоинт расширения marketplace.
@@ -39,7 +38,7 @@ export class MarketplaceMembershipResolver {
     description:
       'Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Membership', 'read:own', SELF)
   async marketplaceWhoAmI(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember

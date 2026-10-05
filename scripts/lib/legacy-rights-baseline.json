@@ -71,13 +71,9 @@
     "components/controller/src/extensions/reports/application/resolvers/report-draft.resolver.ts": 6,
     "components/controller/src/extensions/reports/application/resolvers/report-requisites.resolver.ts": 3,
     "components/controller/src/extensions/reports/application/resolvers/report.resolver.ts": 5,
-    "components/controller/src/extensions/reports/application/resolvers/withheld-tax.resolver.ts": 3,
-    "components/controller/src/extensions/soviet-robot/application/resolvers/soviet-robot.resolver.ts": 8
+    "components/controller/src/extensions/reports/application/resolvers/withheld-tax.resolver.ts": 3
   },
-  "market-guards": {
-    "components/controller/src/extensions/marketplace/application/decorators/marketplace-role.decorator.ts": 1,
-    "components/controller/src/extensions/marketplace/application/guards/marketplace-role.guard.ts": 1
-  },
+  "market-guards": {},
   "route-roles": {
     "components/desktop/extensions/capital/install.ts": 26,
     "components/desktop/extensions/capital/routes/projectTreeChildren.ts": 1,
@@ -88,7 +84,6 @@
     "components/desktop/extensions/participant/install.ts": 16,
     "components/desktop/extensions/powerup/install.ts": 4,
     "components/desktop/extensions/reports/install.ts": 14,
-    "components/desktop/extensions/robot/install.ts": 1,
     "components/desktop/extensions/soviet/install.ts": 12,
     "components/desktop/src/app/providers/routes/index.ts": 1,
     "components/desktop/src/desktops/Chairman/model/index.ts": 3,

@@ -44,7 +44,7 @@ export function classify(err: GqlError | null): Outcome {
   // себя»), даже если текст похож на отказ гварда.
   if (/[A-Z]_FORBIDDEN$|_NOT_TRUSTEE|_SELF_ONLY|_FOREIGN/.test(code))
     return 'deny-service'
-  // Гварды Стола заказов отвечают по-английски «Forbidden: marketplace …»,
+  // Прежние гарды Стола заказов отвечали по-английски «Forbidden: marketplace …»,
   // CASL — «Forbidden resource»/«Forbidden Exception», ядро — по-русски.
   if (/^Forbidden: marketplace/.test(msg) || /Недостаточно прав доступа|Доступ только для пайщиков/.test(msg))
     return 'deny-role'

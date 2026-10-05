@@ -8,11 +8,11 @@ import {
   DomainError,
   GrantedScope,
   RequireRight,
+  RightsGuard,
   type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { InnerGeneratedDocument } from '@coopenomics/innercoop';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
@@ -73,7 +73,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceListIssuancesByBraname',
     description: 'Лента выдачи участка: заказы от приёма кооперативом до закрытия выдачи.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'read:own-KU', { ku: 'data.delivery_braname' })
   async marketplaceListIssuancesByBraname(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -95,7 +95,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceReadyIssue',
     description: 'Оператор участка выдачи отмечает поступление имущества по заказу: заказчику уходит уведомление «приходите заберите». Без подписи.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
   async marketplaceReadyIssue(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -115,7 +115,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceFixIssuanceFact',
     description: 'Оператор у стойки сверил состав и отправляет факт на подпись заказчику: рождается ход выдачи и заявление о возврате паевого взноса имуществом. Подписи оператора нет.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
   async marketplaceFixIssuanceFact(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -137,7 +137,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceIssuanceClosePayload',
     description: 'Акт с подписью заказчика для закрывающей подписи оператора участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'close', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceClosePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -154,7 +154,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceCloseIssuance',
     description: 'Закрывающая подпись акта председателем, доверенным или оператором участка выдачи: паевой взнос возвращён имуществом, заказ получен. Имущество передаётся после этого ответа.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'close', { of: 'Order', id: 'data.order_id' })
   async marketplaceCloseIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -169,7 +169,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceCancelIssuance',
     description: 'Оператор отменяет начатую выдачу (заказчик не подписал акт или ушёл): заказ снова готов к выдаче, средства не двигались.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'cancel', { of: 'Order', id: 'data.order_id' })
   async marketplaceCancelIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -186,7 +186,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceIssuanceStatementPayload',
     description: 'Заявление о возврате паевого взноса имуществом к подписи заказчиком по начатой выдаче.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceStatementPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -203,7 +203,7 @@ export class MarketplaceIssuanceResolver {
       'Заявление 1110 на доплату по факту (разница тела и довзнос участка) — к подписи заказчиком вместе ' +
       'с заявлением о выдаче, только если факт больше заказа и членского кошелька «Стола заказов» не хватает на довзнос; иначе null.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceConvertPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -217,7 +217,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceSignIssuanceStatement',
     description: 'Заказчик подписал заявление: оно уходит совету. Если робот решений совета ответил сразу, в ответе уже есть протокол и акт к подписи; иначе выдача ждёт решение — придёт уведомление.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'sign:statement', { of: 'Order', id: 'data.order_id' })
   async marketplaceSignIssuanceStatement(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -231,7 +231,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceIssuanceActPayload',
     description: 'Акт приёма-передачи к первой подписи заказчиком после решения совета.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'sign:act', { of: 'Order', id: 'data.order_id' })
   async marketplaceIssuanceActPayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -245,7 +245,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceSignIssuanceAct',
     description: 'Первая подпись акта заказчиком: дальше оператор закрывает выдачу.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', 'sign:act', { of: 'Order', id: 'data.order_id' })
   async marketplaceSignIssuanceAct(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -262,7 +262,7 @@ export class MarketplaceIssuanceResolver {
     nullable: true,
     description: 'Ход выдачи по заказу: заказчик видит свой, персонал участка — по своему участку.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', ['read:own', 'read:own-KU'], { of: 'IssuanceSaga', id: 'data.order_id' })
   async marketplaceIssuanceSaga(
     @Args('data') data: MarketplaceIssuanceOrderInputDTO
@@ -275,7 +275,7 @@ export class MarketplaceIssuanceResolver {
     name: 'marketplaceListIssuanceSagas',
     description: 'Незавершённые выдачи: свои у заказчика, по участку у стойки оператора.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Issuance', ['read:own', 'read:own-KU'], { list: 'data.braname' })
   async marketplaceListIssuanceSagas(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,

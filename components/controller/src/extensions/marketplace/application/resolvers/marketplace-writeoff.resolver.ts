@@ -10,11 +10,11 @@ import {
   DomainError,
   GrantedScope,
   RequireRight,
+  RightsGuard,
   type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceConfirmWriteoffInputDTO,
@@ -76,7 +76,7 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceOpenWriteoffDraft',
     description: 'Открытый черновик проекта списания (если есть). Один на кооператив.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'read:all')
   async marketplaceOpenWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -92,7 +92,7 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceListWriteoffProposals',
     description: 'Лента всех проектов списания кооператива с фильтром по статусу.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'read:all')
   async marketplaceListWriteoffProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -121,7 +121,7 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceWriteoffProposal',
     description: 'Детали одного проекта списания: items, decision_log, протокол.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'read:all')
   async marketplaceWriteoffProposal(
     @Args('id') id: string
@@ -137,7 +137,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Создаёт ручной черновик проекта списания. На кооператив может быть только один открытый черновик и один проект, отправленный в совет.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'manage_draft')
   async marketplaceCreateWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -157,7 +157,7 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceUpdateWriteoffDraft',
     description: 'Изменить состав черновика — добавить, удалить или поправить позиции.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'manage_draft')
   async marketplaceUpdateWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -175,7 +175,7 @@ export class MarketplaceWriteoffResolver {
     name: 'marketplaceCancelWriteoffDraft',
     description: 'Удалить черновик. Доступно только пока проект в статусе DRAFT.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'manage_draft')
   async marketplaceCancelWriteoffDraft(
     @Args('id') id: string
@@ -189,7 +189,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Превью Заявления о списании скоропорта (registry 1106) для подписания председателем.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'propose')
   async marketplaceWriteoffStatementSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -238,7 +238,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Отправить черновик в совет. Принимает подписанное председателем Заявление 1106. После успешного приёма выполняются propwroff и soviet::createagenda(mktwroff).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'propose')
   async marketplaceSubmitWriteoffDraft(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -259,7 +259,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Кандидаты на списание скоропорта: просроченные позиции на складах кооператива. Председатель выделяет нужные и создаёт из них черновик проекта списания.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'read:all')
   async marketplaceListWriteoffCandidates(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
@@ -274,7 +274,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'read:own-KU', { list: null })
   async marketplaceWriteoffPendingConfirmations(
     @GrantedScope() scope: IGrantedScope
@@ -293,7 +293,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceWriteoffServiceMemoSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -324,7 +324,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'confirm:own-KU', { of: 'WriteoffProposal', id: 'data.proposal_id', match: 'any' })
   async marketplaceWriteoffProtocolDocument(
     @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
@@ -346,7 +346,7 @@ export class MarketplaceWriteoffResolver {
     description:
       'Подтвердить фактическое списание со склада участка подписанной председателем КУ Служебной запиской (registry 1111). Запускает on-chain confirmwroff по всем позициям этого участка.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceConfirmWriteoff(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,

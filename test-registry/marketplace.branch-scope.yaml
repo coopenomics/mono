@@ -34,6 +34,12 @@ title: Стол заказов — оператор распоряжается �
 # случаев прежний; правило охвата целиком — случаи mkt.scopes.* в
 # marketplace.rights-table.
 
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-inventory.resolver.ts

@@ -1,14 +1,13 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 
 import {
   MarketplaceAcceptCppInputDTO,
   MarketplaceCppStatusDTO,
 } from '../dto/marketplace-cpp-status.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { MarketplaceCoopAcceptanceService } from '../coop-acceptance/marketplace-coop-acceptance.service';
 
 /**
@@ -29,7 +28,7 @@ export class MarketplaceCoopAcceptanceResolver {
     description:
       'Статус принятия положения ЦПП «Стол заказов» Советом кооператива (L1). `active` если принято, `not_accepted` иначе.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Extension', 'read')
   async marketplaceCppStatus(): Promise<MarketplaceCppStatusDTO> {
     const status = await this.acceptanceService.getStatus();
@@ -41,7 +40,7 @@ export class MarketplaceCoopAcceptanceResolver {
     description:
       'Зафиксировать принятие положения ЦПП «Стол заказов» Советом — admin-action из admin-стола. MVP-stub: председатель самостоятельно передаёт `accepted_by_board_decision_id`; в Эпике 8 поле будет валидироваться против реальной повестки совета.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Extension', 'configure')
   async marketplaceAcceptCpp(
     @Args('input') input: MarketplaceAcceptCppInputDTO
