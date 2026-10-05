@@ -1,6 +1,6 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ExpenseFilesService } from '../services/expense-files.service';
 import { UploadExpenseFileInputDTO } from '../dto/upload-expense-file.input';
@@ -21,8 +21,8 @@ export class ExpenseFilesResolver {
     name: 'uploadExpenseFile',
     description: 'Загрузить первичный файл расхода (платёжка/чек/возврат) в бакет expenses:files.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'upload')
   async uploadExpenseFile(
     @Args('data', { type: () => UploadExpenseFileInputDTO }) data: UploadExpenseFileInputDTO,
     @CurrentUser() user: IMonoAccount
@@ -35,8 +35,8 @@ export class ExpenseFilesResolver {
     name: 'expenseFile',
     description: 'Получить запись о файле + свежий короткоживущий read-URL.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
   async getExpenseFile(
     @Args('id', { type: () => Int }) id: number,
     @CurrentUser() user: IMonoAccount
@@ -49,8 +49,8 @@ export class ExpenseFilesResolver {
     name: 'expenseFilesByProposal',
     description: 'Список файлов сметы расхода (без read-URL — запрос отдельно по id).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
   async listByProposal(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('proposal_hash', { type: () => String }) proposalHash: string,
@@ -64,8 +64,8 @@ export class ExpenseFilesResolver {
     name: 'expenseFilesByItem',
     description: 'Список файлов строки расхода (без read-URL — запрос отдельно по id).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseFile', 'read')
   async listByItem(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('proposal_hash', { type: () => String }) proposalHash: string,

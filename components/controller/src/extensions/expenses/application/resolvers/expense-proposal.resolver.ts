@@ -1,6 +1,15 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, DomainError, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  DomainError,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { mayReadExpenseProposal } from '../../domain/utils/expense-proposal-access';
 import { ExpensesManagementService } from '../services/expenses-management.service';
@@ -38,8 +47,8 @@ export class ExpenseProposalResolver {
     description:
       'Снимки реквизитов получателей по строкам СЗ (персональные данные — только совету; в блокчейн не пишутся).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseRegistry', 'read')
   async getExpenseRequisitesByProposal(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('proposal_hash', { type: () => String }) proposalHash: string
@@ -53,8 +62,8 @@ export class ExpenseProposalResolver {
     description: 'Получить смету расхода по хешу. Видят совет, подавший смету и получатели её строк.',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'read')
   async getExpenseProposal(
     @Args('proposal_hash', { type: () => String }) proposalHash: string,
     @CurrentUser() user: IMonoAccount
@@ -72,8 +81,8 @@ export class ExpenseProposalResolver {
     name: 'expenseProposalsByCooperative',
     description: 'Список смет расходов кооператива (paginated).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseRegistry', 'read')
   async listByCooperative(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
@@ -86,8 +95,8 @@ export class ExpenseProposalResolver {
     name: 'expenseProposalsByMember',
     description: 'Список смет расходов пайщика (свои/созданные им, paginated). Видят сам пайщик и совет.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ExpenseProposal', 'read')
   async listByMember(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('username', { type: () => String }) username: string,

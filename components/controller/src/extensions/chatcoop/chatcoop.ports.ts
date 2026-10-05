@@ -11,6 +11,7 @@
  * Необязательные могут отсутствовать: без них часть возможностей выключена.
  */
 import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
   ACCOUNT_PORT,
   CHAIN_CHANGES_PORT,
   COOPERATIVE_VARS_PORT,
@@ -26,6 +27,7 @@ import {
 
 export const chatcoopPorts = {
   required: [
+    DESKTOP_GRANTS_REGISTRY_PORT,
     ACCOUNT_PORT,
     COOPERATIVE_VARS_PORT,
     COOP_CALENDAR_EVENT_NOTIFICATION_PORT,

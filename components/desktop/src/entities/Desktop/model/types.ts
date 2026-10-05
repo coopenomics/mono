@@ -20,8 +20,9 @@ export interface IBlockchainDesktops {
 interface RouteMeta {
   title: string;
   icon: string;
-  roles: string[];
-  conditions: string;
+  /** Право из таблицы прав, по которому страница видна. */
+  requires?: string;
+  conditions?: string;
   hidden?: boolean;
   action?: string; // Имя действия вместо перехода на страницу
 }

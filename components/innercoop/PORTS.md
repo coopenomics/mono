@@ -88,7 +88,7 @@
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
 | `DESKTOP_GRANTS_FILTER_REGISTRY_PORT` | `IDesktopGrantsFilterRegistryPort` (2)<br><sub>hooks/desktop-grants-filter.hook.ts</sub> | `ExtensionGrantsFilterRegistry` | edubridge | Сужение прав пайщика на столах ЧУЖОГО расширения. |
-| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, edubridge, marketplace, soviet-robot | Права пайщика на рабочем столе расширения. |
+| `DESKTOP_GRANTS_REGISTRY_PORT` | `IDesktopGrantsRegistryPort` (1)<br><sub>hooks/desktop-grants.hook.ts</sub> | `ExtensionGrantsRegistry` | capital, chairman, chatcoop, edubridge, expenses, ku, marketplace, powerup, reports, soviet-robot | Права пайщика на рабочем столе расширения. |
 | `GLOBAL_SEARCH_REGISTRY_PORT` | `IGlobalSearchRegistryPort` (1)<br><sub>hooks/global-search.hook.ts</sub> | `GlobalSearchRegistry` | — | Поставщик единого поиска. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |

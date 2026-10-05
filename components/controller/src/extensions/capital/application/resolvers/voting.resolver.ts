@@ -1,6 +1,15 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { VotingService } from '../services/voting.service';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, TransactionDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  CurrentUser,
+  TransactionDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { CalculateVotesInputDTO } from '../dto/voting/calculate-votes-input.dto';
 import { CompleteVotingInputDTO } from '../dto/voting/complete-voting-input.dto';
@@ -29,8 +38,8 @@ export class VotingResolver {
     name: 'capitalStartVoting',
     description: 'Запуск голосования в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', 'conduct')
   async StartVoting(@Args('data', { type: () => StartVotingInputDTO }) data: StartVotingInputDTO): Promise<TransactionDTO> {
     const result = await this.votingService.startVoting(data);
     return result;
@@ -43,8 +52,8 @@ export class VotingResolver {
     name: 'capitalSubmitVote',
     description: 'Голосование в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', 'vote')
   async submitCapitalVote(
     @Args('data', { type: () => SubmitVoteInputDTO }) data: SubmitVoteInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -60,8 +69,8 @@ export class VotingResolver {
     name: 'capitalCompleteVoting',
     description: 'Завершение голосования в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', 'conduct')
   async completeCapitalVoting(
     @Args('data', { type: () => CompleteVotingInputDTO }) data: CompleteVotingInputDTO
   ): Promise<TransactionDTO> {
@@ -76,8 +85,8 @@ export class VotingResolver {
     name: 'capitalCalculateVotes',
     description: 'Расчет голосов в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', ['calculate:own', 'calculate'], { owner: 'data.username' })
   async calculateCapitalVotes(
     @Args('data', { type: () => CalculateVotesInputDTO }) data: CalculateVotesInputDTO
   ): Promise<SegmentOutputDTO> {
@@ -94,8 +103,8 @@ export class VotingResolver {
     name: 'capitalVotes',
     description: 'Получение списка голосов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', 'read')
   async getVotes(
     @Args('filter', { nullable: true }) filter?: VoteFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -111,8 +120,8 @@ export class VotingResolver {
     description: 'Получение голоса по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Voting', 'read')
   async getVote(@Args('data') data: GetVoteInputDTO): Promise<VoteOutputDTO | null> {
     return await this.votingService.getVoteById(data._id);
   }

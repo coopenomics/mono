@@ -1,6 +1,13 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { GatewayService } from '../services/gateway.service';
 import { GatewayPaymentDTO } from '../dto/gateway-payment.dto';
 import { SetPaymentStatusInputDTO } from '../dto/set-payment-status-input.dto';
@@ -22,8 +29,8 @@ export class GatewayResolver {
     name: 'getPayments',
     description: 'Получить список платежей с возможностью фильтрации по типу, статусу и направлению.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Payment', ['read:own', 'read:all'], { owner: 'data.username' })
   async getPayments(
     @Args('data', { nullable: true }) data: PaymentFiltersInputDTO = {},
     @Args('options', { nullable: true }) options: PaginationInputDTO = { page: 1, limit: 10, sortOrder: 'DESC' }
@@ -39,8 +46,8 @@ export class GatewayResolver {
     description:
       'Управление статусом платежа осущствляется мутацией setPaymentStatus. При переходе платежа в статус PAID вызывается эффект в блокчейне, который завершает операцию автоматическим переводом платежа в статус COMPLETED. При установке статуса REFUNDED запускается процесс отмены платежа в блокчейне. Остальные статусы не приводят к эффектам в блокчейне.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Payment', 'confirm')
   async setPaymentStatus(
     @Args('data', { type: () => SetPaymentStatusInputDTO }) data: SetPaymentStatusInputDTO
   ): Promise<GatewayPaymentDTO> {

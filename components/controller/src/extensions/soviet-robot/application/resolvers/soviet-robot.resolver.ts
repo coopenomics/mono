@@ -1,6 +1,17 @@
 import { Inject, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AuthRoles, CurrentUser, GqlJwtAuthGuard, PaginationInputDTO, RolesGuard, createPaginationResult, platformSettings, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
+import {
+  CurrentUser,
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  RequireRight,
+  RightsGuard,
+  SELF,
+  createPaginationResult,
+  platformSettings,
+  type PaginationResult,
+  DomainError,
+} from '@coopenomics/extension-kit';
 import { ACCOUNT_PORT, type IAccountPort, type IMonoAccount } from '@coopenomics/innercoop';
 import { RobotCouncilDTO, RobotDecisionTypeDTO } from '../dto/robot-registry.dto';
 import { RobotDecisionDTO } from '../dto/robot-journal.dto';
@@ -14,8 +25,9 @@ import { ROBOT_DECISION_REPOSITORY, type RobotDecisionRepository } from '../../d
 const paginatedRobotDecisions = createPaginationResult(RobotDecisionDTO, 'PaginatedRobotDecisions');
 
 /**
- * Стол «Робот совета». Все операции — только для членов совета; управление
- * состоянием робота и ручной повтор — для председателя.
+ * Стол «Робот совета». Права операций — по таблице прав стола
+ * (`robot-rights.ts`): всё, кроме ключей остальных членов совета и ручного
+ * повтора, открыто члену совета; эти два действия — председателю.
  */
 @Resolver()
 export class SovietRobotResolver {
@@ -34,8 +46,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotRegistry',
     description: 'Реестр действий автоматизации: кто и что делегировал роботу по каждому типу решения и достигнут ли кворум робота',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Robot', 'read')
   async getRegistry(@CurrentUser() user: IMonoAccount): Promise<RobotDecisionTypeDTO[]> {
     return this.registry.getRegistry(this.coopname, user.username);
   }
@@ -44,8 +56,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotCouncil',
     description: 'Совет кооператива: идентификатор, председатель, состав и порог голосов',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Robot', 'read')
   async getCouncil(): Promise<RobotCouncilDTO> {
     const board = await this.chain.getSovietBoard(this.coopname);
     if (!board) throw DomainError.internal('SOVIET_ROBOT_COUNCIL_NOT_FOUND');
@@ -80,8 +92,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotKeyStatus',
     description: 'Состояние ключа робота текущего члена совета',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('RobotKey', 'read:own', SELF)
   async getKeyStatus(@CurrentUser() user: IMonoAccount): Promise<RobotKeyStatusDTO> {
     return this.keys.getStatus(this.coopname, user.username);
   }
@@ -90,8 +102,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotKeys',
     description: 'Состояние ключей робота у всех членов совета',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('RobotKey', 'read:all')
   async getKeys(): Promise<RobotKeyStatusDTO[]> {
     const board = await this.chain.getSovietBoard(this.coopname);
     const members = board?.members.map((m) => m.username) ?? [];
@@ -102,8 +114,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotJournal',
     description: 'Журнал решений робота: этапы, голоса, транзакции и ошибки',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Robot', 'read')
   async getJournal(@Args('options', { nullable: true }) options?: PaginationInputDTO): Promise<PaginationResult<RobotDecisionDTO>> {
     return this.journal.findPaginated(this.coopname, options);
   }
@@ -112,8 +124,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotDelegateKey',
     description: 'Передать роботу приватный ключ своего разрешения; ключ проверяется по цепи и хранится зашифрованным',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('RobotKey', 'manage:own', SELF)
   async delegateKey(@CurrentUser() user: IMonoAccount, @Args('data') data: RobotDelegateKeyInputDTO): Promise<RobotKeyStatusDTO> {
     return this.keys.delegateKey(this.coopname, user.username, data.wif, data.permission_name);
   }
@@ -122,8 +134,8 @@ export class SovietRobotResolver {
     name: 'sovietRobotRevokeKey',
     description: 'Удалить свой ключ из хранилища робота',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member', 'chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('RobotKey', 'manage:own', SELF)
   async revokeKey(@CurrentUser() user: IMonoAccount): Promise<boolean> {
     return this.keys.revokeKey(this.coopname, user.username);
   }
@@ -133,8 +145,8 @@ export class SovietRobotResolver {
     description: 'Повторить обработку застрявшего решения',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('RobotDecision', 'retry')
   async retryDecision(@Args('data') data: RobotRetryDecisionInputDTO): Promise<RobotDecisionDTO | null> {
     return this.watchdog.retry(data.decision_id);
   }

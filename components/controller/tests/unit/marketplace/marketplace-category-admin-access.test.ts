@@ -51,7 +51,7 @@ describe('резолвер категорий: каждая операция т�
     // Требование права без guard'а — пустая декларация: читать метаданные
     // будет некому, и операция останется открытой.
     const src = source();
-    const guards = [...src.matchAll(/^[ \t]*@UseGuards\([^)]*MarketplaceRoleGuard[^)]*\)/gm)].length;
+    const guards = [...src.matchAll(/^[ \t]*@UseGuards\([^)]*RightsGuard[^)]*\)/gm)].length;
     expect(guards).toBe(countOperations(src));
   });
 

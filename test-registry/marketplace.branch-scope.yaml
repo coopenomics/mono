@@ -20,6 +20,26 @@ title: Стол заказов — оператор распоряжается �
 # каркаса расширений. Случаи про условия — в marketplace.rights-table; набор
 # случаев этой фичи прежний.
 
+# Правка 2026-10-05 (C28-87): чтение предложений докладки отвечает заказчику
+# своим и оператору своим участком, требование операции называет оба охвата
+# (`StockProposal: read:own | read:own-KU`). С одним охватом заказчика оператор
+# без подключения заказчиком получал отказ на странице выдачи. Сверка участка в
+# резолвере прежняя; случай — mkt.rights.side.10 в marketplace.rights-table.
+
+# Правка 2026-10-05, вторая (C28-87, пункт 1а): сверку участка ведёт общий гард.
+# Операция называет источник объекта третьим аргументом `@RequireRight` (участок
+# из запроса либо объект по номеру), справочник объектов отдаёт участок, правило
+# охвата записано в каркасе расширений. Частные сверки в резолверах убраны,
+# отказ приходит до входа в операцию общим кодом KIT_RIGHT_SCOPE_OWN_KU. Набор
+# случаев прежний; правило охвата целиком — случаи mkt.scopes.* в
+# marketplace.rights-table.
+
+# Правка 2026-10-05 (C28-87, общий гард): права операций сверяет общий гард
+# каркаса расширений (`RightsGuard`) над описанием прав Стола заказов;
+# собственный гард стола, декоратор роли и ручной провайдер прав рабочего стола
+# убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
+# отказ без кода). Набор случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/marketplace-inventory.resolver.ts
@@ -33,7 +53,7 @@ cases:
     level: backend
     kind: side
     scenario: председатель участка odn формирует акт приёмки по партии, которая ждёт приёмки на участке krg
-    expect: отказ MARKETPLACE_RECEPTION_NOT_TRUSTEE, акт не создан, партия свободна; председатель krg открывает акт по той же партии
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, акт не создан, партия свободна; председатель krg открывает акт по той же партии
     test: components/api-tests/src/marketplace/branch-scope.test.ts
     api: components/api-tests/src/marketplace/branch-scope.test.ts
     status: written
@@ -42,7 +62,7 @@ cases:
     level: backend
     kind: side
     scenario: председатель участка odn маркирует, перекладывает и делит позицию склада участка krg
-    expect: пять отказов MARKETPLACE_ACTION_NOT_TRUSTEE, позиция не изменилась; председатель krg маркирует её
+    expect: пять отказов KIT_RIGHT_SCOPE_OWN_KU, позиция не изменилась; председатель krg маркирует её
     test: components/api-tests/src/marketplace/branch-scope.test.ts
     api: components/api-tests/src/marketplace/branch-scope.test.ts
     status: written
@@ -51,7 +71,7 @@ cases:
     level: backend
     kind: side
     scenario: председатель участка odn публикует позицию склада krg в каталог и снимает её с публикации
-    expect: отказ MARKETPLACE_ACTION_NOT_TRUSTEE на оба действия, позиция не опубликована
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU на оба действия, позиция не опубликована
     test: components/api-tests/src/marketplace/branch-scope.test.ts
     api: components/api-tests/src/marketplace/branch-scope.test.ts
     status: written
@@ -60,7 +80,7 @@ cases:
     level: backend
     kind: side
     scenario: председатель участка odn отменяет заказ, который выдаёт участок krg
-    expect: отказ MARKETPLACE_ACTION_NOT_TRUSTEE, статус заказа не изменился
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, статус заказа не изменился
     test: components/api-tests/src/marketplace/branch-scope.test.ts
     api: components/api-tests/src/marketplace/branch-scope.test.ts
     status: written
@@ -69,7 +89,7 @@ cases:
     level: backend
     kind: side
     scenario: председатель участка odn отзывает бандл выдачи, собранный у стойки участка krg
-    expect: отказ MARKETPLACE_ACTION_NOT_TRUSTEE, бандл ждёт пайщика; председатель krg отзывает его
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU, бандл ждёт пайщика; председатель krg отзывает его
     test: components/api-tests/src/marketplace/branch-scope.test.ts
     api: components/api-tests/src/marketplace/branch-scope.test.ts
     status: written
@@ -87,9 +107,9 @@ cases:
     level: backend
     kind: side
     scenario: оператор участка читает протокол совета по проекту списания, в котором нет позиций его участка
-    expect: отказ MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE; оператор участка с позициями в проекте и совет протокол читают
-    test: ~
-    status: missing
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU; оператор участка с позициями в проекте протокол читает
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    status: written
     external: unreachable
     external_reason: проект списания с протоколом совета заводит только набор списания со своим просроченным остатком; случай добавляется в него отдельной правкой
 

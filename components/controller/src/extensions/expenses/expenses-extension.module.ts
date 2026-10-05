@@ -29,6 +29,8 @@ import {
 } from './application/services/expense-plans.service';
 import { ExpensePlansResolver } from './application/resolvers/expense-plans.resolver';
 import { ExpensesLiveFeedService } from './application/services/expenses-live-feed.service';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { ExpensesRights } from './application/access/expenses-rights';
 
 /**
  * Расширение «Расходы» цифрового кооператива.
@@ -52,6 +54,11 @@ import { ExpensesLiveFeedService } from './application/services/expenses-live-fe
     ExpensesDatabaseModule,
   ],
   providers: [
+    // Права: описание для общего гарда операций
+    ExpensesRights,
+    { provide: APP_RIGHTS, useExisting: ExpensesRights },
+    RightsGuard,
+
     // Хранилище файлов расхода: объявление висит на самом сервисе
     // (`@UseBucket`), здесь оно превращается в провайдер.
     ...bucketProvidersFor(FILE_STORAGE_PORT, [ExpenseFilesService]),

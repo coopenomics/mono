@@ -38,6 +38,8 @@ import { CardcoopEntryController } from './application/entry.controller';
 import { CardcoopEntryResolver } from './application/cardcoop-entry.resolver';
 import { CardcoopDisclosureService } from './disclosure/disclosure.service';
 import { CardcoopGrantVerifier } from './disclosure/grant-verifier.service';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { CardcoopRights } from './application/access/cardcoop-rights';
 
 /**
  * Параметры расширения.
@@ -62,6 +64,10 @@ export { CardcoopExtension, Schema, defaultConfig, type IConfig };
     ...cardcoopStoreProviders,
     CardcoopExtension,
     CardcoopCardService,
+    // Права: описание для общего гарда операций
+    CardcoopRights,
+    { provide: APP_RIGHTS, useExisting: CardcoopRights },
+    RightsGuard,
     CardcoopCardResolver,
     CardcoopIdentityService,
     CardcoopAttestationService,

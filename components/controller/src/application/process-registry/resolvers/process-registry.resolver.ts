@@ -1,6 +1,13 @@
 import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { ProcessRegistryService } from '~/domain/process-registry/services/process-registry.service';
 import { ProcessViewDTO } from '../dto/process-view.dto';
 import { ProcessSummaryDTO } from '../dto/process-summary.dto';
@@ -16,8 +23,8 @@ export class ProcessRegistryResolver {
     name: 'process',
     description: 'Получить полную картину процесса ledger2 по process_hash',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Process', 'read:all')
   async getProcess(
     @Args('hash') hash: string,
     @Args('coopname') coopname: string
@@ -29,8 +36,8 @@ export class ProcessRegistryResolver {
     name: 'processes',
     description: 'Листинг процессов ledger2 с пагинацией и фильтрами',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Process', ['read:own', 'read:all'], { owner: 'filter.username' })
   async listProcesses(
     @Args('filter') filter: ProcessesFilterInput,
     @Args('pagination') pagination: PaginationInputDTO

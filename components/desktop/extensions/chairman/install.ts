@@ -32,7 +32,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('chairman.install.extensionName'),
           icon: 'fa-solid fa-user-tie',
-          roles: ['chairman'],
+          requires: 'System:manage',
         },
         path: '/:coopname/chairman',
         name: 'chairman',
@@ -44,7 +44,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.onboardingNavTitle'),
               icon: 'fa-solid fa-rocket',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
               conditions: '!isOnboardingHidden',
@@ -57,7 +57,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.agendaPresetsNavTitle'),
               icon: 'fa-solid fa-file-alt',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -70,7 +70,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.approvalsNavTitle'),
               icon: 'fa-solid fa-check-circle',
-              roles: ['chairman'],
+              requires: 'Approval:confirm',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -82,7 +82,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.notificationsLogNavTitle'),
               icon: 'notifications',
-              roles: ['chairman'],
+              requires: 'NotificationJournal:resend',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -95,7 +95,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.appCatalogNavTitle'),
               icon: 'fa-solid fa-puzzle-piece',
-              roles: ['chairman'],
+              requires: 'Extension:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -108,7 +108,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('chairman.install.marketplaceNavTitle'),
                   icon: 'fa-solid fa-store',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
               },
@@ -119,7 +119,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('chairman.install.installedAppsNavTitle'),
                   icon: 'fa-solid fa-download',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
               },
@@ -130,7 +130,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('chairman.install.extensionNavTitle'),
                   icon: 'fa-solid fa-cog',
-                  roles: ['chairman'],
+                  requires: 'Extension:manage',
                   requiresAuth: true,
                 },
                 children: [
@@ -141,7 +141,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('chairman.install.appSettingsNavTitle'),
                       icon: 'fa-solid fa-cog',
-                      roles: ['chairman'],
+                      requires: 'Extension:manage',
                       requiresAuth: true,
                     },
                   },
@@ -152,7 +152,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('chairman.install.appInstallNavTitle'),
                       icon: 'fa-solid fa-download',
-                      roles: ['chairman'],
+                      requires: 'Extension:manage',
                       requiresAuth: true,
                     },
                   },
@@ -167,7 +167,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.defaultPagesNavTitle'),
               icon: 'fa-solid fa-house',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -179,7 +179,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.councilMembersNavTitle'),
               icon: 'fa-solid fa-users',
-              roles: ['chairman'],
+              requires: 'Account:update',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -192,7 +192,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.cooperativeUnitsNavTitle'),
               icon: 'fa-solid fa-sitemap',
-              roles: ['chairman'],
+              requires: 'Branch:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -205,7 +205,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.registrationFeesNavTitle'),
               icon: 'fa-solid fa-coins',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -218,7 +218,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.cooperativeKeyNavTitle'),
               icon: 'fa-solid fa-key',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -231,7 +231,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.paymentProviderNavTitle'),
               icon: 'fa-solid fa-credit-card',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -244,7 +244,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('chairman.install.cooperativeContactsNavTitle'),
               icon: 'fa-solid fa-address-book',
-              roles: ['chairman'],
+              requires: 'System:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },

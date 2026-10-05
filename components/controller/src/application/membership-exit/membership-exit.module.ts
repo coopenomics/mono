@@ -9,6 +9,7 @@ import { SystemModule } from '../system/system.module';
 import { UserDomainModule } from '~/domain/user/user-domain.module';
 import { EventsInfrastructureModule } from '~/infrastructure/events/events.module';
 import { AuthorizationModule } from '~/application/auth-v2/authorization/authorization.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль выхода пайщика из кооператива: генерация документов выхода (200/201),
@@ -20,6 +21,7 @@ import { AuthorizationModule } from '~/application/auth-v2/authorization/authori
  */
 @Module({
   imports: [
+    CoreRightsModule,
     ParticipantModule,
     TokenApplicationModule,
     NotificationModule,

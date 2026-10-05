@@ -1,5 +1,5 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CreateAnnualGeneralMeetInputDTO } from '../dto/create-meet-agenda-input.dto';
@@ -27,8 +27,8 @@ export class MeetResolver {
     name: 'getMeet',
     description: 'Получить данные собрания по хешу',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'read')
   async getMeet(
     @Args('data', { type: () => GetMeetInputDTO })
     data: GetMeetInputDTO,
@@ -41,8 +41,8 @@ export class MeetResolver {
     name: 'getMeets',
     description: 'Получить список всех собраний кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'read')
   async getMeets(
     @Args('data', { type: () => GetMeetsInputDTO }) data: GetMeetsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -54,8 +54,8 @@ export class MeetResolver {
     name: 'createAnnualGeneralMeet',
     description: 'Сгенерировать документ предложения повестки очередного общего собрания пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'create')
   async createAnnualGeneralMeet(
     @Args('data', { type: () => CreateAnnualGeneralMeetInputDTO })
     data: CreateAnnualGeneralMeetInputDTO
@@ -67,8 +67,8 @@ export class MeetResolver {
     name: 'voteOnAnnualGeneralMeet',
     description: 'Голосование на общем собрании пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'vote:own', { owner: 'data.username' })
   async voteOnAnnualGeneralMeet(
     @Args('data', { type: () => VoteOnAnnualGeneralMeetInputDTO })
     data: VoteOnAnnualGeneralMeetInputDTO
@@ -80,8 +80,8 @@ export class MeetResolver {
     name: 'restartAnnualGeneralMeet',
     description: 'Перезапуск общего собрания пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'restart')
   async restartAnnualGeneralMeet(
     @Args('data', { type: () => RestartAnnualGeneralMeetInputDTO })
     data: RestartAnnualGeneralMeetInputDTO
@@ -93,8 +93,8 @@ export class MeetResolver {
     name: 'signBySecretaryOnAnnualGeneralMeet',
     description: 'Подписание решения секретарём на общем собрании пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'sign:own', [{ owner: 'data.username' }, { of: 'MeetSecretary', id: 'data.hash' }])
   async signBySecretaryOnAnnualGeneralMeet(
     @Args('data', { type: () => SignBySecretaryOnAnnualGeneralMeetInputDTO })
     data: SignBySecretaryOnAnnualGeneralMeetInputDTO
@@ -106,8 +106,8 @@ export class MeetResolver {
     name: 'signByPresiderOnAnnualGeneralMeet',
     description: 'Подписание решения председателем на общем собрании пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'sign:own', [{ owner: 'data.username' }, { of: 'MeetPresider', id: 'data.hash' }])
   async signByPresiderOnAnnualGeneralMeet(
     @Args('data', { type: () => SignByPresiderOnAnnualGeneralMeetInputDTO })
     data: SignByPresiderOnAnnualGeneralMeetInputDTO
@@ -120,8 +120,8 @@ export class MeetResolver {
     description: 'Сгенерировать документ решения общего собрания пайщиков',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'sign:own', [{ owner: 'data.username' }, { of: 'MeetOfficer', id: 'data.meet_hash', match: 'any' }])
   async generateAnnualGeneralMeetDecisionDocument(
     @Args('data', { type: () => AnnualGeneralMeetingDecisionGenerateDocumentInputDTO })
     data: AnnualGeneralMeetingDecisionGenerateDocumentInputDTO,
@@ -136,8 +136,8 @@ export class MeetResolver {
     description: 'Сгенерировать документ уведомления о проведении общего собрания пайщиков',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'acknowledge:own', { owner: 'data.username' })
   async generateAnnualGeneralMeetNotificationDocument(
     @Args('data', { type: () => AnnualGeneralMeetingNotificationGenerateDocumentInputDTO })
     data: AnnualGeneralMeetingNotificationGenerateDocumentInputDTO,
@@ -152,8 +152,8 @@ export class MeetResolver {
     description: 'Сгенерировать документ решения Совета по проведению общего собрания пайщиков',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'create')
   async generateSovietDecisionOnAnnualMeetDocument(
     @Args('data', { type: () => AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO })
     data: AnnualGeneralMeetingSovietDecisionGenerateDocumentInputDTO,
@@ -168,8 +168,8 @@ export class MeetResolver {
     description: 'Сгенерировать бюллетень для голосования на общем собрании пайщиков',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'vote:own', { owner: 'data.username' })
   async generateBallotForAnnualGeneralMeetDocument(
     @Args('data', { type: () => AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO })
     data: AnnualGeneralMeetingVotingBallotGenerateDocumentInputDTO,
@@ -184,8 +184,8 @@ export class MeetResolver {
     description: 'Сгенерировать предложение повестки общего собрания пайщиков',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'create')
   async generateAnnualGeneralMeetAgendaDocument(
     @Args('data', { type: () => AnnualGeneralMeetingAgendaGenerateDocumentInputDTO })
     data: AnnualGeneralMeetingAgendaGenerateDocumentInputDTO,
@@ -199,8 +199,8 @@ export class MeetResolver {
     name: 'notifyOnAnnualGeneralMeet',
     description: 'Уведомление о проведении общего собрания пайщиков',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Meet', 'acknowledge:own', { owner: 'data.username' })
   async notifyOnAnnualGeneralMeet(
     @Args('data', { type: () => NotifyOnAnnualGeneralMeetInputDTO })
     data: NotifyOnAnnualGeneralMeetInputDTO

@@ -425,7 +425,7 @@ export const AppRegistry: INamedExtension = {
     // workspace'ам, что объявлены здесь (desktop.interactor → DesktopStore.setRoutes).
     // Если стол не объявлен в этом списке — его маршруты молча теряются.
     // Видимость столов/страниц — канон авторизации (grants): backend
-    // (MarketplaceDesktopGrantsProvider) выдаёт права текущему пользователю,
+    // (описание прав стола, `MarketplaceRightsService`) выдаёт права текущему пользователю,
     // фронт сверяет с ними `meta.requires` маршрутов. До принятия ЦПП советом
     // у председателя только Extension:configure (страница подключения), у
     // остальных — пусто; после принятия — полный набор по ролям.

@@ -12,7 +12,7 @@ const signed = { requires_gate: false, source: MarketplaceOnboardingSource.AGREE
 
 function makeService(onboarding: any, cart: any = { findByOrderer: jest.fn().mockResolvedValue({ delivery_braname: 'krg' }) }) {
   const config = { get: jest.fn().mockResolvedValue({ coopAcceptance: { accepted: true }, warehouse: {} }) } as any;
-  return new MarketplaceRightsService(config, onboarding, cart);
+  return new MarketplaceRightsService(config, onboarding, cart, {} as any, {} as any, {} as any, {} as any);
 }
 
 describe('MarketplaceRightsService — подключение заказчика', () => {

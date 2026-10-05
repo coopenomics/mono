@@ -1,8 +1,6 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import {
   ReportRequisitesViewDTO,
@@ -25,8 +23,8 @@ export class ReportRequisitesResolver {
     name: 'getReportRequisites',
     description: 'Объединённый вид реквизитов кооператива (ончейн + ручные) с источником каждого поля',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ReportRequisites', 'read')
   async getReportRequisites(): Promise<ReportRequisitesViewDTO> {
     const merged = await this.service.getMerged(platformSettings().coopname);
     return toView(merged);
@@ -36,8 +34,8 @@ export class ReportRequisitesResolver {
     name: 'updateReportRequisites',
     description: 'Обновить ручные реквизиты кооператива. ИНН/КПП/ОГРН игнорируются — это ончейн',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ReportRequisites', 'manage')
   async updateReportRequisites(
     @Args('input', { type: () => UpdateReportRequisitesInputDTO }) input: UpdateReportRequisitesInputDTO,
     @CurrentUser() currentUser: IMonoAccount,
@@ -67,8 +65,8 @@ export class ReportRequisitesResolver {
     name: 'checkReportReadiness',
     description: 'Проверить готовность реквизитов для генерации конкретной формы',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ReportRequisites', 'read')
   async checkReportReadiness(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
   ): Promise<ReportReadinessViewDTO> {

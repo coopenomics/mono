@@ -9,7 +9,7 @@ title: Сужающие политики — одно приложение су�
 # программы автор фильтра не трогает. Контракты — innercoop `hooks/
 # desktop-grants-filter.hook.ts`, `hooks/registration-offer-filter.hook.ts`.
 #
-# Зачем «Благорост» переведён на канон грантов (CapitalDesktopGrantsProvider):
+# Зачем «Благорост» переведён на канон грантов (права страниц выдаёт таблица прав `CapitalRights`):
 # сузить можно только grant-стол; набор зеркалит прежние meta.roles, поведение
 # пайщиков не меняется.
 

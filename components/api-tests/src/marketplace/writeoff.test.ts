@@ -8,7 +8,7 @@
  * черновик тест снимает за собой.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf } from '../core'
+import { CHAIRMAN, ROLES, amount, caseName, ensureShareFunds, gql, gqlError, signDocument, tokenOf, waitFor } from '../core'
 import type { Who } from '../core'
 import { KRG, issueOrder, pickOffer } from './flow'
 import { inventoryOfOrder, prepareReceivedOrder } from './issuance.helpers'
@@ -112,11 +112,11 @@ describe('списание скоропорта: состав проекта и 
 
     it(caseName('mkt.wof.side.02', 'имущество чужого участка — председатель другого участка получает отказ доступа'), async () => {
       const payload = await gqlError(odnToken, MEMO_PAYLOAD, { d: { braname: KRG, proposal_id: draft.id } })
-      expect(payload?.code, 'записку по чужому участку не выдают').toBe('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE')
+      expect(payload?.code, 'записку по чужому участку не выдают').toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
       const signed = await signDocument(odnChairman.wif, statement, odnChairman.account, 1)
       const confirm = await gqlError(odnToken, CONFIRM, { d: { braname: KRG, proposal_id: draft.id, signed_memo: signed } })
-      expect(confirm?.code, 'списать имущество чужого участка нельзя').toBe('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE')
+      expect(confirm?.code, 'списать имущество чужого участка нельзя').toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
       const after = (await gql<any>(chairmanToken, PROPOSAL, { id: draft.id })).marketplaceWriteoffProposal
       expect(after.items.every((i: any) => !i.executed), 'ни одна позиция не списана').toBe(true)
@@ -150,8 +150,14 @@ describe('кандидаты на списание: партии по проис
     const w = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 2, receivedQuantity: 2, arrivalPrice: price })
     await issueOrder({ operator: krgChairman, member, orderId: w.orderId, actualQuantity: 2, actualUnitPrice: price })
     claimStatus = (await warrantyReturn({ member, operator: krgChairman, orderId: w.orderId, quantity: 2 })).status
-    const rows = await inventoryOfOrder(krgToken, w.orderId)
-    returnedIds = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED').map(r => r.id)
+    // Возврат приходуется на склад решением совета, а его на стенде принимает
+    // робот уже после ответа оператору: ждём, пока позиция появится на складе.
+    const returned = await waitFor(async () => {
+      const rows = await inventoryOfOrder(krgToken, w.orderId)
+      const found = rows.filter(r => r.origin === 'WARRANTY_RETURN' && r.status !== 'ISSUED')
+      return found.length > 0 ? found : null
+    }, { timeoutMs: 180_000, intervalMs: 3_000, label: 'возвращённое имущество легло на склад участка' }).catch(() => [])
+    returnedIds = returned.map(r => r.id)
 
     // Четвёртый заказ выдан пайщику и остался у него.
     const issued = await prepareReceivedOrder({ member, supplier, operator: krgChairman, offerId: offer.id, quantity: 1, receivedQuantity: 1, arrivalPrice: price })

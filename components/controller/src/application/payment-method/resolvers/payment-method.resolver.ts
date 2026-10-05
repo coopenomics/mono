@@ -1,7 +1,7 @@
 // payment-method.resolver.ts
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, createPaginationResult, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { GetPaymentMethodsInputDTO } from '../dto/get-payment-methods-input.dto';
 import { PaymentMethodService } from '../services/payment-method.service';
 import { UpdateBankAccountInputDTO } from '../dto/update-bank-account-input.dto';
@@ -20,8 +20,8 @@ export class PaymentMethodResolver {
     name: 'getPaymentMethods',
     description: 'Получить список методов оплаты',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentMethod', ['manage:own', 'manage:all'], { owner: 'data.username' })
   async getPaymentMethods(
     @Args('data', { type: () => GetPaymentMethodsInputDTO, nullable: true }) data?: GetPaymentMethodsInputDTO
   ): Promise<PaginationResultDomainInterface<PaymentMethodDomainEntity>> {
@@ -32,10 +32,10 @@ export class PaymentMethodResolver {
     name: 'addPaymentMethod',
     description: 'Добавить метод оплаты (банковский счёт или СБП)',
   })
-  // Свои реквизиты пайщик ведёт сам (RolesGuard пускает по совпадению
-  // username), чужие и кооперативные — только председатель.
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  // Свои реквизиты пайщик ведёт сам (имя в запросе сверяется с вошедшим),
+  // чужие и кооперативные — только председатель.
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentMethod', ['manage:own', 'manage:all'], { owner: 'data.username' })
   async addPaymentMethod(
     @Args('data', { type: () => AddPaymentMethodInputDTO }) data: AddPaymentMethodInputDTO
   ): Promise<PaymentMethodDTO> {
@@ -43,8 +43,8 @@ export class PaymentMethodResolver {
   }
 
   @Mutation(() => PaymentMethodDTO, { name: 'updateBankAccount', description: 'Обновить банковский счёт' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentMethod', ['manage:own', 'manage:all'], { owner: 'data.username' })
   async updateBankAccount(
     @Args('data', { type: () => UpdateBankAccountInputDTO }) data: UpdateBankAccountInputDTO
   ): Promise<PaymentMethodDTO> {
@@ -52,8 +52,8 @@ export class PaymentMethodResolver {
   }
 
   @Mutation(() => Boolean, { name: 'deletePaymentMethod', description: 'Удалить метод оплаты' })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('PaymentMethod', ['manage:own', 'manage:all'], { owner: 'data.username' })
   async deletePaymentMethod(
     @Args('data', { type: () => DeletePaymentMethodDTO }) data: DeletePaymentMethodDTO
   ): Promise<boolean> {

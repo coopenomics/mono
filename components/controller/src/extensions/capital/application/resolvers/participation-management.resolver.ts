@@ -1,7 +1,18 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ParticipationManagementService } from '../services/participation-management.service';
 import { ImportContributorInputDTO } from '../dto/participation_management/import-contributor-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MakeClearanceInputDTO } from '../dto/participation_management/make-clearance-input.dto';
@@ -37,8 +48,8 @@ export class ParticipationManagementResolver {
     name: 'capitalRegisterContributor',
     description: 'Регистрация участника в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['register:own', 'register'], { owner: 'data.username' })
   async registerCapitalContributor(
     @Args('data', { type: () => RegisterContributorInputDTO }) data: RegisterContributorInputDTO
   ): Promise<TransactionDTO> {
@@ -53,8 +64,8 @@ export class ParticipationManagementResolver {
     name: 'capitalImportContributor',
     description: 'Импорт участника в CAPITAL контракт',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', 'import')
   async importCapitalContributor(
     @Args('data', { type: () => ImportContributorInputDTO }) data: ImportContributorInputDTO
   ): Promise<TransactionDTO> {
@@ -69,8 +80,8 @@ export class ParticipationManagementResolver {
     name: 'capitalMakeClearance',
     description: 'Подписание приложения в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Clearance', ['request:own', 'request'], { owner: 'data.username' })
   async makeCapitalClearance(
     @Args('data', { type: () => MakeClearanceInputDTO }) data: MakeClearanceInputDTO
   ): Promise<TransactionDTO> {
@@ -85,8 +96,8 @@ export class ParticipationManagementResolver {
     name: 'capitalEditContributor',
     description: 'Редактирование параметров участника в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['update:own', 'update'], { owner: 'data.username' })
   async editCapitalContributor(
     @Args('data', { type: () => EditContributorInputDTO }) data: EditContributorInputDTO
   ): Promise<ContributorOutputDTO> {
@@ -103,8 +114,8 @@ export class ParticipationManagementResolver {
     name: 'capitalContributors',
     description: 'Получение списка участников кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['read:own', 'read'], { owner: 'filter.username' })
   async getContributors(
     @Args('filter', { nullable: true }) filter?: ContributorFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -120,8 +131,8 @@ export class ParticipationManagementResolver {
     description: 'Получение участника по ID, имени пользователя или хешу участника',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['read:own', 'read'], { owner: 'data.username' })
   async getContributor(@Args('data') data: GetContributorInputDTO): Promise<ContributorOutputDTO | null> {
     return await this.participationManagementService.getContributorByCriteria({
       _id: data._id,
@@ -140,8 +151,8 @@ export class ParticipationManagementResolver {
     description: 'Сгенерировать соглашение о благороста',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationAgreement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -159,8 +170,8 @@ export class ParticipationManagementResolver {
     description: 'Сгенерировать генерационное соглашение',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationContract(
     @Args('data', { type: () => GenerationContractGenerateDocumentInputDTO })
     data: GenerationContractGenerateDocumentInputDTO,
@@ -178,8 +189,8 @@ export class ParticipationManagementResolver {
     description: 'Сгенерировать документ приложения к договору участия для проекта',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Clearance', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateProjectGenerationContract(
     @Args('data', { type: () => ProjectGenerationContractGenerateDocumentInputDTO })
     data: ProjectGenerationContractGenerateDocumentInputDTO,
@@ -197,8 +208,8 @@ export class ParticipationManagementResolver {
     description: 'Сгенерировать документ дополнения к приложению для компонента',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Clearance', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateComponentGenerationContract(
     @Args('data', { type: () => ComponentGenerationContractGenerateDocumentInputDTO })
     data: ComponentGenerationContractGenerateDocumentInputDTO,
@@ -216,8 +227,8 @@ export class ParticipationManagementResolver {
     description: 'Генерация пачки документов для завершения регистрации в Capital (GenerationContract, StorageAgreement, BlagorostAgreement)',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalRegistrationDocuments(
     @Args('data', { type: () => GenerateCapitalRegistrationDocumentsInputDTO })
     data: GenerateCapitalRegistrationDocumentsInputDTO
@@ -233,8 +244,8 @@ export class ParticipationManagementResolver {
     description: 'Завершение регистрации в Capital через отправку документов в блокчейн (regcontrib)',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Contributor', ['register:own', 'register'], { owner: 'data.username' })
   async completeCapitalRegistration(
     @Args('data', { type: () => CompleteCapitalRegistrationInputDTO })
     data: CompleteCapitalRegistrationInputDTO

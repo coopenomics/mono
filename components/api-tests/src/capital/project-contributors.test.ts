@@ -168,8 +168,8 @@ describe('Благорост: участники проекта', () => {
   it(caseName('cap.contrib.break.18', 'не принятая советом учётная запись не видит долей и участников проекта; свои доли — видит'), async () => {
     const candidate = await registeredCandidate()
 
-    expect((await gqlError(candidate.token, SEGMENTS, { f: { project_hash: component } }))?.code).toBe('KIT_MEMBERS_ONLY')
-    expect((await gqlError(candidate.token, CONTRIBUTORS, { f: { project_hash: component } }))?.code).toBe('KIT_MEMBERS_ONLY')
+    expect((await gqlError(candidate.token, SEGMENTS, { f: { project_hash: component } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
+    expect((await gqlError(candidate.token, CONTRIBUTORS, { f: { project_hash: component } }))?.code).toBe('KIT_RIGHT_SCOPE_OWN')
 
     // Самообход: свои доли по имени кандидат по-прежнему получает.
     const own = await gql<any>(candidate.token, SEGMENTS, { f: { username: candidate.username } })

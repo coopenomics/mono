@@ -243,9 +243,9 @@ describe('выход пайщика: подтверждение по письм�
     // Статус снимает слушатель события цепи — после разбора блока с выходом.
     const denied = await waitFor(async () => {
       const e = await gqlError(leaverToken, MEETS, { d: { coopname: COOP } })
-      return e?.code === 'KIT_MEMBERS_ONLY' ? e : null
+      return e?.code === 'KIT_INSUFFICIENT_RIGHTS' ? e : null
     }, { timeoutMs: 60_000, intervalMs: 2_000, label: 'учётная запись вышедшего потеряла статус «принят»' })
-    expect(denied.code).toBe('KIT_MEMBERS_ONLY')
+    expect(denied.code).toBe('KIT_INSUFFICIENT_RIGHTS')
     expect(await gqlError(await tokenOf(ROLES.member()), MEETS, { d: { coopname: COOP } }), 'действующий пайщик собрания читает').toBeNull()
 
     // Своё вышедший читает как прежде: ход возврата взноса и свои кошельки.

@@ -54,7 +54,7 @@ function invalid(err: { code: string | null } | null, domainCode: string): void 
 
 function denied(err: { code: string | null } | null): void {
   expect(err, 'ожидался отказ по правам').not.toBeNull()
-  expect(['403', 'KIT_INSUFFICIENT_RIGHTS', 'MARKETPLACE_NOT_A_MEMBER']).toContain(String(err!.code))
+  expect(['403', 'KIT_INSUFFICIENT_RIGHTS', 'KIT_RIGHT_SCOPE_OWN_KU', 'MARKETPLACE_NOT_A_MEMBER']).toContain(String(err!.code))
 }
 
 async function cellsOf(section: string, token = operator): Promise<any[]> {
@@ -210,6 +210,8 @@ describe('Стол заказов — ячейки склада', () => {
 
   it(caseName('mkt.store.side.06', 'ячейки чужого участка оператор не ведёт; пайщик склада не видит'), async () => {
     denied(await gqlError(foreignOperator, CREATE_CELL, { d: { braname: KRG, section: `Чужая${T}`, level: 1 } }))
+    // Сетку чужого участка оператор и прочитать не может: участок запроса сверяется с его участками.
+    denied(await gqlError(foreignOperator, LIST_CELLS, { d: { braname: KRG } }))
     denied(await gqlError(foreignOperator, RETIRE, { d: { braname: KRG, section: `А${T}` } }))
     denied(await gqlError(member, LIST_CELLS, { d: { braname: KRG } }))
     expect(await cellsOf(`Чужая${T}`)).toEqual([])

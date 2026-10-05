@@ -13,4 +13,5 @@
 export * from './decorators';
 export * from './guards';
 export * from './rights';
+export * from './app-rights';
 export * from './server-secret';

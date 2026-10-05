@@ -680,12 +680,6 @@ export class MarketplaceStockProposalService {
   }
 
   /** Оператор отзывает предложение (переформирование «а ещё сметаны положите»). */
-  /** Участок, у стойки которого создано предложение, — для сверки участка оператора при отзыве. */
-  async branameOfProposal(coopname: string, proposal_id: string): Promise<string | null> {
-    const proposal = await this.proposalRepo.findById(proposal_id);
-    return proposal && proposal.coopname === coopname ? proposal.braname : null;
-  }
-
   async cancelProposal(coopname: string, proposal_id: string, operator_account: string): Promise<MarketplaceStockProposalDomainEntity> {
     const proposal = await this.loadProposal(coopname, proposal_id);
     this.assertProposed(proposal);

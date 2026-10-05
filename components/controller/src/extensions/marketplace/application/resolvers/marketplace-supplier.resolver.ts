@@ -1,12 +1,11 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { MarketplaceSupplierDTO } from '../dto/marketplace-supplier.dto';
 import {
   MarketplaceAddSupplierInputDTO,
@@ -45,7 +44,7 @@ export class MarketplaceSupplierResolver {
     name: 'marketplaceListSuppliers',
     description: 'Реестр поставщиков кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Supplier', 'manage')
   async marketplaceListSuppliers(): Promise<MarketplaceSupplierDTO[]> {
     const entries = await this.service.list(platformSettings().coopname);
@@ -57,8 +56,8 @@ export class MarketplaceSupplierResolver {
     nullable: true,
     description: 'Запись текущего пайщика в реестре поставщиков (для онбординга)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Supplier', 'read:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Supplier', 'read:own', SELF)
   async marketplaceMySupplierState(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierDTO | null> {
@@ -70,8 +69,8 @@ export class MarketplaceSupplierResolver {
     name: 'marketplaceRequestSupplier',
     description: 'Подать заявку на допуск поставщика по членской модели (путь 1)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Supplier', 'request:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Supplier', 'request:own', SELF)
   async marketplaceRequestSupplier(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceRequestSupplierInputDTO
@@ -108,7 +107,7 @@ export class MarketplaceSupplierResolver {
     name: 'marketplaceAddSupplier',
     description: 'Добавить поставщика в реестр напрямую с одобрением (путь 2, администратор)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Supplier', 'manage')
   async marketplaceAddSupplier(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
@@ -129,7 +128,7 @@ export class MarketplaceSupplierResolver {
     name: 'marketplaceApproveSupplier',
     description: 'Одобрить заявку поставщика (председатель)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Supplier', 'manage')
   async marketplaceApproveSupplier(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
@@ -148,7 +147,7 @@ export class MarketplaceSupplierResolver {
     name: 'marketplaceRejectSupplier',
     description: 'Отклонить заявку поставщика (председатель)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Supplier', 'manage')
   async marketplaceRejectSupplier(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,

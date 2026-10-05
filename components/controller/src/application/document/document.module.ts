@@ -5,9 +5,10 @@ import { DocumentService } from './services/document.service';
 import { PublicProvisionService } from './services/public-provision.service';
 import { DocumentDomainModule } from '~/domain/document/document.module';
 import { DocumentInteractor } from './interactors/document.interactor';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
-  imports: [DocumentDomainModule],
+  imports: [CoreRightsModule, DocumentDomainModule],
   providers: [DocumentResolver, SignerCertificateResolver, DocumentService, PublicProvisionService, DocumentInteractor],
   exports: [DocumentInteractor],
 })

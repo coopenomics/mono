@@ -25,12 +25,15 @@ export default async function (): Promise<IWorkspaceConfig[]> {
     title: t('participant.install.title'),
     icon: 'fa-solid fa-user',
     defaultRoute: 'wallet', // Маршрут по умолчанию для рабочего стола пайщика
+    // Страницы стола называют право из таблицы прав ядра (`requires`). Права
+    // «для всех» (`Cooperative:read`, `MembershipExit:confirm`) сервер выдаёт и
+    // гостю: под ними стоят страницы без входа.
     routes: [
       {
         meta: {
           title: t('participant.install.title'),
           icon: 'fa-solid fa-id-card',
-          roles: ['user', 'chairman', 'member'],
+          requires: 'Account:read:own',
         },
         path: '/:coopname/user',
         name: 'participant',
@@ -39,7 +42,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.walletTitle'),
               icon: 'fa-solid fa-wallet',
-              roles: [],
+              requires: 'Wallet:read:own',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -55,7 +58,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.exitConfirmTitle'),
               icon: 'logout',
-              roles: [],
+              requires: 'MembershipExit:confirm',
               requiresAuth: false,
               hidden: true,
             },
@@ -68,7 +71,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.identityTitle'),
               icon: 'fa-solid fa-user',
-              roles: [],
+              requires: 'Account:read:own',
               agreements: agreementsBase,
             },
             path: 'profile',
@@ -78,12 +81,12 @@ export default async function (): Promise<IWorkspaceConfig[]> {
           },
           {
             // Карта кооператора сети (story 7.4). Страница есть с эпика 7, но в сборщик стола
-            // попала только 02.09.2026: манифесты src/desktops/* никто не читает, маршруты
+            // попала только 02.09.2026: прежние манифесты столов никто не читал, маршруты
             // стола пайщика собирает этот install — и карта в нём отсутствовала.
             meta: {
               title: t('participant.install.cardTitle'),
               icon: 'badge',
-              roles: ['user', 'member', 'chairman'],
+              requires: 'Card:read:own',
               requiresAuth: true,
             },
             path: 'cardcoop',
@@ -95,7 +98,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.connectionTitle'),
               icon: 'link',
-              roles: ['user'],
+              requires: 'ProviderSubscription:read:own',
               conditions: 'isCoop === true && coopname === "voskhod"',
               requiresAuth: true,
             },
@@ -110,7 +113,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('participant.install.installationCompletedTitle'),
                   icon: 'fas fa-check-circle',
-                  roles: ['user'],
+                  requires: 'ProviderSubscription:read:own',
                   conditions: 'isCoop === true && coopname === "voskhod"',
                   requiresAuth: true,
                   hidden: true,
@@ -122,7 +125,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.requisitesTitle'),
               icon: 'account_balance',
-              roles: ['user', 'member', 'chairman'],
+              requires: 'PaymentMethod:manage:own',
               requiresAuth: true,
             },
             path: '/:coopname/connect',
@@ -133,7 +136,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.documentsTitle'),
               icon: 'fa-solid fa-file-invoice',
-              roles: ['user', 'member', 'chairman'],
+              requires: 'Document:read:own',
               requiresAuth: true,
             },
             path: 'documents',
@@ -144,7 +147,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 // Отдельная страница документа (deep-link из поиска и реестра).
                 meta: {
                   title: t('participant.install.documentTitle'),
-                  roles: ['user', 'member', 'chairman'],
+                  requires: 'Document:read:own',
                   requiresAuth: true,
                   hidden: true,
                 },
@@ -158,7 +161,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.paymentsTitle'),
               icon: 'fa-solid fa-money-bill-transfer',
-              roles: ['user', 'member', 'chairman'],
+              requires: 'Payment:read:own',
               requiresAuth: true,
             },
             path: 'payments',
@@ -169,7 +172,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.meetingsTitle'),
               icon: 'fa-solid fa-users-between-lines',
-              roles: ['user', 'member', 'chairman'],
+              requires: 'Meet:read',
               requiresAuth: true,
             },
             path: 'meets',
@@ -183,7 +186,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('participant.install.meetingDetailsTitle'),
                   icon: 'fa-solid fa-users-between-lines',
-                  roles: ['user', 'member', 'chairman'],
+                  requires: 'Meet:read',
                   requiresAuth: true,
                 },
               },
@@ -196,7 +199,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.contactsTitle'),
               icon: 'fa-solid fa-info',
-              roles: [],
+              requires: 'Cooperative:read',
             },
           },
           {
@@ -208,7 +211,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               // Material-иконка: канон запрещает FontAwesome в новых правках,
               // соседние fa-* — легаси и меняются попутно при их правке.
               icon: 'settings',
-              roles: [],
+              requires: 'Account:read:own',
               agreements: agreementsBase,
             },
             path: 'settings',
@@ -220,7 +223,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('participant.install.supportTitle'),
               icon: 'fa-solid fa-headset',
-              roles: [],
+              requires: 'Account:read:own',
               requiresAuth: true,
               action: 'toggleSupportChat',
             },

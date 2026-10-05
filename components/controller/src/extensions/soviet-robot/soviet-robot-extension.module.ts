@@ -2,7 +2,17 @@ import './i18n';
 import { Inject, Module, Optional } from '@nestjs/common';
 import { z } from 'zod';
 import { merge } from 'lodash';
-import { BaseExtensionModule, DomainToBlockchainUtils, EXTENSION_REPOSITORY, type DeserializedDescriptionOfExtension, type ExtensionDomainEntity, type ExtensionDomainRepository, DomainError } from '@coopenomics/extension-kit';
+import {
+  APP_RIGHTS,
+  BaseExtensionModule,
+  DomainToBlockchainUtils,
+  EXTENSION_REPOSITORY,
+  RightsGuard,
+  type DeserializedDescriptionOfExtension,
+  type ExtensionDomainEntity,
+  type ExtensionDomainRepository,
+  DomainError,
+} from '@coopenomics/extension-kit';
 import { CHAIN_CHANGES_PORT, LOGGER_PORT, type IChainChangesPort, type ILoggerPort } from '@coopenomics/innercoop';
 import { ROBOT_DECISION_REPOSITORY } from './domain/repositories/robot-decision.repository';
 import { ROBOT_KEY_REPOSITORY } from './domain/repositories/robot-key.repository';
@@ -14,7 +24,7 @@ import { RobotRegistryService } from './application/services/robot-registry.serv
 import { RobotDecisionService } from './application/services/robot-decision.service';
 import { RobotWatchdogService } from './application/services/robot-watchdog.service';
 import { RobotEventsService } from './application/services/robot-events.service';
-import { RobotDesktopGrantsProvider } from './application/desktop/robot-desktop-grants.provider';
+import { RobotRights } from './application/access/robot-rights';
 import { SovietRobotInnercoopAdapter } from './application/adapters/soviet-robot-innercoop.adapter';
 import { SovietRobotResolver } from './application/resolvers/soviet-robot.resolver';
 import { ROBOT_EXTENSION_NAME } from './domain/constants';
@@ -130,7 +140,10 @@ export class SovietRobotExtension extends BaseExtensionModule {
     RobotDecisionService,
     RobotWatchdogService,
     RobotEventsService,
-    RobotDesktopGrantsProvider,
+    // Описание прав стола: по нему работают гард операций и права страниц.
+    RobotRights,
+    { provide: APP_RIGHTS, useExisting: RobotRights },
+    RightsGuard,
     SovietRobotResolver,
     // Порт для других расширений (Стол заказов): прямой вызов «реши сейчас».
     SovietRobotInnercoopAdapter,

@@ -26,7 +26,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('expenses.install.extensionName'),
           icon: 'receipt_long',
-          roles: [],
+          requires: 'ExpenseProposal:read',
         },
         path: '/:coopname/expenses',
         name: 'expenses',
@@ -49,7 +49,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('expenses.install.registryNavTitle'),
               icon: 'receipt_long',
-              roles: [],
+              requires: 'ExpenseProposal:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -62,7 +62,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('expenses.install.adminApproveNavTitle'),
               icon: 'gavel',
-              roles: ['chairman'],
+              requires: 'ExpenseProposal:pay',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -75,7 +75,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('expenses.install.cashierNavTitle'),
               icon: 'payments',
-              roles: ['chairman'],
+              requires: 'ExpenseProposal:pay',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -88,7 +88,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('expenses.install.myAdvancesNavTitle'),
               icon: 'account_balance_wallet',
-              roles: [],
+              requires: 'ExpenseProposal:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -100,7 +100,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             component: markRaw(ExpenseDetailPage),
             meta: {
               title: t('expenses.install.singleExpenseNavTitle'),
-              roles: [],
+              requires: 'ExpenseProposal:read',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,

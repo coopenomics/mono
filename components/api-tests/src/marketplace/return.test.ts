@@ -155,12 +155,17 @@ describe('гарантийный возврат: заявление, решен�
 
   it(caseName('mkt.ret.side.03', 'заявление на возврат по чужому заказу — отказ доступа'), async () => {
     const preview = await refusal(otherToken, CLAIM_PAYLOAD, { d: { order_id: order.orderId, actual_quantity: 1, reason_text: REASON } })
-    expect(preview?.codeText, preview?.message).toBe('MARKETPLACE_RETURN_CLAIM_NOT_ORDER_OWNER')
+    expect(preview?.codeText, preview?.message).toBe('KIT_RIGHT_SCOPE_OWN')
 
     const signed = await signedStatement(ekaterina, order.orderId, 1)
     const create = await refusal(otherToken, CREATE_CLAIM, claimInput(order.orderId, 1, signed))
-    expect(create?.codeText, create?.message).toBe('MARKETPLACE_RETURN_CLAIM_NOT_ORDER_OWNER')
-    expect((await myClaimsForOrder(order.orderId)).length, 'чужое заявление не заведено').toBe(1)
+    expect(create?.codeText, create?.message).toBe('KIT_RIGHT_SCOPE_OWN')
+    const mine = await myClaimsForOrder(order.orderId)
+    expect(mine.length, 'чужое заявление не заведено').toBe(1)
+
+    // Заявление читает заказчик и оператор участка выдачи; другому пайщику отказ.
+    const read = await refusal(otherToken, 'query($c:String!){ marketplaceReturnClaim(claim_id:$c){ id } }', { c: mine[0].id })
+    expect(read?.codeText, read?.message).toBe('KIT_RIGHT_SCOPE_OWN')
   })
 
   it(caseName('mkt.ret.side.04', 'вернуть больше полученного нельзя'), async () => {
@@ -252,7 +257,7 @@ describe('гарантийный возврат: заявление, решен�
 
   it(caseName('mkt.ret.side.50', 'согласие чужого поставщика и повторное согласие — отказ'), async () => {
     const foreign = await refusal(otherToken, ADMIT, { d: { claim_id: supplierClaim.id } })
-    expect(foreign?.codeText, foreign?.message).toBe('MARKETPLACE_SUPPLIER_CLAIM_NOT_ADDRESSEE')
+    expect(foreign?.codeText, foreign?.message).toBe('KIT_RIGHT_SCOPE_TO_SELF')
     const still = await gql<any>(supplierToken, 'query($c:String!){ marketplaceSupplierClaim(claim_id:$c){ id status } }', { c: supplierClaim.id })
     expect(still.marketplaceSupplierClaim.status, 'чужое согласие не тронуло претензию').toBe('PENDING')
 

@@ -114,7 +114,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
         meta: {
           title: t('capital.install.templateRouteTitle'),
           icon: 'fa-solid fa-user-tie',
-          requires: 'Capital:access',
+          requires: 'CapitalDesk:use',
         },
         path: '/:coopname/capital',
         name: 'capital',
@@ -130,7 +130,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.profileRouteTitle'),
               icon: 'fa-solid fa-wallet',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -143,7 +143,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.registrationRouteTitle'),
               icon: 'fa-solid fa-user-plus',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -157,7 +157,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.myProjectsRouteTitle'),
               icon: 'folder_special',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -171,7 +171,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.trackerRouteTitle'),
               icon: 'fa-solid fa-clock',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -185,7 +185,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.projectsRouteTitle'),
               icon: 'fa-solid fa-list',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -201,7 +201,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.componentsRouteTitle'),
               icon: 'account_tree',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -215,7 +215,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.tasksRouteTitle'),
               icon: 'assignment',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -227,7 +227,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('capital.install.issueRouteTitle'),
                   icon: 'task',
-                  requires: 'Capital:access',
+                  requires: 'CapitalDesk:use',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -245,7 +245,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('capital.install.issueDescriptionRouteTitle'),
                       icon: 'description',
-                      requires: 'Capital:access',
+                      requires: 'CapitalDesk:use',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -258,7 +258,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('capital.install.issueRequirementsRouteTitle'),
                       icon: 'assignment',
-                      requires: 'Capital:access',
+                      requires: 'CapitalDesk:use',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -271,7 +271,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('capital.install.issueCommitsRouteTitle'),
                       icon: 'commit',
-                      requires: 'Capital:access',
+                      requires: 'CapitalDesk:use',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -284,7 +284,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                     meta: {
                       title: t('capital.install.issueHistoryRouteTitle'),
                       icon: 'history',
-                      requires: 'Capital:access',
+                      requires: 'CapitalDesk:use',
                       agreements: agreementsBase,
                       requiresAuth: true,
                       hidden: true,
@@ -301,7 +301,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.artifactsRouteTitle'),
               icon: 'article',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -313,7 +313,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.masterCommitsRouteTitle'),
               icon: 'fa-solid fa-code-commit',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: false,
@@ -330,7 +330,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.projectsVotingRouteTitle'),
               icon: 'how_to_vote',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
               hidden: true,
@@ -343,7 +343,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('capital.install.componentVotingRouteTitle'),
                   icon: 'how_to_vote',
-                  requires: 'Capital:access',
+                  requires: 'CapitalDesk:use',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -358,7 +358,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.projectsResultsRouteTitle'),
               icon: 'assessment',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -370,7 +370,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('capital.install.componentResultsRouteTitle'),
                   icon: 'assessment',
-                  requires: 'Capital:access',
+                  requires: 'CapitalDesk:use',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -385,7 +385,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.invitationsRouteTitle'),
               icon: 'fa-solid fa-envelope-open-text',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -398,7 +398,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.contributorsRouteTitle'),
               icon: 'fa-solid fa-users',
-              requires: 'Capital:board',
+              requires: 'CapitalDesk:council',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -411,7 +411,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.measuresRouteTitle'),
               icon: 'straighten',
-              requires: 'Capital:chairman',
+              requires: 'CapitalDesk:manage',
               agreements: agreementsBase,
               requiresAuth: true,
               // Меры заводятся текстом прямо в плане компонента, отдельный
@@ -428,7 +428,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.allocationsRouteTitle'),
               icon: 'savings',
-              requires: 'Capital:board',
+              requires: 'CapitalDesk:council',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -441,7 +441,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.programExpensesRouteTitle'),
               icon: 'receipt_long',
-              requires: 'Capital:board',
+              requires: 'CapitalDesk:council',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -453,7 +453,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('capital.install.programExpenseRouteTitle'),
                   icon: 'receipt_long',
-                  requires: 'Capital:board',
+                  requires: 'CapitalDesk:council',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -469,7 +469,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('capital.install.activityFeedRouteTitle'),
               icon: 'fa-solid fa-stream',
-              requires: 'Capital:access',
+              requires: 'CapitalDesk:use',
               agreements: agreementsBase,
               requiresAuth: true,
             },

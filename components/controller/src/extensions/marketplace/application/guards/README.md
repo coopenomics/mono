@@ -18,28 +18,32 @@
    `@CurrentMarketplaceMember()`.
 5. `server-secret` пропускает guard (inter-service).
 
-## `MarketplaceRoleGuard` (Story 1.6)
+## Общий гард прав `RightsGuard` (C28-87)
 
-Ставится **после** `MarketplaceMembershipGuard`. Читает декоратор
-`@RequireMarketplaceRole('admin', 'board')` через `Reflector` и проверяет
-пересечение (`Array.find(includes)`) с `currentMember.marketplace_roles`.
+Ставится **после** `MarketplaceMembershipGuard`. Гард живёт в каркасе
+расширений (`@coopenomics/extension-kit`) и общий для всех приложений: он
+читает `@RequireRight` операции и сверяет его с описанием прав расширения, в
+модуле которого объявлена операция (токен `APP_RIGHTS`). Описание прав Стола
+заказов — `access/marketplace-rights.service.ts`: таблица, роли пайщика,
+условия строк и справочник объектов. Из него же выдаются права страниц
+рабочего стола (`desktopGrantsOf`), отдельного провайдера нет.
 
-При запрете:
-- бросает `ForbiddenException` с детальным сообщением
-  `Forbidden: marketplace role 'admin' required, member has [orderer]`;
-- пишет structured log `forbidden-attempt` (`member`, `action`,
-  `requested_role`, `actual_marketplace_roles`, `actual_core_roles`).
+Порядок проверки: право по таблице → условие строки → охват.
 
-Если декоратор отсутствует — guard разрешает (по аналогии с core
-`RolesGuard`): «нет требования — нет ограничения».
+При отказе гард отвечает кодом и пишет в журнал `forbidden-attempt`:
+- право ролям не положено — `KIT_INSUFFICIENT_RIGHTS`;
+- условие строки ждёт выполнения — код условия (`MARKETPLACE_COOP_NOT_CONNECTED`,
+  `MARKETPLACE_ORDERER_ONBOARDING_REQUIRED`, …);
+- объект чужой — код охвата `KIT_RIGHT_SCOPE_*`.
 
-`server-secret` пропускает guard.
+Операция без `@RequireRight` гардом пропускается: членство уже проверил
+`MarketplaceMembershipGuard`. `server-secret` пропускает гард.
 
 ## Pattern использования
 
 ```typescript
-@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-@RequireMarketplaceRole('admin')
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+@RequireRight('Offer', 'moderate')
 @Mutation(() => SomeDTO)
 async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCurrentMember) {
   // member.core_roles, member.marketplace_roles доступны
@@ -65,61 +69,62 @@ async marketplaceAdminAction(@CurrentMarketplaceMember() member: IMarketplaceCur
 | `[User]`                          | `isOfferer: true`     | `[orderer, offerer]` (Эпик 3, whitelist)       |
 | `[User]`                          | `isKuChairman: true`  | `[orderer, operator]` (Эпик 2, КУ)             |
 | `[User, Member]`                  | —                     | `[orderer, board_readonly]`                    |
-| `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin, board]`      |
+| `[User, Member, Chairman]`        | —                     | `[orderer, board_readonly, admin]`             |
 | `[]` (admin платформы)            | любые                 | `[]` (guard membership уже отбросит 403)       |
 
-## Централизованная access-matrix (Story 1.8)
+## Таблица прав (Story 1.8, C28-87)
 
 `extensions/marketplace/application/access/marketplace-access-matrix.ts` —
-единое место, где описано «какая marketplace-роль может что делать с
-каким resource». Структура CASL-совместимая
-(`Record<role, Record<resource, action[]>>`).
+единое место, где описано «какая роль Стола заказов при каких условиях что
+может делать с каким ресурсом»: `marketplaceRightsTable`, роль → условия →
+право `Ресурс:действие`. Из неё собираются и проверка операции, и набор прав
+для страниц рабочего стола.
 
 ```ts
 // resolver:
-@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-@RequireMarketplaceAccess('Order', 'create')
-@Mutation(() => OrderDTO)
-async marketplaceCreateOrder(...) { ... }
+@UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+@RequireRight('Issuance', 'create', { of: 'Order', id: 'data.order_id' })
+@Mutation(() => MarketplaceOrderDTO)
+async marketplaceReadyIssue(...) { ... }
 ```
 
-`MarketplaceRoleGuard` читает обе семантики:
-- `@RequireMarketplaceRole('admin')` (Story 1.6) — OR по ролям.
-- `@RequireMarketplaceAccess('Order', 'create')` (Story 1.8) — через `canAccess`.
+Список действий в `@RequireRight('Order', ['read:own', 'read:to-self'])` — «любое из них».
 
-Если оба декоратора заданы — guard требует выполнения обоих (логическое И).
+### Охваты
 
-### Нотация actions
+Третья часть имени права из закрытого списка — охват: множество объектов
+ресурса, на которые право действует.
 
-| Action          | Семантика                                              |
-|-----------------|--------------------------------------------------------|
-| `create`        | Создание новой записи resource                         |
-| `read`          | Чтение любого экземпляра resource                      |
-| `read:own`      | Чтение только своих (`owner == username`)              |
-| `read:all`      | Чтение всех (без фильтра по ownership)                 |
-| `read:to-self`  | Чтение объектов, адресованных пайщику (recipient)      |
-| `read:own-KU`   | Чтение в рамках своего КУ (Эпик 2)                     |
-| `update:own`    | Изменение только своих                                 |
-| `delete:own`    | Удаление только своих                                  |
-| `cancel:own`    | Отмена своих                                           |
-| `moderate`      | Модерация (admin)                                      |
-| `manage`        | Полные права (admin)                                   |
-| `sign:first`    | Первая подпись в multisig                              |
-| `sign`          | Подпись (board)                                        |
-| `decide`        | Голосование по решению (board)                         |
-| `configure`    | Настройка расширения (admin/совет)                     |
+| Охват        | Определение                                              | Условие правила                          |
+|--------------|----------------------------------------------------------|------------------------------------------|
+| `own`        | объекты, которые принадлежат пайщику                     | владелец объекта равен пайщику           |
+| `own-KU`     | объекты участков, где пайщик председатель или доверенный | участок объекта входит в эти участки     |
+| `chaired-KU` | объекты участков, где пайщик председатель                | участок объекта входит в эти участки     |
+| `to-self`    | объекты, которые направлены пайщику                      | получатель объекта равен пайщику         |
+| `all`        | все объекты ресурса в кооперативе                        | условия нет; покрывает охваты выше       |
 
-**Важно**: ownership-проверка (`:own`/`:own-KU`/`:to-self`) — задача
-resolver-а *после* прохождения guard. Guard отвечает за capability
-(«эта роль вообще может»), не за data-uniqueness.
+Охват прав, у которых он в имени не записан (`Receiving:create`,
+`Issuance:sign:act`), назван в `marketplaceRightScopes`.
 
-## Phase 2 migration (CASL)
+### Источник объекта у операции
 
-Структура Guard остаётся, меняется только источник policy:
-`marketplace-access-matrix.ts` транслируется в платформенный CASL
-`defineAbility`, `canAccess` подменяется на `ability.can(action, subject)`.
-Декораторы остаются совместимыми. Behavior Guard — **тот же**.
+Охват сверяет guard, а не резолвер. Операция называет третьим аргументом
+`@RequireRight`, откуда взять владельца, участок или получателя:
 
-Цель этой изоляции: бизнес-код resolver-ов
-(`@RequireMarketplaceAccess('Order', 'create')`) не меняется при переходе
-на CASL.
+| Источник                              | Когда                                                   |
+|---------------------------------------|---------------------------------------------------------|
+| `SELF`                                | операция работает с данными вызвавшего: корзина, свои заказы |
+| `{ ku: 'data.braname' }`              | участок назван в запросе                                |
+| `{ of: 'Order', id: 'data.order_id' }`| объект по номеру (или списку номеров); `match: 'any'` — хватает одного подходящего |
+| `{ list: 'data.braname' }`            | список: guard отдаёт операции участки отбора (`@GrantedScope()`) |
+
+Виды объектов и их поля — в `access/marketplace-right-subjects.service.ts`
+(справочник объектов: владелец, участок, получатель). Правило каждого охвата
+записано один раз в каркасе расширений (`extension-kit/src/auth/rights.ts`)
+условием CASL. Отказ по охвату — коды каркаса `KIT_RIGHT_SCOPE_OWN`,
+`KIT_RIGHT_SCOPE_OWN_KU`, `KIT_RIGHT_SCOPE_CHAIRED_KU`, `KIT_RIGHT_SCOPE_TO_SELF`.
+Объекта нет — guard пропускает запрос, «не найдено» отвечает сама операция.
+
+Гейт `scripts/check-legacy-rights.mjs` требует источник у каждого требования
+с узким охватом и запрещает резолверу читать состав участка: частная сверка в
+теле операции расходится с таблицей прав и с рабочим столом.

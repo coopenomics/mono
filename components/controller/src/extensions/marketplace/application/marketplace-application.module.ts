@@ -23,7 +23,7 @@ import { MarketplaceCatalogResolver } from './resolvers/marketplace-catalog.reso
 import { MarketplaceOrderResolver } from './resolvers/marketplace-order.resolver';
 import { MarketplaceCycleResolver } from './resolvers/marketplace-cycle.resolver';
 import { MarketplaceMembershipGuard } from './guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from './guards/marketplace-role.guard';
+import { MarketplaceRightSubjects } from './access/marketplace-right-subjects.service';
 import { MarketplaceRightsService } from './access/marketplace-rights.service';
 import { MarketplaceOnboardingService } from './onboarding/marketplace-onboarding.service';
 import { MarketplaceCoopAcceptanceService } from './coop-acceptance/marketplace-coop-acceptance.service';
@@ -79,7 +79,6 @@ import {
   MARKETPLACE_ORDER_SUPPLIER_ACTION_SERVICE,
 } from './services/marketplace-order-supplier-action.service';
 import { MarketplaceOrderSyncService } from '../sync/marketplace-order-sync.service';
-import { MarketplaceDesktopGrantsProvider } from './desktop/marketplace-desktop-grants.provider';
 import { PAYMENT_DESK_PORT } from '@coopenomics/innercoop';
 import {
   MarketplaceShipmentCreateService,
@@ -156,7 +155,7 @@ import { MarketplaceReturnClaimSyncService } from './services/marketplace-return
 import { MarketplaceSupplierClaimService, MARKETPLACE_SUPPLIER_CLAIM_SERVICE } from './services/marketplace-supplier-claim.service';
 import { MarketplaceSupplierClaimSyncService } from './services/marketplace-supplier-claim-sync.service';
 import { MarketplaceSupplierClaimResolver } from './resolvers/marketplace-supplier-claim.resolver';
-import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { APP_RIGHTS, bucketProvidersFor, RightsGuard } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 // Эпик 8 — списание скоропорта через решение совета
 import { MarketplaceWriteoffService } from './services/marketplace-writeoff.service';
@@ -267,12 +266,11 @@ import {
 
     // Guards (Story 1.3 / Story 1.6)
     MarketplaceMembershipGuard,
-    MarketplaceRoleGuard,
+    // Описание прав стола: по нему работают общий гард операций и права страниц.
     MarketplaceRightsService,
-
-    // Канон авторизации столов: провайдер грантов market для getDesktop
-    // (само-регистрируется в глобальном ExtensionGrantsRegistry).
-    MarketplaceDesktopGrantsProvider,
+    MarketplaceRightSubjects,
+    { provide: APP_RIGHTS, useExisting: MarketplaceRightsService },
+    RightsGuard,
 
     // Сервисы приложения
     KuDetailsService,
@@ -492,8 +490,8 @@ import {
   exports: [
     // Экспортируем сервисы для использования в других модулях
     MarketplaceMembershipGuard,
-    MarketplaceRoleGuard,
     MarketplaceRightsService,
+    MarketplaceRightSubjects,
     KuDetailsService,
     MarketplaceOnboardingService,
     MarketplaceCoopAcceptanceService,

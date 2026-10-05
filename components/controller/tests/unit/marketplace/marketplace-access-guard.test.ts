@@ -1,142 +1,65 @@
 /**
- * Unit-тесты MarketplaceRoleGuard: право операции `@RequireRight(resource, action)`
- * сверяется с таблицей прав Стола заказов вместе с условием строки (C28-87).
+ * Право операции Стола заказов по таблице прав вместе с условием строки (C28-87).
+ *
+ * Проверку ведёт общий гард каркаса расширений (`RightsGuard`) над описанием
+ * прав Стола заказов: `@RequireRight(resource, action)` сверяется с таблицей,
+ * затем с условием строки. Охват права (чей объект) сверяется следом —
+ * marketplace-right-scopes.test.ts.
  *
  * Сценарии:
  *   (a) право роли положено и условие выполнено → проход;
- *   (b) право роли не положено → ForbiddenException + запись в журнал;
+ *   (b) право роли не положено → отказ KIT_INSUFFICIENT_RIGHTS;
  *   (c) право положено, условие ждёт выполнения → отказ с кодом условия;
- *   (d) требование роли и требование права действуют вместе;
- *   (e) server-secret пропускает оба требования.
+ *   (d) server-secret пропускает требование;
+ *   (e) операция без требования права проходит.
  */
-import { ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { configureExtensionAuth, RIGHT_METADATA_KEY } from '@coopenomics/extension-kit';
-import { MarketplaceRightsService } from '~/extensions/marketplace/application/access/marketplace-rights.service';
-import { MARKETPLACE_ROLES_METADATA_KEY } from '~/extensions/marketplace/application/decorators/marketplace-role.decorator';
-import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
-import { MarketplaceRoleGuard } from '~/extensions/marketplace/application/guards/marketplace-role.guard';
+import { makeScopeGuard, memberOf, requirementOf, type ScopeWorld } from './right-scope.harness';
 
-// Секрет межсервисного обхода живёт в каркасе: guard'ы спрашивают его там,
-// а не в конфиге ядра. Хост обязан задать его на старте — тест тоже хост.
-configureExtensionAuth({ serverSecret: 'svc-secret' });
+const orderer = memberOf('alice', 'orderer');
+const operator = memberOf('oleg', 'orderer', 'operator');
+const chairman = memberOf('chair', 'orderer', 'board_readonly', 'admin');
+const council = memberOf('petr', 'orderer', 'board_readonly');
 
-const makeLogger = () =>
-  ({
-    setContext: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  } as any);
-
-/** Сервис прав над таблицей; состояние кооператива и пайщика задаёт тест. */
-function makeRights(state: { accepted?: boolean; onboarded?: boolean; containers?: boolean; cells?: boolean } = {}) {
-  const { accepted = true, onboarded = true, containers = false, cells = false } = state;
-  const config = {
-    get: jest.fn().mockResolvedValue({
-      coopAcceptance: { accepted },
-      warehouse: { containers_enabled: containers, cells_enabled: cells },
-    }),
-  } as any;
-  const onboarding = {
-    getOnboardingState: jest.fn().mockResolvedValue({
-      requires_gate: !onboarded,
-      source: onboarded ? MarketplaceOnboardingSource.AGREEMENT_SIGNED : MarketplaceOnboardingSource.GATE_REQUIRED,
-    }),
-  } as any;
-  const cart = { findByOrderer: jest.fn().mockResolvedValue(onboarded ? { delivery_braname: 'krg' } : null) } as any;
-  return { rights: new MarketplaceRightsService(config, onboarding, cart), onboarding };
+/** Проход или отказ гарда по требованию без источника объекта. */
+function run(access: { resource: string; action: string | string[] }, member: typeof orderer, world: ScopeWorld = {}) {
+  return makeScopeGuard(world).granted(access, member);
 }
 
-function makeReflector({ roles, access }: { roles?: string[]; access?: { resource: string; action: string | string[] } }): Reflector {
-  return {
-    getAllAndOverride: jest.fn().mockImplementation((key: string) => {
-      if (key === MARKETPLACE_ROLES_METADATA_KEY) return roles;
-      if (key === RIGHT_METADATA_KEY) return access;
-      return undefined;
-    }),
-  } as any;
-}
+const NO_RIGHT = { code: 'KIT_INSUFFICIENT_RIGHTS' };
+const NOT_ONBOARDED = { code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED' };
 
-function makeCtx(req: any) {
-  const gqlCtx = { req, currentMember: req?.currentMember };
-  return {
-    getType: () => 'graphql',
-    getHandler: () => ({ name: 'handler' }) as any,
-    getClass: () => ({ name: 'Resolver' }) as any,
-    getArgs: () => [undefined, undefined, gqlCtx, undefined] as any,
-    getArgByIndex: (i: number) => [undefined, undefined, gqlCtx, undefined][i],
-    switchToHttp: () => ({ getRequest: () => req }) as any,
-    switchToRpc: () => undefined as any,
-    switchToWs: () => undefined as any,
-  };
-}
-
-const orderer = { username: 'alice', core_roles: ['User'], marketplace_roles: ['orderer'] };
-const operator = { username: 'oleg', core_roles: ['User'], marketplace_roles: ['orderer', 'operator'] };
-const chairman = {
-  username: 'chair',
-  core_roles: ['User', 'Member', 'Chairman'],
-  marketplace_roles: ['orderer', 'board_readonly', 'admin'],
-};
-
-function run(
-  access: { resource: string; action: string | string[] },
-  member: typeof orderer,
-  state: Parameters<typeof makeRights>[0] = {},
-  roles?: string[],
-  logger = makeLogger()
-) {
-  const guard = new MarketplaceRoleGuard(makeReflector({ roles, access }), logger, makeRights(state).rights);
-  return guard.canActivate(makeCtx({ headers: {}, currentMember: member }) as any);
-}
-
-describe('MarketplaceRoleGuard — право по таблице', () => {
+describe('право по таблице', () => {
   it('Order:create у подключённого заказчика → проход', async () => {
-    await expect(run({ resource: 'Order', action: 'create' }, orderer)).resolves.toBe(true);
+    await expect(run({ resource: 'Order', action: 'create' }, orderer)).resolves.toBeDefined();
   });
 
-  it('KU:manage у заказчика → ForbiddenException и запись в журнал', async () => {
-    const logger = makeLogger();
-    await expect(run({ resource: 'KU', action: 'manage' }, orderer, {}, undefined, logger)).rejects.toBeInstanceOf(
-      ForbiddenException
-    );
-    const msg = (logger.warn as jest.Mock).mock.calls[0][0] as string;
-    expect(msg).toContain('forbidden-attempt');
-    expect(msg).toContain('requested_access=KU:manage');
+  it('KU:manage у заказчика → отказ: право его ролям не положено', async () => {
+    await expect(run({ resource: 'KU', action: 'manage' }, orderer)).rejects.toMatchObject(NO_RIGHT);
   });
 
-  it('требование роли admin и права Offer:moderate у председателя → проход', async () => {
-    await expect(run({ resource: 'Offer', action: 'moderate' }, chairman, {}, ['admin'])).resolves.toBe(true);
-  });
-
-  it('роль admin есть, право Inventory:label ему не положено → отказ', async () => {
-    await expect(run({ resource: 'Inventory', action: 'label' }, chairman, {}, ['admin'])).rejects.toBeInstanceOf(
-      ForbiddenException
-    );
+  it('Offer:moderate у председателя → проход; Inventory:label ему не положено', async () => {
+    await expect(run({ resource: 'Offer', action: 'moderate' }, chairman)).resolves.toBeDefined();
+    await expect(run({ resource: 'Inventory', action: 'label' }, chairman)).rejects.toMatchObject(NO_RIGHT);
   });
 
   it('список действий: достаточно одного из них', async () => {
-    await expect(run({ resource: 'Receiving', action: ['cancel:own', 'cancel:own-KU'] }, operator)).resolves.toBe(true);
+    await expect(run({ resource: 'Receiving', action: ['cancel:own', 'cancel:own-KU'] }, operator)).resolves.toBeDefined();
   });
 
-  it('server-secret пропускает оба требования', () => {
-    const guard = new MarketplaceRoleGuard(
-      makeReflector({ roles: ['admin'], access: { resource: 'KU', action: 'manage' } }),
-      makeLogger(),
-      makeRights().rights
-    );
-    expect(guard.canActivate(makeCtx({ headers: { 'server-secret': 'svc-secret' } }) as any)).toBe(true);
+  it('server-secret пропускает требование и отдаёт охват «весь кооператив»', async () => {
+    const { granted } = makeScopeGuard();
+    await expect(
+      granted({ resource: 'KU', action: 'manage' }, orderer, {}, { 'server-secret': 'svc-secret' })
+    ).resolves.toEqual({ scopes: ['all'], kus: null });
   });
 
-  it('ни одного декоратора → guard разрешает (членство проверяется отдельно)', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector({}), makeLogger(), makeRights().rights);
-    expect(guard.canActivate(makeCtx({ headers: {} }) as any)).toBe(true);
+  it('операция без требования права проходит (членство проверяет гард членства)', async () => {
+    const { granted } = makeScopeGuard();
+    await expect(granted(undefined, orderer)).resolves.toBeUndefined();
   });
 });
 
-describe('MarketplaceRoleGuard — условия строк таблицы', () => {
+describe('условия строк таблицы', () => {
   // mkt.rights.side.01
   it('заказчик без оферты и пункта выдачи: корзина и каталог закрыты кодом подключения', async () => {
     for (const access of [
@@ -144,9 +67,7 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
       { resource: 'Offer', action: 'read' },
       { resource: 'Order', action: 'create' },
     ]) {
-      await expect(run(access, orderer, { onboarded: false })).rejects.toMatchObject({
-        code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
-      });
+      await expect(run(access, orderer, { onboarded: false })).rejects.toMatchObject(NOT_ONBOARDED);
     }
   });
 
@@ -160,69 +81,87 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
       { resource: 'Supplier', action: 'request:own' },
       { resource: 'Membership', action: 'read:own' },
     ]) {
-      await expect(run(access, orderer, { onboarded: false })).resolves.toBe(true);
+      await expect(run(access, orderer, { onboarded: false })).resolves.toBeDefined();
     }
   });
 
   // mkt.rights.side.02
   it('оператор без подключения заказчика читает каталог по своей роли, корзина закрыта', async () => {
-    await expect(run({ resource: 'Offer', action: 'read' }, operator, { onboarded: false })).resolves.toBe(true);
-    await expect(run({ resource: 'Cart', action: 'manage:own' }, operator, { onboarded: false })).rejects.toMatchObject({
-      code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
-    });
+    await expect(run({ resource: 'Offer', action: 'read' }, operator, { onboarded: false })).resolves.toBeDefined();
+    await expect(run({ resource: 'Cart', action: 'manage:own' }, operator, { onboarded: false })).rejects.toMatchObject(
+      NOT_ONBOARDED
+    );
   });
 
   // mkt.rights.side.09
   it('член совета без подключения заказчика открывает карточку предложения и витрину, корзина закрыта', async () => {
-    const council = { username: 'petr', core_roles: ['User', 'Member'], marketplace_roles: ['orderer', 'board_readonly'] };
     for (const access of [
       { resource: 'Offer', action: 'read' },
       { resource: 'Offer', action: 'read:all' },
       { resource: 'Vitrine', action: 'read' },
       { resource: 'Economy', action: 'read' },
     ]) {
-      await expect(run(access, council, { onboarded: false })).resolves.toBe(true);
+      await expect(run(access, council, { onboarded: false })).resolves.toBeDefined();
     }
-    await expect(run({ resource: 'Cart', action: 'manage:own' }, council, { onboarded: false })).rejects.toMatchObject({
-      code: 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED',
+    await expect(run({ resource: 'Cart', action: 'manage:own' }, council, { onboarded: false })).rejects.toMatchObject(
+      NOT_ONBOARDED
+    );
+  });
+
+  // mkt.rights.side.10
+  it('оператор без подключения заказчика читает ход выдач и предложения докладки своего участка', async () => {
+    // Страница выдачи оператора зовёт три операции, которые отвечают и заказчику
+    // (своё), и оператору (свой участок). Требование называет оба охвата: с одним
+    // охватом заказчика оператор без оферты и пункта выдачи получал отказ.
+    const { granted } = makeScopeGuard({
+      onboarded: false,
+      branches: { krg: { trustee: 'oleg' } },
+      objects: { IssuanceSaga: { o1: { member_account: 'ivan', braname: 'krg' } } },
     });
+    await expect(
+      granted(requirementOf('marketplace-issuance.resolver.ts', 'marketplaceIssuanceSaga'), operator, { data: { order_id: 'o1' } })
+    ).resolves.toMatchObject({ scopes: ['own-KU'] });
+    for (const [file, operation] of [
+      ['marketplace-issuance.resolver.ts', 'marketplaceListIssuanceSagas'],
+      ['marketplace-stock.resolver.ts', 'marketplaceListStockProposals'],
+    ]) {
+      await expect(granted(requirementOf(file, operation), operator, { data: { braname: 'krg' } })).resolves.toMatchObject({
+        kus: ['krg'],
+      });
+    }
   });
 
   // mkt.rights.side.03
   it('до решения совета действует только подключение кооператива', async () => {
-    const state = { accepted: false };
-    await expect(run({ resource: 'Extension', action: 'configure' }, chairman, state)).resolves.toBe(true);
-    await expect(run({ resource: 'Extension', action: 'read' }, orderer, state)).resolves.toBe(true);
-    await expect(run({ resource: 'Membership', action: 'read:own' }, orderer, state)).resolves.toBe(true);
-    await expect(run({ resource: 'KU', action: 'manage' }, chairman, state)).rejects.toMatchObject({
+    const world = { accepted: false };
+    await expect(run({ resource: 'Extension', action: 'configure' }, chairman, world)).resolves.toBeDefined();
+    await expect(run({ resource: 'Extension', action: 'read' }, orderer, world)).resolves.toBeDefined();
+    await expect(run({ resource: 'Membership', action: 'read:own' }, orderer, world)).resolves.toBeDefined();
+    await expect(run({ resource: 'KU', action: 'manage' }, chairman, world)).rejects.toMatchObject({
       code: 'MARKETPLACE_COOP_NOT_CONNECTED',
     });
-    await expect(run({ resource: 'Onboarding', action: 'sign:own' }, orderer, state)).rejects.toMatchObject({
+    await expect(run({ resource: 'Onboarding', action: 'sign:own' }, orderer, world)).rejects.toMatchObject({
       code: 'MARKETPLACE_COOP_NOT_CONNECTED',
     });
   });
 
   // mkt.rights.side.04
   it('боксы и ячейки отвечают только при включённом хранении', async () => {
-    await expect(run({ resource: 'Container', action: 'manage:own-KU' }, operator)).rejects.toMatchObject({
+    const off = { containers: false, cells: false };
+    await expect(run({ resource: 'Container', action: 'manage:own-KU' }, operator, off)).rejects.toMatchObject({
       code: 'MARKETPLACE_CONTAINERS_DISABLED',
     });
-    await expect(run({ resource: 'StorageCell', action: 'read:own-KU' }, operator)).rejects.toMatchObject({
+    await expect(run({ resource: 'StorageCell', action: 'read:own-KU' }, operator, off)).rejects.toMatchObject({
       code: 'MARKETPLACE_STORAGE_CELLS_DISABLED',
     });
-    await expect(run({ resource: 'Container', action: 'manage:own-KU' }, operator, { containers: true })).resolves.toBe(true);
-    await expect(run({ resource: 'StorageCell', action: 'read:own-KU' }, chairman, { cells: true })).resolves.toBe(true);
+    await expect(run({ resource: 'Container', action: 'manage:own-KU' }, operator, { ...off, containers: true })).resolves.toBeDefined();
+    await expect(run({ resource: 'StorageCell', action: 'read:own-KU' }, chairman, { ...off, cells: true })).resolves.toBeDefined();
   });
 
   // mkt.rights.side.05
   it('подключение заказчика читается, только когда без него право не складывается', async () => {
-    const { rights, onboarding } = makeRights({ onboarded: false });
-    const guard = new MarketplaceRoleGuard(
-      makeReflector({ access: { resource: 'Offer', action: 'read' } }),
-      makeLogger(),
-      rights
-    );
-    await guard.canActivate(makeCtx({ headers: {}, currentMember: operator }) as any);
+    const { granted, onboarding } = makeScopeGuard({ onboarded: false });
+    await granted({ resource: 'Offer', action: 'read' }, operator);
     expect(onboarding.getOnboardingState).not.toHaveBeenCalled();
   });
 });

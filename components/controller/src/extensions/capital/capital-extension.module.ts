@@ -1,7 +1,6 @@
 import './i18n';
 import { Module, Injectable, Inject, Optional } from '@nestjs/common';
 import { CapitalContract } from 'cooptypes';
-import { CapitalDesktopGrantsProvider } from './application/desktop/capital-desktop-grants.provider';
 import { BaseExtensionModule, EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import { CapitalDatabaseModule } from './infrastructure/database/capital-database.module';
 import { LOGGER_PORT, type ILoggerPort,
@@ -505,6 +504,8 @@ import { SegmentsInteractor } from './application/use-cases/segments.interactor'
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { CapitalRights } from './application/access/capital-rights';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
@@ -841,9 +842,13 @@ export class CapitalExtension extends BaseExtensionModule {
 @Module({
   imports: [CapitalDatabaseModule],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    CapitalRights,
+    { provide: APP_RIGHTS, useExisting: CapitalRights },
+    RightsGuard,
+
     // Extension
     CapitalExtension,
-    CapitalDesktopGrantsProvider,
     CapitalRegistrationService,
     CapitalRegistrationResolver,
 

@@ -208,8 +208,8 @@ describe('предложение: модерация, снятие и возвр
   it(caseName('mkt.offer.side.22', 'модерация пайщиком без прав администратора — отказ, статус прежний'), async () => {
     for (const who of [ROLES.member(), ROLES.branchChairman(), sup.who]) {
       const t = await tokenOf(who)
-      expect(code(await gqlError(t, APPROVE_OFFER, { i: { offer_id: offerA.id, warranty_days: 7 } })), `${who.account}: одобрение`).toBe('403')
-      expect(code(await gqlError(t, REJECT_OFFER, { i: { offer_id: offerA.id, reason: 'чужая модерация' } })), `${who.account}: отклонение`).toBe('403')
+      expect(code(await gqlError(t, APPROVE_OFFER, { i: { offer_id: offerA.id, warranty_days: 7 } })), `${who.account}: одобрение`).toBe('KIT_INSUFFICIENT_RIGHTS')
+      expect(code(await gqlError(t, REJECT_OFFER, { i: { offer_id: offerA.id, reason: 'чужая модерация' } })), `${who.account}: отклонение`).toBe('KIT_INSUFFICIENT_RIGHTS')
     }
     expect((await getOffer(sup.token, offerA.id)).status).toBe('PENDING_MODERATION')
   })
@@ -258,7 +258,7 @@ describe('предложение: модерация, снятие и возвр
 
   it(caseName('mkt.offer.side.14', 'вернуть на публикацию чужое снятое предложение — отказ'), async () => {
     const other = await tokenOf(ROLES.supplier())
-    expect(code(await gqlError(other, REPUBLISH_OFFER, { i: { id: offerA.id } }))).toBe('MARKETPLACE_OFFER_EDIT_FORBIDDEN_NOT_OWNER')
+    expect(code(await gqlError(other, REPUBLISH_OFFER, { i: { id: offerA.id } }))).toBe('KIT_RIGHT_SCOPE_OWN')
     expect((await getOffer(sup.token, offerA.id)).status).toBe('WITHDRAWN')
     // Своё снятое и ранее одобренное владелец возвращает сразу в каталог.
     const back = await gql<any>(sup.token, REPUBLISH_OFFER, { i: { id: offerA.id } })

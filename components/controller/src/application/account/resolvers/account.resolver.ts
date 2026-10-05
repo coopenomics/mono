@@ -8,7 +8,14 @@ import { UploadAvatarInputDTO } from '../dto/upload-avatar-input.dto';
 import { AccountDTO } from '../dto/account.dto';
 import { GetAccountInputDTO } from '../dto/get-account-input.dto';
 import { UseGuards } from '@nestjs/common';
-import { AuthRoles, GqlJwtAuthGuard, RolesGuard, createPaginationResult, PaginationInputDTO, CurrentUser } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  CurrentUser,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { GetAccountsInputDTO } from '../dto/get-accounts-input.dto';
 import type { PaginationResultDomainInterface } from '~/domain/common/interfaces/pagination.interface';
 import { RegisterAccountInputDTO } from '../dto/register-account-input.dto';
@@ -58,8 +65,8 @@ export class AccountResolver {
     name: 'getAccount',
     description: 'Получить сводную информацию о аккаунте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', ['read:own', 'read:all'], { owner: 'data.username' })
   async getAccount(@Args('data', { type: () => GetAccountInputDTO }) input: GetAccountInputDTO): Promise<AccountDTO> {
     return this.accountService.getAccount(input.username);
   }
@@ -70,8 +77,8 @@ export class AccountResolver {
   })
   // Директива @auth корневые запросы не проверяет — без гардов реестр с
   // паспортными данными отдавался любому анонимному запросу.
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'read:all')
   async getAccounts(
     @Args('data', { type: () => GetAccountsInputDTO, nullable: true }) data?: GetAccountsInputDTO,
     @Args('options', { type: () => PaginationInputDTO, nullable: true }) options?: PaginationInputDTO
@@ -84,8 +91,8 @@ export class AccountResolver {
     description:
       'Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'read:all')
   async searchPrivateAccounts(
     @Args('data', { type: () => SearchPrivateAccountsInputDTO }) data: SearchPrivateAccountsInputDTO
   ): Promise<PrivateAccountSearchResultDTO[]> {
@@ -132,8 +139,8 @@ export class AccountResolver {
     description:
       'Удалить аккаунт пайщика из системы учёта провайдера. Доступно только для незавершённых регистрационных статусов (черновик, неоплачен/отклонён). Активный, заблокированный и любой зарегистрированный в блокчейне аккаунт удалить нельзя. Используется для очистки реестра и освобождения e-mail под перерегистрацию.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'delete')
   async deleteAccount(
     @Args('data', { type: () => DeleteAccountInputDTO })
     data: DeleteAccountInputDTO
@@ -158,8 +165,8 @@ export class AccountResolver {
     description:
       'Обновить аккаунт в системе провайдера. Обновление аккаунта пользователя производится по username. Мутация позволяет изменить приватные данные пользователя, а также, адрес электронной почты в MONO. Использовать мутацию может только председатель совета.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Account', 'update')
   async updateAccount(
     @Args('data', { type: () => UpdateAccountInputDTO })
     data: UpdateAccountInputDTO,

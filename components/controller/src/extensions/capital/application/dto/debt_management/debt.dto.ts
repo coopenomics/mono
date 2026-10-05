@@ -1,7 +1,7 @@
 import { ObjectType, Field, Int } from '@nestjs/graphql';
 import { DebtStatus } from '../../../domain/enums/debt-status.enum';
 import { BaseOutputDTO } from '@coopenomics/extension-kit/sync';
-import { AuthRoles, DocumentAggregateDTO } from '@coopenomics/extension-kit';
+import { CouncilField, DocumentAggregateDTO } from '@coopenomics/extension-kit';
 
 /**
  * GraphQL Output DTO для сущности Debt
@@ -86,20 +86,20 @@ export class DebtOutputDTO extends BaseOutputDTO {
     nullable: true,
     description: 'Заявление на получение ссуды',
   })
-  @AuthRoles(['chairman', 'member'], { self: ['username'] })
+  @CouncilField(['username'])
   statement?: DocumentAggregateDTO;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Одобренное заявление',
   })
-  @AuthRoles(['chairman', 'member'], { self: ['username'] })
+  @CouncilField(['username'])
   approved_statement?: DocumentAggregateDTO;
 
   @Field(() => DocumentAggregateDTO, {
     nullable: true,
     description: 'Протокол решения совета',
   })
-  @AuthRoles(['chairman', 'member'], { self: ['username'] })
+  @CouncilField(['username'])
   authorization?: DocumentAggregateDTO;
 }

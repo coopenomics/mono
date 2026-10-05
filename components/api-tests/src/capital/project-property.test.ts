@@ -109,7 +109,7 @@ describe('Благорост — имущественный взнос в про
   it(caseName('cap.prop.side.01', 'предложение от чужого имени — отказ по правам, предложение не заводится'), async () => {
     const hash = randomHash()
     const stranger = await tokenOf(ROLES.member())
-    expectCode(await gqlError(stranger, CREATE, input(hash)), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(stranger, CREATE, input(hash)), 'KIT_RIGHT_SCOPE_OWN')
     expect(await chainProperty(hash)).toBeUndefined()
   })
 

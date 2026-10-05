@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceSetSupplierPayoutMethodInputDTO,
@@ -33,8 +32,8 @@ export class MarketplaceSupplierSettingsResolver {
     description:
       'Настройки выплат поставщика: выбранные реквизиты и готовность к публикации предложений.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'create:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Offer', 'create:own', SELF)
   async marketplaceGetSupplierPaymentSettings(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierPaymentSettingsDTO> {
@@ -46,8 +45,8 @@ export class MarketplaceSupplierSettingsResolver {
     name: 'marketplaceSetSupplierPayoutMethod',
     description: 'Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Offer', 'create:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Offer', 'create:own', SELF)
   async marketplaceSetSupplierPayoutMethod(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceSetSupplierPayoutMethodInputDTO

@@ -6,11 +6,9 @@ export interface IWorkspaceRouteMeta {
   // карточки документа) в навигацию не попадают и иконки не имеют. В drawer
   // рендер гардится `v-if='item.icon'`, undefined безопасен.
   icon?: string
-  // Канон авторизации столов. `requires` — capability вида «Resource:action»;
-  // страница/стол видны, если требование входит в grants стола (с бэкенда).
-  // Расширения с grants объявляют `requires` на маршрутах вместо `roles`.
-  // `roles` — legacy-механизм видимости по core-роли (chairman/member/user);
-  // остаётся для расширений без grants. Подробнее: EXTENSIONS_SCHEMA_SYSTEM.md.
+  // Канон авторизации столов. `requires` — право вида «Ресурс:действие» из
+  // таблицы прав приложения; страница и стол видны, когда сервер выдал это
+  // право пайщику. Ролей в маршрутах нет. Подробнее: EXTENSIONS_SCHEMA_SYSTEM.md.
   requires?: string
   // Страница-шлюз стола: единственное, что доступно пайщику, пока он не выполнил
   // условие входа в стол (подписать оферту ЦПП, выбрать пункт выдачи, подключить
@@ -27,7 +25,6 @@ export interface IWorkspaceRouteMeta {
   //     `Onboarding:offerer`), а не постоянное право роли;
   //  2. страница сама снимает своё условие — иначе пайщик попадёт в тупик.
   gate?: boolean
-  roles?: string[]
   agreements?: string[]
   conditions?: string
   action?: string // Имя действия вместо перехода на страницу

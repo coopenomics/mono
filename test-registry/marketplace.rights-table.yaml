@@ -19,14 +19,35 @@ title: Стол заказов — таблица прав с условиями
 # получили имена. Общий вид таблицы, чтение её строк и декоратор операции
 # `@RequireRight` живут в каркасе расширений (extension-kit/src/auth/rights.ts):
 # следующие приложения объявляют свою таблицу тем же способом.
+#
+# Правка 2026-10-05 (C28-87, пункт 1а): охват права сверяет общий гард. Охватов
+# пять — `own` (своё), `own-KU` (свой участок), `chaired-KU` (участок, где я
+# председатель), `to-self` (адресовано мне), `all` (весь кооператив). Операция
+# называет источник объекта третьим аргументом `@RequireRight`: `SELF`, участок
+# запроса `{ ku }`, объект справочника `{ of, id }` либо список `{ list }`.
+# Справочник объектов (MarketplaceRightSubjects) отдаёт владельца, участок и
+# получателя объекта, правило охвата записано в каркасе один раз условием CASL.
+# До правки сверку писали четырнадцать помощников в десяти резолверах и
+# восемнадцать мест сервисов, отказ приходил тридцатью семью кодами; теперь —
+# четыре кода каркаса KIT_RIGHT_SCOPE_*. Гейт `check-legacy-rights` требует
+# источник у каждого требования с узким охватом и запрещает резолверу читать
+# состав участка. Случаи — mkt.scopes.*.
+
+# Правка 2026-10-05, вторая (C28-87, каркас этапа 1): гард и выдача прав стола
+# стали общими. Приложение объявляет одно описание прав (`AppRights` в
+# extension-kit/src/auth/app-rights.ts): таблицу, свои роли у пайщика, условия
+# строк, справочник объектов. По нему работают `RightsGuard` и `desktopGrantsOf`;
+# тем же способом объявлен стол «Робот совета». `MarketplaceRightsService` стал
+# описанием прав Стола заказов; `MarketplaceRoleGuard`, декоратор
+# `@RequireMarketplaceRole` и `MarketplaceDesktopGrantsProvider` удалены. Отказ
+# «право не положено» — код KIT_INSUFFICIENT_RIGHTS.
 
 sources:
   backend:
     - components/extension-kit/src/auth/rights.ts
     - components/controller/src/extensions/marketplace/application/access/**
-    - components/controller/src/extensions/marketplace/application/guards/marketplace-role.guard.ts
+    - components/extension-kit/src/auth/app-rights.ts
     - components/controller/src/extensions/marketplace/application/membership/marketplace-roles.mapper.ts
-    - components/controller/src/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider.ts
 
 cases:
   - id: mkt.rights.happy.01
@@ -138,5 +159,108 @@ cases:
     scenario: член совета без подключения заказчиком открывает карточку предложения, витрину и ставку взноса; пробует корзину
     expect: чтение проходит по строке совета — реестр предложений он ведёт по роли; корзина закрыта условием заказчика
     test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: mkt.rights.side.10
+    level: backend
+    kind: side
+    scenario: оператор участка без подключения заказчиком открывает страницу выдачи — читает ход выдач и предложения докладки своего участка
+    expect: >
+      операции проходят по строке оператора: требование называет оба охвата,
+      «своё» заказчика и «свой участок» оператора; с одним охватом заказчика
+      оператор без оферты и пункта выдачи получал отказ подключения
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: mkt.scopes.side.01
+    level: backend
+    kind: side
+    scenario: оператор участка odn зовёт операции над объектами участка krg — акт приёмки по партии, маркировку позиции, готовность выдачи, перестановку бокса, правку ячейки, публикацию остатка, решение по возврату, экономику участка
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU до входа в операцию; одна позиция чужого участка в списке закрывает всё действие
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scopes.side.02
+    level: backend
+    kind: side
+    scenario: пайщик зовёт операции над чужим объектом — отмену заказа, заявление и акт выдачи, заявление на возврат, ответ на докладку; поставщик — правку чужого предложения, поставку по чужому циклу, подпись чужого акта приёмки
+    expect: отказ KIT_RIGHT_SCOPE_OWN до входа в операцию
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/issuance.test.ts
+    status: written
+
+  - id: mkt.scopes.side.03
+    level: backend
+    kind: side
+    scenario: поставщик принимает и отклоняет пачку заказов, в которой есть заказ другого поставщика; читает и признаёт чужую претензию
+    expect: отказ KIT_RIGHT_SCOPE_TO_SELF, ни один заказ пачки не тронут; принятие и отклонение идут под правом Order:respond:to-self
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
+    status: written
+
+  - id: mkt.scopes.side.04
+    level: backend
+    kind: side
+    scenario: операцию с несколькими охватами — карточку заказа, отмену акта приёмки, ход выдачи, заявление на возврат — зовёт пайщик, которому объект чужой по каждому из них
+    expect: отказ по охвату; владелец, получатель и оператор участка объекта проходят каждый по своему охвату, и операция узнаёт, по какому
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/return.test.ts
+    status: written
+
+  - id: mkt.scopes.side.05
+    level: backend
+    kind: side
+    scenario: доверенный участка и председатель другого участка распределяют средства участка, меняют веса доверенных, подают расход участка на решение совета
+    expect: отказ KIT_RIGHT_SCOPE_CHAIRED_KU; председатель участка проходит по охвату «участок, где я председатель»
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/economy.test.ts
+    status: written
+
+  - id: mkt.scopes.side.06
+    level: backend
+    kind: side
+    scenario: оператор участка odn, который входит в совет, подтверждает списание со склада участка krg и запрашивает служебную записку по нему
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU — право читать все списания подтверждать чужой участок не даёт; до 05.10.2026 сверка участка пропускала обладателя Writeoff:read:all
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    external: unreachable
+    external_reason: "в засеве стенда оператор участка в совет не входит; ввести его в совет значит провести решение о составе совета, такого сценария во внешнем слое нет"
+    status: written
+
+  - id: mkt.scopes.side.07
+    level: backend
+    kind: side
+    scenario: оператор называет в запросе списка чужой участок — склад, боксы, ячейки, остаток, ход выдач, докладка
+    expect: отказ KIT_RIGHT_SCOPE_OWN_KU; без участка в запросе оператор получает строки своих участков
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.scopes.side.08
+    level: backend
+    kind: side
+    scenario: операция названа с номером объекта, которого нет
+    expect: гард пропускает запрос дальше, «не найдено» отвечает сама операция; отказа по охвату нет
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/order.test.ts
+    status: written
+
+  - id: mkt.scopes.happy.01
+    level: backend
+    kind: happy
+    scenario: председатель и доверенный участка, владелец объекта, получатель объекта зовут свои операции
+    expect: проход по своему охвату; операции над своими данными (корзина, свои заказы, свой кошелёк) объект и состав участков не читают
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
+    api: components/api-tests/src/marketplace/branch-scope.test.ts
+    status: written
+
+  - id: mkt.scopes.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель кооператива и совет зовут операции с правом на весь кооператив — публикацию остатка любого участка, списки склада, боксов, ячеек, ожидание подтверждения списаний
+    expect: проход без чтения объекта; список отдаётся по всему кооперативу, с участком в запросе — по нему
+    test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written

@@ -2,7 +2,7 @@ import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 import { Ledger2 } from 'cooptypes';
 
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -13,7 +13,6 @@ import {
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { USER_WALLET_PORT, type IUserWalletPort } from '@coopenomics/innercoop';
 import { t } from '../../i18n';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 
 /**
  * Релевантные стол-заказам USER_SHARED-кошельки по стандарту marketplace
@@ -66,8 +65,8 @@ export class MarketplaceMemberWalletResolver {
     description:
       'Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('MemberWallet', 'read:own')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('MemberWallet', 'read:own', SELF)
   async marketplaceMemberWallet(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceMemberWalletDTO> {

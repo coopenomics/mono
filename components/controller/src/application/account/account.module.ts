@@ -13,9 +13,11 @@ import { AuthRateLimitGuard } from '~/application/auth-v2/rate-limit/auth-rate-l
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { bucketProvidersFor } from '@coopenomics/extension-kit';
 import { UserAvatarService } from './services/user-avatar.service';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     AccountDomainModule,
     UserDomainModule,
     TokenApplicationModule,

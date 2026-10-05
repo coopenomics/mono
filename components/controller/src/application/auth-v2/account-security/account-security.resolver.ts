@@ -1,6 +1,6 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { ClientIp, RefreshTokenHeader } from '~/application/auth/decorators/request-meta.decorator';
 import { RecoveryStrategy } from '~/domain/auth-v2/recovery-strategy/recovery-strategy.types';
 import { SessionsService } from '../sessions/sessions.service';
@@ -192,8 +192,8 @@ export class AccountSecurityResolver {
     name: 'getParticipantLoginSecurity',
     description: 'Подтверждение входа у пайщика: подключено ли приложение-аутентификатор (председателю)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('TwoFactor', 'read')
   async getParticipantLoginSecurity(
     @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
   ): Promise<ParticipantLoginSecurityDTO> {
@@ -206,8 +206,8 @@ export class AccountSecurityResolver {
     name: 'resetParticipantTwoFactor',
     description: 'Снять приложение-аутентификатор у пайщика (только председатель совета)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'], { allowSelf: false })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('TwoFactor', 'reset')
   async resetParticipantTwoFactor(
     @Args('data', { type: () => ResetParticipantTwoFactorInputDTO }) data: ResetParticipantTwoFactorInputDTO,
     @CurrentUser() user: ICurrentUser,

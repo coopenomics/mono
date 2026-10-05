@@ -13,9 +13,11 @@ import { MeetInfrastructureModule } from '~/infrastructure/meet/meet-infrastruct
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
 import { BlockchainModule } from '~/infrastructure/blockchain/blockchain.module';
 import { DocumentDomainModule } from '~/domain/document/document.module';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 @Module({
   imports: [
+    CoreRightsModule,
     DocumentModule,
     DocumentDomainModule,
     BlockchainModule,

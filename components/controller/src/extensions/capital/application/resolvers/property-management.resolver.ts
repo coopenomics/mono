@@ -2,7 +2,15 @@ import { Resolver, Mutation, Args } from '@nestjs/graphql';
 import { PropertyManagementService } from '../services/property-management.service';
 import { CreateProjectPropertyInputDTO } from '../dto/property_management/create-project-property-input.dto';
 import { CreateProgramPropertyInputDTO } from '../dto/property_management/create-program-property-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 /**
@@ -19,10 +27,8 @@ export class PropertyManagementResolver {
     name: 'capitalCreateProjectProperty',
     description: 'Создание проектного имущественного взноса в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
-  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
-  @AuthRoles([])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', 'create:own', { owner: 'data.username' })
   async createCapitalProjectProperty(
     @Args('data', { type: () => CreateProjectPropertyInputDTO }) data: CreateProjectPropertyInputDTO
   ): Promise<TransactionDTO> {
@@ -37,10 +43,8 @@ export class PropertyManagementResolver {
     name: 'capitalCreateProgramProperty',
     description: 'Создание программного имущественного взноса в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
-  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
-  @AuthRoles([])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', 'create:own', { owner: 'data.username' })
   async createCapitalProgramProperty(
     @Args('data', { type: () => CreateProgramPropertyInputDTO }) data: CreateProgramPropertyInputDTO
   ): Promise<TransactionDTO> {
@@ -58,8 +62,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать заявление об инвестировании имуществом в генерацию',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestStatement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -77,8 +81,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать решение об инвестировании имуществом в генерацию',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestDecision(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -96,8 +100,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать акт об инвестировании имуществом в генерацию',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGenerationPropertyInvestAct(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -115,8 +119,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать заявление об инвестировании имуществом в благорост',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestStatement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -134,8 +138,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать решение об инвестировании имуществом в благорост',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestDecision(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,
@@ -153,8 +157,8 @@ export class PropertyManagementResolver {
     description: 'Сгенерировать акт об инвестировании имуществом в благорост',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Property', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationPropertyInvestAct(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,

@@ -37,7 +37,7 @@ export interface IAcceptCppInput {
  * (FR40 «повестка совета») интеграция станет реальной — Mutation будет
  * валидировать существование решения и его статус CONFIRMED.
  *
- * Resolver вызывает `accept` под `MarketplaceRoleGuard` с
+ * Resolver вызывает `accept` под общим гардом прав (`RightsGuard`) с
  * `@RequireRight('Extension', 'configure')` — это admin-only.
  *
  * Side-effect: после `accept` Story 1.10 регистрирует marketplace-оферту в

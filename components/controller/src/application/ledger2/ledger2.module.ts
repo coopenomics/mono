@@ -4,6 +4,7 @@ import { Ledger2StateKyselyRepository } from '~/infrastructure/database/kysely/r
 import { Ledger2Service } from './services/ledger2.service';
 import { Ledger2Resolver } from './resolvers/ledger2.resolver';
 import { Ledger2InnercoopHistoryAdapter } from './infrastructure/innercoop/ledger2-innercoop-history.adapter';
+import { CoreRightsModule } from '../rights/core-rights.module';
 
 /**
  * Модуль ledger2 — read-only фасад над blockchain_deltas/blockchain_actions.
@@ -13,6 +14,7 @@ import { Ledger2InnercoopHistoryAdapter } from './infrastructure/innercoop/ledge
  * `useExisting` без прямого импорта consumer-extension'ами `Ledger2Service`.
  */
 @Module({
+  imports: [CoreRightsModule],
   providers: [
     Ledger2Service,
     Ledger2Resolver,

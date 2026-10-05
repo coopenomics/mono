@@ -2,7 +2,17 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { ResultSubmissionService } from '../services/result-submission.service';
 import { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ResultOutputDTO } from '../dto/result_submission/result.dto';
@@ -33,8 +43,8 @@ export class ResultSubmissionResolver {
     name: 'capitalPushResult',
     description: 'Внесение результата в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', ['create:own', 'create'], { owner: 'data.username' })
   async pushCapitalResult(
     @Args('data', { type: () => PushResultInputDTO }) data: PushResultInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -50,8 +60,8 @@ export class ResultSubmissionResolver {
     name: 'capitalConvertSegment',
     description: 'Конвертация сегмента в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Segment', ['convert:own', 'convert'], { owner: 'data.username' })
   async convertCapitalSegment(
     @Args('data', { type: () => ConvertSegmentInputDTO }) data: ConvertSegmentInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -69,8 +79,8 @@ export class ResultSubmissionResolver {
     name: 'capitalResults',
     description: 'Получение списка результатов кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', ['read:own', 'read'], { owner: 'filter.username' })
   async getResults(
     @Args('filter', { nullable: true }) filter?: ResultFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -86,8 +96,8 @@ export class ResultSubmissionResolver {
     description: 'Получение результата по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', 'read')
   async getResult(@Args('data') data: GetResultInputDTO): Promise<ResultOutputDTO | null> {
     return await this.resultSubmissionService.getResultById(data._id);
   }
@@ -102,8 +112,8 @@ export class ResultSubmissionResolver {
     description: 'Сгенерировать заявление о вкладе результатов',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionStatement(
     @Args('data', { type: () => ResultContributionStatementGenerateInputDTO })
     data: ResultContributionStatementGenerateInputDTO,
@@ -122,8 +132,8 @@ export class ResultSubmissionResolver {
     description: 'Сгенерировать решение о вкладе результатов',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionDecision(
     @Args('data', { type: () => ResultContributionDecisionGenerateInputDTO })
     data: ResultContributionDecisionGenerateInputDTO,
@@ -142,8 +152,8 @@ export class ResultSubmissionResolver {
     description: 'Сгенерировать акт о вкладе результатов',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateResultContributionAct(
     @Args('data', { type: () => ResultContributionActGenerateInputDTO })
     data: ResultContributionActGenerateInputDTO,
@@ -163,8 +173,8 @@ export class ResultSubmissionResolver {
     name: 'capitalSignActAsContributor',
     description: 'Подписание акта о вкладе результатов участником',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', 'sign')
   async signActAsContributor(
     @Args('data', { type: () => SignActAsContributorInputDTO }) data: SignActAsContributorInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -180,8 +190,8 @@ export class ResultSubmissionResolver {
     name: 'capitalSignActAsChairman',
     description: 'Подписание акта о вкладе результатов председателем',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Result', 'sign-chairman')
   async signActAsChairman(
     @Args('data', { type: () => SignActAsChairmanInputDTO }) data: SignActAsChairmanInputDTO,
     @CurrentUser() currentUser: IMonoAccount

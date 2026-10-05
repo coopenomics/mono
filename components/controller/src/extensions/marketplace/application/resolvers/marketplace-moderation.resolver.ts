@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import {
@@ -18,7 +18,6 @@ import {
 } from '../dto/marketplace-moderation.dto';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import {
   MARKETPLACE_MODERATION_SERVICE,
   MarketplaceModerationService,
@@ -45,7 +44,7 @@ export class MarketplaceModerationResolver {
     name: 'marketplaceListPendingOffers',
     description: 'Список Offer\'ов на модерации (admin)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'moderate')
   async marketplaceListPendingOffers(
     @Args('input', { nullable: true }) input?: MarketplaceListPendingOffersInputDTO
@@ -72,7 +71,7 @@ export class MarketplaceModerationResolver {
     description:
       'Одобрить Offer (status → ACTIVE) и установить гарантийный срок возврата (admin)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'moderate')
   async marketplaceApproveOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -86,7 +85,7 @@ export class MarketplaceModerationResolver {
     name: 'marketplaceSetOfferWarranty',
     description: 'Изменить гарантийный срок возврата предложения (admin)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'moderate')
   async marketplaceSetOfferWarranty(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -100,7 +99,7 @@ export class MarketplaceModerationResolver {
     name: 'marketplaceRejectOffer',
     description: 'Отклонить Offer с причиной (status → REJECTED) (admin)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'moderate')
   async marketplaceRejectOffer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
@@ -114,7 +113,7 @@ export class MarketplaceModerationResolver {
     name: 'marketplaceListModerationLog',
     description: 'История решений модерации по Offer\'у (admin)',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Offer', 'moderate')
   async marketplaceListModerationLog(
     @Args('offer_id') offer_id: string

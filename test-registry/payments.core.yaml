@@ -57,7 +57,7 @@ cases:
     level: backend
     kind: side
     scenario: пайщик создаёт паевой платёж за другого пайщика
-    expect: отказ KIT_INSUFFICIENT_RIGHTS, платёж не заводится
+    expect: отказ KIT_RIGHT_SCOPE_OWN, платёж не заводится
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
@@ -75,7 +75,7 @@ cases:
     level: backend
     kind: side
     scenario: чужой пайщик запрашивает платежи пайщика по имени или по хэшу; гость запрашивает платежи
-    expect: отказ KIT_INSUFFICIENT_RIGHTS пайщику и 401 гостю; совет платёж видит
+    expect: отказ KIT_RIGHT_SCOPE_OWN пайщику и 401 гостю; совет платёж видит
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
@@ -156,7 +156,7 @@ cases:
     level: backend
     kind: side
     scenario: чужой пайщик запрашивает чеки чужого платежа списком и по номеру
-    expect: отказ GATEWAY_PAYMENT_FILE_ACCESS_FORBIDDEN
+    expect: отказ KIT_RIGHT_SCOPE_OWN — чек читают плательщик и совет, сверку ведёт гард по таблице прав ядра
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
@@ -201,7 +201,7 @@ cases:
     level: backend
     kind: side
     scenario: чужой пайщик читает, добавляет, меняет и удаляет реквизиты пайщика; гость читает реквизиты
-    expect: отказ KIT_INSUFFICIENT_RIGHTS на каждую операцию, 401 гостю; реквизиты пайщика не изменились (59d8b7349bc)
+    expect: отказ KIT_RIGHT_SCOPE_OWN на каждую операцию, 401 гостю; реквизиты пайщика не изменились (59d8b7349bc)
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing

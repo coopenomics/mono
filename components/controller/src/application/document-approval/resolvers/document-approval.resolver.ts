@@ -1,6 +1,6 @@
 import { UseGuards } from '@nestjs/common';
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { AuthRoles, CurrentUser, GqlJwtAuthGuard, RolesGuard } from '@coopenomics/extension-kit';
+import { CurrentUser, GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { DocumentApprovalStateService } from '~/domain/document-approval/services/document-approval-state.service';
 import { DocumentApprovalRequirement, DocumentApprovalState } from '~/domain/document-approval/enums/document-approval.enums';
@@ -28,8 +28,8 @@ export class DocumentApprovalResolver {
     name: 'documentTemplates',
     description: 'Реестр шаблонов документов кооператива с утверждёнными и доступными редакциями',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'read')
   async documentTemplates(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentTemplateDTO[]> {
     return this.stateService.getTemplates(coopname);
   }
@@ -38,8 +38,8 @@ export class DocumentApprovalResolver {
     name: 'documentTemplatesAttention',
     description: 'Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'read')
   async documentTemplatesAttention(@Args('coopname', { type: () => String }) coopname: string): Promise<number> {
     const templates = await this.stateService.getTemplates(coopname);
     return templates.filter(
@@ -53,8 +53,8 @@ export class DocumentApprovalResolver {
     name: 'documentTemplateBlank',
     description: 'Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'read')
   async documentTemplateBlank(
     @Args('coopname', { type: () => String }) coopname: string,
     @Args('registry_id', { type: () => Int }) registry_id: number,
@@ -74,8 +74,8 @@ export class DocumentApprovalResolver {
     description:
       'Вынести редакцию документа или пакет документов на утверждение совета: проект решения с текстом редакции публикуется в повестку',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'propose')
   async proposeDocumentApproval(
     @Args('data', { type: () => ProposeDocumentApprovalInputDTO }) data: ProposeDocumentApprovalInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -93,8 +93,8 @@ export class DocumentApprovalResolver {
     description:
       'Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'read')
   async documentApprovalsSeedPlan(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentApprovalSeedItemDTO[]> {
     return this.seedService.plan(coopname);
   }
@@ -103,8 +103,8 @@ export class DocumentApprovalResolver {
     name: 'applyDocumentApprovalsSeed',
     description: 'Записать в цепь утверждения из прежних настроек кооператива по плану переноса',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DocumentTemplate', 'propose')
   async applyDocumentApprovalsSeed(@Args('coopname', { type: () => String }) coopname: string): Promise<DocumentApprovalSeedResultDTO> {
     return this.seedService.apply(coopname);
   }

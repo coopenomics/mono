@@ -1,8 +1,6 @@
 import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Inject, Logger, UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ReportType } from '../../domain/enums/report-type.enum';
 import { ReportSubmissionMark } from '../../domain/enums/report-submission-mark.enum';
@@ -74,8 +72,8 @@ export class ReportCalendarResolver {
       'dueYearOffset=1 (годовая БУХОТЧ, Q4 кварталок) ' +
       'reportYear = year - 1 — именно он возвращается в периоде.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ReportCalendar', 'read')
   async getReportCalendar(
     @Args('year', { type: () => Int }) year: number,
     @CurrentUser() currentUser: IMonoAccount,
@@ -187,8 +185,8 @@ export class ReportCalendarResolver {
       'Поставить или снять отметку на ячейку календаря. mark=null — снять. ' +
       'Сейчас поддерживается только NOT_REQUIRED («не надо сдавать»).',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ReportCalendar', 'manage')
   async markReportPeriod(
     @Args('data', { type: () => MarkReportPeriodInputDTO }) data: MarkReportPeriodInputDTO,
     @CurrentUser() currentUser: IMonoAccount,

@@ -1,7 +1,15 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, DomainError } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { IMonoAccount } from '@coopenomics/innercoop';
 import { ProgramAgreementsAnnulmentGenerateDocumentInputDTO } from '~/application/document/documents-dto/program-agreements-annulment-document.dto';
 import { MembershipExitApplicationGenerateDocumentInputDTO } from '~/application/document/documents-dto/membership-exit-application-document.dto';
@@ -22,14 +30,14 @@ export class MembershipExitResolver {
   constructor(private readonly membershipExitService: MembershipExitService) {}
 
   // Заявление печатает адрес, дату рождения и телефон выходящего, поэтому
-  // за себя его генерирует сам пайщик (самообход `RolesGuard`), за другого — совет.
+  // пайщик собирает его только на своё имя.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateMembershipExitApplication',
     description: 'Сгенерировать документ заявления о выходе из кооператива.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('MembershipExit', 'generate:own', { owner: 'data.username' })
   async generateMembershipExitApplication(
     @Args('data', { type: () => MembershipExitApplicationGenerateDocumentInputDTO })
     data: MembershipExitApplicationGenerateDocumentInputDTO,
@@ -64,8 +72,8 @@ export class MembershipExitResolver {
     description: 'Сгенерировать документ решения собрания совета о выходе пайщика.',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DecisionDocument', 'generate')
   async generateMembershipExitDecision(
     @Args('data', { type: () => MembershipExitDecisionGenerateDocumentInputDTO })
     data: MembershipExitDecisionGenerateDocumentInputDTO,

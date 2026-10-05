@@ -1,7 +1,19 @@
 import { Resolver, Mutation, Query, Args, Subscription } from '@nestjs/graphql';
 import { Inject, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationResult, PaginationInputDTO, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  ActiveUserStatusGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationResult,
+  PaginationInputDTO,
+  GenerateDocumentOptionsInputDTO,
+  GeneratedDocumentDTO,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { WalletService } from '../services/wallet.service';
 import { ReturnByMoneyGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-statement.dto';
 import { ReturnByMoneyDecisionGenerateDocumentInputDTO } from '~/application/document/documents-dto/return-by-money-decision.dto';
@@ -66,8 +78,8 @@ export class WalletResolver {
     description: 'Сгенерировать документ заявления на возврат паевого взноса',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Withdraw', 'generate:own', { owner: 'data.username' })
   async generateReturnByMoneyStatementDocument(
     @Args('data', { type: () => ReturnByMoneyGenerateDocumentInputDTO })
     data: ReturnByMoneyGenerateDocumentInputDTO,
@@ -85,8 +97,8 @@ export class WalletResolver {
     description: 'Сгенерировать документ решения совета о возврате паевого взноса',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('DecisionDocument', 'generate')
   async generateReturnByMoneyDecisionDocument(
     @Args('data', { type: () => ReturnByMoneyDecisionGenerateDocumentInputDTO })
     data: ReturnByMoneyDecisionGenerateDocumentInputDTO,
@@ -103,8 +115,8 @@ export class WalletResolver {
     name: 'createWithdraw',
     description: 'Создать заявку на вывод средств',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Withdraw', 'create:own', { owner: 'data.username' })
   async createWithdraw(@Args('data') input: CreateWithdrawInputDTO): Promise<CreateWithdrawResponseDTO> {
     return this.walletService.createWithdraw(input);
   }
@@ -117,8 +129,8 @@ export class WalletResolver {
     description:
       'Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера.',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard, ActiveUserStatusGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, ActiveUserStatusGuard, RightsGuard)
+  @RequireRight('Deposit', 'create:own', { owner: 'data.username' })
   async createDepositPayment(
     @Args('data', { type: () => CreateDepositPaymentInputDTO }) data: CreateDepositPaymentInputDTO
   ): Promise<GatewayPaymentDTO> {
@@ -132,8 +144,8 @@ export class WalletResolver {
     name: 'getProgramWallets',
     description: 'Получить список программных кошельков с фильтрацией и пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'filter.username' })
   async getProgramWallets(
     @Args('filter', { nullable: true }) filter?: ProgramWalletFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -149,8 +161,8 @@ export class WalletResolver {
     description: 'Получить один программный кошелек по фильтру',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'filter.username' })
   async getProgramWallet(@Args('filter') filter: ProgramWalletFilterInputDTO): Promise<ProgramWalletDTO | null> {
     return await this.walletService.getProgramWallet(filter);
   }
@@ -162,8 +174,8 @@ export class WalletResolver {
     name: 'getUserWallets',
     description: 'Кошельки пайщика — каждый кошелёк отдельной строкой, без объединения паевого и членского',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Wallet', ['read:own', 'read:all'], { owner: 'username' })
   async getUserWallets(
     @Args('username') username: string,
     @Args('coopname', { nullable: true }) coopname?: string

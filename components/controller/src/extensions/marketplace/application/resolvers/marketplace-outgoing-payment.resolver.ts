@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF, RightsGuard } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
-import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import { MarketplaceOrderStatusEnum } from '../dto/marketplace-order.dto';
 import {
@@ -51,8 +50,8 @@ export class MarketplaceOutgoingPaymentResolver {
     name: 'marketplaceListOutgoingPaymentsAsSupplier',
     description: 'История выплат поставщику в столе поставщика — статусы по каждому заказу.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Payment', 'read:to-self')
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
+  @RequireRight('Payment', 'read:to-self', SELF)
   async marketplaceListOutgoingPaymentsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('filter', { nullable: true })
@@ -71,7 +70,7 @@ export class MarketplaceOutgoingPaymentResolver {
     description:
       'Лента выплат поставщикам по всему кооперативу — для совета. Опциональные фильтры: по поставщику-получателю и по статусам.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Payment', 'read:all')
   async marketplaceListOutgoingPayments(
     @Args('filter', { nullable: true })
@@ -91,7 +90,7 @@ export class MarketplaceOutgoingPaymentResolver {
       'Разворот одной выплаты: сама выплата, оплаченный заказ и запись в реестре кассира. ' +
       'Null — выплаты с таким идентификатором в кооперативе нет.',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, RightsGuard)
   @RequireRight('Payment', 'read:all')
   async marketplaceGetOutgoingPayment(
     @Args('id', { type: () => String }) id: string

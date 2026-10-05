@@ -134,3 +134,52 @@ cases:
       контракте и карте типов нет
     test: components/controller/tests/unit/chairman/approval-types.test.ts
     status: passing
+  # Права стола председателя по таблице прав (C28-87, кусок 2, 05.10.2026):
+  # операции одобрений и шагов подключения стоят под общим гардом над
+  # `ChairmanRights`, страницы стола получают права из той же таблицы и из
+  # таблицы ядра.
+
+  - id: chair.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: член совета и председатель читают одобрения
+    expect: проход по праву Approval:read; рядовой пайщик получает KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: председатель и член совета открывают рабочий стол
+    expect: председатель получает права одобрений и шагов подключения, член совета — чтение одобрений
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/membership/account-rights.test.ts
+    status: written
+
+  - id: chair.rights.side.01
+    level: backend
+    kind: side
+    scenario: член совета одобряет или отклоняет документ
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — решение по одобрению принимает председатель
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.side.02
+    level: backend
+    kind: side
+    scenario: член совета и пайщик зовут шаги подключения кооператива
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — шаги ведёт председатель
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
+
+  - id: chair.rights.side.03
+    level: backend
+    kind: side
+    scenario: пайщик читает список одобрений со своим именем, с чужим именем и без имени, запрашивает одно одобрение по номеру
+    expect: "свои одобрения читает; чужое имя и запрос без имени — отказ KIT_RIGHT_SCOPE_OWN; одно одобрение по номеру — KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: written

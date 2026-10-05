@@ -181,27 +181,6 @@ export class MarketplaceStockService {
    * Позиции группируются по исходному товару; на группу создаётся либо
    * пополняется оффер кооператива этого КУ. Возвращает затронутые офферы.
    */
-  /**
-   * Участки, на складах которых лежат позиции. Резолвер сверяет по ним, что
-   * оператор распоряжается остатком своего участка.
-   */
-  async branamesOfPositions(coopname: string, inventory_ids: string[]): Promise<string[]> {
-    const positions = await Promise.all(inventory_ids.map((id) => this.inventoryRepo.findById(id)));
-    return [
-      ...new Set(
-        positions
-          .filter((p): p is MarketplaceInventoryDomainEntity => p !== null && p.coopname === coopname)
-          .map((p) => p.braname)
-      ),
-    ];
-  }
-
-  /** Участок выдачи заказа из остатка — для сверки участка оператора при отмене. */
-  async branameOfOrder(coopname: string, order_id: string): Promise<string | null> {
-    const order = await this.orderRepo.findById(order_id);
-    return order && order.coopname === coopname ? order.delivery_braname : null;
-  }
-
   async publishStock(input: MarketplaceStockPublishInput): Promise<MarketplaceOfferDomainEntity[]> {
     const positions = await this.loadFreeStockPositions(input.coopname, input.inventory_ids);
     if (positions.some((p) => p.published_offer_id !== null)) {

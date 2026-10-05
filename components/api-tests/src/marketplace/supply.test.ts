@@ -84,11 +84,11 @@ describe('приёмка на участке: права, одна приёмк�
 
   it(caseName('mkt.supply.side.03', 'оператор чужого участка приёмку не открывает и акт не видит'), async () => {
     const express = await refusal(foreignToken, EXPRESS, { d: { braname: KRG, offerer_account: sidorov.account } })
-    expect(express?.codeText, express?.message).toBe('MARKETPLACE_RECEPTION_NOT_TRUSTEE')
+    expect(express?.codeText, express?.message).toBe('KIT_RIGHT_SCOPE_OWN_KU')
     const pickup = await refusal(foreignToken, PICKUP, { d: { braname: KRG, offerer_account: sidorov.account } })
-    expect(pickup?.codeText, pickup?.message).toBe('MARKETPLACE_RECEPTION_SINGLE_FEED_NOT_TRUSTEE')
+    expect(pickup?.codeText, pickup?.message).toBe('KIT_RIGHT_SCOPE_OWN_KU')
     const feed = await refusal(foreignToken, FEED, { d: { braname: KRG } })
-    expect(feed?.codeText, feed?.message).toBe('MARKETPLACE_RECEPTION_FEED_NOT_TRUSTEE')
+    expect(feed?.codeText, feed?.message).toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
     expect((await getOrder(memberToken, orderId)).status, 'статус заказа не изменился').toBe('ACCEPTED')
     expect(await receptionsOfOrder(orderId), 'приёмка не открыта').toEqual([])
@@ -185,7 +185,7 @@ describe('приёмка на участке: права, одна приёмк�
 
   it(caseName('mkt.supply.side.03', 'председатель чужого участка не закрывает акт — статус партии не меняется'), async () => {
     const preview = await refusal(foreignToken, CHAIR_PAYLOADS, { d: { apl_reception_id: receptionId } })
-    expect(preview?.codeText, preview?.message).toBe('MARKETPLACE_RECEPTION_PREVIEW_NOT_TRUSTEE')
+    expect(preview?.codeText, preview?.message).toBe('KIT_RIGHT_SCOPE_OWN_KU')
 
     // Даже с агрегатом акта на руках подпись чужого председателя не проходит.
     const cp = await gql<any>(operatorToken, CHAIR_PAYLOADS, { d: { apl_reception_id: receptionId } })
@@ -193,7 +193,7 @@ describe('приёмка на участке: права, одна приёмк�
     for (const p of cp.marketplaceAplReceptionChairmanSignablePayloads) foreignSigned.push(await signDocument(chairodn.wif, p.rawDocument, chairodn.account, 2, [p.document]))
     const sign = await refusal(foreignToken, SIGN_CHAIR, { d: { apl_reception_id: receptionId, signed_documents: foreignSigned } })
     expect(sign, 'закрывающая подпись чужого председателя отклонена').not.toBeNull()
-    expect(['403', 'KIT_INSUFFICIENT_RIGHTS', 'MARKETPLACE_RECEPTION_NOT_TRUSTEE', 'MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_CHAIN_FAILED'], sign?.message).toContain(sign?.codeText)
+    expect(['403', 'KIT_INSUFFICIENT_RIGHTS', 'KIT_RIGHT_SCOPE_OWN_KU', 'MARKETPLACE_RECEPTION_CHAIRMAN_SIGN_CHAIN_FAILED'], sign?.message).toContain(sign?.codeText)
     expect((await reception(receptionId)).status, 'акт по-прежнему ждёт председателя своего участка').toBe('PENDING_CHAIRMAN_RECEPTION_SIGN')
     expect((await getOrder(memberToken, orderId)).status, 'заказ не принят кооперативом').not.toBe('ACCEPTED_TO_COOP')
   })
