@@ -16,7 +16,8 @@
 import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, amount, caseName, docMeta, expectCode, freshMember, gql, gqlError, latestMail, login, signDocument, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, amount, caseName, expectCode, freshMember, gql, gqlError, latestMail, login, tokenOf, waitFor } from '../core'
+import { exitDocuments, exitReturnPreview } from '../membership/exit-documents.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
 import {
   CLOSE_ASSIGNMENT,
@@ -41,62 +42,14 @@ import {
   walletOf,
 } from './edubridge.helpers'
 
-const GENERATE_APPLICATION = `mutation($d:MembershipExitApplicationGenerateDocumentInput!){
-  generateMembershipExitApplication(data:$d){ full_title html hash meta binary }
-}`
 const CREATE_EXIT = 'mutation($d:CreateMembershipExitInput!){ createMembershipExit(data:$d){ exit_hash status } }'
 const CONFIRM_EXIT = 'mutation($t:String!){ confirmMembershipExit(token:$t){ exit_hash status } }'
-const GENERATE_ANNULMENT = `mutation($d:ProgramAgreementsAnnulmentGenerateDocumentInput!,$o:GenerateDocumentOptionsInput){
-  generateProgramAgreementsAnnulment(data:$d, options:$o){ full_title html hash meta binary }
-}`
-const RETURN_PREVIEW = `query($c:String!,$u:String!){ membershipExitReturnPreview(coopname:$c, username:$u){
-  total blockers programs{ program_id title agreement_signed_at agreement_hash refund wallets{ wallet_name human_name balance returns policy } }
-} }`
+const exitPreview = exitReturnPreview
 
-/** Поля мета заявления, которые принимает вход подачи (MembershipExitApplicationSignedMetaDocumentInput). */
-const STATEMENT_META_KEYS = ['block_num', 'coopname', 'created_at', 'generator', 'lang', 'links', 'registry_id', 'skip_save', 'timezone', 'title', 'username', 'version']
-
-/** Поля мета заявления об аннулировании соглашений (ProgramAgreementsAnnulmentSignedMetaDocumentInput). */
-const ANNULMENT_META_KEYS = [...STATEMENT_META_KEYS, 'exit_hash', 'programs', 'total_refund']
-
-function withMeta(signed: any, keys: string[]): any {
-  const meta = docMeta(signed.meta)
-  return { ...signed, meta: Object.fromEntries(keys.filter(k => k in meta).map(k => [k, meta[k]])) }
-}
-
-/**
- * Документы выхода под общим хэшем, как их собирает рабочий стол: заявление
- * на выход и заявление об аннулировании соглашений об участии в программах —
- * в нём названо, что вернётся по каждой программе.
- */
+/** Вход подачи заявления на выход: документы под свежим хэшем выхода. */
 async function exitInput(who: Who, token: string): Promise<{ d: Record<string, unknown> }> {
   const exit_hash = crypto.randomBytes(32).toString('hex')
-  const g = await gql<any>(token, GENERATE_APPLICATION, { d: { coopname: COOP, username: who.account, skip_save: false } })
-  const statement = withMeta(await signDocument(who.wif, g.generateMembershipExitApplication, who.account, 1), STATEMENT_META_KEYS)
-
-  const preview = await exitPreview(token, who.account)
-  const programs = (preview.programs as any[])
-    .filter(p => Boolean(p.agreement_hash) && p.program_id > 0)
-    .map(p => ({
-      program_id: p.program_id,
-      title: p.title,
-      agreement_signed_at: p.agreement_signed_at ?? '',
-      agreement_hash: p.agreement_hash ?? '',
-      refund: p.refund,
-      wallets: (p.wallets as any[]).map(w => ({ wallet_name: w.wallet_name, human_name: w.human_name, balance: w.balance, returns: w.returns })),
-    }))
-  if (!programs.length)
-    return { d: { coopname: COOP, username: who.account, exit_hash, statement } }
-  const a = await gql<any>(token, GENERATE_ANNULMENT, {
-    d: { coopname: COOP, username: who.account, skip_save: false, exit_hash, programs, total_refund: preview.total },
-    o: { lang: 'ru' },
-  })
-  const annulment = withMeta(await signDocument(who.wif, a.generateProgramAgreementsAnnulment, who.account, 1), ANNULMENT_META_KEYS)
-  return { d: { coopname: COOP, username: who.account, exit_hash, statement, annulment } }
-}
-
-async function exitPreview(token: string, username: string): Promise<any> {
-  return (await gql<any>(token, RETURN_PREVIEW, { c: COOP, u: username })).membershipExitReturnPreview
+  return { d: { coopname: COOP, username: who.account, exit_hash, ...await exitDocuments(who, token, exit_hash) } }
 }
 
 /** Пайщик подтверждает выход по ссылке из письма — заявление уходит в цепь. */
