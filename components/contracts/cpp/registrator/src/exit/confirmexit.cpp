@@ -42,7 +42,7 @@ void registrator::confirmexit(eosio::name coopname, checksum256 exit_hash, docum
   // Выход закрывает участие пайщика в целевых потребительских программах, и
   // основание для этого — его заявление (registry 190). Без него совет вывел
   // бы пайщика, оставив соглашения действующими.
-  eosio::check(e->annulment_statement.has_value() || !Core::Registrator::has_program_agreements(coopname, username),
+  eosio::check(e->has_annulment() || !Core::Registrator::has_program_agreements(coopname, username),
                "К заявлению на выход не приложено заявление об аннулировании соглашений ЦПП");
 
   eosio::asset total_return = eosio::asset(0, _root_govern_symbol);

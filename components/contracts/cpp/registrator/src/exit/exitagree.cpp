@@ -23,7 +23,7 @@ void registrator::exitagree(eosio::name coopname, eosio::name username, checksum
   eosio::check(e != exits.end(), "Заявление на выход не подано");
   eosio::check(e->exit_hash == exit_hash, "Хэш процесса выхода не совпадает");
   eosio::check(e->status == "pending"_n, "Соглашения аннулируются до решения совета");
-  eosio::check(!e->annulment_statement.has_value(),
+  eosio::check(!e->has_annulment(),
                "Заявление об аннулировании соглашений уже подано");
 
   // Подпись пайщика под заявлением — его ключом: транзакцию шлёт кооператив.

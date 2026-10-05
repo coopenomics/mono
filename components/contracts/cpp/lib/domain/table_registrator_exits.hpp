@@ -54,6 +54,13 @@ struct [[eosio::table, eosio::contract(REGISTRATOR)]] exit {
   /// заявления, поданные до появления аннулирования, читаются по-прежнему.
   eosio::binary_extension<document2> annulment_statement;
 
+  /// Приложено ли заявление об аннулировании. Расширение пишется в строку
+  /// всегда — пустым документом, если его не задали, — поэтому `has_value()`
+  /// после записи истинно у любой строки; признак — непустой документ.
+  bool has_annulment() const {
+    return annulment_statement.has_value() && !is_empty_document(annulment_statement.value());
+  }
+
   uint64_t primary_key() const { return username.value; }
   checksum256 by_hash() const { return exit_hash; }
 };
