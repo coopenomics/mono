@@ -11,7 +11,6 @@ export class EdubridgeLearnerEntity {
   public coopname!: string;
 
   /** Числовой идентификатор для цепи (uint64): таблицы контракта не знают uuid. */
-  @Generated('increment')
   public chain_ref!: string;
 
   /** Пайщик, записавший обучающегося (или сам обучающийся). */

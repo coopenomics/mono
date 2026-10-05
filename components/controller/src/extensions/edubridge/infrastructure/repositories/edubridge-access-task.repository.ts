@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { sql } from 'kysely';
 import { TableStore, inTransaction, oneOf } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_ACCESS_TASK_STORE } from '../database/edubridge-stores';
 import { EduAccessTaskStatus } from '../../domain/enums';
@@ -41,7 +42,7 @@ export class EdubridgeAccessTaskRepository {
         .select()
         .where('coopname', '=', coopname)
         .where('status', '=', EduAccessTaskStatus.PENDING)
-        .where((eb) => eb('next_attempt_at', '<=', eb.fn('now')))
+        .where('next_attempt_at', '<=', sql<Date>`now()`)
         .orderBy('next_attempt_at', 'asc')
         .limit(limit)
         .forUpdate()

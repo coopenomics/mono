@@ -16,7 +16,6 @@ export class EdubridgeCourseEntity {
   public coopname!: string;
 
   /** Числовой идентификатор для цепи (uint64): таблицы контракта не знают uuid. */
-  @Generated('increment')
   public chain_ref!: string;
 
   public title!: string;
