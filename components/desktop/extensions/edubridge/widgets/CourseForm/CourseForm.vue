@@ -70,13 +70,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
     //- Целевой членский взнос один на кооператив: здесь он только виден, а
     //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
     .edu-course-form__fee-line
-      .edu-course-form__limit {
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-3);
-  white-space: nowrap;
-}
-.edu-course-form__fee-label {{ $t('edubridge.courseForm.group.membershipFee') }}
+      .edu-course-form__fee-label {{ $t('edubridge.courseForm.group.membershipFee') }}
       FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
       q-space
       .edu-course-form__fee-value {{ markupPercent === null ? '______' : $t(`edubridge.courseForm.markupPercentLine`, { percent: markupPercent }) }}
