@@ -1,8 +1,7 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 import type { BranchContract } from 'cooptypes';
 import { BRANCH_PORT, type IBranchPort } from '@coopenomics/innercoop';
-import { t } from '../../i18n';
 
 
 export const MARKETPLACE_KU_CHAIRMAN_SERVICE = Symbol('MARKETPLACE_KU_CHAIRMAN_SERVICE');
@@ -20,16 +19,18 @@ interface IBranchesCacheEntry {
  *      для контекста `mapCoreRolesToMarketplaceRoles` — marketplace-роль
  *      `operator` выдаётся пайщику, если он `trustee` ИЛИ `trusted[i]`
  *      хотя бы одного branch'а кооператива.
- *   2. Resolver'ы с ownership `:own-KU` (return-claim, issuance, warehouse)
- *      берут `isMemberOfBranch(coopname, braname, username)` для проверки
- *      «принадлежит ли пайщик именно этому КУ».
+ *   2. `MarketplaceRoleGuard` сверяет охват права: `listBranamesForMember`
+ *      отвечает на `own-KU` (участки, где пайщик председатель или доверенный),
+ *      `listChairedBranames` — на `chaired-KU` (участки, где он председатель).
  *
  * **Инвариант**: trustee и trusted имеют ИДЕНТИЧНЫЕ операционные права в
  * marketplace-домене (приёмка, выдача, маркировка, склад, ленты КУ). Этот
  * сервис — единственная точка, где этот инвариант формализован. Любая
  * проверка «является ли пайщик X работником КУ Y» должна идти через него,
  * а не через прямое сравнение с `branch.trustee` или `member.username ==
- * braname`.
+ * braname`. Исключение — действия председателя участка над его средствами
+ * (распределение, веса доверенных, подача расхода): они идут под охватом
+ * `chaired-KU`.
  *
  * Источник истины — on-chain таблица `branches` контракта `branch`,
  * читается через `BRANCH_PORT.getBranches(coopname)` и
@@ -65,25 +66,6 @@ export class MarketplaceKuChairmanService {
   }
 
   /**
-   * Общая own-KU guard-проверка для resolver'ов (Economy, Order и др.):
-   * бросает `ForbiddenException`, если пайщик не председатель/доверенный
-   * ИМЕННО этого КУ. Каждый resolver сам решает, нужен ли предварительный
-   * bypass по `read:all` своего resource — эта проверка про членство в КУ,
-   * не про capability роли.
-   */
-  async assertIsMemberOfBranch(
-    coopname: string,
-    braname: string,
-    member_account: string,
-    message = t('marketplace.kuChairman.accessHint')
-  ): Promise<void> {
-    const isMember = await this.isMemberOfBranch(coopname, braname, member_account);
-    if (!isMember) {
-      throw new ForbiddenException(message);
-    }
-  }
-
-  /**
    * Список branches, в которых пайщик имеет операционные полномочия
    * (trustee либо trusted). Нужен, например, для отображения «своих» КУ
    * в селекторе оператора или для bulk-фильтрации лент.
@@ -93,6 +75,12 @@ export class MarketplaceKuChairmanService {
     return branches
       .filter((b) => this.branchIncludesMember(b, member_account))
       .map((b) => b.braname);
+  }
+
+  /** Участки, где пайщик председатель: охват права `chaired-KU`. */
+  async listChairedBranames(coopname: string, member_account: string): Promise<string[]> {
+    const branches = await this.getBranches(coopname);
+    return branches.filter((b) => b.trustee === member_account).map((b) => b.braname);
   }
 
   /**

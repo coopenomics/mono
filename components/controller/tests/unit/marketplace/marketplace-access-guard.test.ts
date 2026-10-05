@@ -2,6 +2,8 @@
  * Unit-тесты MarketplaceRoleGuard: право операции `@RequireRight(resource, action)`
  * сверяется с таблицей прав Стола заказов вместе с условием строки (C28-87).
  *
+ * Охват права (чей объект) сверяется следом — marketplace-right-scopes.test.ts.
+ *
  * Сценарии:
  *   (a) право роли положено и условие выполнено → проход;
  *   (b) право роли не положено → ForbiddenException + запись в журнал;
@@ -9,8 +11,6 @@
  *   (d) требование роли и требование права действуют вместе;
  *   (e) server-secret пропускает оба требования.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { configureExtensionAuth, RIGHT_METADATA_KEY } from '@coopenomics/extension-kit';
@@ -18,6 +18,7 @@ import { MarketplaceRightsService } from '~/extensions/marketplace/application/a
 import { MARKETPLACE_ROLES_METADATA_KEY } from '~/extensions/marketplace/application/decorators/marketplace-role.decorator';
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
 import { MarketplaceRoleGuard } from '~/extensions/marketplace/application/guards/marketplace-role.guard';
+import { makeScopeGuard, requirementOf } from './right-scope.harness';
 
 // Секрет межсервисного обхода живёт в каркасе: guard'ы спрашивают его там,
 // а не в конфиге ядра. Хост обязан задать его на старте — тест тоже хост.
@@ -51,6 +52,13 @@ function makeRights(state: { accepted?: boolean; onboarded?: boolean; containers
   return { rights: new MarketplaceRightsService(config, onboarding, cart), onboarding };
 }
 
+/**
+ * Справочник объектов и состав участков: требования этих случаев источника
+ * объекта не называют, сверка охвата до них не доходит (она — в
+ * marketplace-right-scopes.test.ts).
+ */
+const NO_SCOPE = [{} as any, {} as any] as const;
+
 function makeReflector({ roles, access }: { roles?: string[]; access?: { resource: string; action: string | string[] } }): Reflector {
   return {
     getAllAndOverride: jest.fn().mockImplementation((key: string) => {
@@ -83,18 +91,6 @@ const chairman = {
   marketplace_roles: ['orderer', 'board_readonly', 'admin'],
 };
 
-const RESOLVERS = join(__dirname, '../../../src/extensions/marketplace/application/resolvers');
-
-/** Требование права, объявленное у операции в исходнике резолвера. */
-function requirementOf(file: string, operation: string): { resource: string; action: string | string[] } {
-  const src = readFileSync(join(RESOLVERS, file), 'utf8');
-  const from = src.indexOf(`name: '${operation}'`);
-  const found = from < 0 ? null : /@RequireRight\('([A-Za-z]+)',\s*(\[[^\]]*\]|'[^']*')\)/.exec(src.slice(from));
-  if (!found) throw new Error(`требование права операции ${operation} не найдено в ${file}`);
-  const actions = [...found[2].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-  return { resource: found[1], action: found[2].startsWith('[') ? actions : actions[0] };
-}
-
 function run(
   access: { resource: string; action: string | string[] },
   member: typeof orderer,
@@ -102,7 +98,7 @@ function run(
   roles?: string[],
   logger = makeLogger()
 ) {
-  const guard = new MarketplaceRoleGuard(makeReflector({ roles, access }), logger, makeRights(state).rights);
+  const guard = new MarketplaceRoleGuard(makeReflector({ roles, access }), logger, makeRights(state).rights, ...NO_SCOPE);
   return guard.canActivate(makeCtx({ headers: {}, currentMember: member }) as any);
 }
 
@@ -139,13 +135,14 @@ describe('MarketplaceRoleGuard — право по таблице', () => {
     const guard = new MarketplaceRoleGuard(
       makeReflector({ roles: ['admin'], access: { resource: 'KU', action: 'manage' } }),
       makeLogger(),
-      makeRights().rights
+      makeRights().rights,
+      ...NO_SCOPE
     );
     expect(guard.canActivate(makeCtx({ headers: { 'server-secret': 'svc-secret' } }) as any)).toBe(true);
   });
 
   it('ни одного декоратора → guard разрешает (членство проверяется отдельно)', () => {
-    const guard = new MarketplaceRoleGuard(makeReflector({}), makeLogger(), makeRights().rights);
+    const guard = new MarketplaceRoleGuard(makeReflector({}), makeLogger(), makeRights().rights, ...NO_SCOPE);
     expect(guard.canActivate(makeCtx({ headers: {} }) as any)).toBe(true);
   });
 });
@@ -207,12 +204,21 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
     // Страница выдачи оператора зовёт три операции, которые отвечают и заказчику
     // (своё), и оператору (свой участок). Требование называет оба охвата: с одним
     // охватом заказчика оператор без оферты и пункта выдачи получал отказ.
+    const { granted } = makeScopeGuard({
+      onboarded: false,
+      branches: { krg: { trustee: 'oleg' } },
+      objects: { IssuanceSaga: { o1: { member_account: 'ivan', braname: 'krg' } } },
+    });
+    await expect(
+      granted(requirementOf('marketplace-issuance.resolver.ts', 'marketplaceIssuanceSaga'), operator, { data: { order_id: 'o1' } })
+    ).resolves.toMatchObject({ scopes: ['own-KU'] });
     for (const [file, operation] of [
-      ['marketplace-issuance.resolver.ts', 'marketplaceIssuanceSaga'],
       ['marketplace-issuance.resolver.ts', 'marketplaceListIssuanceSagas'],
       ['marketplace-stock.resolver.ts', 'marketplaceListStockProposals'],
     ]) {
-      await expect(run(requirementOf(file, operation), operator, { onboarded: false })).resolves.toBe(true);
+      await expect(granted(requirementOf(file, operation), operator, { data: { braname: 'krg' } })).resolves.toMatchObject({
+        kus: ['krg'],
+      });
     }
   });
 
@@ -248,7 +254,8 @@ describe('MarketplaceRoleGuard — условия строк таблицы', ()
     const guard = new MarketplaceRoleGuard(
       makeReflector({ access: { resource: 'Offer', action: 'read' } }),
       makeLogger(),
-      rights
+      rights,
+      ...NO_SCOPE
     );
     await guard.canActivate(makeCtx({ headers: {}, currentMember: operator }) as any);
     expect(onboarding.getOnboardingState).not.toHaveBeenCalled();

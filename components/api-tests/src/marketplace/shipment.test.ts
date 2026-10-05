@@ -79,7 +79,7 @@ describe('Стол заказов — партии поставки', () => {
 
   it(caseName('mkt.ship.side.03', 'партию по чужой заявке пайщик-не-поставщик не формирует'), async () => {
     const denied = await refusal(memberToken, CREATE, { d: { cycle_id: first.cycle_id, groups: [{ braname: KRG, delivery_variant: 'SELF' }] } })
-    expect(['403', 'MARKETPLACE_SHIPMENT_NOT_SUPPLIER'], denied?.message).toContain(denied?.codeText)
+    expect(['403', 'KIT_RIGHT_SCOPE_OWN', 'MARKETPLACE_SHIPMENT_NOT_SUPPLIER'], denied?.message).toContain(denied?.codeText)
     expect((await order(first.id)).shipment_id ?? null).toBeNull()
   })
 

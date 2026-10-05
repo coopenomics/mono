@@ -258,7 +258,7 @@ describe('предложение: модерация, снятие и возвр
 
   it(caseName('mkt.offer.side.14', 'вернуть на публикацию чужое снятое предложение — отказ'), async () => {
     const other = await tokenOf(ROLES.supplier())
-    expect(code(await gqlError(other, REPUBLISH_OFFER, { i: { id: offerA.id } }))).toBe('MARKETPLACE_OFFER_EDIT_FORBIDDEN_NOT_OWNER')
+    expect(code(await gqlError(other, REPUBLISH_OFFER, { i: { id: offerA.id } }))).toBe('KIT_RIGHT_SCOPE_OWN')
     expect((await getOffer(sup.token, offerA.id)).status).toBe('WITHDRAWN')
     // Своё снятое и ранее одобренное владелец возвращает сразу в каталог.
     const back = await gql<any>(sup.token, REPUBLISH_OFFER, { i: { id: offerA.id } })

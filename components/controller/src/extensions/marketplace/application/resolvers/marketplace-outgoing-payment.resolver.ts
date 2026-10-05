@@ -1,6 +1,6 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, SELF } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
@@ -52,7 +52,7 @@ export class MarketplaceOutgoingPaymentResolver {
     description: 'История выплат поставщику в столе поставщика — статусы по каждому заказу.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Payment', 'read:to-self')
+  @RequireRight('Payment', 'read:to-self', SELF)
   async marketplaceListOutgoingPaymentsAsSupplier(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('filter', { nullable: true })

@@ -1,7 +1,7 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight, SELF } from '@coopenomics/extension-kit';
 
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -58,7 +58,7 @@ export class MarketplaceSupplierResolver {
     description: 'Запись текущего пайщика в реестре поставщиков (для онбординга)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Supplier', 'read:own')
+  @RequireRight('Supplier', 'read:own', SELF)
   async marketplaceMySupplierState(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember
   ): Promise<MarketplaceSupplierDTO | null> {
@@ -71,7 +71,7 @@ export class MarketplaceSupplierResolver {
     description: 'Подать заявку на допуск поставщика по членской модели (путь 1)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Supplier', 'request:own')
+  @RequireRight('Supplier', 'request:own', SELF)
   async marketplaceRequestSupplier(
     @CurrentMarketplaceMember() currentMember: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceRequestSupplierInputDTO

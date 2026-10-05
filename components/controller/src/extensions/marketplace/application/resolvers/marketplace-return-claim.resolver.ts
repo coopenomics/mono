@@ -5,8 +5,8 @@ import {
   platformSettings,
   GeneratedDocumentDTO,
   DocumentAggregateDTO,
-  DomainError,
   RequireRight,
+  SELF,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
@@ -27,10 +27,6 @@ import {
 } from '../dto/marketplace-return-claim.dto';
 import { MarketplaceReturnClaimService } from '../services/marketplace-return-claim.service';
 import type { MarketplaceReturnClaimDomainEntity } from '../../domain/entities/marketplace-return-claim.entity';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import { toMarketplaceReturnClaimDTO } from './marketplace-return-claim.mapper';
 import {
   MARKETPLACE_BRANCH_OWNERSHIP_SERVICE,
@@ -67,8 +63,6 @@ function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO
 export class MarketplaceReturnClaimResolver {
   constructor(
     private readonly service: MarketplaceReturnClaimService,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService,
     @Inject(MARKETPLACE_BRANCH_OWNERSHIP_SERVICE)
     private readonly branchOwnership: MarketplaceBranchOwnershipService,
     @Inject(MARKETPLACE_ORDER_DISPLAY_SERVICE)
@@ -81,7 +75,7 @@ export class MarketplaceReturnClaimResolver {
       'Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'create:own')
+  @RequireRight('ReturnClaim', 'create:own', { of: 'Order', id: 'data.order_id' })
   async marketplaceReturnClaimSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceReturnClaimSignablePayloadInputDTO
@@ -102,7 +96,7 @@ export class MarketplaceReturnClaimResolver {
       'Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'create:own')
+  @RequireRight('ReturnClaim', 'create:own', { of: 'Order', id: 'data.order_id' })
   async marketplaceCreateReturnClaim(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateReturnClaimInputDTO
@@ -126,12 +120,11 @@ export class MarketplaceReturnClaimResolver {
       'Председатель кооперативного участка по результатам удалённого рассмотрения приглашает пайщика на очный осмотр имущества.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'decide:remote')
+  @RequireRight('ReturnClaim', 'decide:remote', { ku: 'data.braname' })
   async marketplaceApproveReturnVisit(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceApproveReturnVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.approveReturnVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -148,12 +141,11 @@ export class MarketplaceReturnClaimResolver {
       'Председатель отказывает в гарантийном возврате удалённо с указанием причины — финальное решение, движений по средствам нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'decide:remote')
+  @RequireRight('ReturnClaim', 'decide:remote', { ku: 'data.braname' })
   async marketplaceRejectReturnRemote(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnRemoteInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.rejectReturnRemote({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -171,12 +163,11 @@ export class MarketplaceReturnClaimResolver {
       'Робот решений совета зовётся напрямую и ждётся у стойки; без решения заявление остаётся в спокойном ожидании — деньги двигаются только по решению совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'decide:on-site')
+  @RequireRight('ReturnClaim', 'decide:on-site', { ku: 'data.braname' })
   async marketplaceAcceptReturnAtVisit(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceAcceptReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.acceptReturnAtVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -197,12 +188,11 @@ export class MarketplaceReturnClaimResolver {
       'Оператор по результатам осмотра не принимает имущество — заказчик забирает его сразу, движений по средствам нет.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'decide:on-site')
+  @RequireRight('ReturnClaim', 'decide:on-site', { ku: 'data.braname' })
   async marketplaceRejectReturnAtVisit(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceRejectReturnAtVisitInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.rejectReturnAtVisit({
       coopname: platformSettings().coopname,
       chairman_account: member.username,
@@ -219,7 +209,7 @@ export class MarketplaceReturnClaimResolver {
     description: 'Все заявления текущего пайщика на гарантийный возврат — активные и архивные.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'read:own')
+  @RequireRight('ReturnClaim', 'read:own', SELF)
   async marketplaceListMyReturnClaims(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
   ): Promise<MarketplaceReturnClaimDTO[]> {
@@ -233,22 +223,10 @@ export class MarketplaceReturnClaimResolver {
       'Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'read:own-KU')
+  @RequireRight('ReturnClaim', 'read:own-KU', { ku: 'data.delivery_braname' })
   async marketplaceListReturnClaimsByBraname(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceListReturnClaimsByBranameInputDTO
   ): Promise<MarketplaceReturnClaimDTO[]> {
-    // Ownership `:own-KU` — пайщик должен быть trustee или trusted
-    // именно того КУ, к которому привязано заявление. Проверка идёт
-    // через единый источник истины состава КУ (MarketplaceKuChairmanService).
-    const isMember = await this.kuChairmanService.isMemberOfBranch(
-      platformSettings().coopname,
-      data.delivery_braname,
-      member.username
-    );
-    if (!isMember) {
-      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_READ_NOT_TRUSTEE');
-    }
     const claims = await this.service.listByDeliveryBraname(
       platformSettings().coopname,
       data.delivery_braname
@@ -261,31 +239,14 @@ export class MarketplaceReturnClaimResolver {
     description: 'Получить одно заявление на гарантийный возврат по идентификатору.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  // OR по капабилити: заказчик читает своё (read:own), председатель/доверенный
-  // КУ доставки — заявления своего участка (read:own-KU). Guard пропускает по
-  // ЛЮБОМУ из них — какое именно применимо к КОНКРЕТНОМУ заявлению (заказчик
-  // ли он, или председатель именно ЭТОГО КУ) резолвер проверяет сам ниже.
-  @RequireRight('ReturnClaim', ['read:own', 'read:own-KU'])
+  // Заказчик читает своё заявление (read:own), председатель и доверенные
+  // участка доставки — заявления своего участка (read:own-KU). Чьё это
+  // заявление и чей участок, guard сверяет по самому заявлению.
+  @RequireRight('ReturnClaim', ['read:own', 'read:own-KU'], { of: 'ReturnClaim', id: 'claim_id' })
   async marketplaceReturnClaim(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
-    // Ownership-проверка `:own` — matrix capability проверена guard'ом,
-    // здесь верифицируем, что пайщик действительно владелец заявления:
-    // либо заказчик Order'а, либо член КУ доставки (trustee/trusted —
-    // в marketplace-домене они равны в правах).
-    const isOwnerOrderer = claim.orderer_account === member.username;
-    const isOperatorOfDeliveryKu =
-      member.marketplace_roles.includes('operator') &&
-      (await this.kuChairmanService.isMemberOfBranch(
-        platformSettings().coopname,
-        claim.delivery_braname,
-        member.username
-      ));
-    if (!isOwnerOrderer && !isOperatorOfDeliveryKu) {
-      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_FOREIGN');
-    }
     return this.toClaimDTO(claim);
   }
 
@@ -295,12 +256,11 @@ export class MarketplaceReturnClaimResolver {
       'Оператор выдал имущество обратно пайщику: после отказа совета либо по истечении срока ожидания решения (7 дней с приёма). Записи в цепи не остаётся, заказ остаётся выданным.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'hand-back')
+  @RequireRight('ReturnClaim', 'hand-back', { ku: 'data.braname' })
   async marketplaceHandBackReturn(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceHandBackReturnInputDTO
   ): Promise<MarketplaceReturnClaimResultDTO> {
-    await this.assertOperatesBranch(member, data.braname);
     const result = await this.service.handBackReturn({
       coopname: platformSettings().coopname,
       operator_account: member.username,
@@ -316,22 +276,13 @@ export class MarketplaceReturnClaimResolver {
       'Документы приёма имущества у стойки: заявление оператора участка в совет об отмене сделки (1116) — одна подпись оператора, и рекламация пайщика (1106) под вторую подпись оператора; с ней претензия уйдёт поставщику по решению совета.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('ReturnClaim', 'decide:on-site')
+  @RequireRight('ReturnClaim', 'decide:on-site', { of: 'ReturnClaim', id: 'claim_id' })
   async marketplaceReturnClaimChairmanSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('claim_id') claim_id: string,
     @Args('inspection_result', { description: 'Результат осмотра имущества на участке — попадает в текст заявления.' })
     inspection_result: string
   ): Promise<MarketplaceReturnAcceptancePayloadDTO> {
-    const claim = await this.service.findById(platformSettings().coopname, claim_id);
-    const isMember = await this.kuChairmanService.isMemberOfBranch(
-      platformSettings().coopname,
-      claim.delivery_braname,
-      member.username
-    );
-    if (!isMember) {
-      throw DomainError.forbidden('MARKETPLACE_RETURN_CLAIM_PREPARE_NOT_TRUSTEE');
-    }
     const docs = await this.service.getChairmanReturnSignablePayload({
       coopname: platformSettings().coopname,
       claim_id,
@@ -407,14 +358,5 @@ export class MarketplaceReturnClaimResolver {
   ): Promise<MarketplaceReturnClaimResultDTO> {
     const dto = await this.toClaimDTO(result.claim);
     return { claim: dto, tx_hash: result.tx_hash };
-  }
-
-  /**
-   * Решение по возврату принимает оператор участка, к которому привязано
-   * заявление: сервис сверяет участок заявления с присланным, здесь — что
-   * оператор сам с этого участка. Раньше это проверяла только цепь (C28-87).
-   */
-  private async assertOperatesBranch(member: IMarketplaceCurrentMember, braname: string): Promise<void> {
-    await this.kuChairmanService.assertIsMemberOfBranch(platformSettings().coopname, braname, member.username);
   }
 }

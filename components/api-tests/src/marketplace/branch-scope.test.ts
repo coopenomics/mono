@@ -17,7 +17,7 @@ import { refusal } from './mkt-flows.helpers'
 import { inventoryOfOrder } from './stock.helpers'
 
 const PRODUCT = 'Мёд цветочный'
-const NOT_TRUSTEE = 'MARKETPLACE_ACTION_NOT_TRUSTEE'
+const NOT_TRUSTEE = 'KIT_RIGHT_SCOPE_OWN_KU'
 
 const member = ROLES.member()
 const supplier = ROLES.supplier()
@@ -104,7 +104,7 @@ describe('Стол заказов: оператор распоряжается �
     await gql(operatorToken, CANCEL_RECEPTION, { d: { apl_reception_id: first.id } })
 
     const denied = await refusal(foreignToken, CREATE, { d: { shipment_id: shipmentId, fact_quantity_per_order: fact } })
-    expect(denied?.codeText, denied?.message).toBe('MARKETPLACE_RECEPTION_NOT_TRUSTEE')
+    expect(denied?.codeText, denied?.message).toBe(NOT_TRUSTEE)
 
     const feed = await gql<any>(operatorToken, FEED, { d: { braname: KRG } })
     const open = (feed.marketplaceListAplReceptionsByBraname as any[])

@@ -8,17 +8,13 @@ import {
   GeneratedDocumentDTO,
   DocumentAggregateDTO,
   DomainError,
+  GrantedScope,
   RequireRight,
+  type IGrantedScope,
 } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
-import { canAccess } from '../access/marketplace-access-matrix';
-import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import {
-  MARKETPLACE_KU_CHAIRMAN_SERVICE,
-  type MarketplaceKuChairmanService,
-} from '../services/marketplace-ku-chairman.service';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
 import {
   MarketplaceConfirmWriteoffInputDTO,
@@ -72,9 +68,7 @@ function toGeneratedDocumentDTO(e: InnerGeneratedDocument): GeneratedDocumentDTO
 export class MarketplaceWriteoffResolver {
   constructor(
     private readonly service: MarketplaceWriteoffService,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
-    @Inject(MARKETPLACE_KU_CHAIRMAN_SERVICE)
-    private readonly kuChairmanService: MarketplaceKuChairmanService
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
   ) {}
 
   @Query(() => MarketplaceWriteoffProposalDTO, {
@@ -281,21 +275,16 @@ export class MarketplaceWriteoffResolver {
       'Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Writeoff', 'read:own-KU')
+  @RequireRight('Writeoff', 'read:own-KU', { list: null })
   async marketplaceWriteoffPendingConfirmations(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember
+    @GrantedScope() scope: IGrantedScope
   ): Promise<MarketplaceWriteoffConfirmationGroupDTO[]> {
-    const coopname = platformSettings().coopname;
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    // Совет/админ (read:all) видят все участки; председатель КУ — только свои.
-    let branames: string[] | null = null;
-    if (!canAccess(roles, 'Writeoff', 'read:all')) {
-      branames = await this.kuChairmanService.listBranamesForMember(coopname, member.username);
-      if (branames.length === 0) return [];
-    }
+    // Участки отбора отдаёт гард: совет и администратор видят все участки
+    // (отбора нет), председатель и доверенные участка — свои.
+    if (scope.kus && scope.kus.length === 0) return [];
     return (await this.service.listPendingConfirmations(
-      coopname,
-      branames
+      platformSettings().coopname,
+      scope.kus ?? null
     )) as MarketplaceWriteoffConfirmationGroupDTO[];
   }
 
@@ -305,12 +294,11 @@ export class MarketplaceWriteoffResolver {
       'Превью Служебной записки о списании (registry 1111) по одному участку проекта — для подписания председателем КУ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Writeoff', 'confirm:own-KU')
+  @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceWriteoffServiceMemoSignablePayload(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffServiceMemoSignablePayloadInputDTO
   ): Promise<GeneratedDocumentDTO> {
-    await this.assertBranchAuthorized(member, data.braname);
     const memo = await this.service.getServiceMemoData(data.proposal_id, data.braname);
     const action: Cooperative.Registry.MarketplaceWriteoffServiceMemo.Action = {
       registry_id: Cooperative.Registry.MarketplaceWriteoffServiceMemo.registry_id,
@@ -337,21 +325,12 @@ export class MarketplaceWriteoffResolver {
       'Протокол совета об одобрении списания — подписанный документ (агрегат) для просмотра председателем КУ.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Writeoff', 'confirm:own-KU')
+  @RequireRight('Writeoff', 'confirm:own-KU', { of: 'WriteoffProposal', id: 'data.proposal_id', match: 'any' })
   async marketplaceWriteoffProtocolDocument(
-    @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceWriteoffProtocolDocumentInputDTO
   ): Promise<DocumentAggregateDTO> {
-    // Протокол читает оператор участка, чьи позиции есть в проекте списания;
-    // совет и администратор — любой.
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (!canAccess(roles, 'Writeoff', 'read:all')) {
-      const proposal = await this.service.getProposal(data.proposal_id);
-      const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
-      if (!proposal.items.some((item) => own.includes(item.braname))) {
-        throw DomainError.forbidden('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE');
-      }
-    }
+    // Протокол читает оператор участка, чьи позиции есть в проекте списания:
+    // участки проекта сверяет гард.
     // Протокол уже подписан советом и лежит в реестре документов: собираем
     // агрегат из подписанного документа по doc_hash (тело + подписи), НЕ
     // регенерируем. Канон — issuance/return-claim.
@@ -368,12 +347,11 @@ export class MarketplaceWriteoffResolver {
       'Подтвердить фактическое списание со склада участка подписанной председателем КУ Служебной запиской (registry 1111). Запускает on-chain confirmwroff по всем позициям этого участка.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireRight('Writeoff', 'confirm:own-KU')
+  @RequireRight('Writeoff', 'confirm:own-KU', { ku: 'data.braname' })
   async marketplaceConfirmWriteoff(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceConfirmWriteoffInputDTO
   ): Promise<MarketplaceWriteoffProposalDTO> {
-    await this.assertBranchAuthorized(member, data.braname);
     const updated = await this.service.confirmWriteoff({
       id: data.proposal_id,
       braname: data.braname,
@@ -420,21 +398,5 @@ export class MarketplaceWriteoffResolver {
     const dd = String(d.getUTCDate()).padStart(2, '0');
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
     return `${dd}.${mm}.${d.getUTCFullYear()}`;
-  }
-
-  /**
-   * Гард ownership: председатель КУ может подтверждать списание только по
-   * своим участкам. Админ/совет (read:all) — по любому.
-   */
-  private async assertBranchAuthorized(
-    member: IMarketplaceCurrentMember,
-    braname: string
-  ): Promise<void> {
-    const roles = member.marketplace_roles as MarketplaceRole[];
-    if (canAccess(roles, 'Writeoff', 'read:all')) return;
-    const own = await this.kuChairmanService.listBranamesForMember(platformSettings().coopname, member.username);
-    if (!own.includes(braname)) {
-      throw DomainError.badRequest('MARKETPLACE_WRITEOFF_CONFIRM_NOT_TRUSTEE');
-    }
   }
 }

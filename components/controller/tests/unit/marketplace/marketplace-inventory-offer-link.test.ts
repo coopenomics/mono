@@ -58,16 +58,11 @@ const makeResolver = (rows: unknown[], display: Map<string, unknown>) => {
     resolveAccountNames: jest.fn().mockResolvedValue(new Map()),
     enrichByOrderIds: jest.fn().mockResolvedValue(display),
   } as any;
-  return new MarketplaceInventoryResolver(
-    {} as any,
-    inventoryRepo,
-    { listBranamesForMember: jest.fn().mockResolvedValue([]) } as any,
-    orderDisplay
-  );
+  return new MarketplaceInventoryResolver({} as any, inventoryRepo, orderDisplay);
 };
 
-const asAdmin = () =>
-  ({ username: 'chairman', core_roles: ['Chairman'], marketplace_roles: ['admin'] }) as any;
+/** Охват от гарда для председателя: весь кооператив, отбора по участкам нет. */
+const asAdmin = () => ({ scopes: ['all' as const], kus: null });
 
 describe('marketplaceListInventory → предложение позиции', () => {
   it('обычная позиция получает предложение и категорию своего заказа', async () => {

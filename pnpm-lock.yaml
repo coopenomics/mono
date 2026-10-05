@@ -1240,6 +1240,9 @@ importers:
         specifier: workspace:*
         version: link:../sdk
     devDependencies:
+      '@casl/ability':
+        specifier: ^7.0.0
+        version: 7.0.1
       '@coopenomics/i18n':
         specifier: workspace:*
         version: link:../i18n
