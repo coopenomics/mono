@@ -6,15 +6,17 @@
   BaseButton(variant="ghost" size="sm" icon-only :aria-label="downLabel" :disabled="!canDown || busy" @click="emit('down')")
     template(#icon-left)
       q-icon(name="arrow_downward" size="18px")
+  //- У кнопки-иконки содержимое по умолчанию не рисуется — меню кладётся в её слот `menu`.
   BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.more')" :disabled="busy")
     template(#icon-left)
       q-icon(name="more_vert" size="18px")
-    q-menu(anchor="bottom right" self="top right")
-      q-list(dense)
-        q-item(clickable v-close-popup @click="emit('rename')")
-          q-item-section {{ $t('edubridge.adminSectionsPage.rename') }}
-        q-item(clickable v-close-popup @click="emit('toggle')")
-          q-item-section {{ archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
+    template(#menu)
+      q-menu(anchor="bottom right" self="top right")
+        q-list(dense)
+          q-item(clickable v-close-popup @click="emit('rename')")
+            q-item-section {{ $t('edubridge.adminSectionsPage.rename') }}
+          q-item(clickable v-close-popup @click="emit('toggle')")
+            q-item-section {{ archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
 </template>
 
 <script setup lang="ts">
