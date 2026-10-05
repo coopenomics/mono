@@ -3241,6 +3241,7 @@ export type MessageKey =
   | 'edubridge.useCourseForm.createdSuccess'
   | 'edubridge.useCourseForm.discountHint'
   | 'edubridge.useCourseForm.discountHintWithLimit'
+  | 'edubridge.useCourseForm.discountLimit'
   | 'edubridge.useCourseForm.discountTooLargeError'
   | 'edubridge.useCourseForm.noTeachersHint'
   | 'edubridge.useCourseForm.savedSuccess'

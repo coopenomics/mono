@@ -243,7 +243,7 @@
     "EDUBRIDGE_CONTRIBUTION_WITHOUT_LESSON": "Взнос оформлен вне журнала занятий",
     "EDUBRIDGE_COOP_PRIVATE_KEY_NOT_FOUND": "Не найден приватный ключ кооператива для действий edubridge",
     "EDUBRIDGE_COURSE_CARRIER_NOT_ALLOWED": "Носитель «{carrier}» недопустим для направления «{direction}»",
-    "EDUBRIDGE_COURSE_DISCOUNT_TOO_HIGH": "Скидка {discount}% больше целевого членского взноса {markup}%. Предельная скидка — {limit}%",
+    "EDUBRIDGE_COURSE_DISCOUNT_TOO_HIGH": "Скидка {discount}% больше предельной. Предельная скидка — {limit}%",
     "EDUBRIDGE_COURSE_IMAGE_DECODE_FAILED": "Не удалось декодировать изображение",
     "EDUBRIDGE_COURSE_IMAGE_EMPTY": "Пустое изображение: нет содержимого файла или его типа",
     "EDUBRIDGE_COURSE_IMAGE_EMPTY_FILE": "Пустой файл изображения — загружать нечего.",

@@ -163,8 +163,12 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
   const fee = ref<ICourseFee | null>(null);
   const discountError = computed(() =>
     coursePayment.value && fee.value && Number(courseDiscount.value || 0) > fee.value.max_course_discount_percent
-      ? i18nT('edubridge.useCourseForm.discountTooLargeError')
+      ? i18nT('edubridge.useCourseForm.discountTooLargeError', { maxDiscountPercent: fee.value.max_course_discount_percent })
       : '',
+  );
+  /** Предел скидки виден в самом поле: администратор знает его до ввода, а не из ошибки. */
+  const discountLimit = computed(() =>
+    fee.value ? i18nT('edubridge.useCourseForm.discountLimit', { maxDiscountPercent: fee.value.max_course_discount_percent }) : '',
   );
   const discountHint = computed(() =>
     fee.value ? i18nT('edubridge.useCourseForm.discountHintWithLimit', { markupPercent: fee.value.markup_percent, maxDiscountPercent: fee.value.max_course_discount_percent }) : i18nT('edubridge.useCourseForm.discountHint'),
@@ -205,7 +209,7 @@ function useFeePreview(economy: ReturnType<typeof useEconomyFields>) {
     if (previewTimer) clearTimeout(previewTimer);
   });
 
-  return { fee, discountError, discountHint, coursePaymentHint, courseFeeShown, courseFeeLabel };
+  return { fee, discountError, discountHint, discountLimit, coursePaymentHint, courseFeeShown, courseFeeLabel };
 }
 
 const directionOptions = Object.entries(DIRECTION_LABELS).map(([value, label]) => ({ value, label }));
