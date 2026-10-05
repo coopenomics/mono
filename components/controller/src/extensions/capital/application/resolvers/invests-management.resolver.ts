@@ -8,7 +8,19 @@ import {
   DeallocationLimitInputDTO,
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, createPaginationResult, PaginationInputDTO, PaginationResult, CurrentUser, GeneratedDocumentDTO, GenerateDocumentOptionsInputDTO, TransactionDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  CurrentUser,
+  GeneratedDocumentDTO,
+  GenerateDocumentOptionsInputDTO,
+  TransactionDTO,
+  GenerateDocumentInputDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
@@ -33,10 +45,8 @@ export class InvestsManagementResolver {
     name: 'capitalCreateProjectInvest',
     description: 'Инвестирование в проект CAPITAL контракта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
-  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
-  @AuthRoles([])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', 'create:own', { owner: 'data.username' })
   async createCapitalProjectInvest(
     @Args('data', { type: () => CreateProjectInvestInputDTO }) data: CreateProjectInvestInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -52,10 +62,8 @@ export class InvestsManagementResolver {
     name: 'capitalCreateProgramInvest',
     description: 'Инвестирование в программу благорост (денежная программная инвестиция)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  // Только от своего имени: ролей нет, RolesGuard пускает по совпадению
-  // data.username с текущим пайщиком (роли «participant» в кооперативе нет).
-  @AuthRoles([])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', 'create:own', { owner: 'data.username' })
   async createCapitalProgramInvest(
     @Args('data', { type: () => CreateProgramInvestInputDTO }) data: CreateProgramInvestInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -70,8 +78,8 @@ export class InvestsManagementResolver {
     name: 'capitalAllocateFunds',
     description: 'Направление средств программы в проект или компонент',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Allocation', 'manage')
   async allocateFunds(
     @Args('data', { type: () => AllocateFundsInputDTO }) data: AllocateFundsInputDTO
   ): Promise<TransactionDTO> {
@@ -85,8 +93,8 @@ export class InvestsManagementResolver {
     name: 'capitalDeallocateFunds',
     description: 'Возврат ранее направленных средств из компонента в программу',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Allocation', 'manage')
   async deallocateFunds(
     @Args('data', { type: () => DeallocateFundsInputDTO }) data: DeallocateFundsInputDTO
   ): Promise<TransactionDTO> {
@@ -102,8 +110,8 @@ export class InvestsManagementResolver {
     name: 'capitalDeallocationLimit',
     description: 'Сколько средств можно вернуть из компонента в программу и чем сумма ограничена',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Allocation', 'manage')
   async getDeallocationLimit(
     @Args('data', { type: () => DeallocationLimitInputDTO }) data: DeallocationLimitInputDTO
   ): Promise<DeallocationLimitOutputDTO> {
@@ -117,8 +125,8 @@ export class InvestsManagementResolver {
     name: 'capitalInvests',
     description: 'Получение списка инвестиций кооператива с фильтрацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', ['read:own', 'read'], { owner: 'filter.username' })
   async getInvests(
     @Args('filter', { nullable: true }) filter?: InvestFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -134,8 +142,8 @@ export class InvestsManagementResolver {
     description: 'Получение инвестиции по внутреннему ID базы данных',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', 'read')
   async getInvest(@Args('data') data: GetInvestInputDTO): Promise<InvestOutputDTO | null> {
     return await this.investsManagementService.getInvestById(data._id);
   }
@@ -150,8 +158,8 @@ export class InvestsManagementResolver {
     description: 'Сгенерировать заявление об инвестировании в благорост',
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Invest', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateCapitalizationMoneyInvestStatement(
     @Args('data', { type: () => GenerateDocumentInputDTO })
     data: GenerateDocumentInputDTO,

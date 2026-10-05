@@ -3,7 +3,7 @@ import { ContractManagementService } from '../services/contract-management.servi
 import { SetConfigInputDTO } from '../dto/contract_management/set-config-input.dto';
 import { GetCapitalConfigInputDTO } from '../dto/contract_management/get-config-input.dto';
 import { StateOutputDTO } from '../dto/contract_management/config-output.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, TransactionDTO } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, TransactionDTO, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 
 /**
@@ -20,8 +20,8 @@ export class ContractManagementResolver {
     name: 'capitalSetConfig',
     description: 'Установка конфигурации CAPITAL контракта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalConfig', 'update')
   async setCapitalConfig(@Args('data', { type: () => SetConfigInputDTO }) data: SetConfigInputDTO): Promise<TransactionDTO> {
     const result = await this.contractManagementService.setConfig(data);
     return result;
@@ -35,8 +35,8 @@ export class ContractManagementResolver {
     description: 'Получение полного состояния CAPITAL контракта кооператива',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('CapitalConfig', 'read')
   async getCapitalState(@Args('data') data: GetCapitalConfigInputDTO): Promise<StateOutputDTO | null> {
     const result = await this.contractManagementService.getState(data);
     return result;

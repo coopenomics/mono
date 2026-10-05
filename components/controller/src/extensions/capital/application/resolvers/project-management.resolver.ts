@@ -15,7 +15,16 @@ import { GetProjectInputDTO } from '../dto/project_management/get-project-input.
 import { GetProjectWithRelationsInputDTO } from '../dto/project_management/get-project-with-relations-input.dto';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, TransactionDTO } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  TransactionDTO,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
@@ -36,8 +45,8 @@ export class ProjectManagementResolver {
     name: 'capitalCreateProject',
     description: 'Создание проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'create')
   async createCapitalProject(
     @Args('data', { type: () => CreateProjectInputDTO }) data: CreateProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -53,8 +62,8 @@ export class ProjectManagementResolver {
     name: 'capitalCreateLocalProject',
     description: 'Создание персонального проекта или компонента без публикации в блокчейн',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'create-local')
   async createCapitalLocalProject(
     @Args('data', { type: () => CreateProjectInputDTO }) data: CreateProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -69,8 +78,8 @@ export class ProjectManagementResolver {
     name: 'capitalEditProject',
     description: 'Редактирование проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'update')
   async editCapitalProject(
     @Args('data', { type: () => EditProjectInputDTO }) data: EditProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -85,8 +94,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetMaster',
     description: 'Установка мастера проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'master')
   async setCapitalMaster(
     @Args('data', { type: () => SetMasterInputDTO }) data: SetMasterInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -102,8 +111,8 @@ export class ProjectManagementResolver {
     name: 'capitalAddAuthor',
     description: 'Добавление автора проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'authors')
   async addCapitalAuthor(
     @Args('data', { type: () => AddAuthorInputDTO }) data: AddAuthorInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -119,8 +128,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetPlan',
     description: 'Установка плана проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'plan')
   async setCapitalPlan(
     @Args('data', { type: () => SetPlanInputDTO }) data: SetPlanInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -136,8 +145,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetProjectPriority',
     description: 'Установка приоритета проекта или компонента (хранится только в базе данных)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'update')
   async setCapitalProjectPriority(
     @Args('data', { type: () => SetCapitalProjectPriorityInputDTO }) data: SetCapitalProjectPriorityInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -152,8 +161,8 @@ export class ProjectManagementResolver {
     name: 'capitalSetProjectDevelopmentRepositoryUrl',
     description: 'Сохранение URL репозитория разработки проекта/компонента (только БД)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'update')
   async setCapitalProjectDevelopmentRepositoryUrl(
     @Args('data', { type: () => SetCapitalProjectDevelopmentRepositoryUrlInputDTO }) data: SetCapitalProjectDevelopmentRepositoryUrlInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -168,8 +177,8 @@ export class ProjectManagementResolver {
     name: 'capitalStartProject',
     description: 'Запуск проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'status')
   async startCapitalProject(
     @Args('data', { type: () => StartProjectInputDTO }) data: StartProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -185,8 +194,8 @@ export class ProjectManagementResolver {
     name: 'capitalOpenProject',
     description: 'Открытие проекта для инвестиций в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'status')
   async openCapitalProject(
     @Args('data', { type: () => OpenProjectInputDTO }) data: OpenProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -202,8 +211,8 @@ export class ProjectManagementResolver {
     name: 'capitalCloseProject',
     description: 'Закрытие проекта от инвестиций в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'status')
   async closeCapitalProject(
     @Args('data', { type: () => CloseProjectInputDTO }) data: CloseProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -219,8 +228,8 @@ export class ProjectManagementResolver {
     name: 'capitalStopProject',
     description: 'Остановка проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'status')
   async stopCapitalProject(
     @Args('data', { type: () => StopProjectInputDTO }) data: StopProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -237,8 +246,8 @@ export class ProjectManagementResolver {
     name: 'capitalFinalizeProject',
     description: 'Финализация проекта в CAPITAL контракте после завершения всех конвертаций участников',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'status')
   async finalizeCapitalProject(
     @Args('data', { type: () => FinalizeProjectInputDTO }) data: FinalizeProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -254,8 +263,8 @@ export class ProjectManagementResolver {
     name: 'capitalDeleteProject',
     description: 'Удаление проекта в CAPITAL контракте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'delete')
   async deleteCapitalProject(
     @Args('data', { type: () => DeleteProjectInputDTO }) data: DeleteProjectInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -273,8 +282,8 @@ export class ProjectManagementResolver {
     name: 'capitalProjects',
     description: 'Получение списка проектов кооператива с фильтрацией и компонентами',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'read')
   async getProjects(
     @Args('filter', { nullable: true }) filter?: ProjectFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -291,8 +300,8 @@ export class ProjectManagementResolver {
     description: 'Получение проекта по хешу с компонентами',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'read')
   async getProject(
     @Args('data') data: GetProjectInputDTO,
     @CurrentUser() currentUser?: IMonoAccount
@@ -308,8 +317,8 @@ export class ProjectManagementResolver {
     description: 'Получение проекта с полными отношениями по хешу проекта',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Project', 'read')
   async getProjectWithRelations(
     @Args('data') data: GetProjectWithRelationsInputDTO,
     @CurrentUser() currentUser?: IMonoAccount

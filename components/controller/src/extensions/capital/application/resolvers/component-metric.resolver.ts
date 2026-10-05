@@ -1,6 +1,14 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ComponentMetricService } from '../services/component-metric.service';
 import { ComponentMetricOutputDTO } from '../dto/metrics/component-metric.dto';
@@ -41,8 +49,8 @@ export class ComponentMetricResolver {
     name: 'capitalUpdateMeasure',
     description: 'Включение или выключение меры в справочнике (без изменения состава)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Measure', 'update')
   async updateMeasure(
     @Args('data', { type: () => UpdateMeasureInputDTO }) data: UpdateMeasureInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -54,8 +62,8 @@ export class ComponentMetricResolver {
     name: 'capitalMeasures',
     description: 'Справочник мер кооператива',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Measure', 'read')
   async getMeasures(
     @Args('data') data: GetMeasuresInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -67,8 +75,8 @@ export class ComponentMetricResolver {
     name: 'capitalCreateComponentMetric',
     description: 'Создание цели по мере на компоненте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'create')
   async createComponentMetric(
     @Args('data', { type: () => CreateComponentMetricInputDTO }) data: CreateComponentMetricInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -80,8 +88,8 @@ export class ComponentMetricResolver {
     name: 'capitalUpdateComponentMetric',
     description: 'Обновление цели по мере на компоненте',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'update')
   async updateComponentMetric(
     @Args('data', { type: () => UpdateComponentMetricInputDTO }) data: UpdateComponentMetricInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -93,8 +101,8 @@ export class ComponentMetricResolver {
     name: 'capitalArchiveComponentMetric',
     description: 'Архивация метрики компонента',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'delete')
   async archiveComponentMetric(
     @Args('data', { type: () => ArchiveComponentMetricInputDTO }) data: ArchiveComponentMetricInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -106,8 +114,8 @@ export class ComponentMetricResolver {
     name: 'capitalComponentMetrics',
     description: 'Цели по мерам на компоненте с фактом',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getComponentMetrics(
     @Args('data') data: GetComponentMetricsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -119,8 +127,8 @@ export class ComponentMetricResolver {
     name: 'capitalSetIssueMetricBindings',
     description: 'Установка привязок задачи к метрикам компонента',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'update')
   async setIssueMetricBindings(
     @Args('data', { type: () => SetIssueMetricBindingsInputDTO }) data: SetIssueMetricBindingsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -132,8 +140,8 @@ export class ComponentMetricResolver {
     name: 'capitalIssueMetricBindings',
     description: 'Привязки задачи к метрикам',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Issue', 'read')
   async getIssueMetricBindings(
     @Args('data') data: GetIssueMetricBindingsInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -145,8 +153,8 @@ export class ComponentMetricResolver {
     name: 'capitalLogMetricContribution',
     description: 'Ручной вклад в метрику',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'create')
   async logMetricContribution(
     @Args('data', { type: () => LogMetricContributionInputDTO }) data: LogMetricContributionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -158,8 +166,8 @@ export class ComponentMetricResolver {
     name: 'capitalMetricContributions',
     description: 'Журнал вкладов в метрику',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getMetricContributions(
     @Args('data', { type: () => GetMetricContributionsInputDTO }) data: GetMetricContributionsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO,
@@ -172,8 +180,8 @@ export class ComponentMetricResolver {
     name: 'capitalMetricSeries',
     description: 'Временной ряд метрики: накопление и скорость по периодам',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getMetricSeries(
     @Args('data', { type: () => GetMetricSeriesInputDTO }) data: GetMetricSeriesInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -185,8 +193,8 @@ export class ComponentMetricResolver {
     name: 'capitalMetricWave',
     description: 'Волновая разметка метрики: 5/3, Фибо-сетка и прогнозный коридор',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getMetricWave(
     @Args('data', { type: () => GetMetricWaveInputDTO }) data: GetMetricWaveInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -198,8 +206,8 @@ export class ComponentMetricResolver {
     name: 'capitalMetricSuperposition',
     description: 'Метрика резонанса и rollup планов/фактов по компонентам',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getMetricSuperposition(
     @Args('data', { type: () => GetMetricSuperpositionInputDTO }) data: GetMetricSuperpositionInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -211,8 +219,8 @@ export class ComponentMetricResolver {
     name: 'capitalMetricSuperpositionHistory',
     description: 'История резонанса метрик по бакетам выбранного периода',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Metric', 'read')
   async getMetricSuperpositionHistory(
     @Args('data', { type: () => GetMetricSuperpositionHistoryInputDTO })
     data: GetMetricSuperpositionHistoryInputDTO,

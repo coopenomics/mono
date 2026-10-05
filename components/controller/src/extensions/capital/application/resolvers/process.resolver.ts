@@ -1,8 +1,6 @@
 import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser,
-  platformSettings,
-} from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, CurrentUser, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { ProcessService } from '../services/process.service';
 import { ProcessTemplateDTO, CreateProcessTemplateInputDTO, UpdateProcessTemplateInputDTO } from '../dto/process/process-template.dto';
@@ -18,8 +16,8 @@ export class ProcessResolver {
     name: 'capitalCreateProcessTemplate',
     description: 'Создание шаблона процесса',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessTemplate', 'manage')
   async createProcessTemplate(
     @Args('data') data: CreateProcessTemplateInputDTO,
     @CurrentUser() user: IMonoAccount,
@@ -37,8 +35,8 @@ export class ProcessResolver {
     name: 'capitalUpdateProcessTemplate',
     description: 'Обновление шаблона процесса (шаги, рёбра, статус)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessTemplate', 'manage')
   async updateProcessTemplate(
     @Args('data') data: UpdateProcessTemplateInputDTO,
     @CurrentUser() user: IMonoAccount,
@@ -50,8 +48,8 @@ export class ProcessResolver {
     name: 'capitalDeleteProcessTemplate',
     description: 'Удаление шаблона процесса',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessTemplate', 'manage')
   async deleteProcessTemplate(
     @Args('id') id: string,
     @CurrentUser() user: IMonoAccount,
@@ -64,8 +62,8 @@ export class ProcessResolver {
     name: 'capitalGetProcessTemplates',
     description: 'Получение шаблонов процессов для проекта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessTemplate', 'read')
   async getProcessTemplates(
     @CurrentUser() user: IMonoAccount,
     @Args('project_hash', { nullable: true }) projectHash?: string,
@@ -81,8 +79,8 @@ export class ProcessResolver {
     description: 'Получение шаблона процесса по ID',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessTemplate', 'read')
   async getProcessTemplate(
     @Args('id') id: string,
     @CurrentUser() user: IMonoAccount,
@@ -96,8 +94,8 @@ export class ProcessResolver {
     name: 'capitalStartProcess',
     description: 'Запуск экземпляра процесса',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessInstance', 'run')
   async startProcess(
     @Args('data') data: StartProcessInputDTO,
     @CurrentUser() user: IMonoAccount,
@@ -114,8 +112,8 @@ export class ProcessResolver {
     name: 'capitalCompleteProcessStep',
     description: 'Завершение шага процесса',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessInstance', 'run')
   async completeProcessStep(
     @Args('data') data: CompleteProcessStepInputDTO,
     @CurrentUser() user: IMonoAccount,
@@ -127,8 +125,8 @@ export class ProcessResolver {
     name: 'capitalGetProcessInstances',
     description: 'Получение экземпляров процессов для проекта',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessInstance', 'read')
   async getProcessInstances(
     @Args('project_hash') projectHash: string,
     @CurrentUser() user: IMonoAccount,
@@ -141,8 +139,8 @@ export class ProcessResolver {
     description: 'Получение экземпляра процесса по ID',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('ProcessInstance', 'read')
   async getProcessInstance(
     @Args('id') id: string,
     @CurrentUser() user: IMonoAccount,

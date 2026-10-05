@@ -12,7 +12,16 @@ import {
   CapitalGetOpenTimerInputDTO,
   CapitalTimerSessionOutputDTO,
 } from '../dto/time_tracker/worklog.dto';
-import { GqlJwtAuthGuard, RolesGuard, AuthRoles, CurrentUser, createPaginationResult, PaginationInputDTO, PaginationResult, DomainError } from '@coopenomics/extension-kit';
+import {
+  GqlJwtAuthGuard,
+  CurrentUser,
+  createPaginationResult,
+  PaginationInputDTO,
+  PaginationResult,
+  DomainError,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import { UseGuards } from '@nestjs/common';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { TimeEntriesFilterInputDTO } from '../dto/time_tracker';
@@ -34,8 +43,8 @@ export class TimeTrackerResolver {
     name: 'capitalTimeStats',
     description: 'Гибкий запрос статистики времени участников по проектам с пагинацией',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', 'read')
   async getCapitalTimeStats(
     @Args('data', { nullable: true }) data?: TimeStatsInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -47,8 +56,8 @@ export class TimeTrackerResolver {
     name: 'capitalTimeEntries',
     description: 'Получение пагинированного списка записей времени',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['read:own', 'read'], { owner: 'filter.username' })
   async getCapitalTimeEntries(
     @Args('filter', { nullable: true }) filter?: TimeEntriesFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -61,8 +70,8 @@ export class TimeTrackerResolver {
     description:
       'Получение пагинированного списка агрегированных записей времени по задачам с информацией о задачах и участниках',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['read:own', 'read'], { owner: 'filter.username' })
   async getCapitalTimeEntriesByIssues(
     @Args('filter', { nullable: true }) filter?: TimeEntriesFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -75,8 +84,8 @@ export class TimeTrackerResolver {
     description: 'Открытая сессия таймера участника (если есть)',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async getOpenTimer(
     @Args('data') data: CapitalGetOpenTimerInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -89,8 +98,8 @@ export class TimeTrackerResolver {
     name: 'capitalAddWorklog',
     description: 'Ручная запись фактического времени по задаче (на себя как исполнителя)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async addWorklog(
     @Args('data') data: CapitalAddWorklogInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -103,8 +112,8 @@ export class TimeTrackerResolver {
     name: 'capitalStartTimer',
     description: 'Старт таймера на задаче (не больше одной открытой сессии на участника)',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async startTimer(
     @Args('data') data: CapitalStartTimerInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -118,8 +127,8 @@ export class TimeTrackerResolver {
     description: 'Остановка открытого таймера — создаёт запись факта по задаче таймера',
     nullable: true,
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async stopTimer(
     @Args('data') data: CapitalStopTimerInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -132,8 +141,8 @@ export class TimeTrackerResolver {
     name: 'capitalPauseTimer',
     description: 'Пауза таймера — задача остаётся привязанной, время не тикает',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async pauseTimer(
     @Args('data') data: CapitalPauseTimerInputDTO,
     @CurrentUser() currentUser: IMonoAccount
@@ -146,8 +155,8 @@ export class TimeTrackerResolver {
     name: 'capitalResumeTimer',
     description: 'Продолжить таймер после паузы на той же задаче',
   })
-  @UseGuards(GqlJwtAuthGuard, RolesGuard)
-  @AuthRoles(['chairman', 'member', 'user'])
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Time', ['track:own', 'track'], { owner: 'data.username' })
   async resumeTimer(
     @Args('data') data: CapitalResumeTimerInputDTO,
     @CurrentUser() currentUser: IMonoAccount

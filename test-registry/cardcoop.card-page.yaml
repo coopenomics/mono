@@ -154,7 +154,7 @@ cases:
     kind: side
     scenario: Кандидат, не принятый советом, открывает стол карты кооператора.
     expect: >
-      отказ KIT_MEMBERS_ONLY — кандидат остаётся кандидатом и стола до приёма
+      отказ KIT_INSUFFICIENT_RIGHTS — кандидат остаётся кандидатом и стола до приёма
       не видит (решение владельца 25.09.2026); связь карты при этом не теряется
     test: components/api-tests/src/cardcoop/join.test.ts
     api: components/api-tests/src/cardcoop/join.test.ts

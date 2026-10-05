@@ -504,6 +504,8 @@ import { SegmentsInteractor } from './application/use-cases/segments.interactor'
 import { LogInteractor } from './application/use-cases/log.interactor';
 import type { ExtensionDomainEntity } from '@coopenomics/extension-kit';
 import { resolveCapitalGithubApiPlainToken } from './application/utils/capital-github-token';
+import { APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
+import { CapitalRights } from './application/access/capital-rights';
 // Конфигурация модуля теперь использует IConfig из схемы
 // EventEmitter: глобальный EventsInfrastructureModule (forRoot один раз в app)
 
@@ -840,6 +842,11 @@ export class CapitalExtension extends BaseExtensionModule {
 @Module({
   imports: [CapitalDatabaseModule],
   providers: [
+    // Права стола: описание для общего гарда операций и прав страниц
+    CapitalRights,
+    { provide: APP_RIGHTS, useExisting: CapitalRights },
+    RightsGuard,
+
     // Extension
     CapitalExtension,
     CapitalRegistrationService,

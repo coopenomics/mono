@@ -199,3 +199,16 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе и порядок работы с версиями — снаружи они не видны; поведение фичи через API покрыто её случаями во внешнем слое"
     status: written
+
+  # Права по таблице прав Благороста (C28-87, кусок 4, 05.10.2026): операции
+  # стоят под общим гардом каркаса вместо `@AuthRoles`; прежние списки ролей и
+  # проход «на своё имя» перенесены один в один, роль в проекте по-прежнему
+  # ведёт таблица ролей проекта.
+  - id: cap.proc.side.12
+    level: backend
+    kind: side
+    scenario: операции раздела зовут кандидат, пайщик, член совета и председатель с чужим именем в запросе и со своим
+    expect: "исход прежнего правила операции: по роли проходит названный в таблице прав, на своё имя — каждый вошедший, остальным отказ KIT_INSUFFICIENT_RIGHTS либо KIT_RIGHT_SCOPE_OWN"
+    test: components/controller/tests/unit/capital/capital-rights.test.ts
+    api: components/api-tests/src/rights/matrix.test.ts
+    status: written
