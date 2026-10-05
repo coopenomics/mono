@@ -1,5 +1,5 @@
 /**
- * Story 4.3 contract guard: каждая TypeORM-entity, наследующая `BaseTypeormEntity`
+ * Story 4.3 contract guard: каждая TypeORM-entity, наследующая `BaseRecord`
  * (т.е. имеющая блокчейн-колонку `block_num`), должна иметь репозиторий, наследующий
  * `BaseBlockchainRepository`. Иначе:
  *   - на UPDATE-пути не сработает `entityVersioningService.saveVersionBeforeUpdate`,
@@ -9,7 +9,7 @@
  *     безвозвратный hard delete (анти-паттерн из CLAUDE.md «Silent data loss»).
  *
  * Тест сканирует `src/` на entity-классы, для каждой ищет соответствующий
- * `*.typeorm-repository.ts` extends `BaseBlockchainRepository`. Allow-list ведёт 5
+ * `*.kysely-repository.ts` extends `BaseBlockchainRepository`. Allow-list ведёт 5
  * off-chain артефактов, где `block_num` vestigial (наследовано от base, но не
  * заполняется и не должно откатываться форком). Долгосрочно — отделить базу
  * (см. Epic 9, audit-report-4-3.md).
@@ -49,17 +49,17 @@ function extractEntityClassName(filePath: string): string | null {
 
 function entityKindFromFileName(filePath: string): string {
   // Нормализация: убираем суффикс файла + опциональный '-typeorm' в основе имени.
-  // Это нужно потому что в репозитории `approval-typeorm.entity.ts` имя основы — `approval-typeorm`,
-  // а соответствующий repo называется `approval.typeorm-repository.ts` (основа = `approval`).
+  // Это нужно потому что в репозитории `approval.record.ts` имя основы — `approval-typeorm`,
+  // а соответствующий repo называется `approval.kysely-repository.ts` (основа = `approval`).
   return path
     .basename(filePath)
-    .replace(/\.typeorm-entity\.ts$|\.entity\.ts$/, '')
+    .replace(/\.record\.ts$|\.entity\.ts$/, '')
     .replace(/-typeorm$/, '');
 }
 
 describe('Story 4.3: BaseChainRepository contract', () => {
   it('каждая запись extends ChainRecord имеет хранилище extends BaseChainRepository (либо в OFF_CHAIN_BASE_ENTITIES allowlist)', () => {
-    // Найти все TS-файлы с «extends BaseTypeormEntity»
+    // Найти все TS-файлы с «extends BaseRecord»
     const entityFiles = execSync(
       `grep -rEln "extends ChainRecord" --include="*.ts" ${SRC_ROOT}`,
       { encoding: 'utf-8' }
@@ -79,7 +79,7 @@ describe('Story 4.3: BaseChainRepository contract', () => {
       repoFiles.map((f) =>
         path
           .basename(f)
-          .replace(/\.typeorm-repository\.ts$|\.repository\.ts$/, '')
+          .replace(/\.kysely-repository\.ts$|\.repository\.ts$/, '')
       )
     );
 
@@ -106,9 +106,9 @@ describe('Story 4.3: BaseChainRepository contract', () => {
 
   it('OFF_CHAIN_BASE_ENTITIES allowlist синхронизирован с реальностью (нет фантомных allow-list-имён)', () => {
     // Защита от устаревания allow-list'а: каждое имя в OFF_CHAIN_BASE_ENTITIES должно
-    // реально существовать как файл *.typeorm-entity.ts или *.entity.ts в src/.
+    // реально существовать как файл *.record.ts или *.entity.ts в src/.
     const allFiles = execSync(
-      `find ${SRC_ROOT} \\( -name "*.typeorm-entity.ts" -o -name "*.entity.ts" \\)`,
+      `find ${SRC_ROOT} \\( -name "*.record.ts" -o -name "*.entity.ts" \\)`,
       { encoding: 'utf-8' }
     )
       .split('\n')

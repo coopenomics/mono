@@ -1,7 +1,7 @@
 import { ProcessInstanceStatus } from '../../domain/enums/process-status.enum';
 import type { ProcessStepState } from '../../domain/entities/process-instance.entity';
 
-export class ProcessInstanceTypeormEntity {
+export class ProcessInstanceRecord {
   id!: string;
 
   coopname!: string;

@@ -14,8 +14,8 @@ sources:
     - components/controller/src/extensions/capital/application/dto/generation/cycle.dto.ts
     - components/controller/src/extensions/capital/application/dto/generation/cycle-filter.input.ts
     - components/controller/src/extensions/capital/domain/entities/cycle.entity.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/cycle.typeorm-entity.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/cycle.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/cycle.record.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/cycle.kysely-repository.ts
   ui:
     - components/desktop/extensions/capital/features/Cycle/**
     - components/desktop/extensions/capital/entities/Cycle/**

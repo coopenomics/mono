@@ -1,7 +1,7 @@
 import { ProcessTemplateStatus } from '../../domain/enums/process-status.enum';
 import type { ProcessStepTemplate, ProcessEdge } from '../../domain/entities/process-template.entity';
 
-export class ProcessTemplateTypeormEntity {
+export class ProcessTemplateRecord {
   id!: string;
 
   coopname!: string;

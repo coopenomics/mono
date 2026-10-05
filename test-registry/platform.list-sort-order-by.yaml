@@ -26,8 +26,8 @@ sources:
     - components/extension-kit/src/dto/pagination.dto.ts
     - components/extension-kit/src/utils/sort-column.utils.ts
     - components/controller/src/infrastructure/database/kysely/repositories/log-extension.kysely-repository.ts
-    - components/controller/src/infrastructure/database/typeorm/repositories/agreement.typeorm-repository.ts
-    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.typeorm-repository.ts
+    - components/controller/src/infrastructure/database/kysely/repositories/agreement.kysely-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.kysely-repository.ts
 
 cases:
   - id: platform.sort.happy.01

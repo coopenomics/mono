@@ -1,16 +1,16 @@
 import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
-import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
+import { AppendixRecord } from '../entities/appendix.record';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixDatabaseData>;
+type toEntityDatabasePart = RequireFields<Partial<AppendixRecord>, keyof IAppendixDatabaseData>;
 /**
  * Мы выбрасываем статус из обновления так как он определяется действиями, а не дельтами
  */
 type toEntityBlockchainPart = Omit<
-  RequireFields<Partial<AppendixTypeormEntity>, keyof IAppendixBlockchainData>,
+  RequireFields<Partial<AppendixRecord>, keyof IAppendixBlockchainData>,
   'status'
 > & {
   blockchain_status: string;
@@ -25,7 +25,7 @@ export class AppendixMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: AppendixTypeormEntity): AppendixDomainEntity {
+  static toDomain(entity: AppendixRecord): AppendixDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -67,7 +67,7 @@ export class AppendixMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: AppendixDomainEntity): Partial<AppendixTypeormEntity> {
+  static toEntity(domain: AppendixDomainEntity): Partial<AppendixRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,

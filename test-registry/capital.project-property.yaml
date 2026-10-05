@@ -16,8 +16,8 @@ sources:
     - components/controller/src/extensions/capital/application/services/property-management.service.ts
     - components/controller/src/extensions/capital/application/use-cases/property-management.interactor.ts
     - components/controller/src/extensions/capital/application/syncers/project-property-sync.service.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/project-property.typeorm-entity.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/project-property.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/project-property.record.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/project-property.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/mappers/project-property.mapper.ts
   contract:
     - components/contracts/cpp/capital/app/property_management/contribute_property_in_project/**

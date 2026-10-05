@@ -3,7 +3,7 @@ import type { Kysely } from 'kysely';
 import { DomainError, inTransaction, rawQuery, type TableStore } from '@coopenomics/extension-kit';
 import { CAPITAL_CONTENT_REVISION_STORE } from '../../infrastructure/database/capital-stores';
 import { createHash } from 'crypto';
-import { ContentRevisionTypeormEntity } from '../../infrastructure/entities/content-revision.typeorm-entity';
+import { ContentRevisionRecord } from '../../infrastructure/entities/content-revision.record';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
 import { ContentConflictError } from '../../domain/errors/content-conflict.error';
@@ -75,7 +75,7 @@ export class ContentRevisionService {
 
   constructor(
     @Inject(CAPITAL_CONTENT_REVISION_STORE)
-    private readonly revisionRepository: TableStore<ContentRevisionTypeormEntity>
+    private readonly revisionRepository: TableStore<ContentRevisionRecord>
   ) {}
 
   /** Готовит запись содержимого: блокировка, ленивый первичный снимок, слияние, новая редакция. */
@@ -261,7 +261,7 @@ export class ContentRevisionService {
     });
   }
 
-  async listRevisions(entityType: ContentEntityType, entityHash: string): Promise<ContentRevisionTypeormEntity[]> {
+  async listRevisions(entityType: ContentEntityType, entityHash: string): Promise<ContentRevisionRecord[]> {
     await this.ensureSeededStandalone(entityType, entityHash);
     return this.revisionRepository.find({ entity_type: entityType, entity_hash: entityHash }, { order: { rev: 'DESC' } });
   }
@@ -270,7 +270,7 @@ export class ContentRevisionService {
     entityType: ContentEntityType,
     entityHash: string,
     rev: number
-  ): Promise<ContentRevisionTypeormEntity | null> {
+  ): Promise<ContentRevisionRecord | null> {
     await this.ensureSeededStandalone(entityType, entityHash);
     return this.revisionRepository.findOne({ entity_type: entityType, entity_hash: entityHash, rev });
   }

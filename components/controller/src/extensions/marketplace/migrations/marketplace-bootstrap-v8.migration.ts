@@ -6,7 +6,7 @@ import { IConfig } from '../types';
  * источник правды (организацию участка), детализация перестаёт их хранить.
  *
  * Изменения схемы `marketplace_ku_details` (исполняет TypeORM `synchronize:true`
- * по декларации сущности `KuDetailsTypeormEntity`):
+ * по декларации сущности `KuDetailsRecord`):
  *  - DROP `contact_phone`, `contact_email` — контакты участка живут в его
  *    организации (правит председатель в «Кооперативные участки»), резолвятся
  *    живьём через field-резолвер `MarketplaceKUDetails`;

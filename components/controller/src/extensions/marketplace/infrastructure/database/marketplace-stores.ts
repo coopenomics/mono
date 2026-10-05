@@ -3,7 +3,7 @@ import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
 import { AvailableCategoryEntity } from '../entities/available-category.entity';
 import { CategoryEntity } from '../entities/category.entity';
-import { KuDetailsTypeormEntity } from '../entities/ku-details.entity';
+import { KuDetailsRecord } from '../entities/ku-details.entity';
 import { MarketplaceAplReceptionEntity } from '../entities/marketplace-apl-reception.entity';
 import { MarketplaceCartItemEntity } from '../entities/marketplace-cart-item.entity';
 import { MarketplaceCartEntity } from '../entities/marketplace-cart.entity';
@@ -90,7 +90,7 @@ export const marketplaceStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<KuDetailsTypeormEntity>(db, {
+      new TableStore<KuDetailsRecord>(db, {
         table: 'marketplace_ku_details',
         primaryKey: ['id'],
         json: ['workingHoursJson'],

@@ -50,8 +50,8 @@ sources:
     - components/controller/src/extensions/capital/application/services/issue-permissions.service.ts
     - components/controller/src/extensions/capital/application/services/generation.service.ts
     - components/controller/src/extensions/capital/application/services/project-management.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/story.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/story.kysely-repository.ts
     - components/controller/src/extensions/capital/infrastructure/repositories/project.typeorm-repository.ts
     - components/controller/src/extensions/capital/infrastructure/inter/capital-inter-project-capital-clearance.adapter.ts
     - components/controller/src/extensions/chatcoop/application/services/chatcoop-communication-access.service.ts

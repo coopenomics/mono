@@ -380,3 +380,7 @@ cases:
     external: unreachable
     external_reason: "порядок дельт и версии записей снаружи не видны; ход служебной записки через API покрыт случаями exp.prop.*"
     status: written
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.

@@ -37,7 +37,7 @@ sources:
     - components/controller/src/extensions/capital/application/dto/time_tracker/**
     - components/controller/src/extensions/capital/infrastructure/entities/time-entry.entity.ts
     - components/controller/src/extensions/capital/infrastructure/entities/timer-session.entity.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/timer-session.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/timer-session.kysely-repository.ts
   ui:
     - components/desktop/extensions/capital/entities/TimeEntries/**
     - components/desktop/extensions/capital/features/Issue/TrackTime/**

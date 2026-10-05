@@ -21,8 +21,8 @@ sources:
     - components/controller/src/extensions/capital/domain/enums/process-status.enum.ts
     - components/controller/src/extensions/capital/infrastructure/entities/process-template.entity.ts
     - components/controller/src/extensions/capital/infrastructure/entities/process-instance.entity.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/process-template.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/process-instance.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/process-template.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/process-instance.kysely-repository.ts
   ui:
     - components/desktop/extensions/capital/entities/Process/**
     - components/desktop/extensions/capital/pages/ProcessesPage/**

@@ -1,7 +1,7 @@
 import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
-import { EntityName as ExpenseProposalsTable } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
-import { EntityName as ExpenseFilesTable } from '../../infrastructure/entities/expense-file.typeorm-entity';
+import { EntityName as ExpenseProposalsTable } from '../../infrastructure/entities/expense-proposal.record';
+import { EntityName as ExpenseFilesTable } from '../../infrastructure/entities/expense-file.record';
 
 /** Имя таблицы плановых расходов (`ExpensePlanEntity`). */
 const EXPENSE_PLANS_TABLE = 'expense_plans';

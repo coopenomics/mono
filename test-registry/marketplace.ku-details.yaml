@@ -102,3 +102,7 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запроса к базе — снаружи они не видны; реквизиты участка через API покрыты случаями mkt.ku.*"
     status: written
+
+# 2026-10-05 (C28-81): файлы и классы хранилищ переименованы после ухода с TypeORM
+# (typeorm-repository → kysely-repository, typeorm-entity → record); частичная правка
+# полей собрана помощником pickDefined. Сценарии фичи и её проверки не менялись.

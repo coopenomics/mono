@@ -25,12 +25,12 @@ sources:
     - components/controller/src/extensions/capital/infrastructure/services/github-sync-scheduler.service.ts
     - components/controller/src/extensions/capital/infrastructure/services/github.service.ts
     - components/controller/src/extensions/capital/application/services/git.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue-linked-git-commit.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit.typeorm-entity.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit-sha.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue-linked-git-commit.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit.record.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-linked-git-commit-sha.record.ts
     - components/controller/src/extensions/capital/domain/repositories/issue-linked-git-commit.repository.ts
     - components/controller/src/extensions/capital/domain/repositories/github-branch-commit-sync-state.repository.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/github-branch-commit-sync-state.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/github-branch-commit-sync-state.kysely-repository.ts
     - components/controller/src/extensions/capital/application/dto/generation/issue.dto.ts
   ui:
     - components/desktop/extensions/capital/widgets/IssueLinkedGitCommitsWidget/**

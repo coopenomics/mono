@@ -3,7 +3,7 @@ import { EXPENSES_REQUISITE_SNAPSHOT_STORE } from '../../infrastructure/database
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import type { InnerExpenseRequisiteItemInput } from '@coopenomics/innercoop'
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config'
-import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity'
+import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record'
 import { formatPaymentMethodRequisites } from '../../domain/utils/format-requisites.util'
 import { PAYMENT_METHOD_PORT, type IPaymentMethodPort } from '@coopenomics/innercoop';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -22,7 +22,7 @@ export class ExpenseRequisiteSnapshotsService {
     @Inject(PAYMENT_METHOD_PORT)
     private readonly paymentMethods: IPaymentMethodPort,
     @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
-    private readonly repository: TableStore<ExpenseRequisiteSnapshotTypeormEntity>
+    private readonly repository: TableStore<ExpenseRequisiteSnapshotRecord>
   ) {}
 
   async validate(coopname: string, items: InnerExpenseRequisiteItemInput[]): Promise<void> {
@@ -46,7 +46,7 @@ export class ExpenseRequisiteSnapshotsService {
   }
 
   /** Снимки реквизитов всех строк СЗ — для сверки советом на странице расхода. */
-  async listByProposal(coopname: string, proposalHash: string): Promise<ExpenseRequisiteSnapshotTypeormEntity[]> {
+  async listByProposal(coopname: string, proposalHash: string): Promise<ExpenseRequisiteSnapshotRecord[]> {
     return this.repository.find({ coopname, proposal_hash: proposalHash.toLowerCase() }, { order: { id: 'ASC' } })
   }
 
@@ -91,7 +91,7 @@ export class ExpenseRequisiteSnapshotsService {
   private async resolve(
     coopname: string,
     items: InnerExpenseRequisiteItemInput[]
-  ): Promise<ExpenseRequisiteSnapshotTypeormEntity[]> {
+  ): Promise<ExpenseRequisiteSnapshotRecord[]> {
     return Promise.all(
       items.map(async (it) => {
         // Инвариант шасси: пайщику — только аванс под отчёт (средства на личные

@@ -28,7 +28,7 @@ sources:
     - components/controller/src/extensions/capital/application/resolvers/content-revision.resolver.ts
     - components/controller/src/extensions/capital/domain/utils/content-merge.util.ts
     - components/controller/src/extensions/capital/domain/errors/content-conflict.error.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/content-revision.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/content-revision.record.ts
     - components/controller/migrations/V2.5.5__capital_content_revisions_backfill.ts
   ui:
     - components/desktop/extensions/capital/features/ContentRevisions/**

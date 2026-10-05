@@ -6,8 +6,8 @@ import { ExpensesDatabaseModule } from './infrastructure/database/expenses-datab
 import { ExpenseContractInfoService } from './infrastructure/services/expense-contract-info.service';
 import { ExpenseProposalDeltaMapper } from './infrastructure/blockchain/mappers/expense-proposal-delta.mapper';
 import { ExpensesBlockchainAdapter } from './infrastructure/blockchain/adapters/expenses-blockchain.adapter';
-import { ExpenseProposalTypeormRepository } from './infrastructure/repositories/expense-proposal.typeorm-repository';
-import { ExpenseFileTypeormRepository } from './infrastructure/repositories/expense-file.typeorm-repository';
+import { ExpenseProposalKyselyRepository } from './infrastructure/repositories/expense-proposal.kysely-repository';
+import { ExpenseFileKyselyRepository } from './infrastructure/repositories/expense-file.kysely-repository';
 import { EXPENSE_PROPOSAL_REPOSITORY } from './domain/repositories/expense-proposal.repository';
 import { EXPENSE_FILE_REPOSITORY } from './domain/repositories/expense-file.repository';
 import { EXPENSES_BLOCKCHAIN_PORT } from './domain/interfaces/expenses-blockchain.port';
@@ -57,15 +57,15 @@ import { ExpensesLiveFeedService } from './application/services/expenses-live-fe
     ...bucketProvidersFor(FILE_STORAGE_PORT, [ExpenseFilesService]),
     ExpenseContractInfoService,
     ExpenseProposalDeltaMapper,
-    ExpenseProposalTypeormRepository,
-    ExpenseFileTypeormRepository,
+    ExpenseProposalKyselyRepository,
+    ExpenseFileKyselyRepository,
     {
       provide: EXPENSE_PROPOSAL_REPOSITORY,
-      useClass: ExpenseProposalTypeormRepository,
+      useClass: ExpenseProposalKyselyRepository,
     },
     {
       provide: EXPENSE_FILE_REPOSITORY,
-      useClass: ExpenseFileTypeormRepository,
+      useClass: ExpenseFileKyselyRepository,
     },
     {
       provide: EXPENSES_BLOCKCHAIN_PORT,

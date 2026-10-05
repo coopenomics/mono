@@ -2,10 +2,10 @@ import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { MetricSeriesMode } from '../../domain/enums/metric-series-mode.enum';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import type { IMeasureDatabaseData } from '../../domain/interfaces/measure-database.interface';
-import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
+import { MeasureRecord } from '../entities/measure.record';
 
 export class MeasureMapper {
-  static toDomain(entity: MeasureTypeormEntity): MeasureDomainEntity {
+  static toDomain(entity: MeasureRecord): MeasureDomainEntity {
     const databaseData: IMeasureDatabaseData = {
       _id: entity._id,
       measure_hash: entity.measure_hash,
@@ -23,7 +23,7 @@ export class MeasureMapper {
     return new MeasureDomainEntity(databaseData);
   }
 
-  static toEntity(domain: MeasureDomainEntity): Partial<MeasureTypeormEntity> {
+  static toEntity(domain: MeasureDomainEntity): Partial<MeasureRecord> {
     return {
       _id: domain._id,
       measure_hash: domain.measure_hash,

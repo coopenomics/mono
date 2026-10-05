@@ -1,9 +1,9 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
-import { KuDecisionQuestionTypeormEntity } from '../entities/ku-decision-question.typeorm-entity';
-import { KuDecisionTypeormEntity } from '../entities/ku-decision.typeorm-entity';
-import { KuTrustRequestTypeormEntity } from '../entities/ku-trust-request.typeorm-entity';
+import { KuDecisionQuestionRecord } from '../entities/ku-decision-question.record';
+import { KuDecisionRecord } from '../entities/ku-decision.record';
+import { KuTrustRequestRecord } from '../entities/ku-trust-request.record';
 
 /** Шлюзы таблиц: хранилища работают с записями целиком через `TableStore`. */
 export const KU_DECISION_QUESTION_STORE = Symbol('Ku.KU_DECISION_QUESTION_STORE');
@@ -16,7 +16,7 @@ export const kuStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<KuDecisionQuestionTypeormEntity>(db, {
+      new TableStore<KuDecisionQuestionRecord>(db, {
         table: 'ku_decision_questions',
         primaryKey: ['_id'],
         json: ['voters_for', 'voters_against', 'voters_abstained'],
@@ -30,7 +30,7 @@ export const kuStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<KuDecisionTypeormEntity>(db, {
+      new TableStore<KuDecisionRecord>(db, {
         table: 'ku_decisions',
         primaryKey: ['_id'],
         json: ['proposal', 'protocol', 'petition', 'liability', 'authority', 'authorization', 'participants'],
@@ -44,7 +44,7 @@ export const kuStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<KuTrustRequestTypeormEntity>(db, {
+      new TableStore<KuTrustRequestRecord>(db, {
         table: 'ku_trust_requests',
         primaryKey: ['_id'],
         json: ['application', 'authority'],

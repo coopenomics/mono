@@ -13,7 +13,7 @@ import { merge } from 'lodash';
 import { ChairmanDatabaseModule } from './infrastructure/database/chairman-database.module';
 
 // Репозитории
-import { ApprovalTypeormRepository } from './infrastructure/repositories/approval.typeorm-repository';
+import { ApprovalKyselyRepository } from './infrastructure/repositories/approval.kysely-repository';
 
 // Blockchain синхронизация
 import { ApprovalDeltaMapper } from './infrastructure/blockchain/mappers/approval-delta.mapper';
@@ -40,7 +40,7 @@ import { APPROVAL_REPOSITORY } from './domain/repositories/approval.repository';
 import { CHAIRMAN_BLOCKCHAIN_PORT } from './domain/interfaces/chairman-blockchain.port';
 import { registerChairmanOnboardingSteps } from './application/onboarding/register-chairman-onboarding-steps';
 import { ONBOARDING_STEP_REGISTRY_PORT, type IOnboardingStepRegistryPort, CHAIN_CHANGES_PORT, type IChainChangesPort } from '@coopenomics/innercoop';
-import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval-typeorm.entity';
+import { EntityName as ApprovalEntityName } from './infrastructure/entities/approval.record';
 import { computeOnboardingExpiresAt } from '@coopenomics/extension-kit';
 import { ChairmanInnercoopApprovalsAdapter } from './infrastructure/innercoop/chairman-innercoop-approvals.adapter';
 import { type DeserializedDescriptionOfExtension } from '@coopenomics/extension-kit';
@@ -259,9 +259,9 @@ export class ChairmanExtension extends BaseExtensionModule {
     // Репозитории
     {
       provide: APPROVAL_REPOSITORY,
-      useClass: ApprovalTypeormRepository,
+      useClass: ApprovalKyselyRepository,
     },
-    ApprovalTypeormRepository,
+    ApprovalKyselyRepository,
 
     // Blockchain синхронизация
     ApprovalDeltaMapper,

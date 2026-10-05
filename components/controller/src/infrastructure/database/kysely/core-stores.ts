@@ -1,10 +1,10 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
-import { AgreementTypeormEntity } from '../typeorm/entities/agreement.typeorm-entity';
-import { ProgramWalletTypeormEntity } from '../typeorm/entities/program-wallet.typeorm-entity';
-import { UserAgreementTypeormEntity } from '../typeorm/entities/user-agreement.typeorm-entity';
-import { UserWalletTypeormEntity } from '../typeorm/entities/user-wallet.typeorm-entity';
+import { AgreementRecord } from './records/agreement.record';
+import { ProgramWalletRecord } from './records/program-wallet.record';
+import { UserAgreementRecord } from './records/user-agreement.record';
+import { UserWalletRecord } from './records/user-wallet.record';
 
 /** Шлюзы таблиц: хранилища работают с записями целиком через `TableStore`. */
 export const CORE_AGREEMENT_STORE = Symbol('Core.CORE_AGREEMENT_STORE');
@@ -18,7 +18,7 @@ export const coreStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<AgreementTypeormEntity>(db, {
+      new TableStore<AgreementRecord>(db, {
         table: 'agreements',
         primaryKey: ['_id'],
         json: ['document'],
@@ -32,7 +32,7 @@ export const coreStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProgramWalletTypeormEntity>(db, {
+      new TableStore<ProgramWalletRecord>(db, {
         table: 'program_wallets',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -45,7 +45,7 @@ export const coreStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<UserAgreementTypeormEntity>(db, {
+      new TableStore<UserAgreementRecord>(db, {
         table: 'user_agreements',
         primaryKey: ['_id'],
         json: ['programs'],
@@ -59,7 +59,7 @@ export const coreStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<UserWalletTypeormEntity>(db, {
+      new TableStore<UserWalletRecord>(db, {
         table: 'user_wallets',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',

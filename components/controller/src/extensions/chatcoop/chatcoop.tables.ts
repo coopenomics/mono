@@ -7,7 +7,6 @@ export default [
   'chatcoop_room_message_history',
   'chatcoop_state',
   'chatcoop_transcription_segments',
-  'matrix_tokens',
   'matrix_users',
   'union_chats',
 ] as const;

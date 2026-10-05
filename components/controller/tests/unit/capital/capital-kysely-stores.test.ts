@@ -3,9 +3,9 @@
  * избранное, связи задач с коммитами, шаблоны процессов, история редакций.
  * Перенос с TypeORM обязан сохранить условия и порядок запросов.
  */
-import { FavoriteTypeormRepository } from '~/extensions/capital/infrastructure/repositories/favorite.typeorm-repository';
-import { IssueLinkedGitCommitTypeormRepository } from '~/extensions/capital/infrastructure/repositories/issue-linked-git-commit.typeorm-repository';
-import { ProcessTemplateTypeormRepository } from '~/extensions/capital/infrastructure/repositories/process-template.typeorm-repository';
+import { FavoriteKyselyRepository } from '~/extensions/capital/infrastructure/repositories/favorite.kysely-repository';
+import { IssueLinkedGitCommitKyselyRepository } from '~/extensions/capital/infrastructure/repositories/issue-linked-git-commit.kysely-repository';
+import { ProcessTemplateKyselyRepository } from '~/extensions/capital/infrastructure/repositories/process-template.kysely-repository';
 import { ContentRevisionService } from '~/extensions/capital/application/services/content-revision.service';
 import { ContentEntityType } from '~/extensions/capital/domain/enums/content-entity-type.enum';
 import { FavoriteTargetType } from '~/extensions/capital/domain/enums/favorite-target-type.enum';
@@ -30,7 +30,7 @@ function database(results: ScriptedResult[] = []) {
 describe('избранное', () => {
   it('повторное добавление не падает и не заводит вторую строку; хэш цели — в нижнем регистре', async () => {
     const { store, queries } = database([{ rows: [] }]);
-    const repository = new FavoriteTypeormRepository(store(CAPITAL_FAVORITE_STORE), {} as never, {} as never, {} as never);
+    const repository = new FavoriteKyselyRepository(store(CAPITAL_FAVORITE_STORE), {} as never, {} as never, {} as never);
 
     await repository.add({ coopname: COOP, username: 'ant', target_type: FavoriteTargetType.PROJECT, target_hash: 'ABC' });
 
@@ -62,7 +62,7 @@ describe('связи задач с коммитами', () => {
   };
   const build = (results: ScriptedResult[]) => {
     const { store, queries } = database(results);
-    const repository = new IssueLinkedGitCommitTypeormRepository(
+    const repository = new IssueLinkedGitCommitKyselyRepository(
       store(CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE),
       store(CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE)
     );
@@ -94,7 +94,7 @@ describe('шаблоны процессов', () => {
   it('правка шаблона идёт по его ключу, шаги уходят в базу как json', async () => {
     const steps = [{ id: 's1', title: 'Шаг' }];
     const { store, queries } = database([{ affected: 1 }, { rows: [{ id: 't1', coopname: COOP, steps, edges: [] }] }]);
-    const repository = new ProcessTemplateTypeormRepository(store(CAPITAL_PROCESS_TEMPLATE_STORE));
+    const repository = new ProcessTemplateKyselyRepository(store(CAPITAL_PROCESS_TEMPLATE_STORE));
 
     const updated = await repository.update('t1', { steps } as never);
 

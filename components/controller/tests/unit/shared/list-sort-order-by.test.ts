@@ -19,7 +19,7 @@ import { plainToInstance } from 'class-transformer';
 import { PaginationInputDTO, PaginationUtils } from '@coopenomics/extension-kit';
 import { LOG_EXTENSION_SORT_COLUMNS } from '~/infrastructure/database/kysely/repositories/log-extension.kysely-repository';
 import { sortColumn, sortDirection } from '@coopenomics/extension-kit';
-import { ApprovalTypeormRepository } from '~/extensions/chairman/infrastructure/repositories/approval.typeorm-repository';
+import { ApprovalKyselyRepository } from '~/extensions/chairman/infrastructure/repositories/approval.kysely-repository';
 import { CHAIRMAN_APPROVAL_STORE, chairmanStoreProviders } from '~/extensions/chairman/infrastructure/database/chairman-stores';
 import { recordingKysely } from '../helpers/kysely-recorder';
 import { storeFrom } from '../helpers/table-store';
@@ -108,7 +108,7 @@ describe('Решения председателя (chairmanApprovals)', () => {
   const build = () => {
     const { db, queries } = recordingKysely([{ rows: [{ count: '0' }] }, { rows: [] }]);
     const store = storeFrom(chairmanStoreProviders, CHAIRMAN_APPROVAL_STORE, db);
-    return { approvals: new ApprovalTypeormRepository(store as never, {} as never), queries };
+    return { approvals: new ApprovalKyselyRepository(store as never, {} as never), queries };
   };
 
   it('неизвестная колонка заменяется умолчанием', async () => {

@@ -6,7 +6,7 @@
  */
 import { ExpensePlansService } from '~/extensions/expenses/application/services/expense-plans.service';
 import { ExpenseRequisiteSnapshotsService } from '~/extensions/expenses/application/services/expense-requisite-snapshots.service';
-import { ExpenseFileTypeormRepository } from '~/extensions/expenses/infrastructure/repositories/expense-file.typeorm-repository';
+import { ExpenseFileKyselyRepository } from '~/extensions/expenses/infrastructure/repositories/expense-file.kysely-repository';
 import {
   EXPENSES_FILE_STORE,
   EXPENSES_PLAN_STORE,
@@ -65,7 +65,7 @@ describe('снимки реквизитов получателей', () => {
 describe('реестр файлов расхода', () => {
   it('файлы служебной записки ищутся по хэшу в нижнем регистре, свежие первыми', async () => {
     const { store, queries } = setup(EXPENSES_FILE_STORE, [{ rows: [] }]);
-    const repository = new ExpenseFileTypeormRepository(store);
+    const repository = new ExpenseFileKyselyRepository(store);
 
     await expect(repository.findByProposal(COOP, 'ABCDEF')).resolves.toEqual([]);
 
@@ -76,7 +76,7 @@ describe('реестр файлов расхода', () => {
 
   it('повтор загрузки узнаётся по контрольной сумме внутри кооператива', async () => {
     const { store, queries } = setup(EXPENSES_FILE_STORE, [{ rows: [] }]);
-    const repository = new ExpenseFileTypeormRepository(store);
+    const repository = new ExpenseFileKyselyRepository(store);
 
     await expect(repository.findByChecksum(COOP, 'sum')).resolves.toBeNull();
 

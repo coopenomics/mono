@@ -36,8 +36,8 @@ sources:
     - components/controller/src/extensions/capital/application/dto/metrics/**
     - components/controller/src/extensions/capital/domain/entities/measure.entity.ts
     - components/controller/src/extensions/capital/domain/entities/issue-metric-binding.entity.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/issue-metric-binding.typeorm-entity.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/issue-metric-binding.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/issue-metric-binding.record.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/issue-metric-binding.kysely-repository.ts
     - components/controller/src/extensions/capital/domain/utils/build-metric-series.ts
     - components/controller/src/extensions/capital/domain/utils/compute-metric-superposition.ts
     - components/controller/src/extensions/capital/domain/utils/wave-markup.ts

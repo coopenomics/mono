@@ -10,7 +10,7 @@ import { DocumentDomainModule } from '~/domain/document/document.module';
  *
  * `AgreementService` объединяет два источника (Эпик 2): непрограммные
  * соглашения из `agreements3` и программные из `wallet::users.programs[]`.
- * Оба репозитория экспортируются глобальным `TypeOrmModule`.
+ * Оба репозитория экспортируются глобальным `KyselyModule`.
  */
 @Module({
   imports: [DocumentModule, DocumentDomainModule],

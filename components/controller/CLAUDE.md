@@ -71,7 +71,7 @@ _Критичные правила и паттерны для AI-агентов 
 - Декораторы `@DomainKey({ primary, sync })` + `@SyncBehaviour({ forkPolicy, dlq })` + `@Versioned({ strategy })` — на sync-service классе. Metadata читается через `Reflect.getMetadata('sync:config', target)`.
 - `@Inject(ENTITY_REPOSITORY)` token — symbol, определён в `domain/repositories/{entity}.repository.ts`.
 - **`@Optional()` с типом `X | null` — только с явным `@Inject(X)`.** Тип-объединение метаданные TypeScript стирают до `Object`, Nest не может его подставить, и `@Optional()` молча отдаёт `null` — без ошибки на старте. Так 23.09.2026 были выключены ожидание разбора блока в `transact` и лента изменений; страховка — `tests/unit/blockchain/optional-deps-injection.test.ts`.
-- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, TypeormEntity, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
+- Dynamic modules через `{Contract}SyncModule.forEntity(Entity, Record, Mapper)` — одна строка регистрации в `{contract}.module.ts`.
 
 **База данных (Kysely, C28-81):**
 - **Запросы — только через Kysely.** Ядро: хранилища `infrastructure/database/kysely/repositories/*.kysely-repository.ts` на токене `KYSELY`, типы таблиц — `database.types.ts` (собираются из миграций: `pnpm schema:types`). Расширение ядро не импортирует: токен и помощники — из `@coopenomics/extension-kit`, записи и шлюзы таблиц (`TableStore`) — в `infrastructure/database/<имя>-stores.ts`. Запросы с соединениями и агрегатами — `store.sqlBuilder(alias)` (готовые фрагменты SQL с именованными параметрами) либо `rawQuery`.
@@ -343,12 +343,12 @@ public readonly trusted: IndividualDTO[];
 ### Code Quality & Style
 
 **Naming (жёстко):**
-- Entity classes: `{Name}DomainEntity`, `{Name}TypeormEntity`.
+- Entity classes: `{Name}DomainEntity`; запись таблицы — `{Name}Record` (файл `{name}.record.ts`).
 - Interfaces: `I{Name}DomainInterfaceBlockchainData`, `I{Name}DomainInterfaceDatabaseData`.
 - Mappers: `{Name}DeltaMapper`.
 - Syncers: `{Name}SyncService`.
-- Repositories: `{Name}Repository` (interface) + `{Name}TypeormRepository` (impl) + `{NAME}_REPOSITORY` (DI token).
-- Files: kebab-case с суффиксом (`project.entity.ts`, `project.typeorm-entity.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
+- Repositories: `{Name}Repository` (interface) + `{Name}KyselyRepository` (impl, файл `{name}.kysely-repository.ts`) + `{NAME}_REPOSITORY` (DI token).
+- Files: kebab-case с суффиксом (`project.entity.ts`, `project.record.ts`, `project-delta.mapper.ts`, `project-sync.service.ts`).
 
 **Paths (жёстко):**
 - Per-contract: `extensions/{contract}/{domain|infrastructure|application}/...`.

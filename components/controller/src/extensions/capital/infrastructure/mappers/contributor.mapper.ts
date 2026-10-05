@@ -1,12 +1,12 @@
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
-import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
+import { ContributorRecord } from '../entities/contributor.record';
 import type { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
 import type { IContributorBlockchainData } from '../../domain/interfaces/contributor-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<ContributorTypeormEntity>, keyof IContributorBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<ContributorRecord>, keyof IContributorDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<ContributorRecord>, keyof IContributorBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<ContributorDomainEntity>, keyof IContributorDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<ContributorDomainEntity>, keyof IContributorBlockchainData>;
@@ -18,7 +18,7 @@ export class ContributorMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: ContributorTypeormEntity): ContributorDomainEntity {
+  static toDomain(entity: ContributorRecord): ContributorDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -78,7 +78,7 @@ export class ContributorMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: ContributorDomainEntity): Partial<ContributorTypeormEntity> {
+  static toEntity(domain: ContributorDomainEntity): Partial<ContributorRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -136,7 +136,7 @@ export class ContributorMapper {
   /**
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    */
-  static toUpdateEntity(domain: ContributorDomainEntity): Partial<ContributorTypeormEntity> {
+  static toUpdateEntity(domain: ContributorDomainEntity): Partial<ContributorRecord> {
     return {
       _id: domain._id,
       id: domain.id,

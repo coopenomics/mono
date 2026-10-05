@@ -311,37 +311,37 @@ import { registerCapitalOnboardingSteps } from './application/onboarding/registe
 import { registerCapitalDocuments } from './application/onboarding/register-capital-documents';
 
 // Репозитории
-import { ProjectTypeormRepository } from './infrastructure/repositories/project.typeorm-repository';
-import { ContributorTypeormRepository } from './infrastructure/repositories/contributor.typeorm-repository';
-import { AppendixTypeormRepository } from './infrastructure/repositories/appendix.typeorm-repository';
-import { InvestTypeormRepository } from './infrastructure/repositories/invest.typeorm-repository';
-import { ProgramPropertyTypeormRepository } from './infrastructure/repositories/program-property.typeorm-repository';
-import { ProgramWithdrawTypeormRepository } from './infrastructure/repositories/program-withdraw.typeorm-repository';
-import { ProjectPropertyTypeormRepository } from './infrastructure/repositories/project-property.typeorm-repository';
-import { ProgramWalletTypeormRepository } from './infrastructure/repositories/program-wallet.typeorm-repository';
-import { CycleTypeormRepository } from './infrastructure/repositories/cycle.typeorm-repository';
-import { IssueTypeormRepository } from './infrastructure/repositories/issue.typeorm-repository';
-import { ProcessTemplateTypeormRepository } from './infrastructure/repositories/process-template.typeorm-repository';
-import { ProcessInstanceTypeormRepository } from './infrastructure/repositories/process-instance.typeorm-repository';
+import { ProjectKyselyRepository } from './infrastructure/repositories/project.typeorm-repository';
+import { ContributorKyselyRepository } from './infrastructure/repositories/contributor.kysely-repository';
+import { AppendixKyselyRepository } from './infrastructure/repositories/appendix.kysely-repository';
+import { InvestKyselyRepository } from './infrastructure/repositories/invest.kysely-repository';
+import { ProgramPropertyKyselyRepository } from './infrastructure/repositories/program-property.kysely-repository';
+import { ProgramWithdrawKyselyRepository } from './infrastructure/repositories/program-withdraw.kysely-repository';
+import { ProjectPropertyKyselyRepository } from './infrastructure/repositories/project-property.kysely-repository';
+import { ProgramWalletKyselyRepository } from './infrastructure/repositories/program-wallet.kysely-repository';
+import { CycleKyselyRepository } from './infrastructure/repositories/cycle.kysely-repository';
+import { IssueKyselyRepository } from './infrastructure/repositories/issue.kysely-repository';
+import { ProcessTemplateKyselyRepository } from './infrastructure/repositories/process-template.kysely-repository';
+import { ProcessInstanceKyselyRepository } from './infrastructure/repositories/process-instance.kysely-repository';
 import { PROCESS_TEMPLATE_REPOSITORY, PROCESS_INSTANCE_REPOSITORY } from './domain/repositories/process.repository';
 import { ProcessService } from './application/services/process.service';
 import { ProcessResolver } from './application/resolvers/process.resolver';
-import { CommentTypeormRepository } from './infrastructure/repositories/comment.typeorm-repository';
-import { StoryTypeormRepository } from './infrastructure/repositories/story.typeorm-repository';
-import { ComponentMetricTypeormRepository } from './infrastructure/repositories/component-metric.typeorm-repository';
-import { MeasureTypeormRepository } from './infrastructure/repositories/measure.typeorm-repository';
-import { IssueMetricBindingTypeormRepository } from './infrastructure/repositories/issue-metric-binding.typeorm-repository';
-import { MetricContributionTypeormRepository } from './infrastructure/repositories/metric-contribution.typeorm-repository';
-import { VoteTypeormRepository } from './infrastructure/repositories/vote.typeorm-repository';
-import { DebtTypeormRepository } from './infrastructure/repositories/debt.typeorm-repository';
-import { ResultTypeormRepository } from './infrastructure/repositories/result.typeorm-repository';
-import { ExpenseTypeormRepository } from './infrastructure/repositories/expense.typeorm-repository';
-import { CommitTypeormRepository } from './infrastructure/repositories/commit.typeorm-repository';
-import { StateTypeormRepository } from './infrastructure/repositories/state.typeorm-repository';
-import { TimeEntryTypeormRepository } from './infrastructure/repositories/time-entry.typeorm-repository';
-import { TimerSessionTypeormRepository } from './infrastructure/repositories/timer-session.typeorm-repository';
-import { FavoriteTypeormRepository } from './infrastructure/repositories/favorite.typeorm-repository';
-import { SegmentTypeormRepository } from './infrastructure/repositories/segment.typeorm-repository';
+import { CommentKyselyRepository } from './infrastructure/repositories/comment.kysely-repository';
+import { StoryKyselyRepository } from './infrastructure/repositories/story.kysely-repository';
+import { ComponentMetricKyselyRepository } from './infrastructure/repositories/component-metric.kysely-repository';
+import { MeasureKyselyRepository } from './infrastructure/repositories/measure.kysely-repository';
+import { IssueMetricBindingKyselyRepository } from './infrastructure/repositories/issue-metric-binding.kysely-repository';
+import { MetricContributionKyselyRepository } from './infrastructure/repositories/metric-contribution.kysely-repository';
+import { VoteKyselyRepository } from './infrastructure/repositories/vote.kysely-repository';
+import { DebtKyselyRepository } from './infrastructure/repositories/debt.kysely-repository';
+import { ResultKyselyRepository } from './infrastructure/repositories/result.kysely-repository';
+import { ExpenseKyselyRepository } from './infrastructure/repositories/expense.kysely-repository';
+import { CommitKyselyRepository } from './infrastructure/repositories/commit.kysely-repository';
+import { StateKyselyRepository } from './infrastructure/repositories/state.kysely-repository';
+import { TimeEntryKyselyRepository } from './infrastructure/repositories/time-entry.kysely-repository';
+import { TimerSessionKyselyRepository } from './infrastructure/repositories/timer-session.kysely-repository';
+import { FavoriteKyselyRepository } from './infrastructure/repositories/favorite.kysely-repository';
+import { SegmentKyselyRepository } from './infrastructure/repositories/segment.typeorm-repository';
 
 // GitHub (маркеры коммитов)
 import { GitHubService } from './infrastructure/services/github.service';
@@ -354,8 +354,8 @@ import { CapitalDevelopmentRepositoryGitSyncService } from './application/servic
 import { CapitalGithubExtensionLifecycleListener } from './application/listeners/capital-github-extension-lifecycle.listener';
 import { GitCommitMarkersSyncService } from './application/services/git-commit-markers-sync.service';
 import { GitLinkedCommitPatchIdBackfillService } from './application/services/git-linked-commit-patch-id-backfill.service';
-import { IssueLinkedGitCommitTypeormRepository } from './infrastructure/repositories/issue-linked-git-commit.typeorm-repository';
-import { GithubBranchCommitSyncStateTypeormRepository } from './infrastructure/repositories/github-branch-commit-sync-state.typeorm-repository';
+import { IssueLinkedGitCommitKyselyRepository } from './infrastructure/repositories/issue-linked-git-commit.kysely-repository';
+import { GithubBranchCommitSyncStateKyselyRepository } from './infrastructure/repositories/github-branch-commit-sync-state.kysely-repository';
 import { ISSUE_LINKED_GIT_COMMIT_REPOSITORY } from './domain/repositories/issue-linked-git-commit.repository';
 import { GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY } from './domain/repositories/github-branch-commit-sync-state.repository';
 // Blockchain синхронизация
@@ -950,117 +950,117 @@ IssueIdGenerationService,
     // Repositories
     {
       provide: PROJECT_REPOSITORY,
-      useClass: ProjectTypeormRepository,
+      useClass: ProjectKyselyRepository,
     },
     {
       provide: CONTRIBUTOR_REPOSITORY,
-      useClass: ContributorTypeormRepository,
+      useClass: ContributorKyselyRepository,
     },
     {
       provide: APPENDIX_REPOSITORY,
-      useClass: AppendixTypeormRepository,
+      useClass: AppendixKyselyRepository,
     },
     {
       provide: INVEST_REPOSITORY,
-      useClass: InvestTypeormRepository,
+      useClass: InvestKyselyRepository,
     },
     {
       provide: PROGRAM_PROPERTY_REPOSITORY,
-      useClass: ProgramPropertyTypeormRepository,
+      useClass: ProgramPropertyKyselyRepository,
     },
     {
       provide: PROGRAM_WITHDRAW_REPOSITORY,
-      useClass: ProgramWithdrawTypeormRepository,
+      useClass: ProgramWithdrawKyselyRepository,
     },
     {
       provide: PROJECT_PROPERTY_REPOSITORY,
-      useClass: ProjectPropertyTypeormRepository,
+      useClass: ProjectPropertyKyselyRepository,
     },
     {
       provide: PROGRAM_WALLET_REPOSITORY,
-      useClass: ProgramWalletTypeormRepository,
+      useClass: ProgramWalletKyselyRepository,
     },
     {
       provide: CYCLE_REPOSITORY,
-      useClass: CycleTypeormRepository,
+      useClass: CycleKyselyRepository,
     },
     {
       provide: ISSUE_REPOSITORY,
-      useClass: IssueTypeormRepository,
+      useClass: IssueKyselyRepository,
     },
     {
       provide: PROCESS_TEMPLATE_REPOSITORY,
-      useClass: ProcessTemplateTypeormRepository,
+      useClass: ProcessTemplateKyselyRepository,
     },
     {
       provide: PROCESS_INSTANCE_REPOSITORY,
-      useClass: ProcessInstanceTypeormRepository,
+      useClass: ProcessInstanceKyselyRepository,
     },
     ProcessService,
     ProcessResolver,
     {
       provide: COMMENT_REPOSITORY,
-      useClass: CommentTypeormRepository,
+      useClass: CommentKyselyRepository,
     },
     {
       provide: STORY_REPOSITORY,
-      useClass: StoryTypeormRepository,
+      useClass: StoryKyselyRepository,
     },
     {
       provide: COMPONENT_METRIC_REPOSITORY,
-      useClass: ComponentMetricTypeormRepository,
+      useClass: ComponentMetricKyselyRepository,
     },
     {
       provide: MEASURE_REPOSITORY,
-      useClass: MeasureTypeormRepository,
+      useClass: MeasureKyselyRepository,
     },
     {
       provide: ISSUE_METRIC_BINDING_REPOSITORY,
-      useClass: IssueMetricBindingTypeormRepository,
+      useClass: IssueMetricBindingKyselyRepository,
     },
     {
       provide: METRIC_CONTRIBUTION_REPOSITORY,
-      useClass: MetricContributionTypeormRepository,
+      useClass: MetricContributionKyselyRepository,
     },
     {
       provide: VOTE_REPOSITORY,
-      useClass: VoteTypeormRepository,
+      useClass: VoteKyselyRepository,
     },
     {
       provide: DEBT_REPOSITORY,
-      useClass: DebtTypeormRepository,
+      useClass: DebtKyselyRepository,
     },
     {
       provide: RESULT_REPOSITORY,
-      useClass: ResultTypeormRepository,
+      useClass: ResultKyselyRepository,
     },
     {
       provide: EXPENSE_REPOSITORY,
-      useClass: ExpenseTypeormRepository,
+      useClass: ExpenseKyselyRepository,
     },
     {
       provide: COMMIT_REPOSITORY,
-      useClass: CommitTypeormRepository,
+      useClass: CommitKyselyRepository,
     },
     {
       provide: STATE_REPOSITORY,
-      useClass: StateTypeormRepository,
+      useClass: StateKyselyRepository,
     },
     {
       provide: TIME_ENTRY_REPOSITORY,
-      useClass: TimeEntryTypeormRepository,
+      useClass: TimeEntryKyselyRepository,
     },
     {
       provide: TIMER_SESSION_REPOSITORY,
-      useClass: TimerSessionTypeormRepository,
+      useClass: TimerSessionKyselyRepository,
     },
     {
       provide: FAVORITE_REPOSITORY,
-      useClass: FavoriteTypeormRepository,
+      useClass: FavoriteKyselyRepository,
     },
     {
       provide: SEGMENT_REPOSITORY,
-      useClass: SegmentTypeormRepository,
+      useClass: SegmentKyselyRepository,
     },
 
     // GitHub (маркеры коммитов)
@@ -1074,11 +1074,11 @@ IssueIdGenerationService,
     GitLinkedCommitPatchIdBackfillService,
     {
       provide: ISSUE_LINKED_GIT_COMMIT_REPOSITORY,
-      useClass: IssueLinkedGitCommitTypeormRepository,
+      useClass: IssueLinkedGitCommitKyselyRepository,
     },
     {
       provide: GITHUB_BRANCH_COMMIT_SYNC_STATE_REPOSITORY,
-      useClass: GithubBranchCommitSyncStateTypeormRepository,
+      useClass: GithubBranchCommitSyncStateKyselyRepository,
     },
 
     // Services that depend on repositories

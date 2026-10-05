@@ -7,7 +7,7 @@ import { PermissionsService } from './permissions.service';
 import { PROJECT_REPOSITORY, ProjectRepository } from '../../domain/repositories/project.repository';
 import { ContentEntityType } from '../../domain/enums/content-entity-type.enum';
 import { ContentRevisionOrigin } from '../../domain/enums/content-revision-origin.enum';
-import type { ContentRevisionTypeormEntity } from '../../infrastructure/entities/content-revision.typeorm-entity';
+import type { ContentRevisionRecord } from '../../infrastructure/entities/content-revision.record';
 import { ContentRevisionDTO, ContentRevisionSummaryDTO } from '../dto/content_revisions/content-revision.dto';
 import type {
   GetContentRevisionInputDTO,
@@ -140,7 +140,7 @@ export class ContentRevisionApiService {
     }
   }
 
-  private toSummary(row: ContentRevisionTypeormEntity, prevLength: number): ContentRevisionSummaryDTO {
+  private toSummary(row: ContentRevisionRecord, prevLength: number): ContentRevisionSummaryDTO {
     const length = normalizeDescription(row.description).length;
     return {
       entity_type: row.entity_type,

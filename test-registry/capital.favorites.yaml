@@ -29,8 +29,8 @@ sources:
   backend:
     - components/controller/src/extensions/capital/application/resolvers/favorites.resolver.ts
     - components/controller/src/extensions/capital/application/services/favorites.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/favorite.typeorm-repository.ts
-    - components/controller/src/extensions/capital/infrastructure/entities/favorite.typeorm-entity.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/favorite.kysely-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/entities/favorite.record.ts
     - components/controller/src/extensions/capital/domain/repositories/favorite.repository.ts
     - components/controller/src/extensions/capital/domain/enums/favorite-target-type.enum.ts
   ui:

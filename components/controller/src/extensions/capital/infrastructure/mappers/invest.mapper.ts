@@ -1,12 +1,12 @@
 import { InvestDomainEntity } from '../../domain/entities/invest.entity';
-import { InvestTypeormEntity } from '../entities/invest.typeorm-entity';
+import { InvestRecord } from '../entities/invest.record';
 import type { IInvestDatabaseData } from '../../domain/interfaces/invest-database.interface';
 import type { IInvestBlockchainData } from '../../domain/interfaces/invest-blockchain.interface';
 import type { ISignedDocument } from '@coopenomics/innercoop';
 import type { RequireFields } from '@coopenomics/extension-kit';
 
-type toEntityDatabasePart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestDatabaseData>;
-type toEntityBlockchainPart = RequireFields<Partial<InvestTypeormEntity>, keyof IInvestBlockchainData>;
+type toEntityDatabasePart = RequireFields<Partial<InvestRecord>, keyof IInvestDatabaseData>;
+type toEntityBlockchainPart = RequireFields<Partial<InvestRecord>, keyof IInvestBlockchainData>;
 
 type toDomainDatabasePart = RequireFields<Partial<InvestDomainEntity>, keyof IInvestDatabaseData>;
 type toDomainBlockchainPart = RequireFields<Partial<InvestDomainEntity>, keyof IInvestBlockchainData>;
@@ -18,7 +18,7 @@ export class InvestMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: InvestTypeormEntity): InvestDomainEntity {
+  static toDomain(entity: InvestRecord): InvestDomainEntity {
     const databaseData: toDomainDatabasePart = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -56,7 +56,7 @@ export class InvestMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: InvestDomainEntity): Partial<InvestTypeormEntity> {
+  static toEntity(domain: InvestDomainEntity): Partial<InvestRecord> {
     const dbPart: toEntityDatabasePart = {
       _id: domain._id,
       block_num: domain.block_num ?? 0,
@@ -94,8 +94,8 @@ export class InvestMapper {
    * Преобразование доменной сущности в данные для обновления TypeORM сущности
    * Обновляет только локальные поля базы данных, поля из блокчейна обновляются через синхронизацию
    */
-  static toUpdateEntity(domain: Partial<InvestDomainEntity>): Partial<InvestTypeormEntity> {
-    const updateData: Partial<InvestTypeormEntity> = {};
+  static toUpdateEntity(domain: Partial<InvestDomainEntity>): Partial<InvestRecord> {
+    const updateData: Partial<InvestRecord> = {};
 
     // Поля из базы данных (локальные)
     if (domain._id !== undefined) updateData._id = domain._id;

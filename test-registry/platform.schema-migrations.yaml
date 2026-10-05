@@ -20,7 +20,7 @@ title: Схема базы контроллера — только миграц�
 sources:
   backend:
     - components/controller/src/infrastructure/database/schema/idempotent-ddl.ts
-    - components/controller/src/infrastructure/database/typeorm/data-source.options.ts
+    - components/controller/src/infrastructure/database/kysely/data-source.options.ts
     - components/controller/src/infrastructure/database/migrations/*.ts
     - components/controller/src/migrator/database-migrations.ts
     - components/controller/src/migrator/migration-filename.ts

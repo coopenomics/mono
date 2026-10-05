@@ -5,9 +5,9 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { type ILoggerPort, type InnerPaymentDraft, type IPaymentPort, LOGGER_PORT, PAYMENT_PORT, PaymentDirection, PaymentStatus, PaymentType } from '@coopenomics/innercoop';
 import { ExpenseProposalDomainEntity } from '../../domain/entities/expense-proposal.entity';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
-import { ExpenseProposalTypeormEntity } from '../../infrastructure/entities/expense-proposal.typeorm-entity';
+import { ExpenseProposalRecord } from '../../infrastructure/entities/expense-proposal.record';
 import { ExpenseProposalMapper } from '../../infrastructure/mappers/expense-proposal.mapper';
-import { ExpenseRequisiteSnapshotTypeormEntity } from '../../infrastructure/entities/expense-requisite-snapshot.typeorm-entity';
+import { ExpenseRequisiteSnapshotRecord } from '../../infrastructure/entities/expense-requisite-snapshot.record';
 import { EXPENSES_CHASSIS_CONFIG } from '../../domain/expenses-chassis.config';
 
 /** Зеркало ExpenseDomain::RecipientType контракта expense. */
@@ -36,9 +36,9 @@ export class ExpensePaymentsListener implements OnModuleInit {
     @Inject(PAYMENT_PORT)
     private readonly payments: IPaymentPort,
     @Inject(EXPENSES_REQUISITE_SNAPSHOT_STORE)
-    private readonly snapshots: TableStore<ExpenseRequisiteSnapshotTypeormEntity>,
+    private readonly snapshots: TableStore<ExpenseRequisiteSnapshotRecord>,
     @Inject(EXPENSES_PROPOSAL_STORE)
-    private readonly proposalEntities: TableStore<ExpenseProposalTypeormEntity>,
+    private readonly proposalEntities: TableStore<ExpenseProposalRecord>,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(ExpensePaymentsListener.name);

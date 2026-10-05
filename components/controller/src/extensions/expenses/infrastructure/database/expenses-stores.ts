@@ -1,10 +1,10 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
-import { ExpenseFileTypeormEntity } from '../entities/expense-file.typeorm-entity';
+import { ExpenseFileRecord } from '../entities/expense-file.record';
 import { ExpensePlanEntity } from '../entities/expense-plan.entity';
-import { ExpenseRequisiteSnapshotTypeormEntity } from '../entities/expense-requisite-snapshot.typeorm-entity';
-import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
+import { ExpenseRequisiteSnapshotRecord } from '../entities/expense-requisite-snapshot.record';
+import { ExpenseProposalRecord } from '../entities/expense-proposal.record';
 
 /**
  * Шлюзы таблиц расширения: адаптеры хранилищ работают с записями целиком
@@ -21,7 +21,7 @@ export const expensesStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ExpenseFileTypeormEntity>(db, {
+      new TableStore<ExpenseFileRecord>(db, {
         table: 'expense_files',
         primaryKey: ['id'],
         sameNames: true,
@@ -43,7 +43,7 @@ export const expensesStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ExpenseRequisiteSnapshotTypeormEntity>(db, {
+      new TableStore<ExpenseRequisiteSnapshotRecord>(db, {
         table: 'expense_requisite_snapshots',
         primaryKey: ['id'],
         json: ['data'],
@@ -55,7 +55,7 @@ export const expensesStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ExpenseProposalTypeormEntity>(db, {
+      new TableStore<ExpenseProposalRecord>(db, {
         table: 'expense_proposals',
         primaryKey: ['_id'],
         json: ['items', 'callback', 'statement_doc', 'decision_doc'],

@@ -3,7 +3,7 @@ import { AssetUtils, DomainError, DomainToBlockchainUtils, notEqual, notNull, on
 import { Inject, Injectable } from '@nestjs/common';
 import { ProjectRepository } from '../../domain/repositories/project.repository';
 import { ProjectDomainEntity } from '../../domain/entities/project.entity';
-import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
+import { ProjectRecord } from '../entities/project.record';
 import { ProjectMapper } from '../mappers/project.mapper';
 import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { IProjectDomainInterfaceBlockchainData } from '../../domain/interfaces/project-blockchain.interface';
@@ -35,12 +35,12 @@ function averagePercent(values: Array<number | string | null | undefined>): numb
 }
 
 @Injectable()
-export class ProjectTypeormRepository
-  extends BaseChainRepository<ProjectDomainEntity, ProjectTypeormEntity>
+export class ProjectKyselyRepository
+  extends BaseChainRepository<ProjectDomainEntity, ProjectRecord>
   implements ProjectRepository, IBlockchainSyncRepository<ProjectDomainEntity>
 {
   constructor(
-    @Inject(CAPITAL_PROJECT_STORE) repository: TableStore<ProjectTypeormEntity>,
+    @Inject(CAPITAL_PROJECT_STORE) repository: TableStore<ProjectRecord>,
     @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
     super(repository, versioning);
@@ -173,7 +173,7 @@ export class ProjectTypeormRepository
     if (existing.origin !== ProjectOrigin.LOCAL) {
       throw DomainError.internal('CAPITAL_LOCAL_FIELDS_UPDATE_PERSONAL_ONLY');
     }
-    const patch: Partial<ProjectTypeormEntity> = {};
+    const patch: Partial<ProjectRecord> = {};
     if (fields.title !== undefined) patch.title = fields.title;
     if (fields.description !== undefined) patch.description = fields.description;
     if (fields.invite !== undefined) patch.invite = fields.invite;
@@ -734,7 +734,7 @@ export class ProjectTypeormRepository
    * Определяет, является ли проект компонентом
    * Компонент - это проект с непустым parent_hash, отличным от нулевого хэша
    */
-  private isProjectComponent(project: ProjectTypeormEntity | undefined): boolean {
+  private isProjectComponent(project: ProjectRecord | undefined): boolean {
     if (!project || !project.parent_hash) {
       return false;
     }
@@ -746,7 +746,7 @@ export class ProjectTypeormRepository
    * Получает все дочерние проекты (компоненты) для заданного родительского проекта
    * @param parentHash Хэш родительского проекта
    */
-  private async getChildProjectEntities(parentHash: string): Promise<ProjectTypeormEntity[]> {
+  private async getChildProjectEntities(parentHash: string): Promise<ProjectRecord[]> {
     return await this.repository.find({ parent_hash: parentHash, present: true });
   }
 
@@ -756,7 +756,7 @@ export class ProjectTypeormRepository
    * @param project Родительский проект
    * @param components Массив компонентов проекта
    */
-  private aggregateProjectData(project: ProjectTypeormEntity, components: ProjectTypeormEntity[]): void {
+  private aggregateProjectData(project: ProjectRecord, components: ProjectRecord[]): void {
     if (components.length === 0) {
       return;
     }

@@ -114,16 +114,6 @@ export interface ChatcoopTranscriptionSegments {
   transcription_id: string;
 }
 
-export interface MatrixTokens {
-  coop_username: string;
-  created_at: Generated<Timestamp>;
-  expires_at: Timestamp;
-  id: Generated<string>;
-  is_used: Generated<boolean>;
-  matrix_user_id: string;
-  token: string;
-}
-
 export interface MatrixUsers {
   coop_username: string;
   created_at: Generated<Timestamp>;
@@ -151,7 +141,6 @@ export interface DB {
   chatcoop_room_message_history: ChatcoopRoomMessageHistory;
   chatcoop_state: ChatcoopState;
   chatcoop_transcription_segments: ChatcoopTranscriptionSegments;
-  matrix_tokens: MatrixTokens;
   matrix_users: MatrixUsers;
   union_chats: UnionChats;
 }

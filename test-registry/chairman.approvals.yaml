@@ -12,8 +12,8 @@ sources:
     - components/controller/src/extensions/chairman/application/services/approval.service.ts
     - components/controller/src/extensions/chairman/application/dto/*approv*.ts
     - components/controller/src/extensions/chairman/domain/**
-    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.typeorm-repository.ts
-    - components/controller/src/extensions/chairman/infrastructure/entities/approval-typeorm.entity.ts
+    - components/controller/src/extensions/chairman/infrastructure/repositories/approval.kysely-repository.ts
+    - components/controller/src/extensions/chairman/infrastructure/entities/approval.record.ts
     - components/controller/src/extensions/chairman/infrastructure/mappers/approval*.ts
     - components/controller/src/extensions/chairman/infrastructure/blockchain/**
 

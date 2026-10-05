@@ -8,14 +8,14 @@ import {
   type KuDetailsStatus,
 } from '../../domain/entities/ku-details-domain.entity';
 import type { KuDetailsDomainRepository } from '../../domain/repositories/ku-details-domain.repository';
-import { KuDetailsTypeormEntity } from '../entities/ku-details.entity';
+import { KuDetailsRecord } from '../entities/ku-details.entity';
 import { KuDetailsMapper } from '../mappers/ku-details.mapper';
 
 @Injectable()
 export class KuDetailsRepositoryAdapter implements KuDetailsDomainRepository {
   constructor(
     @Inject(MARKETPLACE_KU_DETAILS_STORE)
-private readonly repo: TableStore<KuDetailsTypeormEntity>
+private readonly repo: TableStore<KuDetailsRecord>
   ) {}
 
   async findByCoreBraname(coopname: string, coreBraname: string): Promise<KuDetailsDomainEntity | null> {
@@ -39,7 +39,7 @@ private readonly repo: TableStore<KuDetailsTypeormEntity>
         ? await this.repo.findOne({ id: entity.id })
         : await this.repo.findOne({ coopname: entity.coopname, coreBraname: entity.coreBraname });
 
-    const toPersist = existing ?? new KuDetailsTypeormEntity();
+    const toPersist = existing ?? new KuDetailsRecord();
     toPersist.coopname = entity.coopname;
     toPersist.coreBraname = entity.coreBraname;
     toPersist.geocodedAddress = entity.geocodedAddress;

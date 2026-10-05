@@ -12,7 +12,7 @@ import type {
   InnerExpenseProposalStatus,
   InnerExpenseRequisiteItemInput,
 } from '@coopenomics/innercoop';
-import { ExpenseProposalTypeormEntity } from '../entities/expense-proposal.typeorm-entity';
+import { ExpenseProposalRecord } from '../entities/expense-proposal.record';
 import { ExpenseProposalStatus } from '../../domain/enums/expense-proposal-status.enum';
 import { ExpenseReportState } from '../../domain/enums/expense-report-state.enum';
 import { ExpenseRequisiteSnapshotsService } from '../../application/services/expense-requisite-snapshots.service';
@@ -40,7 +40,7 @@ import { PAYMENT_PORT, type IPaymentPort } from '@coopenomics/innercoop';
 export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPort {
   constructor(
     @Inject(EXPENSES_PROPOSAL_STORE)
-    private readonly repository: TableStore<ExpenseProposalTypeormEntity>,
+    private readonly repository: TableStore<ExpenseProposalRecord>,
     private readonly requisiteSnapshots: ExpenseRequisiteSnapshotsService,
     private readonly plans: ExpensePlansService,
     @Inject(EXPENSES_BLOCKCHAIN_PORT)
@@ -148,7 +148,7 @@ export class ExpensesInnercoopExpenseChassisAdapter implements IExpenseChassisPo
     return { items: entities.map((e) => this.toRead(e)), totalCount };
   }
 
-  private toRead(e: ExpenseProposalTypeormEntity): InnerExpenseProposalRead {
+  private toRead(e: ExpenseProposalRecord): InnerExpenseProposalRead {
     return {
       coopname: e.coopname,
       proposalHash: e.proposal_hash,

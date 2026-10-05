@@ -13,7 +13,7 @@ import type {
  * приводит к INACTIVE — запись физически сохраняется ради ссылочной
  * целостности с marketplace `Order` / `Shipment` (Эпики 4-5).
  */
-export class KuDetailsTypeormEntity {
+export class KuDetailsRecord {
   id!: number;
 
   coopname!: string;

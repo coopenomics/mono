@@ -1,41 +1,39 @@
 import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
-import { ContentRevisionTypeormEntity } from '../entities/content-revision.typeorm-entity';
-import { FavoriteTypeormEntity } from '../entities/favorite.typeorm-entity';
-import { GithubBranchCommitSyncStateTypeormEntity } from '../entities/github-branch-commit-sync-state.typeorm-entity';
-import { GithubCommMessageCursorTypeormEntity } from '../entities/github-comm-message-cursor.typeorm-entity';
-import { GithubCommTranscriptionCursorTypeormEntity } from '../entities/github-comm-transcription-cursor.typeorm-entity';
-import { GitHubFileIndexTypeormEntity } from '../entities/github-file-index.typeorm-entity';
-import { IssueLinkedGitCommitShaTypeormEntity } from '../entities/issue-linked-git-commit-sha.typeorm-entity';
-import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-commit.typeorm-entity';
-import { ProcessInstanceTypeormEntity } from '../entities/process-instance.entity';
-import { ProcessTemplateTypeormEntity } from '../entities/process-template.entity';
-import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
-import { CommentTypeormEntity } from '../entities/comment.typeorm-entity';
-import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
-import { ComponentMetricTypeormEntity } from '../entities/component-metric.typeorm-entity';
-import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
-import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
-import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
-import { ExpenseTypeormEntity } from '../entities/expense.typeorm-entity';
-import { InvestTypeormEntity } from '../entities/invest.typeorm-entity';
-import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
-import { IssueTypeormEntity } from '../entities/issue.typeorm-entity';
-import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
-import { MetricContributionTypeormEntity } from '../entities/metric-contribution.typeorm-entity';
-import { ProgramPropertyTypeormEntity } from '../entities/program-property.typeorm-entity';
-import { ProgramWalletTypeormEntity } from '../entities/program-wallet.typeorm-entity';
-import { ProgramWithdrawTypeormEntity } from '../entities/program-withdraw.typeorm-entity';
-import { ProjectPropertyTypeormEntity } from '../entities/project-property.typeorm-entity';
-import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
-import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
-import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
-import { StateTypeormEntity } from '../entities/state.typeorm-entity';
-import { StoryTypeormEntity } from '../entities/story.typeorm-entity';
+import { ContentRevisionRecord } from '../entities/content-revision.record';
+import { FavoriteRecord } from '../entities/favorite.record';
+import { GithubBranchCommitSyncStateRecord } from '../entities/github-branch-commit-sync-state.record';
+import { GitHubFileIndexRecord } from '../entities/github-file-index.record';
+import { IssueLinkedGitCommitShaRecord } from '../entities/issue-linked-git-commit-sha.record';
+import { IssueLinkedGitCommitRecord } from '../entities/issue-linked-git-commit.record';
+import { ProcessInstanceRecord } from '../entities/process-instance.entity';
+import { ProcessTemplateRecord } from '../entities/process-template.entity';
+import { AppendixRecord } from '../entities/appendix.record';
+import { CommentRecord } from '../entities/comment.record';
+import { CommitRecord } from '../entities/commit.record';
+import { ComponentMetricRecord } from '../entities/component-metric.record';
+import { ContributorRecord } from '../entities/contributor.record';
+import { CycleRecord } from '../entities/cycle.record';
+import { DebtRecord } from '../entities/debt.record';
+import { ExpenseRecord } from '../entities/expense.record';
+import { InvestRecord } from '../entities/invest.record';
+import { IssueMetricBindingRecord } from '../entities/issue-metric-binding.record';
+import { IssueRecord } from '../entities/issue.record';
+import { MeasureRecord } from '../entities/measure.record';
+import { MetricContributionRecord } from '../entities/metric-contribution.record';
+import { ProgramPropertyRecord } from '../entities/program-property.record';
+import { ProgramWalletRecord } from '../entities/program-wallet.record';
+import { ProgramWithdrawRecord } from '../entities/program-withdraw.record';
+import { ProjectPropertyRecord } from '../entities/project-property.record';
+import { ProjectRecord } from '../entities/project.record';
+import { ResultRecord } from '../entities/result.record';
+import { SegmentRecord } from '../entities/segment.record';
+import { StateRecord } from '../entities/state.record';
+import { StoryRecord } from '../entities/story.record';
 import { TimeEntryEntity } from '../entities/time-entry.entity';
 import { TimerSessionEntity } from '../entities/timer-session.entity';
-import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
+import { VoteRecord } from '../entities/vote.record';
 
 /**
  * Шлюзы таблиц расширения: адаптеры хранилищ работают с записями целиком
@@ -44,8 +42,6 @@ import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
 export const CAPITAL_CONTENT_REVISION_STORE = Symbol('Capital.CAPITAL_CONTENT_REVISION_STORE');
 export const CAPITAL_FAVORITE_STORE = Symbol('Capital.CAPITAL_FAVORITE_STORE');
 export const CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE = Symbol('Capital.CAPITAL_GITHUB_BRANCH_COMMIT_SYNC_STATE_STORE');
-export const CAPITAL_GITHUB_COMM_MESSAGE_CURSOR_STORE = Symbol('Capital.CAPITAL_GITHUB_COMM_MESSAGE_CURSOR_STORE');
-export const CAPITAL_GITHUB_COMM_TRANSCRIPTION_CURSOR_STORE = Symbol('Capital.CAPITAL_GITHUB_COMM_TRANSCRIPTION_CURSOR_STORE');
 export const CAPITAL_GITHUB_FILE_INDEX_STORE = Symbol('Capital.CAPITAL_GITHUB_FILE_INDEX_STORE');
 export const CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE = Symbol('Capital.CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE');
 export const CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE = Symbol('Capital.CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE');
@@ -83,7 +79,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ContentRevisionTypeormEntity>(db, {
+      new TableStore<ContentRevisionRecord>(db, {
         table: 'capital_content_revisions',
         primaryKey: ['_id'],
         sameNames: true,
@@ -94,7 +90,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<FavoriteTypeormEntity>(db, {
+      new TableStore<FavoriteRecord>(db, {
         table: 'capital_favorites',
         primaryKey: ['_id'],
         sameNames: true,
@@ -105,7 +101,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<GithubBranchCommitSyncStateTypeormEntity>(db, {
+      new TableStore<GithubBranchCommitSyncStateRecord>(db, {
         table: 'capital_github_branch_commit_sync_state',
         primaryKey: ['id'],
         updatedAt: 'updated_at',
@@ -113,34 +109,11 @@ export const capitalStoreProviders: Provider[] = [
       }),
   },
   {
-    provide: CAPITAL_GITHUB_COMM_MESSAGE_CURSOR_STORE,
-    inject: [KYSELY],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useFactory: (db: Kysely<any>) =>
-      new TableStore<GithubCommMessageCursorTypeormEntity>(db, {
-        table: 'capital_github_comm_message_cursor',
-        primaryKey: ['id'],
-        numbers: ['lastOriginServerTs'],
-        updatedAt: 'updatedAt',
-      }),
-  },
-  {
-    provide: CAPITAL_GITHUB_COMM_TRANSCRIPTION_CURSOR_STORE,
-    inject: [KYSELY],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useFactory: (db: Kysely<any>) =>
-      new TableStore<GithubCommTranscriptionCursorTypeormEntity>(db, {
-        table: 'capital_github_comm_transcription_cursor',
-        primaryKey: ['id'],
-        updatedAt: 'updatedAt',
-      }),
-  },
-  {
     provide: CAPITAL_GITHUB_FILE_INDEX_STORE,
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<GitHubFileIndexTypeormEntity>(db, {
+      new TableStore<GitHubFileIndexRecord>(db, {
         table: 'capital_github_file_indexes',
         primaryKey: ['id'],
         updatedAt: 'last_synced_at',
@@ -152,7 +125,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<IssueLinkedGitCommitShaTypeormEntity>(db, {
+      new TableStore<IssueLinkedGitCommitShaRecord>(db, {
         table: 'capital_issue_linked_git_commit_shas',
         primaryKey: ['id'],
         sameNames: true,
@@ -163,7 +136,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<IssueLinkedGitCommitTypeormEntity>(db, {
+      new TableStore<IssueLinkedGitCommitRecord>(db, {
         table: 'capital_issue_linked_git_commits',
         primaryKey: ['id'],
         sameNames: true,
@@ -174,7 +147,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProcessInstanceTypeormEntity>(db, {
+      new TableStore<ProcessInstanceRecord>(db, {
         table: 'capital_process_instances',
         primaryKey: ['id'],
         json: ['step_states'],
@@ -186,7 +159,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProcessTemplateTypeormEntity>(db, {
+      new TableStore<ProcessTemplateRecord>(db, {
         table: 'capital_process_templates',
         primaryKey: ['id'],
         json: ['steps', 'edges'],
@@ -199,7 +172,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<AppendixTypeormEntity>(db, {
+      new TableStore<AppendixRecord>(db, {
         table: 'capital_appendixes',
         primaryKey: ['_id'],
         json: ['appendix'],
@@ -213,7 +186,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<CommentTypeormEntity>(db, {
+      new TableStore<CommentRecord>(db, {
         table: 'capital_comments',
         primaryKey: ['_id'],
         json: ['reactions'],
@@ -227,7 +200,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<CommitTypeormEntity>(db, {
+      new TableStore<CommitRecord>(db, {
         table: 'capital_commits',
         primaryKey: ['_id'],
         json: ['amounts', 'data'],
@@ -241,7 +214,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ComponentMetricTypeormEntity>(db, {
+      new TableStore<ComponentMetricRecord>(db, {
         table: 'capital_component_metrics',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -254,7 +227,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ContributorTypeormEntity>(db, {
+      new TableStore<ContributorRecord>(db, {
         table: 'capital_contributors',
         primaryKey: ['_id'],
         json: ['contract', 'appendixes'],
@@ -268,7 +241,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<CycleTypeormEntity>(db, {
+      new TableStore<CycleRecord>(db, {
         table: 'capital_cycles',
         primaryKey: ['_id'],
         dates: ['start_date', 'end_date'],
@@ -282,7 +255,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<DebtTypeormEntity>(db, {
+      new TableStore<DebtRecord>(db, {
         table: 'capital_debts',
         primaryKey: ['_id'],
         json: ['statement', 'approved_statement', 'authorization'],
@@ -296,7 +269,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ExpenseTypeormEntity>(db, {
+      new TableStore<ExpenseRecord>(db, {
         table: 'capital_expenses',
         primaryKey: ['_id'],
         json: ['expense_statement', 'approved_statement', 'authorization'],
@@ -310,7 +283,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<InvestTypeormEntity>(db, {
+      new TableStore<InvestRecord>(db, {
         table: 'capital_invests',
         primaryKey: ['_id'],
         json: ['statement'],
@@ -324,7 +297,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<IssueMetricBindingTypeormEntity>(db, {
+      new TableStore<IssueMetricBindingRecord>(db, {
         table: 'capital_issue_metric_bindings',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -337,7 +310,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<IssueTypeormEntity>(db, {
+      new TableStore<IssueRecord>(db, {
         table: 'capital_issues',
         primaryKey: ['_id'],
         json: ['metadata'],
@@ -351,7 +324,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<MeasureTypeormEntity>(db, {
+      new TableStore<MeasureRecord>(db, {
         table: 'capital_measures',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -364,7 +337,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<MetricContributionTypeormEntity>(db, {
+      new TableStore<MetricContributionRecord>(db, {
         table: 'capital_metric_contributions',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -377,7 +350,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProgramPropertyTypeormEntity>(db, {
+      new TableStore<ProgramPropertyRecord>(db, {
         table: 'capital_program_properties',
         primaryKey: ['_id'],
         json: ['statement', 'authorization', 'act'],
@@ -391,7 +364,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProgramWalletTypeormEntity>(db, {
+      new TableStore<ProgramWalletRecord>(db, {
         table: 'capital_program_wallets',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -404,7 +377,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProgramWithdrawTypeormEntity>(db, {
+      new TableStore<ProgramWithdrawRecord>(db, {
         table: 'capital_program_withdraws',
         primaryKey: ['_id'],
         json: ['statement'],
@@ -418,7 +391,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProjectPropertyTypeormEntity>(db, {
+      new TableStore<ProjectPropertyRecord>(db, {
         table: 'capital_project_properties',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -431,7 +404,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ProjectTypeormEntity>(db, {
+      new TableStore<ProjectRecord>(db, {
         table: 'capital_projects',
         primaryKey: ['_id'],
         json: ['authorization', 'counts', 'plan', 'fact', 'crps', 'voting', 'matrix_component_announcement_events'],
@@ -445,7 +418,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<ResultTypeormEntity>(db, {
+      new TableStore<ResultRecord>(db, {
         table: 'capital_results',
         primaryKey: ['_id'],
         json: ['statement', 'authorization', 'act'],
@@ -459,7 +432,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<SegmentTypeormEntity>(db, {
+      new TableStore<SegmentRecord>(db, {
         table: 'capital_segments',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',
@@ -472,7 +445,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<StateTypeormEntity>(db, {
+      new TableStore<StateRecord>(db, {
         table: 'capital_state',
         primaryKey: ['_id'],
         json: ['config'],
@@ -486,7 +459,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<StoryTypeormEntity>(db, {
+      new TableStore<StoryRecord>(db, {
         table: 'capital_stories',
         primaryKey: ['_id'],
         json: ['matrix_requirement_announcement_events'],
@@ -527,7 +500,7 @@ export const capitalStoreProviders: Provider[] = [
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
-      new TableStore<VoteTypeormEntity>(db, {
+      new TableStore<VoteRecord>(db, {
         table: 'capital_votes',
         primaryKey: ['_id'],
         updatedAt: '_updated_at',

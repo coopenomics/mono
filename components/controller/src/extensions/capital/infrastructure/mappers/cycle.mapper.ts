@@ -1,5 +1,5 @@
 import { CycleDomainEntity } from '../../domain/entities/cycle.entity';
-import { CycleTypeormEntity } from '../entities/cycle.typeorm-entity';
+import { CycleRecord } from '../entities/cycle.record';
 import type { ICycleDatabaseData } from '../../domain/interfaces/cycle-database.interface';
 
 /** Колонка `date` возвращается из базы строкой «ГГГГ-ММ-ДД» — домен и API ждут дату. */
@@ -14,7 +14,7 @@ export class CycleMapper {
   /**
    * Преобразование TypeORM сущности в доменную сущность
    */
-  static toDomain(entity: CycleTypeormEntity): CycleDomainEntity {
+  static toDomain(entity: CycleRecord): CycleDomainEntity {
     const databaseData: ICycleDatabaseData = {
       _id: entity._id,
       block_num: entity.block_num,
@@ -33,8 +33,8 @@ export class CycleMapper {
   /**
    * Преобразование доменной сущности в TypeORM сущность для создания
    */
-  static toEntity(domain: Partial<CycleDomainEntity>): Partial<CycleTypeormEntity> {
-    const entity: Partial<CycleTypeormEntity> = {};
+  static toEntity(domain: Partial<CycleDomainEntity>): Partial<CycleRecord> {
+    const entity: Partial<CycleRecord> = {};
 
     if (domain._id !== undefined) entity._id = domain._id;
     if (domain.name !== undefined) entity.name = domain.name;

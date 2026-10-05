@@ -3,42 +3,42 @@ import { AssetUtils, attachOne, DomainError, PaginationInputDTO, PaginationResul
 import { Inject, Injectable } from '@nestjs/common';
 import { SegmentRepository } from '../../domain/repositories/segment.repository';
 import { SegmentDomainEntity } from '../../domain/entities/segment.entity';
-import { SegmentTypeormEntity } from '../entities/segment.typeorm-entity';
+import { SegmentRecord } from '../entities/segment.record';
 import { SegmentMapper } from '../mappers/segment.mapper';
 import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ISegmentBlockchainData } from '../../domain/interfaces/segment-blockchain.interface';
 import type { ISegmentDatabaseData } from '../../domain/interfaces/segment-database.interface';
 import type { SegmentFilterInputDTO } from '../../application/dto/segments/segment-filter.input';
-import { ResultTypeormEntity } from '../entities/result.typeorm-entity';
-import { VoteTypeormEntity } from '../entities/vote.typeorm-entity';
-import { ProjectTypeormEntity } from '../entities/project.typeorm-entity';
-import type { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
+import { ResultRecord } from '../entities/result.record';
+import { VoteRecord } from '../entities/vote.record';
+import { ProjectRecord } from '../entities/project.record';
+import type { ContributorRecord } from '../entities/contributor.record';
 import { SegmentStatus } from '../../domain/enums/segment-status.enum';
 
 /** Нулевой хэш — признак «родителя нет»: проект верхнего уровня */
 const NULL_PROJECT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 
 /**
- * TypeORM реализация репозитория сегментов
+ * Хранилище сегментов
  */
 @Injectable()
-export class SegmentTypeormRepository
-  extends BaseChainRepository<SegmentDomainEntity, SegmentTypeormEntity>
+export class SegmentKyselyRepository
+  extends BaseChainRepository<SegmentDomainEntity, SegmentRecord>
   implements SegmentRepository, IBlockchainSyncRepository<SegmentDomainEntity>
 {
   constructor(
-    @Inject(CAPITAL_SEGMENT_STORE) repository: TableStore<SegmentTypeormEntity>,
+    @Inject(CAPITAL_SEGMENT_STORE) repository: TableStore<SegmentRecord>,
     @Inject(ChainVersioningService) versioning: ChainVersioningService,
-    @Inject(CAPITAL_CONTRIBUTOR_STORE) private readonly contributors: TableStore<ContributorTypeormEntity>,
-    @Inject(CAPITAL_PROJECT_STORE) private readonly projects: TableStore<ProjectTypeormEntity>,
-    @Inject(CAPITAL_VOTE_STORE) private readonly votes: TableStore<VoteTypeormEntity>,
-    @Inject(CAPITAL_RESULT_STORE) private readonly results: TableStore<ResultTypeormEntity>
+    @Inject(CAPITAL_CONTRIBUTOR_STORE) private readonly contributors: TableStore<ContributorRecord>,
+    @Inject(CAPITAL_PROJECT_STORE) private readonly projects: TableStore<ProjectRecord>,
+    @Inject(CAPITAL_VOTE_STORE) private readonly votes: TableStore<VoteRecord>,
+    @Inject(CAPITAL_RESULT_STORE) private readonly results: TableStore<ResultRecord>
   ) {
     super(repository, versioning);
   }
 
   /** Участник и проект сегмента: из них берутся имя участника, название и состояние проекта. */
-  private async attachRelations(segments: SegmentTypeormEntity[]): Promise<void> {
+  private async attachRelations(segments: SegmentRecord[]): Promise<void> {
     await attachOne(segments, this.contributors, 'contributor', { coopname: 'coopname', username: 'username' });
     await attachOne(segments, this.projects, 'project', { project_hash: 'project_hash' });
   }
@@ -65,49 +65,23 @@ export class SegmentTypeormRepository
    * Применяет фильтры к QueryBuilder
    */
   private applyFiltersToQueryBuilder(
-    queryBuilder: SqlBuilder<SegmentTypeormEntity>,
+    queryBuilder: SqlBuilder<SegmentRecord>,
     filter?: SegmentFilterInputDTO
-  ): SqlBuilder<SegmentTypeormEntity> {
+  ): SqlBuilder<SegmentRecord> {
     if (!filter) {
       return queryBuilder;
     }
 
-    // Применяем базовые фильтры
-    if (filter.coopname) {
-      queryBuilder = queryBuilder.andWhere('s.coopname = :coopname', { coopname: filter.coopname });
+    // Строковые поля отбирают по непустому значению, признаки — по заданному.
+    for (const field of ['coopname', 'username', 'project_hash', 'status'] as const) {
+      if (filter[field]) queryBuilder.andWhere(`s.${field} = :${field}`, { [field]: filter[field] });
     }
-    if (filter.username) {
-      queryBuilder = queryBuilder.andWhere('s.username = :username', { username: filter.username });
-    }
-    if (filter.project_hash) {
-      queryBuilder = queryBuilder.andWhere('s.project_hash = :project_hash', { project_hash: filter.project_hash });
-    }
-    if (filter.status) {
-      queryBuilder = queryBuilder.andWhere('s.status = :status', { status: filter.status });
-    }
-    if (filter.is_author !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_author = :is_author', { is_author: filter.is_author });
-    }
-    if (filter.is_creator !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_creator = :is_creator', { is_creator: filter.is_creator });
-    }
-    if (filter.is_coordinator !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_coordinator = :is_coordinator', { is_coordinator: filter.is_coordinator });
-    }
-    if (filter.is_investor !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_investor = :is_investor', { is_investor: filter.is_investor });
-    }
-    if (filter.is_propertor !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_propertor = :is_propertor', { is_propertor: filter.is_propertor });
-    }
-    if (filter.is_contributor !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.is_contributor = :is_contributor', { is_contributor: filter.is_contributor });
-    }
-    if (filter.has_vote !== undefined) {
-      queryBuilder = queryBuilder.andWhere('s.has_vote = :has_vote', { has_vote: filter.has_vote });
+    const flags = ['is_author', 'is_creator', 'is_coordinator', 'is_investor', 'is_propertor', 'is_contributor', 'has_vote'] as const;
+    for (const field of flags) {
+      if (filter[field] !== undefined) queryBuilder.andWhere(`s.${field} = :${field}`, { [field]: filter[field] });
     }
     if (filter.parent_hash !== undefined) {
-      queryBuilder = queryBuilder.andWhere('project.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
+      queryBuilder.andWhere('project.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
     }
     if (filter.is_component !== undefined) {
       // Результат приходуется по компоненту: у проекта верхнего уровня своего
@@ -128,7 +102,7 @@ export class SegmentTypeormRepository
    * Заполняет результаты для массива сегментов
    * Результаты связываются по username и project_hash, выбирается с максимальным id
    */
-  private async populateResultsForSegments(segments: SegmentTypeormEntity[]): Promise<void> {
+  private async populateResultsForSegments(segments: SegmentRecord[]): Promise<void> {
     if (segments.length === 0) {
       return;
     }
@@ -160,7 +134,7 @@ export class SegmentTypeormRepository
     });
 
     const results = await Promise.all(resultPromises);
-    const resultMap = new Map<string, ResultTypeormEntity>();
+    const resultMap = new Map<string, ResultRecord>();
 
     results.forEach((item) => {
       if (item) {
@@ -184,7 +158,7 @@ export class SegmentTypeormRepository
    * требуется?». Оба значения берутся пакетно: поэлементные запросы на списке
    * в сотню долей дали бы сотню обращений к базе.
    */
-  private async populateProjectContextForSegments(segments: SegmentTypeormEntity[]): Promise<void> {
+  private async populateProjectContextForSegments(segments: SegmentRecord[]): Promise<void> {
     if (segments.length === 0) {
       return;
     }
@@ -242,7 +216,7 @@ export class SegmentTypeormRepository
    * Определяет, является ли проект компонентом
    * Компонент - это проект с непустым parent_hash, отличным от нулевого хэша
    */
-  private isProjectComponent(project: ProjectTypeormEntity | undefined): boolean {
+  private isProjectComponent(project: ProjectRecord | undefined): boolean {
     if (!project || !project.parent_hash) {
       return false;
     }
@@ -254,7 +228,7 @@ export class SegmentTypeormRepository
    * @param parentHash Хэш родительского проекта
    * @param coopname Имя кооператива для фильтрации
    */
-  private async getChildProjects(parentHash: string, coopname: string): Promise<ProjectTypeormEntity[]> {
+  private async getChildProjects(parentHash: string, coopname: string): Promise<ProjectRecord[]> {
     return await this.projects.sqlBuilder('p')
       .where('p.parent_hash = :parentHash', { parentHash })
       .andWhere('p.coopname = :coopname', { coopname })
@@ -268,9 +242,9 @@ export class SegmentTypeormRepository
    * @returns Массив агрегированных сегментов
    */
   private aggregateSegmentsByUsername(
-    segments: SegmentTypeormEntity[],
+    segments: SegmentRecord[],
     parentProjectHash?: string
-  ): SegmentTypeormEntity[] {
+  ): SegmentRecord[] {
     // Группируем по username
     const groupedByUsername = segments.reduce((acc, segment) => {
       const username = segment.username;
@@ -279,7 +253,7 @@ export class SegmentTypeormRepository
       }
       acc[username].push(segment);
       return acc;
-    }, {} as Record<string, SegmentTypeormEntity[]>);
+    }, {} as Record<string, SegmentRecord[]>);
 
     // Агрегируем каждую группу
     return Object.entries(groupedByUsername).map(([username, userSegments]) => {
@@ -294,7 +268,7 @@ export class SegmentTypeormRepository
       }
 
       // Создаем агрегированный сегмент
-      const aggregated: SegmentTypeormEntity = {
+      const aggregated: SegmentRecord = {
         ...baseSegment,
         // project_hash должен быть родительским проектом (если указан)
         project_hash: parentProjectHash || baseSegment.project_hash,
@@ -430,7 +404,7 @@ export class SegmentTypeormRepository
       queryBuilder = this.applyFiltersToQueryBuilder(queryBuilder, filter);
     }
     // Получаем все сегменты без пагинации для агрегации
-    let entities: SegmentTypeormEntity[];
+    let entities: SegmentRecord[];
 
     if (shouldAggregate) {
       // Для агрегации получаем все записи
@@ -443,8 +417,8 @@ export class SegmentTypeormRepository
       // Применяем сортировку после агрегации
       if (validatedOptions.sortBy) {
         entities = entities.sort((a, b) => {
-          const aValue = a[validatedOptions.sortBy as keyof SegmentTypeormEntity];
-          const bValue = b[validatedOptions.sortBy as keyof SegmentTypeormEntity];
+          const aValue = a[validatedOptions.sortBy as keyof SegmentRecord];
+          const bValue = b[validatedOptions.sortBy as keyof SegmentRecord];
 
           // Обработка undefined значений
           if (aValue === undefined && bValue === undefined) return 0;

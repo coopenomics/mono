@@ -21,3 +21,4 @@ export * from './hash.utils';
 export * from './currency-validation.utils';
 export * from './user-text.utils';
 export * from './safe-markup.decorator';
+export * from './pick-defined';

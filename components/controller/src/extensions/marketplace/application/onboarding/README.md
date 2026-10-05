@@ -59,7 +59,7 @@ flow обеспечивается:
 - `AgreementRegistry` (`AgreementRegistrationPort` + `AgreementQueryPort` +
   `AgreementConfigurationService`) — реализовано (см. `domain/registration/`).
 - `AgreementRepository.findByUsername` + `AgreementSyncService` —
-  реализовано (`domain/agreement/`, `infrastructure/database/typeorm/blockchain/`).
+  реализовано (`domain/agreement/`, `infrastructure/database/kysely/blockchain/`).
 - `documentFactory.render(registry_id, params)` — реализуется в core
   registration-flow (за пределами marketplace).
 - Реальная mutation `wallet::signagree` или `soviet::sndagreement` для

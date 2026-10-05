@@ -75,6 +75,8 @@ function main() {
   register(owner, className, file);
   process.stdout.write(`${owner}: ${path.relative(process.cwd(), file)}\n`);
   process.stdout.write('Впишите SQL, затем pnpm schema:check и pnpm schema:types\n');
+  // Общие части команд подключают реестр расширений, а он держит соединения открытыми.
+  process.exit(0);
 }
 
 main();

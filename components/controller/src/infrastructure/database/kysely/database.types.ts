@@ -382,22 +382,6 @@ export interface CapitalGithubBranchCommitSyncState {
   updated_at: Generated<Timestamp>;
 }
 
-export interface CapitalGithubCommMessageCursor {
-  coopname: string;
-  id: Generated<string>;
-  last_origin_server_ts: Int8;
-  matrix_room_id: string;
-  updated_at: Generated<Timestamp>;
-}
-
-export interface CapitalGithubCommTranscriptionCursor {
-  coopname: string;
-  id: Generated<string>;
-  last_ended_at_exclusive: Timestamp;
-  project_hash: string;
-  updated_at: Generated<Timestamp>;
-}
-
 export interface CapitalGithubFileIndexes {
   coopname: string;
   created_at: Generated<Timestamp>;
@@ -1834,16 +1818,6 @@ export interface MarketplaceWriteoffProposal {
   updated_at: Generated<Timestamp>;
 }
 
-export interface MatrixTokens {
-  coop_username: string;
-  created_at: Generated<Timestamp>;
-  expires_at: Timestamp;
-  id: Generated<string>;
-  is_used: Generated<boolean>;
-  matrix_user_id: string;
-  token: string;
-}
-
 export interface MatrixUsers {
   coop_username: string;
   created_at: Generated<Timestamp>;
@@ -2284,8 +2258,6 @@ export interface DB {
   capital_expenses: CapitalExpenses;
   capital_favorites: CapitalFavorites;
   capital_github_branch_commit_sync_state: CapitalGithubBranchCommitSyncState;
-  capital_github_comm_message_cursor: CapitalGithubCommMessageCursor;
-  capital_github_comm_transcription_cursor: CapitalGithubCommTranscriptionCursor;
   capital_github_file_indexes: CapitalGithubFileIndexes;
   capital_invests: CapitalInvests;
   capital_issue_linked_git_commit_shas: CapitalIssueLinkedGitCommitShas;
@@ -2368,7 +2340,6 @@ export interface DB {
   marketplace_ttn_document: MarketplaceTtnDocument;
   marketplace_vitrine: MarketplaceVitrine;
   marketplace_writeoff_proposal: MarketplaceWriteoffProposal;
-  matrix_tokens: MatrixTokens;
   matrix_users: MatrixUsers;
   meet_pre: MeetPre;
   meet_processed: MeetProcessed;
