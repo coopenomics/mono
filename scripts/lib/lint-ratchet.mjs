@@ -22,6 +22,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 function countByRule(messages, gateRules) {
@@ -34,9 +36,36 @@ function countByRule(messages, gateRules) {
   return perRule;
 }
 
-function baseContent(repoPrefix, diffFrom, file) {
+/**
+ * Переименования относительно базы: новый путь -> прежний. Перемещённый файл
+ * наследует долг прежнего пути — перенос файла долга не добавляет. Считается
+ * во временном индексе: неотслеживаемые файлы рабочего дерева учтены, общий
+ * индекс не тронут.
+ */
+function renamedFrom(diffFrom) {
+  const renames = new Map();
+  const dir = mkdtempSync(join(tmpdir(), 'lint-ratchet-'));
+  const env = { ...process.env, GIT_INDEX_FILE: join(dir, 'index') };
+  const git = (args) => execFileSync('git', args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
   try {
-    return execFileSync('git', ['show', `${diffFrom}:${repoPrefix}/${file}`], {
+    git(['read-tree', 'HEAD']);
+    git(['add', '-A']);
+    for (const line of git(['diff', '--cached', '-M', '--name-status', '--diff-filter=R', diffFrom]).split('\n')) {
+      const [status, from, to] = line.split('\t');
+      if (status?.startsWith('R') && from && to) renames.set(to, from);
+    }
+  } catch {
+    // без карты переименований перемещённый файл считается новым — как раньше
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  return renames;
+}
+
+function baseContent(repoPrefix, diffFrom, file, renames) {
+  const path = `${repoPrefix}/${file}`;
+  try {
+    return execFileSync('git', ['show', `${diffFrom}:${renames.get(path) ?? path}`], {
       encoding: 'utf8',
       maxBuffer: 64 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -78,9 +107,10 @@ export async function ratchet({ componentDir, repoPrefix, diffFrom, rules, gateR
     byFile.set(rel, entry);
   }
 
+  const renames = renamedFrom(diffFrom);
   const baseCounts = new Map(); // исходный путь -> {rule -> n}
   for (const file of files) {
-    const content = baseContent(repoPrefix, diffFrom, file);
+    const content = baseContent(repoPrefix, diffFrom, file, renames);
     if (content === undefined) continue;
     const [base] = await eslint.lintText(content, { filePath: join(componentDir, file) });
     const counts = new Map();

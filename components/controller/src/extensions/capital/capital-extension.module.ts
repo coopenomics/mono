@@ -311,7 +311,7 @@ import { registerCapitalOnboardingSteps } from './application/onboarding/registe
 import { registerCapitalDocuments } from './application/onboarding/register-capital-documents';
 
 // Репозитории
-import { ProjectKyselyRepository } from './infrastructure/repositories/project.typeorm-repository';
+import { ProjectKyselyRepository } from './infrastructure/repositories/project.kysely-repository';
 import { ContributorKyselyRepository } from './infrastructure/repositories/contributor.kysely-repository';
 import { AppendixKyselyRepository } from './infrastructure/repositories/appendix.kysely-repository';
 import { InvestKyselyRepository } from './infrastructure/repositories/invest.kysely-repository';
@@ -341,7 +341,7 @@ import { StateKyselyRepository } from './infrastructure/repositories/state.kysel
 import { TimeEntryKyselyRepository } from './infrastructure/repositories/time-entry.kysely-repository';
 import { TimerSessionKyselyRepository } from './infrastructure/repositories/timer-session.kysely-repository';
 import { FavoriteKyselyRepository } from './infrastructure/repositories/favorite.kysely-repository';
-import { SegmentKyselyRepository } from './infrastructure/repositories/segment.typeorm-repository';
+import { SegmentKyselyRepository } from './infrastructure/repositories/segment.kysely-repository';
 
 // GitHub (маркеры коммитов)
 import { GitHubService } from './infrastructure/services/github.service';

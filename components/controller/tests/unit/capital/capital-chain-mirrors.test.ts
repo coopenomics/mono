@@ -7,7 +7,7 @@
 import { CommitKyselyRepository } from '~/extensions/capital/infrastructure/repositories/commit.kysely-repository';
 import { TimeEntryKyselyRepository } from '~/extensions/capital/infrastructure/repositories/time-entry.kysely-repository';
 import { StoryKyselyRepository } from '~/extensions/capital/infrastructure/repositories/story.kysely-repository';
-import { ProjectKyselyRepository } from '~/extensions/capital/infrastructure/repositories/project.typeorm-repository';
+import { ProjectKyselyRepository } from '~/extensions/capital/infrastructure/repositories/project.kysely-repository';
 import {
   CAPITAL_COMMIT_STORE,
   CAPITAL_CONTRIBUTOR_STORE,

@@ -66,7 +66,7 @@ sources:
     - components/controller/src/extensions/capital/application/use-cases/segments.interactor.ts
     - components/controller/src/extensions/capital/application/use-cases/project-management.interactor.ts
     - components/controller/src/extensions/capital/application/syncers/segment-sync.service.ts
-    - components/controller/src/extensions/capital/infrastructure/repositories/segment.typeorm-repository.ts
+    - components/controller/src/extensions/capital/infrastructure/repositories/segment.kysely-repository.ts
   ui:
     - components/desktop/extensions/capital/widgets/ProjectInfoSelectorWidget/ProjectContributorsList.vue
     - components/desktop/extensions/capital/pages/ProjectContributorsPage/**
