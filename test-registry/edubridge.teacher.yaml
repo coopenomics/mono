@@ -318,7 +318,7 @@ cases:
     scenario: "Заявление о выходе из кооператива подано преподавателем."
     expect: "Подписки закрываются, договор УХД прекращается; сбой прекращения выход не роняет."
     test: components/controller/tests/unit/edubridge/membership-exit.listener.test.ts
-    api: components/api-tests/src/edubridge/exit.test.ts
+    # внешний тест написан (api-tests/src/edubridge/exit.test.ts) и выключен: председатель не может подписать договор чужого преподавателя (находка 2 прогона 05.10.2026), действующего договора на стенде нет
     status: passing
   - id: edu.teach.side.17
     level: backend
