@@ -340,12 +340,69 @@ export class EdubridgeEnrollmentService {
         cancelled.push(await this.cancelOne(coopname, enrollment, false));
       } catch (e) {
         this.logger.warn(`[EDU.SUB] выход ${member} (${reason}): подписка ${enrollment.id} не закрыта — ${(e as Error)?.message ?? e}`);
+        await this.markClosePending(enrollment, e);
       }
     }
     if (cancelled.length) {
       this.logger.info(`[EDU.SUB] выход ${member} (${reason}): закрыто подписок ${cancelled.length}`);
     }
     return cancelled;
+  }
+
+  /**
+   * Подписка не закрылась при выходе пайщика: возврат по ней ещё не лёг на
+   * кошелёк программы и в сумму выхода не войдёт. Отметка держит её на виду у
+   * администратора, а закрытие повторяется само, пока не пройдёт.
+   */
+  private async markClosePending(enrollment: EdubridgeEnrollmentRecord, error: unknown): Promise<void> {
+    enrollment.close_pending_since = enrollment.close_pending_since ?? new Date();
+    enrollment.close_error = String((error as Error)?.message ?? error).slice(0, 500);
+    await this.enrollments.save(enrollment);
+  }
+
+  /** Повтор закрытия подписок, которые не закрылись при выходе пайщика. Возвращает число закрытых. */
+  async retryPendingClosures(coopname: string): Promise<number> {
+    let closed = 0;
+    for (const enrollment of await this.enrollments.findClosePending(coopname)) {
+      if (await this.closePending(coopname, enrollment)) closed += 1;
+    }
+    return closed;
+  }
+
+  /** Повтор закрытия одной подписки по слову администратора; отказ цепи возвращается ему как есть. */
+  async retryClose(coopname: string, enrollmentId: string): Promise<EdubridgeEnrollmentRecord> {
+    const enrollment = await this.enrollments.findById(coopname, enrollmentId);
+    if (!enrollment) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
+    if (!enrollment.close_pending_since) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_CLOSE_NOT_PENDING');
+    if (!isCancellable(enrollment)) return this.clearClosePending(enrollment);
+    try {
+      return await this.cancelOne(coopname, enrollment, false);
+    } catch (e) {
+      await this.markClosePending(enrollment, e);
+      throw e;
+    }
+  }
+
+  private async closePending(coopname: string, enrollment: EdubridgeEnrollmentRecord): Promise<boolean> {
+    // Подписка успела закрыться другим путём (истёк срок, отмена) — отметка больше не нужна.
+    if (!isCancellable(enrollment)) {
+      await this.clearClosePending(enrollment);
+      return false;
+    }
+    try {
+      await this.cancelOne(coopname, enrollment, false);
+      this.logger.info(`[EDU.SUB] подписка ${enrollment.sub_hash} закрыта повтором после выхода пайщика`);
+      return true;
+    } catch (e) {
+      await this.markClosePending(enrollment, e);
+      return false;
+    }
+  }
+
+  private clearClosePending(enrollment: EdubridgeEnrollmentRecord): Promise<EdubridgeEnrollmentRecord> {
+    enrollment.close_pending_since = null;
+    enrollment.close_error = null;
+    return this.enrollments.save(enrollment);
   }
 
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
@@ -370,6 +427,8 @@ export class EdubridgeEnrollmentService {
     await this.funds.afterClosed(coopname, enrollment);
     enrollment.refunded_amount = refund.refund;
     enrollment.refund_reason = refund.reason;
+    enrollment.close_pending_since = null;
+    enrollment.close_error = null;
     const saved = await this.enrollments.save(enrollment);
 
     const payload: IEduEnrollmentEventPayload = {

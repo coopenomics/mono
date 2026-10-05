@@ -62,6 +62,15 @@ export class EdubridgeEnrollmentRecord {
   /** Когда отправлено предупреждение о предстоящем отзыве; null — не отправлялось для текущего периода. */
   public expiry_notified_at!: Date | null;
 
+  /**
+   * С какого времени подписка ждёт закрытия, которое не прошло при выходе
+   * пайщика из кооператива; пусто — закрывать нечего. Закрытие повторяется само.
+   */
+  public close_pending_since!: Date | null;
+
+  /** Чем кончилась последняя попытка закрытия. */
+  public close_error!: string | null;
+
   public created_at!: Date;
 
   public updated_at!: Date;

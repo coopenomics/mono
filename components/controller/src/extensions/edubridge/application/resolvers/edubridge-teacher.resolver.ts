@@ -175,6 +175,22 @@ export class EdubridgeTeacherResolver {
     return this.teachers.listTeachers(coop());
   }
 
+  @Query(() => DocumentAggregateDTO, { name: 'edubridgeTeacherContractDocument', nullable: true, description: 'Подписанный договор участия в хозяйственной деятельности преподавателя' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'read:all')
+  async edubridgeTeacherContractDocument(@Args('username', { type: () => String }) username: string): Promise<DocumentAggregateDTO | null> {
+    const aggregate = await this.teachers.contractDocument(coop(), username);
+    return aggregate ? new DocumentAggregateDTO(aggregate) : null;
+  }
+
+  @Query(() => DocumentAggregateDTO, { name: 'edubridgeMyContractDocument', nullable: true, description: 'Мой подписанный договор участия в хозяйственной деятельности' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduAssignment', 'read:own')
+  async edubridgeMyContractDocument(@CurrentEduMember() m: IEdubridgeMembership): Promise<DocumentAggregateDTO | null> {
+    const aggregate = await this.teachers.contractDocument(coop(), m.username as string);
+    return aggregate ? new DocumentAggregateDTO(aggregate) : null;
+  }
+
   @Query(() => [EduApprovalDTO], {
     name: 'edubridgeTeacherApprovals',
     description: 'Договор и приложения преподавателя, которые ждут подписи председателя',

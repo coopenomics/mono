@@ -48,6 +48,12 @@
           template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
           template(#cell-access_state="{ row }")
             BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
+          //- Подписка не закрылась при выходе пайщика: закрытие повторяется само, здесь — повтор сразу.
+          template(#cell-actions="{ row }")
+            .row.no-wrap.items-center.justify-end.q-gutter-xs(v-if="row.close_pending")
+              BaseBadge(variant="neg") {{ $t('edubridge.adminMembersPage.closePending.badge') }}
+                q-tooltip(v-if="row.close_error" max-width="320px") {{ row.close_error }}
+              BaseButton(variant="secondary" size="sm" :loading="closing === asText(row.id)" @click="onRetryClose(row)") {{ $t('common.action.retry') }}
 
       //- Выдача доступа: обычные задачи повторяются сами, поэтому в списке
       //- показываются те, что встали и ждут человека, — и повторяются отсюда же.
@@ -74,7 +80,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ACCESS_STATE_LABELS } from '../../entities/Learner';
-import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
+import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, retryEnrollmentClose, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
@@ -96,6 +102,7 @@ const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
 const drawerOpen = ref(false);
 const retrying = ref<string | null>(null);
+const closing = ref<string | null>(null);
 
 const columns: BaseTableColumn<IMemberRow>[] = [
   { key: 'member', label: i18nT('edubridge.adminMembersPage.column.member') },
@@ -107,6 +114,7 @@ const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] =
   { key: 'course_title', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.courseTitle') },
   { key: 'paid_until', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.paidUntil'), width: '130px' },
   { key: 'access_state', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.accessState'), width: '160px' },
+  { key: 'actions', label: '', align: 'right', width: '240px' },
 ];
 const taskColumns: BaseTableColumn<IMemberCard['tasks'][number]>[] = [
   { key: 'kind', label: i18nT('edubridge.adminMembersPage.taskColumn.kind'), width: '100px' },
@@ -141,6 +149,23 @@ async function open(row: IMemberRow): Promise<void> {
     drawerOpen.value = true;
   } catch (e) {
     FailAlert(e);
+  }
+}
+
+/** Повтор закрытия подписки, не закрывшейся при выходе пайщика: возврат по ней ляжет на кошелёк программы. */
+async function onRetryClose(enrollment: IMemberCard['enrollments'][number]): Promise<void> {
+  const id = asText(enrollment.id);
+  closing.value = id;
+  try {
+    await retryEnrollmentClose(id);
+    SuccessAlert(i18nT('edubridge.adminMembersPage.closePending.success'));
+    if (card.value) card.value = await fetchMemberCard(card.value.username);
+    await load();
+    void refreshMenuBadges(['edubridge-admin-registry']);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    closing.value = null;
   }
 }
 

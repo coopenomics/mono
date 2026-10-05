@@ -61,6 +61,8 @@ export const fetchMemberCard = (username: string) => q<IMemberCard>(Queries.Edub
 export const fetchQueue = (statuses?: Zeus.EduAccessTaskStatus[]) => q<IAccessTask[]>(Queries.Edubridge.Queue.query, Queries.Edubridge.Queue.name, { filter: statuses?.length ? { statuses } : undefined });
 export const fetchConnectors = () => q<IConnector[]>(Queries.Edubridge.Connectors.query, Queries.Edubridge.Connectors.name);
 export const fetchAdmins = () => q<IAdmin[]>(Queries.Edubridge.Admins.query, Queries.Edubridge.Admins.name);
+export const retryEnrollmentClose = (enrollment_id: string) =>
+  m<unknown>(Mutations.Edubridge.RetryEnrollmentClose.mutation, Mutations.Edubridge.RetryEnrollmentClose.name, { data: { enrollment_id } });
 export const retryTask = (task_id: string) => m<IAccessTask>(Mutations.Edubridge.RetryTask.mutation, Mutations.Edubridge.RetryTask.name, { data: { task_id } });
 export const checkConnector = (carrier: string) => m<IConnector>(Mutations.Edubridge.CheckConnector.mutation, Mutations.Edubridge.CheckConnector.name, { carrier });
 export const setConnectorEnabled = (carrier: string, enabled: boolean) =>

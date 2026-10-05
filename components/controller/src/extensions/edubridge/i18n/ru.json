@@ -296,6 +296,7 @@
     "EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL": "Заявление уже отправлено в совет — снять его нельзя",
     "EDUBRIDGE_STATEMENT_ALREADY_SIGNED": "Заявление по этим материалам уже подписано",
     "EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED": "Подписка уже отменена или закрыта",
+    "EDUBRIDGE_SUBSCRIPTION_CLOSE_NOT_PENDING": "У подписки нет незавершённого закрытия",
     "EDUBRIDGE_SUBSCRIPTION_NOT_FOUND": "Подписка не найдена",
     "EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND": "У преподавателя нет договора участия в хозяйственной деятельности",
     "EDUBRIDGE_TEACHER_HAS_OPEN_ASSIGNMENTS": "Преподаватель ведёт курсы — сначала снимите его допуски к курсам",

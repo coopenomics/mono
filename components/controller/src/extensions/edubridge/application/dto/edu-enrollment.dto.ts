@@ -48,6 +48,12 @@ export class EduEnrollmentDTO {
   @Field(() => Date, { nullable: true, description: 'Когда подписка отменена' })
   cancelled_at!: Date | null;
 
+  @Field(() => Boolean, { description: 'Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия' })
+  close_pending!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Причина, по которой подписку не удалось закрыть' })
+  close_error!: string | null;
+
   constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null) {
     this.id = e.id;
     this.learner_id = e.learner_id;
@@ -62,6 +68,8 @@ export class EduEnrollmentDTO {
     this.refunded_amount = e.refunded_amount;
     this.refund_reason = e.refund_reason;
     this.cancelled_at = e.cancelled_at;
+    this.close_pending = Boolean(e.close_pending_since);
+    this.close_error = e.close_error ?? null;
   }
 }
 

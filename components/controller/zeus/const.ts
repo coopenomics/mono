@@ -697,6 +697,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduRequestReturnInput:{
 		document:"SignedDigitalDocumentInput"
 	},
+	EduRetryEnrollmentCloseInput:{
+
+	},
 	EduRetryTaskInput:{
 
 	},
@@ -2088,6 +2091,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeRequestReturn:{
 			data:"EduRequestReturnInput"
 		},
+		edubridgeRetryEnrollmentClose:{
+			data:"EduRetryEnrollmentCloseInput"
+		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
 		},
@@ -3181,6 +3187,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"EduSectionsFilterInput"
 		},
 		edubridgeTeacherApprovals:{
+
+		},
+		edubridgeTeacherContractDocument:{
 
 		},
 		expenseFile:{
@@ -5775,6 +5784,8 @@ export const ReturnTypes: Record<string,any> = {
 	EduEnrollment:{
 		access_state:"EduAccessState",
 		cancelled_at:"DateTime",
+		close_error:"String",
+		close_pending:"Boolean",
 		course_id:"ID",
 		course_title:"String",
 		id:"ID",
@@ -7661,6 +7672,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeReorderSections:"EduSection",
 		edubridgeReportLesson:"EduLesson",
 		edubridgeRequestReturn:"EduReturnRequest",
+		edubridgeRetryEnrollmentClose:"EduEnrollment",
 		edubridgeRetryTask:"EduAccessTask",
 		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
@@ -8554,6 +8566,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMembers:"EduMemberRow",
 		edubridgeMyAssignments:"EduAssignment",
 		edubridgeMyContract:"EduTeacherContract",
+		edubridgeMyContractDocument:"DocumentAggregate",
 		edubridgeMyContributions:"EduContribution",
 		edubridgeMyEnrollments:"EduEnrollment",
 		edubridgeMyLearners:"EduLearner",
@@ -8571,6 +8584,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeReturnRequests:"EduReturnRequest",
 		edubridgeSections:"EduSection",
 		edubridgeTeacherApprovals:"EduApproval",
+		edubridgeTeacherContractDocument:"DocumentAggregate",
 		edubridgeTeacherOptions:"EduTeacherOption",
 		edubridgeTeachers:"EduTeacher",
 		expenseFile:"ExpenseFile",

@@ -12,6 +12,7 @@ import {
   EduMemberCardDTO,
   EduMemberRowDTO,
   EduQueueFilterInputDTO,
+  EduRetryEnrollmentCloseInputDTO,
   EduRetryTaskInputDTO,
   EduSetConnectorEnabledInputDTO,
   EduSetConnectorCredentialsInputDTO,
@@ -20,6 +21,8 @@ import { EduAccessCarrier } from '../../domain/enums';
 import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeAdminService } from '../services/edubridge-admin.service';
+import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
+import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EdubridgeAttentionService } from '../services/edubridge-attention.service';
 import { EduAttentionDTO } from '../dto/edu-attention.dto';
 
@@ -34,7 +37,8 @@ const coop = () => platformSettings().coopname;
 export class EdubridgeAdminResolver {
   constructor(
     private readonly admin: EdubridgeAdminService,
-    private readonly attention: EdubridgeAttentionService
+    private readonly attention: EdubridgeAttentionService,
+    private readonly enrollments: EdubridgeEnrollmentService
   ) {}
 
   // Права проверяются по каждому числу отдельно: недоступный раздел даёт ноль.
@@ -70,6 +74,14 @@ export class EdubridgeAdminResolver {
   @RequireEduAccess('EduQueue', 'manage')
   edubridgeRetryTask(@Args('data') data: EduRetryTaskInputDTO): Promise<EduAccessTaskDTO> {
     return this.admin.retry(coop(), data.task_id);
+  }
+
+  @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeRetryEnrollmentClose', description: 'Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива' })
+  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @RequireEduAccess('EduQueue', 'manage')
+  async edubridgeRetryEnrollmentClose(@Args('data') data: EduRetryEnrollmentCloseInputDTO): Promise<EduEnrollmentDTO> {
+    const saved = await this.enrollments.retryClose(coop(), data.enrollment_id);
+    return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
   }
 
   @Query(() => [EduConnectorBindingDTO], { name: 'edubridgeConnectors', description: 'Площадки и их состояние (ключи не выдаются)' })

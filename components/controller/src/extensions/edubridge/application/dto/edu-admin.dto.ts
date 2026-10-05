@@ -135,6 +135,11 @@ export class EduAdminInputDTO {
   @Field(() => String, { description: 'Учётное имя пайщика' }) @IsString() username!: string;
 }
 
+@InputType('EduRetryEnrollmentCloseInput')
+export class EduRetryEnrollmentCloseInputDTO {
+  @Field(() => ID, { description: 'Подписка' }) @IsUUID() enrollment_id!: string;
+}
+
 @InputType('EduRetryTaskInput')
 export class EduRetryTaskInputDTO {
   @Field(() => ID) @IsUUID() task_id!: string;

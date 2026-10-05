@@ -111,7 +111,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeEnrollmentRecord>(db, {
         table: 'edubridge_enrollments',
-        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'sub_hash', 'period', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at'],
+        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'sub_hash', 'period', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at', 'close_pending_since', 'close_error'],
         primaryKey: ['id'],
         updatedAt: 'updated_at',
         sameNames: true,
@@ -204,8 +204,9 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeTeacherContractRecord>(db, {
         table: 'edubridge_teacher_contracts',
-        columns: ['id', 'coopname', 'teacher_username', 'contract_hash', 'contract_number', 'hourly_rate', 'status', 'decline_reason', 'approved_at', 'signed_at', 'updated_at'],
+        columns: ['id', 'coopname', 'teacher_username', 'contract_hash', 'contract_number', 'contract_document', 'hourly_rate', 'status', 'decline_reason', 'approved_at', 'signed_at', 'updated_at'],
         primaryKey: ['id'],
+        json: ['contract_document'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

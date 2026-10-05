@@ -851,3 +851,26 @@ describe('EduAssignmentDTO — назначение в ответе API', () => 
   });
 });
 
+
+describe('EdubridgeTeacherService — документ договора для просмотра', () => {
+  const approved = { hash: 'h', meta: {}, signatures: [{ signer: 'teach' }, { signer: 'chair' }] } as any;
+
+  it('подпись председателя кладёт в запись документ с двумя подписями', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
+    await service.saveApprovedContractDocument('voskhod', 'teach', 'H', approved);
+    expect(teachers.saveContract.mock.calls[0]![0].contract_document).toBe(approved);
+  });
+
+  it('документ чужого договора и пустой документ запись не меняют', async () => {
+    const { service, teachers } = make({ contract: EduContractStatus.ACTIVE });
+    await service.saveApprovedContractDocument('voskhod', 'teach', 'другой', approved);
+    await service.saveApprovedContractDocument('voskhod', 'teach', 'h', undefined);
+    expect(teachers.saveContract).not.toHaveBeenCalled();
+  });
+
+  it('у договора без сохранённого документа просмотр отдаёт пусто, без обращения к реестру', async () => {
+    const { service, documents } = make({ contract: EduContractStatus.ACTIVE });
+    await expect(service.contractDocument('voskhod', 'teach')).resolves.toBeNull();
+    expect(documents.buildAggregate).not.toHaveBeenCalled();
+  });
+});

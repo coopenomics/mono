@@ -10,6 +10,7 @@ import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/reposi
 import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
 import { EdubridgeAccessOutboxService } from '../services/edubridge-access-outbox.service';
+import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
 import { EdubridgeFundsService } from '../services/edubridge-funds.service';
 
 /**
@@ -30,6 +31,7 @@ export class EdubridgeExpiryWorker {
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
     private readonly funds: EdubridgeFundsService,
+    private readonly enrollmentService: EdubridgeEnrollmentService,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
@@ -47,6 +49,8 @@ export class EdubridgeExpiryWorker {
       // Сначала освобождается удержанное, которое уже нельзя потребовать назад, затем закрываются истёкшие подписки.
       await this.funds.unlockDue(coopname);
       await this.expire(coopname);
+      // Подписки, не закрывшиеся при выходе пайщика: возврат по ним должен дойти до кошелька программы.
+      await this.enrollmentService.retryPendingClosures(coopname);
       await this.notifyExpiring(coopname);
     } catch (e) {
       this.logger.error(`[EDU.EXPIRY] сбой: ${(e as Error)?.message ?? e}`);

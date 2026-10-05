@@ -26,6 +26,8 @@ const rawEnrollmentSelector = {
   refunded_amount: true,
   refund_reason: true,
   cancelled_at: true,
+  close_pending: true,
+  close_error: true,
 }
 const _validateEnrollment: MakeAllFieldsRequired<ValueTypes['EduEnrollment']> = rawEnrollmentSelector
 export const eduEnrollmentSelector = Selector('EduEnrollment')(rawEnrollmentSelector)

@@ -1,4 +1,4 @@
-import { TableStore, lessOrEqual, oneOf } from '@coopenomics/extension-kit';
+import { TableStore, lessOrEqual, notNull, oneOf } from '@coopenomics/extension-kit';
 import { EDUBRIDGE_ENROLLMENT_STORE } from '../database/edubridge-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { EduEnrollmentStatus } from '../../domain/enums';
@@ -60,6 +60,15 @@ export class EdubridgeEnrollmentKyselyRepository {
       .orderBy('e.paid_until', 'ASC')
       .limit(limit)
       .getMany();
+  }
+
+  /** Подписки, закрытие которых при выходе пайщика не прошло, — для повтора. */
+  findClosePending(coopname: string, limit = 100): Promise<EdubridgeEnrollmentRecord[]> {
+    return this.repo.find({ coopname, close_pending_since: notNull() }, { order: { close_pending_since: 'ASC' }, limit });
+  }
+
+  countClosePending(coopname: string): Promise<number> {
+    return this.repo.count({ coopname, close_pending_since: notNull() });
   }
 
   findActiveByMember(coopname: string, member: string): Promise<EdubridgeEnrollmentRecord[]> {

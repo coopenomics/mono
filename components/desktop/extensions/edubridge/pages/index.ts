@@ -16,6 +16,7 @@ export { TeacherSettlementPage } from './TeacherSettlementPage';
 export { AdminMembersPage } from './AdminMembersPage';
 export { AdminConnectorsPage } from './AdminConnectorsPage';
 export { AdminTeachersPage } from './AdminTeachersPage';
+export { AdminTeacherPage } from './AdminTeacherPage';
 export { AdminContributionsPage } from './AdminContributionsPage';
 export { AdminEconomyPage } from './AdminEconomyPage';
 export { AdminAdminsPage } from './AdminAdminsPage';

@@ -62,6 +62,8 @@ export * as Connectors from './connectors'
 export * as Admins from './admins'
 /** Акт с подписью преподавателя для второй подписи председателя */
 export * as ActSignablePayload from './actSignablePayload'
+export * as MyContractDocument from './myContractDocument'
+export * as TeacherContractDocument from './teacherContractDocument'
 
 /** Возврат остатка кошелька программы в паевой взнос. */
 export * as ReturnBalance from './returnBalance'

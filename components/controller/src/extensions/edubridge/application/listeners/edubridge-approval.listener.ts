@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EdubridgeContract, SovietContract } from 'cooptypes';
 import { LOGGER_PORT, type ILoggerPort, type InnerChainActionRecord } from '@coopenomics/innercoop';
+import { DomainToBlockchainUtils } from '@coopenomics/extension-kit';
 import { EduCouncilOutcome } from '../../domain/enums';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
 
@@ -28,6 +29,9 @@ export class EdubridgeApprovalListener {
     const d = action.data as EdubridgeContract.Actions.Apprvcontr.IApprvcontr;
     if (!d?.coopname || !d?.username || !d?.contract_hash) return;
     await this.teachers.onContractApproved(String(d.coopname), String(d.username), String(d.contract_hash));
+    // Документ из цепи приходит в её формате (метаданные строкой) — в запись кладётся подписанный документ узла.
+    const approved = d.approved_document ? DomainToBlockchainUtils.convertChainDocumentToDomainFormat(d.approved_document as never) : undefined;
+    await this.teachers.saveApprovedContractDocument(String(d.coopname), String(d.username), String(d.contract_hash), approved as never);
   }
 
   @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.Dclinecontr.actionName}`)

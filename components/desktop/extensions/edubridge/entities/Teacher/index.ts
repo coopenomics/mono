@@ -1,3 +1,4 @@
+import type { IDocumentAggregate } from 'src/entities/Document/model';
 import { Cooperative } from 'cooptypes';
 import { Classes, Mutations, Queries, Zeus } from '@coopenomics/sdk';
 import { client } from 'src/shared/api/client';
@@ -73,6 +74,9 @@ export const revokeContribution = (data: { contribution_id: string; reason: stri
   m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
+/** Подписанный договор преподавателя для просмотра; `null` — документ у договора не сохранён. */
+export const fetchTeacherContractDocument = (username: string) =>
+  q<IDocumentAggregate | null>(Queries.Edubridge.TeacherContractDocument.query, Queries.Edubridge.TeacherContractDocument.name, { username });
 export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.query, Queries.Edubridge.Teachers.name);
 /** Договор и приложения преподавателя, которые ждут подписи председателя. */
 export const fetchTeacherApprovals = (username: string) =>

@@ -7178,6 +7178,10 @@ export type ValueTypes = {
 	access_state?:boolean | `@${string}`,
 	/** Когда подписка отменена */
 	cancelled_at?:boolean | `@${string}`,
+	/** Причина, по которой подписку не удалось закрыть */
+	close_error?:boolean | `@${string}`,
+	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
+	close_pending?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
@@ -7531,6 +7535,10 @@ export type ValueTypes = {
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
+	["EduRetryEnrollmentCloseInput"]: {
+	/** Подписка */
+	enrollment_id: ValueTypes["ID"] | Variable<any, string>
 };
 	["EduRetryTaskInput"]: {
 	task_id: ValueTypes["ID"] | Variable<any, string>
@@ -13313,6 +13321,7 @@ edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, 
 edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ValueTypes["EduRequestReturnInput"] | Variable<any, string>},ValueTypes["EduReturnRequest"]],
+edubridgeRetryEnrollmentClose?: [{	data: ValueTypes["EduRetryEnrollmentCloseInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -15289,6 +15298,8 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMyAssignments?:ValueTypes["EduAssignment"],
 	/** Мой договор участия в хозяйственной деятельности */
 	edubridgeMyContract?:ValueTypes["EduTeacherContract"],
+	/** Мой подписанный договор участия в хозяйственной деятельности */
+	edubridgeMyContractDocument?:ValueTypes["DocumentAggregate"],
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions?:ValueTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -15316,6 +15327,7 @@ edubridgeRefundPreview?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, stri
 edubridgeReturnRequests?: [{	status?: ValueTypes["EduReturnStatus"] | undefined | null | Variable<any, string>},ValueTypes["EduReturnRequest"]],
 edubridgeSections?: [{	filter?: ValueTypes["EduSectionsFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string | Variable<any, string>},ValueTypes["EduApproval"]],
+edubridgeTeacherContractDocument?: [{	username: string | Variable<any, string>},ValueTypes["DocumentAggregate"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ValueTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -23726,6 +23738,10 @@ export type ResolverInputTypes = {
 	access_state?:boolean | `@${string}`,
 	/** Когда подписка отменена */
 	cancelled_at?:boolean | `@${string}`,
+	/** Причина, по которой подписку не удалось закрыть */
+	close_error?:boolean | `@${string}`,
+	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
+	close_pending?:boolean | `@${string}`,
 	/** Курс */
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
@@ -24062,6 +24078,10 @@ export type ResolverInputTypes = {
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
+	["EduRetryEnrollmentCloseInput"]: {
+	/** Подписка */
+	enrollment_id: ResolverInputTypes["ID"]
 };
 	["EduRetryTaskInput"]: {
 	task_id: ResolverInputTypes["ID"]
@@ -29681,6 +29701,7 @@ edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},Resolve
 edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
 edubridgeRequestReturn?: [{	data: ResolverInputTypes["EduRequestReturnInput"]},ResolverInputTypes["EduReturnRequest"]],
+edubridgeRetryEnrollmentClose?: [{	data: ResolverInputTypes["EduRetryEnrollmentCloseInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
@@ -31582,6 +31603,8 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMyAssignments?:ResolverInputTypes["EduAssignment"],
 	/** Мой договор участия в хозяйственной деятельности */
 	edubridgeMyContract?:ResolverInputTypes["EduTeacherContract"],
+	/** Мой подписанный договор участия в хозяйственной деятельности */
+	edubridgeMyContractDocument?:ResolverInputTypes["DocumentAggregate"],
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions?:ResolverInputTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -31609,6 +31632,7 @@ edubridgeRefundPreview?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInp
 edubridgeReturnRequests?: [{	status?: ResolverInputTypes["EduReturnStatus"] | undefined | null},ResolverInputTypes["EduReturnRequest"]],
 edubridgeSections?: [{	filter?: ResolverInputTypes["EduSectionsFilterInput"] | undefined | null},ResolverInputTypes["EduSection"]],
 edubridgeTeacherApprovals?: [{	username: string},ResolverInputTypes["EduApproval"]],
+edubridgeTeacherContractDocument?: [{	username: string},ResolverInputTypes["DocumentAggregate"]],
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions?:ResolverInputTypes["EduTeacherOption"],
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -39769,6 +39793,10 @@ export type ModelTypes = {
 	access_state: ModelTypes["EduAccessState"],
 	/** Когда подписка отменена */
 	cancelled_at?: ModelTypes["DateTime"] | undefined | null,
+	/** Причина, по которой подписку не удалось закрыть */
+	close_error?: string | undefined | null,
+	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
+	close_pending: boolean,
 	/** Курс */
 	course_id: ModelTypes["ID"],
 	/** Название курса */
@@ -40083,6 +40111,10 @@ export type ModelTypes = {
 	["EduRequestReturnInput"]: {
 	/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: ModelTypes["SignedDigitalDocumentInput"]
+};
+	["EduRetryEnrollmentCloseInput"]: {
+	/** Подписка */
+	enrollment_id: ModelTypes["ID"]
 };
 	["EduRetryTaskInput"]: {
 	task_id: ModelTypes["ID"]
@@ -45914,6 +45946,8 @@ export type ModelTypes = {
 	edubridgeReportLesson: ModelTypes["EduLesson"],
 	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
 	edubridgeRequestReturn: ModelTypes["EduReturnRequest"],
+	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
+	edubridgeRetryEnrollmentClose: ModelTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
 	/** Снять удерживаемое заявление по подтверждённой рекламации */
@@ -48295,6 +48329,8 @@ export type ModelTypes = {
 	edubridgeMyAssignments: Array<ModelTypes["EduAssignment"]>,
 	/** Мой договор участия в хозяйственной деятельности */
 	edubridgeMyContract?: ModelTypes["EduTeacherContract"] | undefined | null,
+	/** Мой подписанный договор участия в хозяйственной деятельности */
+	edubridgeMyContractDocument?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions: Array<ModelTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -48329,6 +48365,8 @@ export type ModelTypes = {
 	edubridgeSections: Array<ModelTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
 	edubridgeTeacherApprovals: Array<ModelTypes["EduApproval"]>,
+	/** Подписанный договор участия в хозяйственной деятельности преподавателя */
+	edubridgeTeacherContractDocument?: ModelTypes["DocumentAggregate"] | undefined | null,
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<ModelTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -56973,6 +57011,10 @@ export type GraphQLTypes = {
 	access_state: GraphQLTypes["EduAccessState"],
 	/** Когда подписка отменена */
 	cancelled_at?: GraphQLTypes["DateTime"] | undefined | null,
+	/** Причина, по которой подписку не удалось закрыть */
+	close_error?: string | undefined | null,
+	/** Подписка не закрылась при выходе пайщика из кооператива и ожидает повторного закрытия */
+	close_pending: boolean,
 	/** Курс */
 	course_id: GraphQLTypes["ID"],
 	/** Название курса */
@@ -57325,6 +57367,10 @@ export type GraphQLTypes = {
 	["EduRequestReturnInput"]: {
 		/** Подписанное заявление об аннулировании соглашения об участии в программе «Образование» — без выхода из кооператива */
 	document: GraphQLTypes["SignedDigitalDocumentInput"]
+};
+	["EduRetryEnrollmentCloseInput"]: {
+		/** Подписка */
+	enrollment_id: GraphQLTypes["ID"]
 };
 	["EduRetryTaskInput"]: {
 		task_id: GraphQLTypes["ID"]
@@ -63544,6 +63590,8 @@ export type GraphQLTypes = {
 	edubridgeReportLesson: GraphQLTypes["EduLesson"],
 	/** Подать подписанное заявление о прекращении участия в программе на согласование кооперативу */
 	edubridgeRequestReturn: GraphQLTypes["EduReturnRequest"],
+	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
+	edubridgeRetryEnrollmentClose: GraphQLTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
 	/** Снять удерживаемое заявление по подтверждённой рекламации */
@@ -66106,6 +66154,8 @@ export type GraphQLTypes = {
 	edubridgeMyAssignments: Array<GraphQLTypes["EduAssignment"]>,
 	/** Мой договор участия в хозяйственной деятельности */
 	edubridgeMyContract?: GraphQLTypes["EduTeacherContract"] | undefined | null,
+	/** Мой подписанный договор участия в хозяйственной деятельности */
+	edubridgeMyContractDocument?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -66140,6 +66190,8 @@ export type GraphQLTypes = {
 	edubridgeSections: Array<GraphQLTypes["EduSection"]>,
 	/** Договор и приложения преподавателя, которые ждут подписи председателя */
 	edubridgeTeacherApprovals: Array<GraphQLTypes["EduApproval"]>,
+	/** Подписанный договор участия в хозяйственной деятельности преподавателя */
+	edubridgeTeacherContractDocument?: GraphQLTypes["DocumentAggregate"] | undefined | null,
 	/** Преподаватели, которых можно назначить на курс */
 	edubridgeTeacherOptions: Array<GraphQLTypes["EduTeacherOption"]>,
 	/** Преподаватели кооператива с договором и числом назначений */
@@ -70138,6 +70190,7 @@ type ZEUS_VARIABLES = {
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduReorderInput"]: ValueTypes["EduReorderInput"];
 	["EduRequestReturnInput"]: ValueTypes["EduRequestReturnInput"];
+	["EduRetryEnrollmentCloseInput"]: ValueTypes["EduRetryEnrollmentCloseInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
 	["EduReturnStatus"]: ValueTypes["EduReturnStatus"];
 	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];

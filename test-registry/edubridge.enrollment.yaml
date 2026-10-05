@@ -386,3 +386,24 @@ cases:
     expect: "Взнос остаётся удержанным до следующего прохода; закрытие подписки и приём результата сбоем не отменяются."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
     status: passing
+  - id: edu.enroll.break.09
+    level: backend
+    kind: break
+    scenario: "Пайщик выходит из кооператива, цепь или площадка отказала при закрытии одной из его подписок."
+    expect: "Выход не падает; подписка помечается как не закрытая с причиной и остаётся действующей; остальные подписки закрываются."
+    test: components/controller/tests/unit/edubridge/exit-close-pending.test.ts
+    status: passing
+  - id: edu.enroll.side.21
+    level: backend
+    kind: side
+    scenario: "Повтор закрытия помеченной подписки: по расписанию и по слову администратора; повтор при том же сбое; подписка успела закрыться другим путём; повтор без отметки."
+    expect: "Удачный повтор закрывает подписку и снимает отметку; неудачный сохраняет дату отметки и обновляет причину; закрытая другим путём теряет отметку без обращения к цепи; повтор без отметки отклоняется; администратору отдаётся отказ цепи как есть."
+    test: components/controller/tests/unit/edubridge/exit-close-pending.test.ts
+    status: passing
+  - id: edu.enroll.side.22
+    level: backend
+    kind: side
+    scenario: "Счётчик дел администратора на пункте «Ученики» при подписках, не закрывшихся при выходе пайщика."
+    expect: "Число складывается из задач выдачи доступа, которым нужен человек, и не закрытых подписок."
+    test: components/controller/tests/unit/edubridge/attention.service.test.ts
+    status: passing

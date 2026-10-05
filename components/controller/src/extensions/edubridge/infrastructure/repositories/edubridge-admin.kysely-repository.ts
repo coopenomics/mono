@@ -53,7 +53,7 @@ export class EdubridgeAdminKyselyRepository {
         'active_enrollments'
       )
       .addSelect(
-        `(SELECT COUNT(*) FROM ${enrollments} e2 WHERE e2.coopname = :coopname AND e2.member_username = l.member_username AND e2.access_state = :att)`,
+        `(SELECT COUNT(*) FROM ${enrollments} e2 WHERE e2.coopname = :coopname AND e2.member_username = l.member_username AND (e2.access_state = :att OR e2.close_pending_since IS NOT NULL))`,
         'attention_count'
       )
       .where('l.coopname = :coopname', { coopname, active: EduEnrollmentStatus.ACTIVE, att: EduAccessState.NEEDS_ATTENTION })

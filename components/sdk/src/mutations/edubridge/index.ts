@@ -52,6 +52,7 @@ export * as CloseAssignment from './closeAssignment'
 /** Отклонить взнос РИД */
 export * as DeclineContribution from './declineContribution'
 /** Повторить задачу выдачи */
+export * as RetryEnrollmentClose from './retryEnrollmentClose'
 export * as RetryTask from './retryTask'
 /** Проверить площадку */
 export * as CheckConnector from './checkConnector'

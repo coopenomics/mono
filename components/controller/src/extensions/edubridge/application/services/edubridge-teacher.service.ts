@@ -146,11 +146,31 @@ export class EdubridgeTeacherService {
       teacher_username: teacher,
       contract_hash: document.hash.toLowerCase(),
       contract_number: number,
+      contract_document: document as unknown as Record<string, unknown>,
       hourly_rate: hourlyRate,
       status: EduContractStatus.PENDING_APPROVAL,
       decline_reason: '',
       approved_at: null,
     });
+  }
+
+  /**
+   * Председатель подписал договор: в записи остаётся документ уже с двумя
+   * подписями — его и показывает карточка преподавателя.
+   */
+  async saveApprovedContractDocument(coopname: string, teacher: string, contractHash: string, document: ISignedDocument | undefined): Promise<void> {
+    if (!document?.hash) return;
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c || c.contract_hash !== contractHash.toLowerCase()) return;
+    c.contract_document = document as unknown as Record<string, unknown>;
+    await this.teachers.saveContract(c);
+  }
+
+  /** Документ договора для просмотра; `null` — документ в записи не сохранён. */
+  async contractDocument(coopname: string, teacher: string): Promise<InnerDocumentAggregate | null> {
+    const c = await this.teachers.findContract(coopname, teacher);
+    if (!c?.contract_document) return null;
+    return this.documents.buildAggregate(c.contract_document as unknown as ISignedDocument);
   }
 
   /**

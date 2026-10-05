@@ -5,13 +5,15 @@ import { EduAccessTaskStatus } from '~/extensions/edubridge/domain/enums';
 function make() {
   const approvals = { pendingCount: jest.fn(async () => 2) } as any;
   const tasks = { countByStatuses: jest.fn(async () => 3) } as any;
-  return { service: new EdubridgeAttentionService(approvals, tasks), approvals, tasks };
+  // Подписки, не закрывшиеся при выходе пайщика, — тоже дело администратора.
+  const enrollments = { countClosePending: jest.fn(async () => 1) } as any;
+  return { service: new EdubridgeAttentionService(approvals, tasks, enrollments), approvals, tasks, enrollments };
 }
 
 describe('EdubridgeAttentionService — дела, ждущие администратора', () => {
   it('администратор видит документы на подписи председателя и застрявшие задачи выдачи доступа', async () => {
     const { service, tasks } = make();
-    await expect(service.summary('voskhod', ['admin'])).resolves.toEqual({ teachers: 2, learners: 3 });
+    await expect(service.summary('voskhod', ['admin'])).resolves.toEqual({ teachers: 2, learners: 4 });
     expect(tasks.countByStatuses).toHaveBeenCalledWith('voskhod', [EduAccessTaskStatus.NEEDS_ATTENTION, EduAccessTaskStatus.FAILED]);
   });
 
