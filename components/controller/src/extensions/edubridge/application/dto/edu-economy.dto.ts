@@ -8,7 +8,7 @@ const ASSET_PATTERN = /^\d+\.\d{4} [A-Z]{1,7}$/;
 /** Настройки экономики программы — одни на кооператив. */
 @ObjectType('EduEconomySettings')
 export class EduEconomySettingsDTO {
-  @Field(() => Float, { description: 'Целевой членский взнос кооператива сверх себестоимости курса, проценты' })
+  @Field(() => Float, { description: 'Целевой членский взнос, проценты' })
   markup_percent!: number;
 
   @Field(() => Float, { description: 'Предельная скидка за взнос разом за весь курс при этом целевом членском взносе, проценты' })
@@ -17,7 +17,7 @@ export class EduEconomySettingsDTO {
 
 @InputType('EduSetEconomySettingsInput')
 export class EduSetEconomySettingsInputDTO {
-  @Field(() => Float, { description: 'Целевой членский взнос кооператива сверх себестоимости курса, проценты' })
+  @Field(() => Float, { description: 'Целевой членский взнос, проценты' })
   @IsNumber()
   @Min(0)
   @Max(500)
