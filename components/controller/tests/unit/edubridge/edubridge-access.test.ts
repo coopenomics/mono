@@ -21,6 +21,13 @@ describe('edubridge access matrix', () => {
     expect(canAccess(['teacher'], 'EduLearner', ['manage:own', 'manage'])).toBe(false);
   });
 
+  it('перевод паевого взноса по программе в Цифровой Кошелёк — только у преподавателя', () => {
+    expect(canAccess(['teacher'], 'EduTeacherWallet', 'manage:own')).toBe(true);
+    expect(canAccess(['learner'], 'EduTeacherWallet', 'manage:own')).toBe(false);
+    expect(canAccess(['admin'], 'EduTeacherWallet', 'manage:own')).toBe(false);
+    expect(canAccess(['guest'], 'EduTeacherWallet', 'read:own')).toBe(false);
+  });
+
   it('столу права отдаются как записаны: :all не превращается в :own', () => {
     const grants = expandGrantsForRoles(['admin']);
     expect(grants).toContain('EduAssignment:read:all');

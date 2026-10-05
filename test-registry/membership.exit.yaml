@@ -103,7 +103,7 @@ cases:
     expect: "confirmexit сводит остаток на главный паевой операцией o.edu.retshr и включает его в сумму платежа."
     test: ~
     status: missing
-  - id: exit.chain.happy.02
+  - id: exit.chain.happy.edu-share-01
     level: contract
     kind: happy
     scenario: Совет одобрил выход преподавателя с остатком паевого взноса по программе «Образование».

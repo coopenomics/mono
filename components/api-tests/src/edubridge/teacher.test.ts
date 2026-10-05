@@ -99,6 +99,12 @@ describe('Образование: преподаватель — профиль,
     expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract).toBeNull()
   })
 
+  it(caseName('edu.teach.break.wth-04', 'стол преподавателя закрыт — расчёт не открыть, заявление о трансляции паевого взноса не сформировать'), async () => {
+    const statement = 'mutation($d:EduShareWithdrawStatementInput!){ edubridgeShareWithdrawStatement(data:$d){ hash } }'
+    expectCode(await gqlError(token, 'query{ edubridgeMySettlement{ program_share available } }'), NO_RIGHTS)
+    expectCode(await gqlError(token, statement, { d: { amount: '1.0000 RUB' } }), NO_RIGHTS)
+  })
+
   it(caseName('edu.catalog.side.05', 'пайщика без договора преподавателем курса не записать'), async () => {
     const withStranger = courseInput(section, { teacher_usernames: [teacher.account] })
     expectCode(await gqlError(chairman, CREATE_COURSE, { d: withStranger }), 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT')

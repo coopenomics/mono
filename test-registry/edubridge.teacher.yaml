@@ -154,6 +154,14 @@ cases:
     expect: Бланк на утверждение совета в связке форм образования; meta заявления — строкой JSON.
     test: components/controller/tests/unit/edubridge/document-declarations.test.ts
     status: passing
+  - id: edu.teach.break.wth-04
+    level: backend
+    kind: break
+    scenario: Пайщик с подписанной офертой преподавателя, но без действующего договора открывает расчёт и просит заявление о трансляции паевого взноса.
+    expect: Оба запроса отклонены как не хватающие прав — стол преподавателя закрыт до договора.
+    test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
   - id: edu.teach.happy.wth-05
     level: backend
     kind: happy

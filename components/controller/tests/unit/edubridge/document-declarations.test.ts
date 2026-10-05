@@ -34,6 +34,7 @@ describe('Документы ЦПП «Образование» в реестре
       R.EducationRidStorageAct.registry_id,
       R.EducationGuaranteeStatement.registry_id,
       R.EducationGuaranteeDecision.registry_id,
+      R.EducationShareWithdrawStatement.registry_id,
     ]);
     expect(registered.every((d) => d.extension_name === 'edubridge')).toBe(true);
   });
