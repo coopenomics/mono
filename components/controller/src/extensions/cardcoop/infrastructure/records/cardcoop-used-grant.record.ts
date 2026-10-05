@@ -1,4 +1,3 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
 
 /**
  * Гранты раскрытия, по которым анкета уже выдана (story 7.8, FR-F3).
@@ -13,24 +12,18 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn } from 'typeorm';
  * Записи не чистятся по сроку: строка на выданную анкету — это и есть журнал раскрытий на
  * стороне кооператива, и он должен пережить сам грант.
  */
-@Entity('cardcoop_used_grants')
-export class CardcoopUsedGrantTypeormEntity {
+export class CardcoopUsedGrantRecord {
   /** Идентификатор согласия из гранта (`jti`); он же запись журнала card.coop. */
-  @PrimaryColumn({ name: 'grant_jti', type: 'varchar', length: 64 })
   grantJti!: string;
 
   /** Карта держателя, чья анкета выдана. */
-  @Column({ name: 'card_id', type: 'varchar', length: 64 })
   cardId!: string;
 
   /** Пайщик, чью анкету выдали, — по нему разбирают обращения самого человека. */
-  @Column({ type: 'varchar', length: 64 })
   username!: string;
 
   /** Кооператив-получатель. */
-  @Column({ name: 'to_coopname', type: 'varchar', length: 64 })
   toCoopname!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }

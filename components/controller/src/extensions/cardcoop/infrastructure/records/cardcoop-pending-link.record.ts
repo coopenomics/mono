@@ -1,4 +1,3 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 /**
  * Карта, связанная кандидатом до приёма в пайщики (story 7.5, FR-E5).
@@ -14,23 +13,17 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } fro
  * Одна запись на пайщика: карта у человека одна, а повторное уведомление о той же связи —
  * норма, сеть шлёт их с повторами.
  */
-@Entity('cardcoop_pending_links')
-export class CardcoopPendingLinkTypeormEntity {
+export class CardcoopPendingLinkRecord {
   /** Пайщик кооператива, чья карта ждёт приёма. */
-  @PrimaryColumn({ type: 'varchar', length: 64 })
   username!: string;
 
   /** Карта держателя в сети. */
-  @Column({ name: 'card_id', type: 'varchar', length: 64 })
   cardId!: string;
 
   /** Номер карты для показа в столе, пока свидетельства ещё нет. */
-  @Column({ name: 'card_number', type: 'varchar', length: 32, nullable: true })
   cardNumber!: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt!: Date;
 }
