@@ -2,14 +2,6 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
-    | {{ $t('edubridge.teacherLessonsPage.hintRate') }}
-    | {{ $t('edubridge.teacherLessonsPage.hintGuarantee') }}
-
-  .row.justify-end.q-mb-md
-    BaseButton(variant="primary" @click="openReport")
-      template(#icon-left)
-        q-icon(name="add" size="18px")
-      | {{ $t('edubridge.teacherLessonsPage.reportButton') }}
 
   BaseTable(v-if="loading || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="820px")
     template(#cell-lesson_number="{ row }") № {{ row.lesson_number }}
@@ -42,6 +34,8 @@
 </template>
 
 <script setup lang="ts">
+import { useHeaderActions } from 'src/shared/hooks';
+import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
@@ -136,5 +130,10 @@ async function onReport(): Promise<void> {
 // Живое обновление: данные меняются в цепи и на столах других участников.
 useLiveReload([EduLive.lessons, EduLive.assignments], load);
 
-onMounted(load);
+const { registerAction } = useHeaderActions();
+
+onMounted(() => {
+  registerAction({ id: 'edubridge:create-lesson-report', component: HeaderActionButton, props: { label: t('edubridge.teacherLessonsPage.reportButton'), icon: 'add', onClick: openReport } });
+  void load();
+});
 </script>

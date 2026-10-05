@@ -34,7 +34,8 @@ import { Avatar, BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, E
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { LearnerForm } from '../../widgets/LearnerForm';
-import AddLearnerHeaderButton from './AddLearnerHeaderButton.vue';
+import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
+import { t } from '../../i18n';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 
@@ -81,7 +82,7 @@ function onLearnerSaved(l: ILearner): void {
 useLiveReload([EduLive.learners], load);
 
 onMounted(async () => {
-  registerAction({ id: 'edubridge:add-learner', component: AddLearnerHeaderButton, props: { onClick: addLearnerOpen } });
+  registerAction({ id: 'edubridge:add-learner', component: HeaderActionButton, props: { label: t('edubridge.addLearnerHeaderButton.label'), icon: 'person_add', onClick: addLearnerOpen } });
   await load();
 });
 </script>

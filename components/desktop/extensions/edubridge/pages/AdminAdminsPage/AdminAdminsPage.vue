@@ -33,7 +33,7 @@ import { BaseButton, BaseDialog, BaseTable, EmptyState, type BaseTableColumn } f
 import { IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { UserSearchSelector } from 'src/shared/ui/UserSearchSelector';
 import { appointAdmin, dismissAdmin, fetchAdmins, type IAdmin } from '../../entities/Admin';
-import AppointAdminHeaderButton from './AppointAdminHeaderButton.vue';
+import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
@@ -100,7 +100,7 @@ async function onDismiss(a: IAdmin): Promise<void> {
 useLiveReload([EduLive.admins], load);
 
 onMounted(() => {
-  registerAction({ id: 'edubridge:appoint-admin', component: AppointAdminHeaderButton, props: { onClick: openDialog } });
+  registerAction({ id: 'edubridge:appoint-admin', component: HeaderActionButton, props: { label: t('edubridge.appointAdminHeaderButton.label'), icon: 'person_add', onClick: openDialog } });
   void load();
 });
 </script>

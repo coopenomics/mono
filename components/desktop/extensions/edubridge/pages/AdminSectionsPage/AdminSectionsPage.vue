@@ -2,55 +2,59 @@
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-sections:banner-dismissed")
     | {{ $t('edubridge.adminSectionsPage.hint.line1') }}
-    | {{ $t('edubridge.adminSectionsPage.hint.line2') }}
-    | {{ $t('edubridge.adminSectionsPage.hint.line3') }}
 
   .row.justify-end.q-mb-md(v-if="hasArchived")
-    q-toggle(v-model="showArchived" :label="$t('edubridge.adminSectionsPage.showArchived')")
+    q-toggle(v-model="showArchived" dense :label="$t('edubridge.adminSectionsPage.showArchived')")
 
   CardListSkeleton(v-if="firstLoad" :count="2")
   EmptyState(v-else-if="!visible.length" :title="$t('edubridge.adminSectionsPage.emptyTitle')" :body="$t('edubridge.adminSectionsPage.emptyBody')")
     template(#icon)
       q-icon(name="category" size="32px")
 
+  //- Раздел — карточка: заголовок с действиями, под ним уровни по порядку и добавление уровня.
   BaseCard.q-mb-md(v-for="(section, si) in visible" :key="String(section.id)" variant="default")
-    .edu-sections__head
-      .edu-sections__title
+    .edu-sections__row.edu-sections__row--head
+      .edu-sections__name
         .t-h3 {{ section.title }}
         BaseBadge(v-if="section.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
-      .edu-sections__actions
-        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.sectionUp')" :disabled="si === 0 || busy" @click="moveSection(si, -1)")
-          template(#icon-left)
-            q-icon(name="arrow_upward" size="18px")
-        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.sectionDown')" :disabled="si === visible.length - 1 || busy" @click="moveSection(si, 1)")
-          template(#icon-left)
-            q-icon(name="arrow_downward" size="18px")
-        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('section', section.id, section.title)") {{ $t('edubridge.adminSectionsPage.rename') }}
-        BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleSection(section)") {{ section.archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
+      SectionRowActions(
+        :can-up="si > 0"
+        :can-down="si < visible.length - 1"
+        :archived="section.archived"
+        :busy="busy"
+        :up-label="$t('edubridge.adminSectionsPage.sectionUp')"
+        :down-label="$t('edubridge.adminSectionsPage.sectionDown')"
+        @up="moveSection(si, -1)"
+        @down="moveSection(si, 1)"
+        @rename="openRename('section', section.id, section.title)"
+        @toggle="toggleSection(section)"
+      )
 
-    q-list.q-mt-sm(v-if="levelsOf(section).length" separator)
-      q-item(v-for="(level, li) in levelsOf(section)" :key="String(level.id)")
-        q-item-section(avatar)
-          .t-mono.t-muted {{ li + 1 }}
-        q-item-section
-          .row.items-center.q-gutter-sm
-            span {{ level.title }}
-            BaseBadge(v-if="level.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
-        q-item-section(side)
-          .edu-sections__actions
-            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.levelUp')" :disabled="li === 0 || busy" @click="moveLevel(section, li, -1)")
-              template(#icon-left)
-                q-icon(name="arrow_upward" size="18px")
-            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminSectionsPage.levelDown')" :disabled="li === levelsOf(section).length - 1 || busy" @click="moveLevel(section, li, 1)")
-              template(#icon-left)
-                q-icon(name="arrow_downward" size="18px")
-            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openRename('level', level.id, level.title, section.id)") {{ $t('edubridge.adminSectionsPage.rename') }}
-            BaseButton(variant="ghost" size="sm" :disabled="busy" @click="toggleLevel(level)") {{ level.archived ? $t('edubridge.adminSectionsPage.unarchive') : $t('edubridge.adminSectionsPage.archive') }}
+    .edu-sections__levels(v-if="levelsOf(section).length")
+      .edu-sections__row(v-for="(level, li) in levelsOf(section)" :key="String(level.id)")
+        .edu-sections__name
+          span.edu-sections__num.t-mono {{ li + 1 }}
+          span {{ level.title }}
+          BaseBadge(v-if="level.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
+        SectionRowActions(
+          :can-up="li > 0"
+          :can-down="li < levelsOf(section).length - 1"
+          :archived="level.archived"
+          :busy="busy"
+          :up-label="$t('edubridge.adminSectionsPage.levelUp')"
+          :down-label="$t('edubridge.adminSectionsPage.levelDown')"
+          @up="moveLevel(section, li, -1)"
+          @down="moveLevel(section, li, 1)"
+          @rename="openRename('level', level.id, level.title, section.id)"
+          @toggle="toggleLevel(level)"
+        )
     .t-muted.t-sm.q-mt-sm(v-else) {{ $t('edubridge.adminSectionsPage.noLevels') }}
 
-    .edu-sections__add.q-mt-md(v-if="!section.archived")
-      BaseInput(v-model="newLevel[String(section.id)]" :label="$t('edubridge.adminSectionsPage.newLevelLabel')" :placeholder="$t('edubridge.adminSectionsPage.newLevelPlaceholder')" @keyup.enter="addLevel(section)")
-      BaseButton(variant="secondary" :disabled="!newLevel[String(section.id)]?.trim() || busy" @click="addLevel(section)") {{ $t('common.action.add') }}
+    .q-mt-sm(v-if="!section.archived")
+      BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openCreateLevel(section)")
+        template(#icon-left)
+          q-icon(name="add" size="18px")
+        | {{ $t('edubridge.adminSectionsPage.addLevel') }}
 
   BaseDialog(v-model="dialog.open" :title="dialogTitle" size="sm")
     BaseInput(v-model="dialog.title" :label="dialog.kind === 'level' ? $t('edubridge.adminSectionsPage.dialog.levelTitleLabel') : $t('edubridge.adminSectionsPage.dialog.sectionTitleLabel')" autofocus @keyup.enter="submitDialog")
@@ -77,7 +81,8 @@ import {
   type ILevel,
   type ISection,
 } from '../../entities/Section';
-import AddSectionHeaderButton from './AddSectionHeaderButton.vue';
+import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
+import SectionRowActions from './SectionRowActions.vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
@@ -92,7 +97,6 @@ const loading = ref(false);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const showArchived = ref(false);
-const newLevel = reactive<Record<string, string>>({});
 const dialog = reactive({ open: false, kind: 'section' as 'section' | 'level', id: null as string | null, sectionId: null as string | null, title: '' });
 
 const hasArchived = computed(() => sections.value.some((s) => s.archived || s.levels.some((l) => l.archived)));
@@ -146,10 +150,8 @@ const moveLevel = (s: ISection, index: number, step: number) => act(() => reorde
 const toggleSection = (s: ISection) => act(() => archiveSection(String(s.id), !s.archived));
 const toggleLevel = (l: ILevel) => act(() => archiveLevel(String(l.id), !l.archived));
 
-async function addLevel(s: ISection): Promise<void> {
-  const title = newLevel[String(s.id)]?.trim();
-  if (!title) return;
-  if (await act(() => saveLevel({ section_id: String(s.id), title }))) newLevel[String(s.id)] = '';
+function openCreateLevel(s: ISection): void {
+  Object.assign(dialog, { open: true, kind: 'level', id: null, sectionId: String(s.id), title: '' });
 }
 
 function openRename(kind: 'section' | 'level', id: unknown, title: string, sectionId?: unknown): void {
@@ -177,36 +179,34 @@ const { registerAction } = useHeaderActions();
 useLiveReload([EduLive.sections, EduLive.levels], load);
 
 onMounted(() => {
-  registerAction({ id: 'edubridge-add-section', component: AddSectionHeaderButton, props: { onClick: openCreateSection } });
+  registerAction({ id: 'edubridge-add-section', component: HeaderActionButton, props: { label: t('edubridge.addSectionHeaderButton.label'), icon: 'add', onClick: openCreateSection } });
   void load();
 });
 </script>
 
 <style scoped>
-.edu-sections__head {
+.edu-sections__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--p-3);
-  flex-wrap: wrap;
+  padding: var(--p-2) 0;
+  border-bottom: 1px solid var(--p-line);
 }
-.edu-sections__title {
+.edu-sections__row--head {
+  padding-top: 0;
+}
+.edu-sections__levels .edu-sections__row:last-child {
+  border-bottom: 0;
+}
+.edu-sections__name {
   display: flex;
   align-items: center;
   gap: var(--p-2);
+  min-width: 0;
 }
-.edu-sections__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--p-1);
-  flex-wrap: wrap;
-}
-.edu-sections__add {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--p-2);
-}
-.edu-sections__add > :first-child {
-  flex: 1;
+.edu-sections__num {
+  width: var(--p-5);
+  color: var(--p-ink-3);
 }
 </style>

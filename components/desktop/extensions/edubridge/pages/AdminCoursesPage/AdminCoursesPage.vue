@@ -26,7 +26,8 @@ import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
-import AddCourseHeaderButton from './AddCourseHeaderButton.vue';
+import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
+import { t } from '../../i18n';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 
@@ -72,7 +73,7 @@ function openCourse(id: string): void {
 useLiveReload([EduLive.courses, EduLive.enrollments], load);
 
 onMounted(() => {
-  registerAction({ id: 'edubridge:add-course', component: AddCourseHeaderButton, props: { onClick: add } });
+  registerAction({ id: 'edubridge:add-course', component: HeaderActionButton, props: { label: t('edubridge.addCourseHeaderButton.label'), icon: 'add', onClick: add } });
   void load();
 });
 </script>

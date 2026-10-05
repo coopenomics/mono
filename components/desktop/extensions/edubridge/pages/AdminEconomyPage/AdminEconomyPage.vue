@@ -111,7 +111,9 @@
       template(#cell-teacher="{ row }")
         IdentityCell(:account-name="row.username" :full-name="row.display_name")
       template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
-      template(#cell-assignments="{ row }") {{ $t('edubridge.adminEconomyPage.assignmentsCount', { active: row.assignments_active, total: row.assignments_total }) }}
+      template(#cell-assignments="{ row }")
+        span(v-if="row.assignments_active") {{ row.assignments_active }}
+        span.t-muted(v-else) {{ $t('edubridge.adminEconomyPage.noCourses') }}
       template(#cell-actions="{ row }")
         .row.no-wrap.justify-end
           BaseButton(variant="ghost" size="sm" @click="openRate(row)") {{ $t('edubridge.adminEconomyPage.editRate') }}

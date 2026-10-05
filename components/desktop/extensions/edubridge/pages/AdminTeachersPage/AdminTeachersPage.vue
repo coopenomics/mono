@@ -24,7 +24,9 @@
     template(#cell-contract_status="{ row }")
       BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
     template(#cell-hourly_rate="{ row }") {{ formatAsset2Digits(row.hourly_rate) }}
-    template(#cell-assignments="{ row }") {{ $t('edubridge.adminTeachersPage.assignmentsCount', { active: row.assignments_active, total: row.assignments_total }) }}
+    template(#cell-assignments="{ row }")
+      span(v-if="row.assignments_active") {{ row.assignments_active }}
+      span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.noCourses') }}
     template(#cell-signed_at="{ row }") {{ formatDate(row.signed_at) }}
 
   EmptyState(v-if="!firstLoad && !teachers.length" :title="$t('edubridge.adminTeachersPage.emptyTitle')" :body="$t('edubridge.adminTeachersPage.emptyBody')")
