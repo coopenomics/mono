@@ -79,7 +79,7 @@ describe('Story 4.3: BaseChainRepository contract', () => {
       repoFiles.map((f) =>
         path
           .basename(f)
-          .replace(/\.kysely-repository\.ts$|\.repository\.ts$/, '')
+          .replace(/\.(kysely|typeorm)-repository\.ts$|\.repository\.ts$/, '')
       )
     );
 
