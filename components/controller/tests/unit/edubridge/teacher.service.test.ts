@@ -181,6 +181,19 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(dear.teachers.saveAssignment).not.toHaveBeenCalled();
   });
 
+  it('назначение на курс: без договора, с отклонённым либо прекращённым договором пайщик к курсу не допускается', async () => {
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    for (const contract of [false, EduContractStatus.DECLINED, EduContractStatus.TERMINATED] as const) {
+      const { service, teachers, courses } = make({ contract, courseTeachers: [] });
+      await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT' });
+      expect(teachers.saveAssignment).not.toHaveBeenCalled();
+      expect(courses.save).not.toHaveBeenCalled();
+    }
+    // Договор на подписи у председателя допуску не мешает — как в форме курса.
+    const pending = make({ contract: EduContractStatus.PENDING_APPROVAL });
+    await expect(pending.service.createAssignment('voskhod', input)).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+  });
+
   it('действующий договор повторно не подписывается — возвращается тот же', async () => {
     const { service, chain } = make();
     const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9', '1000.0000 RUB');

@@ -104,12 +104,12 @@ describe('Образование: преподаватель — профиль,
     expectCode(await gqlError(chairman, CREATE_COURSE, { d: withStranger }), 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT')
   })
 
-  it('пайщика без договора администратор к курсу не допускает', async () => {
-    // Форма курса отказывает преподавателю без договора; прямой допуск обязан отказать так же.
+  it(caseName('edu.teach.break.10', 'пайщика без договора администратор к курсу не допускает — как и форма курса'), async () => {
     const probe = await publishCourse(chairman, section, 30)
-    const admit = { d: { teacher_username: outsider.account, course_id: probe.id, period_from: dayFromNow(0), period_to: dayFromNow(90) } }
-    const err = await gqlError(chairman, CREATE_ASSIGNMENT, admit)
-    expect(err, 'допуск к курсу без договора отклонён').not.toBeNull()
+    const admit = (username: string) => ({ d: { teacher_username: username, course_id: probe.id, period_from: dayFromNow(0), period_to: dayFromNow(90) } })
+    // Ни пайщик без оферты, ни подписавший оферту, но не договор.
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(outsider.account)), 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT')
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(teacher.account)), 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT')
     expect((await gql<any>(chairman, COURSE, { id: probe.id })).edubridgeCourse.teacher_usernames).toEqual([])
   })
 

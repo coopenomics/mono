@@ -457,3 +457,11 @@ cases:
     expect: "Подпись председателя кладёт в запись документ с двумя подписями; договор без сохранённого документа отдаёт пусто без обращения к реестру; документ с чужим хэшем и пустой документ запись не меняют."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     status: passing
+  - id: edu.teach.break.10
+    level: backend
+    kind: break
+    scenario: "Администратор допускает к курсу пайщика без договора участия в хозяйственной деятельности, с отклонённым либо прекращённым договором."
+    expect: "Отказ тем же основанием, что и в форме курса; допуск не создаётся, в список «Курс ведут» пайщик не попадает. Договор на подписи у председателя допуску не мешает."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written

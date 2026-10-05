@@ -360,7 +360,7 @@ export class EdubridgeTeacherService {
     const course = await this.courses.findById(coopname, input.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
-    await this.assertRateCovered(coopname, input.teacher_username.trim(), course);
+    await this.assertCanTeach(coopname, input.teacher_username.trim(), course);
     const entity = this.teachers.createAssignment({
       coopname,
       teacher_username: input.teacher_username.trim(),
@@ -383,13 +383,18 @@ export class EdubridgeTeacherService {
   }
 
   /**
+   * К курсу допускается пайщик с договором участия в хозяйственной
+   * деятельности — подписанным им и действующим либо на подписи у
+   * председателя; форма курса проверяет то же самое.
+   *
    * Взнос учеников посчитан от плановой ставки курса, и в резерв выплат уходит
    * именно она. Преподаватель со ставкой выше плановой резервом не обеспечен:
    * сначала поднимается ставка курса — для новых подписок, а разница по
    * действующим покрывается свободными средствами программы осознанно.
    */
-  private async assertRateCovered(coopname: string, teacher: string, course: EdubridgeCourseRecord): Promise<void> {
+  private async assertCanTeach(coopname: string, teacher: string, course: EdubridgeCourseRecord): Promise<void> {
     const contract = await this.teachers.findContract(coopname, teacher);
+    if (!grantsTeaching(contract)) throw withoutContractError([teacher]);
     const error = rateCoverageError(contract?.hourly_rate, course.planned_hourly_rate);
     if (error) throw error;
   }
@@ -1036,6 +1041,16 @@ function chainAssignmentId(c: EdubridgeContributionRecord): number {
 }
 
 /** Числовое значение ставки часа («1000.0000 RUB» → 1000). */
+/** Даёт ли договор право преподавать: отклонённый и прекращённый — нет. */
+export function grantsTeaching(contract: Pick<EdubridgeTeacherContractRecord, 'status'> | null | undefined): boolean {
+  return contract?.status === EduContractStatus.ACTIVE || contract?.status === EduContractStatus.PENDING_APPROVAL;
+}
+
+/** Отказ пайщикам без договора — один для формы курса и для прямого допуска к курсу. */
+export function withoutContractError(teachers: string[]): DomainError {
+  return DomainError.badRequest('EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT', { teachers: teachers.join(', ') });
+}
+
 /**
  * Покрывают ли взносы учеников ставку преподавателя: взнос посчитан от
  * плановой ставки курса, и ставка выше неё резервом выплат не обеспечена.

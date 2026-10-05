@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduContractStatus, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -17,7 +17,7 @@ import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
 import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
-import { EdubridgeTeacherService, rateCoverageError } from './edubridge-teacher.service';
+import { EdubridgeTeacherService, grantsTeaching, rateCoverageError, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -230,14 +230,10 @@ export class EdubridgeCourseService {
     if (!teachers.length) return;
     // Отклонённый и прекращённый договор права преподавать не даёт.
     const contracts = new Map(
-      (await this.teachers.listContracts(coopname))
-        .filter((c) => c.status === EduContractStatus.ACTIVE || c.status === EduContractStatus.PENDING_APPROVAL)
-        .map((c) => [c.teacher_username, c])
+      (await this.teachers.listContracts(coopname)).filter((c) => grantsTeaching(c)).map((c) => [c.teacher_username, c])
     );
     const strangers = teachers.filter((t) => !contracts.has(t));
-    if (strangers.length) {
-      throw DomainError.badRequest('EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT', { teachers: strangers.join(', ') });
-    }
+    if (strangers.length) throw withoutContractError(strangers);
     for (const t of teachers) {
       const error = rateCoverageError(contracts.get(t)?.hourly_rate, plannedRate, t);
       if (error) throw error;
