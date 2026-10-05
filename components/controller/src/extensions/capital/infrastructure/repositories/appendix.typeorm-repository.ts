@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { CAPITAL_APPENDIX_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { AppendixDomainEntity } from '../../domain/entities/appendix.entity';
 import { AppendixTypeormEntity } from '../entities/appendix.typeorm-entity';
 import { AppendixMapper } from '../mappers/appendix.mapper';
 import type { AppendixRepository } from '../../domain/repositories/appendix.repository';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService } from '@coopenomics/extension-kit/sync';
 import type { IAppendixDatabaseData } from '../../domain/interfaces/appendix-database.interface';
 import type { IAppendixBlockchainData } from '../../domain/interfaces/appendix-blockchain.interface';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
@@ -15,15 +15,14 @@ import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
  */
 @Injectable()
 export class AppendixTypeormRepository
-  extends BaseBlockchainRepository<AppendixDomainEntity, AppendixTypeormEntity>
+  extends BaseChainRepository<AppendixDomainEntity, AppendixTypeormEntity>
   implements AppendixRepository
 {
   constructor(
-    @InjectRepository(AppendixTypeormEntity)
-    repository: Repository<AppendixTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_APPENDIX_STORE) repository: TableStore<AppendixTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -44,13 +43,13 @@ export class AppendixTypeormRepository
     return AppendixDomainEntity.getSyncKey();
   }
   // Специфичные методы для AppendixRepository
-  // Все типовые CRUD методы наследуются от BaseBlockchainRepository
+  // Все типовые CRUD методы наследуются от BaseChainRepository
 
   /**
    * Найти приложение по appendix_hash
    */
   async findByAppendixHash(appendixHash: string): Promise<AppendixDomainEntity | null> {
-    const entities = await this.repository.find({ where: { appendix_hash: appendixHash.toLowerCase() } });
+    const entities = await this.repository.find({ appendix_hash: appendixHash.toLowerCase() });
 
     return entities.length > 0 ? this.getMapper().toDomain(entities[0]) : null;
   }
@@ -60,12 +59,10 @@ export class AppendixTypeormRepository
    */
   async findConfirmedByUsernameAndProjectHash(username: string, projectHash: string): Promise<AppendixDomainEntity | null> {
     const entity = await this.repository.findOne({
-      where: {
         username: username.toLowerCase(),
         project_hash: projectHash.toLowerCase(),
         status: AppendixStatus.CONFIRMED,
-      },
-    });
+      });
 
     return entity ? this.getMapper().toDomain(entity) : null;
   }
@@ -76,19 +73,17 @@ export class AppendixTypeormRepository
    */
   async findCreatedByUsernameAndProjectHash(username: string, projectHash: string): Promise<AppendixDomainEntity | null> {
     const entity = await this.repository.findOne({
-      where: {
         username: username.toLowerCase(),
         project_hash: projectHash.toLowerCase(),
         status: AppendixStatus.CREATED,
-      },
-    });
+      });
 
     return entity ? this.getMapper().toDomain(entity) : null;
   }
 
   async findDistinctUsernamesWithConfirmedClearanceByProjectHash(projectHash: string): Promise<string[]> {
     const rows = await this.repository
-      .createQueryBuilder('a')
+      .sqlBuilder('a')
       .select('a.username', 'username')
       .distinct(true)
       .where('a.project_hash = :ph', { ph: projectHash.toLowerCase() })
@@ -101,7 +96,7 @@ export class AppendixTypeormRepository
 
   async findDistinctProjectHashesWithConfirmedClearanceByUsername(username: string): Promise<string[]> {
     const rows = await this.repository
-      .createQueryBuilder('a')
+      .sqlBuilder('a')
       .select('a.project_hash', 'project_hash')
       .distinct(true)
       .where('LOWER(a.username) = LOWER(:un)', { un: username })

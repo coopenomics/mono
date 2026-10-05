@@ -1,29 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { CAPITAL_CONTRIBUTOR_STORE } from '../database/capital-stores';
+import { DomainError, oneOf, PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { ContributorRepository } from '../../domain/repositories/contributor.repository';
 import { ContributorDomainEntity } from '../../domain/entities/contributor.entity';
 import { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
 import { ContributorMapper } from '../mappers/contributor.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import { IContributorDatabaseData } from '../../domain/interfaces/contributor-database.interface';
 import type { ContributorFilterInputDTO } from '../../application/dto/participation_management/contributor-filter.input';
 import type { ContributorStatus } from '../../domain/enums/contributor-status.enum';
 import { AppendixStatus } from '../../domain/enums/appendix-status.enum';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn, DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class ContributorTypeormRepository
-  extends BaseBlockchainRepository<ContributorDomainEntity, ContributorTypeormEntity>
+  extends BaseChainRepository<ContributorDomainEntity, ContributorTypeormEntity>
   implements ContributorRepository, IBlockchainSyncRepository<ContributorDomainEntity>
 {
   constructor(
-    @InjectRepository(ContributorTypeormEntity)
-    repository: Repository<ContributorTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_CONTRIBUTOR_STORE) repository: TableStore<ContributorTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -48,27 +45,25 @@ export class ContributorTypeormRepository
   }
 
   async findByUsername(username: string): Promise<ContributorDomainEntity | null> {
-    const entities = await this.repository.find({ where: { username } });
+    const entities = await this.repository.find({ username });
     return entities.length > 0 ? ContributorMapper.toDomain(entities[0]) : null;
   }
 
   async findByUsernameAndCoopname(username: string, coopname: string): Promise<ContributorDomainEntity | null> {
-    const entities = await this.repository.find({ where: { username, coopname } });
+    const entities = await this.repository.find({ username, coopname });
     return entities.length > 0 ? ContributorMapper.toDomain(entities[0]) : null;
   }
 
   async findByStatusAndCoopname(status: ContributorStatus, coopname: string): Promise<ContributorDomainEntity[]> {
-    const entities = await this.repository.find({ where: { status: status, coopname } });
+    const entities = await this.repository.find({ status: status, coopname });
     return entities.map((entity) => ContributorMapper.toDomain(entity));
   }
 
   async findByHashesAndStatus(contributorHashes: string[], status: string): Promise<ContributorDomainEntity[]> {
     const entities = await this.repository.find({
-      where: {
-        contributor_hash: In(contributorHashes),
+        contributor_hash: oneOf(contributorHashes),
         status: status as ContributorStatus,
-      },
-    });
+      });
     return entities.map((entity) => ContributorMapper.toDomain(entity));
   }
 
@@ -83,7 +78,7 @@ export class ContributorTypeormRepository
     }
 
     // Строим query builder для поиска с AND условиями
-    const queryBuilder = this.repository.createQueryBuilder('contributor');
+    const queryBuilder = this.repository.sqlBuilder('contributor');
 
     // Добавляем условия поиска с AND логикой
     if (criteria._id) {
@@ -106,7 +101,7 @@ export class ContributorTypeormRepository
   }
 
   async findByStatus(status: string): Promise<ContributorDomainEntity[]> {
-    const entities = await this.repository.find({ where: { status: status as any } });
+    const entities = await this.repository.find({ status: status as any });
     return entities.map((entity) => ContributorMapper.toDomain(entity));
   }
 
@@ -128,7 +123,7 @@ export class ContributorTypeormRepository
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
     // Строим query builder для сложных условий поиска
-    const queryBuilder = this.repository.createQueryBuilder('contributor');
+    const queryBuilder = this.repository.sqlBuilder('contributor');
 
     // Добавляем базовые условия
     if (filter?.username) {
@@ -170,14 +165,14 @@ export class ContributorTypeormRepository
     const totalCount = await queryBuilder.getCount();
 
     // Добавляем сортировку
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, 'created_at');
     queryBuilder.orderBy(
       `contributor.${sortColumn}`,
       validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
     );
 
     // Добавляем пагинацию
-    queryBuilder.skip(offset).take(limit);
+    queryBuilder.offset(offset).limit(limit);
 
     // Получаем записи
     const entities = await queryBuilder.getMany();

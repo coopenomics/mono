@@ -1,5 +1,6 @@
 import { sql, type Expression, type ExpressionBuilder, type Kysely, type SqlBool } from 'kysely';
 import { affectedCount, camelRow } from './kysely';
+import { SqlBuilder } from './sql-builder';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -98,6 +99,14 @@ export class TableStore<TRecord extends object> {
     return requested && known.includes(requested) ? (requested as keyof TRecord & string) : fallback;
   }
 
+  /** Сборщик выборки из фрагментов SQL с именованными параметрами: соединения, подзапросы, агрегаты. */
+  sqlBuilder(alias: string): SqlBuilder<TRecord> {
+    return new SqlBuilder<TRecord>(
+      { kysely: this.db, table: this.options.table, primaryKey: this.options.primaryKey.map((field) => this.column(field)), records: (rows) => this.records(rows) },
+      alias
+    );
+  }
+
   /** Kysely этого шлюза — для запросов сложнее отбора по равенству. */
   get kysely(): Kysely<any> {
     return this.db;
@@ -169,7 +178,11 @@ export class TableStore<TRecord extends object> {
    * без ключа — вставка. Переданный объект дополняется тем, что вернула база
    * (ключ, даты, умолчания), и возвращается.
    */
-  async save(record: Partial<TRecord>): Promise<TRecord> {
+  async save(record: Partial<TRecord>): Promise<TRecord>;
+  async save(records: Array<Partial<TRecord>>): Promise<TRecord[]>;
+  async save(record: Partial<TRecord> | Array<Partial<TRecord>>): Promise<TRecord | TRecord[]> {
+    // Перечень записей сохраняется по очереди — каждая как одиночная.
+    if (Array.isArray(record)) return this.saveMany(record);
     const row = this.toRow(record);
     const keys = this.options.primaryKey.map((field) => this.column(field));
     const hasKey = keys.every((key) => row[key] !== undefined && row[key] !== null);

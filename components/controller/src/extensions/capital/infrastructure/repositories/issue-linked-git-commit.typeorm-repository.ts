@@ -1,4 +1,4 @@
-import { TableStore, isNull, notNull, oneOf } from '@coopenomics/extension-kit';
+import { isNull, notNull, oneOf, platformSettings, TableStore } from '@coopenomics/extension-kit';
 import { CAPITAL_ISSUE_LINKED_GIT_COMMIT_SHA_STORE, CAPITAL_ISSUE_LINKED_GIT_COMMIT_STORE } from '../../infrastructure/database/capital-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { IssueLinkedGitCommitTypeormEntity } from '../entities/issue-linked-git-commit.typeorm-entity';
@@ -7,7 +7,6 @@ import type {
   IssueLinkedGitCommitRepository,
   IssueLinkedGitCommitRow,
 } from '../../domain/repositories/issue-linked-git-commit.repository';
-import { platformSettings } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class IssueLinkedGitCommitTypeormRepository implements IssueLinkedGitCommitRepository {

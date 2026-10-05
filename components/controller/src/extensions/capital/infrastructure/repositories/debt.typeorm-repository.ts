@@ -1,28 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_DEBT_STORE } from '../database/capital-stores';
+import { PaginationInputDTO, PaginationResult, PaginationUtils, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { DebtRepository } from '../../domain/repositories/debt.repository';
 import { DebtDomainEntity } from '../../domain/entities/debt.entity';
 import { DebtTypeormEntity } from '../entities/debt.typeorm-entity';
 import { DebtMapper } from '../mappers/debt.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { IDebtDatabaseData } from '../../domain/interfaces/debt-database.interface';
 import type { IDebtBlockchainData } from '../../domain/interfaces/debt-blockchain.interface';
 import type { DebtFilterInputDTO } from '../../application/dto/debt_management/debt-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class DebtTypeormRepository
-  extends BaseBlockchainRepository<DebtDomainEntity, DebtTypeormEntity>
+  extends BaseChainRepository<DebtDomainEntity, DebtTypeormEntity>
   implements DebtRepository, IBlockchainSyncRepository<DebtDomainEntity>
 {
   constructor(
-    @InjectRepository(DebtTypeormEntity)
-    repository: Repository<DebtTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_DEBT_STORE) repository: TableStore<DebtTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
   }
 
   protected getMapper() {
@@ -48,17 +45,17 @@ export class DebtTypeormRepository
   }
 
   async findByUsername(username: string): Promise<DebtDomainEntity[]> {
-    const entities = await this.repository.find({ where: { username } });
+    const entities = await this.repository.find({ username });
     return entities.map((entity) => DebtMapper.toDomain(entity));
   }
 
   async findByProjectHash(projectHash: string): Promise<DebtDomainEntity[]> {
-    const entities = await this.repository.find({ where: { project_hash: projectHash } });
+    const entities = await this.repository.find({ project_hash: projectHash });
     return entities.map((entity) => DebtMapper.toDomain(entity));
   }
 
   async findByStatus(status: string): Promise<DebtDomainEntity[]> {
-    const entities = await this.repository.find({ where: { status: status as any } });
+    const entities = await this.repository.find({ status: status as any });
     return entities.map((entity) => DebtMapper.toDomain(entity));
   }
 
@@ -76,13 +73,13 @@ export class DebtTypeormRepository
     if (filter?.projectHash) where.project_hash = filter.projectHash.toLowerCase();
     if (filter?.status) where.status = filter.status;
 
-    const totalCount = await this.repository.count({ where });
+    const totalCount = await this.repository.count(where);
 
     // Имя вне колонок — сортировка по умолчанию, а не ошибка в ORDER BY.
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, '_created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, '_created_at');
     const orderBy: any = {};
     orderBy[sortColumn] = sortColumn === validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC';
-    const entities = await this.repository.find({ where, skip: offset, take: limit, order: orderBy });
+    const entities = await this.repository.find(where, { order: orderBy, limit: limit, offset: offset });
 
     return PaginationUtils.createPaginationResult(
       entities.map((entity) => DebtMapper.toDomain(entity)),

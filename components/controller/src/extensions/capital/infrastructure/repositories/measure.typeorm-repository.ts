@@ -1,18 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { CAPITAL_MEASURE_STORE } from '../database/capital-stores';
+import { DomainError, oneOf, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { MeasureRepository } from '../../domain/repositories/measure.repository';
 import { MeasureDomainEntity } from '../../domain/entities/measure.entity';
 import { MetricStatus } from '../../domain/enums/metric-status.enum';
 import { MeasureTypeormEntity } from '../entities/measure.typeorm-entity';
 import { MeasureMapper } from '../mappers/measure.mapper';
-import { DomainError } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class MeasureTypeormRepository implements MeasureRepository {
   constructor(
-    @InjectRepository(MeasureTypeormEntity)
-    private readonly repo: Repository<MeasureTypeormEntity>
+    @Inject(CAPITAL_MEASURE_STORE)
+    private readonly repo: TableStore<MeasureTypeormEntity>
   ) {}
 
   async create(measure: MeasureDomainEntity): Promise<MeasureDomainEntity> {
@@ -22,9 +21,7 @@ export class MeasureTypeormRepository implements MeasureRepository {
   }
 
   async findByMeasureHash(measureHash: string): Promise<MeasureDomainEntity | null> {
-    const entity = await this.repo.findOne({
-      where: { measure_hash: measureHash.toLowerCase() },
-    });
+    const entity = await this.repo.findOne({ measure_hash: measureHash.toLowerCase() });
     return entity ? MeasureMapper.toDomain(entity) : null;
   }
 
@@ -47,7 +44,7 @@ export class MeasureTypeormRepository implements MeasureRepository {
     if (status) {
       where.status = status;
     }
-    const entity = await this.repo.findOne({ where });
+    const entity = await this.repo.findOne(where);
     return entity ? MeasureMapper.toDomain(entity) : null;
   }
 
@@ -59,25 +56,20 @@ export class MeasureTypeormRepository implements MeasureRepository {
     if (status) {
       where.status = status;
     }
-    const entities = await this.repo.find({
-      where,
-      order: { title: 'ASC' },
-    });
+    const entities = await this.repo.find(where, { order: { title: 'ASC' } });
     return entities.map(MeasureMapper.toDomain);
   }
 
   async findByMeasureHashes(measureHashes: string[]): Promise<MeasureDomainEntity[]> {
     if (measureHashes.length === 0) return [];
     const normalized = measureHashes.map((h) => h.toLowerCase());
-    const entities = await this.repo.find({
-      where: { measure_hash: In(normalized) },
-    });
+    const entities = await this.repo.find({ measure_hash: oneOf(normalized) });
     return entities.map(MeasureMapper.toDomain);
   }
 
   async update(measure: MeasureDomainEntity): Promise<MeasureDomainEntity> {
     await this.repo.save(MeasureMapper.toEntity(measure));
-    const updated = await this.repo.findOne({ where: { _id: measure._id } });
+    const updated = await this.repo.findOne({ _id: measure._id });
     if (!updated) {
       throw DomainError.internal('CAPITAL_MEASURE_NOT_FOUND_AFTER_UPDATE', { hash: measure.measure_hash });
     }

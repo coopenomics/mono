@@ -17,8 +17,7 @@ import type { ContributorDomainEntity } from '../../domain/entities/contributor.
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { isLocalProject } from '../../domain/utils/assert-blockchain-project';
 import { AssetUtils } from '@coopenomics/extension-kit';
-import { ProgramType, getProgramId } from '@coopenomics/innercoop';
-import { PROGRAM_WALLET_PORT, type IProgramWalletPort } from '@coopenomics/innercoop';
+import { getProgramId, type IProgramWalletPort, PROGRAM_WALLET_PORT, ProgramType } from '@coopenomics/innercoop';
 
 /**
  * Автоматическая регистрация долей держателей Благороста в активных проектах.

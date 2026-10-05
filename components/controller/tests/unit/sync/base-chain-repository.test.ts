@@ -31,7 +31,8 @@ class TestRepository extends BaseChainRepository<any, any> {
     };
   }
   protected createDomainEntity(databaseData: any, blockchainData: any) {
-    return makeDomain({ ...databaseData, ...blockchainData });
+    // Ключ синхронизации хранилище уже привело к нижнему регистру — данные базы главнее.
+    return makeDomain({ ...blockchainData, ...databaseData });
   }
   protected getSyncKey() {
     return 'username';

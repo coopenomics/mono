@@ -1,28 +1,32 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { CAPITAL_CONTRIBUTOR_STORE, CAPITAL_COMMIT_STORE } from '../database/capital-stores';
+import type { ContributorTypeormEntity } from '../entities/contributor.typeorm-entity';
+import { attachOne, PaginationInputDTO, PaginationResult, PaginationUtils, type SqlBuilder, type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { CommitRepository } from '../../domain/repositories/commit.repository';
 import { CommitDomainEntity } from '../../domain/entities/commit.entity';
 import { CommitTypeormEntity } from '../entities/commit.typeorm-entity';
 import { CommitMapper } from '../mappers/commit.mapper';
-import type { IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
+import { BaseChainRepository, ChainVersioningService, type IBlockchainSyncRepository } from '@coopenomics/extension-kit/sync';
 import type { ICommitBlockchainData } from '../../domain/interfaces/commit-blockchain.interface';
-import { BaseBlockchainRepository, EntityVersioningService } from '@coopenomics/extension-kit/sync';
 import type { ICommitDatabaseData } from '../../domain/interfaces/commit-database.interface';
 import type { CommitFilterInputDTO } from '../../application/dto/generation/commit-filter.input';
-import { PaginationInputDTO, PaginationResult, PaginationUtils, resolveSortColumn } from '@coopenomics/extension-kit';
 
 @Injectable()
 export class CommitTypeormRepository
-  extends BaseBlockchainRepository<CommitDomainEntity, CommitTypeormEntity>
+  extends BaseChainRepository<CommitDomainEntity, CommitTypeormEntity>
   implements CommitRepository, IBlockchainSyncRepository<CommitDomainEntity>
 {
   constructor(
-    @InjectRepository(CommitTypeormEntity)
-    repository: Repository<CommitTypeormEntity>,
-    entityVersioningService: EntityVersioningService
+    @Inject(CAPITAL_COMMIT_STORE) repository: TableStore<CommitTypeormEntity>,
+    @Inject(ChainVersioningService) versioning: ChainVersioningService,
+    @Inject(CAPITAL_CONTRIBUTOR_STORE) private readonly contributors: TableStore<ContributorTypeormEntity>
   ) {
-    super(repository, entityVersioningService);
+    super(repository, versioning);
+  }
+
+  /** Участник коммита: из его записи берётся отображаемое имя. */
+  private async attachRelations(commits: CommitTypeormEntity[]): Promise<void> {
+    await attachOne(commits, this.contributors, 'contributor', { coopname: 'coopname', username: 'username' });
   }
 
   protected getMapper() {
@@ -46,9 +50,9 @@ export class CommitTypeormRepository
   // Специфичные методы для CommitRepository
 
   private applyFiltersToQueryBuilder(
-    queryBuilder: SelectQueryBuilder<CommitTypeormEntity>,
+    queryBuilder: SqlBuilder<CommitTypeormEntity>,
     filter?: CommitFilterInputDTO
-  ): SelectQueryBuilder<CommitTypeormEntity> {
+  ): SqlBuilder<CommitTypeormEntity> {
     if (!filter) {
       return queryBuilder;
     }
@@ -95,56 +99,40 @@ export class CommitTypeormRepository
 
   async findByCommitHash(commitHash: string): Promise<CommitDomainEntity | null> {
     const entity = await this.repository
-      .createQueryBuilder('c')
-      .leftJoinAndSelect(
-        'c.contributor',
-        'contributor',
-        'contributor.coopname = c.coopname AND contributor.username = c.username'
-      )
+      .sqlBuilder('c')
       .where('c.commit_hash = :commitHash', { commitHash: commitHash.toLowerCase() })
       .getOne();
+    if (entity) await this.attachRelations([entity]);
 
     return entity ? CommitMapper.toDomain(entity) : null;
   }
 
   async findByUsername(username: string): Promise<CommitDomainEntity[]> {
     const entities = await this.repository
-      .createQueryBuilder('c')
-      .leftJoinAndSelect(
-        'c.contributor',
-        'contributor',
-        'contributor.coopname = c.coopname AND contributor.username = c.username'
-      )
+      .sqlBuilder('c')
       .where('c.username = :username', { username })
       .getMany();
+    await this.attachRelations(entities);
 
     return entities.map((entity) => CommitMapper.toDomain(entity));
   }
 
   async findByProjectHash(projectHash: string): Promise<CommitDomainEntity[]> {
     const entities = await this.repository
-      .createQueryBuilder('c')
-      .leftJoinAndSelect(
-        'c.contributor',
-        'contributor',
-        'contributor.coopname = c.coopname AND contributor.username = c.username'
-      )
+      .sqlBuilder('c')
       .where('c.project_hash = :projectHash', { projectHash: projectHash.toLowerCase() })
       .getMany();
+    await this.attachRelations(entities);
 
     return entities.map((entity) => CommitMapper.toDomain(entity));
   }
 
   async findByStatus(status: string): Promise<CommitDomainEntity[]> {
     const entities = await this.repository
-      .createQueryBuilder('c')
-      .leftJoinAndSelect(
-        'c.contributor',
-        'contributor',
-        'contributor.coopname = c.coopname AND contributor.username = c.username'
-      )
+      .sqlBuilder('c')
       .where('c.status = :status', { status: status as any })
       .getMany();
+    await this.attachRelations(entities);
 
     return entities.map((entity) => CommitMapper.toDomain(entity));
   }
@@ -167,33 +155,27 @@ export class CommitTypeormRepository
     const { limit, offset } = PaginationUtils.getSqlPaginationParams(validatedOptions);
 
     // Создаем query builder для гибкого построения запроса
-    let queryBuilder = this.repository.createQueryBuilder('c').select('c').where('1=1'); // Начальное условие для удобства добавления AND
+    let queryBuilder = this.repository.sqlBuilder('c').select('c').where('1=1'); // Начальное условие для удобства добавления AND
 
     // Применяем фильтры
     queryBuilder = this.applyFiltersToQueryBuilder(queryBuilder, filter);
-
-    // Добавляем join с contributor для получения display_name
-    queryBuilder = queryBuilder.leftJoinAndSelect(
-      'c.contributor',
-      'contributor',
-      'contributor.coopname = c.coopname AND contributor.username = c.username'
-    );
 
     // Получаем общее количество записей
     const totalCount = await queryBuilder.getCount();
 
     // Применяем сортировку
-    const sortColumn = resolveSortColumn(this.repository, validatedOptions.sortBy, 'created_at');
+    const sortColumn = this.repository.sortField(validatedOptions.sortBy, 'created_at');
     queryBuilder = queryBuilder.orderBy(
       `c.${sortColumn}`,
       validatedOptions.sortBy ? validatedOptions.sortOrder : 'DESC'
     );
 
     // Применяем пагинацию
-    queryBuilder = queryBuilder.skip(offset).take(limit);
+    queryBuilder = queryBuilder.offset(offset).limit(limit);
 
     // Получаем записи
     const entities = await queryBuilder.getMany();
+    await this.attachRelations(entities);
 
     // Преобразуем в доменные сущности
     const items = entities.map((entity) => CommitMapper.toDomain(entity));

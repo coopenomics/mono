@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { CAPITAL_ISSUE_METRIC_BINDING_STORE } from '../database/capital-stores';
+import { type TableStore } from '@coopenomics/extension-kit';
+import { Inject, Injectable } from '@nestjs/common';
 import { IssueMetricBindingRepository } from '../../domain/repositories/issue-metric-binding.repository';
 import { IssueMetricBindingDomainEntity } from '../../domain/entities/issue-metric-binding.entity';
 import { IssueMetricBindingTypeormEntity } from '../entities/issue-metric-binding.typeorm-entity';
@@ -9,21 +9,17 @@ import { IssueMetricBindingMapper } from '../mappers/issue-metric-binding.mapper
 @Injectable()
 export class IssueMetricBindingTypeormRepository implements IssueMetricBindingRepository {
   constructor(
-    @InjectRepository(IssueMetricBindingTypeormEntity)
-    private readonly repo: Repository<IssueMetricBindingTypeormEntity>
+    @Inject(CAPITAL_ISSUE_METRIC_BINDING_STORE)
+    private readonly repo: TableStore<IssueMetricBindingTypeormEntity>
   ) {}
 
   async findByIssueHash(issueHash: string): Promise<IssueMetricBindingDomainEntity[]> {
-    const entities = await this.repo.find({
-      where: { issue_hash: issueHash.toLowerCase() },
-    });
+    const entities = await this.repo.find({ issue_hash: issueHash.toLowerCase() });
     return entities.map(IssueMetricBindingMapper.toDomain);
   }
 
   async findByMetricHash(metricHash: string): Promise<IssueMetricBindingDomainEntity[]> {
-    const entities = await this.repo.find({
-      where: { metric_hash: metricHash.toLowerCase() },
-    });
+    const entities = await this.repo.find({ metric_hash: metricHash.toLowerCase() });
     return entities.map(IssueMetricBindingMapper.toDomain);
   }
 

@@ -1,68 +1,41 @@
-import { Entity, Column, Index } from 'typeorm';
 import { DebtStatus } from '../../domain/enums/debt-status.enum';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { BaseTypeormEntity } from '@coopenomics/extension-kit/sync';
+import { ChainRecord } from '@coopenomics/extension-kit/sync';
 
 export const EntityName = 'capital_debts';
-@Entity(EntityName)
-@Index(`idx_${EntityName}_blockchain_id`, ['id'])
-@Index(`idx_${EntityName}_debt_hash`, ['debt_hash'])
-@Index(`idx_${EntityName}_project_hash`, ['project_hash'])
-@Index(`idx_${EntityName}_username`, ['username'])
-@Index(`idx_${EntityName}_status`, ['status'])
-@Index(`idx_${EntityName}_created_at`, ['_created_at'])
-@Index(`idx_${EntityName}_repaid_at`, ['repaid_at'])
-export class DebtTypeormEntity extends BaseTypeormEntity {
+export class DebtTypeormEntity extends ChainRecord {
   static getTableName(): string {
     return EntityName;
   }
-  @Column({ type: 'integer', nullable: true, unique: true })
   id!: number;
 
   // Поля из блокчейна (debts.hpp)
-  @Column({ type: 'varchar', length: 12, nullable: true })
   coopname!: string;
 
-  @Column({ type: 'varchar', length: 12, nullable: true })
   username!: string;
 
-  @Column({ type: 'varchar', length: 64 })
   debt_hash!: string;
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
   project_hash!: string;
 
-  @Column({ type: 'varchar', length: 20 })
   blockchain_status!: string;
 
-  @Column({ type: 'timestamp', nullable: true })
   repaid_at!: Date;
 
   // Сумма — актив строкой («5033.0000 RUB»), как её отдаёт цепь.
-  @Column({ type: 'varchar' })
   amount!: string;
 
-  @Column({ type: 'json' })
   statement!: ISignedDocument;
 
-  @Column({ type: 'json' })
   approved_statement!: ISignedDocument;
 
-  @Column({ type: 'json' })
   authorization!: ISignedDocument;
 
-  @Column({ type: 'text', nullable: true })
   memo!: string;
 
   // Цепь даты создания записи не хранит — колонка необязательна (время появления в базе — `_created_at`).
-  @Column({ type: 'timestamp', nullable: true })
   created_at!: Date;
 
   // Доменные поля (расширения)
-  @Column({
-    type: 'enum',
-    enum: DebtStatus,
-    default: DebtStatus.PENDING,
-  })
   status!: DebtStatus;
 }

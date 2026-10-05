@@ -9,22 +9,11 @@ import type {
   DeallocationLimitOutputDTO,
 } from '../dto/invests_management/deallocation-limit.dto';
 import { t } from '../../i18n';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { CHAIN_DELTA_WAIT_PORT, DOCUMENT_PORT, type IChainDeltaWaitPort, type IDocumentPort, type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 import { InvestOutputDTO } from '../dto/invests_management/invest.dto';
 import { InvestFilterInputDTO } from '../dto/invests_management/invest-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, AssetUtils, GenerateDocumentInputDTO,
-  CurrencyValidationUtil,
-} from '@coopenomics/extension-kit';
+import { AssetUtils, CurrencyValidationUtil, GeneratedDocumentDTO, GenerateDocumentInputDTO, GenerateDocumentOptionsInputDTO, generateRandomHash, PaginationInputDTO, PaginationResult, verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
 import { CapitalContract, Cooperative, Ledger2Contract } from 'cooptypes';
-import { verifySignedDocumentAgainstStoredDraft } from '@coopenomics/extension-kit';
-import {
-  CHAIN_DELTA_WAIT_PORT,
-  DOCUMENT_PORT,
-  type IChainDeltaWaitPort,
-  type IDocumentPort,
-  type InnerTransactResult,
-} from '@coopenomics/innercoop';
-import { generateRandomHash } from '@coopenomics/extension-kit';
 
 /**
  * Сервис уровня приложения для управления инвестициями CAPITAL

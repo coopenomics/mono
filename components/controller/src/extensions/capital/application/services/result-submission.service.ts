@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ResultSubmissionInteractor } from '../use-cases/result-submission.interactor';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { DOCUMENT_PORT, type IDocumentPort, type ILoggerPort, type IMonoAccount, LOGGER_PORT } from '@coopenomics/innercoop';
 import type { PushResultInputDTO } from '../dto/result_submission/push-result-input.dto';
 import type { ConvertSegmentInputDTO } from '../dto/result_submission/convert-segment-input.dto';
 import type { SignActAsContributorInputDTO } from '../dto/result_submission/sign-act-as-contributor-input.dto';
@@ -44,7 +44,6 @@ import {
   RESULT_DOCUMENT_PAYLOAD_VERSION,
   type ResultDocumentPayloadV2,
 } from '../../domain/result-document-payload';
-import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort } from '@coopenomics/innercoop';
 import { t as i18nT } from '../../i18n';
 /**
  * Сервис уровня приложения для подачи результатов в CAPITAL

@@ -1,30 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProjectManagementInteractor } from '../use-cases/project-management.interactor';
-import type { CreateProjectInputDTO } from '../dto/project_management';
-import type {
-  SetMasterInputDTO,
-  AddAuthorInputDTO,
-  SetPlanInputDTO,
-  StartProjectInputDTO,
-  OpenProjectInputDTO,
-  CloseProjectInputDTO,
-  StopProjectInputDTO,
-  DeleteProjectInputDTO,
-  EditProjectInputDTO,
-  FinalizeProjectInputDTO,
-} from '../dto/project_management';
+import { type AddAuthorInputDTO, type CloseProjectInputDTO, type CreateProjectInputDTO, type DeleteProjectInputDTO, type EditProjectInputDTO, type FinalizeProjectInputDTO, type OpenProjectInputDTO, type SetMasterInputDTO, type SetPlanInputDTO, type StartProjectInputDTO, type StopProjectInputDTO } from '../dto/project_management';
 import { ProjectOutputDTO } from '../dto/project_management/project.dto';
 import { ProjectFilterInputDTO } from '../dto/property_management/project-filter.input';
 import { PaginationInputDTO, PaginationResult, platformSettings, sanitizeUserText, DomainError } from '@coopenomics/extension-kit';
 import { ProjectMapperService } from './project-mapper.service';
-import type { IMonoAccount } from '@coopenomics/innercoop';
+import { type IMonoAccount, type InnerTransactResult } from '@coopenomics/innercoop';
 import { SetCapitalProjectDevelopmentRepositoryUrlInputDTO } from '../dto/project_management/set-development-repository-url.input.dto';
 import { SetCapitalProjectPriorityInputDTO } from '../dto/project_management/set-project-priority.input.dto';
 import { normalizeDevelopmentRepositoryUrl } from '../utils/parse-github-development-repository-url';
 import { CapitalDevelopmentRepositoryGitSyncService } from './capital-development-repository-git-sync.service';
 import type { ProjectDomainEntity } from '../../domain/entities/project.entity';
 import { canViewLocalProject } from '../../domain/utils/private-project-access';
-import type { InnerTransactResult } from '@coopenomics/innercoop';
 import { PermissionsService } from './permissions.service';
 import { ProjectAction } from '../../domain/services/access-policy.service';
 import type { ArtifactAccessScope } from '../../domain/repositories/artifact-access-scope';
