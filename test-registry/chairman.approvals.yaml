@@ -160,3 +160,12 @@ cases:
     test: components/controller/tests/unit/chairman/chairman-rights.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  - id: chair.rights.side.03
+    level: backend
+    kind: side
+    scenario: пайщик читает список одобрений со своим именем, с чужим именем и без имени, запрашивает одно одобрение по номеру
+    expect: "свои одобрения читает; чужое имя и запрос без имени — отказ KIT_RIGHT_SCOPE_OWN; одно одобрение по номеру — KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/chairman/chairman-rights.test.ts
+    api: components/api-tests/src/chairman/approvals.test.ts
+    status: written

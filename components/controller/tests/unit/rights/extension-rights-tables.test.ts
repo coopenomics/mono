@@ -58,7 +58,6 @@ const SUITES: Suite[] = [
     rights: new ExpensesRights(registry),
     dir: 'expenses/application/resolvers',
     ops: {
-      generateExpenseProposalStatementDocument: COUNCIL,
       createExpenseProposal: COUNCIL,
       submitExpenseReport: COUNCIL,
       expenseRequisitesByProposal: COUNCIL,

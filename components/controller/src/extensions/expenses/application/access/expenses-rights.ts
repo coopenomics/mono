@@ -22,7 +22,9 @@ const EXPENSES_PAGES_DESKTOP = 'participant';
  * участок — сверяют сервисы расходов по данным объекта.
  */
 const MEMBER_RIGHTS = {
-  ExpenseProposal: ['read'],
+  // Документ записки пайщик собирает на своё имя: расход участка подаёт его
+  // председатель — обычный пайщик.
+  ExpenseProposal: ['read', 'generate:own'],
   ExpenseItem: ['report', 'return'],
   ExpenseFile: ['read', 'upload'],
   ExpensePlan: ['read', 'manage'],
@@ -43,7 +45,7 @@ export const expensesRightsTable: RightsTable<MemberRole, never> = {
       when: [],
       rights: {
         ...MEMBER_RIGHTS,
-        ExpenseProposal: ['read', 'create', 'submit-report'],
+        ExpenseProposal: ['read', 'generate:own', 'generate:all', 'create', 'submit-report'],
         ExpenseRegistry: ['read'],
       },
     },

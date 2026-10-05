@@ -36,7 +36,9 @@ export class ApprovalResolver {
     description: 'Получение списка одобрений председателя совета с фильтрацией',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Approval', 'read')
+  // Совет читает все одобрения, пайщик — одобрения своих документов: имя в
+  // отборе сверяется с вошедшим.
+  @RequireRight('Approval', ['read:own', 'read'], { owner: 'filter.username' })
   async getApprovals(
     @Args('filter', { nullable: true }) filter?: ApprovalFilterInput,
     @Args('options', { nullable: true }) options?: PaginationInputDTO

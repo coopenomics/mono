@@ -63,10 +63,9 @@ export class ExpenseMutationsResolver {
   }
 
   // Записку на расход оформляет не только совет: расход кооперативного
-  // участка подаёт его председатель — обычный пайщик, и он проходит через
-  // самообход `RolesGuard` со своим `username`. Роль `user` здесь не ставится
-  // намеренно: документ печатает паспортные данные заявителя, и с ролью любой
-  // вошедший получал бы их по чужому имени. Право подать расход проверяет
+  // участка подаёт его председатель — обычный пайщик, и он собирает документ
+  // на своё имя. Документ печатает паспортные данные заявителя, поэтому чужое
+  // имя пайщику закрыто, а совету открыто. Право подать расход проверяет
   // расширение-инициатор при отправке на цепь.
   @Mutation(() => GeneratedDocumentDTO, {
     name: 'generateExpenseProposalStatementDocument',
@@ -74,7 +73,7 @@ export class ExpenseMutationsResolver {
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('ExpenseProposal', 'create')
+  @RequireRight('ExpenseProposal', ['generate:own', 'generate:all'], { owner: 'data.username' })
   async generateExpenseProposalStatementDocument(
     @Args('data', { type: () => ExpenseProposalStatementGenerateDocumentInputDTO })
     data: ExpenseProposalStatementGenerateDocumentInputDTO,

@@ -20,22 +20,23 @@ const RESOLVERS = join(__dirname, '../../../src/extensions/chairman/application/
 function requirementOf(file: string, operation: string): IRightRequirement {
   const src = readFileSync(join(RESOLVERS, file), 'utf8');
   const from = src.indexOf(`name: '${operation}'`);
-  const found = from < 0 ? null : /@RequireRight\('([A-Za-z]+)',\s*'([^']*)'\)/.exec(src.slice(from));
+  const found = from < 0 ? null : /@RequireRight\('([A-Za-z]+)',\s*(\[[^\]]*\]|'[^']*')(?:,\s*\{ owner: '([^']*)' \})?\)/.exec(src.slice(from));
   if (!found) throw new Error(`требование права операции ${operation} не найдено`);
-  return { resource: found[1], action: found[2] };
+  const actions = [...found[2].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  return { resource: found[1], action: found[2].startsWith('[') ? actions : actions[0], source: found[3] ? { owner: found[3] } : undefined };
 }
 
 function makeGuard() {
   const registry = { register: jest.fn() };
   const rights = new ChairmanRights(registry as any);
   /** Проход гарда для пайщика с ролью узла `role`; отказ — исключение. */
-  async function pass(requirement: IRightRequirement, role: string, status = 'active'): Promise<boolean> {
+  async function pass(requirement: IRightRequirement, role: string, status = 'active', args: Record<string, unknown> = {}): Promise<boolean> {
     const reflector = {
       getAllAndOverride: jest.fn((key: string) => (key === RIGHT_METADATA_KEY ? requirement : undefined)),
     } as unknown as Reflector;
     const guard = new RightsGuard(reflector, rights);
     const request = { headers: {}, user: { username: 'ivan', role, status } };
-    const slots = [undefined, {}, { req: request }, undefined];
+    const slots = [undefined, args, { req: request }, undefined];
     const context = {
       getType: () => 'graphql',
       getHandler: () => ({ name: 'handler' }),
@@ -58,12 +59,21 @@ const ONBOARDING = ['getChairmanOnboardingState', 'completeChairmanAgendaStep', 
 
 describe('операции стола председателя под общим гардом', () => {
   // chair.rights.happy.01
-  it.each(READS)('%s: одобрения читают член совета и председатель; пайщику отказ', async (operation) => {
+  it.each(READS)('%s: одобрения читают член совета и председатель', async (operation) => {
     const { pass } = makeGuard();
     const requirement = requirementOf('approval.resolver.ts', operation);
     await expect(pass(requirement, 'member')).resolves.toBe(true);
     await expect(pass(requirement, 'chairman', 'registered')).resolves.toBe(true);
-    await expect(pass(requirement, 'user')).rejects.toMatchObject(NO_RIGHT);
+  });
+
+  // chair.rights.side.03
+  it('пайщик читает одобрения своих документов; чужие и одно одобрение по номеру ему закрыты', async () => {
+    const { pass } = makeGuard();
+    const list = requirementOf('approval.resolver.ts', 'chairmanApprovals');
+    await expect(pass(list, 'user', 'active', { filter: { username: 'ivan' } })).resolves.toBe(true);
+    await expect(pass(list, 'user', 'active', { filter: { username: 'petr' } })).rejects.toMatchObject({ code: 'KIT_RIGHT_SCOPE_OWN' });
+    await expect(pass(list, 'user', 'active', {})).rejects.toMatchObject({ code: 'KIT_RIGHT_SCOPE_OWN' });
+    await expect(pass(requirementOf('approval.resolver.ts', 'chairmanApproval'), 'user')).rejects.toMatchObject(NO_RIGHT);
   });
 
   // chair.rights.side.01
@@ -98,9 +108,9 @@ describe('права страниц стола председателя из т�
 
   // chair.rights.happy.02
   it('председатель получает одобрения и шаги подключения, член совета — чтение одобрений, пайщик — ничего', async () => {
-    expect(await grantsFor('chairman')).toEqual(['Approval:confirm', 'Approval:read', 'ChairmanOnboarding:manage']);
-    expect(await grantsFor('member')).toEqual(['Approval:read']);
-    expect(await grantsFor('user')).toEqual([]);
+    expect(await grantsFor('chairman')).toEqual(['Approval:confirm', 'Approval:read', 'Approval:read:own', 'ChairmanOnboarding:manage']);
+    expect(await grantsFor('member')).toEqual(['Approval:read', 'Approval:read:own']);
+    expect(await grantsFor('user')).toEqual(['Approval:read:own']);
   });
 
   it('описание прав кладёт своего поставщика под именем стола председателя', () => {
