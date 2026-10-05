@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceVitrineDTO } from '../dto/marketplace-vitrine.dto';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
@@ -30,7 +29,7 @@ export class MarketplaceVitrineResolver {
     description: 'Дефолтная витрина кооператива (MVP — единственная)',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Vitrine', 'read')
+  @RequireRight('Vitrine', 'read')
   async marketplaceDefaultVitrine(): Promise<MarketplaceVitrineDTO> {
     const v = await this.service.getDefault(platformSettings().coopname);
     if (!v) {

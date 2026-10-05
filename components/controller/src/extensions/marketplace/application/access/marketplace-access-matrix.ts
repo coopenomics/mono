@@ -1,3 +1,4 @@
+import { rightConditions, rightMatches, rightsByRole, rightsHeld, type RightScope, type RightsGroup, type RightsTable } from '@coopenomics/extension-kit';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
 
 /**
@@ -29,163 +30,274 @@ import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
  * витрина, отчётность) добавят новые resources — расширение матрицы без
  * правок resolver-ов.
  */
-export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, string[]>> = {
-  orderer: {
-    Order: ['create', 'read:own', 'cancel:own'],
-    Offer: ['read'],
-    // Эпик 16: заказчик управляет своей корзиной (накопитель перед оформлением).
-    Cart: ['manage:own'],
-    KU: ['read'],
-    Vitrine: ['read'],
-    // Паевая модель (компонент 68): заказчик подписывает заявление о возврате
-    // паевого взноса имуществом и первую подпись акта, видит ход своей выдачи.
-    Issuance: ['sign:statement', 'sign:act', 'read:own'],
-    // Story 7.1 / FR29: заказчик подаёт заявление на гарантийный возврат
-    // имущества по своему Order'у в пределах гарантийного срока и видит
-    // только свои заявления.
-    ReturnClaim: ['create:own', 'read:own'],
-    // requirement 76 (докладка): пайщик видит свои входящие предложения со
-    // склада кооператива и решает их судьбу — принять или отказаться.
-    StockProposal: ['read:own', 'resolve:own'],
-    // requirement b6: единая ставка членского взноса видна заказчику —
-    // каталог показывает цену с учётом взноса.
-    Economy: ['read'],
-  },
-  offerer: {
-    Offer: ['create:own', 'update:own', 'delete:own', 'read'],
-    Order: ['read:to-self'],
-    Shipment: ['create:own'],
-    // Story 5.3/5.4: поставщик подписывает АПП первым (по приходу
-    // имущества). `sign:first` оставлен для backward-compat, `sign:as-supplier`
-    // — каноническая action из AC Story 5.4. `cancel:own` — отказ от
-    // черновика приёмки до своей подписи (onsite-gate «Отменить»): on-chain
-    // ещё ничего нет, партия возвращается оператору к повторной приёмке.
-    Receiving: ['sign:first', 'sign:as-supplier', 'cancel:own'],
-    KU: ['read'],
-    Vitrine: ['read'],
-    Economy: ['read'],
-    // 99D-13: гарантийные претензии, выставленные этому поставщику
-    SupplierClaim: ['read:to-self', 'respond:to-self'],
-  },
-  operator: {
-    Receiving: ['create', 'sign:closing'],
-    // Паевая модель (компонент 68): оператор участка отмечает готовность,
-    // фиксирует факт у стойки (create), закрывает выдачу второй подписью акта
-    // (close), отменяет начатую выдачу (cancel) и видит ленту своего участка.
-    Issuance: ['create', 'close', 'cancel', 'read:own-KU'],
-    // Поток IV шаг 1: оператор/председатель КУ видит ленту ожидаемых партий
-    // поставки на своём участке, чтобы открыть приёмку по приходу.
-    Shipment: ['read:own-KU'],
-    // requirement (2026-08-03): реестр заказов, идущих на свой КУ — та же
-    // сводка, что видит администратор по всему кооперативу, но отфильтрована
-    // по своему участку; со ссылкой из «Экономики участка» (движения по
-    // кошельку → конкретный заказ).
-    Order: ['read:own-KU'],
-    Inventory: ['label'],
-    Warehouse: ['read:own-KU'],
-    // Эпик 19: председатель КУ ведёт топологию склада своего участка —
-    // заводит сетку ячеек, правит подписи, выводит пустые из оборота.
-    StorageCell: ['manage:own-KU', 'read:own-KU'],
-    // Эпик 19: председатель КУ ведёт реестр боксов своего участка —
-    // заводит партии, печатает этикетки, ставит в ячейки, выводит пустые.
-    Container: ['manage:own-KU', 'read:own-KU'],
-    KU: ['read:own-KU'],
-    Vitrine: ['read'],
-    // Имущество на складе участка открывается карточкой предложения, по
-    // которому оно пришло: оператору нужно видеть поставщика, упаковку и
-    // условия, иначе по одному наименованию непонятно, что он выдаёт
-    // (решение владельца 14.09.2026). Только чтение — модерация и правка
-    // остаются у председателя кооператива.
-    Offer: ['read'],
-    // Story 7.2 / 7.3 / FR30-FR32: председатель КУ доставки видит заявления
-    // на возврат своего КУ, принимает удалённые и очные решения. Действия:
-    //  - read:own-KU   — лента и detail заявлений;
-    //  - decide:remote — одобрить визит / отказать удалённо (Story 7.2);
-    //  - decide:on-site — принять / отказать на месте (Story 7.3 + 7.4).
-    ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site', 'hand-back'],
-    // requirement 76: оператор управляет обезличенным остатком своего КУ —
-    // публикует его в каталог (цена прибытия/уценка), снимает с публикации,
-    // накидывает предложения докладки у стойки и отзывает их, отменяет
-    // заказ из остатка до своей подписи на акте выдачи.
-    Stock: ['read:own-KU', 'publish:own-KU'],
-    StockProposal: ['create:own-KU', 'read:own-KU', 'cancel:own-KU'],
-    // requirement b6 «Экономика КУ»: председатель настраивает отсечку и веса
-    // распределения членских взносов своего КУ (configure — внутри сервис
-    // дополнительно сверяет, что инициатор — именно trustee); председатель и
-    // доверенные видят экономику своих КУ и распоряжаются персональными
-    // средствами (перевод в «Стол заказов», материальная помощь).
-    Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
-    // Эпик 8: председатель КУ подтверждает фактическое списание со склада
-    // своего участка по решению совета (подпись Служебной записки 1111 →
-    // confirmwroff) и видит список таких ожидающих подтверждения групп.
-    Writeoff: ['read:own-KU', 'confirm:own-KU'],
-  },
-  admin: {
-    // read:all — реестр всех предложений кооператива любого статуса (наряду с
-    // модерацией PENDING); read:all есть и у совета (board_readonly).
-    Offer: ['moderate', 'read', 'read:all'],
-    // Задача 99D-14: сверка инвариантов учёта Стола заказов (счета 10/76/91,
-    // кошельки резерва и выплат) — по запросу председателя.
-    Ledger: ['audit'],
-    Order: ['read:all'],
-    KU: ['manage'],
-    // Реестр поставщиков: администратор видит реестр и добавляет поставщика
-    // напрямую (путь 2). Одобрение/отклонение заявок (`approve`/`reject`) —
-    // действие председателя, проверяется отдельно в резолвере по Chairman-роли.
-    Supplier: ['manage'],
-    Vitrine: ['manage', 'read'],
-    // Доступные категории кооператива (Эпик 16). Маршрут стола
-    // `market-admin/category-whitelist` требует `Whitelist:manage`, но этого
-    // токена не выдавала ни одна роль — страница была недостижима вообще ни
-    // для кого, хотя резолверы (available-category-admin.resolver.ts) живы и
-    // защищены ролью председателя. Выдаём администратору ровно то, что уже
-    // разрешает сервер.
-    Whitelist: ['manage'],
-    Warehouse: ['read:all'],
-    // Эпик 19: администратор видит топологию складов всех участков.
-    StorageCell: ['read:all'],
-    // Эпик 19: сводный реестр боксов кооператива с объёмом и заполненностью.
-    // `manage:types` — справочник типов тары: габариты и объём общие на весь
-    // кооператив (решение владельца 14.09.2026), поэтому типы заводит
-    // председатель, а участки только выбирают из них при заведении боксов.
-    Container: ['read:all', 'read:own-KU', 'manage:types'],
-    Shipment: ['read:all'],
-    Payment: ['read:all'],
-    SupplierClaim: ['read:all'],
-    Extension: ['configure'],
-    // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
-    // списания, подписывает Заявление 1106 и отправляет проект в совет.
-    Writeoff: ['manage_draft', 'propose', 'read:all'],
-    Stock: ['read:all', 'publish:all'],
-    StockProposal: ['create:all', 'read:all', 'cancel:all'],
-    // requirement b6: администратор устанавливает единую ставку членского
-    // взноса кооператива и видит экономику любого КУ и все заявки на помощь.
-    Economy: ['read', 'read:all', 'read:own-KU', 'set-fee', 'use:own'],
-    // requirement b6 (2026-08-13): удержанный с материальной помощи НДФЛ и
-    // его перечисление в бюджет ведёт бухгалтерия кооператива — в матрице
-    // это администратор, отдельной роли бухгалтера в расширении нет.
-    Tax: ['read', 'pay'],
-  },
-  board_readonly: {
-    Warehouse: ['read:all'],
-    Order: ['read:all'],
-    Offer: ['read:all'],
-    Agenda: ['read'],
-    Writeoff: ['read:all'],
-    // Совет ведёт read-only надзор за расчётами кооператива с поставщиками:
-    // подтверждение/отказ выплат делает кассир, совету нужен только обзор.
-    Payment: ['read:all'],
-  },
-  board: {
-    Agenda: ['manage'],
-    // Эпик 8: совет — авторизация Протокола 1105 идёт через стандартный
-    // sov.decision flow (votefor / authorize), `decide` остаётся как
-    // capability-маркер для UI «может ли роль видеть и принимать решение».
-    Writeoff: ['decide', 'read:all'],
-    Decision: ['create', 'sign'],
-    Payment: ['read:all'],
-  },
+export type MarketplaceScope = RightScope;
+
+/**
+ * Условие строки таблицы — состояние кооператива или пайщика, при котором
+ * право действует:
+ *  - `coop-accepted`      — совет принял программу и положение Стола заказов;
+ *  - `orderer-onboarded`  — пайщик подписал оферту программы и выбрал пункт выдачи;
+ *  - `containers-enabled` — кооператив включил боксы в настройках склада;
+ *  - `cells-enabled`      — кооператив включил ячейки хранения.
+ */
+export type MarketplaceCondition = 'coop-accepted' | 'orderer-onboarded' | 'containers-enabled' | 'cells-enabled';
+
+export type MarketplaceRightsGroup = RightsGroup<MarketplaceCondition>;
+
+const COOP: MarketplaceCondition[] = ['coop-accepted'];
+
+/**
+ * Таблица прав Стола заказов (C28-87): роль → условия → право.
+ *
+ * Одна таблица отвечает и серверу, и рабочему столу: гард операции и набор
+ * прав для страниц собираются из неё (`MarketplaceRightsService`). До
+ * 04.10.2026 условия знал только провайдер прав стола, и прямой запрос к
+ * серверу проходил там, где стол прятал страницу.
+ */
+export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCondition> = {
+  orderer: [
+    {
+      // Читается и до принятия программы советом: по этим правам стол
+      // показывает, что подключать.
+      when: [],
+      rights: {
+        Extension: ['read'],
+        Membership: ['read:own'],
+      },
+    },
+    {
+      // Подключение пайщика: оферта, пункт выдачи, заявка поставщика.
+      when: COOP,
+      rights: {
+        Onboarding: ['read:own', 'sign:own'],
+        DeliveryPoint: ['choose:own'],
+        KU: ['read'],
+        Supplier: ['read:own', 'request:own'],
+      },
+    },
+    {
+      when: ['coop-accepted', 'orderer-onboarded'],
+      rights: {
+        Order: ['create', 'read:own', 'cancel:own'],
+        Offer: ['read'],
+        // Эпик 16: заказчик управляет своей корзиной (накопитель перед оформлением).
+        Cart: ['manage:own'],
+        Vitrine: ['read'],
+        // Паевая модель (компонент 68): заказчик подписывает заявление о возврате
+        // паевого взноса имуществом и первую подпись акта, видит ход своей выдачи.
+        Issuance: ['sign:statement', 'sign:act', 'read:own'],
+        // Story 7.1 / FR29: заказчик подаёт заявление на гарантийный возврат
+        // имущества по своему Order'у в пределах гарантийного срока и видит
+        // только свои заявления.
+        ReturnClaim: ['create:own', 'read:own'],
+        // requirement 76 (докладка): пайщик видит свои входящие предложения со
+        // склада кооператива и решает их судьбу — принять или отказаться.
+        StockProposal: ['read:own', 'resolve:own'],
+        // requirement b6: единая ставка членского взноса видна заказчику —
+        // каталог показывает цену с учётом взноса.
+        Economy: ['read'],
+        MemberWallet: ['read:own'],
+      },
+    },
+  ],
+  offerer: [
+    {
+      when: COOP,
+      rights: {
+        Offer: ['create:own', 'update:own', 'delete:own', 'read'],
+        Order: ['read:to-self'],
+        Shipment: ['create:own'],
+        // Поставщик подписывает акт приёмки первым (по приходу имущества).
+        // `cancel:own` — отказ от черновика приёмки до своей подписи: в цепи
+        // ещё ничего нет, партия возвращается оператору к повторной приёмке.
+        Receiving: ['sign:first', 'cancel:own'],
+        KU: ['read'],
+        Vitrine: ['read'],
+        Economy: ['read'],
+        // 99D-13: гарантийные претензии, выставленные этому поставщику
+        SupplierClaim: ['read:to-self', 'respond:to-self'],
+        // Выплаты кооператива этому поставщику.
+        Payment: ['read:to-self'],
+      },
+    },
+  ],
+  operator: [
+    {
+      when: COOP,
+      rights: {
+        Receiving: ['create', 'sign:closing', 'cancel:own-KU'],
+        // Паевая модель (компонент 68): оператор участка отмечает готовность,
+        // фиксирует факт у стойки (create), закрывает выдачу второй подписью акта
+        // (close), отменяет начатую выдачу (cancel) и видит ленту своего участка.
+        Issuance: ['create', 'close', 'cancel', 'read:own-KU'],
+        // Поток IV шаг 1: оператор/председатель КУ видит ленту ожидаемых партий
+        // поставки на своём участке, чтобы открыть приёмку по приходу.
+        Shipment: ['read:own-KU'],
+        // requirement (2026-08-03): реестр заказов, идущих на свой КУ — та же
+        // сводка, что видит администратор по всему кооперативу, но отфильтрована
+        // по своему участку; со ссылкой из «Экономики участка» (движения по
+        // кошельку → конкретный заказ).
+        Order: ['read:own-KU'],
+        Inventory: ['label'],
+        Warehouse: ['read:own-KU'],
+        Vitrine: ['read'],
+        // Имущество на складе участка открывается карточкой предложения, по
+        // которому оно пришло: оператору нужно видеть поставщика, упаковку и
+        // условия, иначе по одному наименованию непонятно, что он выдаёт
+        // (решение владельца 14.09.2026). Только чтение — модерация и правка
+        // остаются у председателя кооператива.
+        Offer: ['read'],
+        // Story 7.2 / 7.3 / FR30-FR32: председатель КУ доставки видит заявления
+        // на возврат своего КУ, принимает удалённые и очные решения. Действия:
+        //  - read:own-KU   — лента и detail заявлений;
+        //  - decide:remote — одобрить визит / отказать удалённо (Story 7.2);
+        //  - decide:on-site — принять / отказать на месте (Story 7.3 + 7.4).
+        ReturnClaim: ['read:own-KU', 'decide:remote', 'decide:on-site', 'hand-back'],
+        // requirement 76: оператор управляет обезличенным остатком своего КУ —
+        // публикует его в каталог (цена прибытия/уценка), снимает с публикации,
+        // накидывает предложения докладки у стойки и отзывает их, отменяет
+        // заказ из остатка до своей подписи на акте выдачи.
+        Stock: ['read:own-KU', 'publish:own-KU'],
+        StockProposal: ['create:own-KU', 'read:own-KU', 'cancel:own-KU'],
+        // requirement b6 «Экономика КУ»: председатель настраивает отсечку и веса
+        // распределения членских взносов своего КУ (configure — внутри сервис
+        // дополнительно сверяет, что инициатор — именно trustee); председатель и
+        // доверенные видят экономику своих КУ и распоряжаются персональными
+        // средствами (перевод в «Стол заказов», материальная помощь).
+        Economy: ['read', 'read:own-KU', 'configure:own-KU', 'use:own'],
+        // Эпик 8: председатель КУ подтверждает фактическое списание со склада
+        // своего участка по решению совета (подпись Служебной записки 1111 →
+        // confirmwroff) и видит список таких ожидающих подтверждения групп.
+        Writeoff: ['read:own-KU', 'confirm:own-KU'],
+      },
+    },
+    {
+      when: ['coop-accepted', 'cells-enabled'],
+      rights: {
+        // Эпик 19: председатель КУ ведёт топологию склада своего участка —
+        // заводит сетку ячеек, правит подписи, выводит пустые из оборота.
+        StorageCell: ['manage:own-KU', 'read:own-KU'],
+      },
+    },
+    {
+      when: ['coop-accepted', 'containers-enabled'],
+      rights: {
+        // Эпик 19: председатель КУ ведёт реестр боксов своего участка —
+        // заводит партии, печатает этикетки, ставит в ячейки, выводит пустые.
+        Container: ['manage:own-KU', 'read:own-KU'],
+      },
+    },
+  ],
+  admin: [
+    {
+      // Подключение кооператива ведёт председатель — до решения совета.
+      when: [],
+      rights: {
+        Extension: ['configure'],
+      },
+    },
+    {
+      when: COOP,
+      rights: {
+        // read:all — реестр всех предложений кооператива любого статуса (наряду с
+        // модерацией PENDING); read:all есть и у совета (board_readonly).
+        Offer: ['moderate', 'read', 'read:all'],
+        // Задача 99D-14: сверка инвариантов учёта Стола заказов (счета 10/76/91,
+        // кошельки резерва и выплат) — по запросу председателя.
+        Ledger: ['audit'],
+        Order: ['read:all'],
+        KU: ['manage'],
+        // Реестр поставщиков: администратор видит реестр и добавляет поставщика
+        // напрямую (путь 2). Одобрение/отклонение заявок (`approve`/`reject`) —
+        // действие председателя, проверяется отдельно в резолвере по Chairman-роли.
+        Supplier: ['manage'],
+        Vitrine: ['read'],
+        // Доступные категории кооператива (Эпик 16). Маршрут стола
+        // `market-admin/category-whitelist` требует `Whitelist:manage`, но этого
+        // токена не выдавала ни одна роль — страница была недостижима вообще ни
+        // для кого, хотя резолверы (available-category-admin.resolver.ts) живы и
+        // защищены ролью председателя. Выдаём администратору ровно то, что уже
+        // разрешает сервер.
+        Whitelist: ['manage'],
+        Warehouse: ['read:all'],
+        Shipment: ['read:all'],
+        Payment: ['read:all'],
+        SupplierClaim: ['read:all'],
+        // Эпик 8: общий администратор формирует и редактирует DRAFT-проект
+        // списания, подписывает Заявление 1106 и отправляет проект в совет.
+        Writeoff: ['manage_draft', 'propose', 'read:all'],
+        Stock: ['read:all', 'publish:all'],
+        StockProposal: ['create:all', 'read:all', 'cancel:all'],
+        // requirement b6: администратор устанавливает единую ставку членского
+        // взноса кооператива и видит экономику любого КУ и все заявки на помощь.
+        Economy: ['read', 'read:all', 'read:own-KU', 'set-fee', 'use:own'],
+      },
+    },
+    {
+      when: ['coop-accepted', 'cells-enabled'],
+      rights: {
+        // Эпик 19: администратор видит топологию складов всех участков.
+        StorageCell: ['read:all'],
+      },
+    },
+    {
+      when: ['coop-accepted', 'containers-enabled'],
+      rights: {
+        // Эпик 19: сводный реестр боксов кооператива с объёмом и заполненностью.
+        // `manage:types` — справочник типов тары: габариты и объём общие на весь
+        // кооператив (решение владельца 14.09.2026), поэтому типы заводит
+        // председатель, а участки только выбирают из них при заведении боксов.
+        Container: ['read:all', 'read:own-KU', 'manage:types'],
+      },
+    },
+  ],
+  board_readonly: [
+    {
+      when: COOP,
+      rights: {
+        Warehouse: ['read:all'],
+        Order: ['read:all'],
+        // Совет читает реестр всех предложений; карточку предложения, витрину и
+        // ставку взноса он открывает по этим же данным — без подключения
+        // заказчиком, как оператор участка.
+        Offer: ['read', 'read:all'],
+        Vitrine: ['read'],
+        Economy: ['read'],
+        Writeoff: ['read:all'],
+        // Совет ведёт read-only надзор за расчётами кооператива с поставщиками:
+        // подтверждение/отказ выплат делает кассир, совету нужен только обзор.
+        Payment: ['read:all'],
+      },
+    },
+  ],
 };
+
+/**
+ * Охват прав, у которых он в имени не записан. Сверку сегодня выполняют
+ * резолверы и сервисы; таблица называет охват явно, чтобы он переехал в общий
+ * гард вместе с переводом на CASL.
+ */
+export const marketplaceRightScopes: Record<string, MarketplaceScope> = {
+  'Order:create': 'own',
+  'Receiving:create': 'own-KU',
+  'Receiving:sign:closing': 'own-KU',
+  'Receiving:sign:first': 'own',
+  'Issuance:create': 'own-KU',
+  'Issuance:close': 'own-KU',
+  'Issuance:cancel': 'own-KU',
+  'Issuance:sign:statement': 'own',
+  'Issuance:sign:act': 'own',
+  'Inventory:label': 'own-KU',
+  'ReturnClaim:decide:remote': 'own-KU',
+  'ReturnClaim:decide:on-site': 'own-KU',
+  'ReturnClaim:hand-back': 'own-KU',
+};
+
+/**
+ * Прежняя форма таблицы «роль → ресурс → действия» без условий: что роли
+ * положено вообще. Выводится из `marketplaceRightsTable`.
+ */
+export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, string[]>> = rightsByRole(marketplaceRightsTable);
 
 /**
  * Проверяет, что хотя бы одна из `roles` пайщика имеет в матрице запись
@@ -205,8 +317,6 @@ export const marketplaceAccessMatrix: Record<MarketplaceRole, Record<string, str
  * делает — это ответственность resolver'а. Для проверки «может ли роль вообще
  * читать resource в любой форме» используйте `roleHasAnyAction`.
  */
-const SUBSET_QUALIFIERS = new Set(['own', 'own-KU', 'to-self']);
-
 export function canAccess(
   roles: MarketplaceRole[],
   resource: string,
@@ -214,18 +324,7 @@ export function canAccess(
 ): boolean {
   return roles.some((role) => {
     const resourceActions = marketplaceAccessMatrix[role]?.[resource];
-    if (!resourceActions) return false;
-    if (resourceActions.includes(action)) return true;
-
-    const colon = action.indexOf(':');
-    if (colon > 0) {
-      const base = action.slice(0, colon);
-      const qualifier = action.slice(colon + 1);
-      if (SUBSET_QUALIFIERS.has(qualifier)) {
-        return resourceActions.includes(`${base}:all`);
-      }
-    }
-    return false;
+    return resourceActions ? rightMatches(resourceActions, action) : false;
   });
 }
 
@@ -245,4 +344,14 @@ export function roleHasAnyAction(
     if (!resourceActions) return false;
     return resourceActions.some((a) => a === baseAction || a.startsWith(`${baseAction}:`));
   });
+}
+
+/** Условия строк таблицы, которые дают право ролям пайщика. */
+export function conditionsFor(roles: MarketplaceRole[], resource: string, action: string): MarketplaceCondition[][] {
+  return rightConditions(marketplaceRightsTable, roles, resource, action);
+}
+
+/** Права ролей, действующие при выполненных условиях `held`. */
+export function rightsFor(roles: MarketplaceRole[], held: ReadonlySet<MarketplaceCondition>): string[] {
+  return rightsHeld(marketplaceRightsTable, roles, held);
 }

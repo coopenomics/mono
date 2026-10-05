@@ -16,6 +16,7 @@
  */
 import { MonoAccountStatus } from '@coopenomics/innercoop';
 import { MarketplaceDesktopGrantsProvider } from '~/extensions/marketplace/application/desktop/marketplace-desktop-grants.provider';
+import { MarketplaceRightsService } from '~/extensions/marketplace/application/access/marketplace-rights.service';
 import { MarketplaceOnboardingSource } from '~/extensions/marketplace/application/dto/marketplace-onboarding-state.dto';
 
 function makeProvider(opts: {
@@ -50,13 +51,10 @@ function makeProvider(opts: {
         opts.hasDeliveryPoint ? { delivery_braname: 'ku-1' } : null,
       ),
   } as any;
-  const provider = new MarketplaceDesktopGrantsProvider(
-    registry,
-    whitelist,
-    kuChairman,
-    onboarding,
-    cart,
-  );
+  // Права считает тот же сервис, что и серверный гард: конфиг приложения
+  // провайдеру передаёт платформа, поэтому чтение конфига здесь не нужно.
+  const rights = new MarketplaceRightsService({ get: jest.fn() } as any, onboarding, cart);
+  const provider = new MarketplaceDesktopGrantsProvider(registry, whitelist, kuChairman, rights);
   return { provider, onboarding, cart };
 }
 
@@ -101,17 +99,20 @@ describe('MarketplaceDesktopGrantsProvider', () => {
         userRole: 'chairman',
         config: { coopAcceptance: { accepted: false } },
       });
-      expect(grants).toEqual(['Extension:configure', 'Onboarding:coop']);
+      expect(grants).toEqual(expect.arrayContaining(['Extension:configure', 'Onboarding:coop']));
+      // До решения совета рабочих прав нет ни у кого, включая председателя.
+      expect(grants).not.toContain('KU:manage');
+      expect(grants).not.toContain('Offer:read');
     });
 
-    it('обычный пайщик → []', async () => {
+    it('обычный пайщик → только состояние приложения и свои роли, страниц нет', async () => {
       const { provider } = makeProvider({});
       const grants = await provider.resolveGrants({
         ...baseCtx,
         userRole: 'user',
         config: {},
       });
-      expect(grants).toEqual([]);
+      expect([...grants].sort()).toEqual(['Extension:read', 'Membership:read:own']);
     });
   });
 

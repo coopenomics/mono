@@ -1,5 +1,6 @@
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
-import { marketplaceAccessMatrix } from './marketplace-access-matrix';
+import { expandRights } from '@coopenomics/extension-kit';
+import { rightsFor, type MarketplaceCondition } from './marketplace-access-matrix';
 
 /**
  * Канон авторизации столов: разворачивает marketplace-роли пайщика в плоский
@@ -12,28 +13,20 @@ import { marketplaceAccessMatrix } from './marketplace-access-matrix';
  * (`marketplace-access-matrix.ts`). Так у админа (`Warehouse:read:all`) проходит
  * требование оператора (`Warehouse:read:own-KU`), а вся policy живёт на backend.
  */
-const SUBSET_QUALIFIERS = ['own', 'own-KU', 'to-self'];
-
-function expandToken(token: string): string[] {
-  const out = [token];
-  const colon = token.lastIndexOf(':');
-  if (colon > 0 && token.slice(colon + 1) === 'all') {
-    const prefix = token.slice(0, colon); // напр. 'Warehouse:read'
-    for (const q of SUBSET_QUALIFIERS) out.push(`${prefix}:${q}`);
-  }
-  return out;
+/** Развернуть права `Ресурс:действие` в набор для фронта: `:all` покрывает узкие охваты. */
+export function expandGrants(rights: string[]): string[] {
+  return expandRights(rights);
 }
 
+/** Все условия таблицы — для вопроса «что роли положено вообще». */
+const ALL_CONDITIONS: ReadonlySet<MarketplaceCondition> = new Set<MarketplaceCondition>([
+  'coop-accepted',
+  'orderer-onboarded',
+  'containers-enabled',
+  'cells-enabled',
+]);
+
+/** Права ролей при всех выполненных условиях, развёрнутые для фронта. */
 export function expandGrantsForRoles(roles: MarketplaceRole[]): string[] {
-  const set = new Set<string>();
-  for (const role of roles) {
-    const resources = marketplaceAccessMatrix[role];
-    if (!resources) continue;
-    for (const [resource, actions] of Object.entries(resources)) {
-      for (const action of actions) {
-        for (const token of expandToken(`${resource}:${action}`)) set.add(token);
-      }
-    }
-  }
-  return [...set];
+  return expandGrants(rightsFor(roles, ALL_CONDITIONS));
 }

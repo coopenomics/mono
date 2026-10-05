@@ -18,6 +18,8 @@
  * проверяют сценарии marketplace/branch-scope и capital/project-roles.
  */
 import { completeCapitalRegistration } from '../capital/cap-results.helpers'
+import { KRG } from '../marketplace/flow'
+import { chooseDeliveryPoint, signOffer } from '../marketplace/onboarding.helpers'
 import { approveAsChairman, ensureCapitalChainReady } from '../capital/cap-access.helpers'
 import type { Who } from '../core'
 import { CHAIRMAN, COOP, completeExit, freshMember, gql, gqlRaw, login, registerCandidate, tokenOf, waitFor } from '../core'
@@ -117,6 +119,28 @@ async function makeTrusted(who: Who): Promise<void> {
     }`, { d: { braname: branch.braname, amount: 1 } })
     return r.errors.some(e => String(e.code) === '403' || /Forbidden/i.test(e.message)) ? null : true
   }, { timeoutMs: 150_000, intervalMs: 5_000, label: `доверенный ${who.account} получил права участка ${branch.braname}` })
+}
+
+/**
+ * Исполнитель «подключённый заказчик» обязан быть подключён к началу прогона:
+ * оферта подписана, пункт выдачи выбран. Сценарии до матрицы могли это
+ * состояние поменять — тогда столбец пайщика показал бы пайщика без
+ * подключения. Возвращает, чего не хватало (пусто — всё было на месте).
+ */
+export async function ensureOrdererOnboarded(who: Who): Promise<string[]> {
+  const token = await tokenOf(who)
+  const fixed: string[] = []
+  const state = (await gql<any>(token, 'query{ marketplaceOnboardingState{ requires_gate source } }')).marketplaceOnboardingState
+  if (state.source !== 'AGREEMENT_SIGNED' || state.requires_gate) {
+    await signOffer(who)
+    fixed.push(`оферта: было ${state.source}, требуется подпись ${state.requires_gate} — подписана заново`)
+  }
+  const probe = await gqlRaw(token, 'query{ marketplaceGetCart{ __typename } }')
+  if (probe.errors[0]?.code === 'MARKETPLACE_ORDERER_ONBOARDING_REQUIRED') {
+    await chooseDeliveryPoint(who, KRG)
+    fixed.push('пункт выдачи не был выбран — выбран krg')
+  }
+  return fixed
 }
 
 /**

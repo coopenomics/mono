@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, GeneratedDocumentDTO, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { MarketplaceConvertPayloadDTO } from '../dto/marketplace-checkout.dto';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import { canAccess } from '../access/marketplace-access-matrix';
@@ -74,7 +73,7 @@ export class MarketplaceStockResolver {
       'Обезличенный остаток склада кооператива: позиции, оставшиеся после недовыдач и отказов, доступные к публикации в каталог.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'read:own-KU')
+  @RequireRight('Stock', 'read:own-KU')
   async marketplaceListStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('braname', { nullable: true }) braname?: string
@@ -102,7 +101,7 @@ export class MarketplaceStockResolver {
       'Оператор публикует позиции остатка склада в каталог предложением от кооператива — по цене прибытия или с уценкой.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @RequireRight('Stock', 'publish:own-KU')
   async marketplacePublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplacePublishStockInputDTO
@@ -123,7 +122,7 @@ export class MarketplaceStockResolver {
     description: 'Оператор снимает свободные позиции остатка с витрины каталога.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Stock', 'publish:own-KU')
+  @RequireRight('Stock', 'publish:own-KU')
   async marketplaceUnpublishStock(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUnpublishStockInputDTO
@@ -147,7 +146,7 @@ export class MarketplaceStockResolver {
       'Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @RequireRight('StockProposal', 'create:own-KU')
   async marketplaceStockIssuancePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceStockIssuancePrepareInputDTO
@@ -179,7 +178,7 @@ export class MarketplaceStockResolver {
       'Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'create:own-KU')
+  @RequireRight('StockProposal', 'create:own-KU')
   async marketplaceCreateStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateStockProposalInputDTO
@@ -210,7 +209,7 @@ export class MarketplaceStockResolver {
     description: 'Оператор отзывает неотвеченное предложение (например, чтобы переформировать его).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @RequireRight('StockProposal', 'cancel:own-KU')
   async marketplaceCancelStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -232,7 +231,7 @@ export class MarketplaceStockResolver {
       'кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceStockProposalSignablePayloads(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -268,7 +267,7 @@ export class MarketplaceStockResolver {
       'Ответ несёт саги выдачи: решение принято — пайщик подписывает акт, иначе — режим ожидания без действий с его стороны.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceFinalizeStockIssuance(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceFinalizeStockIssuanceInputDTO
@@ -291,7 +290,7 @@ export class MarketplaceStockResolver {
     description: 'Пайщик отказывается от предложения со склада кооператива.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'resolve:own')
+  @RequireRight('StockProposal', 'resolve:own')
   async marketplaceDeclineStockProposal(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveStockProposalInputDTO
@@ -310,7 +309,7 @@ export class MarketplaceStockResolver {
       'Оператор отменяет заказ со склада кооператива до открытия выдачи (например, при переформировании докладки). Средства возвращаются пайщику, позиции — в остаток.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'cancel:own-KU')
+  @RequireRight('StockProposal', 'cancel:own-KU')
   async marketplaceCancelStockOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCancelStockOrderInputDTO
@@ -332,7 +331,7 @@ export class MarketplaceStockResolver {
       'Предложения со склада кооператива: входящие пайщика либо активные предложения стойки оператора.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('StockProposal', 'read:own')
+  @RequireRight('StockProposal', 'read:own')
   async marketplaceListStockProposals(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListStockProposalsInputDTO

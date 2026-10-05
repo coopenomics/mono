@@ -7,7 +7,7 @@ import http from 'http-status';
 import { LOGGER_PORT, type ILoggerPort, DOCUMENT_PORT, type IDocumentPort, type InnerDocumentAggregate } from '@coopenomics/innercoop';
 import type { PaginationInputDTO } from '@coopenomics/extension-kit';
 import type { ISignedDocument } from '@coopenomics/innercoop';
-import { SignedDigitalDocumentInputDTO, DomainError } from '@coopenomics/extension-kit';
+import { SignedDigitalDocumentInputDTO, DomainError, AmountFormatterUtils } from '@coopenomics/extension-kit';
 import {
   MARKETPLACE_WRITEOFF_PROPOSAL_REPOSITORY,
   type MarketplaceWriteoffProposalDomainRepository,
@@ -50,7 +50,6 @@ import {
   MARKETPLACE_WRITEOFF_EXECUTED_EVENT,
   MARKETPLACE_WRITEOFF_REJECTED_EVENT,
 } from '../events/marketplace-notification.events';
-import { AmountFormatterUtils } from '@coopenomics/extension-kit';
 import { t } from '../../i18n';
 
 export interface MarketplaceWriteoffItemInput {

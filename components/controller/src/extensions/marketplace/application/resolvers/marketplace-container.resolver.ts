@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/marketplace-access-matrix';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { MarketplaceRole } from '../membership/marketplace-roles.mapper';
@@ -40,7 +39,7 @@ export class MarketplaceContainerResolver {
     description: 'Справочник типов боксов кооператива: габариты и объём.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU')
   async marketplaceListContainerTypes(
     @Args('is_active', { nullable: true }) is_active?: boolean
   ): Promise<MarketplaceContainerTypeDTO[]> {
@@ -56,7 +55,7 @@ export class MarketplaceContainerResolver {
   // Типы тары — общий справочник кооператива: габариты одинаковы на всех
   // участках, а по объёму считается перевозка боксов между ними. Заводит их
   // председатель на своём столе; участок берёт готовый тип при заведении боксов.
-  @RequireMarketplaceAccess('Container', 'manage:types')
+  @RequireRight('Container', 'manage:types')
   async marketplaceCreateContainerType(
     @Args('data') data: MarketplaceCreateContainerTypeInputDTO
   ): Promise<MarketplaceContainerTypeDTO> {
@@ -77,7 +76,7 @@ export class MarketplaceContainerResolver {
     description: 'Боксы кооперативных участков.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU')
   async marketplaceListContainers(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data', { nullable: true }) data?: MarketplaceListContainersInputDTO
@@ -108,7 +107,7 @@ export class MarketplaceContainerResolver {
     description: 'Бокс по коду с этикетки или отсканированного QR.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'read:own-KU')
+  @RequireRight('Container', 'read:own-KU')
   async marketplaceResolveContainerByCode(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceResolveContainerByCodeInputDTO
@@ -133,7 +132,7 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU')
   async marketplaceCreateContainers(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceCreateContainersInputDTO
@@ -157,7 +156,7 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка ставит бокс в ячейку или снимает с адреса. Бокс без адреса — допустимое состояние.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU')
   async marketplaceMoveContainer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceMoveContainerInputDTO
@@ -184,7 +183,7 @@ export class MarketplaceContainerResolver {
       'Председатель кооперативного участка правит подпись бокса или выводит его из оборота. Вывести можно только пустой бокс.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Container', 'manage:own-KU')
+  @RequireRight('Container', 'manage:own-KU')
   async marketplaceUpdateContainer(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('data') data: MarketplaceUpdateContainerInputDTO

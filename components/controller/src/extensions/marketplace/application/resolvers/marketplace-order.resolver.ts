@@ -1,9 +1,8 @@
 import { Inject, Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, DomainError } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, DomainError, RequireRight } from '@coopenomics/extension-kit';
 import { CurrentMarketplaceMember } from '../decorators/current-marketplace-member.decorator';
-import { RequireMarketplaceAccess } from '../decorators/marketplace-access.decorator';
 import { MarketplaceMembershipGuard } from '../guards/marketplace-membership.guard';
 import { MarketplaceRoleGuard } from '../guards/marketplace-role.guard';
 import type { IMarketplaceCurrentMember } from '../dto/marketplace-current-member.dto';
@@ -70,7 +69,7 @@ export class MarketplaceOrderResolver {
     description: 'Отменить свой заказ до его приёма поставщиком; средства разблокируются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'cancel:own')
+  @RequireRight('Order', 'cancel:own')
   async marketplaceCancelOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceCancelOrderInputDTO
@@ -92,7 +91,7 @@ export class MarketplaceOrderResolver {
       'Поставщик принимает к поставке выбранные заказы (любое подмножество группы offer × КУ) — единым массивом.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own')
   async marketplaceAcceptOrdersBatch(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceAcceptOrdersBatchInputDTO
@@ -114,7 +113,7 @@ export class MarketplaceOrderResolver {
     description: 'Поставщик отказывается от выбранных активных заказов; средства пайщиков разблокируются.',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Offer', 'update:own')
+  @RequireRight('Offer', 'update:own')
   async marketplaceDeclineOrdersBatch(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceDeclineOrdersBatchInputDTO
@@ -137,7 +136,7 @@ export class MarketplaceOrderResolver {
     description: 'Список заказов текущего пайщика (стол заказчика).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'read:own')
+  @RequireRight('Order', 'read:own')
   async marketplaceListMyOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
@@ -163,7 +162,7 @@ export class MarketplaceOrderResolver {
     description: 'Список заказов, по которым текущий пайщик является поставщиком (стол поставщика).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'read:to-self')
+  @RequireRight('Order', 'read:to-self')
   async marketplaceListSupplierOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
@@ -185,7 +184,7 @@ export class MarketplaceOrderResolver {
     description: 'Реестр всех заказов кооператива с их текущими статусами (стол администратора).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'read:all')
+  @RequireRight('Order', 'read:all')
   async marketplaceListAllOrders(
     @Args('input', { nullable: true }) input?: MarketplaceListOrdersInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -208,7 +207,7 @@ export class MarketplaceOrderResolver {
       'Реестр заказов, идущих на конкретный кооперативный участок, с их текущими статусами (стол ПВЗ).',
   })
   @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
-  @RequireMarketplaceAccess('Order', 'read:own-KU')
+  @RequireRight('Order', 'read:own-KU')
   async marketplaceListBranchOrders(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('braname') braname: string,
@@ -232,7 +231,8 @@ export class MarketplaceOrderResolver {
     name: 'marketplaceGetOrder',
     description: 'Получить один заказ по его идентификатору (доступ зависит от роли).',
   })
-  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard)
+  @UseGuards(GqlJwtAuthGuard, MarketplaceMembershipGuard, MarketplaceRoleGuard)
+  @RequireRight('Order', ['read:own', 'read:to-self', 'read:own-KU'])
   async marketplaceGetOrder(
     @CurrentMarketplaceMember() member: IMarketplaceCurrentMember,
     @Args('input') input: MarketplaceGetOrderInputDTO
