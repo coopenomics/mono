@@ -11,7 +11,7 @@
 import crypto from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, deposit, freshMember, gql, gqlError, latestMail, login, payOutExit, tokenOf, voteOnDecision, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, ROLES, amount, authorizeDecisionOnChain, awaitDecision, caseName, chainMessage, deposit, freshMember, gql, gqlError, latestMail, login, payOutExit, requestExit, tokenOf, voteOnDecision, waitFor } from '../core'
 import { chainChangesOf, quietWindow, settleSubscriptions, signalsOf, waitSignal, wsAs } from '../platform/platform-a.helpers'
 import { addSbpMethod } from '../payments/payments.helpers'
 import type { ExitDocuments } from './exit-documents.helpers'
@@ -253,4 +253,28 @@ describe('выход пайщика: подтверждение по письм�
     expect(await gqlError(leaverToken, EXIT_STATUS, { c: COOP, u: leaver.account }), 'ход своего выхода читается без отказа').toBeNull()
     expect(await gqlError(leaverToken, USER_WALLETS, { u: leaver.account }), 'свои кошельки видны').toBeNull()
   }, 180_000)
+})
+
+describe('выход пайщика: заявление в цепи без аннулирования соглашений', () => {
+  it(caseName('mem.exit.break.10', 'совет не подтверждает выход пайщика с программными соглашениями без заявления об их аннулировании'), async () => {
+    const leaver = freshMember({ prefix: 'exitn' })
+    const token = await login(leaver)
+    // Заявление на выход уходит в цепь мимо узла и без заявления об аннулировании.
+    const hash = await requestExit(leaver, true, { withoutAnnulment: true })
+    const decision = await awaitDecision(hash, `решение совета о выходе ${leaver.account}`)
+    await voteOnDecision(Number(decision.id), 'for')
+
+    let refusal = ''
+    try {
+      await authorizeDecisionOnChain(Number(decision.id))
+    }
+    catch (e) {
+      refusal = chainMessage(e)
+    }
+    expect(refusal).toContain('не приложено заявление об аннулировании соглашений')
+
+    // Пайщик остался в кооперативе, выход по-прежнему ждёт решения.
+    expect((await exitStatus(token, leaver.account))?.status).toBe('PENDING')
+    expect(await gqlError(token, USER_WALLETS, { u: leaver.account })).toBeNull()
+  }, 300_000)
 })

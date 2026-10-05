@@ -297,3 +297,12 @@ cases:
       мутация объявлена правом матрицы, а не ролью
     test: components/controller/tests/unit/membership-exit/annulment-generation-rights.test.ts
     status: passing
+
+  - id: mem.exit.break.10
+    level: backend
+    kind: break
+    scenario: заявление на выход пайщика с программными соглашениями попало в цепь без заявления об их аннулировании; совет голосует за выход
+    expect: решение совета не исполняется — контракт отказывает, пайщик остаётся в кооперативе, выход ждёт решения
+    test: components/api-tests/src/membership/membership.exit.test.ts
+    api: components/api-tests/src/membership/membership.exit.test.ts
+    status: written

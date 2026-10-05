@@ -9,6 +9,7 @@
  * через API проверяет membership.exit.
  */
 import type { Who } from './auth'
+import type { Action } from './chain'
 import { randomHash, tableRows, transact } from './chain'
 import { gql } from './client'
 import { authorizeDecisionOnChain, awaitDecision, declineDecisionOnChain, voteOnDecision } from './council'
@@ -22,6 +23,15 @@ async function exitRow(username: string): Promise<any | undefined> {
   return rows.find(r => r.username === username)
 }
 
+export interface ExitOptions {
+  /**
+   * Выход без заявления об аннулировании соглашений. Пайщику с программными
+   * соглашениями совет такой выход подтвердить не может — параметр нужен
+   * наборам, которые проверяют именно этот отказ.
+   */
+  withoutAnnulment?: boolean
+}
+
 /**
  * Заявление на выход подано: в цепи строка выхода и вопрос в повестке совета,
  * и узел это заявление уже разобрал.
@@ -31,13 +41,23 @@ async function exitRow(username: string): Promise<any | undefined> {
  * тогда могут опередить слушателей самого заявления. Поэтому помощник ждёт,
  * пока узел прочитает блок заявления.
  */
-export async function requestExit(member: Who, settle = true): Promise<string> {
+export async function requestExit(member: Who, settle = true, opts: ExitOptions = {}): Promise<string> {
   const exitHash = randomHash()
-  const tx = await transact(COOP_SIGNER, [{
+  const actions: Action[] = [{
     account: 'registrator',
     name: 'exitcoop',
     data: { coopname: COOP, username: member.account, exit_hash: exitHash, statement: chainDoc([member]) },
-  }])
+  }]
+  // Заявление об аннулировании соглашений об участии в программах идёт той же
+  // транзакцией, что и заявление на выход, — так его шлёт узел.
+  if (!opts.withoutAnnulment) {
+    actions.push({
+      account: 'registrator',
+      name: 'exitagree',
+      data: { coopname: COOP, username: member.account, exit_hash: exitHash, annulment: chainDoc([member]) },
+    })
+  }
+  const tx = await transact(COOP_SIGNER, actions)
   // Наборы робота совета следят за решением сами и ждать здесь не должны.
   if (!settle)
     return exitHash
@@ -68,8 +88,8 @@ export async function payOutExit(member: Who, exitHash: string): Promise<void> {
 }
 
 /** Выход доведён до конца: совет одобрил, паевой выплачен, пайщика в кооперативе нет. */
-export async function completeExit(member: Who): Promise<string> {
-  const exitHash = await requestExit(member)
+export async function completeExit(member: Who, opts: ExitOptions = {}): Promise<string> {
+  const exitHash = await requestExit(member, true, opts)
   const decision = await awaitDecision(exitHash, `решение совета о выходе ${member.account}`)
   await voteOnDecision(Number(decision.id), 'for')
   await authorizeDecisionOnChain(Number(decision.id))
@@ -78,8 +98,8 @@ export async function completeExit(member: Who): Promise<string> {
 }
 
 /** Совет отклонил заявление на выход: членство сохраняется. */
-export async function declineExit(member: Who): Promise<string> {
-  const exitHash = await requestExit(member)
+export async function declineExit(member: Who, opts: ExitOptions = {}): Promise<string> {
+  const exitHash = await requestExit(member, true, opts)
   const decision = await awaitDecision(exitHash, `решение совета о выходе ${member.account}`)
   await voteOnDecision(Number(decision.id), 'against')
   await declineDecisionOnChain(Number(decision.id))
