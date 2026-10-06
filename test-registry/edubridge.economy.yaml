@@ -36,6 +36,7 @@ cases:
     scenario: Курс из восьми занятий по часу при ставке 1000 ₽/ч и целевом членском взносе 20%.
     expect: Себестоимость 8000, целевой членский взнос 1600, взнос за месяц 9600.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.happy.02
     level: backend
@@ -43,6 +44,7 @@ cases:
     scenario: Занятие в полтора часа — часы считаются из минут расписания.
     expect: Четыре занятия по 90 минут дают шесть часов и взнос 6000.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.happy.03
     level: backend
@@ -50,6 +52,7 @@ cases:
     scenario: Целевой членский взнос задаётся в разделе «Экономика» и действует на весь кооператив.
     expect: Значение уходит в настройку расширения, предельная скидка пересчитывается.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.break.01
     level: backend
@@ -57,6 +60,7 @@ cases:
     scenario: Скидка за взнос разом больше доли целевого членского взноса во взносе.
     expect: Отказ с предельным значением в тексте — взнос за курс иначе ниже себестоимости.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.side.01
     level: backend
@@ -64,6 +68,7 @@ cases:
     scenario: Скидка ровно по пределу.
     expect: Принимается, взнос за курс не ниже себестоимости курса.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.side.02
     level: backend
@@ -71,6 +76,7 @@ cases:
     scenario: Ставка часа назначается пайщику без договора участия в хозяйственной деятельности.
     expect: Отказ — ставка живёт в договоре преподавателя.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.break.02
     level: backend
@@ -78,6 +84,7 @@ cases:
     scenario: Преподаватель переподписывает договор с другой ставкой после того, как ставка уже названа.
     expect: Отказ сервера — ставку меняет администратор, а не преподаватель.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.econ.happy.04
     level: backend
@@ -85,6 +92,7 @@ cases:
     scenario: План и факт курса по действующим назначениям с разными ставками.
     expect: Черновое назначение в факт не входит; превышение взноса отмечено признаком.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.side.03
     level: backend
@@ -92,6 +100,7 @@ cases:
     scenario: Курс сохраняется с параметрами занятий, сумма взноса приходит из расчёта.
     expect: Произвольная сумма во входных данных отсутствует; скидка хранится базисными пунктами.
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.ui.01
     level: ui
@@ -120,6 +129,7 @@ cases:
     scenario: Подписка на курс — конвертация, открытие подписки и списание взноса в фонд одной транзакцией.
     expect: Сумма списания равна взносу за период, привязка к ключу подписки и плательщику.
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
+    api: components/api-tests/src/edubridge/enrollment.test.ts
     status: passing
   - id: edu.econ.happy.07
     level: backend
@@ -155,6 +165,7 @@ cases:
     scenario: Программа из 64 занятий по восемь в месяц; 72 и 65 занятий; программа не задана.
     expect: "Длительность курса 8, 9 и 9 месяцев (неполный месяц — месяц); без программы — ноль, взноса за курс нет."
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.happy.10
     level: backend
@@ -162,6 +173,7 @@ cases:
     scenario: Взнос за весь курс разом при скидке 10%.
     expect: Сумма помесячных за месяцы курса (76800), скидка 7680, взнос 69120 — не за двенадцать месяцев.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.side.05
     level: backend
@@ -169,6 +181,7 @@ cases:
     scenario: Кооператив принимает только помесячный взнос, в форме осталась скидка.
     expect: Скидка не проверяется и не действует; у курса она сохраняется нулём.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.break.04
     level: backend
@@ -176,6 +189,7 @@ cases:
     scenario: Взнос за весь курс включён, а занятий в программе нет.
     expect: Отказ — считать взнос за курс не от чего.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.happy.11
     level: backend
@@ -183,6 +197,7 @@ cases:
     scenario: "Срок взноса за курс: до начала занятий, без назначенного дня, в середине курса, на границе месяца, после конца."
     expect: Курс заканчивается в один день для всех; в середине оплачиваются оставшиеся месяцы; после конца оплачивать нечего.
     test: components/controller/tests/unit/edubridge/course-period.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
   - id: edu.econ.ui.03
     level: ui
@@ -197,6 +212,7 @@ cases:
     scenario: "Раздел «Экономика»: фонд и резерв выплат преподавателям."
     expect: "Свободные средства и резерв показаны раздельными кошельками; пустой резерв показывается нулём."
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/economy.test.ts
     status: passing
 
   - id: edu.economy.side.20

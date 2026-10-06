@@ -31,6 +31,7 @@ cases:
       запись встаёт в конец порядка; то же название в другом регистре и с
       пробелами — прежняя запись, дубля нет; уровень ищется внутри своего раздела
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.break.01
@@ -39,6 +40,7 @@ cases:
     scenario: Переименование в занятое название, пустое название.
     expect: отказ с объяснением
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.happy.02
@@ -47,6 +49,7 @@ cases:
     scenario: Администратор меняет порядок уровней раздела.
     expect: последовательность уровней — по присланному списку; список не всех уровней — отказ
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.side.01
@@ -57,6 +60,7 @@ cases:
       архивное скрыто, пока не попросили; каталог получает только разделы и
       уровни с опубликованными курсами
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.break.02
@@ -67,6 +71,7 @@ cases:
       отказ, курс не сохраняется; архивное, уже стоящее у курса, при правке
       курса остаётся
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.happy.03
@@ -75,6 +80,7 @@ cases:
     scenario: Курс сохраняется с разделом и уровнем.
     expect: курс хранит ссылки на справочник, а не строки; уровень необязателен
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
 
   - id: edu.sections.side.02
@@ -85,6 +91,8 @@ cases:
       при запуске пары переносятся в справочник, курсы получают ссылки,
       повторный перенос ничего не создаёт
     test: components/controller/tests/unit/edubridge/sections.service.test.ts
+    external: unreachable
+    external_reason: "наследие прежних версий: раздел и уровень строками у курса через API не задать — форма курса принимает только ссылки на справочник, перенос идёт при запуске расширения по старым записям базы"
     status: passing
 
   - id: edu.sections.ui.01

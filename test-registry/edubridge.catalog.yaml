@@ -67,6 +67,7 @@ cases:
     scenario: Носитель доступа не соответствует направлению (онлайн-платформа + Telegram, очное + GetCourse и т.п.).
     expect: BadRequest; допустимые пары — ONLINE_PLATFORM→Skillspace/GetCourse, CLOSED_COMMUNITY→Telegram/VK, ONSITE→очно.
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
     status: written
   - id: edu.catalog.side.04
     level: backend
@@ -74,6 +75,7 @@ cases:
     scenario: Площадка (Skillspace/GetCourse) без идентификатора курса; очный курс с лишним идентификатором.
     expect: Площадка без идентификатора — BadRequest; у очного и сообществ идентификатор не сохраняется.
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
     status: written
   - id: edu.catalog.side.05
     level: backend
@@ -96,6 +98,7 @@ cases:
     scenario: "Привязка к Skillspace: в external_ref не UUID курса (числовой номер из адреса конструктора, UUID модуля с опечаткой, группа не UUID); список курсов площадки для конструктора."
     expect: "BadRequest с подсказкой про реестр школы; edubridgePlatformCourses отдаёт курсы школы с их группами (для GetCourse/очного — пусто). Прецедент 2026-09-02: владелец вписал UUID из адреса конструктора модуля, выдача ушла в needs_attention."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
     status: written
   - id: edu.catalog.side.07
     level: backend
@@ -103,6 +106,7 @@ cases:
     scenario: "Обложка курса в мутации: base64 декодируется и кладётся в bucket, в курсе остаётся ключ; без поля image обложка не меняется; null убирает и удаляет старый объект; bucket_key чужого курса и пустой base64 — отказ до bucket'а; отказ bucket'а по MIME → 400 с его текстом."
     expect: "Изображение уходит в FILE_STORAGE_PORT (edubridge:images), URL считается лениво резолвером image_url."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/catalog.test.ts
     status: written
   - id: edu.catalog.ui.02
     level: ui
@@ -124,6 +128,7 @@ cases:
     scenario: "Курс заводится без уровня (раздел «Духовные практики», уровень пуст); каталог собирает фильтр по разделам, где у части курсов уровня нет."
     expect: "Курс сохраняется с пустым уровнем; в фильтре уровней раздела пустого пункта нет, курсы без уровня видны в разделе."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
   - id: edu.catalog.ui.04
     level: ui
