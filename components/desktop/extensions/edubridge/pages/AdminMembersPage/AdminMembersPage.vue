@@ -44,7 +44,7 @@
         .edu-member__head
           .text-subtitle2 {{ $t('edubridge.adminMembersPage.card.enrollmentsTitle') }}
         .t-sm.t-muted(v-if="!card.enrollments.length") {{ $t('edubridge.adminMembersPage.card.enrollmentsEmpty') }}
-        BaseTable(v-else :columns="enrollmentColumns" :rows="card.enrollments" row-key="id" min-width="480px")
+        BaseTable(v-else :columns="enrollmentColumns" :rows="card.enrollments" row-key="id" min-width="740px")
           template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
           template(#cell-access_state="{ row }")
             BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
@@ -61,7 +61,7 @@
         .edu-member__head
           .text-subtitle2 {{ $t('edubridge.adminMembersPage.card.tasksTitle') }}
         .t-sm.t-muted(v-if="!card.tasks.length") {{ $t('edubridge.adminMembersPage.card.tasksEmpty') }}
-        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="520px")
+        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="620px")
           template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
           template(#cell-status="{ row }")
             BaseBadge(:variant="taskStatusOf(row.status).variant") {{ taskStatusOf(row.status).label }}

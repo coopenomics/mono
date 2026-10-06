@@ -10,7 +10,7 @@
     row-key="username"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="620px"
+    min-width="840px"
     @row-click="openCard"
   )
     template(#cell-teacher="{ row }")

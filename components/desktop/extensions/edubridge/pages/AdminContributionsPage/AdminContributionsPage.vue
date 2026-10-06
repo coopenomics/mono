@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
-  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="920px")
+  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="1200px")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
@@ -90,7 +90,7 @@ const columns: BaseTableColumn<IContribution>[] = [
   { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
   { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '130px', nowrap: true },
   { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '190px' },
-  { key: 'actions', label: '', align: 'right', width: '300px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '260px', nowrap: true },
 ];
 
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);

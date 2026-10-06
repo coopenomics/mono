@@ -733,12 +733,11 @@
       "cancelSubscription": "Отменить подписку",
       "cancelSuccess": "Подписка отменена, возврат {refundAmount}",
       "columns": {
-        "accessState": "Доступ",
         "course": "Курс",
         "learner": "Обучающийся",
         "paidUntil": "Оплачено до",
         "period": "Взнос",
-        "status": "Подписка"
+        "status": "Подписка и доступ"
       },
       "emptyBody": "Выберите курс в каталоге и нажмите «Получить доступ».",
       "emptyTitle": "Подписок пока нет",

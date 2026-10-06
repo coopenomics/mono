@@ -6,7 +6,7 @@
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
-    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="840px")
+    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="880px")
       //- Под названием курса — пояснение к состоянию подписки: заявление по гарантии либо основание возврата.
       template(#cell-course_title="{ row }")
         div {{ row.course_title }}
@@ -15,10 +15,12 @@
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
       template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
+      //- Состояние подписки и доступа — одним столбцом, значками друг под другом:
+      //- так название курса получает свою ширину и не сжимается в столбик по буквам.
       template(#cell-status="{ row }")
-        BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
-      template(#cell-access_state="{ row }")
-        BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
+        .edu-subs__state
+          BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
+          BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
       //- «Продлить» — главное действие строки и видна всегда; отмена нужна редко и
       //- лежит в меню. Так столбец остаётся узким и не уезжает за край при малой
       //- ширине окна и крупном масштабе. Меню — в слоте #menu кнопки-иконки.
@@ -119,11 +121,12 @@ const walletRev = ref(0);
  */
 const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
-  { key: 'learner', label: t('edubridge.memberSubscriptionsPage.columns.learner'), width: '140px' },
-  { key: 'period', label: t('edubridge.memberSubscriptionsPage.columns.period'), width: '90px', nowrap: true },
+  // Таблица с фиксированной сеткой: «Курс» без ширины получает остаток. Сумма
+  // заданных ширин — 680px при минимуме таблицы 880px, курсу остаётся не меньше 200px.
+  { key: 'learner', label: t('edubridge.memberSubscriptionsPage.columns.learner'), width: '150px' },
+  { key: 'period', label: t('edubridge.memberSubscriptionsPage.columns.period'), width: '110px', nowrap: true },
   { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
-  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '120px', nowrap: true },
-  { key: 'access_state', label: t('edubridge.memberSubscriptionsPage.columns.accessState'), width: '130px', nowrap: true },
+  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '150px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '150px', nowrap: true },
 ];
 
@@ -209,6 +212,12 @@ onMounted(load);
 </script>
 
 <style scoped>
+.edu-subs__state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--p-1);
+}
 .edu-subs__actions {
   display: flex;
   flex-wrap: nowrap;

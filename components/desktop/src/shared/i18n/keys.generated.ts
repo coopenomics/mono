@@ -3108,7 +3108,6 @@ export type MessageKey =
   | 'edubridge.memberSubscriptionsPage.cancelDialog.withheldLabel'
   | 'edubridge.memberSubscriptionsPage.cancelSubscription'
   | 'edubridge.memberSubscriptionsPage.cancelSuccess'
-  | 'edubridge.memberSubscriptionsPage.columns.accessState'
   | 'edubridge.memberSubscriptionsPage.columns.course'
   | 'edubridge.memberSubscriptionsPage.columns.learner'
   | 'edubridge.memberSubscriptionsPage.columns.paidUntil'
