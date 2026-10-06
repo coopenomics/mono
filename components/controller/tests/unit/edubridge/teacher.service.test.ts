@@ -16,7 +16,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
+  opts: { obligation?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
 ) {
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
@@ -93,7 +93,8 @@ function make(
   // Имя и фотография приходят из ядра портами — расширение своей копии не держит.
   const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
   const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
-  const funds = { onSettled: jest.fn(async () => undefined) } as any;
+  // Обязательство курса перед преподавателями — оплаченные учениками часы; по умолчанию с запасом.
+  const funds = { onSettled: jest.fn(async () => undefined), target: jest.fn(async () => ({ obligation: opts.obligation ?? '100000.0000 RUB', gap: '0.0000 RUB', surplus: '0.0000 RUB' })) } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, logger, events);
   return { service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
@@ -178,13 +179,38 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     await expect(live.service.terminateContract('voskhod', 'teach', ' ')).rejects.toThrow(/основание/);
   });
 
-  it('назначение на курс: ставка преподавателя не выше плановой ставки курса, от которой считан взнос', async () => {
+  it('назначение на курс: ставка на курсе — из договора, но не выше плановой; названная выше плановой — отказ', async () => {
     const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
     const covered = make();
-    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE });
+    await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE, hourly_rate: '1000.0000 RUB' });
+    // В договоре 1000, плановая ставка курса 900: на этом курсе преподаватель ведёт занятия за 900.
     const dear = make({ plannedRate: '900.0000 RUB' });
-    await expect(dear.service.createAssignment('voskhod', input)).rejects.toThrow(/выше плановой ставки курса/);
-    expect(dear.teachers.saveAssignment).not.toHaveBeenCalled();
+    await expect(dear.service.createAssignment('voskhod', input)).resolves.toMatchObject({ hourly_rate: '900.0000 RUB' });
+    // Администратор называет ставку ниже договорной — она и действует.
+    await expect(make().service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).resolves.toMatchObject({ hourly_rate: '700.0000 RUB' });
+    const above = make({ plannedRate: '900.0000 RUB' });
+    await expect(above.service.createAssignment('voskhod', { ...input, hourly_rate: '950.0000 RUB' })).rejects.toThrow(/выше плановой ставки курса/);
+    expect(above.teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('взнос за занятие — в пределах оплаченного учениками по курсу; оплаченных часов нет — отчёт не принимается', async () => {
+    const report = { assignment_id: 'A1', lesson_number: 1, materials: ['https://video/1'], topic: 'Тема' } as any;
+    // Обязательство курса 600 при стоимости занятия 1000: взнос урезается до остатка.
+    const partial = make({ obligation: '600.0000 RUB' });
+    const lesson = await partial.service.reportLesson('voskhod', 'teach', report);
+    expect([...partial.store.values()].find((c) => c.lesson_id === lesson.id).amount).toBe('600.0000 RUB');
+    // Остаток уже обещан первому взносу — второе занятие учениками не оплачено.
+    await expect(partial.service.reportLesson('voskhod', 'teach', { ...report, lesson_number: 2 })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
+    const empty = make({ obligation: '0.0000 RUB' });
+    await expect(empty.service.reportLesson('voskhod', 'teach', report)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
+  });
+
+  it('ставка на курсе правится в пределах плановой; взнос за занятие считается по ней', async () => {
+    const { service, teachers } = make();
+    await expect(service.setAssignmentRate('voskhod', 'A1', '1200.0000 RUB')).rejects.toThrow(/выше плановой ставки курса/);
+    await expect(service.setAssignmentRate('voskhod', 'A1', '0.0000 RUB')).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_REQUIRED' });
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+    await expect(service.setAssignmentRate('voskhod', 'A1', '800.0000 RUB')).resolves.toMatchObject({ hourly_rate: '800.0000 RUB' });
   });
 
   it('назначение на курс: без договора, с отклонённым либо прекращённым договором пайщик к курсу не допускается', async () => {
@@ -591,7 +617,7 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     const held = await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     const [payload] = chain.holdRid.mock.calls[0];
-    expect(payload).toMatchObject({ rid_hash: contribution.rid_hash, amount: '1000.0000 RUB' });
+    expect(payload).toMatchObject({ rid_hash: contribution.rid_hash, course_id: 7, amount: '1000.0000 RUB' });
     const until = new Date(`${payload.hold_until}Z`).getTime();
     expect(Math.abs(until - (Date.now() + 14 * 86400_000))).toBeLessThan(60_000);
     expect(held.status).toBe(EduContributionStatus.HELD);

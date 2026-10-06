@@ -13,6 +13,7 @@ const at = (days: number) => new Date(START.getTime() + days * DAY);
 
 const courseOf = (activated: boolean, extra: Record<string, unknown> = {}) => ({
   id: 'C1',
+  chain_ref: '7',
   lessons_per_month: 8,
   lessons_total: 0,
   lesson_minutes: 60,
@@ -165,7 +166,7 @@ describe('EdubridgeFundsService — резерв преподавателям', 
     const { service, chain } = make(course, [e]);
     await service.afterClosed('voskhod', e);
     // Оплаченное время сократилось до 15 дней: преподавателю должны 400, лишние 400 — обратно в фонд.
-    expect(chain.freeReserve).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb', amount: '400.0000 RUB' });
+    expect(chain.freeReserve).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb', course_id: 7, amount: '400.0000 RUB' });
     expect(course.teacher_reserve_balance).toBe('400.0000 RUB');
     expect(e.locked_amount).toBeNull();
   });
@@ -175,7 +176,7 @@ describe('EdubridgeFundsService — резерв преподавателям', 
     const e = subOf(course, { status: EduEnrollmentStatus.EXPIRED, locked_amount: '250.0000 RUB' });
     const { service, chain } = make(course, [e]);
     await service.afterClosed('voskhod', e);
-    expect(chain.allotReserve).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb', amount: '200.0000 RUB' });
+    expect(chain.allotReserve).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb', course_id: 7, amount: '200.0000 RUB' });
     expect(course.teacher_reserve_balance).toBe('800.0000 RUB');
   });
 

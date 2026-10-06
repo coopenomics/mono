@@ -102,6 +102,9 @@ export const fetchTeacherApprovals = (username: string) =>
   q<ITeacherApproval[]>(Queries.Edubridge.TeacherApprovals.query, Queries.Edubridge.TeacherApprovals.name, { username });
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
+/** Ставка часа преподавателя на курсе: в пределах плановой ставки курса. */
+export const setAssignmentRate = (assignment_id: string, hourly_rate: string) =>
+  m<IAssignment>(Mutations.Edubridge.SetAssignmentRate.mutation, Mutations.Edubridge.SetAssignmentRate.name, { data: { assignment_id, hourly_rate } });
 export const closeAssignment = (id: string) => m<IAssignment>(Mutations.Edubridge.CloseAssignment.mutation, Mutations.Edubridge.CloseAssignment.name, { id });
 /** Прекращение договора по соглашению сторон; вернётся null, когда прекращать нечего. */
 export const terminateContract = (username: string, reason: string) =>

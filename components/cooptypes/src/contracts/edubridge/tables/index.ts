@@ -6,6 +6,11 @@
 export * as EduSubs from './edusubs'
 
 /**
+ * Учёт средств курса: собрано, резерв выплат преподавателям, выплачено.
+ */
+export * as EduCourses from './educourses'
+
+/**
  * Заявления о взносе РИД в ожидании решения совета — анкеры процесса p.edu.rid.
  */
 export * as EduRids from './edurids'

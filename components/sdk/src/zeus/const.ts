@@ -714,6 +714,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduSectionsFilterInput:{
 
 	},
+	EduSetAssignmentRateInput:{
+
+	},
 	EduSetConnectorCredentialsInput:{
 		carrier:"EduAccessCarrier",
 		values:"EduConnectorCredentialInput"
@@ -2117,6 +2120,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeSaveTeacherProfile:{
 			data:"EduTeacherProfileInput"
+		},
+		edubridgeSetAssignmentRate:{
+			data:"EduSetAssignmentRateInput"
 		},
 		edubridgeSetConnectorCredentials:{
 			data:"EduSetConnectorCredentialsInput"
@@ -4020,10 +4026,6 @@ export const AllTypesProps: Record<string,any> = {
 }
 
 export const ReturnTypes: Record<string,any> = {
-	auth:{
-		roles:"String",
-		self:"String"
-	},
 	AccessGrant:{
 		action:"String",
 		resource:"String"
@@ -5655,6 +5657,7 @@ export const ReturnTypes: Record<string,any> = {
 		course_title:"String",
 		created_at:"DateTime",
 		expected_result:"String",
+		hourly_rate:"String",
 		id:"ID",
 		minutes_per_month:"Int",
 		period_from:"String",
@@ -7695,6 +7698,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSaveLevel:"EduLevel",
 		edubridgeSaveSection:"EduSection",
 		edubridgeSaveTeacherProfile:"EduTeacherProfile",
+		edubridgeSetAssignmentRate:"EduAssignment",
 		edubridgeSetConnectorCredentials:"EduConnectorBinding",
 		edubridgeSetConnectorEnabled:"EduConnectorBinding",
 		edubridgeSetCourseStatus:"EduCourse",

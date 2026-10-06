@@ -84,17 +84,17 @@ describe('EdubridgeChainAdapter — состав транзакций подпи
 
   it('освобождение удержанного: unlockfee, затем резерв преподавателям той же транзакцией', async () => {
     const { adapter, chain } = make();
-    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', amount: '500.0000 RUB', allot: '300.0000 RUB' });
+    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '500.0000 RUB', allot: '300.0000 RUB' });
     expect(names(chain)).toEqual(['unlockfee', 'allotfee']);
-    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', amount: '500.0000 RUB' });
+    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '500.0000 RUB' });
     expect(names(chain, 1)).toEqual(['unlockfee']);
   });
 
   it('отмена — одно действие; резерв добирается и возвращается отдельными действиями', async () => {
     const { adapter, chain } = make();
     await adapter.cancelSubscription({ coopname: 'voskhod', username: 'ant', sub_hash: 'S', refund: '250.0000 RUB', to_share: false } as any);
-    await adapter.allotReserve({ coopname: 'voskhod', sub_hash: 'S', amount: '800.0000 RUB' });
-    await adapter.freeReserve({ coopname: 'voskhod', sub_hash: 'S', amount: '100.0000 RUB' });
+    await adapter.allotReserve({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '800.0000 RUB' });
+    await adapter.freeReserve({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '100.0000 RUB' });
     expect(chain.transact.mock.calls.map((c: any) => c[0].name)).toEqual(['cancelsub', 'allotfee', 'freereserve']);
   });
 });

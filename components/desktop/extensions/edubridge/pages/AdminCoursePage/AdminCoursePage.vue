@@ -54,7 +54,10 @@
         .edu-course__side
           BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.teachersTitle')")
             .edu-course__teachers(v-if="course.teacher_usernames.length")
-              IdentityCell(v-for="username in course.teacher_usernames" :key="username" :account-name="username" :full-name="fioCache.get(username) || null")
+              .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username")
+                IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
+                //- Ставка на этом курсе — у допуска; правится в карточке преподавателя.
+                .t-meta.t-muted(v-if="teacherRate(username)") {{ $t('edubridge.adminCoursePage.teacherRateLine', { rate: formatAsset2Digits(teacherRate(username)) }) }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
 
           //- План против факта: плановая ставка часа, сумма часов месяца по ней и
@@ -138,6 +141,8 @@ const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('
 
 const status = computed(() => COURSE_STATUS_LABELS[course.value?.status ?? ''] ?? { label: course.value?.status ?? '', variant: 'neutral' as const });
 const published = computed(() => course.value?.status === Zeus.EduCourseStatus.PUBLISHED);
+/** Ставка преподавателя на этом курсе — из расчёта экономики курса. */
+const teacherRate = (username: string): string => economy.value?.teachers.find((t) => t.username === username)?.hourly_rate ?? '';
 const carrierLabel = computed(() => CARRIER_LABELS[course.value?.carrier ?? ''] ?? course.value?.carrier ?? '______');
 const directionLabel = computed(() => DIRECTION_LABELS[course.value?.direction ?? ''] ?? course.value?.direction ?? '______');
 

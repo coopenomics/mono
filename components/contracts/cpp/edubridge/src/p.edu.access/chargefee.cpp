@@ -18,6 +18,7 @@
  *  - w.edu.member.available пайщика >= amount.
  *
  * Собранное копится в записи подписки: это потолок возврата при отмене.
+ * Та же сумма прибавляется к собранному по курсу подписки (`educourses`).
  *
  * @ingroup public_edubridge_actions
  */
@@ -45,6 +46,11 @@ void edubridge::chargefee(eosio::name coopname,
                  processes::edubridge::ACCESS,
                  amount, username, sub_hash,
                  Edubridge::Memo::get_collect_fee_memo());
+
+  // Учёт курса: собранное по курсу растёт на сумму взноса.
+  Edubridge::update_course(coopname, sub->course_id, [&](auto& c) {
+    c.collected += amount;
+  });
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     // Прежняя подписка остаётся без учёта: счёт с середины дал бы потолок

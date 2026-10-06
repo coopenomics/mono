@@ -17,17 +17,19 @@
  *
  * Третья операция закрывает обязательство программы: `o.edu.settle` (BURN с
  * w.edu.teach) списывает резерв выплат преподавателям на стоимость результата.
- * Когда резерва не хватает (ставка преподавателя выше плановой ставки курса,
- * подписки открыты до введения резерва), недостающее сначала выделяется из
- * свободного фонда программы. Приём при этом не блокируется: списывается
- * столько, сколько в резерве и фонде есть.
+ * Результат оплачивается только из резерва своего курса (`educourses`, курс
+ * записан при приёме материалов на хранение): резерв курса уменьшается, а
+ * выплаченное по курсу растёт на всю сумму результата. Средства других курсов
+ * и свободный фонд программы на результат не идут — когда резерва курса не
+ * хватает, приём отклоняется.
  *
  * Запись стирается: в RAM живут только материалы до решения совета.
  *
  * Guards:
  *  - материалы с rid_hash приняты на хранение;
  *  - заявление по ним подано (`submitrid`);
- *  - протокол и акт не пустые.
+ *  - протокол и акт не пустые;
+ *  - резерв выплат преподавателям по курсу результата не меньше его суммы.
  *
  * @ingroup public_edubridge_actions
  */
@@ -58,6 +60,7 @@ void edubridge::acceptrid(eosio::name coopname,
   verify_signer_keys_or_fail(act, chairman);
   const eosio::asset amount  = rid->amount;
   const uint64_t rid_id      = rid->id;
+  const uint64_t course_id   = rid->course_id;
 
   eosio::check(rid->statement_hash != checksum256(),
                "Заявление о паевом взносе по этим материалам ещё не подано");
@@ -77,27 +80,23 @@ void edubridge::acceptrid(eosio::name coopname,
                  Edubridge::Memo::get_settle_rid_memo(rid_id));
 
   // ── o.edu.settle: расчёт с преподавателем за счёт резерва программы ────
-  eosio::asset reserve = Edubridge::get_coop_wallet_available(coopname, ledger2_wallets::EDU_TEACHER_RESERVE);
-  if (reserve < amount) {
-    const eosio::asset fund = Edubridge::get_coop_wallet_available(coopname, ledger2_wallets::EDU_PROGRAM_FUND);
-    const eosio::asset topup = std::min(amount - reserve, fund);
-    if (topup.amount > 0) {
-      Ledger2::apply(_edubridge, coopname,
-                     operations::edubridge::ALLOT_TEACHER_RESERVE,
-                     processes::edubridge::RID,
-                     topup, coopname, act.hash,
-                     "Пополнение резерва выплат преподавателям из фонда программы: стоимость результата выше зарезервированного");
-      reserve += topup;
-    }
-  }
-  const eosio::asset settled = std::min(amount, reserve);
-  if (settled.amount > 0) {
-    Ledger2::apply(_edubridge, coopname,
-                   operations::edubridge::SETTLE_TEACHER_RESERVE,
-                   processes::edubridge::RID,
-                   settled, coopname, act.hash,
-                   Edubridge::Memo::get_settle_reserve_memo(rid_id));
-  }
+  // Результат оплачивается только из резерва своего курса: средства других
+  // курсов и свободный фонд программы на него не идут.
+  const eosio::asset reserve = Edubridge::get_course_reserve(coopname, course_id);
+  eosio::check(reserve >= amount,
+               std::string{"Резерва выплат преподавателям по курсу недостаточно для приёма результата: в резерве "} +
+                 reserve.to_string() + ", требуется " + amount.to_string());
+
+  Edubridge::update_course(coopname, course_id, [&](auto& c) {
+    c.reserve -= amount;
+    c.settled += amount;
+  });
+
+  Ledger2::apply(_edubridge, coopname,
+                 operations::edubridge::SETTLE_TEACHER_RESERVE,
+                 processes::edubridge::RID,
+                 amount, coopname, act.hash,
+                 Edubridge::Memo::get_settle_reserve_memo(rid_id));
 
   // Протокол и акт — в реестр документов пакетом процесса (package = rid_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,

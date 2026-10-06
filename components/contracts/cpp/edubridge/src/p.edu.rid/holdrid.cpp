@@ -10,6 +10,9 @@
  * курса (`hold_until`) сумма числится за преподавателем на кошельке
  * ответственного хранения.
  *
+ * Запись запоминает курс занятия (`course_id`): при приёме результат
+ * оплачивается из резерва выплат преподавателям этого курса.
+ *
  * Одна ledger2-операция:
  *  - `o.edu.hold` (ISSUE → w.edu.hold, Дт 08 / Кт 76) — материалы приняты,
  *    у кооператива возникло обязательство перед преподавателем.
@@ -27,6 +30,7 @@ void edubridge::holdrid(eosio::name coopname,
                         eosio::name username,
                         checksum256 rid_hash,
                         uint64_t assignment_id,
+                        uint64_t course_id,
                         eosio::asset amount,
                         eosio::name rid_type,
                         eosio::time_point_sec hold_until,
@@ -67,6 +71,7 @@ void edubridge::holdrid(eosio::name coopname,
     r.storage_act_hash = act.hash;
     r.hold_until       = hold_until;
     r.created_at       = now;
+    r.course_id        = course_id;
     rid_id             = r.id;
   });
 

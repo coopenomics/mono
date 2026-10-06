@@ -21,6 +21,7 @@ const rawAssignmentSelector = {
   period_from: true,
   period_to: true,
   minutes_per_month: true,
+  hourly_rate: true,
   status: true,
   created_at: true,
 }

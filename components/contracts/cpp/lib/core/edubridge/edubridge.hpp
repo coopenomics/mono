@@ -11,6 +11,7 @@
 #include "../../domain/table_ledger2_userwallets.hpp"
 #include "../../domain/table_ledger2_wallet.hpp"
 #include "../../domain/table_edubridge_subscriptions.hpp"
+#include "../../domain/table_edubridge_courses.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
 #include "../../domain/table_edubridge_contracts.hpp"
 #include "../ledger2/ledger2.hpp"
@@ -90,6 +91,35 @@ inline edu_contract get_active_contract_or_fail(eosio::name coopname, eosio::nam
   eosio::check(contract->status == ContractStatus::ACTIVE,
                "Договор участия в хозяйственной деятельности ещё не подписан председателем совета");
   return *contract;
+}
+
+// ── Учёт средств курса ───────────────────────────────────────────────────
+
+/// Остаток резерва выплат преподавателям курса; ноль, если движений по курсу ещё не было.
+inline eosio::asset get_course_reserve(eosio::name coopname, uint64_t course_id) {
+  edu_courses_index courses(_edubridge, coopname.value);
+  auto it = courses.find(course_id);
+  return it == courses.end() ? eosio::asset(0, _root_govern_symbol) : it->reserve;
+}
+
+/// Движение по учёту курса. Строка заводится с нулевыми суммами при первом
+/// движении — отдельного действия для курса нет.
+template <typename Fn>
+inline void update_course(eosio::name coopname, uint64_t course_id, Fn&& change) {
+  edu_courses_index courses(_edubridge, coopname.value);
+  auto it = courses.find(course_id);
+  if (it == courses.end()) {
+    courses.emplace(RamPayer::of(courses, coopname), [&](auto& c) {
+      const eosio::asset zero(0, _root_govern_symbol);
+      c.course_id = course_id;
+      c.collected = zero;
+      c.reserve   = zero;
+      c.settled   = zero;
+      change(c);
+    });
+  } else {
+    courses.modify(it, RamPayer::of(courses, coopname), [&](auto& c) { change(c); });
+  }
 }
 
 /// Доступный остаток кооперативного кошелька программы; ноль, если кошелёк ещё не заведён.

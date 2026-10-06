@@ -87,6 +87,7 @@
 // edubridge (ЦПП «Образование», приложение «Образовательный мост») —
 // anchor-таблицы процессов p.edu.access (подписки) и p.edu.rid (РИД).
 #include "table_edubridge_subscriptions.hpp"
+#include "table_edubridge_courses.hpp"
 #include "table_edubridge_expenses.hpp"
 #include "table_edubridge_rids.hpp"
 #include "table_edubridge_contracts.hpp"

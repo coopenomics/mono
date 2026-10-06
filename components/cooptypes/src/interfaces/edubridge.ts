@@ -95,12 +95,14 @@ export interface IUnlockfee {
 export interface IAllotfee {
   coopname: IName
   sub_hash: IChecksum256
+  course_id: IUint64
   amount: IAsset
 }
 
 export interface IFreereserve {
   coopname: IName
   sub_hash: IChecksum256
+  course_id: IUint64
   amount: IAsset
 }
 
@@ -176,6 +178,8 @@ export interface IHoldrid {
   username: IName
   rid_hash: IChecksum256
   assignment_id: IUint64
+  /** Номер курса приложения — тот же, что в подписке; из резерва этого курса результат оплачивается при приёме. */
+  course_id: IUint64
   amount: IAsset
   rid_type: IName
   hold_until: ITimePointSec
@@ -278,6 +282,24 @@ export interface IEduRid {
   rid_type: IName
   statement_hash: IChecksum256
   created_at: ITimePointSec
+  /** Курс, из резерва которого результат оплачивается при приёме. */
+  course_id: IUint64
+}
+
+/**
+ * educourses (scope = coopname, ключ — course_id) — учёт средств курса; строка
+ * появляется при первом движении по курсу и переживает его подписки.
+ * Целевой членский взнос по курсу равен collected − reserve − settled.
+ */
+export interface IEduCourse {
+  /** Номер курса приложения — тот же, что в подписке. */
+  course_id: IUint64
+  /** Всего собрано взносов учеников по курсу за вычетом возвратов. */
+  collected: IAsset
+  /** Остаток резерва выплат преподавателям курса. */
+  reserve: IAsset
+  /** Выплачено преподавателям курса. */
+  settled: IAsset
 }
 
 /**

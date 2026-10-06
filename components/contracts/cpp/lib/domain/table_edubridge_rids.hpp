@@ -22,7 +22,8 @@ using namespace eosio;
  * приёма (o.edu.rid) и в документах процесса (заявление, протокол, акт).
  *
  * Запись заводит `holdrid` в момент приёма материалов на ответственное
- * хранение. Пока `hold_until` в будущем, идёт гарантийный срок курса и
+ * хранение и запоминает курс (`course_id`): при приёме результат оплачивается
+ * из резерва выплат преподавателям этого курса (таблица `educourses`). Пока `hold_until` в будущем, идёт гарантийный срок курса и
  * `statement_hash` пуст: заявление в совет уходит после срока (`submitrid`).
  * Статус не хранится — фазу видно по заполненности `statement_hash` и по
  * сроку. `acceptrid` (приём по протоколу и акту), `declinerid` (отказ по
@@ -40,6 +41,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_rid {
   checksum256 storage_act_hash;      ///< hash Акта передачи материалов на ответственное хранение (3012)
   eosio::time_point_sec hold_until;  ///< до какой даты материалы числятся на ответственном хранении (гарантийный срок курса)
   eosio::time_point_sec created_at;  ///< приём материалов на хранение
+  uint64_t course_id;                ///< курс (off-chain id приложения), из резерва которого оплачивается результат; тот же, что в edu_subscription.course_id
 
   uint64_t primary_key()  const { return id; }
   checksum256 by_hash()   const { return rid_hash; }

@@ -17,6 +17,10 @@
  *    только при `to_share`: возврат по недобору идёт на паевой сразу, потому
  *    что отменяет решение кооператива, а не выбор ученика.
  *
+ * Возврат уменьшает собранное по курсу подписки (`educourses`). Резерв выплат
+ * преподавателям отмена не трогает: излишек резерва кооператив высвобождает
+ * отдельным действием (`freereserve`).
+ *
  * Нулевой возврат допустим: отказ после последнего занятия возвращает ноль,
  * подписка при этом всё равно закрывается.
  *
@@ -66,6 +70,14 @@ void edubridge::cancelsub(eosio::name coopname,
                    processes::edubridge::ACCESS,
                    refund, username, sub_hash,
                    Edubridge::Memo::get_refund_memo());
+
+    // Учёт курса: собранное по курсу уменьшается на сумму возврата.
+    const uint64_t course_id = sub->course_id;
+    Edubridge::update_course(coopname, course_id, [&](auto& c) {
+      eosio::check(refund <= c.collected,
+                   std::string{"Возврат больше собранного по курсу: собрано "} + c.collected.to_string());
+      c.collected -= refund;
+    });
 
     if (to_share) {
       Ledger2::apply(_edubridge, coopname,

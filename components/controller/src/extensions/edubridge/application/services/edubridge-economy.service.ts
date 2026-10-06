@@ -146,39 +146,16 @@ export class EdubridgeEconomyService {
   }
 
   /**
-   * Ставку часа правит администратор: от неё зависит и себестоимость курса, и
-   * взнос преподавателя за проведённое занятие, поэтому менять её в одиночку
-   * преподаватель не может.
+   * Ставку часа в договоре правит администратор. Она — ставка по умолчанию
+   * для новых допусков к курсам; у действующих допусков ставка своя и от
+   * договорной не меняется (`setAssignmentRate`).
    */
   async setTeacherRate(coopname: string, username: string, hourlyRate: string): Promise<string> {
     const contract = await this.teachers.findContract(coopname, username);
     if (!contract) throw DomainError.notFound('EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND');
-    await this.assertRateCoveredByCourses(coopname, username, hourlyRate);
     contract.hourly_rate = hourlyRate;
     await this.teachers.saveContract(contract);
     return hourlyRate;
-  }
-
-  /**
-   * Ставка преподавателя не поднимается выше плановой ставки курса, который он
-   * ведёт: взнос учеников посчитан от плановой ставки, и разницу пришлось бы
-   * брать из средств программы, собранных по другим курсам.
-   */
-  private async assertRateCoveredByCourses(coopname: string, username: string, hourlyRate: string): Promise<void> {
-    const assignments = (await this.teachers.listAssignments(coopname, { teacher: username })).filter(
-      (a) => a.teacher_username === username && a.status === EduAssignmentStatus.ACTIVE
-    );
-    for (const assignment of assignments) {
-      const course = await this.courses.findById(coopname, assignment.course_id);
-      if (!course) continue;
-      if (toMinor(hourlyRate) > toMinor(course.planned_hourly_rate)) {
-        throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ABOVE_COURSE', {
-          rate: hourlyRate,
-          courseTitle: course.title,
-          plannedRate: course.planned_hourly_rate,
-        });
-      }
-    }
   }
 
   /** Расчёт по параметрам формы — стол показывает суммы до сохранения курса. */
@@ -226,7 +203,8 @@ export class EdubridgeEconomyService {
     const displayNames = await this.names.displayNames(assignments.map((a) => a.teacher_username));
 
     const teachers: EduCourseTeacherLoadDTO[] = assignments.map((a) => {
-      const rate = rates.get(a.teacher_username) ?? '0.0000 RUB';
+      // Факт считается по ставке преподавателя на этом курсе; у прежних допусков без неё — по договору.
+      const rate = toMinor(a.hourly_rate ?? '') > 0 ? a.hourly_rate : rates.get(a.teacher_username) ?? '0.0000 RUB';
       const hours = a.minutes_per_month / MINUTES_IN_HOUR;
       return {
         username: a.teacher_username,

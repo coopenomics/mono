@@ -138,6 +138,7 @@ public:
    */
   [[eosio::action]] void allotfee(eosio::name coopname,
                                   checksum256 sub_hash,
+                                  uint64_t course_id,
                                   eosio::asset amount);
 
   /**
@@ -147,6 +148,7 @@ public:
    */
   [[eosio::action]] void freereserve(eosio::name coopname,
                                      checksum256 sub_hash,
+                                     uint64_t course_id,
                                      eosio::asset amount);
 
   /**
@@ -252,13 +254,14 @@ public:
    * @brief Преподаватель передаёт материалы занятия на ответственное хранение
    * по Акту (шаблон 3012). Один шаг ledger2: o.edu.hold (ISSUE → w.edu.hold,
    * Дт 08 / Кт 76) — материалы числятся за преподавателем весь гарантийный
-   * срок курса.
+   * срок курса. Запись запоминает курс занятия (`course_id`).
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void holdrid(eosio::name coopname,
                                  eosio::name username,
                                  checksum256 rid_hash,
                                  uint64_t assignment_id,
+                                 uint64_t course_id,
                                  eosio::asset amount,
                                  eosio::name rid_type,
                                  eosio::time_point_sec hold_until,
@@ -282,6 +285,8 @@ public:
    * @brief Приём РИД в паевой фонд по Протоколу совета (3009) и Акту
    * приёма-передачи (3010). Два шага ledger2: o.edu.rid (Дт 04 / Кт 08) и
    * o.edu.ridshr (TRANSFER w.edu.hold → w.edu.share, Дт 76 / Кт 80).
+   * Третий шаг — o.edu.settle: резерв выплат преподавателям списывается на
+   * сумму результата из резерва его курса; при нехватке приём отклоняется.
    * Запись стирается.
    * @ingroup public_edubridge_actions
    */

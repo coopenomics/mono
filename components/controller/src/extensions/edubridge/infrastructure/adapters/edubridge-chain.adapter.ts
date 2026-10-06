@@ -96,16 +96,16 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Expiresub.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
-  async unlockFee(data: { coopname: string; sub_hash: string; amount: string; allot?: string }): Promise<InnerTransactResult> {
+  async unlockFee(data: { coopname: string; sub_hash: string; course_id: number; amount: string; allot?: string }): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     const { coopname, sub_hash } = data;
     return this.chain.transact([
       this.action(EdubridgeContract.Actions.Unlockfee.actionName, { coopname, sub_hash, amount: data.amount }, coopname),
-      ...(positive(data.allot) ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash, amount: data.allot }, coopname)] : []),
+      ...(positive(data.allot) ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash, course_id: data.course_id, amount: data.allot }, coopname)] : []),
     ]);
   }
 
-  async allotReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult> {
+  async allotReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Allotfee.actionName, data, data.coopname));
   }
@@ -134,7 +134,7 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     ]);
   }
 
-  async freeReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult> {
+  async freeReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Freereserve.actionName, data, data.coopname));
   }

@@ -69,6 +69,12 @@
           .text-weight-medium {{ a.course_title }}
           .t-meta.t-muted {{ a.period_from }} — {{ a.period_to }}
           .t-meta.t-muted(v-if="a.schedule") {{ a.schedule }}
+          //- Ставка на этом курсе своя: по умолчанию из договора, не выше плановой ставки курса.
+          .row.items-center.no-wrap.q-gutter-xs
+            .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.assignment.rateLine', { rate: formatAsset2Digits(a.hourly_rate) }) }}
+            BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openAssignmentRate(a)")
+              template(#icon-left)
+                q-icon(name="edit" size="16px")
         q-item-section(side)
           .row.items-center.q-gutter-sm
             BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
@@ -94,7 +100,7 @@
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
           BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
 
-  BaseDialog(v-model="rateOpen" :title="$t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
+  BaseDialog(v-model="rateOpen" :title="rateTarget ? $t('edubridge.adminTeachersPage.rate.courseDialogTitle', { courseTitle: rateTarget.course_title }) : $t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
     BaseForm(:loading="savingRate" @submit="onSaveRate")
       BaseInput(v-model="rate" :label="$t('edubridge.adminTeachersPage.rate.label')" type="number" :suffix="symbol" autofocus required)
       template(#footer)
@@ -127,6 +133,7 @@ import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRACT_STATUS_LABELS,
   closeAssignment,
+  setAssignmentRate,
   createAssignment,
   fetchAssignments,
   fetchTeacherApprovals,
@@ -323,8 +330,18 @@ const rateOpen = ref(false);
 const rate = ref('');
 const savingRate = ref(false);
 
+/** Чью ставку правит диалог: допуска к курсу либо, без него, ставку договора. */
+const rateTarget = ref<IAssignment | null>(null);
+
 function openRate(): void {
+  rateTarget.value = null;
   rate.value = String(parseFloat(props.teacher.hourly_rate ?? '') || '');
+  rateOpen.value = true;
+}
+
+function openAssignmentRate(a: IAssignment): void {
+  rateTarget.value = a;
+  rate.value = String(parseFloat(a.hourly_rate ?? '') || '');
   rateOpen.value = true;
 }
 
@@ -332,8 +349,14 @@ async function onSaveRate(): Promise<void> {
   savingRate.value = true;
   try {
     const hourly_rate = formatToAsset(String(rate.value).replace(',', '.'), symbol.value);
-    await setTeacherRate({ username: props.teacher.username, hourly_rate });
-    patch((t) => ({ ...t, hourly_rate }));
+    const target = rateTarget.value;
+    if (target) {
+      const updated = await setAssignmentRate(asText(target.id), hourly_rate);
+      assignments.value = assignments.value.map((x) => (x.id === updated.id ? { ...x, hourly_rate: updated.hourly_rate } : x));
+    } else {
+      await setTeacherRate({ username: props.teacher.username, hourly_rate });
+      patch((t) => ({ ...t, hourly_rate }));
+    }
     rateOpen.value = false;
     SuccessAlert(i18nT('edubridge.adminTeachersPage.rate.saved'));
   } catch (e) {

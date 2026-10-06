@@ -15,6 +15,7 @@ import {
   EduAcceptContributionInputDTO,
   EduAssignmentDTO,
   EduAssignmentInputDTO,
+  EduSetAssignmentRateInputDTO,
   EduContributionDTO,
   EduDeclineContributionInputDTO,
   EduSignActInputDTO,
@@ -237,6 +238,15 @@ export class EdubridgeTeacherResolver {
   @RequireRight('EduAssignment', 'manage')
   async edubridgeCreateAssignment(@Args('data') data: EduAssignmentInputDTO): Promise<EduAssignmentDTO> {
     const a = await this.teachers.createAssignment(coop(), data);
+    const rows = await this.teachers.listAssignments(coop(), a.teacher_username);
+    return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
+  }
+
+  @Mutation(() => EduAssignmentDTO, { name: 'edubridgeSetAssignmentRate', description: 'Задать ставку часа преподавателя на курсе' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduAssignment', 'manage')
+  async edubridgeSetAssignmentRate(@Args('data') data: EduSetAssignmentRateInputDTO): Promise<EduAssignmentDTO> {
+    const a = await this.teachers.setAssignmentRate(coop(), data.assignment_id, data.hourly_rate);
     const rows = await this.teachers.listAssignments(coop(), a.teacher_username);
     return new EduAssignmentDTO(a, rows.find((r) => r.assignment.id === a.id)?.course);
   }

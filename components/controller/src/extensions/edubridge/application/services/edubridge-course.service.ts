@@ -17,7 +17,7 @@ import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
 import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
-import { EdubridgeTeacherService, grantsTeaching, rateCoverageError, withoutContractError } from './edubridge-teacher.service';
+import { EdubridgeTeacherService, grantsTeaching, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 
@@ -245,16 +245,15 @@ export class EdubridgeCourseService {
       throw DomainError.badRequest('EDUBRIDGE_COURSE_CARRIER_NOT_ALLOWED', { carrier: input.carrier, direction: input.direction });
     }
     validatePlatformRef(input.carrier, input.external_ref ?? '');
-    await this.validateTeachers(coopname, input.teacher_usernames ?? [], input.planned_hourly_rate);
+    await this.validateTeachers(coopname, input.teacher_usernames ?? []);
   }
 
   /**
-   * Преподавать могут только пайщики с подписанным договором УХД, и их ставку
-   * должны покрывать взносы учеников: преподаватель курса сразу получает
-   * допуск к нему, а назначение с непокрытой ставкой не создаётся —
-   * отказываем до сохранения курса, а не после.
+   * Преподавать могут только пайщики с подписанным договором УХД: преподаватель
+   * курса сразу получает допуск к нему. Ставку на курсе задаёт допуск — из
+   * договора, но не выше плановой ставки курса.
    */
-  private async validateTeachers(coopname: string, teachers: string[], plannedRate: string | undefined): Promise<void> {
+  private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
     if (!teachers.length) return;
     // Отклонённый и прекращённый договор права преподавать не даёт.
     const contracts = new Map(
@@ -262,10 +261,6 @@ export class EdubridgeCourseService {
     );
     const strangers = teachers.filter((t) => !contracts.has(t));
     if (strangers.length) throw withoutContractError(strangers);
-    for (const t of teachers) {
-      const error = rateCoverageError(contracts.get(t)?.hourly_rate, plannedRate, t);
-      if (error) throw error;
-    }
   }
 
   private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {

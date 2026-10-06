@@ -143,12 +143,12 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     expect(teacherService.syncCourseAssignments).toHaveBeenCalledWith('voskhod', course);
   });
 
-  it('ставка преподавателя выше плановой ставки курса — отказ до сохранения курса, черновики не заводятся', async () => {
+  it('преподаватель со ставкой в договоре выше плановой ставки курса в курс ставится: его ставку на курсе ограничивает допуск', async () => {
     const { service, teachers, courses, teacherService } = make(['teach']);
     teachers.listContracts.mockResolvedValue([{ teacher_username: 'teach', status: EduContractStatus.ACTIVE, hourly_rate: '1500.0000 RUB' }]);
-    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] })).rejects.toThrow(/выше плановой ставки курса/);
-    expect(courses.save).not.toHaveBeenCalled();
-    expect(teacherService.syncCourseAssignments).not.toHaveBeenCalled();
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach'] })).resolves.toBeDefined();
+    expect(courses.save).toHaveBeenCalled();
+    expect(teacherService.syncCourseAssignments).toHaveBeenCalled();
   });
 
   it('несколько преподавателей с договорами — сохраняются все', async () => {

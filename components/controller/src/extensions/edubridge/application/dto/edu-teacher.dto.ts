@@ -76,6 +76,7 @@ export class EduAssignmentDTO {
   @Field(() => String, { description: 'Период ведения курса — начало' }) period_from!: string;
   @Field(() => String, { description: 'Период ведения курса — конец' }) period_to!: string;
   @Field(() => Int, { description: 'Нагрузка преподавателя по курсу, минут в месяц' }) minutes_per_month!: number;
+  @Field(() => String, { description: 'Ставка часа преподавателя на этом курсе' }) hourly_rate!: string;
   @Field(() => EduAssignmentStatus, { description: 'Состояние назначения' }) status!: EduAssignmentStatus;
   @Field(() => Date) created_at!: Date;
 
@@ -92,6 +93,7 @@ export class EduAssignmentDTO {
     this.period_from = e.period_from;
     this.period_to = e.period_to;
     this.minutes_per_month = e.minutes_per_month;
+    this.hourly_rate = e.hourly_rate;
     this.status = e.status;
     this.created_at = e.created_at;
   }
@@ -107,6 +109,18 @@ export class EduAssignmentInputDTO {
   @Field(() => String, { description: 'Период сдачи — конец (YYYY-MM-DD)' }) @IsDateString() period_to!: string;
   @Field(() => Int, { nullable: true, description: 'Нагрузка преподавателя по курсу, минут в месяц; без значения — вся нагрузка курса' })
   @IsOptional() @IsInt() @Min(0) @Max(20_000) minutes_per_month?: number;
+  @Field(() => String, { nullable: true, description: 'Ставка часа преподавателя на этом курсе («1000.0000 RUB»); без значения — ставка из договора, но не выше плановой ставки курса' })
+  @IsOptional()
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate?: string | null;
+}
+
+@InputType('EduSetAssignmentRateInput')
+export class EduSetAssignmentRateInputDTO {
+  @Field(() => ID, { description: 'Допуск преподавателя к курсу' }) @IsUUID() assignment_id!: string;
+  @Field(() => String, { description: 'Ставка часа преподавателя на этом курсе («1000.0000 RUB»)' })
+  @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduSignContractInput.hourlyRate.format') })
+  hourly_rate!: string;
 }
 
 @InputType('EduSignContractInput')

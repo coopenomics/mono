@@ -41,11 +41,11 @@ export interface EdubridgeChainPort {
   /** Совет удовлетворил заявление: подписка закрывается с возвратом всей стоимости, протокол уходит в реестр — одной транзакцией. */
   grantGuarantee(cancel: EdubridgeContract.Actions.Cancelsub.ICancelsub, grant: EdubridgeContract.Actions.Warrgrant.IWarrgrant): Promise<InnerTransactResult>;
   /** Резерв выплат преподавателям сверх обязательств по курсу возвращается в фонд. */
-  freeReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult>;
+  freeReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult>;
   /** Гарантийный срок курса истёк: удержанное возвращается в фонд, себестоимость уходит в резерв. */
-  unlockFee(data: { coopname: string; sub_hash: string; amount: string; allot?: string }): Promise<InnerTransactResult>;
+  unlockFee(data: { coopname: string; sub_hash: string; course_id: number; amount: string; allot?: string }): Promise<InnerTransactResult>;
   /** Резерв выплат преподавателям по подписке, запись которой в цепи уже закрыта. */
-  allotReserve(data: { coopname: string; sub_hash: string; amount: string }): Promise<InnerTransactResult>;
+  allotReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult>;
   /** Приём материалов занятия на ответственное хранение на срок гарантии курса. */
   holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;

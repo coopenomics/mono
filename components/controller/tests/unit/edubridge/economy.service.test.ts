@@ -170,17 +170,6 @@ describe('EdubridgeEconomyService', () => {
     expect(teachers.saveContract).toHaveBeenCalledWith(expect.objectContaining({ hourly_rate: '1500.0000 RUB' }));
   });
 
-  it('ставка выше плановой ставки курса, который преподаватель ведёт, — отказ; не выше — пишется', async () => {
-    const contracts = [{ teacher_username: 'teach', hourly_rate: '1000.0000 RUB', status: EduContractStatus.ACTIVE }];
-    const assignments = [{ teacher_username: 'teach', course_id: 'C1', status: EduAssignmentStatus.ACTIVE, minutes_per_month: 480 }];
-    const course = { ...COURSE, title: 'Алгебра', planned_hourly_rate: '1500.0000 RUB' };
-    const { service, teachers } = make({ contracts, assignments, course });
-    await expect(service.setTeacherRate('voskhod', 'teach', '2000.0000 RUB')).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_ABOVE_COURSE' });
-    expect(teachers.saveContract).not.toHaveBeenCalled();
-    await service.setTeacherRate('voskhod', 'teach', '1500.0000 RUB');
-    expect(teachers.saveContract).toHaveBeenCalledWith(expect.objectContaining({ hourly_rate: '1500.0000 RUB' }));
-  });
-
   it('ставка пайщику без договора участия — отказ', async () => {
     const { service } = make({ contracts: [] });
     await expect(service.setTeacherRate('voskhod', 'stranger', '1500.0000 RUB')).rejects.toThrow(/договора участия/);

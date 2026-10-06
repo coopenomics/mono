@@ -62,7 +62,7 @@ export class EdubridgeFundsService {
       try {
         const symbol = symbolOf(enrollment.locked_amount);
         const allot = Math.min(excess, toNumber((await this.target(coopname, course)).gap));
-        await this.chain.unlockFee({ coopname, sub_hash: enrollment.sub_hash, amount: asset(excess, symbol), allot: allot > 0 ? asset(allot, symbol) : undefined });
+        await this.chain.unlockFee({ coopname, sub_hash: enrollment.sub_hash, course_id: Number(course.chain_ref), amount: asset(excess, symbol), allot: allot > 0 ? asset(allot, symbol) : undefined });
         const rest = floor4(locked - excess);
         enrollment.locked_amount = rest > 0 ? asset(rest, symbol) : null;
         await this.enrollments.save(enrollment);
@@ -130,13 +130,13 @@ export class EdubridgeFundsService {
     const symbol = opts.symbol || symbolOf(target.obligation);
     const surplus = toNumber(target.surplus);
     if (surplus > 0) {
-      await this.chain.freeReserve({ coopname, sub_hash: subHash, amount: asset(surplus, symbol) });
+      await this.chain.freeReserve({ coopname, sub_hash: subHash, course_id: Number(course.chain_ref), amount: asset(surplus, symbol) });
       await this.moveReserve(course, -surplus, symbol);
       return;
     }
     const allot = Math.min(opts.allotUpTo, toNumber(target.gap));
     if (allot > 0) {
-      await this.chain.allotReserve({ coopname, sub_hash: subHash, amount: asset(allot, symbol) });
+      await this.chain.allotReserve({ coopname, sub_hash: subHash, course_id: Number(course.chain_ref), amount: asset(allot, symbol) });
       await this.moveReserve(course, allot, symbol);
     }
   }

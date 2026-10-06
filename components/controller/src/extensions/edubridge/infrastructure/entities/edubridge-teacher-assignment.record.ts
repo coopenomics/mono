@@ -28,6 +28,13 @@ export class EdubridgeTeacherAssignmentRecord {
    */
   public minutes_per_month!: number;
 
+  /**
+   * Ставка часа преподавателя на этом курсе («1000.0000 RUB»). По умолчанию —
+   * ставка из договора, но не выше плановой ставки курса; по ней считается
+   * взнос преподавателя за проведённое занятие.
+   */
+  public hourly_rate!: string;
+
   public status!: EduAssignmentStatus;
 
   public created_at!: Date;

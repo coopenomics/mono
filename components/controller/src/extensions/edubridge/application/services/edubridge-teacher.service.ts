@@ -377,7 +377,11 @@ export class EdubridgeTeacherService {
     const course = await this.courses.findById(coopname, input.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
-    await this.assertCanTeach(coopname, input.teacher_username.trim(), course);
+    const contract = await this.assertCanTeach(coopname, input.teacher_username.trim());
+    // Ставка на курсе: названная администратором либо ставка из договора, но не выше плановой.
+    const hourlyRate = input.hourly_rate || rateForCourse(contract.hourly_rate, course.planned_hourly_rate);
+    const rateError = rateCoverageError(hourlyRate, course.planned_hourly_rate);
+    if (rateError) throw rateError;
     const entity = this.teachers.createAssignment({
       coopname,
       teacher_username: input.teacher_username.trim(),
@@ -388,6 +392,7 @@ export class EdubridgeTeacherService {
       period_to: input.period_to,
       // Нагрузка по умолчанию — всё расписание курса: один преподаватель ведёт его целиком.
       minutes_per_month: input.minutes_per_month ?? course.lessons_per_month * course.lesson_minutes,
+      hourly_rate: hourlyRate,
       status: EduAssignmentStatus.ACTIVE,
     });
     const saved = await this.teachers.saveAssignment(entity);
@@ -403,17 +408,29 @@ export class EdubridgeTeacherService {
    * К курсу допускается пайщик с договором участия в хозяйственной
    * деятельности — подписанным им и действующим либо на подписи у
    * председателя; форма курса проверяет то же самое.
-   *
-   * Взнос учеников посчитан от плановой ставки курса, и в резерв выплат уходит
-   * именно она. Преподаватель со ставкой выше плановой резервом не обеспечен:
-   * сначала поднимается ставка курса — для новых подписок, а разница по
-   * действующим покрывается свободными средствами программы осознанно.
    */
-  private async assertCanTeach(coopname: string, teacher: string, course: EdubridgeCourseRecord): Promise<void> {
+  private async assertCanTeach(coopname: string, teacher: string): Promise<EdubridgeTeacherContractRecord> {
     const contract = await this.teachers.findContract(coopname, teacher);
-    if (!grantsTeaching(contract)) throw withoutContractError([teacher]);
-    const error = rateCoverageError(contract?.hourly_rate, course.planned_hourly_rate);
+    if (!contract || !grantsTeaching(contract)) throw withoutContractError([teacher]);
+    return contract;
+  }
+
+  /**
+   * Ставка часа преподавателя на курсе. Взнос учеников посчитан от плановой
+   * ставки курса, и в резерв выплат преподавателям направляется именно она,
+   * поэтому ставка на курсе не бывает выше плановой — без исключений: разницу
+   * пришлось бы брать из средств других курсов.
+   */
+  async setAssignmentRate(coopname: string, assignmentId: string, hourlyRate: string): Promise<EdubridgeTeacherAssignmentRecord> {
+    const a = await this.teachers.findAssignment(coopname, assignmentId);
+    if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
+    const course = await this.courses.findById(coopname, a.course_id);
+    if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
+    if (!isPositiveRate(hourlyRate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
+    const error = rateCoverageError(hourlyRate, course.planned_hourly_rate);
     if (error) throw error;
+    a.hourly_rate = hourlyRate;
+    return this.teachers.saveAssignment(a);
   }
 
   /**
@@ -425,6 +442,14 @@ export class EdubridgeTeacherService {
     const listed = new Set(course.teacher_usernames ?? []);
     const forCourse = (await this.teachers.listAssignments(coopname)).filter((a) => a.course_id === course.id);
     const period = coursePeriod(course);
+    // Плановая ставка курса снижена — ставки действующих допусков опускаются до неё.
+    for (const a of forCourse) {
+      if (a.status === EduAssignmentStatus.ACTIVE && listed.has(a.teacher_username) && rateCoverageError(a.hourly_rate, course.planned_hourly_rate)) {
+        a.hourly_rate = course.planned_hourly_rate;
+        await this.teachers.saveAssignment(a);
+        this.logger.info(`Ставка на курсе опущена до плановой: ${a.teacher_username} → «${course.title}»`);
+      }
+    }
     for (const teacher of listed) {
       if (forCourse.some((a) => a.teacher_username === teacher && a.status !== EduAssignmentStatus.CLOSED)) continue;
       await this.createAssignment(coopname, {
@@ -478,6 +503,26 @@ export class EdubridgeTeacherService {
   }
 
   /**
+   * Сумма взноса за занятие в пределах курса. Преподаватель получает за часы,
+   * оплаченные учениками этого курса: обязательство курса — стоимость часов по
+   * плановой ставке за оплаченное время за вычетом уже выплаченного. Из него
+   * вычитаются взносы курса, которые ещё не приняты. Остатка нет — занятие
+   * учениками не оплачено, и отчёт по нему не принимается: платить за него
+   * пришлось бы средствами других курсов.
+   */
+  private async amountWithinCourse(coopname: string, course: EdubridgeCourseRecord, amount: string, replacedContributionId?: string): Promise<string> {
+    const symbol = amount.split(' ')[1] ?? '';
+    const obligation = rateValue((await this.funds.target(coopname, course)).obligation);
+    const ofCourse = new Set((await this.teachers.listAssignments(coopname)).filter((x) => x.course_id === course.id).map((x) => x.id));
+    const promised = (await this.teachers.listContributions(coopname, { statuses: PENDING_CONTRIBUTION_STATUSES }))
+      .filter((c) => ofCourse.has(c.assignment_id) && c.id !== replacedContributionId)
+      .reduce((sum, c) => sum + rateValue(c.amount), 0);
+    const available = Math.round((obligation - promised) * 10000) / 10000;
+    if (!(available > 0)) throw DomainError.badRequest('EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS', { courseTitle: course.title });
+    return rateValue(amount) <= available ? amount : `${available.toFixed(4)} ${symbol}`;
+  }
+
+  /**
    * Отчёт преподавателя после занятия. Работа овеществляется материалами:
    * записью, конспектом, заданиями. Сумма взноса не вводится руками — она
    * равна часам занятия по ставке преподавателя, поэтому оплата ученика и
@@ -486,7 +531,14 @@ export class EdubridgeTeacherService {
   async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonRecord> {
     const { contract, assignment: a, course, previous } = await this.lessonContext(coopname, teacher, input);
     const duration = input.duration_minutes ?? course.lesson_minutes;
-    const amount = costOfHours(contract.hourly_rate, duration / 60);
+    // Взнос за занятие считается по ставке преподавателя на этом курсе и не
+    // превышает оплаченного учениками по курсу.
+    const amount = await this.amountWithinCourse(
+      coopname,
+      course,
+      costOfHours(isPositiveRate(a.hourly_rate) ? a.hourly_rate : contract.hourly_rate, duration / 60),
+      previous?.contribution?.id
+    );
 
     // Занятие, материалы которого сняты с хранения, проводится заново: строка
     // журнала та же, взнос по ней — новый.
@@ -659,6 +711,7 @@ export class EdubridgeTeacherService {
       username: teacher,
       rid_hash: c.rid_hash,
       assignment_id: chainAssignmentId(c),
+      course_id: Number(course.chain_ref),
       amount: c.amount,
       rid_type: c.rid_type,
       hold_until: toChainTimePoint(holdUntil),
@@ -1149,6 +1202,20 @@ export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | '
   const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
   target.setUTCDate(Math.min(start.getUTCDate(), lastDay) - 1);
   return { from, to: target.toISOString().slice(0, 10) };
+}
+
+/** Взносы преподавателя, которые ещё не приняты и не отклонены: их суммы уже обещаны из средств курса. */
+const PENDING_CONTRIBUTION_STATUSES = [
+  EduContributionStatus.DRAFT,
+  EduContributionStatus.HELD,
+  EduContributionStatus.SUBMITTED,
+  EduContributionStatus.COUNCIL_APPROVED,
+  EduContributionStatus.ACT_SIGNED,
+];
+
+/** Ставка преподавателя на курсе по умолчанию: из договора, но не выше плановой ставки курса. */
+export function rateForCourse(contractRate: string, plannedRate: string): string {
+  return rateValue(contractRate) > rateValue(plannedRate) ? plannedRate : contractRate;
 }
 
 function rateValue(rate: string | null | undefined): number {

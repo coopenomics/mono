@@ -171,6 +171,7 @@
       "startsAtFact": "занятия с {date}",
       "syllabusEmpty": "Программа не заполнена.",
       "syllabusTitle": "Учебная программа",
+      "teacherRateLine": "Ставка на курсе: {rate}",
       "teachersEmpty": "Преподаватели не назначены — назначения оформляются на странице «Преподаватели».",
       "teachersTitle": "Курс ведут",
       "unpublishButton": "Снять с публикации",
@@ -317,6 +318,7 @@
         "open": "Назначить курс",
         "periodFromLabel": "Период с",
         "periodToLabel": "Период по",
+        "rateLine": "Ставка на курсе: {rate}",
         "scheduleLabel": "Расписание",
         "submit": "Назначить"
       },
@@ -333,7 +335,7 @@
       "contract": {
         "assignmentsActiveLabel": "Назначений действует",
         "assignmentsTotalLabel": "Назначений всего",
-        "hourlyRateLabel": "Ставка часа",
+        "hourlyRateLabel": "Ставка часа по договору",
         "numberLabel": "Номер договора",
         "signedByChairmanLabel": "Подписан председателем",
         "signedByTeacherLabel": "Подписан преподавателем"
@@ -365,6 +367,7 @@
       "openFullPageButton": "Открыть страницу",
       "rate": {
         "edit": "Изменить ставку",
+        "courseDialogTitle": "Ставка часа на курсе «{courseTitle}»",
         "dialogTitle": "Ставка часа",
         "label": "Ставка часа",
         "saved": "Ставка сохранена"
