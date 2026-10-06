@@ -16,7 +16,10 @@
       @click="pickLevel(l.key)"
     ) {{ l.label }}
 
-  CardListSkeleton(v-if="firstLoad" :count="6")
+  //- Каркас — в той же сетке и той же формы, что карточки курсов.
+  .row.q-col-gutter-md(v-if="firstLoad" aria-busy="true")
+    .col-12.col-sm-6.col-md-4(v-for="n in 6" :key="n")
+      CourseCardSkeleton
 
   EmptyState(
     v-else-if="!items.length"
@@ -40,7 +43,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
-import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, EmptyState } from 'src/shared/ui/base';
+import { CourseCardSkeleton } from '../../shared/ui/CourseCardSkeleton';
 import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';

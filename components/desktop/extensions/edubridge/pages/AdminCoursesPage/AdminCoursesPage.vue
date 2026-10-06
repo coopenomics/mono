@@ -3,7 +3,10 @@
   PageHint.q-mb-md(storage-key="edu:admin-courses:banner-dismissed")
     | {{ $t('edubridge.adminCoursesPage.hint') }}
 
-  CardListSkeleton(v-if="firstLoad" :count="3")
+  //- Каркас — в той же сетке и той же формы, что карточки курсов.
+  .row.q-col-gutter-md(v-if="firstLoad" aria-busy="true")
+    .col-12.col-sm-6.col-md-4.col-xl-3(v-for="n in 4" :key="n")
+      CourseCardSkeleton
   .row.q-col-gutter-md(v-else-if="items.length")
     .col-12.col-sm-6.col-md-4.col-xl-3(v-for="course in items" :key="asText(course.id)")
       AdminCourseCard(:course="course" :teacher-names="teacherNames" @open="openCourse(asText(course.id))")
@@ -22,7 +25,8 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
-import { CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { EmptyState } from 'src/shared/ui/base';
+import { CourseCardSkeleton } from '../../shared/ui/CourseCardSkeleton';
 import { PageHint } from 'src/shared/ui/domain';
 import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
