@@ -1047,6 +1047,9 @@ export class EdubridgeTeacherService {
         skip_save: false,
       } as Cooperative.Registry.EducationRidDecision.Action,
     });
+    // Резерв курса наполняет очередь раз в десять минут; перед приёмом он
+    // доводится до текущего состояния сразу, чтобы приём не ждал её прохода.
+    await this.fillCourseReserve(coopname, c);
     await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision), act } as never);
     await this.settleReserve(coopname, c);
     c.decision_hash = decision.hash.toLowerCase();
@@ -1063,6 +1066,16 @@ export class EdubridgeTeacherService {
    * обязательство по курсу уменьшается на ту же сумму. Сбой учёта приём не
    * отменяет: результат уже в паевом фонде.
    */
+  /** Резерв курса взноса доводится до текущего состояния; сбой приём не отменяет — отказ даст сам контракт. */
+  private async fillCourseReserve(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
+    try {
+      const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);
+      if (assignment) await this.funds.unlockDue(coopname, new Date(), assignment.course_id);
+    } catch (e) {
+      this.logger.warn(`[EDU.RID] резерв курса перед приёмом ${c.rid_hash} не доведён: ${(e as Error)?.message ?? e}`);
+    }
+  }
+
   private async settleReserve(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
     try {
       const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);

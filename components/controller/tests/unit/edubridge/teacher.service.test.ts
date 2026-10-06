@@ -94,7 +94,7 @@ function make(
   const avatars = { getAvatarUrl: jest.fn(async () => null), getAvatarUrls: jest.fn(async () => new Map([['teach', '/backend/avatar.jpg']])) } as any;
   const names = { displayName: jest.fn(async () => 'Иванов Иван Иванович'), displayNames: jest.fn(async () => new Map([['teach', 'Иванов Иван Иванович']])) } as any;
   // Обязательство курса перед преподавателями — оплаченные учениками часы; по умолчанию с запасом.
-  const funds = { onSettled: jest.fn(async () => undefined), target: jest.fn(async () => ({ obligation: opts.obligation ?? '100000.0000 RUB', gap: '0.0000 RUB', surplus: '0.0000 RUB' })) } as any;
+  const funds = { onSettled: jest.fn(async () => undefined), unlockDue: jest.fn(async () => 0), target: jest.fn(async () => ({ obligation: opts.obligation ?? '100000.0000 RUB', gap: '0.0000 RUB', surplus: '0.0000 RUB' })) } as any;
   const events = { emit: jest.fn() } as any;
   // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
   const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
@@ -355,6 +355,8 @@ describe('EdubridgeTeacherService', () => {
     expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
     // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
     expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1', '1000.0000 RUB');
+    // Перед приёмом резерв курса доводится до текущего состояния — приём не ждёт прохода очереди.
+    expect(funds.unlockDue).toHaveBeenCalledWith('voskhod', expect.any(Date), 'C1');
   });
 
   it('сбой учёта резерва приём результата не отменяет', async () => {

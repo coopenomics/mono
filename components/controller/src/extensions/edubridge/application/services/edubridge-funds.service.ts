@@ -47,13 +47,15 @@ export class EdubridgeFundsService {
   }
 
   /**
-   * Проход очереди: у действующих подписок освобождается удержанное сверх
+   * Проход очереди — раз в десять минут — и вызов по курсу перед приёмом
+   * результата преподавателя: у действующих подписок освобождается удержанное сверх
    * возвратной суммы. Освобождённое уходит в фонд, из него резерв преподавателям
    * добирается до обязательства по курсу. Ошибка по одной подписке остальные не держит.
    */
-  async unlockDue(coopname: string, now = new Date()): Promise<number> {
+  async unlockDue(coopname: string, now = new Date(), onlyCourseId?: string): Promise<number> {
     let unlocked = 0;
     for (const enrollment of await this.enrollments.findLocked(coopname)) {
+      if (onlyCourseId && enrollment.course_id !== onlyCourseId) continue;
       const course = await this.courses.findById(coopname, enrollment.course_id);
       if (!course) continue;
       const locked = toNumber(enrollment.locked_amount);
