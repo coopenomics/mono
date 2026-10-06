@@ -1,6 +1,6 @@
 <template lang="pug">
 .q-pa-md
-  CardListSkeleton(v-if="loading" :count="1")
+  CardListSkeleton(v-if="firstLoad" :count="1")
 
   EmptyState(v-else-if="!course" :title="$t('edubridge.courseCardPage.notFoundTitle')" :body="$t('edubridge.courseCardPage.notFoundBody')")
     template(#icon)
@@ -61,6 +61,7 @@ import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
@@ -86,6 +87,8 @@ const desktopStore = useDesktopStore();
 
 const course = ref<ICatalogCourse | null>(null);
 const loading = ref(true);
+// Каркас — только до конца первой загрузки: обновление по ленте изменений страницу не прячет.
+const firstLoad = useFirstLoad(loading);
 const subscribeOpen = ref(false);
 const learners = ref<ILearner[]>([]);
 /** Свои подписки читает только участник, подписавший оферту ученика. */

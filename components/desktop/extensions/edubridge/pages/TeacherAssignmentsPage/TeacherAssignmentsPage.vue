@@ -57,7 +57,8 @@ import { t } from '../../i18n';
 // Договор нужен для отчётов по занятиям; показывается он в профиле.
 const contract = ref<IContract | null>(null);
 const assignments = ref<IAssignment[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 
 const columns: BaseTableColumn<IAssignment>[] = [

@@ -79,7 +79,9 @@
           .row.items-center.q-gutter-sm
             BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
             BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
-    .t-muted.t-sm.q-mb-md(v-else) {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
+    //- «Курсов нет» — только после загрузки: до неё список пуст потому, что ещё не прочитан.
+    .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
+    CardListSkeleton(v-else :count="1")
 
     BaseButton(v-if="!assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
       template(#icon-left)
@@ -117,7 +119,7 @@ import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useConfirm } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Avatar, BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
 import { AccountBadge, DataRow } from 'src/shared/ui/domain';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
@@ -163,6 +165,7 @@ const emit = defineEmits<{
 }>();
 
 const assignments = ref<IAssignment[]>([]);
+const assignmentsLoaded = ref(false);
 const courses = ref<ICourse[]>([]);
 const busy = ref(false);
 const approvals = ref<ITeacherApproval[]>([]);
@@ -219,6 +222,7 @@ async function loadAssignments(): Promise<void> {
   const [a, c] = await Promise.all([fetchAssignments(), fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } })]);
   assignments.value = a;
   courses.value = c.items;
+  assignmentsLoaded.value = true;
 }
 
 /** Документы преподавателя на подписи у председателя. */

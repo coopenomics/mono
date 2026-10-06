@@ -55,7 +55,8 @@ import { t } from '../../i18n';
  */
 const lessons = ref<ILesson[]>([]);
 const assignments = ref<IAssignment[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
 const reportOpen = ref(false);

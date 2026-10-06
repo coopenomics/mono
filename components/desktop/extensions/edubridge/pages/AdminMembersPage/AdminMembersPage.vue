@@ -98,7 +98,8 @@ import { t as i18nT } from '../../i18n';
 const search = ref('');
 const rows = ref<IMemberRow[]>([]);
 const card = ref<IMemberCard | null>(null);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const drawerOpen = ref(false);
 const retrying = ref<string | null>(null);

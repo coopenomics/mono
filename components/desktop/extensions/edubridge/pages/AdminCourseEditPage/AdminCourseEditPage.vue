@@ -60,7 +60,8 @@ const courseId = computed(() => (route.params.id ? String(route.params.id) : '')
 const isEdit = computed(() => Boolean(courseId.value));
 
 const course = ref<ICourse | null>(null);
-const loading = ref(false);
+// У правки курса загрузка идёт с самого начала — до её конца каркас; у нового курса грузить нечего.
+const loading = ref(isEdit.value);
 const firstLoad = useFirstLoad(loading);
 const saving = ref(false);
 const formRef = ref<InstanceType<typeof CourseForm> | null>(null);

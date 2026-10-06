@@ -56,7 +56,8 @@ import { t } from '../../i18n';
  * но ни разу не проверенная площадка проверяется при открытии страницы сама.
  */
 const items = ref<IConnector[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 const credentialsOpen = ref(false);

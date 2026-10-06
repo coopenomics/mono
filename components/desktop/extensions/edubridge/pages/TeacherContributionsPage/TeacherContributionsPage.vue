@@ -41,7 +41,8 @@ import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
 
 const items = ref<IContribution[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref<string | null>(null);
 

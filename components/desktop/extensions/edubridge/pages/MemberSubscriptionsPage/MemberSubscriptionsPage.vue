@@ -103,7 +103,8 @@ import { t } from '../../i18n';
 const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
 const courses = ref<ICatalogCourse[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
 const lockedCourseId = ref<string | null>(null);

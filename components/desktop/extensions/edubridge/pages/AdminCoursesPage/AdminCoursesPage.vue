@@ -44,7 +44,8 @@ const { fioCache, enrichFio } = useFioCache();
 const teacherNames = computed(() => Object.fromEntries(fioCache.value));
 
 const items = ref<ICourse[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 
 async function load(): Promise<void> {

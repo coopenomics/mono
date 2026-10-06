@@ -65,7 +65,8 @@ const sections = ref<ISection[]>([]);
 const sectionId = ref<string | null>(null);
 const levelId = ref<string | null>(null);
 const items = ref<ICatalogCourse[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const currentPage = ref(1);
 const totalPages = ref(0);

@@ -69,7 +69,8 @@ import { t as i18nT } from '../../i18n';
 const route = useRoute();
 const router = useRouter();
 const teachers = ref<ITeacher[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const cardOpen = ref(false);
 const current = ref<ITeacher | null>(null);

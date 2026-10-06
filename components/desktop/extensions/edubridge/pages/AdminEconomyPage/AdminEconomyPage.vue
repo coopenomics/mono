@@ -129,7 +129,8 @@ const system = useSystemStore();
 const symbol = computed(() => system.governSymbol);
 
 const fund = ref<IProgramFund | null>(null);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const markup = ref('0');
 const maxDiscount = ref(0);

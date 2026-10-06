@@ -47,7 +47,8 @@ import { EduLive } from '../../shared/lib/live';
 const { registerAction } = useHeaderActions();
 
 const learners = ref<ILearner[]>([]);
-const loading = ref(false);
+// Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
+const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const learnerDialogOpen = ref(false);
 const editingLearner = ref<ILearner | null>(null);
