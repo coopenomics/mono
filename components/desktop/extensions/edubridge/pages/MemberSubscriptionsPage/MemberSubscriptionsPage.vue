@@ -149,7 +149,8 @@ const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.dis
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
 const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
-const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
+// Дата из API приходит скаляром без точного типа — приводим к строке сами.
+const formatDate = (v: unknown) => new Date(v instanceof Date ? v : String(v)).toLocaleDateString('ru-RU');
 const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
 /** Подписки, которые пора продлить: действуют, а оплаченный срок кончается в ближайшие дни. */
 const dueSoon = computed(() => enrollments.value.filter((e) => isRenewSoon(e)));

@@ -46,6 +46,12 @@ export class EdubridgeFundsService {
     return Math.min(locked, toNumber(refundOf(enrollment, course, false, now).refund));
   }
 
+  /** Подписки с удержанным взносом — все либо одного курса. */
+  private async lockedEnrollments(coopname: string, onlyCourseId?: string): Promise<EdubridgeEnrollmentRecord[]> {
+    const locked = await this.enrollments.findLocked(coopname);
+    return onlyCourseId ? locked.filter((e) => e.course_id === onlyCourseId) : locked;
+  }
+
   /**
    * Проход очереди — раз в десять минут — и вызов по курсу перед приёмом
    * результата преподавателя: у действующих подписок освобождается удержанное сверх
@@ -54,8 +60,7 @@ export class EdubridgeFundsService {
    */
   async unlockDue(coopname: string, now = new Date(), onlyCourseId?: string): Promise<number> {
     let unlocked = 0;
-    for (const enrollment of await this.enrollments.findLocked(coopname)) {
-      if (onlyCourseId && enrollment.course_id !== onlyCourseId) continue;
+    for (const enrollment of await this.lockedEnrollments(coopname, onlyCourseId)) {
       const course = await this.courses.findById(coopname, enrollment.course_id);
       if (!course) continue;
       const locked = toNumber(enrollment.locked_amount);
