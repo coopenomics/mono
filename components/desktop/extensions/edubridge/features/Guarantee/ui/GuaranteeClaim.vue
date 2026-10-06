@@ -109,6 +109,8 @@ onMounted(load);
 <style scoped>
 .edu-guarantee__row {
   display: flex;
+  /* В узкой колонке кнопка переносится под текст, а не сжимает его. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--p-3);

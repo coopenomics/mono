@@ -30,7 +30,7 @@
       CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
-      .col-12(:class="course.teacher_usernames.length ? 'col-md-8' : ''")
+      .col-12(:class="hasSide ? 'col-md-8' : ''")
         BaseCard.edu-course__about(variant="default")
           section
             .edu-course__section-title {{ $t('edubridge.courseCardPage.aboutTitle') }}
@@ -41,13 +41,15 @@
             .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.courseCardPage.syllabusEmpty') }}
 
-      .col-12.col-md-4(v-if="course.teacher_usernames.length")
-        BaseCard(variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
-          .edu-course__teachers
-            .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
-
-    //- Гарантийные условия видит участник с подпиской на этот курс.
-    GuaranteeClaim.q-mt-md(v-if="canSeeGuarantee" :course-id="asText(course.id)")
+      //- Правая колонка: кто ведёт курс и гарантийные условия. Учебная программа
+      //- слева бывает длинной — короткие сведения не должны оказываться под ней.
+      .col-12.col-md-4(v-if="hasSide")
+        .edu-course__side
+          BaseCard(v-if="course.teacher_usernames.length" variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
+            .edu-course__teachers
+              .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
+          //- Гарантийные условия видит участник с подпиской на этот курс.
+          GuaranteeClaim(v-if="canSeeGuarantee" :course-id="asText(course.id)")
 
     SubscribeDialog(
       v-model="subscribeOpen"
@@ -104,6 +106,8 @@ const paidUntil = computed(() => {
   const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
   return dates.length ? new Date(Math.max(...dates)) : null;
 });
+/** Правая колонка нужна, когда есть кого назвать либо участник читает свои гарантийные условия. */
+const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length) || canSeeGuarantee.value);
 const left = computed(() => daysLeft(paidUntil.value));
 const renewSoon = computed(() => left.value !== null && left.value <= RENEW_SOON_DAYS);
 const learners = ref<ILearner[]>([]);
@@ -223,5 +227,10 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 .edu-course__due {
   font-size: var(--p-fs-meta, 12px);
   color: var(--p-warn);
+}
+.edu-course__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-4);
 }
 </style>
