@@ -1,12 +1,14 @@
 /**
- * Что обещают декораторы резолверов: какие проверки стоят на операции и
- * каким ролям она открыта. Исходники разбираются парсером TypeScript (без
- * проверки типов — это секунды): методы с @Query/@Mutation, их @UseGuards и
- * @AuthRoles, плюс те же декораторы на классе резолвера.
+ * Что обещают декораторы резолверов: какие гарды стоят на операции и какое
+ * право она требует. Исходники разбираются парсером TypeScript (без проверки
+ * типов — это секунды): методы с @Query/@Mutation, их @UseGuards и
+ * @RequireRight, плюс те же декораторы на классе резолвера.
  *
- * Схема GraphQL ролей не несёт, поэтому ожидание берётся отсюда, а
- * фактическое поведение — из вызова (matrix.test.ts). Расхождение двух и есть
- * находка: либо проверка слабее обещанной, либо обещание устарело.
+ * Схема GraphQL прав не несёт, поэтому ожидание берётся отсюда, а
+ * фактическое поведение — из вызова (matrix.test.ts). Из декораторов выводится
+ * только вход: гость не проходит операцию под проверкой входа. Кому из
+ * вошедших операция открыта, решает таблица прав приложения — это сверяет
+ * снимок матрицы.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -18,12 +20,8 @@ export interface DeclaredOp {
   kind: 'query' | 'mutation' | 'subscription'
   file: string
   guards: string[]
-  /** null — @AuthRoles нет; [] — роли не открыты никому (только «сам себе»). */
-  roles: string[] | null
-  allowSelf: boolean
-  anyStatus: boolean
-  /** @RequireMarketplaceAccess('Resource', 'action' | [...]) */
-  marketplaceAccess: string[] | null
+  /** @RequireRight('Resource', 'action' | [...]) — требуемые права, null — требования нет. */
+  rights: string[] | null
 }
 
 const ROOTS = ['components/controller/src']
@@ -78,27 +76,19 @@ function objProp(e: ts.Expression | undefined, key: string): ts.Expression | und
   return undefined
 }
 
-interface Checks { guards: string[], roles: string[] | null, allowSelf: boolean, anyStatus: boolean, marketplaceAccess: string[] | null }
+interface Checks { guards: string[], rights: string[] | null }
 
 function checksOf(decorators: ts.Decorator[]): Checks {
-  const c: Checks = { guards: [], roles: null, allowSelf: true, anyStatus: false, marketplaceAccess: null }
+  const c: Checks = { guards: [], rights: null }
   for (const d of decorators) {
     const call = callOf(d)
     if (!call)
       continue
     if (call.name === 'UseGuards')
       c.guards.push(...call.args.map(a => a.getText()))
-    if (call.name === 'AuthRoles') {
-      c.roles = strings(call.args[0])
-      const opts = call.args[1]
-      if (objProp(opts, 'allowSelf')?.kind === ts.SyntaxKind.FalseKeyword)
-        c.allowSelf = false
-      if (objProp(opts, 'anyStatus')?.kind === ts.SyntaxKind.TrueKeyword)
-        c.anyStatus = true
-    }
-    if (call.name === 'RequireMarketplaceAccess') {
+    if (call.name === 'RequireRight') {
       const resource = strings(call.args[0])[0] ?? '?'
-      c.marketplaceAccess = strings(call.args[1]).map(a => `${resource}:${a}`)
+      c.rights = strings(call.args[1]).map(a => `${resource}:${a}`)
     }
   }
   return c
@@ -132,10 +122,7 @@ export function declaredOps(): DeclaredOp[] {
                 kind: call.name.toLowerCase() as DeclaredOp['kind'],
                 file: path.relative(REPO_ROOT, file),
                 guards: [...cls.guards, ...own.guards],
-                roles: own.roles ?? cls.roles,
-                allowSelf: own.allowSelf && cls.allowSelf,
-                anyStatus: own.anyStatus || cls.anyStatus,
-                marketplaceAccess: own.marketplaceAccess ?? cls.marketplaceAccess,
+                rights: own.rights ?? cls.rights,
               })
             }
           }
@@ -153,19 +140,18 @@ export type PlatformRole = 'guest' | 'user' | 'member' | 'chairman'
 
 /**
  * Ожидаемый исход по декораторам: 'allow' | 'deny' | null (не выводится —
- * решают данные: Стол заказов, CASL, проверки в сервисе).
+ * решают таблица прав приложения, CASL и проверки в сервисе).
  */
 export function expectedFor(op: DeclaredOp, role: PlatformRole): 'allow' | 'deny' | null {
   const guards = op.guards.join(' ')
   const hasJwt = op.guards.includes('GqlJwtAuthGuard')
   const optionalJwt = op.guards.includes('OptionalGqlJwtAuthGuard')
-  if (op.marketplaceAccess || /Marketplace|AuthorizationGuard/.test(guards))
-    return role === 'guest' && hasJwt ? 'deny' : null
   if (!hasJwt)
     return optionalJwt || op.guards.length === 0 ? (role === 'guest' ? 'allow' : null) : null
   if (role === 'guest')
     return 'deny'
-  if (!/RolesGuard/.test(guards) || op.roles === null)
-    return 'allow'
-  return op.roles.includes(role) ? 'allow' : 'deny'
+  // Право из таблицы либо CASL: кому открыто, показывает снимок матрицы.
+  if (op.rights || /RightsGuard|AuthorizationGuard/.test(guards))
+    return null
+  return 'allow'
 }

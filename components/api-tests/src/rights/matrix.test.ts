@@ -5,10 +5,10 @@
  * заведомо чужими аргументами (schema.ts), исход классифицируется по коду
  * ответа (classify.ts). Находки:
  *  - гость прошёл туда, где стоит проверка входа;
- *  - роль вне списка @AuthRoles прошла проверку прав;
- *  - роль из списка получила отказ гварда (обещание устарело или гвард строже);
+ *  - отказ прав там, где стоит только проверка входа (гард строже обещания);
  *  - расхождение с утверждённым снимком (snapshot.json) — новая операция или
- *    изменившееся право.
+ *    изменившееся право. Кому из вошедших операция открыта, решает таблица
+ *    прав приложения, и сверяется это именно снимком.
  *
  * Отчёт — $RIGHTS_OUT/{matrix.json,summary.md,snapshot.candidate.json}.
  * Фаза идёт последней: мутации с чужими аргументами, прошедшие проверку прав,
@@ -34,7 +34,7 @@ interface MatrixRole {
   /**
    * Исполнитель по состоянию (actors.ts): роль кооператива у него «пайщик»,
    * а права меняет состояние. Отказ такому исполнителю — норма, в список
-   * «роль из @AuthRoles получила отказ» он не попадает.
+   * «отказ прав там, где стоит только проверка входа» он не попадает.
    */
   state?: boolean
 }
@@ -165,10 +165,6 @@ describe('матрица прав', () => {
     expect(findings().guestPassed).toEqual([])
   })
 
-  it('роль вне списка @AuthRoles не проходит проверку прав', () => {
-    expect(findings().roleEscalated).toEqual([])
-  })
-
   it('права совпадают с утверждённым снимком', () => {
     if (!fs.existsSync(SNAPSHOT))
       return
@@ -178,7 +174,6 @@ describe('матрица прав', () => {
 
 function findings() {
   const guestPassed: string[] = []
-  const roleEscalated: string[] = []
   const roleDenied: string[] = []
   for (const [opName, row] of Object.entries(matrix)) {
     const d = declared.get(opName)
@@ -187,17 +182,14 @@ function findings() {
     for (const role of ROLES) {
       const cell = row[role.name]
       const expected = expectedFor(d, role.platform)
-      if (expected === 'deny' && cell.outcome === 'pass') {
-        const line = `${opName} — ${role.name} прошёл (${d.file})`
-        if (role.platform === 'guest')
-          guestPassed.push(line)
-        else roleEscalated.push(line)
-      }
+      // Отказ ждёт только гость: кому из вошедших операция открыта, решает таблица прав.
+      if (expected === 'deny' && cell.outcome === 'pass')
+        guestPassed.push(`${opName} — ${role.name} прошёл (${d.file})`)
       if (!role.state && expected === 'allow' && (cell.outcome === 'deny-role' || cell.outcome === 'deny-auth'))
         roleDenied.push(`${opName} — ${role.name}: ${cell.code ?? ''} ${cell.message ?? ''}`.trim())
     }
   }
-  return { guestPassed, roleEscalated, roleDenied }
+  return { guestPassed, roleDenied }
 }
 
 function candidate(): Record<string, Record<string, 'deny' | 'pass' | null>> {
@@ -247,8 +239,7 @@ function report(): void {
     lines.push('')
   }
   section('Гость прошёл закрытую операцию', f.guestPassed)
-  section('Роль вне @AuthRoles прошла', f.roleEscalated)
-  section('Роль из @AuthRoles получила отказ гварда', f.roleDenied)
+  section('Отказ прав там, где стоит только проверка входа', f.roleDenied)
   section('Исполнитель по состоянию не заведён', missingActors)
   section('Исполнителям из засева пришлось довести подключение к Столу заказов', ordererFixes)
   section('Сессию роли закрыла одна из операций', [...sessionKillers])
