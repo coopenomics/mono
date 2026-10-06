@@ -100,9 +100,9 @@
       "signActButton": "Подписать акт"
     },
     "adminCourseCard": {
-      "courseFeeOnce": "за курс разом",
-      "noTeacher": "Преподаватель не назначен",
-      "perMonth": "в месяц"
+      "feeCourseLabel": "За весь курс",
+      "feeMonthLabel": "Взнос в месяц",
+      "noTeacher": "Преподаватель не назначен"
     },
     "adminCourseEditPage": {
       "addCourseSubmit": "Добавить курс",
@@ -477,9 +477,9 @@
       }
     },
     "courseCard": {
-      "courseFeeOnce": "за курс разом",
-      "lessonsPerMonth": "{n} занятие в месяц по {minutes} мин | {n} занятия в месяц по {minutes} мин | {n} занятий в месяц по {minutes} мин",
-      "perMonth": "в месяц"
+      "feeCourseLabel": "За весь курс",
+      "feeMonthLabel": "Взнос в месяц",
+      "lessonsPerMonth": "{n} занятие в месяц по {minutes} мин | {n} занятия в месяц по {minutes} мин | {n} занятий в месяц по {minutes} мин"
     },
     "courseCardPage": {
       "aboutTitle": "О курсе",

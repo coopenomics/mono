@@ -4,11 +4,11 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
     q-img(v-if="course.image_url" :src="course.image_url" :ratio="16 / 9" fit="cover" no-spinner)
     .edu-admin-course__placeholder(v-else)
       q-icon(name="school" size="32px")
+    //- Состояние курса — на обложке: служебная отметка не спорит с названием и разделом.
+    BaseBadge.edu-admin-course__status(:variant="status.variant") {{ status.label }}
   .edu-admin-course__body
-    //- Раздел с уровнем слева, состояние курса справа — одной строкой над названием.
-    .edu-admin-course__meta
-      .t-eyebrow.ellipsis {{ courseSectionLabel(course.section_title, course.level_title) }}
-      BaseBadge(:variant="status.variant") {{ status.label }}
+    //- Раздел с уровнем — на всю ширину: это первое, по чему курс узнают в реестре.
+    .t-eyebrow {{ courseSectionLabel(course.section_title, course.level_title) }}
     .edu-admin-course__title {{ course.title }}
     .edu-admin-course__facts
       .edu-admin-course__fact(v-if="course.schedule")
@@ -18,16 +18,18 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
         q-icon(name="co_present" size="16px")
         span.ellipsis(v-if="teachers.length") {{ teachers.join(', ') }}
         span.ellipsis.t-muted(v-else) {{ $t('edubridge.adminCourseCard.noTeacher') }}
-    //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
-    //- Ниже длительность курса и взнос разом, если кооператив его принимает.
+      .edu-admin-course__fact(v-if="months")
+        q-icon(name="date_range" size="16px")
+        span.ellipsis {{ months }}
+    //- Деньги — отдельным блоком из подписанных чисел: взнос в месяц и, если
+    //- кооператив его принимает, взнос за весь курс. Срок курса стоит выше, среди фактов.
     .edu-admin-course__fees
-      FeeAmount(:value="course.fee_month" size="md" :per="$t('edubridge.adminCourseCard.perMonth')")
-      .edu-admin-course__full(v-if="months")
-        span {{ months }}
-        template(v-if="course.fee_course")
-          span ·
-          span {{ $t('edubridge.adminCourseCard.courseFeeOnce') }}
-          FeeAmount(:value="course.fee_course" size="sm")
+      .edu-admin-course__fee
+        .edu-admin-course__fee-label {{ $t('edubridge.adminCourseCard.feeMonthLabel') }}
+        FeeAmount(:value="course.fee_month" size="md")
+      .edu-admin-course__fee(v-if="course.fee_course")
+        .edu-admin-course__fee-label {{ $t('edubridge.adminCourseCard.feeCourseLabel') }}
+        FeeAmount(:value="course.fee_course" size="md")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
@@ -91,14 +93,6 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   min-width: 0;
   padding: var(--p-4) var(--p-5) var(--p-5);
 }
-.edu-admin-course__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--p-2);
-  min-width: 0;
-  min-height: 22px;
-}
 .edu-admin-course__title {
   margin-top: var(--p-2);
   font-size: 17px;
@@ -130,28 +124,40 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   flex-shrink: 0;
   color: var(--p-ink-3);
 }
-/* Взносы — итог карточки: отделены линией и прижаты к низу, чтобы карточки
-   в сетке заканчивались на одной высоте. Месячный взнос крупно, длительность и взнос разом под ним. */
+/* Деньги — итог карточки: отделены линией и прижаты к низу, чтобы карточки в
+   сетке заканчивались на одной высоте. Каждое число под своей подписью. */
 .edu-admin-course__fees {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: var(--p-3) var(--p-6);
   margin-top: auto;
   padding-top: var(--p-4);
 }
 .edu-admin-course__fees::before {
   content: '';
-  align-self: stretch;
+  flex: 0 0 100%;
   border-top: 1px solid var(--p-line);
-  margin-bottom: var(--p-3);
 }
-.edu-admin-course__full {
+.edu-admin-course__fee {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 6px;
-  font-size: var(--p-fs-body-sm, 13px);
-  color: var(--p-ink-2);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.edu-admin-course__fee-label {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.3;
+  color: var(--p-ink-3);
+}
+.edu-admin-course__media {
+  position: relative;
+}
+.edu-admin-course__status {
+  position: absolute;
+  top: var(--p-3);
+  left: var(--p-3);
+  /* Сплошная подложка: на пёстрой обложке полупрозрачный значок не читается. */
+  background: var(--p-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 </style>

@@ -5,7 +5,7 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
     .edu-course-card__placeholder(v-else)
       q-icon(name="school" size="32px")
   .edu-course-card__body
-    .t-eyebrow.ellipsis {{ courseSectionLabel(course.section_title, course.level_title) }}
+    .t-eyebrow {{ courseSectionLabel(course.section_title, course.level_title) }}
     .edu-course-card__title {{ course.title }}
     .edu-course-card__facts
       .edu-course-card__fact(v-if="course.schedule")
@@ -14,16 +14,18 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
       .edu-course-card__fact(v-if="course.lessons_per_month")
         q-icon(name="event_available" size="16px")
         span.ellipsis {{ lessons }}
-    //- Помесячный взнос — главная строка: столько участник вносит на самом деле.
-    //- Ниже длительность курса и взнос разом, если кооператив его принимает.
+      .edu-course-card__fact(v-if="months")
+        q-icon(name="date_range" size="16px")
+        span.ellipsis {{ months }}
+    //- Деньги — отдельным блоком из подписанных чисел: взнос в месяц и, если
+    //- кооператив его принимает, взнос за весь курс. Срок курса стоит выше, среди фактов.
     .edu-course-card__fees
-      FeeAmount(:value="course.fee_month" size="md" :per="$t('edubridge.courseCard.perMonth')")
-      .edu-course-card__full(v-if="months")
-        span {{ months }}
-        template(v-if="course.fee_course")
-          span ·
-          span {{ $t('edubridge.courseCard.courseFeeOnce') }}
-          FeeAmount(:value="course.fee_course" size="sm")
+      .edu-course-card__fee
+        .edu-course-card__fee-label {{ $t('edubridge.courseCard.feeMonthLabel') }}
+        FeeAmount(:value="course.fee_month" size="md")
+      .edu-course-card__fee(v-if="course.fee_course")
+        .edu-course-card__fee-label {{ $t('edubridge.courseCard.feeCourseLabel') }}
+        FeeAmount(:value="course.fee_course" size="md")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
@@ -119,28 +121,29 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   flex-shrink: 0;
   color: var(--p-ink-3);
 }
-/* Взносы — итог карточки: отделены линией и прижаты к низу, чтобы карточки
-   в сетке заканчивались на одной высоте. Месячный взнос крупно, длительность и взнос разом под ним. */
+/* Деньги — итог карточки: отделены линией и прижаты к низу, чтобы карточки в
+   сетке заканчивались на одной высоте. Каждое число под своей подписью. */
 .edu-course-card__fees {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: var(--p-3) var(--p-6);
   margin-top: auto;
   padding-top: var(--p-4);
 }
 .edu-course-card__fees::before {
   content: '';
-  align-self: stretch;
+  flex: 0 0 100%;
   border-top: 1px solid var(--p-line);
-  margin-bottom: var(--p-3);
 }
-.edu-course-card__full {
+.edu-course-card__fee {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 6px;
-  font-size: var(--p-fs-body-sm, 13px);
-  color: var(--p-ink-2);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.edu-course-card__fee-label {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.3;
+  color: var(--p-ink-3);
 }
 </style>
