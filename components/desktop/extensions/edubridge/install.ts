@@ -98,7 +98,7 @@ function adminWorkspace(): IWorkspaceConfig {
     memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: t('edubridge.install.economyRouteTitle'), icon: 'payments', requires: 'EduEconomy:manage' }),
     memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: t('edubridge.install.membersRouteTitle'), icon: 'groups', requires: 'EduRegistry:read' }),
     memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: t('edubridge.install.connectorsRouteTitle'), icon: 'hub', requires: 'EduConnector:manage' }),
-    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: t('edubridge.install.adminsRouteTitle'), icon: 'admin_panel_settings', requires: 'EduAdmin:manage' }),
+    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: t('edubridge.install.adminsRouteTitle'), icon: 'admin_panel_settings', requires: 'EduAdmin:manage', hidden: true }),
   ]);
 }
 

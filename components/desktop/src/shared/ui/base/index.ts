@@ -8,6 +8,7 @@ export * from './BaseTable';
 export * from './BaseMarkupTable';
 export * from './BaseChip';
 export * from './BaseBadge';
+export * from './BaseCounter';
 export * from './BaseDialog';
 export * from './BaseBanner';
 export * from './BaseForm';

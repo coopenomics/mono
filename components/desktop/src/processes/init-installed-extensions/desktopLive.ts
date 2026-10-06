@@ -12,7 +12,8 @@ let registered = false;
  * Состав столов меняют установка и подключение расширений, гранты — роль
  * пайщика, его статус в кооперативе, подписанные соглашения и участие в
  * программах, а у Стола заказов — ещё корзина с пунктом выдачи, реестр
- * поставщиков и председатели участков. Без этого новый стол или снятое право
+ * поставщиков и председатели участков; у образования — договор преподавателя
+ * и назначение администратором. Без этого новый стол или снятое право
  * появлялись только после перезагрузки страницы.
  */
 export function registerDesktopLive(router: Router): void {
@@ -28,6 +29,9 @@ export function registerDesktopLive(router: Router): void {
       liveTable(BranchContract, BranchContract.Tables.Branches),
       { code: 'market', table: 'marketplace_cart' },
       { code: 'market', table: 'marketplace_supplier' },
+      // Образование: стол преподавателя открывает договор, стол администратора — назначение.
+      { code: 'edubridge', table: 'edubridge_teacher_contracts' },
+      { code: 'edubridge', table: 'edubridge_admins' },
     ],
     () => reloadDesktop(router),
   );

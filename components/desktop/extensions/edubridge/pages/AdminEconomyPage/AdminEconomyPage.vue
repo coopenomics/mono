@@ -20,10 +20,10 @@
           :loading="firstLoad"
         )
 
-    .text-subtitle1.q-mt-lg.q-mb-sm {{ $t('edubridge.adminEconomyPage.movementsTitle') }}
-
-    BaseTable(
-      v-if="loading || movements.length"
+    //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
+    //- фоновое обновление по ленте изменений её не прячет и не показывает заново.
+    BaseTable.q-mt-lg(
+      v-if="firstLoad || movements.length"
       :columns="movementColumns"
       :rows="movements"
       row-key="id"
@@ -36,7 +36,7 @@
         span(v-else) ______
       template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
 
-    EmptyState(
+    EmptyState.q-mt-lg(
       v-if="!firstLoad && !movements.length"
       :title="$t('edubridge.adminEconomyPage.movementsEmptyTitle')"
       :body="$t('edubridge.adminEconomyPage.movementsEmptyBody')"
@@ -84,12 +84,11 @@
               .row.justify-end
                 BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
       .col-12.col-md-7
-        BaseCard(:title="$t('edubridge.adminEconomyPage.formula.title')")
-          DataRow(:label="$t('edubridge.adminEconomyPage.formula.monthCostLabel')" :value="$t('edubridge.adminEconomyPage.formula.monthCostValue')")
-          DataRow(:label="$t('edubridge.adminEconomyPage.formula.monthFeeLabel')" :value="$t('edubridge.adminEconomyPage.formula.monthFeeValue')")
-          DataRow(:label="$t('edubridge.adminEconomyPage.formula.durationLabel')" :value="$t('edubridge.adminEconomyPage.formula.durationValue')")
-          DataRow(:label="$t('edubridge.adminEconomyPage.formula.fullCourseFeeLabel')" :value="$t('edubridge.adminEconomyPage.formula.fullCourseFeeValue')")
-          DataRow(:label="$t('edubridge.adminEconomyPage.formula.maxDiscountLabel')" :value="$t(`edubridge.adminEconomyPage.formula.maxDiscountValue`, { maxDiscount })")
+        //- Что это за взнос и на что он влияет — коротко, рядом с полем.
+        BaseCard(:title="$t('edubridge.adminEconomyPage.markupAbout.title')")
+          .t-sm.t-muted {{ $t('edubridge.adminEconomyPage.markupAbout.purpose') }}
+          DataRow.q-mt-md(:label="$t('edubridge.adminEconomyPage.markupAbout.scopeLabel')" :value="$t('edubridge.adminEconomyPage.markupAbout.scopeValue')" align="spread")
+          DataRow(:label="$t('edubridge.adminEconomyPage.markupAbout.maxDiscountLabel')" :value="`${maxDiscount}%`" align="spread")
 </template>
 
 <script setup lang="ts">

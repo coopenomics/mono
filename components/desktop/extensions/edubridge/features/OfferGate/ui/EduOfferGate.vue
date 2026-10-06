@@ -18,7 +18,14 @@
         template(#active="{ step }")
           //- Подключение начинается со ставки и рассказа о себе; документы — следом.
           EduGateProfileStep(v-if="step.key === 'profile'" :profile="profile" :symbol="symbol" @saved="onProfileSaved")
-          EduGateDocumentStep(v-else :key="step.key" v-bind="stepProps(step.key)")
+          template(v-else)
+            //- До подписи договора ставку и рассказ о себе можно поправить: возврат к первому шагу — явной кнопкой.
+            .q-mb-md(v-if="canEditProfile")
+              BaseButton(variant="ghost" size="sm" type="button" @click="editingProfile = true")
+                template(#icon-left)
+                  q-icon(name="edit" size="16px")
+                | {{ $t('edubridge.eduOfferGate.editProfileButton') }}
+            EduGateDocumentStep(:key="step.key" v-bind="stepProps(step.key)")
       EduGateDocumentStep(v-else :key="activeStep.key" v-bind="stepProps(activeStep.key)")
 </template>
 
@@ -29,7 +36,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSystemStore } from 'src/entities/System/model';
-import { BaseBanner, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { buildContractDocument, fetchMyContract, fetchMyTeacherProfile, signContract, type IContract, type IContractDraft, type ITeacherProfile } from '../../../entities/Teacher';
@@ -108,6 +115,9 @@ const activeStep = computed(() => {
   if (editingProfile.value) return steps.value.find((s) => s.key === 'profile') ?? null;
   return steps.value.find((s) => !completedKeys.value.includes(s.key)) ?? null;
 });
+
+/** Пока договор не подписан (либо отклонён, либо прекращён), преподаватель правит ставку и рассказ о себе. */
+const canEditProfile = computed(() => isTeacher.value && !contractSigned.value);
 
 /** Клик по пройденному шагу: вернуться можно только к ставке и рассказу о себе, пока договор не подписан. */
 function onStepChange(key: string): void {

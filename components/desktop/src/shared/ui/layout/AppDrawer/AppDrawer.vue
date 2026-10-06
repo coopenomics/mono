@@ -44,7 +44,7 @@ aside.rail(role='navigation', :aria-label='$t("ui.appDrawer.navAriaLabel")')
           )
             q-icon.rail__item-ico(v-if='item.icon', :name='item.icon')
             span.rail__item-label {{ item.label }}
-            span.rail__item-meta(v-if='item.badge !== undefined') {{ item.badge }}
+            BaseCounter.rail__item-counter(v-if='item.badge !== undefined', :value='item.badge')
             span.rail__item-meta(v-else-if='item.meta') {{ item.meta }}
           .rail__subnav(v-if='item.children?.length')
             component(
@@ -78,7 +78,7 @@ aside.rail(role='navigation', :aria-label='$t("ui.appDrawer.navAriaLabel")')
       )
         q-icon.rail__item-ico(v-if='item.icon', :name='item.icon')
         span.rail__item-label {{ item.label }}
-        span.rail__item-meta(v-if='item.badge !== undefined') {{ item.badge }}
+        BaseCounter.rail__item-counter(v-if='item.badge !== undefined', :value='item.badge')
         span.rail__item-meta(v-else-if='item.meta') {{ item.meta }}
       .rail__subnav(v-if='item.children?.length')
         component(
@@ -103,6 +103,7 @@ aside.rail(role='navigation', :aria-label='$t("ui.appDrawer.navAriaLabel")')
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { BaseCounter } from 'src/shared/ui/base/BaseCounter';
 import type { AppDrawerProps, RailItem, RailSection } from './AppDrawer.types';
 
 const props = defineProps<AppDrawerProps>();
@@ -163,6 +164,10 @@ const cmdkStyle = {
 </script>
 
 <style scoped>
+/* Счётчик дел прижат к правому краю пункта, как и справочная подпись. */
+.rail__item-counter {
+  margin-left: auto;
+}
 .kbd {
   display: inline-grid;
   place-items: center;
