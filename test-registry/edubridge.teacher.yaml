@@ -466,8 +466,8 @@ cases:
   - id: edu.teach.side.18
     level: backend
     kind: side
-    scenario: "Назначение на курс преподавателя со ставкой выше плановой ставки курса."
-    expect: "Отказ: взносы учеников такую ставку не покрывают; со ставкой не выше плановой назначение создаётся."
+    scenario: "Назначение на курс преподавателя, чья ставка в договоре выше плановой ставки курса; администратор называет ставку на курсе сам; правит ставку действующего допуска."
+    expect: "Допуск создаётся со ставкой на курсе, равной плановой; названная ниже договорной — действует она; названная либо исправленная выше плановой — отказ, допуск не сохраняется."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
@@ -529,9 +529,9 @@ cases:
     status: passing
   - id: edu.teacher.break.sync-01
     level: backend
-    kind: break
-    scenario: "В курс добавлен преподаватель, чья ставка выше плановой ставки курса."
-    expect: "Отказ до сохранения курса с объяснением; курс не сохраняется, допуски не выдаются."
+    kind: side
+    scenario: "В курс добавлен преподаватель, чья ставка в договоре выше плановой ставки курса."
+    expect: "Курс сохраняется, допуск выдаётся: ставку преподавателя на курсе ограничивает допуск — она равна плановой."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
@@ -594,5 +594,12 @@ cases:
     expect: "Договор находится по hash: статус и документ ложатся в запись преподавателя; контракт публикует документ на имя преподавателя."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher-contract.test.ts
+    status: written
+  - id: edu.teach.side.24
+    level: backend
+    kind: side
+    scenario: "Отчёт о занятии: по курсу оплачено учениками меньше стоимости занятия; оплаченных часов нет вовсе."
+    expect: "Сумма взноса урезается до остатка оплаченного по курсу; без оплаченных часов отчёт не принимается — средства других курсов не затрагиваются."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     status: written
 
