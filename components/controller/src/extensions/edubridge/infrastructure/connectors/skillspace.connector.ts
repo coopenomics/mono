@@ -70,13 +70,18 @@ export class SkillspaceConnector implements AccessCarrierConnector {
 
   constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
 
+  /** Адрес API: из настроек расширения, по умолчанию — площадка Skillspace. */
+  private async apiBase(): Promise<string> {
+    return ((await this.credentials.apiBase?.(this.carrier)) || SKILLSPACE_API_BASE).replace(/\/+$/, '');
+  }
+
   private async token(coopname: string): Promise<string> {
     return (await this.credentials.get(coopname, this.carrier)).api_key ?? '';
   }
 
   private async post(path: string, body: URLSearchParams): Promise<ConnectorResult> {
     try {
-      const res = await httpCall(`${SKILLSPACE_API_BASE}${path}`, {
+      const res = await httpCall(`${await this.apiBase()}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
         body,
@@ -114,7 +119,7 @@ export class SkillspaceConnector implements AccessCarrierConnector {
 
   private async getJson<T>(path: string): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string }> {
     try {
-      const res = await httpCall(`${SKILLSPACE_API_BASE}${path}`, { method: 'GET', headers: { Accept: 'application/json' } });
+      const res = await httpCall(`${await this.apiBase()}${path}`, { method: 'GET', headers: { Accept: 'application/json' } });
       if (!res.ok) {
         const apiCode = this.apiErrorCode(res.body);
         const unauthorized = res.status === 401 || apiCode === 'SCHOOL_PUBLIC_TOKEN_NOT_FOUND';

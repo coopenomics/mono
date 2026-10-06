@@ -20,6 +20,12 @@ export type ConnectorCredentials = Record<string, string>;
  */
 export interface IConnectorCredentialsSource {
   get(coopname: string, carrier: EduAccessCarrier): Promise<ConnectorCredentials>;
+  /**
+   * Базовый адрес API площадки из настроек расширения. Обычно — адрес самой
+   * площадки; подменяется на стенде, чтобы сценарии с площадкой шли против
+   * подставного узла. Нет метода либо значения — коннектор берёт адрес площадки.
+   */
+  apiBase?(carrier: EduAccessCarrier): Promise<string | undefined>;
 }
 
 export const CONNECTOR_CREDENTIALS_SOURCE = Symbol('CONNECTOR_CREDENTIALS_SOURCE');

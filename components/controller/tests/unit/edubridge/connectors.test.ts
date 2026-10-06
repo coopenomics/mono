@@ -111,4 +111,25 @@ describe('GetCourseConnector', () => {
     expect(r.found).toBe(true);
     expect(fetchMock.mock.calls[0]![0]).toContain('https://school.getcourse.ru/pl/api/account/groups?key=KEY');
   });
+
+describe('адрес API площадки из настроек расширения', () => {
+  const based = (base: Record<string, string>) =>
+    ({
+      get: async (_coop: string, carrier: string) => (carrier === 'skillspace' ? { api_key: 'TOK' } : { account: 'school', api_key: 'KEY' }),
+      apiBase: async (carrier: string) => base[carrier],
+    }) as any;
+
+  it('без настройки запрос идёт на площадку; с настройкой — на заданный адрес', async () => {
+    fetchMock.mockImplementation(() => ok({}));
+    await new SkillspaceConnector(cfg({ skillspace_api_key: 'TOK' })).grant(req);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('https://skillspace.ru/api/open/v1/');
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(() => ok({}));
+    await new SkillspaceConnector(based({ skillspace: 'http://127.0.0.1:9100/skillspace/' })).grant(req);
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/^http:\/\/127\.0\.0\.1:9100\/skillspace\/[a-z]/);
+    fetchMock.mockReset();
+    fetchMock.mockImplementation(() => ok({}));
+    await new GetCourseConnector(based({ getcourse: 'http://127.0.0.1:9100/getcourse/{account}' })).grant(req);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('http://127.0.0.1:9100/getcourse/school/pl/api/');
+  });
 });

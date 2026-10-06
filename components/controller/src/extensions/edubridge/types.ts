@@ -39,6 +39,10 @@ export interface IConfig {
    * по Положению ЦПП. По умолчанию 30%.
    */
   markup_percent: number;
+  /** Базовый адрес API Skillspace; скрытое служебное поле, по умолчанию — адрес площадки. */
+  skillspace_api_base: string;
+  /** Базовый адрес API GetCourse, `{account}` заменяется аккаунтом школы; скрытое служебное поле. */
+  getcourse_api_base: string;
 }
 
 export const defaultConfig: IConfig = {
@@ -48,6 +52,8 @@ export const defaultConfig: IConfig = {
   outbox_interval_sec: 30,
   capital_integration: true,
   markup_percent: 30,
+  skillspace_api_base: 'https://skillspace.ru/api/open/v1',
+  getcourse_api_base: 'https://{account}.getcourse.ru',
 };
 
 export const Schema = z.object({
@@ -143,6 +149,30 @@ export const Schema = z.object({
         label: 'Целевой членский взнос, %',
         // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
         note: 'Задаётся в разделе «Экономика» стола администратора.',
+        visible: false,
+      })
+    ),
+  skillspace_api_base: z
+    .string()
+    .default(defaultConfig.skillspace_api_base)
+    .describe(
+      describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        label: 'Базовый адрес API Skillspace',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        note: 'Служебное: адрес площадки; на стенде подменяется подставным узлом.',
+        visible: false,
+      })
+    ),
+  getcourse_api_base: z
+    .string()
+    .default(defaultConfig.getcourse_api_base)
+    .describe(
+      describeField({
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        label: 'Базовый адрес API GetCourse',
+        // i18n-ignore: скрытое служебное поле конфигурации (visible: false), пайщику не показывается
+        note: 'Служебное: адрес площадки, {account} заменяется аккаунтом школы; на стенде подменяется подставным узлом.',
         visible: false,
       })
     ),

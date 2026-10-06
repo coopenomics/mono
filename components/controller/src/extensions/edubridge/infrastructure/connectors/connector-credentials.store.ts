@@ -36,6 +36,11 @@ export class EdubridgeConnectorCredentialsStore implements IConnectorCredentials
     return this.legacy(carrier);
   }
 
+  async apiBase(carrier: EduAccessCarrier): Promise<string | undefined> {
+    const config = await this.config.load();
+    return (carrier === 'skillspace' ? config.skillspace_api_base : carrier === 'getcourse' ? config.getcourse_api_base : '') || undefined;
+  }
+
   /**
    * Сохранить поля: пустое значение оставляет прежнее (секрет в форме не
    * показывается, «не менять» — единственный честный смысл пустого поля).

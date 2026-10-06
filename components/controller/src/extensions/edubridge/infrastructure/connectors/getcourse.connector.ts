@@ -52,6 +52,8 @@ function classifyGetcourseBody(body: unknown, text: string): ConnectorResult {
   return { code: 'retryable', message };
 }
 
+const GETCOURSE_API_BASE = 'https://{account}.getcourse.ru';
+
 @Injectable()
 export class GetCourseConnector implements AccessCarrierConnector {
   readonly carrier = EduAccessCarrier.GETCOURSE;
@@ -62,6 +64,12 @@ export class GetCourseConnector implements AccessCarrierConnector {
   ];
 
   constructor(@Inject(CONNECTOR_CREDENTIALS_SOURCE) private readonly credentials: IConnectorCredentialsSource) {}
+
+  /** Адрес API школы: из настроек расширения, по умолчанию — площадка GetCourse; `{account}` — аккаунт школы. */
+  private async apiBase(account: string): Promise<string> {
+    const template = (await this.credentials.apiBase?.(this.carrier)) || GETCOURSE_API_BASE;
+    return template.replace('{account}', account).replace(/\/+$/, '');
+  }
 
   private async settings(coopname: string): Promise<{ account: string; key: string }> {
     const c = await this.credentials.get(coopname, this.carrier);
@@ -83,7 +91,7 @@ export class GetCourseConnector implements AccessCarrierConnector {
     ).toString('base64');
     const body = new URLSearchParams({ action: 'add', key, params });
     try {
-      const res = await httpCall(`https://${account}.getcourse.ru/pl/api/users`, {
+      const res = await httpCall(`${await this.apiBase(account)}/pl/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body,
@@ -108,7 +116,7 @@ export class GetCourseConnector implements AccessCarrierConnector {
     const { account, key } = await this.settings(coopname);
     if (!account || !key) return { ok: false, message: t('edubridge.getcourseConnector.notConfigured') };
     try {
-      const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
+      const res = await httpCall(`${await this.apiBase(account)}/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
       if (!res.ok) return { ok: false, message: `HTTP ${res.status}` };
       const count = ((res.body as { info?: { items?: unknown[] } })?.info?.items ?? []).length;
       return { ok: true, message: t('edubridge.getcourseConnector.pingOk', { count }) };
@@ -121,7 +129,7 @@ export class GetCourseConnector implements AccessCarrierConnector {
     const { account, key } = await this.settings(coopname);
     if (!account || !key) return { found: false, unavailable: true, message: t('edubridge.getcourseConnector.notConfigured') };
     try {
-      const res = await httpCall(`https://${account}.getcourse.ru/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
+      const res = await httpCall(`${await this.apiBase(account)}/pl/api/account/groups?key=${encodeURIComponent(key)}`, { method: 'GET' });
       if (!res.ok) return { found: false, unavailable: true, message: `HTTP ${res.status}` };
       const groups = ((res.body as { info?: { items?: Array<{ id: number; name: string }> } })?.info?.items ?? []) as Array<{ id: number; name: string }>;
       const group = groups.find((g) => g.name === courseRef || String(g.id) === courseRef);
