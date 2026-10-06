@@ -134,6 +134,10 @@ describe('Образование: выход из кооператива уче�
       expect(amount(closed.refunded_amount)).toBeCloseTo(refund, 4)
       expect(closed.close_pending).toBe(false)
 
+      // Подписку закрывает слушатель внутри разбора цепи: его транзакция своего блока не ждёт,
+      // и зеркало кошелька догоняет запись о закрытой подписке следующим блоком.
+      await waitFor(async () => ((await walletOf(token, learner.account, PROGRAM_WALLET)) > 0 ? true : null),
+        { timeoutMs: 60_000, intervalMs: 1_000, label: 'возврат по закрытой подписке виден на кошельке программы' })
       expect(await walletOf(token, learner.account, PROGRAM_WALLET), 'возврат лёг на кошелёк программы').toBeCloseTo(refund, 4)
       const balance = (await gql<any>(token, RETURN_BALANCE)).edubridgeReturnBalance
       expect(balance.subscriptions).toBe(0)
