@@ -6,7 +6,7 @@
   BaseInput.q-mb-md(v-model="search" :label="$t('edubridge.adminMembersPage.searchLabel')" type="search" clearable @update:model-value="debouncedLoad")
 
   BaseTable(
-    v-if="loading || rows.length"
+    v-if="firstLoad || rows.length"
     :columns="columns"
     :rows="rows"
     row-key="username"
@@ -50,7 +50,7 @@
             BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
           //- Подписка не закрылась при выходе пайщика: закрытие повторяется само, здесь — повтор сразу.
           template(#cell-actions="{ row }")
-            .row.no-wrap.items-center.justify-end.q-gutter-xs(v-if="row.close_pending")
+            .edu-row-actions(v-if="row.close_pending")
               BaseBadge(variant="neg") {{ $t('edubridge.adminMembersPage.closePending.badge') }}
                 q-tooltip(v-if="row.close_error" max-width="320px") {{ row.close_error }}
               BaseButton(variant="secondary" size="sm" :loading="closing === asText(row.id)" @click="onRetryClose(row)") {{ $t('common.action.retry') }}
@@ -207,5 +207,13 @@ onMounted(load);
 }
 .edu-member__head {
   margin-bottom: var(--p-2);
+}
+/* Действия в строке таблицы стоят в ряд с равным зазором и не переносятся. */
+.edu-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
 }
 </style>

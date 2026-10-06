@@ -4,7 +4,7 @@
     | {{ $t('edubridge.adminTeachersPage.hint.line1') }}
 
   BaseTable(
-    v-if="loading || teachers.length"
+    v-if="firstLoad || teachers.length"
     :columns="columns"
     :rows="teachers"
     row-key="username"

@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  BaseTable(v-if="loading || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="820px")
+  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="820px")
     template(#cell-lesson_number="{ row }") № {{ row.lesson_number }}
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
     template(#cell-duration_minutes="{ row }") {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}

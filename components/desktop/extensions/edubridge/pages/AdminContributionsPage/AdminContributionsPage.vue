@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
-  BaseTable(v-if="loading || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="920px")
+  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="920px")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
@@ -13,7 +13,7 @@
       //- Совет решения о приёме не принял: протокола не будет, материалы снимает председатель.
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
-      .row.no-wrap.justify-end.q-gutter-xs
+      .edu-row-actions
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="ghost" size="sm" @click="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
         BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
@@ -90,7 +90,7 @@ const columns: BaseTableColumn<IContribution>[] = [
   { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
   { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '130px', nowrap: true },
   { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '190px' },
-  { key: 'actions', label: '', align: 'right', width: '200px' },
+  { key: 'actions', label: '', align: 'right', width: '300px', nowrap: true },
 ];
 
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
@@ -181,3 +181,14 @@ useLiveReload([EduLive.contributions, EduLive.teacherContracts], load);
 
 onMounted(load);
 </script>
+
+<style scoped>
+/* Действия в строке таблицы стоят в ряд с равным зазором и не переносятся. */
+.edu-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+</style>

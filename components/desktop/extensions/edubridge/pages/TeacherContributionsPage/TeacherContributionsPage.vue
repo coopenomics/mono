@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:teacher-contributions:banner-dismissed")
     | {{ $t('edubridge.teacherContributionsPage.hint.line1') }}
 
-  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="900px")
+  BaseTable(v-if="firstLoad || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="900px")
     template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")

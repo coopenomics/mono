@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-admins:banner-dismissed")
     | {{ $t('edubridge.adminAdminsPage.hint') }}
 
-  BaseTable(v-if="loading || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="720px")
+  BaseTable(v-if="firstLoad || items.length" :columns="columns" :rows="items" row-key="id" :loading="firstLoad" min-width="720px")
     template(#cell-admin="{ row }")
       IdentityCell(:account-name="row.username" :full-name="row.display_name || null")
     template(#cell-appointed_by="{ row }")

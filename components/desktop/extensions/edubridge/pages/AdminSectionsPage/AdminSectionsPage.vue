@@ -4,7 +4,7 @@
     | {{ $t('edubridge.adminSectionsPage.hint.line1') }}
 
   .row.justify-end.q-mb-md(v-if="hasArchived")
-    q-toggle(v-model="showArchived" dense :label="$t('edubridge.adminSectionsPage.showArchived')")
+    BaseCheckbox(v-model="showArchived") {{ $t('edubridge.adminSectionsPage.showArchived') }}
 
   CardListSkeleton(v-if="firstLoad" :count="2")
   EmptyState(v-else-if="!visible.length" :title="$t('edubridge.adminSectionsPage.emptyTitle')" :body="$t('edubridge.adminSectionsPage.emptyBody')")
@@ -68,7 +68,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseCheckbox, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseInput, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import {
   archiveLevel,

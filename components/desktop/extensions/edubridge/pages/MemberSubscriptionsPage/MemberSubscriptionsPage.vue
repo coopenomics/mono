@@ -6,7 +6,7 @@
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
-    BaseTable(v-if="loading || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="820px")
+    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="960px")
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
       template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
@@ -15,7 +15,7 @@
       template(#cell-access_state="{ row }")
         BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
       template(#cell-actions="{ row }")
-        .row.no-wrap.justify-end.q-gutter-xs
+        .edu-row-actions
           BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
           //- Пока заявление по гарантии у совета, обычная отмена закрыта: возврат по подписке один.
           .t-meta.t-muted(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
@@ -111,7 +111,7 @@ const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
   { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '120px', nowrap: true },
   { key: 'access_state', label: t('edubridge.memberSubscriptionsPage.columns.accessState'), width: '130px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '110px' },
+  { key: 'actions', label: '', align: 'right', width: '230px', nowrap: true },
 ];
 
 const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';
@@ -194,3 +194,14 @@ useLiveReload([EduLive.enrollments, EduLive.learners, EduLive.courses, EduLive.g
 
 onMounted(load);
 </script>
+
+<style scoped>
+/* Действия в строке таблицы стоят в ряд с равным зазором и не переносятся. */
+.edu-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--p-2);
+}
+</style>
