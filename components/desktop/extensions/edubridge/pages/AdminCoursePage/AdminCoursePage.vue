@@ -55,22 +55,22 @@
 
       .col-12.col-md-4
         .edu-course__side
-          //- Из чего сложился взнос и покрывает ли он обязательства перед теми,
-          //- кто курс ведёт: плановый расчёт против ставок преподавателей.
-          BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
-            DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
-            DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
-            DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
-            DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
-            BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
-              template(#icon)
-                q-icon(name="warning_amber")
-              | {{ $t('edubridge.adminCoursePage.overFeeWarning') }}
-
           BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.teachersTitle')")
             .edu-course__teachers(v-if="course.teacher_usernames.length")
               IdentityCell(v-for="username in course.teacher_usernames" :key="username" :account-name="username" :full-name="fioCache.get(username) || null")
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
+
+          //- План против факта: плановая ставка часа, сумма часов месяца по ней и
+          //- та же сумма по ставкам из договоров преподавателей; затем взнос кооператива.
+          BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
+            DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
+            DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+            BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
+              template(#icon)
+                q-icon(name="warning_amber")
+              | {{ $t('edubridge.adminCoursePage.overFeeWarning') }}
 
           BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.accessTitle')")
             DataRow(:label="$t('edubridge.adminCoursePage.directionLabel')" :value="directionLabel" align="spread")
