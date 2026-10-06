@@ -15,6 +15,7 @@ function make(contracts: string[] = ['teach']) {
   const courses = {
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (c: any) => { saved.push(c); return c; }),
+    remove: jest.fn(async () => 1),
     // Сохранённое перечитывается после записи (раздел и уровень подгружаются связями).
     findById: jest.fn(async (_coop: string, id: string) => saved.find((c) => c.id === id) ?? ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
   } as any;
@@ -39,7 +40,9 @@ function make(contracts: string[] = ['teach']) {
   const sections = { assertForCourse: jest.fn(async () => undefined) } as any;
   // Действующие подписки курса: с ними взнос и плановая ставка не меняются.
   const enrollments = { findByCourse: jest.fn(async () => enrollmentsOfCourse.list) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments), enrollmentsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
+  const lessonsOfCourse: { list: any[] } = { list: [] };
+  const lessons = { findByCourse: jest.fn(async () => lessonsOfCourse.list) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons), enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
 }
 
 const base = {
@@ -265,5 +268,22 @@ describe('EdubridgeCourseService — обложка курса', () => {
     await expect(service.update('voskhod', 'ant', { ...base, id: 'C1' })).resolves.toBeDefined();
     enrollmentsOfCourse.list = [{ status: 'cancelled' }];
     await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', planned_hourly_rate: '2000.0000 RUB' })).resolves.toBeDefined();
+  });
+
+  it('удаляется только курс без подписок и занятий — вместе с допусками и обложкой', async () => {
+    const { service, courses, teachers, images, enrollmentsOfCourse, lessonsOfCourse } = make();
+    teachers.deleteAssignmentsOfCourse = jest.fn(async () => 1);
+    courses.findById.mockImplementation(async () => ({ id: 'C1', status: EduCourseStatus.DRAFT, image: { bucket_key: 'courses/voskhod/1.jpg' } }));
+    enrollmentsOfCourse.list = [{ status: 'expired' }];
+    await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS' });
+    enrollmentsOfCourse.list = [];
+    lessonsOfCourse.list = [{ id: 'L1' }];
+    await expect(service.remove('voskhod', 'C1')).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_DELETE_HAS_LESSONS' });
+    expect(courses.remove).not.toHaveBeenCalled();
+    lessonsOfCourse.list = [];
+    await service.remove('voskhod', 'C1');
+    expect(teachers.deleteAssignmentsOfCourse).toHaveBeenCalledWith('voskhod', 'C1');
+    expect(courses.remove).toHaveBeenCalledWith('voskhod', 'C1');
+    expect(images.deleteImage).toHaveBeenCalledWith('courses/voskhod/1.jpg');
   });
 });

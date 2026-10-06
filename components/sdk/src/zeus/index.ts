@@ -13350,6 +13350,7 @@ edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -29728,6 +29729,7 @@ edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},R
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
@@ -45693,6 +45695,8 @@ export type ModelTypes = {
 	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
+	/** Удалить курс без подписок и занятий */
+	edubridgeDeleteCourse: boolean,
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
@@ -62662,6 +62666,8 @@ export type GraphQLTypes = {
 	edubridgeCreateExpense: string,
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
+	/** Удалить курс без подписок и занятий */
+	edubridgeDeleteCourse: boolean,
 	/** Снять администратора */
 	edubridgeDismissAdmin: boolean,
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */

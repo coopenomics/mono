@@ -82,6 +82,11 @@ export class EdubridgeCourseKyselyRepository {
     return this.repo.create(data);
   }
 
+  /** Строка курса стирается; допуски и обложку убирает сервис курсов. */
+  remove(coopname: string, id: string): Promise<number> {
+    return this.repo.delete({ coopname, id });
+  }
+
   async save(entity: EdubridgeCourseRecord): Promise<EdubridgeCourseRecord> {
     // Раздел и уровень — связи справочника: шлюз пишет только свои колонки, а
     // после сохранения связи подгружаются заново — у курса мог смениться раздел.

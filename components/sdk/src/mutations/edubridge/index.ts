@@ -55,6 +55,7 @@ export * as WithdrawShare from './withdrawShare'
 export * as CreateAssignment from './createAssignment'
 /** Закрыть назначение */
 export * as CloseAssignment from './closeAssignment'
+export * as DeleteCourse from './deleteCourse'
 export * as SetAssignmentRate from './setAssignmentRate'
 /** Отклонить взнос РИД */
 export * as DeclineContribution from './declineContribution'

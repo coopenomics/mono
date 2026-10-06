@@ -23,15 +23,19 @@
           BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
           BaseButton(v-if="published" variant="primary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
           BaseButton(v-else variant="primary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
-          //- Отмена набора — решение с последствиями, поэтому она лежит под
-          //- кнопкой «ещё», а не рядом с обычными действиями.
-          BaseButton(v-if="!started" variant="ghost" icon-only :aria-label="$t('edubridge.adminCoursePage.moreActionsAriaLabel')")
+          //- Отмена набора и удаление — решения с последствиями, поэтому они лежат
+          //- под кнопкой «ещё», а не рядом с обычными действиями. Меню — в слоте
+          //- #menu: содержимое кнопки-иконки не рисуется.
+          BaseButton(variant="ghost" icon-only :aria-label="$t('edubridge.adminCoursePage.moreActionsAriaLabel')")
             template(#icon-left)
               q-icon(name="more_horiz" size="20px")
-            q-menu(anchor="bottom right" self="top right")
-              q-list.edu-course__menu(dense)
-                q-item(clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
-                  q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
+            template(#menu)
+              q-menu(anchor="bottom right" self="top right")
+                q-list.edu-course__menu(dense)
+                  q-item(v-if="!started" clickable v-close-popup :disable="cancelling" @click="cancelUnderfilled")
+                    q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
+                  q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
+                    q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
       CourseHeroFigure(:caption="$t('edubridge.adminCoursePage.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
       CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
@@ -104,7 +108,7 @@ import {
   CARRIER_LABELS,
   COURSE_STATUS_LABELS,
   DIRECTION_LABELS,
-  cancelCourseUnderfilled,
+  cancelCourseUnderfilled, deleteCourse,
   fetchCourse,
   setCourseStatus,
   type ICourse,
@@ -205,6 +209,30 @@ async function cancelUnderfilled(): Promise<void> {
     FailAlert(e);
   } finally {
     cancelling.value = false;
+  }
+}
+
+const deleting = ref(false);
+
+/** Удаляется курс, по которому ничего не происходило; при подписках и занятиях сервер откажет и объяснит. */
+async function removeCourse(): Promise<void> {
+  if (!course.value) return;
+  const agreed = await confirm({
+    title: t('edubridge.adminCoursePage.deleteConfirmTitle'),
+    message: t('edubridge.adminCoursePage.deleteConfirmMessage', { courseTitle: course.value.title }),
+    confirmLabel: t('edubridge.adminCoursePage.deleteConfirmButton'),
+    danger: true,
+  });
+  if (!agreed) return;
+  deleting.value = true;
+  try {
+    await deleteCourse(asText(course.value.id));
+    SuccessAlert(t('edubridge.adminCoursePage.deletedSuccess'));
+    goBack();
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    deleting.value = false;
   }
 }
 

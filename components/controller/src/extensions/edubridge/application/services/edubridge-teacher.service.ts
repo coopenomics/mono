@@ -378,10 +378,7 @@ export class EdubridgeTeacherService {
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
     const contract = await this.assertCanTeach(coopname, input.teacher_username.trim());
-    // Ставка на курсе: названная администратором либо ставка из договора, но не выше плановой.
-    const hourlyRate = input.hourly_rate || rateForCourse(contract.hourly_rate, course.planned_hourly_rate);
-    const rateError = rateCoverageError(hourlyRate, course.planned_hourly_rate);
-    if (rateError) throw rateError;
+    const hourlyRate = rateOnCourse(input.hourly_rate, contract.hourly_rate, course.planned_hourly_rate);
     const entity = this.teachers.createAssignment({
       coopname,
       teacher_username: input.teacher_username.trim(),
@@ -433,6 +430,16 @@ export class EdubridgeTeacherService {
     return this.teachers.saveAssignment(a);
   }
 
+  /** Плановая ставка курса снижена — ставки действующих допусков опускаются до неё. */
+  private async capAssignmentRates(course: EdubridgeCourseRecord, assignments: EdubridgeTeacherAssignmentRecord[]): Promise<void> {
+    for (const a of assignments) {
+      if (a.status !== EduAssignmentStatus.ACTIVE || !rateCoverageError(a.hourly_rate, course.planned_hourly_rate)) continue;
+      a.hourly_rate = course.planned_hourly_rate;
+      await this.teachers.saveAssignment(a);
+      this.logger.info(`Ставка на курсе опущена до плановой: ${a.teacher_username} → «${course.title}»`);
+    }
+  }
+
   /**
    * Допуски по списку «Курс ведут». Преподаватель, добавленный в курс, сразу
    * получает действующее назначение и видит курс на своём столе; у убранного
@@ -442,14 +449,7 @@ export class EdubridgeTeacherService {
     const listed = new Set(course.teacher_usernames ?? []);
     const forCourse = (await this.teachers.listAssignments(coopname)).filter((a) => a.course_id === course.id);
     const period = coursePeriod(course);
-    // Плановая ставка курса снижена — ставки действующих допусков опускаются до неё.
-    for (const a of forCourse) {
-      if (a.status === EduAssignmentStatus.ACTIVE && listed.has(a.teacher_username) && rateCoverageError(a.hourly_rate, course.planned_hourly_rate)) {
-        a.hourly_rate = course.planned_hourly_rate;
-        await this.teachers.saveAssignment(a);
-        this.logger.info(`Ставка на курсе опущена до плановой: ${a.teacher_username} → «${course.title}»`);
-      }
-    }
+    await this.capAssignmentRates(course, forCourse.filter((a) => listed.has(a.teacher_username)));
     for (const teacher of listed) {
       if (forCourse.some((a) => a.teacher_username === teacher && a.status !== EduAssignmentStatus.CLOSED)) continue;
       await this.createAssignment(coopname, {
@@ -1212,6 +1212,17 @@ const PENDING_CONTRIBUTION_STATUSES = [
   EduContributionStatus.COUNCIL_APPROVED,
   EduContributionStatus.ACT_SIGNED,
 ];
+
+/**
+ * Ставка преподавателя на курсе при назначении: названная администратором
+ * либо ставка из договора, но не выше плановой; названная выше плановой — отказ.
+ */
+export function rateOnCourse(named: string | null | undefined, contractRate: string, plannedRate: string): string {
+  const rate = named || rateForCourse(contractRate, plannedRate);
+  const error = rateCoverageError(rate, plannedRate);
+  if (error) throw error;
+  return rate;
+}
 
 /** Ставка преподавателя на курсе по умолчанию: из договора, но не выше плановой ставки курса. */
 export function rateForCourse(contractRate: string, plannedRate: string): string {

@@ -20,6 +20,7 @@ import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeTeacherService, grantsTeaching, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -64,7 +65,8 @@ export class EdubridgeCourseService {
     private readonly economy: EdubridgeEconomyService,
     private readonly teacherService: EdubridgeTeacherService,
     private readonly sections: EdubridgeSectionsService,
-    private readonly enrollments: EdubridgeEnrollmentKyselyRepository
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly lessons: EdubridgeLessonKyselyRepository
   ) {}
 
   /**
@@ -200,6 +202,21 @@ export class EdubridgeCourseService {
       if (e instanceof DomainError) throw e;
       throw DomainError.badRequest('EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED');
     }
+  }
+
+  /**
+   * Удаление курса. Стирается только курс, по которому ничего не происходило:
+   * ни одной подписки и ни одного занятия. У курса с историей остаются
+   * документы, взносы и расчёты с преподавателями — такой курс снимается с
+   * публикации, а не удаляется.
+   */
+  async remove(coopname: string, id: string): Promise<void> {
+    const course = await this.get(coopname, id);
+    if ((await this.enrollments.findByCourse(coopname, id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_SUBSCRIPTIONS');
+    if ((await this.lessons.findByCourse(coopname, id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_DELETE_HAS_LESSONS');
+    await this.teachers.deleteAssignmentsOfCourse(coopname, id);
+    await this.courses.remove(coopname, id);
+    if (course.image) await this.images.deleteImage(course.image.bucket_key).catch(() => undefined);
   }
 
   async setStatus(coopname: string, id: string, status: EduCourseStatus): Promise<EdubridgeCourseRecord> {

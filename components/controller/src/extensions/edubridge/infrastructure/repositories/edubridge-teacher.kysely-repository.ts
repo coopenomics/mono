@@ -64,6 +64,11 @@ export class EdubridgeTeacherKyselyRepository {
     return this.assignments.save(a);
   }
 
+  /** Допуски удаляемого курса: курс без подписок и занятий стирается вместе с ними. */
+  deleteAssignmentsOfCourse(coopname: string, courseId: string): Promise<number> {
+    return this.assignments.delete({ coopname, course_id: courseId });
+  }
+
   listContributions(coopname: string, filter: { teacher?: string; statuses?: EduContributionStatus[] } = {}): Promise<EdubridgeContributionRecord[]> {
     return this.contributions.find({
         coopname,

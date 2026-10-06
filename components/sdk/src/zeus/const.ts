@@ -2073,6 +2073,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeDeclineContribution:{
 			data:"EduDeclineContributionInput"
 		},
+		edubridgeDeleteCourse:{
+
+		},
 		edubridgeDismissAdmin:{
 			data:"EduAdminInput"
 		},
@@ -7682,6 +7685,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeCreateExpense:"String",
 		edubridgeDeclineContribution:"EduContribution",
+		edubridgeDeleteCourse:"Boolean",
 		edubridgeDismissAdmin:"Boolean",
 		edubridgeGuaranteeStatement:"GeneratedDocument",
 		edubridgeHoldContribution:"EduContribution",

@@ -90,6 +90,14 @@ export class EdubridgeCourseAdminResolver {
     return cancelled.length;
   }
 
+  @Mutation(() => Boolean, { name: 'edubridgeDeleteCourse', description: 'Удалить курс без подписок и занятий' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
+  async edubridgeDeleteCourse(@Args('id', { type: () => ID }) id: string): Promise<boolean> {
+    await this.courses.remove(platformSettings().coopname, id);
+    return true;
+  }
+
   @Mutation(() => EduCourseDTO, { name: 'edubridgeSetCourseStatus', description: 'Опубликовать, снять с публикации или архивировать курс' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduCourse', 'manage')

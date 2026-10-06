@@ -146,6 +146,11 @@
       "cancelledWithRefunds": "Курс отменён, возвращено подписок: {count}",
       "carrierLabel": "Площадка",
       "costMonthLabel": "По плановой ставке в месяц",
+      "deleteConfirmButton": "Удалить",
+      "deleteConfirmMessage": "Курс «{courseTitle}» будет удалён без возможности восстановления.",
+      "deleteConfirmTitle": "Удалить курс",
+      "deleteMenuItem": "Удалить курс",
+      "deletedSuccess": "Курс удалён",
       "descriptionEmpty": "Описание не заполнено — в каталоге его место останется пустым.",
       "directionLabel": "Направление",
       "economyHelp": {

@@ -63,6 +63,11 @@ export async function updateCourse(data: IUpdateCourseInput) {
 }
 
 /** Отмена курса по недобору: подписки закрываются, взносы возвращаются на паевой. */
+/** Удаление курса без подписок и занятий; курс с историей сервер не удаляет. */
+export async function deleteCourse(id: string): Promise<void> {
+  await client.Mutation(Mutations.Edubridge.DeleteCourse.mutation, { variables: { id } });
+}
+
 export async function cancelCourseUnderfilled(course_id: string) {
   const { [Mutations.Edubridge.CancelCourseUnderfilled.name]: result } = await client.Mutation(
     Mutations.Edubridge.CancelCourseUnderfilled.mutation,
