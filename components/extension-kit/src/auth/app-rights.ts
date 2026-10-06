@@ -56,8 +56,23 @@ export interface AppRights<R extends string = string, C extends string = string>
    */
   readonly lazyConditions?: readonly C[];
 
+  /**
+   * Роли гостя — вызова без входа. Не названы — операция с требованием права
+   * без входа получает отказ входа. Названы — гость сверяется с таблицей как
+   * пайщик с этими ролями (охват «своё» ему закрыт: имени у гостя нет).
+   */
+  readonly guestRoles?: readonly R[];
+  /** Код отказа «права нет»; по умолчанию `KIT_INSUFFICIENT_RIGHTS`. */
+  readonly noRightDenial?: string;
+
   /** Роли приложения у пайщика. `request` — запрос, если роли уже посчитал гард членства. */
   roles(caller: RightsCaller, request?: unknown): Promise<R[]>;
+  /**
+   * Вызывается гардом на каждый запрос операции, стоящей под ним, до сверки
+   * права — и для операций без требования. Приложение кладёт в запрос то, что
+   * нужно его операциям о вошедшем (членство, роли); `caller` — null для гостя.
+   */
+  onRequest?(caller: RightsCaller | null, request: unknown): Promise<void>;
   /**
    * Какие из условий `wanted` выполнены. `config` — настройки расширения,
    * когда вызывающий их уже прочитал.
@@ -182,8 +197,8 @@ export async function checkRight<R extends string, C extends string>(
   const actions = Array.isArray(requirement.action) ? requirement.action : [requirement.action];
   const { granted, missing } = await grantedActions(def, caller, roles, requirement.resource, actions);
   if (granted.length === 0) {
-    if (missing === undefined) return { allowed: false, reason: 'right', denial: NO_RIGHT };
-    return { allowed: false, reason: 'condition', denial: def.conditionDenials?.[missing] ?? NO_RIGHT };
+    if (missing === undefined) return { allowed: false, reason: 'right', denial: def.noRightDenial ?? NO_RIGHT };
+    return { allowed: false, reason: 'condition', denial: def.conditionDenials?.[missing] ?? def.noRightDenial ?? NO_RIGHT };
   }
   const scope = await checkRightScope({
     resource: requirement.resource,
@@ -275,10 +290,13 @@ export class RightsGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!requirement) return true;
-
     const gql = GqlExecutionContext.create(context);
     const request = gql.getContext()?.req;
+    const user = request?.user as { username?: string; role?: string; status?: string } | undefined;
+    const signedIn: RightsCaller | null = user?.username ? { username: user.username, role: user.role, status: user.status } : null;
+    if (this.def.onRequest) await this.def.onRequest(signedIn, request);
+    if (!requirement) return true;
+
     // Межсервисный вызов работает по всему кооперативу.
     if (hasServerSecret(request?.headers)) {
       const everything: IGrantedScope = { scopes: ['all'], kus: null };
@@ -286,15 +304,15 @@ export class RightsGuard implements CanActivate {
       return true;
     }
 
-    const user = request?.user as { username?: string; role?: string; status?: string } | undefined;
-    if (!user?.username) throw DomainError.unauthorized('KIT_USER_NOT_AUTHORIZED');
-    const caller: RightsCaller = { username: user.username, role: user.role, status: user.status };
-    const roles = await this.def.roles(caller, request);
+    if (!signedIn && !this.def.guestRoles) throw DomainError.unauthorized('KIT_USER_NOT_AUTHORIZED');
+    // Гость сверяется с таблицей по ролям гостя; имени у него нет, охват «своё» ему закрыт.
+    const caller: RightsCaller = signedIn ?? { username: '' };
+    const roles = signedIn ? await this.def.roles(caller, request) : [...(this.def.guestRoles ?? [])];
     const outcome = await checkRight(this.def, caller, roles, requirement, gql.getArgs<Record<string, unknown>>() ?? {});
     if (!outcome.allowed) {
       const actions = Array.isArray(requirement.action) ? requirement.action.join('|') : requirement.action;
       this.logger.warn(
-        `forbidden-attempt: member=${caller.username} extension=${this.def.extensionName} operation=${context.getClass()?.name}.${context.getHandler()?.name} right=${requirement.resource}:${actions} reason=${outcome.reason} denial=${outcome.denial} roles=[${roles.join(', ')}]`
+        `forbidden-attempt: member=${caller.username || 'guest'} extension=${this.def.extensionName} operation=${context.getClass()?.name}.${context.getHandler()?.name} right=${requirement.resource}:${actions} reason=${outcome.reason} denial=${outcome.denial} roles=[${roles.join(', ')}]`
       );
       throw DomainError.forbidden(outcome.denial);
     }

@@ -1,9 +1,8 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import { EduOnboardingStateDTO, EduSignOfferInputDTO } from '../dto/edu-onboarding.dto';
-import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeOnboardingService } from '../services/edubridge-onboarding.service';
 
@@ -14,13 +13,13 @@ export class EdubridgeOnboardingResolver {
   constructor(private readonly onboarding: EdubridgeOnboardingService) {}
 
   @Query(() => EduOnboardingStateDTO, { name: 'edubridgeOnboardingState', description: 'Подписаны ли оферты ученика и преподавателя' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
   edubridgeOnboardingState(@CurrentEduMember() member: IEdubridgeMembership): Promise<EduOnboardingStateDTO> {
     return this.onboarding.getState(platformSettings().coopname, member.username as string);
   }
 
   @Mutation(() => EduOnboardingStateDTO, { name: 'edubridgeSignOffer', description: 'Подписать оферту ЦПП «Образование» со стола' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
   edubridgeSignOffer(
     @CurrentEduMember() member: IEdubridgeMembership,
     @Args('input') input: EduSignOfferInputDTO

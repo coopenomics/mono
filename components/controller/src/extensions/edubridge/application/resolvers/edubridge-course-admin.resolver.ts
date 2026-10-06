@@ -1,7 +1,13 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, PaginationInputDTO, platformSettings, type PaginationResult } from '@coopenomics/extension-kit';
-import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
+import {
+  GqlJwtAuthGuard,
+  PaginationInputDTO,
+  platformSettings,
+  type PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import {
   EduCourseDTO,
   EduCourseInputDTO,
@@ -13,7 +19,6 @@ import {
   PaginatedEduCoursesDTO,
 } from '../dto/edu-course.dto';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
-import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeCourseService } from '../services/edubridge-course.service';
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
@@ -29,8 +34,8 @@ export class EdubridgeCourseAdminResolver {
   ) {}
 
   @Query(() => PaginatedEduCoursesDTO, { name: 'edubridgeCourses', description: 'Курсы кооператива во всех состояниях' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeCourses(
     @Args('filter', { nullable: true }) filter?: EduCoursesFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -40,36 +45,36 @@ export class EdubridgeCourseAdminResolver {
   }
 
   @Query(() => EduCourseDTO, { name: 'edubridgeCourse', description: 'Курс со служебными полями' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.get(platformSettings().coopname, id));
   }
 
   @Query(() => [EduTeacherOptionDTO], { name: 'edubridgeTeacherOptions', description: 'Преподаватели, которых можно назначить на курс' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   edubridgeTeacherOptions(): Promise<EduTeacherOptionDTO[]> {
     return this.courses.teacherOptions(platformSettings().coopname);
   }
 
   @Query(() => [EduPlatformCourseDTO], { name: 'edubridgePlatformCourses', description: 'Курсы и группы на площадке кооператива — для привязки курса каталога' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   edubridgePlatformCourses(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
     return this.courses.platformCourses(platformSettings().coopname, carrier);
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeCreateCourse', description: 'Добавить курс (черновик)' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeCreateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduCourseInputDTO): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.create(platformSettings().coopname, m.username as string, data));
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeUpdateCourse', description: 'Изменить курс' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeUpdateCourse(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduUpdateCourseInputDTO): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.update(platformSettings().coopname, m.username as string, data));
   }
@@ -78,16 +83,16 @@ export class EdubridgeCourseAdminResolver {
     name: 'edubridgeCancelCourseUnderfilled',
     description: 'Отменить курс по недобору: подписки закрываются, взносы возвращаются участникам на паевой',
   })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeCancelCourseUnderfilled(@Args('course_id', { type: () => ID }) courseId: string): Promise<number> {
     const cancelled = await this.enrollments.cancelCourse(platformSettings().coopname, courseId);
     return cancelled.length;
   }
 
   @Mutation(() => EduCourseDTO, { name: 'edubridgeSetCourseStatus', description: 'Опубликовать, снять с публикации или архивировать курс' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCourse', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCourse', 'manage')
   async edubridgeSetCourseStatus(@Args('data') data: EduSetCourseStatusInputDTO): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.setStatus(platformSettings().coopname, data.id, data.status));
   }

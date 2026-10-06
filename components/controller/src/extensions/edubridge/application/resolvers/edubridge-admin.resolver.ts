@@ -1,9 +1,8 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { GqlJwtAuthGuard, platformSettings } from '@coopenomics/extension-kit';
+import { GqlJwtAuthGuard, platformSettings, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { canAccess } from '../access/edubridge-access-matrix';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
-import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
 import {
   EduAccessTaskDTO,
   EduAdminDTO,
@@ -18,7 +17,6 @@ import {
   EduSetConnectorCredentialsInputDTO,
 } from '../dto/edu-admin.dto';
 import { EduAccessCarrier } from '../../domain/enums';
-import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeAdminService } from '../services/edubridge-admin.service';
 import { EdubridgeEnrollmentService } from '../services/edubridge-enrollment.service';
@@ -43,92 +41,92 @@ export class EdubridgeAdminResolver {
 
   // Права проверяются по каждому числу отдельно: недоступный раздел даёт ноль.
   @Query(() => EduAttentionDTO, { name: 'edubridgeAttention', description: 'Сколько дел ждёт администратора — числа на пунктах меню' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
   edubridgeAttention(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduAttentionDTO> {
     return this.attention.summary(coop(), m.roles);
   }
 
   @Query(() => [EduMemberRowDTO], { name: 'edubridgeMembers', description: 'Ученики приложения: у каждого свои обучающиеся и подписки' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduRegistry', 'read')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduRegistry', 'read')
   edubridgeMembers(@Args('search', { type: () => String, nullable: true }) search?: string): Promise<EduMemberRowDTO[]> {
     return this.admin.members(coop(), search ?? undefined);
   }
 
   @Query(() => EduMemberCardDTO, { name: 'edubridgeMemberCard', description: 'Сводная карточка пайщика: обучающиеся, курсы, оплаты, выдача' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduRegistry', 'read')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduRegistry', 'read')
   edubridgeMemberCard(@CurrentEduMember() m: IEdubridgeMembership, @Args('username', { type: () => String }) username: string): Promise<EduMemberCardDTO> {
     return this.admin.memberCard(coop(), username, canAccess(m.roles, 'EduContacts', 'read'));
   }
 
   @Query(() => [EduAccessTaskDTO], { name: 'edubridgeQueue', description: 'Очередь выдачи доступа и застрявшие задачи' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduQueue', 'read')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduQueue', 'read')
   edubridgeQueue(@Args('filter', { nullable: true }) filter?: EduQueueFilterInputDTO): Promise<EduAccessTaskDTO[]> {
     return this.admin.queue(coop(), filter?.statuses);
   }
 
   @Mutation(() => EduAccessTaskDTO, { name: 'edubridgeRetryTask', description: 'Повторить задачу выдачи/отзыва доступа' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduQueue', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduQueue', 'manage')
   edubridgeRetryTask(@Args('data') data: EduRetryTaskInputDTO): Promise<EduAccessTaskDTO> {
     return this.admin.retry(coop(), data.task_id);
   }
 
   @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeRetryEnrollmentClose', description: 'Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduQueue', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduQueue', 'manage')
   async edubridgeRetryEnrollmentClose(@Args('data') data: EduRetryEnrollmentCloseInputDTO): Promise<EduEnrollmentDTO> {
     const saved = await this.enrollments.retryClose(coop(), data.enrollment_id);
     return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
   }
 
   @Query(() => [EduConnectorBindingDTO], { name: 'edubridgeConnectors', description: 'Площадки и их состояние (ключи не выдаются)' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduConnector', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduConnector', 'manage')
   edubridgeConnectors(): Promise<EduConnectorBindingDTO[]> {
     return this.admin.connectorsState(coop());
   }
 
   @Mutation(() => EduConnectorBindingDTO, { name: 'edubridgeCheckConnector', description: 'Проверить площадку сейчас' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduConnector', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduConnector', 'manage')
   edubridgeCheckConnector(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduConnectorBindingDTO> {
     return this.admin.checkConnector(coop(), carrier);
   }
 
   @Mutation(() => EduConnectorBindingDTO, { name: 'edubridgeSetConnectorEnabled', description: 'Включить или выключить площадку' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduConnector', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduConnector', 'manage')
   edubridgeSetConnectorEnabled(@Args('data') data: EduSetConnectorEnabledInputDTO): Promise<EduConnectorBindingDTO> {
     return this.admin.setConnectorEnabled(coop(), data.carrier, data.enabled);
   }
 
   @Mutation(() => EduConnectorBindingDTO, { name: 'edubridgeSetConnectorCredentials', description: 'Задать ключи подключения площадки (владелец); значения шифруются и наружу не выдаются' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduConnector', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduConnector', 'manage')
   edubridgeSetConnectorCredentials(@Args('data') data: EduSetConnectorCredentialsInputDTO): Promise<EduConnectorBindingDTO> {
     return this.admin.setConnectorCredentials(coop(), data.carrier, data.values);
   }
 
   @Query(() => [EduAdminDTO], { name: 'edubridgeAdmins', description: 'Администраторы приложения' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAdmin', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduAdmin', 'manage')
   edubridgeAdmins(): Promise<EduAdminDTO[]> {
     return this.admin.listAdmins(coop());
   }
 
   @Mutation(() => EduAdminDTO, { name: 'edubridgeAppointAdmin', description: 'Назначить администратора' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAdmin', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduAdmin', 'manage')
   async edubridgeAppointAdmin(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduAdminInputDTO): Promise<EduAdminDTO> {
     return this.admin.appoint(coop(), data.username, m.username as string);
   }
 
   @Mutation(() => Boolean, { name: 'edubridgeDismissAdmin', description: 'Снять администратора' })
-  @UseGuards(GqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduAdmin', 'manage')
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduAdmin', 'manage')
   edubridgeDismissAdmin(@Args('data') data: EduAdminInputDTO): Promise<boolean> {
     return this.admin.dismiss(coop(), data.username);
   }

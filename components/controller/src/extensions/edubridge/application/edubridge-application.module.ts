@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { bucketProvidersFor } from '@coopenomics/extension-kit';
+import { bucketProvidersFor, APP_RIGHTS, RightsGuard } from '@coopenomics/extension-kit';
 import { FILE_STORAGE_PORT } from '@coopenomics/innercoop';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EdubridgeDatabaseModule } from '../infrastructure/database/edubridge-database.module';
@@ -27,8 +27,7 @@ import { EdubridgeGuaranteeService } from './services/edubridge-guarantee.servic
 import { EdubridgeGuaranteeClaimKyselyRepository } from '../infrastructure/repositories/edubridge-guarantee-claim.kysely-repository';
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
-import { EdubridgeDesktopGrantsProvider } from './desktop/edubridge-desktop-grants.provider';
-import { EdubridgeAccessGuard } from './guards/edubridge-access.guard';
+import { EdubridgeRights } from './access/edubridge-rights';
 import { EdubridgeMembershipService } from './membership/edubridge-membership.service';
 import { EdubridgeNamesService } from './membership/edubridge-names.service';
 import { EDUBRIDGE_ROLE_FACTS_PORT } from './membership/edubridge-role-facts.port';
@@ -81,8 +80,10 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeUdataParametersAdapter,
     EdubridgeMembershipService,
     EdubridgeNamesService,
-    EdubridgeAccessGuard,
-    EdubridgeDesktopGrantsProvider,
+    // Права: описание для общего гарда операций и прав страниц стола
+    EdubridgeRights,
+    { provide: APP_RIGHTS, useExisting: EdubridgeRights },
+    RightsGuard,
     EdubridgeCapitalNarrowingPolicy,
     // Репозитории и адаптеры
     EdubridgeCourseKyselyRepository,

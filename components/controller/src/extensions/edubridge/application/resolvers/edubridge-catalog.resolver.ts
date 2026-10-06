@@ -1,13 +1,18 @@
 import { Injectable, UseGuards } from '@nestjs/common';
 import { Args, ID, Query, Resolver } from '@nestjs/graphql';
-import { OptionalGqlJwtAuthGuard, PaginationInputDTO, platformSettings, type PaginationResult } from '@coopenomics/extension-kit';
-import { RequireEduAccess } from '../decorators/edubridge-access.decorator';
+import {
+  OptionalGqlJwtAuthGuard,
+  PaginationInputDTO,
+  platformSettings,
+  type PaginationResult,
+  RequireRight,
+  RightsGuard,
+} from '@coopenomics/extension-kit';
 import {
   EduCatalogCourseDTO,
   EduCatalogFilterInputDTO,
   PaginatedEduCatalogCoursesDTO,
 } from '../dto/edu-course.dto';
-import { EdubridgeAccessGuard } from '../guards/edubridge-access.guard';
 import { EdubridgeCourseService } from '../services/edubridge-course.service';
 
 /** Каталог курсов — открыт посетителю до вступления. */
@@ -17,8 +22,8 @@ export class EdubridgeCatalogResolver {
   constructor(private readonly courses: EdubridgeCourseService) {}
 
   @Query(() => PaginatedEduCatalogCoursesDTO, { name: 'edubridgeCatalog', description: 'Каталог опубликованных курсов' })
-  @UseGuards(OptionalGqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCatalog', 'read')
+  @UseGuards(OptionalGqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCatalog', 'read')
   async edubridgeCatalog(
     @Args('filter', { nullable: true }) filter?: EduCatalogFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -28,8 +33,8 @@ export class EdubridgeCatalogResolver {
   }
 
   @Query(() => EduCatalogCourseDTO, { name: 'edubridgeCatalogCourse', description: 'Карточка курса' })
-  @UseGuards(OptionalGqlJwtAuthGuard, EdubridgeAccessGuard)
-  @RequireEduAccess('EduCatalog', 'read')
+  @UseGuards(OptionalGqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduCatalog', 'read')
   async edubridgeCatalogCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCatalogCourseDTO> {
     return new EduCatalogCourseDTO(await this.courses.catalogCourse(platformSettings().coopname, id));
   }

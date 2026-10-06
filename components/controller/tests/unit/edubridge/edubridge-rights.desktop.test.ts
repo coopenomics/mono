@@ -1,5 +1,8 @@
-/** Гранты столов edubridge: гость, председатель до ЦПП, пайщик без оферт, неактивный. */
-import { EdubridgeDesktopGrantsProvider } from '~/extensions/edubridge/application/desktop/edubridge-desktop-grants.provider';
+/**
+ * Права столов образования из описания прав (`EdubridgeRights.resolveGrants`):
+ * гость, председатель до ЦПП, пайщик без оферт, неактивный.
+ */
+import { EdubridgeRights } from '~/extensions/edubridge/application/access/edubridge-rights';
 import { EdubridgeMembershipService } from '~/extensions/edubridge/application/membership/edubridge-membership.service';
 import { EdubridgeConfigHolder } from '~/extensions/edubridge/application/config/edubridge-config.holder';
 import { defaultConfig } from '~/extensions/edubridge/types';
@@ -12,12 +15,12 @@ function make(opts: { accepted?: boolean; teacher?: boolean; offer?: boolean; le
   };
   const membership = new EdubridgeMembershipService(facts, holder);
   const registry = { register: jest.fn() };
-  return new EdubridgeDesktopGrantsProvider(registry, membership);
+  return new EdubridgeRights(registry as any, membership);
 }
 
 const coop = 'voskhod';
 
-describe('EdubridgeDesktopGrantsProvider', () => {
+describe('EdubridgeRights: права столов', () => {
   it('гость после подключения ЦПП: только каталог', async () => {
     const grants = await make().resolveGrants({ coopname: coop });
     expect(grants).toEqual(['EduCatalog:read']);
