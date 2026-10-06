@@ -26,7 +26,6 @@
           BaseInput(v-model="heldAt" :label="$t('edubridge.teacherLessonsPage.heldAtLabel')" type="date" stack-label required)
       BaseInput(v-model="form.topic" :label="$t('edubridge.teacherLessonsPage.topicLabel')")
       BaseInput(v-model="materialsText" :label="$t('edubridge.teacherLessonsPage.materialsLabel')" type="textarea" :rows="3" :hint="$t('edubridge.teacherLessonsPage.materialsHint')" required)
-      BaseInput(v-model="duration" :label="$t('edubridge.teacherLessonsPage.durationLabel')" type="number" :hint="$t('edubridge.teacherLessonsPage.durationHint')")
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
@@ -62,7 +61,6 @@ const busy = ref(false);
 const reportOpen = ref(false);
 const lessonNumber = ref('1');
 const heldAt = ref('');
-const duration = ref('');
 const materialsText = ref('');
 const form = reactive({ assignment_id: '', topic: '' });
 
@@ -100,7 +98,6 @@ function openReport(): void {
   const next = lessons.value.reduce((max, l) => Math.max(max, l.lesson_number), 0) + 1;
   lessonNumber.value = String(next);
   heldAt.value = new Date().toISOString().slice(0, 10);
-  duration.value = '';
   materialsText.value = '';
   form.assignment_id = assignmentOptions.value[0]?.value ?? '';
   form.topic = '';
@@ -115,7 +112,6 @@ async function onReport(): Promise<void> {
       lesson_number: Number(lessonNumber.value),
       topic: form.topic,
       held_at: heldAt.value ? new Date(heldAt.value).toISOString() : undefined,
-      duration_minutes: duration.value ? Number(duration.value) : undefined,
       materials: materialsText.value.split('\n').map((s) => s.trim()).filter(Boolean),
     } as never);
     lessons.value = [created, ...lessons.value];

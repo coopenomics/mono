@@ -3,6 +3,14 @@
   PageHint.q-mb-md(storage-key="edu:member-subscriptions:banner-dismissed")
     | {{ $t('edubridge.memberSubscriptionsPage.hint.line1') }}
 
+  //- Напоминание о продлении: взнос вносится заново на каждый период, и срок подходит.
+  BaseBanner.q-mb-md(v-for="row in dueSoon" :key="asText(row.id)" variant="warn")
+    template(#icon)
+      q-icon(name="event_upcoming")
+    | {{ $t('edubridge.memberSubscriptionsPage.renewNotice', { courseTitle: row.course_title, date: row.paid_until ? formatDate(row.paid_until) : '______' }) }}
+    template(#action)
+      BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
@@ -69,13 +77,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import {
@@ -143,6 +151,8 @@ const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, varia
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
 const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
+/** Подписки, которые пора продлить: действуют, а оплаченный срок кончается в ближайшие дни. */
+const dueSoon = computed(() => enrollments.value.filter((e) => isRenewSoon(e)));
 /** Подписки, по которым заявление по гарантии рассматривает совет. */
 const underReview = ref<Set<string>>(new Set());
 const isActive = (row: IEnrollment) =>

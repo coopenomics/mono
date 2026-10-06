@@ -48,7 +48,7 @@ export interface IConfig {
 export const defaultConfig: IConfig = {
   coopAcceptance: { accepted: false, accepted_at: '' },
   connectors: { skillspace_api_key: '', getcourse_account: '', getcourse_api_key: '' },
-  expiry_notice_days: 3,
+  expiry_notice_days: 7,
   outbox_interval_sec: 30,
   capital_integration: true,
   markup_percent: 30,
@@ -107,7 +107,7 @@ export const Schema = z.object({
     .number()
     .int()
     .min(0)
-    .default(3)
+    .default(7)
     .describe(
       describeField({
         label: t('edubridge.edubridgeExtension.field.expiryNoticeDays.label'),

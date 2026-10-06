@@ -113,7 +113,8 @@ export class EdubridgeExpiryWorker {
           courseTitle: course?.title ?? '',
           paidUntil: enrollment.paid_until?.toLocaleDateString('ru-RU') ?? '',
           coopname,
-          deepLinkUrl: `${platformSettings().frontendUrl}/${coopname}/edubridge-member/learners`,
+          // Ссылка ведёт туда, где продлевают: на «Мои подписки».
+          deepLinkUrl: `${platformSettings().frontendUrl}/${coopname}/edubridge-member/subscriptions`,
         });
         enrollment.expiry_notified_at = new Date();
         await this.enrollments.save(enrollment);
