@@ -30,7 +30,8 @@
     template(#icon)
       q-icon(name="event_available" size="32px")
 
-  BaseDialog(v-model="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md")
+  //- Пока отчёт создаётся и материалы передаются на хранение, окно не закрывается.
+  BaseDialog(:model-value="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md" @update:model-value="onReportDialog")
     BaseForm(:loading="busy" @submit="onReport")
       BaseSelect(v-model="form.assignment_id" :label="$t('edubridge.teacherLessonsPage.courseLabel')" :options="assignmentOptions" required)
       .row.q-col-gutter-md
@@ -42,7 +43,7 @@
       BaseInput(v-model="materialsText" :label="$t('edubridge.teacherLessonsPage.materialsLabel')" type="textarea" :rows="3" :hint="$t('edubridge.teacherLessonsPage.materialsHint')" required)
       template(#footer)
         .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
+          BaseButton(variant="ghost" type="button" :disabled="busy" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
           BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.teacherLessonsPage.submit') }}
 </template>
 
@@ -141,6 +142,10 @@ async function load(): Promise<void> {
   }
 }
 
+function onReportDialog(open: boolean): void {
+  if (!busy.value) reportOpen.value = open;
+}
+
 function openReport(): void {
   const next = lessons.value.reduce((max, l) => Math.max(max, l.lesson_number), 0) + 1;
   lessonNumber.value = String(next);
@@ -151,31 +156,40 @@ function openReport(): void {
   reportOpen.value = true;
 }
 
+/**
+ * Отчёт о занятии — одно действие для преподавателя: запись отчёта и передача
+ * материалов на хранение идут подряд, окно всё это время показывает загрузку
+ * и закрывается, когда готово всё. В журнале занятие появляется уже с
+ * переданными материалами, без промежуточного состояния.
+ */
 async function onReport(): Promise<void> {
   busy.value = true;
+  let created: ILesson | null = null;
   try {
-    const created = await reportLesson({
+    created = await reportLesson({
       assignment_id: form.assignment_id,
       lesson_number: Number(lessonNumber.value),
       topic: form.topic,
       held_at: heldAt.value ? new Date(heldAt.value).toISOString() : undefined,
       materials: materialsText.value.split('\n').map((s) => s.trim()).filter(Boolean),
     } as never);
+    const fresh = await fetchMyContributions();
+    const draft = fresh.find((c) => asText(c.id) === asText(created?.contribution_id)) ?? null;
+    const held = draft ? await commitLessonMaterials(draft) : null;
+    contributions.value = held ? fresh.map((c) => (c.id === held.id ? held : c)) : fresh;
     lessons.value = [created, ...lessons.value];
-    // Отчёт записан: окно закрывается, даже если подпись документов сорвётся.
     reportOpen.value = false;
-    contributions.value = await fetchMyContributions();
-    // Материалы уходят на хранение тем же действием. Если подпись сорвалась,
-    // отчёт уже записан — передачу повторяют кнопкой в строке занятия.
-    const draft = contributionOf(created);
-    rowBusy.value = asText(created.id);
-    if (draft) replaceContribution(await commitLessonMaterials(draft));
     SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
   } catch (e) {
     FailAlert(e);
+    // Отчёт записан, а передача материалов сорвалась: окно закрывается, занятие
+    // остаётся в журнале с кнопкой «Передать материалы» — отчёт повторно не создаётся.
+    if (created) {
+      reportOpen.value = false;
+      await load();
+    }
   } finally {
     busy.value = false;
-    rowBusy.value = null;
   }
 }
 
@@ -208,7 +222,9 @@ async function onSignAct(lesson: ILesson): Promise<void> {
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.
-useLiveReload([EduLive.lessons, EduLive.assignments, EduLive.contributions], load);
+// Пока отчёт создаётся и материалы передаются, журнал не перечитывается: занятие
+// появится в нём один раз, уже в готовом виде.
+useLiveReload([EduLive.lessons, EduLive.assignments, EduLive.contributions], () => (busy.value ? undefined : load()));
 
 const { registerAction } = useHeaderActions();
 
