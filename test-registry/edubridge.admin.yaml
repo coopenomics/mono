@@ -147,6 +147,7 @@ cases:
     scenario: "Администратор удаляет курс: без подписок и занятий; с подписками; с проведёнными занятиями."
     expect: "Курс без подписок и занятий стирается вместе с допусками и обложкой; при подписках либо занятиях — отказ с предложением снять курс с публикации."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
   - id: edu.admin.break.02
     level: backend
@@ -154,5 +155,6 @@ cases:
     scenario: "Администратор меняет плановую ставку, число либо длительность занятий курса при действующих подписках."
     expect: "Отказ: ученики оплатили время по прежнему взносу; правка, не затрагивающая взнос, проходит; без действующих подписок — проходит."
     test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
 

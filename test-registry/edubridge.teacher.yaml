@@ -601,5 +601,6 @@ cases:
     scenario: "Отчёт о занятии: по курсу оплачено учениками меньше стоимости занятия; оплаченных часов нет вовсе."
     expect: "Сумма взноса урезается до остатка оплаченного по курсу; без оплаченных часов отчёт не принимается — средства других курсов не затрагиваются."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
 
