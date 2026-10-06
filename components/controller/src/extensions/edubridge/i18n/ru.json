@@ -310,6 +310,7 @@
     "EDUBRIDGE_TEACHER_HAS_OPEN_CONTRIBUTIONS": "По занятиям преподавателя не закрыт расчёт — договор прекращается после него",
     "EDUBRIDGE_TEACHER_OFFER_REQUIRED": "Сначала подпишите оферту преподавателя по ЦПП «Образование»",
     "EDUBRIDGE_TEACHER_ABOUT_REQUIRED": "Расскажите о себе",
+    "EDUBRIDGE_TEACHER_RATE_ABOVE_COURSE": "Ставка {rate} выше плановой ставки курса «{courseTitle}» ({plannedRate}), который ведёт преподаватель. Сначала поднимите плановую ставку курса либо снимите преподавателя с курса",
     "EDUBRIDGE_TEACHER_RATE_ALREADY_SET": "Ставка часа уже задана: её меняет администратор кооператива",
     "EDUBRIDGE_TEACHER_RATE_REQUIRED": "Назовите ставку за час",
     "EDUBRIDGE_TEACHER_RATE_NOT_COVERED": "Ставка преподавателя {contractRate} выше плановой ставки курса {plannedRate}: взносы учеников её не покрывают. Поднимите плановую ставку курса либо назначьте преподавателя с меньшей ставкой",

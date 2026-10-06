@@ -153,9 +153,32 @@ export class EdubridgeEconomyService {
   async setTeacherRate(coopname: string, username: string, hourlyRate: string): Promise<string> {
     const contract = await this.teachers.findContract(coopname, username);
     if (!contract) throw DomainError.notFound('EDUBRIDGE_TEACHER_CONTRACT_NOT_FOUND');
+    await this.assertRateCoveredByCourses(coopname, username, hourlyRate);
     contract.hourly_rate = hourlyRate;
     await this.teachers.saveContract(contract);
     return hourlyRate;
+  }
+
+  /**
+   * Ставка преподавателя не поднимается выше плановой ставки курса, который он
+   * ведёт: взнос учеников посчитан от плановой ставки, и разницу пришлось бы
+   * брать из средств программы, собранных по другим курсам.
+   */
+  private async assertRateCoveredByCourses(coopname: string, username: string, hourlyRate: string): Promise<void> {
+    const assignments = (await this.teachers.listAssignments(coopname, { teacher: username })).filter(
+      (a) => a.teacher_username === username && a.status === EduAssignmentStatus.ACTIVE
+    );
+    for (const assignment of assignments) {
+      const course = await this.courses.findById(coopname, assignment.course_id);
+      if (!course) continue;
+      if (toMinor(hourlyRate) > toMinor(course.planned_hourly_rate)) {
+        throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ABOVE_COURSE', {
+          rate: hourlyRate,
+          courseTitle: course.title,
+          plannedRate: course.planned_hourly_rate,
+        });
+      }
+    }
   }
 
   /** Расчёт по параметрам формы — стол показывает суммы до сохранения курса. */
