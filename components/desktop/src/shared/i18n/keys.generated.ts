@@ -3099,6 +3099,7 @@ export type MessageKey =
   | 'edubridge.memberOnboardingPage.hint'
   | 'edubridge.memberOnboardingPage.offerDescription'
   | 'edubridge.memberOnboardingPage.offerTitle'
+  | 'edubridge.memberSubscriptionsPage.actionsAriaLabel'
   | 'edubridge.memberSubscriptionsPage.cancel'
   | 'edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedLabel'
   | 'edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedValue'

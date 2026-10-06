@@ -6,7 +6,12 @@
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
-    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="960px")
+    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="760px")
+      //- Под названием курса — пояснение к состоянию подписки: заявление по гарантии либо основание возврата.
+      template(#cell-course_title="{ row }")
+        div {{ row.course_title }}
+        .t-meta.t-muted(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
+        .t-meta.t-muted(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
       template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
@@ -14,13 +19,20 @@
         BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       template(#cell-access_state="{ row }")
         BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
+      //- Действия — в меню: узкий столбец помещается при любой ширине окна и масштабе,
+      //- кнопки в ряд уезжали за край таблицы. Меню — в слоте #menu кнопки-иконки.
       template(#cell-actions="{ row }")
-        .edu-row-actions
-          BaseButton(v-if="isActive(row)" variant="secondary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
-          //- Пока заявление по гарантии у совета, обычная отмена закрыта: возврат по подписке один.
-          .t-meta.t-muted(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
-          BaseButton(v-else-if="isActive(row)" variant="ghost" size="sm" @click="openCancel(row)") {{ $t('edubridge.memberSubscriptionsPage.cancel') }}
-          .t-meta.t-muted(v-else-if="row.refund_reason") {{ refundReason(row.refund_reason) }}
+        BaseButton(v-if="isActive(row)" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
+          template(#icon-left)
+            q-icon(name="more_horiz" size="20px")
+          template(#menu)
+            q-menu(anchor="bottom right" self="top right")
+              q-list.edu-subs__menu(dense)
+                q-item(clickable v-close-popup @click="extend(row)")
+                  q-item-section {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+                //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
+                q-item(v-if="!underReview.has(asText(row.id))" clickable v-close-popup @click="openCancel(row)")
+                  q-item-section.text-negative {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
         q-icon(name="school" size="32px")
@@ -111,7 +123,7 @@ const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
   { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '120px', nowrap: true },
   { key: 'access_state', label: t('edubridge.memberSubscriptionsPage.columns.accessState'), width: '130px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '230px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '56px' },
 ];
 
 const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';
@@ -196,12 +208,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* Действия в строке таблицы стоят в ряд с равным зазором и не переносятся. */
-.edu-row-actions {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--p-2);
+.edu-subs__menu {
+  min-width: 200px;
 }
 </style>

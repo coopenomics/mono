@@ -721,6 +721,7 @@
       "offerTitle": "офертой ученика по ЦПП «Образование»"
     },
     "memberSubscriptionsPage": {
+      "actionsAriaLabel": "Действия с подпиской",
       "cancel": "Отменить",
       "cancelDialog": {
         "lessonsUsedLabel": "Занятий прошло",
