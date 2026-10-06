@@ -37,6 +37,7 @@ cases:
     scenario: Задача grant выполняется; площадке уходит только контакт обучающегося.
     expect: done, access_state GRANTED, событие access.granted, в запросе нет ФИО/телефона.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.access.side.01
     level: backend
@@ -44,6 +45,8 @@ cases:
     scenario: Площадка отвечает «пользователь уже существует».
     expect: Трактуется как успех (exists).
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.02
     level: backend
@@ -51,6 +54,8 @@ cases:
     scenario: Площадка недоступна (retryable).
     expect: Задача остаётся pending с backoff 1,2,4…60 мин; после N=10 → needs_attention и уведомление владельцу.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.03
     level: backend
@@ -58,6 +63,8 @@ cases:
     scenario: Лимит лицензии площадки.
     expect: needs_attention сразу, здоровье площадки license_limit — обнаруживаемое состояние, не молчаливый отказ.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.04
     level: backend
@@ -65,6 +72,8 @@ cases:
     scenario: Курс на площадке переименован/удалён; площадка недоступна при сверке.
     expect: Переименован/удалён → needs_attention без выдачи; недоступна → retryable.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.05
     level: backend
@@ -72,6 +81,7 @@ cases:
     scenario: Смена почты обучающегося при активной подписке.
     expect: Отзыв старого адреса (override) не меняет состояние доступа; выдача нового — отдельная задача.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.access.side.06
     level: backend
@@ -92,14 +102,17 @@ cases:
     kind: happy
     scenario: Пайщик подал заявление о выходе (registrator::exitcoop).
     expect: Все его подписки закрыты, доступы отозваны.
-    test: ~
-    status: missing
+    test: components/api-tests/src/edubridge/admin.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written
   - id: edu.access.happy.04
     level: backend
     kind: happy
     scenario: Формат запросов коннекторов по официальной документации (Skillspace open/v1 student-invite/student-remove; GetCourse /pl/api/users action=add base64 params, /pl/api/account/groups).
     expect: Только почта обучающегося, без имени; Limit reached → LICENSE_LIMIT; отзыв GetCourse — группа-сигнал.
     test: components/controller/tests/unit/edubridge/connectors.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.07
     level: backend
@@ -107,6 +120,8 @@ cases:
     scenario: Сверка курса с площадкой кэшируется (CHECK_TTL 1 час).
     expect: Повторная выдача по недавно сверенному курсу не зовёт check — экспорт-API GetCourse лимитирован 100/2ч.
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.happy.05
     level: backend
@@ -114,6 +129,8 @@ cases:
     scenario: Skillspace check сверяет курс и группу по реестрам школы (course/list, group/list).
     expect: Название курса возвращается для обнаружения переименования; чужая группа/неизвестный курс → found=false; 401 → unavailable.
     test: components/controller/tests/unit/edubridge/connectors.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.08
     level: backend
@@ -121,6 +138,8 @@ cases:
     scenario: "Живая проверка на тестовом курсе школы владельца (2026-08-21, «Тестовый курс [coop]», неопубликован, без групп): invite → повторный invite → remove → повторный remove; неверный курс; неверный ключ."
     expect: "invite 200 на неопубликованный курс без группы (первый раз — passwordSetupLink, повторный — {}); remove 200 идемпотентен; неверный курс — 404 COURSE_NOT_FOUND; неверный ключ — 404 SCHOOL_PUBLIC_TOKEN_NOT_FOUND (не 401 по документации). Коннектор разбирает код из тела."
     test: components/controller/tests/unit/edubridge/connectors.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.side.09
     level: backend
@@ -128,6 +147,8 @@ cases:
     scenario: "Приглашение на адрес, за которым в школе Skillspace числится сотрудник (владелец, куратор, преподаватель): площадка отвечает 400 INVITE_ONLY_EMPLOYEE."
     expect: "Задача выдачи уходит в needs_attention с человеческим объяснением («адрес принадлежит сотруднику школы — укажите обучающемуся другой»), а не с кодом площадки. Живая проверка 2026-09-03: адрес владельца — 400 INVITE_ONLY_EMPLOYEE, любой другой адрес на тот же курс — 200 с passwordSetupLink."
     test: components/controller/tests/unit/edubridge/connectors.test.ts
+    external: unreachable
+    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
     status: passing
   - id: edu.access.happy.10
     level: backend
@@ -151,4 +172,6 @@ cases:
     scenario: "expiresub по подписке, которой в цепи уже нет; цепь не отвечает."
     expect: "Отсутствующая запись: статус «истекла» и отзыв доступа; недоступная цепь: подписка ждёт следующего прохода, остальные обрабатываются."
     test: components/controller/tests/unit/edubridge/expiry.worker.test.ts
+    external: unreachable
+    external_reason: "перемотка времени и рассинхрон с цепью: срок подписки должен истечь, а её запись в цепи — отсутствовать либо цепь — молчать во время прохода очереди"
     status: passing

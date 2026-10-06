@@ -422,14 +422,17 @@ export async function submitGuaranteeClaim(who: Who, token: string, enrollmentId
   return (await gql<any>(token, SUBMIT_GUARANTEE, { d: { ...data, document } })).edubridgeSubmitGuaranteeClaim
 }
 
-/** Вопрос совету по заявлению: проект решения несёт идентификатор заявления. */
-export async function guaranteeAgenda(claimId: string): Promise<AgendaRow> {
+/** Вопрос совету, проект которого несёт метку — идентификатор заявления либо ключ взноса. */
+export async function agendaWith(marker: string): Promise<AgendaRow> {
   const chairman = await tokenOf(CHAIRMAN)
   return waitFor(async () => {
-    const row = (await agendaAll(chairman)).find(a => a.meta.includes(claimId))
+    const row = (await agendaAll(chairman)).find(a => a.meta.includes(marker))
     return row ? agendaByHash(chairman, row.hash) : null
-  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету по заявлению ${claimId}` })
+  }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету с меткой ${marker.slice(0, 12)}` })
 }
+
+/** Вопрос совету по заявлению о гарантии. */
+export const guaranteeAgenda = agendaWith
 
 /** Совет удовлетворяет заявление: голоса «за» и утверждение председателем. */
 export async function councilGrants(agenda: AgendaRow): Promise<void> {
@@ -441,4 +444,65 @@ export async function councilGrants(agenda: AgendaRow): Promise<void> {
 export async function councilDeclines(agenda: AgendaRow): Promise<void> {
   await vote(agenda, 'against')
   await declineDecision(agenda.id)
+}
+
+// ── Занятия и взносы результатами ──────────────────────────────────────────
+
+const DOC = 'full_title html hash meta binary'
+const SIGNED = 'version hash doc_hash meta_hash meta signatures{ id signer public_key signature signed_at signed_hash meta }'
+export const LESSON_FIELDS = 'id course_id course_title lesson_number held_at duration_minutes materials topic contribution_id'
+export const CONTRIBUTION_FIELDS = 'id teacher_username assignment_id rid_hash rid_type amount status description links hold_until storage_act_hash statement_hash act_hash council_decision_id council_outcome decision_hash decline_reason decided_at'
+export const REPORT_LESSON = `mutation($d:EduLessonReportInput!){ edubridgeReportLesson(data:$d){ ${LESSON_FIELDS} } }`
+export const MY_LESSONS = `query{ edubridgeMyLessons{ ${LESSON_FIELDS} } }`
+export const MY_CONTRIBUTIONS = `query{ edubridgeMyContributions{ ${CONTRIBUTION_FIELDS} } }`
+export const ALL_CONTRIBUTIONS = `query{ edubridgeContributions{ ${CONTRIBUTION_FIELDS} } }`
+export const RID_STORAGE_ACT = `mutation($id:ID!){ edubridgeRidStorageAct(contribution_id:$id){ ${DOC} } }`
+export const HOLD_CONTRIBUTION = `mutation($d:EduHoldContributionInput!){ edubridgeHoldContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const RID_STATEMENT = `mutation($id:ID!){ edubridgeRidStatement(contribution_id:$id){ ${DOC} } }`
+export const SUBMIT_CONTRIBUTION = `mutation($d:EduSubmitContributionInput!){ edubridgeSubmitContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const RID_ACT = `mutation($id:ID!){ edubridgeRidAct(contribution_id:$id){ ${DOC} } }`
+export const SIGN_ACT = `mutation($d:EduSignActInput!){ edubridgeSignAct(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const ACT_PAYLOAD = `query($id:ID!){ edubridgeActSignablePayload(contribution_id:$id){ hash rawDocument{ ${DOC} } document{ ${SIGNED} } } }`
+export const ACCEPT_CONTRIBUTION = `mutation($d:EduAcceptContributionInput!){ edubridgeAcceptContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const DECLINE_CONTRIBUTION = `mutation($d:EduDeclineContributionInput!){ edubridgeDeclineContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const REVOKE_CONTRIBUTION = `mutation($d:EduRevokeContributionInput!){ edubridgeRevokeContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
+export const SETTLEMENT = 'query{ edubridgeMySettlement{ accepted_total program_share available last_accepted_at } }'
+
+export async function contributionOf(token: string, id: string): Promise<any | undefined> {
+  const d = await gql<any>(token, MY_CONTRIBUTIONS)
+  return (d.edubridgeMyContributions as any[]).find(c => c.id === id)
+}
+
+/** Отчёт о занятии; возвращает строку журнала и черновик взноса по ней. */
+export async function reportLesson(token: string, assignmentId: string, lessonNumber: number, over: Record<string, unknown> = {}): Promise<{ lesson: any, contribution: any }> {
+  const d = { assignment_id: assignmentId, lesson_number: lessonNumber, materials: [`https://example.org/lesson-${lessonNumber}`], topic: `Тема занятия ${lessonNumber}`, ...over }
+  const lesson = (await gql<any>(token, REPORT_LESSON, { d })).edubridgeReportLesson
+  return { lesson, contribution: await contributionOf(token, lesson.contribution_id) }
+}
+
+/** Преподаватель подписывает акт передачи материалов на ответственное хранение. */
+export async function holdMaterials(who: Who, token: string, contributionId: string): Promise<any> {
+  const act = (await gql<any>(token, RID_STORAGE_ACT, { id: contributionId })).edubridgeRidStorageAct
+  const document = await signDocument(who.wif, act, who.account, 1)
+  return (await gql<any>(token, HOLD_CONTRIBUTION, { d: { contribution_id: contributionId, document } })).edubridgeHoldContribution
+}
+
+/** Преподаватель подписывает заявление о паевом взносе результатом. */
+export async function submitStatement(who: Who, token: string, contributionId: string): Promise<any> {
+  const statement = (await gql<any>(token, RID_STATEMENT, { id: contributionId })).edubridgeRidStatement
+  const document = await signDocument(who.wif, statement, who.account, 1)
+  return (await gql<any>(token, SUBMIT_CONTRIBUTION, { d: { contribution_id: contributionId, document } })).edubridgeSubmitContribution
+}
+
+/** Преподаватель подписывает акт приёма-передачи после решения совета. */
+export async function signTransferAct(who: Who, token: string, contributionId: string): Promise<any> {
+  const act = (await gql<any>(token, RID_ACT, { id: contributionId })).edubridgeRidAct
+  const document = await signDocument(who.wif, act, who.account, 1)
+  return (await gql<any>(token, SIGN_ACT, { d: { contribution_id: contributionId, document } })).edubridgeSignAct
+}
+
+/** Акт с подписью преподавателя и второй подписью председателя — тот же документ. */
+export async function chairmanSignedAct(contributionId: string): Promise<any> {
+  const aggregate = (await gql<any>(await tokenOf(CHAIRMAN), ACT_PAYLOAD, { id: contributionId })).edubridgeActSignablePayload
+  return signDocument(CHAIRMAN.wif, aggregate.rawDocument, CHAIRMAN.account, 2, [aggregate.document])
 }

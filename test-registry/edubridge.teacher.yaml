@@ -83,6 +83,7 @@ cases:
     scenario: Закрытое назначение; пайщик без сертификата и без фотографии; ни одного подписанного договора.
     expect: Закрытое в действующие не идёт; вместо имени пусто, фотографии нет; список пуст.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: written
   - id: edu.teach.break.01
     level: backend
@@ -90,6 +91,7 @@ cases:
     scenario: Взнос без подписанного ДУХД; отчёт по занятию при снятом допуске к курсу.
     expect: "BadRequest с объяснением: нужен действующий договор; допуск к курсу снят."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.01
     level: backend
@@ -97,6 +99,7 @@ cases:
     scenario: Подача взноса РИД.
     expect: submitrid в цепь, проект решения совета опубликован, правило отслеживания с rid_hash, статус SUBMITTED.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.02
     level: backend
@@ -104,6 +107,7 @@ cases:
     scenario: Совет принял решение; преподаватель подписал акт.
     expect: COUNCIL_APPROVED с номером решения → acceptrid с протоколом 3009 и актом → ACCEPTED; акт до решения недоступен; чужие решения игнорируются.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.03
     level: backend
@@ -111,6 +115,7 @@ cases:
     scenario: Отклонение взноса.
     expect: declinerid, DECLINED, причина сохранена.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.04
     level: backend
@@ -118,6 +123,7 @@ cases:
     scenario: Расчёт преподавателя.
     expect: Сумма принятых взносов, паевой взнос по программе и доступное в главном кошельке; кошелька программы ещё нет — паевой взнос по программе нулевой.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.wth-01
     level: backend
@@ -125,6 +131,7 @@ cases:
     scenario: Преподаватель называет сумму и подписывает заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) — на часть остатка и на весь остаток.
     expect: Заявление формируется на сумму в виде цепи; wthshare уходит на сумму заявления; в ответе обновлённый расчёт.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.wth-01
     level: backend
@@ -132,6 +139,7 @@ cases:
     scenario: Сумма трансляции больше паевого взноса по программе, нулевая, отрицательная, нечисловая, пустая либо в чужой валюте.
     expect: Отказ с причиной; заявление не формируется, в цепь ничего не уходит.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.wth-02
     level: backend
@@ -139,6 +147,7 @@ cases:
     scenario: Подписанное заявление о трансляции названо на другую сумму, чем уходит в перевод.
     expect: Отказ «сформируйте заявление заново»; в цепь ничего не уходит.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.wth-01
     level: backend
@@ -146,6 +155,8 @@ cases:
     scenario: Цепь отказала в трансляции — остаток кошелька программы изменился между проверкой и отправкой.
     expect: Отказ цепи доходит до преподавателя как есть.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    external: unreachable
+    external_reason: "гонка внутри узла: остаток кошелька программы должен измениться между проверкой суммы и отправкой перевода"
     status: passing
   - id: edu.teach.happy.wth-02
     level: backend
@@ -153,6 +164,7 @@ cases:
     scenario: Заявление о трансляции паевого взноса (3015) объявлено в реестре шаблонов кооператива; действие wthshare уходит в цепь с заявлением.
     expect: Бланк на утверждение совета в связке форм образования; meta заявления — строкой JSON.
     test: components/controller/tests/unit/edubridge/document-declarations.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
   - id: edu.teach.break.wth-04
     level: backend
@@ -168,6 +180,7 @@ cases:
     scenario: Фабрика собирает заявление о трансляции паевого взноса (3015) на названную сумму.
     expect: В тексте одна просьба с суммой в виде для человека, без ссылок на договор и приложений; документ воспроизводится с тем же хэшем.
     test: components/factory/test/education-share-withdraw.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: written   # прогон — CI на полигоне ci/tests
   - id: edu.teach.happy.wth-03
     level: contract
@@ -196,6 +209,7 @@ cases:
     scenario: Акт двухподписный — преподаватель подписал (ACT_SIGNED), председатель подписывает тот же документ (агрегат по хэшу, signatureId=2) → acceptrid.
     expect: Перегенерации акта нет; без обеих подписей или с другим хэшем приём отклоняется; acceptrid требует подпись teacher и chairman совета.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.05
     level: ui
@@ -226,6 +240,7 @@ cases:
     scenario: "Документ (договор, заявление РИД) уходит в контракт через адаптер цепи: meta-объект сериализуется в строку JSON, строковая meta не трогается, отсутствующая → «{}»; без ключа кооператива в хранилище транзакция не отправляется; действия для приложения к договору у адаптера нет."
     expect: "В таблице approvals совета meta документа — валидный JSON; синхронизатор одобрений записывает запрос, и он виден на столе председателя (инцидент 02.09.2026: «[object Object]» → запрос не доходил)."
     test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written
   - id: edu.teach.contract.01
     level: contract
@@ -247,6 +262,7 @@ cases:
     scenario: "Бланк договора УХД для совета и экземпляр для пайщика (3006) генерируются фабрикой по редакции владельца «Договор УХД_Преподаватели_ПВ»: 9 разделов, 12 терминов, реквизиты сторон и Дополнительные условия по ответственному хранению Имущества."
     expect: "Текст разделов 1–9 и Дополнительных условий в бланке и экземпляре совпадает дословно; экземпляр подставляет номер, дату, протокол утверждения и пайщика без незаполненных мест; бланк — прочерками; повторная генерация даёт тот же хэш."
     test: components/factory/test/education-contract.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: written
 
   - id: edu.teach.happy.07
@@ -255,6 +271,7 @@ cases:
     scenario: Преподаватель отчитывается о проведённом занятии материалами.
     expect: Взнос равен часам занятия по ставке преподавателя; заявление держится гарантийный срок курса.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.04
     level: backend
@@ -262,6 +279,7 @@ cases:
     scenario: Отчёт по занятию вне плана курса и повторный отчёт по тому же занятию.
     expect: Отказ в обоих случаях — журнал ведётся по программе курса.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.07
     level: backend
@@ -269,6 +287,7 @@ cases:
     scenario: Подписанное заявление в гарантийный срок.
     expect: В совет не уходит, держится расширением; по истечении срока отправляется очередью само.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.08
     level: backend
@@ -276,6 +295,7 @@ cases:
     scenario: Подтверждённая рекламация в гарантийный срок.
     expect: Материалы снимаются с ответственного хранения проводкой Дт 76 / Кт 08, заявление закрывается с причиной, взнос не оформляется.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.08
     level: backend
@@ -283,6 +303,7 @@ cases:
     scenario: Преподаватель подписывает акт передачи материалов занятия на ответственное хранение.
     expect: В цепь уходит holdrid с датой окончания гарантийного срока, взнос переходит в состояние «на ответственном хранении», акт сохранён.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.05
     level: backend
@@ -290,6 +311,7 @@ cases:
     scenario: Повторная передача тех же материалов; заявление по материалам, не принятым на хранение.
     expect: Отказ в обоих случаях — хранение открывается один раз и предшествует заявлению.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.09
     level: backend
@@ -297,6 +319,7 @@ cases:
     scenario: Рекламация по материалам, которые на ответственное хранение не передавались.
     expect: Взнос закрывается без проводок — снимать с хранения нечего.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.10
     level: backend
@@ -304,6 +327,7 @@ cases:
     scenario: Отчёт о занятии задним числом и курс с нулевой гарантией — срок хранения в прошлом.
     expect: Материалы принимаются на ответственное хранение, заявление уходит в совет сразу.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.10
     level: backend
@@ -311,6 +335,7 @@ cases:
     scenario: Расширение объявляет свои документы в реестре шаблонов кооператива.
     expect: Объявлены положение, обе оферты, договор участия, бланки (включая акт хранения 3012) и протокол совета; шаблоны-двойники не объявляются, прежние декларации снимаются.
     test: components/controller/tests/unit/edubridge/document-declarations.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.teach.happy.09
     level: backend
@@ -318,6 +343,7 @@ cases:
     scenario: Акт передачи материалов на ответственное хранение (3012) формируется по отчёту о занятии.
     expect: В акте названы курс, номер и тема занятия, состав материалов, оценка и дата окончания срока хранения; сказано, что паевым взносом материалы становятся по решению совета.
     test: components/factory/test/education-rid-storage-act.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.ui.03
     level: ui
@@ -332,6 +358,7 @@ cases:
     scenario: "Совет решения по заявлению не принял, председатель отказывает в приёме."
     expect: "Протокол не собирается; материалы снимаются с хранения recallrid с основанием, взнос отклонён."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.12
     level: backend
@@ -339,6 +366,7 @@ cases:
     scenario: "Решение совета есть, приём не состоялся — председатель закрывает заявление."
     expect: "declinerid с протоколом 3009 по номеру принятого решения; recallrid не вызывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.08
     level: backend
@@ -346,6 +374,8 @@ cases:
     scenario: "Сбой после submitrid: проект решения совета не создан."
     expect: "Статус SUBMITTED и подписанное заявление сохранены сразу; очередь доводит взнос до совета без повторной подачи в цепь."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    external: unreachable
+    external_reason: "сбой после подачи заявления в цепь (проект решения совета не создан) снаружи не создать: остановка цепи роняет и саму подачу"
     status: passing
   - id: edu.teach.break.06
     level: backend
@@ -353,6 +383,8 @@ cases:
     scenario: "Цепь отвечает «уже подано» на повторный submitrid."
     expect: "Подача продолжается с проекта решения; иная ошибка цепи статус не меняет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    external: unreachable
+    external_reason: "ответ цепи «уже подано» на повторную подачу возникает только после сбоя посреди подачи — снаружи такого состояния не получить"
     status: passing
   - id: edu.teach.side.13
     level: backend
@@ -360,6 +392,7 @@ cases:
     scenario: "Отчёт о занятии задним числом при гарантийном сроке курса."
     expect: "Срок хранения идёт от приёма материалов (акт 3012), а не от даты занятия; акт и цепь называют одну дату; устаревший акт не подписывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.07
     level: backend
@@ -367,6 +400,7 @@ cases:
     scenario: "Дата занятия в будущем либо раньше периода назначения; длительность больше сдвоенного занятия курса."
     expect: "Отчёт отклоняется до записи в журнал."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.14
     level: backend
@@ -374,6 +408,7 @@ cases:
     scenario: "Материалы занятия сняты с хранения — занятие проводится и отчитывается заново."
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.happy.11
     level: backend
@@ -381,6 +416,7 @@ cases:
     scenario: "Прекращение договора УХД: выход преподавателя из кооператива либо соглашение сторон."
     expect: "termcontract в цепь, статус «прекращён»; договор подписывается заново, в том числе с новой ставкой."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
   - id: edu.teach.side.15
     level: backend
@@ -388,6 +424,7 @@ cases:
     scenario: "Прекращение договора при действующих назначениях либо незакрытых взносах; без основания; повторно."
     expect: "Отказ до обращения к цепи; прекращённый и отсутствующий договор в цепь не идут."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
   - id: edu.teach.side.16
     level: backend
@@ -403,6 +440,7 @@ cases:
     scenario: "Материалы на хранении без подписанного заявления держат выход."
     expect: "Причина называет действие преподавателя — подписать заявление, а не ожидание."
     test: components/controller/tests/unit/edubridge/exit-blockers.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.contract.07
     level: contract
@@ -446,6 +484,7 @@ cases:
     scenario: "Совет отклонил вопрос о приёме результата либо не принял решение в срок."
     expect: "Подача запоминает номер вопроса в повестке; заявление помечается исходом совета и остаётся на рассмотрении — материалы снимает председатель; чужой вопрос и заявление в другом статусе не помечаются."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.20
     level: backend
@@ -453,6 +492,7 @@ cases:
     scenario: "Действия совета declinedec и cancelexprd доходят до расширения."
     expect: "Слушатель передаёт кооператив, номер вопроса (в том числе нулевой) и исход; действие без номера пропускается."
     test: components/controller/tests/unit/edubridge/council-outcome.listener.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.break.09
     level: backend
@@ -460,6 +500,8 @@ cases:
     scenario: "Повестка совета недоступна в момент подачи заявления."
     expect: "Подача проходит, номер вопроса не запоминается, пометки исхода не будет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    external: unreachable
+    external_reason: "повестка совета недоступна в момент подачи заявления — отказ чтения внутри узла, снаружи его не создать"
     status: passing
   - id: edu.teach.side.21
     level: backend
@@ -467,6 +509,7 @@ cases:
     scenario: "Гарантийный срок — один на курс, от даты начала занятий."
     expect: "Срок хранения материалов равен дате начала занятий плюс срок курса и не зависит от даты занятия и дня отчёта; срок курса вышел — заявление уходит в совет сразу; у неактивированного курса срок считается от сегодняшнего дня."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teacher.happy.sync-01
     level: backend
@@ -520,6 +563,7 @@ cases:
     scenario: "Преподаватель с договором, но без записи профиля; прекращённый договор; список преподавателей у администратора."
     expect: "Рассказ пуст, ставка — из договора и закреплена; прекращённый договор ставку не держит; в списке преподавателей приходит рассказ о себе либо пустая строка."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
   - id: edu.teacher.ui.profile-01
     level: ui
@@ -533,6 +577,7 @@ cases:
     scenario: "Просмотр договора преподавателя в карточке: после подписи председателя; у договора без сохранённого документа; документ чужого договора."
     expect: "Подпись председателя кладёт в запись документ с двумя подписями; договор без сохранённого документа отдаёт пусто без обращения к реестру; документ с чужим хэшем и пустой документ запись не меняют."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
   - id: edu.teach.break.10
     level: backend
@@ -548,5 +593,6 @@ cases:
     scenario: "Председатель подписывает либо отклоняет договор преподавателя — другого пайщика: в обратном вызове совета стоит имя председателя."
     expect: "Договор находится по hash: статус и документ ложатся в запись преподавателя; контракт публикует документ на имя преподавателя."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: written
 

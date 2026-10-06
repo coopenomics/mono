@@ -122,6 +122,8 @@ cases:
     scenario: Фонд пуст — кошелька в реестре ещё нет.
     expect: Показывается ноль, кошелёк из списка не исчезает.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    external: unreachable
+    external_reason: "пустой фонд без кошелька в реестре есть только до первой подписки на стенде; порядок файлов прогона не контракт"
     status: passing
   - id: edu.econ.happy.06
     level: backend

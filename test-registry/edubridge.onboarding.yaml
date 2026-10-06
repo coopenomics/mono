@@ -32,6 +32,7 @@ cases:
     scenario: Регистрация витрины вступления.
     expect: Две оферты (3002, 3004; agreement_type ≤ 12 символов, не дефолтные) и две программы с правильными agreement_ids.
     test: components/controller/tests/unit/edubridge/registration.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.onb.happy.02
     level: backend
@@ -39,6 +40,7 @@ cases:
     scenario: Факты ролей по подписям программ и таблице администраторов.
     expect: learner/teacher/admin по источникам; программы не открыты → false; сбой порта → false + предупреждение.
     test: components/controller/tests/unit/edubridge/registration.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.onb.happy.03
     level: backend

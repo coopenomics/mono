@@ -33,6 +33,8 @@ cases:
     scenario: Председатель активного кооператива, ЦПП ещё не принята советом.
     expect: Гранты = только 'Extension:configure' — ни каталога, ни рабочих прав; рядовой пайщик до подключения не получает ничего.
     test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    external: unreachable
+    external_reason: "состояние до принятия программы советом есть только до первого подключения на стенде; порядок файлов прогона не контракт, первый же набор образования программу принимает"
     status: passing
   - id: edu.gating.happy.03
     level: backend
@@ -56,6 +58,7 @@ cases:
     scenario: Пайщик со статусом, отличным от active.
     expect: Только гостевые гранты.
     test: components/controller/tests/unit/edubridge/edubridge-rights.desktop.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.gating.happy.04
     level: ui
@@ -70,6 +73,7 @@ cases:
     scenario: Связка с Благоростом включена; рядовой пайщик, преподаватель, совет, гость.
     expect: Столы capital — преподавателю и совету; рядовому и гостю — нет; оферты/программы capital при вступлении скрыты; при выключенной связке ничего не сужается.
     test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: edu.gating.happy.06
     level: backend
@@ -108,6 +112,7 @@ cases:
     scenario: "Образование в кооперативе не установлено либо выключено; пайщик открывает столы Благороста, кандидат — витрину вступления."
     expect: "Правило сужения молчит: права столов Благороста, его программы и оферты остаются как были."
     test: components/controller/tests/unit/edubridge/capital-narrowing.policy.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: written
 
   # Права образования на общем гарде (C28-87, 06.10.2026): собственные гард,
