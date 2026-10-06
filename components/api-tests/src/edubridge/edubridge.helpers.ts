@@ -337,10 +337,11 @@ export const SAVE_PROFILE = 'mutation($d:EduTeacherProfileInput!){ edubridgeSave
 export const MY_PROFILE = 'query{ edubridgeMyTeacherProfile{ about hourly_rate rate_locked } }'
 export const MY_CONTRACT = `query{ edubridgeMyContract{ ${CONTRACT_FIELDS} } }`
 export const SIGN_CONTRACT = `mutation($d:EduSignContractInput!){ edubridgeSignContract(data:$d){ ${CONTRACT_FIELDS} } }`
-export const ASSIGNMENT_FIELDS = 'id teacher_username course_id course_title period_from period_to minutes_per_month status'
+export const ASSIGNMENT_FIELDS = 'id teacher_username course_id course_title period_from period_to minutes_per_month hourly_rate status'
 export const MY_ASSIGNMENTS = `query{ edubridgeMyAssignments{ ${ASSIGNMENT_FIELDS} } }`
 export const CREATE_ASSIGNMENT = `mutation($d:EduAssignmentInput!){ edubridgeCreateAssignment(data:$d){ ${ASSIGNMENT_FIELDS} } }`
 export const CLOSE_ASSIGNMENT = `mutation($id:ID!){ edubridgeCloseAssignment(id:$id){ ${ASSIGNMENT_FIELDS} } }`
+export const SET_ASSIGNMENT_RATE = `mutation($d:EduSetAssignmentRateInput!){ edubridgeSetAssignmentRate(data:$d){ ${ASSIGNMENT_FIELDS} } }`
 export const SET_TEACHER_RATE = 'mutation($d:EduSetTeacherRateInput!){ edubridgeSetTeacherRate(data:$d) }'
 export const TEACHERS = 'query{ edubridgeTeachers{ username about hourly_rate contract_number contract_status assignments_active } }'
 
