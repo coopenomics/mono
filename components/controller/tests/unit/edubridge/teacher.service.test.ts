@@ -96,8 +96,10 @@ function make(
   // Обязательство курса перед преподавателями — оплаченные учениками часы; по умолчанию с запасом.
   const funds = { onSettled: jest.fn(async () => undefined), target: jest.fn(async () => ({ obligation: opts.obligation ?? '100000.0000 RUB', gap: '0.0000 RUB', surplus: '0.0000 RUB' })) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, logger, events);
-  return { service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
+  // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
+  const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, udata, logger, events);
+  return { udata, service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
 }
 
 
@@ -177,6 +179,14 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     const live = make();
     live.teachers.listAssignments.mockResolvedValue([]);
     await expect(live.service.terminateContract('voskhod', 'teach', ' ')).rejects.toThrow(/основание/);
+  });
+
+  it('подпись договора пишет его номер и дату в данные пайщика — документы преподавателя берут их оттуда', async () => {
+    const { service, udata } = make({ contract: false, profile: { about: 'Учу', hourly_rate: '1000.0000 RUB' } });
+    const doc = { ...signedBy('teach', 'CONTRACT'), meta: { contract_created_at: '06.10.2026' } };
+    await service.signContract('voskhod', 'teach', doc as any, 'N-77');
+    expect(udata.save).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', key: 'education_contract_number', value: 'N-77' });
+    expect(udata.save).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', key: 'education_contract_created_at', value: '06.10.2026' });
   });
 
   it('назначение на курс: ставка на курсе — из договора, но не выше плановой; названная выше плановой — отказ', async () => {

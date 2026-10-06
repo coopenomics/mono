@@ -89,6 +89,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     // Список «Курс ведут» и допуски — одно и то же: сводим их при запуске,
     // чтобы у каждого преподавателя курса был действующий допуск.
     await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);
+    await this.teacherService.ensureContractRefs(platformSettings().coopname);
     this.logger.info('edubridge-extension готов');
   }
 

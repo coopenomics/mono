@@ -12,6 +12,7 @@ import {
   FREE_DECISION_PORT,
   LOGGER_PORT,
   USER_AVATAR_PORT,
+  USER_DATA_PORT,
   USER_WALLET_PORT,
   type ICouncilPort,
   type IDecisionTrackingPort,
@@ -22,6 +23,7 @@ import {
   type InnerGeneratedDocument,
   type ISignedDocument,
   type IUserAvatarPort,
+  type IUserDataPort,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
@@ -121,6 +123,7 @@ export class EdubridgeTeacherService {
     @Inject(USER_AVATAR_PORT) private readonly avatars: IUserAvatarPort,
     private readonly names: EdubridgeNamesService,
     private readonly funds: EdubridgeFundsService,
+    @Inject(USER_DATA_PORT) private readonly udata: IUserDataPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2
   ) {
@@ -152,6 +155,7 @@ export class EdubridgeTeacherService {
     }
 
     await this.chain.signContract({ coopname, username: teacher, contract_hash: document.hash, contract: document as never });
+    await this.saveContractRef(coopname, teacher, number, document);
     this.logger.info(`[EDU.TEACH] ${teacher}: договор УХД ${document.hash} подписан, ждёт подписи председателя`);
 
     return this.teachers.saveContract({
@@ -166,6 +170,21 @@ export class EdubridgeTeacherService {
       decline_reason: '',
       approved_at: null,
     });
+  }
+
+  /**
+   * Реквизиты договора — в данные пайщика. Документы преподавателя (акт
+   * хранения, заявление, акт приёма-передачи) — приложения к договору: фабрика
+   * берёт его номер и дату отсюда. Дата — та, что стоит в подписанном
+   * экземпляре; у договора, подписанного заново, реквизиты новые.
+   */
+  private async saveContractRef(coopname: string, teacher: string, number: string, document: ISignedDocument, signedOn?: Date | null): Promise<void> {
+    const signedAt = (document.meta as { contract_created_at?: string } | undefined)?.contract_created_at;
+    const now = signedOn ? new Date(signedOn) : new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const createdAt = signedAt || `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
+    await this.udata.save({ coopname, username: teacher, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER, value: number });
+    await this.udata.save({ coopname, username: teacher, key: Cooperative.Model.UdataKey.EDUCATION_CONTRACT_CREATED_AT, value: createdAt });
   }
 
   /**
@@ -467,6 +486,25 @@ export class EdubridgeTeacherService {
         a.status = EduAssignmentStatus.CLOSED;
         await this.teachers.saveAssignment(a);
         this.logger.info(`Допуск снят: ${a.teacher_username} → «${course.title}»`);
+      }
+    }
+  }
+
+  /**
+   * Реквизиты договоров, подписанных до того, как сервер начал писать их в
+   * данные пайщика: без них документы преподавателя не формируются. При
+   * запуске недостающие дописываются из записи договора; выданные не трогаются.
+   */
+  async ensureContractRefs(coopname: string): Promise<void> {
+    for (const c of await this.teachers.listContracts(coopname)) {
+      if (!grantsTeaching(c) || !c.contract_number) continue;
+      try {
+        const existing = await this.udata.get(coopname, c.teacher_username, Cooperative.Model.UdataKey.EDUCATION_CONTRACT_NUMBER);
+        if (existing?.value) continue;
+        await this.saveContractRef(coopname, c.teacher_username, c.contract_number, (c.contract_document ?? { meta: {} }) as unknown as ISignedDocument, c.signed_at);
+        this.logger.info(`[EDU.TEACH] ${c.teacher_username}: реквизиты договора ${c.contract_number} записаны в данные пайщика`);
+      } catch (e) {
+        this.logger.warn(`Реквизиты договора ${c.teacher_username} не записаны: ${(e as Error)?.message ?? e}`);
       }
     }
   }
