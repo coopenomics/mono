@@ -115,6 +115,7 @@ cases:
     scenario: Раздел «Экономика» показывает фонд программы, остатки на кошельках учеников и ленту движения.
     expect: Остаток фонда из кооперативного кошелька, взносы учеников — суммой долей; движения подписаны языком выписки.
     test: components/controller/tests/unit/edubridge/economy.service.test.ts
+    api: components/api-tests/src/edubridge/expenses.test.ts
     status: passing
   - id: edu.econ.side.04
     level: backend
@@ -139,6 +140,7 @@ cases:
     scenario: Председатель подаёт расход программы — реквизиты проверяются до цепи, снимок снимается после подачи.
     expect: Организация уходит на цепь без имени получателя, факт нулевой до отчёта.
     test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    api: components/api-tests/src/edubridge/expenses.test.ts
     status: passing
   - id: edu.econ.break.03
     level: backend
@@ -146,6 +148,7 @@ cases:
     scenario: Цепь отказала при подаче расхода (в фонде не хватает средств).
     expect: Снимок реквизитов не снимается — расход не подан.
     test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    api: components/api-tests/src/edubridge/expenses.test.ts
     status: passing
   - id: edu.econ.happy.08
     level: backend
@@ -153,6 +156,7 @@ cases:
     scenario: Список расходов программы с состояниями и ФИО.
     expect: Числовые коды цепи переведены в понятия шасси, имена получателей читаются человеком.
     test: components/controller/tests/unit/edubridge/expense.service.test.ts
+    api: components/api-tests/src/edubridge/expenses.test.ts
     status: passing
   - id: edu.econ.ui.02
     level: ui
