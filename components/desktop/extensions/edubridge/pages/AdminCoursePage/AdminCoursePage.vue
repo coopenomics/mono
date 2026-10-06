@@ -19,9 +19,13 @@
         span(v-if="course.starts_at") {{ $t('edubridge.adminCoursePage.startsAtFact', { date: formatDate(course.starts_at) }) }}
       template(#actions)
         .edu-course__buttons
-          BaseButton(v-if="published" variant="secondary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
-          BaseButton(v-else variant="secondary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
-          BaseButton(variant="primary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
+          //- Главное действие — следующий шаг: черновик публикуют, опубликованный курс правят.
+          template(v-if="published")
+            BaseButton(variant="secondary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
+            BaseButton(variant="primary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
+          template(v-else)
+            BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
+            BaseButton(variant="primary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
           //- Отмена набора — решение с последствиями, поэтому она лежит под
           //- кнопкой «ещё», а не рядом с обычными действиями.
           BaseButton(v-if="!started" variant="ghost" icon-only :aria-label="$t('edubridge.adminCoursePage.moreActionsAriaLabel')")
