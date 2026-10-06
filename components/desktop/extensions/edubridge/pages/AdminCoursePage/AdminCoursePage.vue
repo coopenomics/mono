@@ -19,13 +19,10 @@
         span(v-if="course.starts_at") {{ $t('edubridge.adminCoursePage.startsAtFact', { date: formatDate(course.starts_at) }) }}
       template(#actions)
         .edu-course__buttons
-          //- Главное действие — следующий шаг: черновик публикуют, опубликованный курс правят.
-          template(v-if="published")
-            BaseButton(variant="secondary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
-            BaseButton(variant="primary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
-          template(v-else)
-            BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
-            BaseButton(variant="primary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
+          //- «Изменить» — слева и обычная; справа главное действие над публикацией курса.
+          BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
+          BaseButton(v-if="published" variant="primary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
+          BaseButton(v-else variant="primary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
           //- Отмена набора — решение с последствиями, поэтому она лежит под
           //- кнопкой «ещё», а не рядом с обычными действиями.
           BaseButton(v-if="!started" variant="ghost" icon-only :aria-label="$t('edubridge.adminCoursePage.moreActionsAriaLabel')")
@@ -64,9 +61,17 @@
           //- та же сумма по ставкам из договоров преподавателей; затем взнос кооператива.
           BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
             DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.plannedHourlyRate')")
             DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.costMonth')")
             DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.actualCostMonth')")
             DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup')")
             BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
               template(#icon)
                 q-icon(name="warning_amber")
@@ -90,7 +95,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState, FieldHelp } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,

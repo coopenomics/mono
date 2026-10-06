@@ -1,6 +1,9 @@
 <template lang="pug">
 .data-row(:class='[`data-row--${align}`, { "data-row--mono": mono }]')
-  .data-row__label {{ label }}
+  .data-row__label
+    | {{ label }}
+    //- Значок пояснения рядом с подписью (FieldHelp) — когда смысл строки неочевиден.
+    slot(name='label-append')
   .data-row__value
     template(v-if='$slots["value-override"]')
       slot(name='value-override')
