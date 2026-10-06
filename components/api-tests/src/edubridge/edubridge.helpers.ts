@@ -343,7 +343,7 @@ export const CREATE_ASSIGNMENT = `mutation($d:EduAssignmentInput!){ edubridgeCre
 export const CLOSE_ASSIGNMENT = `mutation($id:ID!){ edubridgeCloseAssignment(id:$id){ ${ASSIGNMENT_FIELDS} } }`
 export const SET_ASSIGNMENT_RATE = `mutation($d:EduSetAssignmentRateInput!){ edubridgeSetAssignmentRate(data:$d){ ${ASSIGNMENT_FIELDS} } }`
 export const SET_TEACHER_RATE = 'mutation($d:EduSetTeacherRateInput!){ edubridgeSetTeacherRate(data:$d) }'
-export const TEACHERS = 'query{ edubridgeTeachers{ username about hourly_rate contract_number contract_status assignments_active } }'
+export const TEACHERS = 'query{ edubridgeTeachers{ username about hourly_rate contract_number contract_status assignments_active assignments_total } }'
 
 /** Договор участия в хозяйственной деятельности с подписью преподавателя. */
 export async function signedContract(who: Who, token: string): Promise<{ document: any, contract_number: string }> {

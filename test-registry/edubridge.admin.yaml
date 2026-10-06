@@ -46,8 +46,7 @@ cases:
     scenario: "«Проверить» площадку с верными ключами, в каталоге ещё нет курсов (инцидент 23.09.2026: статус «Работает» и «У курса не задан идентификатор курса Skillspace»)."
     expect: "Проверка идёт одним чтением с ключами (ping), курс-проба не участвует; в результат пишется итог площадки."
     test: components/controller/tests/unit/edubridge/admin.service.test.ts
-    external: unreachable
-    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
+    api: components/api-tests/src/edubridge/platforms.test.ts
     status: passing
   - id: edu.admin.side.14
     level: backend
@@ -55,8 +54,7 @@ cases:
     scenario: "«Проверить» площадку с неверным ключом."
     expect: "Площадка помечается сбоящей, в результат пишется сообщение площадки."
     test: components/controller/tests/unit/edubridge/admin.service.test.ts
-    external: unreachable
-    external_reason: "чужая площадка: адреса Skillspace и GetCourse вшиты в коннекторы, подставным узлом стенда их не подменить, боевых ключей на стенде нет"
+    api: components/api-tests/src/edubridge/platforms.test.ts
     status: passing
   - id: edu.admin.happy.03
     level: backend
