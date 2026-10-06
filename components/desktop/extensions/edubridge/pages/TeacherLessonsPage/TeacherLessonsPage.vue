@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="rows" row-key="id" :loading="firstLoad" min-width="960px")
+  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="rows" row-key="id" :loading="firstLoad" min-width="1000px")
     template(#cell-lesson="{ row }")
       div {{ $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}{{ row.topic ? ` · ${row.topic}` : '' }}
       .t-muted.t-sm {{ row.course_title }}
@@ -20,11 +20,11 @@
         BaseBadge(:variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
         .t-muted.t-sm(v-if="row.contribution.status === Zeus.EduContributionStatus.HELD && row.contribution.hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(row.contribution.hold_until) }) }}
         .t-muted.t-sm(v-if="row.contribution.decline_reason") {{ row.contribution.decline_reason }}
+        .q-mt-xs(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT")
+          BaseButton(variant="primary" size="sm" :loading="rowBusy === row.id" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        .q-mt-xs(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED")
+          BaseButton(variant="primary" size="sm" :loading="rowBusy === row.id" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
       template(v-else) ______
-    template(#cell-actions="{ row }")
-      template(v-if="row.contribution")
-        BaseButton(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-        BaseButton(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
     template(#icon)
@@ -97,13 +97,14 @@ const form = reactive({ assignment_id: '', topic: '' });
 /** Строка журнала: занятие вместе со взносом по нему. */
 type ILessonRow = ILesson & { contribution: IContribution | null };
 
+// Ширины заданы всем колонкам, кроме первой: при фиксированной раскладке к
+// ним прибавляются поля ячеек, и «Занятие» получает всё, что осталось.
 const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
-  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
-  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '200px' },
-  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '140px', nowrap: true },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px' },
-  { key: 'actions', label: '', align: 'right', width: '180px' },
+  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '110px', nowrap: true },
+  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '160px' },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '120px', nowrap: true },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '230px' },
 ];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
