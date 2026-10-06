@@ -3,13 +3,16 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="1180px")
-    template(#cell-lesson_number="{ row }") № {{ row.lesson_number }}
-    template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
-    template(#cell-duration_minutes="{ row }") {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
+  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="960px")
+    template(#cell-lesson="{ row }")
+      div {{ $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}{{ row.topic ? ` · ${row.topic}` : '' }}
+      .t-muted.t-sm {{ row.course_title }}
+    template(#cell-held_at="{ row }")
+      div {{ formatDate(row.held_at) }}
+      .t-muted.t-sm {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
     template(#cell-materials="{ row }")
       .column
-        a.t-sm(v-for="link in row.materials" :key="link" :href="link" target="_blank" rel="noopener") {{ link }}
+        a.t-sm.ellipsis(v-for="link in row.materials" :key="link" :href="link" :title="link" target="_blank" rel="noopener") {{ link }}
         .t-muted.t-sm(v-if="!row.materials.length") ______
     template(#cell-amount="{ row }") {{ contributionOf(row) ? formatAsset2Digits(contributionOf(row).amount) : '______' }}
     template(#cell-status="{ row }")
@@ -92,15 +95,12 @@ const materialsText = ref('');
 const form = reactive({ assignment_id: '', topic: '' });
 
 const columns: BaseTableColumn<ILesson>[] = [
-  { key: 'course_title', label: t('edubridge.teacherLessonsPage.column.course') },
-  { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.lesson'), width: '110px', nowrap: true },
-  { key: 'topic', label: t('edubridge.teacherLessonsPage.column.topic') },
+  { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
-  { key: 'duration_minutes', label: t('edubridge.teacherLessonsPage.column.duration'), width: '130px', nowrap: true },
-  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '220px' },
-  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '140px' },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '220px' },
-  { key: 'actions', label: '', align: 'right', width: '190px' },
+  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '200px' },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '140px', nowrap: true },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px' },
+  { key: 'actions', label: '', align: 'right', width: '180px' },
 ];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
