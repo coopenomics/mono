@@ -5,7 +5,9 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
     .edu-admin-course__placeholder(v-else)
       q-icon(name="school" size="32px")
     //- Состояние курса — на обложке: служебная отметка не спорит с названием и разделом.
-    BaseBadge.edu-admin-course__status(:variant="status.variant") {{ status.label }}
+    //- Значок лежит на белой плашке: его собственный фон полупрозрачен и на пёстрой обложке не читается.
+    .edu-admin-course__status
+      BaseBadge(:variant="status.variant") {{ status.label }}
   .edu-admin-course__body
     //- Раздел с уровнем — на всю ширину: это первое, по чему курс узнают в реестре.
     .t-eyebrow {{ courseSectionLabel(course.section_title, course.level_title) }}
@@ -156,8 +158,11 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   position: absolute;
   top: var(--p-3);
   left: var(--p-3);
-  /* Сплошная подложка: на пёстрой обложке полупрозрачный значок не читается. */
+  z-index: 1;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
   background: var(--p-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
 }
 </style>
