@@ -155,12 +155,15 @@ export async function educationOn(): Promise<void> {
 }
 
 /** Расширение выключено: его программы и шаблоны соседним наборам не видны. */
-export async function educationOff(): Promise<void> {
+export async function educationOff(config?: Record<string, unknown>): Promise<void> {
   const chairman = await tokenOf(CHAIRMAN)
   const ext = await extensionRow(chairman)
   if (!ext?.is_installed || !ext.enabled)
     return
-  await gql(chairman, UPDATE, { d: { name: EXTENSION, enabled: false, config: ext.config ?? {} } })
+  // Настройки, которые набор менял на время своей работы, возвращаются тем же
+  // вызовом, что и выключение: отдельная правка настроек перезапустила бы
+  // расширение, и перезапуск мог бы обогнать выключение.
+  await gql(chairman, UPDATE, { d: { name: EXTENSION, enabled: false, config: config ?? ext.config ?? {} } })
   await waitFor(async () => ((await templates(chairman)).some(t => t.extension_name === EXTENSION) ? null : true),
     { timeoutMs: 60_000, intervalMs: 1_000, label: 'шаблоны выключенного «Образования» сняты с реестра' })
 }

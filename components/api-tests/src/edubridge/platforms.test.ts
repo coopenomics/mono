@@ -143,9 +143,8 @@ describe('Образование: выдача доступа на площад�
   }, 900_000)
 
   afterAll(async () => {
-    await gql(chairman, UPDATE_EXTENSION, { d: { name: EXTENSION, enabled: true, config: originalConfig } })
+    await educationOff(originalConfig)
     await stubReset()
-    await educationOff()
   })
 
   it(caseName('edu.admin.side.13', 'проверка площадки с верным ключом идёт одним чтением, курсы для неё не нужны'), async () => {
