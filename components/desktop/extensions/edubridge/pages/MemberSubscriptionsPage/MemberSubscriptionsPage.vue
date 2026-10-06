@@ -23,7 +23,7 @@
           .edu-sub__title {{ row.course_title }}
           .edu-sub__meta {{ learnerName(row.learner_id) }} · {{ periodLabel(row.period) }}
           //- Пояснение к состоянию: заявление по гарантии на рассмотрении либо основание возврата.
-          .edu-sub__meta(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
+          .edu-sub__meta(v-if="claimOf(row)") {{ $t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(row)?.number }) }} · {{ $t(`edubridge.guaranteeClaim.status.${claimOf(row)?.status}`) }}
           .edu-sub__meta(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
         .edu-sub__term
           .edu-sub__label {{ $t('edubridge.memberSubscriptionsPage.columns.paidUntil') }}
@@ -37,13 +37,18 @@
         .edu-sub__actions(v-if="isActive(row)")
           BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
           //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
-          BaseButton(v-if="!underReview.has(asText(row.id))" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
+          BaseButton(v-if="canClaimGuarantee(row) || !underReview.has(asText(row.id))" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
             template(#icon-left)
               q-icon(name="more_horiz" size="20px")
             template(#menu)
               q-menu(anchor="bottom right" self="top right")
                 q-list.edu-sub__menu(dense)
-                  q-item(clickable v-close-popup @click="openCancel(row)")
+                  //- Возврат по гарантии — пока идёт гарантийный срок и заявление ещё не подавалось.
+                  q-item(v-if="canClaimGuarantee(row)" clickable v-close-popup @click="openGuarantee(row)")
+                    q-item-section
+                      q-item-label {{ $t('edubridge.guaranteeClaim.open') }}
+                      q-item-label(v-if="guaranteeOf(row)?.guarantee_until" caption) {{ $t('edubridge.guaranteeClaim.until', { date: formatDate(guaranteeOf(row)?.guarantee_until) }) }}
+                  q-item(v-if="!underReview.has(asText(row.id))" clickable v-close-popup @click="openCancel(row)")
                     q-item-section.text-negative {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
@@ -72,6 +77,8 @@
     @learner-added="onLearnerAdded"
     @subscribed="onSubscribed"
   )
+
+  GuaranteeClaimDialog(v-model="guaranteeOpen" :state="guaranteeTarget" @submitted="load")
 </template>
 
 <script setup lang="ts">
@@ -99,7 +106,7 @@ import {
 } from '../../entities/Learner';
 import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
-import { fetchMyGuarantees } from '../../features/Guarantee';
+import { GuaranteeClaimDialog, fetchMyGuarantees, type IGuaranteeState } from '../../features/Guarantee';
 import { daysLeft, isRenewSoon } from '../../shared/lib/subscriptionDue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
@@ -136,6 +143,18 @@ const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
 const dueSoon = computed(() => enrollments.value.filter((e) => isRenewSoon(e)));
 /** Подписки, по которым заявление по гарантии рассматривает совет. */
 const underReview = ref<Set<string>>(new Set());
+/** Гарантийные условия по каждой подписке: срок, сумма, поданное заявление. */
+const guarantees = ref<Map<string, IGuaranteeState>>(new Map());
+const guaranteeOf = (row: IEnrollment) => guarantees.value.get(asText(row.id)) ?? null;
+const claimOf = (row: IEnrollment) => guaranteeOf(row)?.claim ?? null;
+/** Заявление по гарантии подаётся один раз, пока идёт гарантийный срок. */
+const canClaimGuarantee = (row: IEnrollment) => Boolean(guaranteeOf(row)?.available) && !claimOf(row);
+const guaranteeOpen = ref(false);
+const guaranteeTarget = ref<IGuaranteeState | null>(null);
+function openGuarantee(row: IEnrollment): void {
+  guaranteeTarget.value = guaranteeOf(row);
+  guaranteeOpen.value = true;
+}
 const isActive = (row: IEnrollment) =>
   row.status === Zeus.EduEnrollmentStatus.ACTIVE || row.status === Zeus.EduEnrollmentStatus.PENDING;
 
@@ -148,6 +167,7 @@ async function load(): Promise<void> {
       fetchCatalog({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } }),
       fetchMyGuarantees(),
     ]);
+    guarantees.value = new Map(g.map((x) => [asText(x.enrollment_id), x]));
     underReview.value = new Set(g.filter((x) => x.claim?.status === Zeus.EduGuaranteeClaimStatus.SUBMITTED).map((x) => asText(x.enrollment_id)));
     learners.value = l;
     enrollments.value = e;

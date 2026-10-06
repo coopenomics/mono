@@ -41,15 +41,10 @@
             .edu-course__text(v-if="course.syllabus") {{ course.syllabus }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.courseCardPage.syllabusEmpty') }}
 
-      //- Правая колонка: кто ведёт курс и гарантийные условия. Учебная программа
-      //- слева бывает длинной — короткие сведения не должны оказываться под ней.
       .col-12.col-md-4(v-if="hasSide")
-        .edu-course__side
-          BaseCard(v-if="course.teacher_usernames.length" variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
-            .edu-course__teachers
-              .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
-          //- Гарантийные условия видит участник с подпиской на этот курс.
-          GuaranteeClaim(v-if="canSeeGuarantee" :course-id="asText(course.id)")
+        BaseCard(variant="default" :title="course.teacher_usernames.length > 1 ? $t('edubridge.courseCardPage.teachersTitleMany') : $t('edubridge.courseCardPage.teachersTitleOne')")
+          .edu-course__teachers
+            .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username") {{ fioCache.get(username) || username }}
 
     SubscribeDialog(
       v-model="subscribeOpen"
@@ -75,7 +70,6 @@ import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
 import { SubscribeDialog } from '../../features/Subscribe';
-import { GuaranteeClaim } from '../../features/Guarantee';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
@@ -106,8 +100,8 @@ const paidUntil = computed(() => {
   const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
   return dates.length ? new Date(Math.max(...dates)) : null;
 });
-/** Правая колонка нужна, когда есть кого назвать либо участник читает свои гарантийные условия. */
-const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length) || canSeeGuarantee.value);
+/** Правая колонка нужна, когда есть кого назвать. */
+const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length));
 const left = computed(() => daysLeft(paidUntil.value));
 const renewSoon = computed(() => left.value !== null && left.value <= RENEW_SOON_DAYS);
 const learners = ref<ILearner[]>([]);
@@ -227,10 +221,5 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
 .edu-course__due {
   font-size: var(--p-fs-meta, 12px);
   color: var(--p-warn);
-}
-.edu-course__side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--p-4);
 }
 </style>
