@@ -30,7 +30,10 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
         .edu-admin-course__fee-label {{ $t('edubridge.adminCourseCard.feeMonthLabel') }}
         FeeAmount(:value="course.fee_month" size="md")
       .edu-admin-course__fee(v-if="course.fee_course")
-        .edu-admin-course__fee-label {{ $t('edubridge.adminCourseCard.feeCourseLabel') }}
+        //- Насколько взнос разом меньше помесячного за те же месяцы — значком у подписи.
+        .edu-admin-course__fee-label
+          span {{ $t('edubridge.adminCourseCard.feeCourseLabel') }}
+          BaseBadge(v-if="saving" variant="pos") −{{ saving }}%
         FeeAmount(:value="course.fee_course" size="md")
 </template>
 <script setup lang="ts">
@@ -54,6 +57,14 @@ const status = computed(() => COURSE_STATUS_LABELS[props.course.status] ?? { lab
 const teachers = computed(() => props.course.teacher_usernames.map((u) => props.teacherNames?.[u] || u));
 
 const months = computed(() => courseMonthsLabel(props.course.course_months));
+
+/** Выгода взноса за весь курс против помесячного за те же месяцы, целые проценты; ноль — значок не нужен. */
+const saving = computed(() => {
+  const base = parseFloat(props.course.fee_course_base ?? '');
+  const once = parseFloat(props.course.fee_course ?? '');
+  if (!(base > 0) || !(once > 0) || once >= base) return 0;
+  return Math.round((1 - once / base) * 100);
+});
 </script>
 
 <style scoped>
@@ -147,6 +158,9 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   min-width: 0;
 }
 .edu-admin-course__fee-label {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
   font-size: var(--p-fs-meta, 12px);
   line-height: 1.3;
   color: var(--p-ink-3);

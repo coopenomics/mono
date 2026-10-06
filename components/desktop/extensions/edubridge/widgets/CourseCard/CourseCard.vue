@@ -24,12 +24,15 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
         .edu-course-card__fee-label {{ $t('edubridge.courseCard.feeMonthLabel') }}
         FeeAmount(:value="course.fee_month" size="md")
       .edu-course-card__fee(v-if="course.fee_course")
-        .edu-course-card__fee-label {{ $t('edubridge.courseCard.feeCourseLabel') }}
+        //- Насколько взнос разом меньше помесячного за те же месяцы — значком у подписи.
+        .edu-course-card__fee-label
+          span {{ $t('edubridge.courseCard.feeCourseLabel') }}
+          BaseBadge(v-if="saving" variant="pos") −{{ saving }}%
         FeeAmount(:value="course.fee_course" size="md")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
-import { BaseCard } from 'src/shared/ui/base';
+import { BaseBadge, BaseCard } from 'src/shared/ui/base';
 import { courseSectionLabel, type ICatalogCourse } from '../../entities/Course';
 import { courseMonthsLabel } from '../../shared/lib/courseMonths';
 import { t } from '../../i18n';
@@ -49,6 +52,14 @@ const lessons = computed(() => {
 });
 
 const months = computed(() => courseMonthsLabel(props.course.course_months));
+
+/** Выгода взноса за весь курс против помесячного за те же месяцы, целые проценты; ноль — значок не нужен. */
+const saving = computed(() => {
+  const base = parseFloat(props.course.fee_course_base ?? '');
+  const once = parseFloat(props.course.fee_course ?? '');
+  if (!(base > 0) || !(once > 0) || once >= base) return 0;
+  return Math.round((1 - once / base) * 100);
+});
 </script>
 
 <style scoped>
@@ -142,6 +153,9 @@ const months = computed(() => courseMonthsLabel(props.course.course_months));
   min-width: 0;
 }
 .edu-course-card__fee-label {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
   font-size: var(--p-fs-meta, 12px);
   line-height: 1.3;
   color: var(--p-ink-3);
