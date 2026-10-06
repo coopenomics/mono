@@ -27,7 +27,6 @@ import {
   MemberOnboardingPage,
   MemberSubscriptionsPage,
   TeacherAssignmentsPage,
-  TeacherContributionsPage,
   TeacherLessonsPage,
   TeacherOnboardingPage,
   TeacherProfilePage,
@@ -116,14 +115,13 @@ function parentWorkspace(): IWorkspaceConfig {
   ]);
 }
 
-/** «Стол преподавателя»: назначения, взносы результатами работы, расчёт. */
+/** «Стол преподавателя»: назначения, занятия со взносами результатами работы, расчёт. */
 function teacherWorkspace(): IWorkspaceConfig {
   return workspace('edubridge-teacher', t('edubridge.install.teacherWorkspaceTitle'), 'co_present', 'edubridge-teacher-profile', [
     memberPage('onboarding', 'edubridge-teacher-onboarding', TeacherOnboardingPage, { title: t('edubridge.install.teacherOnboardingRouteTitle'), icon: 'how_to_reg', requires: 'Onboarding:teacher', gate: true }),
     memberPage('profile', 'edubridge-teacher-profile', TeacherProfilePage, { title: t('edubridge.install.teacherProfileRouteTitle'), icon: 'badge', requires: 'EduAssignment:read:own' }),
     memberPage('assignments', 'edubridge-assignments', TeacherAssignmentsPage, { title: t('edubridge.install.assignmentsRouteTitle'), icon: 'assignment', requires: 'EduAssignment:read:own' }),
     memberPage('lessons', 'edubridge-lessons', TeacherLessonsPage, { title: t('edubridge.install.lessonsRouteTitle'), icon: 'event_available', requires: 'EduContribution:create:own' }),
-    memberPage('contributions', 'edubridge-contributions', TeacherContributionsPage, { title: t('edubridge.install.teacherContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:read:own' }),
     memberPage('settlement', 'edubridge-settlement', TeacherSettlementPage, { title: t('edubridge.install.settlementRouteTitle'), icon: 'account_balance_wallet', requires: 'EduTeacherWallet:read:own' }),
   ]);
 }

@@ -11,7 +11,6 @@ export { TeacherOnboardingPage } from './TeacherOnboardingPage';
 export { TeacherProfilePage } from './TeacherProfilePage';
 export { TeacherAssignmentsPage } from './TeacherAssignmentsPage';
 export { TeacherLessonsPage } from './TeacherLessonsPage';
-export { TeacherContributionsPage } from './TeacherContributionsPage';
 export { TeacherSettlementPage } from './TeacherSettlementPage';
 export { AdminMembersPage } from './AdminMembersPage';
 export { AdminConnectorsPage } from './AdminConnectorsPage';

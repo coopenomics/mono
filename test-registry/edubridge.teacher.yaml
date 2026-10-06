@@ -64,7 +64,6 @@ sources:
     - components/desktop/extensions/edubridge/pages/AdminTeachersPage/**
     - components/desktop/extensions/edubridge/pages/AdminContributionsPage/**
     - components/desktop/extensions/edubridge/pages/TeacherAssignmentsPage/**
-    - components/desktop/extensions/edubridge/pages/TeacherContributionsPage/**
     - components/desktop/extensions/edubridge/pages/TeacherSettlementPage/**
     - components/desktop/extensions/edubridge/entities/Teacher/**
 

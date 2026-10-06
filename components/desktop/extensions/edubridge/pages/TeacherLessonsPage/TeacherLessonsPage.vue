@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="820px")
+  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="1180px")
     template(#cell-lesson_number="{ row }") № {{ row.lesson_number }}
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
     template(#cell-duration_minutes="{ row }") {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
@@ -11,6 +11,17 @@
       .column
         a.t-sm(v-for="link in row.materials" :key="link" :href="link" target="_blank" rel="noopener") {{ link }}
         .t-muted.t-sm(v-if="!row.materials.length") ______
+    template(#cell-amount="{ row }") {{ contributionOf(row) ? formatAsset2Digits(contributionOf(row).amount) : '______' }}
+    template(#cell-status="{ row }")
+      template(v-if="contributionOf(row)")
+        BaseBadge(:variant="statusOf(contributionOf(row).status).variant") {{ statusOf(contributionOf(row).status).label }}
+        .t-muted.t-sm(v-if="contributionOf(row).status === Zeus.EduContributionStatus.HELD && contributionOf(row).hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(contributionOf(row).hold_until) }) }}
+        .t-muted.t-sm(v-if="contributionOf(row).decline_reason") {{ contributionOf(row).decline_reason }}
+      template(v-else) ______
+    template(#cell-actions="{ row }")
+      template(v-if="contributionOf(row)")
+        BaseButton(v-if="contributionOf(row).status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else-if="contributionOf(row).status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
     template(#icon)
@@ -40,19 +51,35 @@ import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
-import { BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
+import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
-import { fetchMyAssignments, fetchMyLessons, reportLesson, type IAssignment, type ILesson } from '../../entities/Teacher';
+import {
+  CONTRIBUTION_STATUS_LABELS,
+  commitLessonMaterials,
+  fetchMyAssignments,
+  fetchMyContributions,
+  fetchMyLessons,
+  reportLesson,
+  signAct,
+  type IAssignment,
+  type IContribution,
+  type ILesson,
+} from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
 
 /**
- * Журнал занятий преподавателя. Отчёт — это и есть подача взноса: сумму считает
- * сервер по ставке часа, поэтому произвольного ввода здесь нет. Дальше взнос
- * виден на странице «Мои взносы»: там подписывается заявление и акт.
+ * Журнал занятий преподавателя. Отчёт — это и есть взнос результатом работы:
+ * сумму считает сервер по ставке часа, а материалы уходят кооперативу на
+ * ответственное хранение тем же действием — акт хранения и заявление о паевом
+ * взносе подписываются сразу после отчёта. Состояние взноса видно в строке
+ * занятия; после решения совета здесь же подписывается акт приёма-передачи.
  */
 const lessons = ref<ILesson[]>([]);
+const contributions = ref<IContribution[]>([]);
+const rowBusy = ref<string | null>(null);
 const assignments = ref<IAssignment[]>([]);
 // Признак включён с самого начала: до конца первой загрузки на экране каркас, а не «пусто».
 const loading = ref(true);
@@ -70,8 +97,21 @@ const columns: BaseTableColumn<ILesson>[] = [
   { key: 'topic', label: t('edubridge.teacherLessonsPage.column.topic') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
   { key: 'duration_minutes', label: t('edubridge.teacherLessonsPage.column.duration'), width: '130px', nowrap: true },
-  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '260px' },
+  { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '220px' },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '140px' },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '220px' },
+  { key: 'actions', label: '', align: 'right', width: '190px' },
 ];
+
+const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+/** Взнос занятия: отчёт заводит его сам, связь — по идентификатору взноса. */
+const contributionOf = (lesson: ILesson) => contributions.value.find((c) => asText(c.id) === asText(lesson.contribution_id)) ?? null;
+
+function replaceContribution(c: IContribution): void {
+  const i = contributions.value.findIndex((x) => x.id === c.id);
+  if (i >= 0) contributions.value[i] = c;
+  else contributions.value.unshift(c);
+}
 
 const assignmentOptions = computed(() =>
   assignments.value
@@ -84,9 +124,10 @@ const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [l, a] = await Promise.all([fetchMyLessons(), fetchMyAssignments()]);
+    const [l, a, c] = await Promise.all([fetchMyLessons(), fetchMyAssignments(), fetchMyContributions()]);
     lessons.value = l;
     assignments.value = a;
+    contributions.value = c;
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -115,17 +156,53 @@ async function onReport(): Promise<void> {
       materials: materialsText.value.split('\n').map((s) => s.trim()).filter(Boolean),
     } as never);
     lessons.value = [created, ...lessons.value];
+    // Отчёт записан: окно закрывается, даже если подпись документов сорвётся.
     reportOpen.value = false;
+    contributions.value = await fetchMyContributions();
+    // Материалы уходят на хранение тем же действием. Если подпись сорвалась,
+    // отчёт уже записан — передачу повторяют кнопкой в строке занятия.
+    const draft = contributionOf(created);
+    rowBusy.value = asText(created.id);
+    if (draft) replaceContribution(await commitLessonMaterials(draft));
     SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
   } catch (e) {
     FailAlert(e);
   } finally {
     busy.value = false;
+    rowBusy.value = null;
+  }
+}
+
+async function onTransfer(lesson: ILesson): Promise<void> {
+  const c = contributionOf(lesson);
+  if (!c) return;
+  rowBusy.value = asText(lesson.id);
+  try {
+    replaceContribution(await commitLessonMaterials(c));
+    SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    rowBusy.value = null;
+  }
+}
+
+async function onSignAct(lesson: ILesson): Promise<void> {
+  const c = contributionOf(lesson);
+  if (!c) return;
+  rowBusy.value = asText(lesson.id);
+  try {
+    replaceContribution(await signAct(c));
+    SuccessAlert(t('edubridge.teacherLessonsPage.actSignedSuccess'));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    rowBusy.value = null;
   }
 }
 
 // Живое обновление: данные меняются в цепи и на столах других участников.
-useLiveReload([EduLive.lessons, EduLive.assignments], load);
+useLiveReload([EduLive.lessons, EduLive.assignments, EduLive.contributions], load);
 
 const { registerAction } = useHeaderActions();
 
