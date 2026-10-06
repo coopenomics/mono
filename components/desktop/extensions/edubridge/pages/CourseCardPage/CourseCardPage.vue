@@ -12,7 +12,13 @@
         span(v-if="course.schedule") {{ course.schedule }}
         span(v-if="course.starts_at") {{ $t('edubridge.courseCardPage.startsFrom', { date: formatDate(course.starts_at) }) }}
       template(#actions)
-        BaseButton(variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.getAccess') }}
+        //- Доступ уже оплачен: срок виден, главное действие — продление; записать ещё одного обучающегося — рядом.
+        template(v-if="paidUntil")
+          .edu-course__access
+            BaseBadge(variant="pos") {{ $t('edubridge.courseCardPage.accessPaidUntil', { date: formatDate(paidUntil) }) }}
+            .edu-course__due(v-if="renewSoon") {{ $t('edubridge.courseCardPage.daysLeft', { n: left }, Number(left)) }}
+          BaseButton(variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.extend') }}
+        BaseButton(v-else variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.getAccess') }}
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
@@ -62,9 +68,10 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
-import { fetchMyLearners, type ILearner } from '../../entities/Learner';
+import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
+import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { GuaranteeClaim } from '../../features/Guarantee';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
@@ -90,6 +97,15 @@ const loading = ref(true);
 // Каркас — только до конца первой загрузки: обновление по ленте изменений страницу не прячет.
 const firstLoad = useFirstLoad(loading);
 const subscribeOpen = ref(false);
+/** Мои действующие подписки на этот курс: по ним видно, что доступ уже оплачен и до какого дня. */
+const ownEnrollments = ref<IEnrollment[]>([]);
+/** Самый поздний оплаченный срок среди них. */
+const paidUntil = computed(() => {
+  const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
+  return dates.length ? new Date(Math.max(...dates)) : null;
+});
+const left = computed(() => daysLeft(paidUntil.value));
+const renewSoon = computed(() => left.value !== null && left.value <= RENEW_SOON_DAYS);
 const learners = ref<ILearner[]>([]);
 /** Свои подписки читает только участник, подписавший оферту ученика. */
 const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
@@ -139,10 +155,22 @@ function onSubscribed(): void {
 /** Курс из каталога; живое перечитывание — без скелетона, курс остаётся на экране. */
 async function loadCourse(): Promise<void> {
   course.value = await fetchCatalogCourse(String(route.params.id));
+  await loadOwnEnrollments();
+}
+
+/** Свои подписки на курс читает участник с офертой ученика; гостю и остальным кнопка остаётся «Получить доступ». */
+async function loadOwnEnrollments(): Promise<void> {
+  if (!canSeeGuarantee.value) return;
+  try {
+    const id = String(route.params.id);
+    ownEnrollments.value = (await fetchMyEnrollments()).filter((e) => asText(e.course_id) === id && isLiveEnrollment(e));
+  } catch {
+    ownEnrollments.value = [];
+  }
 }
 
 // Живое обновление: администратор правит курс — карточка показывает новое.
-useLiveReload([EduLive.courses], loadCourse);
+useLiveReload([EduLive.courses, EduLive.enrollments], loadCourse);
 
 onMounted(async () => {
   try {
@@ -185,5 +213,15 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   flex-direction: column;
   gap: var(--p-2);
   font-size: var(--p-fs-body);
+}
+.edu-course__access {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-1);
+}
+.edu-course__due {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-warn);
 }
 </style>

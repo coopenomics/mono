@@ -14,7 +14,10 @@
         .t-meta.t-muted(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
       template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
       template(#cell-period="{ row }") {{ periodLabel(row.period) }}
-      template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
+      //- Под датой — сколько осталось, когда срок подходит: взнос вносится заново на каждый период.
+      template(#cell-paid_until="{ row }")
+        div {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
+        .edu-subs__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
       //- Состояние подписки и доступа — одним столбцом, значками друг под другом:
       //- так название курса получает свою ширину и не сжимается в столбик по буквам.
       template(#cell-status="{ row }")
@@ -26,7 +29,7 @@
       //- ширине окна и крупном масштабе. Меню — в слоте #menu кнопки-иконки.
       template(#cell-actions="{ row }")
         .edu-subs__actions(v-if="isActive(row)")
-          BaseButton(variant="secondary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+          BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
           //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
           BaseButton(v-if="!underReview.has(asText(row.id))" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
             template(#icon-left)
@@ -91,6 +94,7 @@ import {
 import { ReturnToShareCard } from '../../features/ReturnToShare';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { fetchMyGuarantees } from '../../features/Guarantee';
+import { daysLeft, isRenewSoon } from '../../shared/lib/subscriptionDue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
@@ -121,6 +125,8 @@ const walletRev = ref(0);
  * иначе курс схлопывается и длинное название наезжает на соседей.
  */
 const columns: BaseTableColumn<IEnrollment>[] = [
+  // Действия — первым столбцом: «Продлить» нажимают каждый период, и она видна при любой ширине окна.
+  { key: 'actions', label: '', width: '150px', nowrap: true },
   { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
   // Таблица с фиксированной сеткой: «Курс» без ширины получает остаток. Сумма
   // заданных ширин — 680px при минимуме таблицы 880px, курсу остаётся не меньше 200px.
@@ -128,7 +134,7 @@ const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'period', label: t('edubridge.memberSubscriptionsPage.columns.period'), width: '110px', nowrap: true },
   { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
   { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '150px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '150px', nowrap: true },
+  
 ];
 
 const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';
@@ -223,8 +229,13 @@ onMounted(load);
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: var(--p-1);
+}
+.edu-subs__due {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-warn);
+  white-space: nowrap;
 }
 .edu-subs__menu {
   min-width: 200px;

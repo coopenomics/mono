@@ -1,5 +1,7 @@
 import './i18n';
 import { markRaw, type Component } from 'vue';
+import { fetchMyEnrollments } from './entities/Learner';
+import { isRenewSoon } from './shared/lib/subscriptionDue';
 import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
 import { registerLiveReload } from 'src/shared/lib/realtime';
 import { invalidateAttention, sharedAttention } from './entities/Admin';
@@ -131,6 +133,16 @@ export default async function (): Promise<IWorkspaceConfig[]> {
   // на подписи председателя и застрявшая выдача доступа ученикам.
   registerMenuBadge('edubridge-admin-teachers', async () => (await sharedAttention()).teachers);
   registerMenuBadge('edubridge-admin-registry', async () => (await sharedAttention()).learners);
+  // Стол ученика: сколько подписок пора продлить — взнос вносится заново на каждый период.
+  registerMenuBadge('edubridge-subscriptions', async () => {
+    try {
+      return (await fetchMyEnrollments()).filter((e) => isRenewSoon(e)).length;
+    } catch {
+      // Свои подписки читает только участник с офертой ученика — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([EduLive.enrollments], () => refreshMenuBadges(['edubridge-subscriptions']));
   // Числа меняются по факту — подпись председателя, выдача доступа в фоне, —
   // и пункты меню узнают об этом по ленте изменений, а не опросом раз в минуту.
   registerLiveReload([EduLive.approvals, EduLive.teacherContracts, EduLive.accessTasks], () => {
