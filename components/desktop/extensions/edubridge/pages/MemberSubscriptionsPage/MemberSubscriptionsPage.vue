@@ -132,7 +132,8 @@ const cancelBusy = ref(false);
 // Отмена и оплата меняют остаток кошелька программы — карточка перечитывает его.
 const walletRev = ref(0);
 
-const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';
+// Идентификатор из API приходит скаляром без точного типа — сравниваем как текст.
+const learnerName = (id: unknown) => learners.value.find((l) => asText(l.id) === asText(id))?.display_name ?? '______';
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
 const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
