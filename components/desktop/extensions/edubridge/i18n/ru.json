@@ -784,14 +784,14 @@
       "getAccess": "Получить доступ",
       "learnerLabel": "Обучающийся",
       "newLearnerTitle": "Новый обучающийся",
-      "notEnoughFunds": "Не хватает {shortfall}. Пополните паевой взнос в главном кошельке — после зачисления вернитесь сюда.",
+      "notEnoughFunds": "Не хватает {shortfall}. Пополните паевой взнос в главном кошельке.",
       "paidUntilLabel": "Будет оплачено до",
       "perMonth": "в месяц",
       "periodCourseTitle": "За весь курс разом",
       "periodMonthTitle": "Помесячно",
       "selfLearnerLabel": "{name} (я)",
       "success": "Членский взнос внесён, доступ оформляется",
-      "topUpWallet": "Пополнить кошелёк"
+      "topUpWallet": "Пополнить на эту сумму"
     },
     "teacherAssignmentsPage": {
       "aboutTitle": "О курсе",

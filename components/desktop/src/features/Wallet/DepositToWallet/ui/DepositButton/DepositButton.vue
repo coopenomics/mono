@@ -1,14 +1,19 @@
 <template lang="pug">
 q-btn(
   v-if='canContribute',
-  @click='showDialog = true',
+  @click='openDialog',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
+  :outline='Boolean(label)',
+  :no-caps='Boolean(label)',
   :dense='micro',
-  :size='micro ? "sm" : undefined'
+  :size='micro || label ? "sm" : undefined'
 )
-  q-icon(:name='micro ? "fa-solid fa-arrow-up" : "fa-solid fa-chevron-up"')
-  span(v-if='!micro').q-ml-sm {{ $t('wallet.depositButton.buttonLabel') }}
+  //- С подписью кнопка стоит внутри чужой формы (например, запись на курс) и называет действие словами.
+  span(v-if='label') {{ label }}
+  template(v-else)
+    q-icon(:name='micro ? "fa-solid fa-arrow-up" : "fa-solid fa-chevron-up"')
+    span(v-if='!micro').q-ml-sm {{ $t('wallet.depositButton.buttonLabel') }}
   q-tooltip(v-if='micro') {{ $t('wallet.depositButton.submitLabel') }}
 
   BaseDialog(
@@ -60,11 +65,22 @@ q-btn(
 
 interface Props {
   micro?: boolean;
+  /**
+   * Сумма, которую нужно внести: подставляется в поле при открытии окна.
+   * С ней кнопка ведёт своё окно сама и не открывает окна других кнопок
+   * пополнения на странице.
+   */
+  amount?: number | null;
+  /** Подпись кнопки вместо значка — когда кнопка стоит внутри чужой формы. */
+  label?: string;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   micro: false,
+  amount: null,
+  label: '',
 });
+const emit = defineEmits<{ deposited: [] }>();
 import { ref, computed } from 'vue';
 import { Form } from 'src/shared/ui/Form';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
@@ -86,7 +102,13 @@ const { createDeposit } = useCreateDepositPayment();
 
 const session = useSessionStore();
 const quantity = ref();
-const { showDialog } = useDepositDialog();
+// Общее состояние открывает окно из любого места кошелька; кнопка с заданной суммой ведёт своё окно сама.
+const showDialog = props.amount ? ref(false) : useDepositDialog().showDialog;
+
+const openDialog = (): void => {
+  if (props.amount) quantity.value = Math.ceil(Number(props.amount) * 100) / 100;
+  showDialog.value = true;
+};
 const isSubmitting = ref(false);
 const paymentOrder = ref();
 
@@ -135,6 +157,7 @@ const paymentSuccess = (): void => {
   } as ILoadUserWallet);
   clear();
   SuccessAlert(t('wallet.depositButton.acceptSuccess'));
+  emit('deposited');
 };
 </script>
 <style scoped></style>

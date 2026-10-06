@@ -33,7 +33,8 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
           q-icon(name="account_balance_wallet")
         | {{ $t('edubridge.subscribeDialog.notEnoughFunds', { shortfall: formatAsset2Digits(quote.shortfall) }) }}
         .q-mt-sm
-          BaseButton(variant="secondary" size="sm" @click="goToWallet") {{ $t('edubridge.subscribeDialog.topUpWallet') }}
+          //- Пополнение — здесь же, окном с подставленной суммой; после зачисления расчёт пересчитывается.
+          DepositButton(:amount="shortfallAmount" :label="$t('edubridge.subscribeDialog.topUpWallet')" @deposited="reloadQuotes")
 
   template(#footer)
     BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") {{ $t('edubridge.subscribeDialog.cancel') }}
@@ -46,13 +47,13 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
+import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import type { DigitalDocument } from 'src/shared/lib/document';
 import { fetchQuote, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
 import { courseSectionLabel, type ICatalogCourse } from '../../../entities/Course';
@@ -82,8 +83,6 @@ const emit = defineEmits<{
   'learner-added': [learner: ILearner];
 }>();
 
-const route = useRoute();
-const router = useRouter();
 
 const learnerId = ref<string | null>(null);
 const learnerFormOpen = ref(false);
@@ -111,10 +110,15 @@ function formatDate(value: unknown): string {
 }
 
 watch([learnerId, courseId], async () => {
+  period.value = Zeus.EduEnrollmentPeriod.MONTH;
+  await reloadQuotes();
+});
+
+/** Расчёт обоих способов оплаты; зовётся при смене курса или обучающегося и после пополнения кошелька. */
+async function reloadQuotes(): Promise<void> {
   monthQuote.value = null;
   courseQuote.value = null;
   statement.value = null;
-  period.value = Zeus.EduEnrollmentPeriod.MONTH;
   if (!learnerId.value || !courseId.value) return;
   const pair = { learner_id: learnerId.value, course_id: courseId.value };
   try {
@@ -132,7 +136,7 @@ watch([learnerId, courseId], async () => {
   } catch {
     courseQuote.value = null;
   }
-});
+}
 
 // Заявление подписано под сумму выбранного способа — при смене способа оно готовится заново.
 watch(period, () => {
@@ -185,9 +189,8 @@ async function ensureStatement(): Promise<DigitalDocument> {
   return doc;
 }
 
-function goToWallet(): void {
-  void router.push({ name: 'wallet', params: { coopname: route.params.coopname } });
-}
+/** Сколько не хватает на главном кошельке — числом, для окна пополнения. */
+const shortfallAmount = computed(() => parseFloat(quote.value?.shortfall ?? '') || null);
 
 async function submit(): Promise<void> {
   if (!learnerId.value || !courseId.value) return;
