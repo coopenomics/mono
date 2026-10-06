@@ -59,7 +59,10 @@
           BaseCard(variant="default" :title="$t('edubridge.adminCoursePage.teachersTitle')")
             .edu-course__teachers(v-if="course.teacher_usernames.length")
               .edu-course__teacher(v-for="username in course.teacher_usernames" :key="username")
-                IdentityCell(:account-name="username" :full-name="fioCache.get(username) || null")
+                //- Имя и учётное имя — одной строкой: в узкой карточке столбик из трёх строк растягивает её.
+                .edu-course__teacher-line
+                  span.edu-course__teacher-name(v-if="fioCache.get(username)") {{ fioCache.get(username) }}
+                  AccountBadge(:account-name="username" size="sm" copyable)
                 //- Ставка на этом курсе — у допуска; правится в карточке преподавателя.
                 .t-meta.t-muted(v-if="teacherRate(username)") {{ $t('edubridge.adminCoursePage.teacherRateLine', { rate: formatAsset2Digits(teacherRate(username)) }) }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
@@ -103,7 +106,7 @@ import { useDesktopStore } from 'src/entities/Desktop/model';
 import { useFioCache } from 'src/shared/lib/account/useFioCache';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseBanner, BaseButton, BaseCard, CardListSkeleton, EmptyState, FieldHelp } from 'src/shared/ui/base';
-import { DataRow, IdentityCell } from 'src/shared/ui/domain';
+import { AccountBadge, DataRow } from 'src/shared/ui/domain';
 import {
   CARRIER_LABELS,
   COURSE_STATUS_LABELS,
@@ -300,6 +303,17 @@ onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
   display: flex;
   flex-direction: column;
   gap: var(--p-3);
+}
+.edu-course__teacher-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-1) var(--p-2);
+}
+.edu-course__teacher-name {
+  color: var(--p-ink);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 .edu-course__menu {
   min-width: 220px;
