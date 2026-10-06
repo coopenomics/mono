@@ -1317,6 +1317,7 @@ export interface EdubridgeTeacherAssignments {
   course_id: string;
   created_at: Generated<Timestamp>;
   expected_result: Generated<string>;
+  hourly_rate: Generated<string>;
   id: Generated<string>;
   minutes_per_month: Generated<number>;
   period_from: Timestamp;
