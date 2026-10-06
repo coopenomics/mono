@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="lessons" row-key="id" :loading="firstLoad" min-width="960px")
+  BaseTable(v-if="firstLoad || lessons.length" :columns="columns" :rows="rows" row-key="id" :loading="firstLoad" min-width="960px")
     template(#cell-lesson="{ row }")
       div {{ $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}{{ row.topic ? ` · ${row.topic}` : '' }}
       .t-muted.t-sm {{ row.course_title }}
@@ -14,17 +14,17 @@
       .column
         a.t-sm.ellipsis(v-for="link in row.materials" :key="link" :href="link" :title="link" target="_blank" rel="noopener") {{ link }}
         .t-muted.t-sm(v-if="!row.materials.length") ______
-    template(#cell-amount="{ row }") {{ contributionOf(row) ? formatAsset2Digits(contributionOf(row).amount) : '______' }}
+    template(#cell-amount="{ row }") {{ row.contribution ? formatAsset2Digits(row.contribution.amount) : '______' }}
     template(#cell-status="{ row }")
-      template(v-if="contributionOf(row)")
-        BaseBadge(:variant="statusOf(contributionOf(row).status).variant") {{ statusOf(contributionOf(row).status).label }}
-        .t-muted.t-sm(v-if="contributionOf(row).status === Zeus.EduContributionStatus.HELD && contributionOf(row).hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(contributionOf(row).hold_until) }) }}
-        .t-muted.t-sm(v-if="contributionOf(row).decline_reason") {{ contributionOf(row).decline_reason }}
+      template(v-if="row.contribution")
+        BaseBadge(:variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
+        .t-muted.t-sm(v-if="row.contribution.status === Zeus.EduContributionStatus.HELD && row.contribution.hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(row.contribution.hold_until) }) }}
+        .t-muted.t-sm(v-if="row.contribution.decline_reason") {{ row.contribution.decline_reason }}
       template(v-else) ______
     template(#cell-actions="{ row }")
-      template(v-if="contributionOf(row)")
-        BaseButton(v-if="contributionOf(row).status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-        BaseButton(v-else-if="contributionOf(row).status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+      template(v-if="row.contribution")
+        BaseButton(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === row.id" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
     template(#icon)
@@ -94,7 +94,10 @@ const heldAt = ref('');
 const materialsText = ref('');
 const form = reactive({ assignment_id: '', topic: '' });
 
-const columns: BaseTableColumn<ILesson>[] = [
+/** Строка журнала: занятие вместе со взносом по нему. */
+type ILessonRow = ILesson & { contribution: IContribution | null };
+
+const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
   { key: 'materials', label: t('edubridge.teacherLessonsPage.column.materials'), width: '200px' },
@@ -106,6 +109,8 @@ const columns: BaseTableColumn<ILesson>[] = [
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 /** Взнос занятия: отчёт заводит его сам, связь — по идентификатору взноса. */
 const contributionOf = (lesson: ILesson) => contributions.value.find((c) => asText(c.id) === asText(lesson.contribution_id)) ?? null;
+
+const rows = computed<ILessonRow[]>(() => lessons.value.map((l) => ({ ...l, contribution: contributionOf(l) })));
 
 function replaceContribution(c: IContribution): void {
   const i = contributions.value.findIndex((x) => x.id === c.id);
