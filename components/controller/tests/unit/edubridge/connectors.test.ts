@@ -111,6 +111,7 @@ describe('GetCourseConnector', () => {
     expect(r.found).toBe(true);
     expect(fetchMock.mock.calls[0]![0]).toContain('https://school.getcourse.ru/pl/api/account/groups?key=KEY');
   });
+});
 
 describe('адрес API площадки из настроек расширения', () => {
   const based = (base: Record<string, string>) =>
