@@ -247,6 +247,7 @@
     "EDUBRIDGE_COURSE_IMAGE_DECODE_FAILED": "Не удалось декодировать изображение",
     "EDUBRIDGE_COURSE_IMAGE_EMPTY": "Пустое изображение: нет содержимого файла или его типа",
     "EDUBRIDGE_COURSE_IMAGE_EMPTY_FILE": "Пустой файл изображения — загружать нечего.",
+    "EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS": "По курсу есть действующие подписки: плановая ставка, число и длительность занятий в месяц не изменяются",
     "EDUBRIDGE_COURSE_IMAGE_KEY_FOREIGN": "Ключ изображения не принадлежит этому курсу",
     "EDUBRIDGE_COURSE_IMAGE_SAVE_FAILED": "Не удалось сохранить изображение",
     "EDUBRIDGE_COURSE_IMAGE_TYPE_UNSUPPORTED": "Поддерживаются только изображения JPEG, PNG и WEBP; получен {contentType}.",

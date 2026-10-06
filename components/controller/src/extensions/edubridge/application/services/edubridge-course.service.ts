@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduEnrollmentStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -19,6 +19,7 @@ import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeTeacherService, grantsTeaching, rateCoverageError, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -62,7 +63,8 @@ export class EdubridgeCourseService {
     private readonly names: EdubridgeNamesService,
     private readonly economy: EdubridgeEconomyService,
     private readonly teacherService: EdubridgeTeacherService,
-    private readonly sections: EdubridgeSectionsService
+    private readonly sections: EdubridgeSectionsService,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository
   ) {}
 
   /**
@@ -150,6 +152,7 @@ export class EdubridgeCourseService {
       }
     }
     const fee = await this.economy.feeForCourse(economyParams(input));
+    await this.assertFeeUnchangedWhileSubscribed(coopname, course, input, fee);
     const previous = course.image;
     // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
     const previousRef = course.external_ref;
@@ -203,6 +206,31 @@ export class EdubridgeCourseService {
     const course = await this.get(coopname, id);
     course.status = status;
     return this.courses.save(course);
+  }
+
+  /**
+   * Пока по курсу есть действующие подписки, плановая ставка, нагрузка и взнос
+   * не меняются: ученики оплатили время по прежнему взносу, и резерв выплат
+   * преподавателям под это время собран по прежней ставке. Новая ставка
+   * пересчитала бы обязательство за уже оплаченное время, а покрыть разницу
+   * было бы нечем, кроме средств других курсов.
+   */
+  private async assertFeeUnchangedWhileSubscribed(
+    coopname: string,
+    course: EdubridgeCourseRecord,
+    input: EduUpdateCourseInputDTO,
+    fee: { fee_month: string }
+  ): Promise<void> {
+    const changed =
+      fee.fee_month !== course.fee_month ||
+      input.planned_hourly_rate !== course.planned_hourly_rate ||
+      Number(input.lessons_per_month) !== Number(course.lessons_per_month) ||
+      Number(input.lesson_minutes) !== Number(course.lesson_minutes);
+    if (!changed) return;
+    const subscribed = (await this.enrollments.findByCourse(coopname, course.id)).some(
+      (e) => e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING
+    );
+    if (subscribed) throw DomainError.badRequest('EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS');
   }
 
   /**
