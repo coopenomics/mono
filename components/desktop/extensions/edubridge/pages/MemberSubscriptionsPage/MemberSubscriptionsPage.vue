@@ -14,29 +14,27 @@
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
-    BaseTable(v-if="firstLoad || enrollments.length" :columns="columns" :rows="enrollments" row-key="id" :loading="firstLoad" min-width="880px")
-      //- Под названием курса — пояснение к состоянию подписки: заявление по гарантии либо основание возврата.
-      template(#cell-course_title="{ row }")
-        div {{ row.course_title }}
-        .t-meta.t-muted(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
-        .t-meta.t-muted(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
-      template(#cell-learner="{ row }") {{ learnerName(row.learner_id) }}
-      template(#cell-period="{ row }") {{ periodLabel(row.period) }}
-      //- Под датой — сколько осталось, когда срок подходит: взнос вносится заново на каждый период.
-      template(#cell-paid_until="{ row }")
-        div {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
-        .edu-subs__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
-      //- Состояние подписки и доступа — одним столбцом, значками друг под другом:
-      //- так название курса получает свою ширину и не сжимается в столбик по буквам.
-      template(#cell-status="{ row }")
-        .edu-subs__state
+    CardListSkeleton(v-if="firstLoad" :count="2")
+    //- Подписки — строками, а не таблицей: блоки строки переносятся при узком
+    //- окне, горизонтальной прокрутки нет, «Продлить» видна всегда.
+    .edu-subs(v-else-if="enrollments.length")
+      .edu-sub(v-for="row in enrollments" :key="asText(row.id)")
+        .edu-sub__main
+          .edu-sub__title {{ row.course_title }}
+          .edu-sub__meta {{ learnerName(row.learner_id) }} · {{ periodLabel(row.period) }}
+          //- Пояснение к состоянию: заявление по гарантии на рассмотрении либо основание возврата.
+          .edu-sub__meta(v-if="isActive(row) && underReview.has(asText(row.id))") {{ $t('edubridge.memberSubscriptionsPage.guaranteeUnderReview') }}
+          .edu-sub__meta(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
+        .edu-sub__term
+          .edu-sub__label {{ $t('edubridge.memberSubscriptionsPage.columns.paidUntil') }}
+          .edu-sub__date {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
+          //- Сколько осталось — когда срок подходит: взнос вносится заново на каждый период.
+          .edu-sub__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
+        .edu-sub__state
           BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
           BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
-      //- «Продлить» — главное действие строки и видна всегда; отмена нужна редко и
-      //- лежит в меню. Так столбец остаётся узким и не уезжает за край при малой
-      //- ширине окна и крупном масштабе. Меню — в слоте #menu кнопки-иконки.
-      template(#cell-actions="{ row }")
-        .edu-subs__actions(v-if="isActive(row)")
+        //- «Продлить» — главное действие; отмена нужна редко и лежит в меню (слот #menu кнопки-иконки).
+        .edu-sub__actions(v-if="isActive(row)")
           BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
           //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
           BaseButton(v-if="!underReview.has(asText(row.id))" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
@@ -44,7 +42,7 @@
               q-icon(name="more_horiz" size="20px")
             template(#menu)
               q-menu(anchor="bottom right" self="top right")
-                q-list.edu-subs__menu(dense)
+                q-list.edu-sub__menu(dense)
                   q-item(clickable v-close-popup @click="openCancel(row)")
                     q-item-section.text-negative {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
@@ -83,7 +81,7 @@ import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, PageHint } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import {
@@ -126,24 +124,6 @@ const refund = ref<IRefundPreview | null>(null);
 const cancelBusy = ref(false);
 // Отмена и оплата меняют остаток кошелька программы — карточка перечитывает его.
 const walletRev = ref(0);
-
-/**
- * Ширины: колонка курса единственная без фиксированной — она забирает остаток,
- * поэтому сумма фиксированных (710px) с запасом меньше min-width таблицы,
- * иначе курс схлопывается и длинное название наезжает на соседей.
- */
-const columns: BaseTableColumn<IEnrollment>[] = [
-  // Действия — первым столбцом: «Продлить» нажимают каждый период, и она видна при любой ширине окна.
-  { key: 'actions', label: '', width: '150px', nowrap: true },
-  { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
-  // Таблица с фиксированной сеткой: «Курс» без ширины получает остаток. Сумма
-  // заданных ширин — 680px при минимуме таблицы 880px, курсу остаётся не меньше 200px.
-  { key: 'learner', label: t('edubridge.memberSubscriptionsPage.columns.learner'), width: '150px' },
-  { key: 'period', label: t('edubridge.memberSubscriptionsPage.columns.period'), width: '110px', nowrap: true },
-  { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '120px', nowrap: true },
-  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '150px', nowrap: true },
-  
-];
 
 const learnerName = (id: string) => learners.value.find((l) => l.id === id)?.display_name ?? '______';
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
@@ -230,25 +210,71 @@ onMounted(load);
 </script>
 
 <style scoped>
-.edu-subs__state {
+.edu-subs {
+  display: flex;
+  flex-direction: column;
+}
+/* Строка подписки: курс тянется, срок и состояние — по содержимому, действия
+   прижаты вправо. При узком окне блоки переносятся, а не уезжают за край. */
+.edu-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-3) var(--p-6);
+  padding: var(--p-4) 0;
+  border-top: 1px solid var(--p-line);
+}
+.edu-sub:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.edu-sub:last-child {
+  padding-bottom: 0;
+}
+.edu-sub__main {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.edu-sub__title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-ink);
+}
+.edu-sub__meta,
+.edu-sub__label {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.4;
+  color: var(--p-ink-3);
+}
+.edu-sub__meta {
+  margin-top: 2px;
+}
+.edu-sub__date {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.edu-sub__due {
+  font-size: var(--p-fs-meta, 12px);
+  color: var(--p-warn);
+  white-space: nowrap;
+}
+.edu-sub__state {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--p-1);
 }
-.edu-subs__actions {
+.edu-sub__actions {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-start;
   gap: var(--p-1);
+  margin-left: auto;
 }
-.edu-subs__due {
-  font-size: var(--p-fs-meta, 12px);
-  color: var(--p-warn);
-  white-space: nowrap;
-}
-.edu-subs__menu {
+.edu-sub__menu {
   min-width: 200px;
 }
 </style>
