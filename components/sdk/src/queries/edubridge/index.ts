@@ -48,6 +48,8 @@ export * as MyContributions from './myContributions'
 export * as MyContributionDocuments from './myContributionDocuments'
 /** Мой расчёт */
 export * as MySettlement from './mySettlement'
+/** Выписка по моему паевому взносу в программе */
+export * as MySettlementHistory from './mySettlementHistory'
 /** Назначения преподавателей кооператива */
 export * as Assignments from './assignments'
 /** Взносы РИД всех преподавателей */

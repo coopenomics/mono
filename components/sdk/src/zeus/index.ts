@@ -15343,6 +15343,8 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variab
 	edubridgeMyLessons?:ValueTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
+	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
+	edubridgeMySettlementHistory?:ValueTypes["EduFundMovement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ValueTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -31650,6 +31652,8 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]}
 	edubridgeMyLessons?:ResolverInputTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
+	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
+	edubridgeMySettlementHistory?:ResolverInputTypes["EduFundMovement"],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ResolverInputTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -47818,6 +47822,8 @@ export type ModelTypes = {
 	edubridgeMyLessons: Array<ModelTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
+	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
+	edubridgeMySettlementHistory: Array<ModelTypes["EduFundMovement"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: ModelTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -64974,6 +64980,8 @@ export type GraphQLTypes = {
 	edubridgeMyLessons: Array<GraphQLTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
+	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
+	edubridgeMySettlementHistory: Array<GraphQLTypes["EduFundMovement"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: GraphQLTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */

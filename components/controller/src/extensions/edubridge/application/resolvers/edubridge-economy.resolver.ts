@@ -7,6 +7,7 @@ import {
   type PaginationResult,
   RequireRight,
   RightsGuard,
+  SELF,
 } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
@@ -17,6 +18,7 @@ import {
   EduCourseEconomyInputDTO,
   EduCourseFeeDTO,
   EduEconomySettingsDTO,
+  EduFundMovementDTO,
   EduProgramFundDTO,
   EduSetEconomySettingsInputDTO,
   EduSetTeacherRateInputDTO,
@@ -60,6 +62,13 @@ export class EdubridgeEconomyResolver {
   @RequireRight('EduEconomy', 'read')
   edubridgeProgramFund(): Promise<EduProgramFundDTO> {
     return this.economy.fund(coop());
+  }
+
+  @Query(() => [EduFundMovementDTO], { name: 'edubridgeMySettlementHistory', description: 'Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduTeacherWallet', 'read:own', SELF)
+  edubridgeMySettlementHistory(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduFundMovementDTO[]> {
+    return this.economy.shareHistory(coop(), m.username as string);
   }
 
   @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать целевой членский взнос кооператива' })

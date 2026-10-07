@@ -126,6 +126,25 @@ export class EdubridgeEconomyService {
     };
   }
 
+  /**
+   * Выписка по паевому взносу преподавателя (кошелёк `w.edu.share`): что
+   * зачислено по принятым результатам и что переведено в Цифровой Кошелёк.
+   * Направление — относительно кошелька преподавателя.
+   */
+  async shareHistory(coopname: string, username: string): Promise<EduFundMovementDTO[]> {
+    const symbol = platformSettings().blockchain.rootGovernSymbol;
+    const history = await this.ledger.getHistory({
+      coopname,
+      username,
+      walletName: PROGRAM_SHARE_WALLET,
+      actionNames: ['apply'],
+      operationCodes: SHARE_OPERATIONS,
+      limit: MOVEMENTS_LIMIT,
+      sortOrder: 'DESC',
+    });
+    return history.items.map((op) => toMovement(op, symbol));
+  }
+
   /** В ленте пайщик называется по ФИО, логин остаётся для копирования. */
   private async withNames(movements: EduFundMovementDTO[]): Promise<EduFundMovementDTO[]> {
     const usernames = [...new Set(movements.map((m) => m.username).filter((u): u is string => Boolean(u)))];
@@ -266,7 +285,14 @@ const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
   'o.edu.free': { title: i18nT('edubridge.economy.movement.free'), direction: 'in' },
   'o.edu.settle': { title: i18nT('edubridge.economy.movement.settle'), direction: 'out' },
   'o.edu.refund': { title: i18nT('edubridge.economy.movement.refund'), direction: 'out' },
+  // Кошелёк преподавателя: результат принят — взнос зачислен; перевод в Цифровой Кошелёк — ушёл.
+  'o.edu.ridshr': { title: i18nT('edubridge.economy.movement.ridshr'), direction: 'in' },
+  'o.edu.wthshr': { title: i18nT('edubridge.economy.movement.wthshr'), direction: 'out' },
 };
+
+/** Паевой взнос преподавателя по программе — кошелёк, по которому строится его выписка. */
+const PROGRAM_SHARE_WALLET = 'w.edu.share';
+const SHARE_OPERATIONS = ['o.edu.ridshr', 'o.edu.wthshr'];
 
 function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementDTO {
   const known = MOVEMENT_TITLES[op.operationCode ?? ''] ?? { title: op.memo ?? i18nT('edubridge.economy.movement.fallback'), direction: 'in' };

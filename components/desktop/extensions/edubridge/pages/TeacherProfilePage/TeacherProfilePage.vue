@@ -38,9 +38,6 @@
                 q-icon.edu-profile__chevron(name="chevron_right" size="20px")
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noAssignmentsEmpty') }}
 
-  DetailsDrawer(v-model="assignmentOpen" :title="assignment?.course_title || ''" :width="640")
-    AssignmentDetails(v-if="assignment" :assignment="assignment")
-
     .col-12.col-md-5
       BaseCard(variant="default" :title="$t('edubridge.teacherProfilePage.contractTitle')")
         template(v-if="contract")
@@ -53,6 +50,9 @@
           .t-muted.t-meta.q-mt-sm(v-if="pendingApproval") {{ $t('edubridge.teacherProfilePage.pendingApprovalNotice') }}
           .t-muted.t-meta.q-mt-sm(v-else-if="declined && contract.decline_reason") {{ $t('edubridge.teacherProfilePage.declineReason', { reason: contract.decline_reason }) }}
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noContract') }}
+
+  DetailsDrawer(v-model="assignmentOpen" :title="assignment?.course_title || ''" :width="640")
+    AssignmentDetails(v-if="assignment" :assignment="assignment")
 
   BaseDialog(v-model="aboutOpen" size="lg" :title="$t('edubridge.teacherProfilePage.aboutTitle')")
     BaseForm(:loading="aboutBusy" @submit="saveAbout")

@@ -255,3 +255,30 @@ describe('Деньги программы', () => {
     expect(fund.wallets.find((w) => w.id === 'w.edu.escrow')!.available).toBe('3000.0000 RUB');
   });
 });
+
+describe('Выписка преподавателя по паевому взносу', () => {
+  it('читается только по его кошельку в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк', async () => {
+    const { service, ledger } = make({
+      history: [
+        { globalSequence: '201', createdAt: new Date('2026-10-07T11:33:00Z'), operationCode: 'o.edu.ridshr', quantity: '1000.0000 RUB', username: 'ant', memo: '' },
+        { globalSequence: '202', createdAt: new Date('2026-10-07T11:34:00Z'), operationCode: 'o.edu.wthshr', quantity: '1000.0000 RUB', username: 'ant', memo: '' },
+      ],
+    });
+    const items = await service.shareHistory('voskhod', 'ant');
+    // Фильтр книги учёта: чужие движения и операции фонда в выписку не попадают.
+    expect(ledger.getHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ coopname: 'voskhod', username: 'ant', walletName: 'w.edu.share', operationCodes: ['o.edu.ridshr', 'o.edu.wthshr'] })
+    );
+    // Направление — относительно кошелька преподавателя: результат принят — пришло, перевод — ушло.
+    expect(items.map((m) => [m.title, m.direction])).toEqual([
+      ['Результат принят в паевой фонд — взнос зачислен', 'in'],
+      ['Паевой взнос переведён в Цифровой Кошелёк', 'out'],
+    ]);
+    expect(items[0]!.amount).toBe('1000.0000 RUB');
+  });
+
+  it('без движений выписка пуста, а не падает', async () => {
+    const { service } = make();
+    expect(await service.shareHistory('voskhod', 'ant')).toEqual([]);
+  });
+});

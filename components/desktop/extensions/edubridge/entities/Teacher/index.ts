@@ -74,6 +74,10 @@ export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.E
 export const revokeContribution = (data: { contribution_id: string; reason: string }) =>
   m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
+/** Выписка по паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк. */
+export type ISettlementMovement = Queries.Edubridge.MySettlementHistory.IOutput['edubridgeMySettlementHistory'][number];
+export const fetchMySettlementHistory = () =>
+  q<ISettlementMovement[]>(Queries.Edubridge.MySettlementHistory.query, Queries.Edubridge.MySettlementHistory.name);
 
 /**
  * Трансляция паевого взноса по программе в Цифровой Кошелёк: заявление (3015)

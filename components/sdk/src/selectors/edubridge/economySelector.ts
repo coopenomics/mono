@@ -62,6 +62,7 @@ const rawFundMovementSelector = {
   direction: true,
 }
 const _validateMovement: MakeAllFieldsRequired<ValueTypes['EduFundMovement']> = rawFundMovementSelector
+export const eduFundMovementSelector = Selector('EduFundMovement')(rawFundMovementSelector)
 
 const rawProgramFundSelector = {
   wallets: rawProgramWalletSelector,

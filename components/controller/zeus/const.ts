@@ -8600,6 +8600,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMyLessons:"EduLesson",
 		edubridgeMySettlement:"EduTeacherSettlement",
+		edubridgeMySettlementHistory:"EduFundMovement",
 		edubridgeMyTeacherProfile:"EduTeacherProfile",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",
