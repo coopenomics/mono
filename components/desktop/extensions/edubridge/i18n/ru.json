@@ -814,13 +814,6 @@
     },
     "teacherLessonsPage": {
       "cancel": "Отменить",
-      "column": {
-        "heldAt": "Проведено",
-        "lesson": "Занятие",
-        "materials": "Материалы",
-        "amount": "Сумма",
-        "status": "Состояние"
-      },
       "courseLabel": "Курс",
       "dialogTitle": "Отчёт о занятии",
       "durationMinutes": "{minutes} мин",
@@ -839,6 +832,7 @@
       "transferMaterials": "Передать материалы",
       "signAct": "Подписать акт",
       "actSignedSuccess": "Акт подписан и направлен на подпись председателю",
+      "numberCaption": "занятие",
       "lessonTitle": "Занятие № {number}"
     },
     "teacherOnboardingPage": {
