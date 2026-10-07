@@ -798,9 +798,7 @@
     "teacherAssignmentsPage": {
       "aboutTitle": "О курсе",
       "columns": {
-        "course": "Курс",
-        "period": "Период ведения",
-        "status": "Состояние"
+        "period": "Период ведения"
       },
       "contractPendingBanner": "Отчитываться по занятиям можно после того, как договор участия подпишет председатель совета.",
       "detailsTitleFallback": "Назначение",
@@ -810,10 +808,8 @@
       "hint": {
         "line1": "Курсы, к которым вы допущены: расписание, ожидаемый результат и период ведения."
       },
-      "periodFrom": "с {date}",
       "periodLabel": "Период",
       "periodRange": "с {dateFrom} по {dateTo}",
-      "periodTo": "по {date}",
       "scheduleLabel": "Расписание",
       "syllabusEmpty": "Программа курса пока не заполнена.",
       "syllabusTitle": "Учебная программа"

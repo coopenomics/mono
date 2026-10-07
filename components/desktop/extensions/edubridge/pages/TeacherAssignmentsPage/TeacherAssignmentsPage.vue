@@ -11,12 +11,20 @@
         q-icon(name="schedule")
       | {{ $t('edubridge.teacherAssignmentsPage.contractPendingBanner') }}
 
-    BaseTable(v-if="assignments.length" :columns="columns" :rows="assignments" row-key="id" min-width="960px" @row-click="openDetails")
-      template(#cell-period="{ row }")
-        div {{ $t('edubridge.teacherAssignmentsPage.periodFrom', { date: ruDate(row.period_from) }) }}
-        div {{ $t('edubridge.teacherAssignmentsPage.periodTo', { date: ruDate(row.period_to) }) }}
-      template(#cell-status="{ row }")
-        BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
+    //- Назначения — строками: клик по строке открывает правую панель с курсом,
+    //- блоки переносятся при узком окне, горизонтальной прокрутки нет.
+    BaseCard(v-if="assignments.length" variant="default")
+      .edu-assign(v-for="row in assignments" :key="asText(row.id)" role="button" tabindex="0" @click="openDetails(row)" @keydown.enter="openDetails(row)")
+        .edu-assign__main
+          .edu-assign__title {{ row.course_title }}
+          .edu-assign__meta(v-if="row.schedule") {{ row.schedule }}
+          .edu-assign__meta.edu-assign__result(v-if="row.expected_result") {{ row.expected_result }}
+        .edu-assign__term
+          .edu-assign__label {{ $t('edubridge.teacherAssignmentsPage.columns.period') }}
+          .edu-assign__date {{ $t('edubridge.teacherAssignmentsPage.periodRange', { dateFrom: ruDate(row.period_from), dateTo: ruDate(row.period_to) }) }}
+        .edu-assign__state
+          BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
+          q-icon.edu-assign__chevron(name="chevron_right" size="20px")
     EmptyState(v-else :title="$t('edubridge.teacherAssignmentsPage.emptyTitle')" :body="$t('edubridge.teacherAssignmentsPage.emptyBody')")
       template(#icon)
         q-icon(name="assignment" size="32px")
@@ -42,12 +50,12 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
-import { BaseBadge, BaseBanner, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
+import { asText } from 'src/shared/lib/utils';
+import { BaseBadge, BaseBanner, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
-import { t } from '../../i18n';
 
 /**
  * Назначения преподавателя — курсы, к которым он допущен. Допуск действует с
@@ -61,13 +69,6 @@ const assignments = ref<IAssignment[]>([]);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 
-const columns: BaseTableColumn<IAssignment>[] = [
-  { key: 'course_title', label: t('edubridge.teacherAssignmentsPage.columns.course') },
-  { key: 'schedule', label: t('edubridge.teacherAssignmentsPage.scheduleLabel'), width: '180px' },
-  { key: 'expected_result', label: t('edubridge.teacherAssignmentsPage.expectedResultLabel') },
-  { key: 'period', label: t('edubridge.teacherAssignmentsPage.columns.period'), width: '160px' },
-  { key: 'status', label: t('edubridge.teacherAssignmentsPage.columns.status'), width: '160px' },
-];
 const statusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const contractActive = computed(() => contract.value?.status === Zeus.EduContractStatus.ACTIVE);
 
@@ -111,6 +112,70 @@ onMounted(load);
   white-space: pre-wrap;
   font-size: var(--p-fs-body);
   line-height: 1.6;
+}
+/* Строка назначения: курс тянется, период и состояние — по содержимому. */
+.edu-assign {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-3) var(--p-6);
+  padding: var(--p-4) 0;
+  border-top: 1px solid var(--p-line);
+  cursor: pointer;
+}
+.edu-assign:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.edu-assign:last-child {
+  padding-bottom: 0;
+}
+.edu-assign:focus-visible {
+  outline: none;
+}
+.edu-assign:hover .edu-assign__title,
+.edu-assign:focus-visible .edu-assign__title {
+  color: var(--p-primary);
+}
+.edu-assign__main {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.edu-assign__title {
+  font-size: var(--p-fs-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-ink);
+}
+.edu-assign__meta,
+.edu-assign__label {
+  font-size: var(--p-fs-meta, 12px);
+  line-height: 1.4;
+  color: var(--p-ink-3);
+}
+.edu-assign__meta {
+  margin-top: 2px;
+}
+.edu-assign__result {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.edu-assign__date {
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.edu-assign__state {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  margin-left: auto;
+}
+.edu-assign__chevron {
+  color: var(--p-ink-3);
 }
 </style>
 
