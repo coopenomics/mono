@@ -24,10 +24,21 @@
   //- Вкладки сразу под именем, как на странице курса: обзор, договор, назначения, взносы.
   PageTabs.q-mt-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
-  //- Обзор: чем преподаватель занят и сколько принёс — плитками, как числа курса;
+  //- Обзор: чем преподаватель занят и сколько принёс — строками сведений, как на вкладке договора;
   //- ставка часа в документы не попадает, она живёт в записи расширения и правится здесь же.
   template(v-if="tab === 'overview'")
-    StatStrip.q-mt-md(:items="stats" :framed="false" @edit="openRate")
+    .q-mt-md
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.rate')")
+        template(#value-override)
+          .row.items-center.no-wrap.q-gutter-xs
+            span.t-num {{ formatAsset2Digits(teacher.hourly_rate) }}
+            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
+              template(#icon-left)
+                q-icon(name="edit" size="16px")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.courses')" :value="String(teacher.assignments_active)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.assignmentsTotal')" :value="String(teacher.assignments_total)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.accepted')" :value="String(acceptedContributions.length)")
+      DataRow(:label="$t('edubridge.adminTeachersPage.stats.acceptedAmount')" :value="acceptedTotal")
     //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
     .edu-teacher-card__about(v-if="teacher.about")
       .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
@@ -158,7 +169,6 @@ import {
   type ITeacher,
   type ITeacherApproval,
 } from '../../entities/Teacher';
-import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
 
@@ -217,24 +227,6 @@ const acceptedTotal = computed(() => {
   const total = acceptedContributions.value.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0);
   return formatAsset2Digits(`${total.toFixed(4)} ${symbol.value}`);
 });
-const stats = computed<StatStripItem[]>(() => [
-  { key: 'rate', icon: 'schedule', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate), editLabel: i18nT('edubridge.adminTeachersPage.rate.edit') },
-  {
-    key: 'courses',
-    icon: 'library_books',
-    caption: i18nT('edubridge.adminTeachersPage.stats.courses'),
-    value: props.teacher.assignments_active,
-    sub: i18nT('edubridge.adminTeachersPage.stats.coursesSub', { total: props.teacher.assignments_total }),
-  },
-  {
-    key: 'accepted',
-    icon: 'workspace_premium',
-    caption: i18nT('edubridge.adminTeachersPage.stats.accepted'),
-    value: acceptedContributions.value.length,
-    sub: i18nT('edubridge.adminTeachersPage.stats.acceptedSub', { amount: acceptedTotal.value }),
-  },
-]);
-
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
 
 const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));

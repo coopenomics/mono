@@ -381,9 +381,9 @@
       "stats": {
         "rate": "Ставка часа",
         "courses": "Курсов ведёт",
-        "coursesSub": "назначений всего: {total}",
+        "assignmentsTotal": "Назначений всего",
         "accepted": "Взносов принято",
-        "acceptedSub": "на сумму {amount}"
+        "acceptedAmount": "Сумма принятых взносов"
       }
     },
     "appointAdminHeaderButton": {
