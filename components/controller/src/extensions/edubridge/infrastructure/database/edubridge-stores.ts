@@ -8,6 +8,7 @@ import { EdubridgeContributionRecord } from '../entities/edubridge-contribution.
 import { EdubridgeCourseRecord } from '../entities/edubridge-course.record';
 import { EdubridgeEnrollmentRecord } from '../entities/edubridge-enrollment.record';
 import { EdubridgeGuaranteeClaimRecord } from '../entities/edubridge-guarantee-claim.record';
+import { EdubridgeShareReturnRecord } from '../entities/edubridge-share-return.record';
 import { EdubridgeLearnerRecord } from '../entities/edubridge-learner.record';
 import { EdubridgeLessonRecord } from '../entities/edubridge-lesson.record';
 import { EdubridgeLevelRecord } from '../entities/edubridge-level.record';
@@ -31,6 +32,7 @@ export const EDUBRIDGE_LEARNER_STORE = Symbol('Edubridge.EDUBRIDGE_LEARNER_STORE
 export const EDUBRIDGE_LESSON_STORE = Symbol('Edubridge.EDUBRIDGE_LESSON_STORE');
 export const EDUBRIDGE_LEVEL_STORE = Symbol('Edubridge.EDUBRIDGE_LEVEL_STORE');
 export const EDUBRIDGE_SECTION_STORE = Symbol('Edubridge.EDUBRIDGE_SECTION_STORE');
+export const EDUBRIDGE_SHARE_RETURN_STORE = Symbol('Edubridge.EDUBRIDGE_SHARE_RETURN_STORE');
 export const EDUBRIDGE_TEACHER_ASSIGNMENT_STORE = Symbol('Edubridge.EDUBRIDGE_TEACHER_ASSIGNMENT_STORE');
 export const EDUBRIDGE_TEACHER_CONTRACT_STORE = Symbol('Edubridge.EDUBRIDGE_TEACHER_CONTRACT_STORE');
 export const EDUBRIDGE_TEACHER_PROFILE_STORE = Symbol('Edubridge.EDUBRIDGE_TEACHER_PROFILE_STORE');
@@ -220,6 +222,20 @@ export const edubridgeStoreProviders: Provider[] = [
         columns: ['id', 'coopname', 'member_username', 'enrollment_id', 'course_id', 'claim_hash', 'reason', 'links', 'amount', 'status', 'statement_document', 'council_project_hash', 'council_agenda_id', 'council_decision_id', 'decision_hash', 'decided_at', 'created_at', 'updated_at'],
         primaryKey: ['id'],
         json: ['links', 'statement_document'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: EDUBRIDGE_SHARE_RETURN_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<EdubridgeShareReturnRecord>(db, {
+        table: 'edubridge_share_returns',
+        columns: ['id', 'coopname', 'teacher_username', 'amount', 'payment_hash', 'transfer_statement_document', 'return_statement_document', 'created_at', 'updated_at'],
+        primaryKey: ['id'],
+        json: ['transfer_statement_document', 'return_statement_document'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

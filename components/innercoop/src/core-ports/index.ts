@@ -22,6 +22,7 @@ export * from './payment-desk.port';
 export * from './program.contract';
 export * from './participant-registered.event';
 export * from './wallet.port';
+export * from './wallet-withdraw.port';
 export * from './program-agreement.port';
 export * from './vault.port';
 export * from './coop-credential.port';

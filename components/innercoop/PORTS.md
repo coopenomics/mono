@@ -52,7 +52,7 @@
 | `PAYMENT_PROVIDER_REGISTRY_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentProviderRegistryInnercoopAdapter` | qrpay, yookassa | Реестр способов оплаты. |
 | `PAYMENT_POLLING_STATE_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentPollingStateInnercoopAdapter` | sberpoll | Реестр способов оплаты. |
 | `PAYMENT_NOTICE_LOG_PORT` | `IPaymentProviderRegistryPort` (2)<br><sub>core-ports/payment-provider.port.ts</sub> | `PaymentNoticeLogInnercoopAdapter` | yookassa | Реестр способов оплаты. |
-| `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
+| `PAYMENT_PORT` | `IPaymentPort` (4)<br><sub>core-ports/payment.port.ts</sub> | `PaymentInnercoopAdapter` | edubridge, expenses, qrpay, sberpoll, yookassa | Платежи кооператива: найти по хэшу, завести новый, обновить состояние. |
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | edubridge, marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | — | Шина событий реального времени — то, из чего кормятся подписки клиента. |
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, edubridge*, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
@@ -63,6 +63,7 @@
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, cardcoop, chatcoop, edubridge, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
 | `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, cardcoop, chairman, edubridge, expenses, ku, marketplace, reports, soviet-robot | Ключи подписи, хранимые кооперативом. |
 | `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
+| `WALLET_WITHDRAW_PORT` | `IWalletWithdrawPort` (1)<br><sub>core-ports/wallet-withdraw.port.ts</sub> | `WalletWithdrawInnercoopAdapter` | edubridge | Заявка на возврат паевого взноса деньгами — та же, что пайщик подаёт из «Цифрового Кошелька»: подписанное заявление (док. |
 | `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
 | `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | edubridge, marketplace | Кошельки пайщика. |
 
@@ -93,4 +94,4 @@
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (3)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, edubridge, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 | `REGISTRATION_OFFER_FILTER_REGISTRY_PORT` | `IRegistrationOfferFilterRegistryPort` (2)<br><sub>hooks/registration-offer-filter.hook.ts</sub> | `ExtensionOfferFilterRegistry` | edubridge | Сужение витрины вступления: какие программы и оферты ЧУЖИХ расширений предлагать вступающему пайщику. |
 
-Всего портов: 61.
+Всего портов: 62.

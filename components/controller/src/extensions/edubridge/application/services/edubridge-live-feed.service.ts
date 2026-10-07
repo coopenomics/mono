@@ -24,6 +24,7 @@ export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_teacher_assignments', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_lessons', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_contributions', owner_field: 'teacher_username' },
+  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_share_returns', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_access_tasks', staff_only: true },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_connector_bindings', staff_only: true },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_admins', staff_only: true },

@@ -48,8 +48,10 @@ export * as MyContributions from './myContributions'
 export * as MyContributionDocuments from './myContributionDocuments'
 /** Мой расчёт */
 export * as MySettlement from './mySettlement'
-/** Выписка по моему паевому взносу в программе */
-export * as MySettlementHistory from './mySettlementHistory'
+/** Моя выписка: зачисления и возвраты с состоянием */
+export * as MySettlementJournal from './mySettlementJournal'
+/** Заявления моего возврата паевого взноса */
+export * as MyShareReturnDocuments from './myShareReturnDocuments'
 /** Назначения преподавателей кооператива */
 export * as Assignments from './assignments'
 /** Взносы РИД всех преподавателей */

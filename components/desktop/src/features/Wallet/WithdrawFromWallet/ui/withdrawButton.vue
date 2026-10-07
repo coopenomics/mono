@@ -70,11 +70,11 @@ import { ref, computed, watch } from 'vue';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { Form } from 'src/shared/ui/Form';
 import { env } from 'src/shared/config';
-import { useWalletStore } from 'src/entities/Wallet';
+import { paymentMethodDescription, paymentMethodLabel, useWalletStore } from 'src/entities/Wallet';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { useReturnByMoney, useWithdrawDialog } from '../model';
-import type { IPaymentMethodData, IBankTransferData, ISBPData } from 'src/entities/Wallet/model/types';
+import type { IPaymentMethodData } from 'src/entities/Wallet/model/types';
 import InfoCard from 'src/shared/ui/InfoCard.vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 
@@ -123,9 +123,9 @@ const quantityRules = [
 // Опции методов платежа
 const methodOptions = computed(() => {
   return walletStore.methods.map((method: IPaymentMethodData) => ({
-    label: getMethodLabel(method),
+    label: paymentMethodLabel(method),
     value: method.method_id.toString(),
-    description: getMethodDescription(method),
+    description: paymentMethodDescription(method),
   }));
 });
 
@@ -139,53 +139,6 @@ const isFormValid = computed(() => {
     !isSubmitting.value
   );
 });
-
-// Функция для получения читаемого названия метода
-function getMethodLabel(method: IPaymentMethodData): string {
-  if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    const phone = method.data.phone;
-    let formatted = phone;
-    if (phone.length >= 6) {
-      formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
-    } else if (phone.length > 2) {
-      formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
-    }
-    return t('wallet.withdrawButton.sbpMethodLabel', { phone: formatted });
-  } else if (
-    method.method_type === 'bank_transfer' &&
-    isBankTransferData(method.data)
-  ) {
-    const acc = method.data.account_number;
-    const last4 = acc.slice(-4);
-    const bank = method.data.bank_name || '';
-    return t('wallet.withdrawButton.bankTransferMethodLabel', { bank, last4 });
-  }
-  return method.method_type;
-}
-
-// Функция для получения описания метода
-function getMethodDescription(method: IPaymentMethodData): string {
-  if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    return t('wallet.withdrawButton.sbpFullMethodLabel', { phone: method.data.phone });
-  } else if (
-    method.method_type === 'bank_transfer' &&
-    isBankTransferData(method.data)
-  ) {
-    return t('wallet.withdrawButton.bankAccountMethodLabel', { accountNumber: method.data.account_number, bankName: method.data.bank_name });
-  }
-  return '';
-}
-
-// Функции для проверки типов данных
-function isSBPData(data: ISBPData | IBankTransferData): data is ISBPData {
-  return (data as ISBPData).phone !== undefined;
-}
-
-function isBankTransferData(
-  data: ISBPData | IBankTransferData,
-): data is IBankTransferData {
-  return (data as IBankTransferData).account_number !== undefined;
-}
 
 // Загрузка методов платежа при открытии диалога
 watch(showDialog, async (newValue) => {

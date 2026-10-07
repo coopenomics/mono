@@ -69,3 +69,7 @@ const rawLessonSelector = {
 }
 const _validateLesson: MakeAllFieldsRequired<ValueTypes['EduLesson']> = rawLessonSelector
 export const eduLessonSelector = Selector('EduLesson')(rawLessonSelector)
+
+const rawSettlementEntrySelector = { id: true, at: true, kind: true, title: true, amount: true, status: true, contribution_id: true, return_id: true, payment_hash: true }
+const _validateSettlementEntry: MakeAllFieldsRequired<ValueTypes['EduSettlementEntry']> = rawSettlementEntrySelector
+export const eduSettlementEntrySelector = Selector('EduSettlementEntry')(rawSettlementEntrySelector)

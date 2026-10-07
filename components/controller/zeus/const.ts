@@ -693,6 +693,10 @@ export const AllTypesProps: Record<string,any> = {
 	EduReorderInput:{
 
 	},
+	EduRequestShareReturnInput:{
+		return_statement:"SignedDigitalDocumentInput",
+		transfer_statement:"SignedDigitalDocumentInput"
+	},
 	EduRetryEnrollmentCloseInput:{
 
 	},
@@ -731,6 +735,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduSetTeacherRateInput:{
 
 	},
+	EduSettlementEntryKind: "enum" as const,
+	EduSettlementEntryStatus: "enum" as const,
+	EduShareReturnDocumentKind: "enum" as const,
 	EduShareWithdrawStatementInput:{
 
 	},
@@ -764,9 +771,6 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
-	},
-	EduWithdrawShareInput:{
-		document:"SignedDigitalDocumentInput"
 	},
 	EntrepreneurDetailsInput:{
 
@@ -2092,6 +2096,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeReportLesson:{
 			data:"EduLessonReportInput"
 		},
+		edubridgeRequestShareReturn:{
+			data:"EduRequestShareReturnInput"
+		},
 		edubridgeRetryEnrollmentClose:{
 			data:"EduRetryEnrollmentCloseInput"
 		},
@@ -2166,9 +2173,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeUpdateLearner:{
 			data:"EduUpdateLearnerInput"
-		},
-		edubridgeWithdrawShare:{
-			data:"EduWithdrawShareInput"
 		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
@@ -3182,6 +3186,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		edubridgeMyContributionDocuments:{
+
+		},
+		edubridgeMyShareReturnDocuments:{
 
 		},
 		edubridgePlatformCourses:{
@@ -5972,6 +5979,21 @@ export const ReturnTypes: Record<string,any> = {
 		sort_order:"Int",
 		title:"String"
 	},
+	EduSettlementEntry:{
+		amount:"String",
+		at:"DateTime",
+		contribution_id:"ID",
+		id:"String",
+		kind:"EduSettlementEntryKind",
+		payment_hash:"String",
+		return_id:"ID",
+		status:"EduSettlementEntryStatus",
+		title:"String"
+	},
+	EduShareReturnDocument:{
+		document:"DocumentAggregate",
+		kind:"EduShareReturnDocumentKind"
+	},
 	EduTeacher:{
 		about:"String",
 		approved_at:"DateTime",
@@ -7694,6 +7716,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeReorderLevels:"EduSection",
 		edubridgeReorderSections:"EduSection",
 		edubridgeReportLesson:"EduLesson",
+		edubridgeRequestShareReturn:"EduTeacherSettlement",
 		edubridgeRetryEnrollmentClose:"EduEnrollment",
 		edubridgeRetryTask:"EduAccessTask",
 		edubridgeRevokeContribution:"EduContribution",
@@ -7719,7 +7742,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeTerminateContract:"EduTeacherContract",
 		edubridgeUpdateCourse:"EduCourse",
 		edubridgeUpdateLearner:"EduLearner",
-		edubridgeWithdrawShare:"EduTeacherSettlement",
 		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
@@ -8600,7 +8622,8 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyLearners:"EduLearner",
 		edubridgeMyLessons:"EduLesson",
 		edubridgeMySettlement:"EduTeacherSettlement",
-		edubridgeMySettlementHistory:"EduFundMovement",
+		edubridgeMySettlementJournal:"EduSettlementEntry",
+		edubridgeMyShareReturnDocuments:"EduShareReturnDocument",
 		edubridgeMyTeacherProfile:"EduTeacherProfile",
 		edubridgeOnboardingState:"EduOnboardingState",
 		edubridgePlatformCourses:"EduPlatformCourse",

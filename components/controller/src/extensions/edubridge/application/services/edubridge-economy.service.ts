@@ -2,13 +2,17 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EXTENSION_REPOSITORY, type ExtensionDomainRepository, platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   LEDGER2_HISTORY_PORT,
+  PAYMENT_PORT,
+  PaymentStatus,
   USER_WALLET_PORT,
   type ILedger2HistoryPort,
+  type IPaymentPort,
   type IUserWalletPort,
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { EduAssignmentStatus } from '../../domain/enums';
+import { EduAssignmentStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
+import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -58,7 +62,8 @@ export class EdubridgeEconomyService {
     private readonly names: EdubridgeNamesService,
     @Inject(EXTENSION_REPOSITORY) private readonly extensions: ExtensionDomainRepository<IConfig>,
     @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort,
-    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort
+    @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort
   ) {}
 
   /**
@@ -127,22 +132,57 @@ export class EdubridgeEconomyService {
   }
 
   /**
-   * Выписка по паевому взносу преподавателя (кошелёк `w.edu.share`): что
-   * зачислено по принятым результатам и что переведено в Цифровой Кошелёк.
-   * Направление — относительно кошелька преподавателя.
+   * Выписка преподавателя: зачисления на паевой кошелёк программы по принятым
+   * результатам (проводка несёт хэш акта — по нему находится взнос) и его
+   * возвраты, состояние которых живёт у платежа шлюза. Свежее сверху.
    */
-  async shareHistory(coopname: string, username: string): Promise<EduFundMovementDTO[]> {
+  async settlementJournal(coopname: string, username: string): Promise<EduSettlementEntryDTO[]> {
     const symbol = platformSettings().blockchain.rootGovernSymbol;
-    const history = await this.ledger.getHistory({
-      coopname,
-      username,
-      walletName: PROGRAM_SHARE_WALLET,
-      actionNames: ['apply'],
-      operationCodes: SHARE_OPERATIONS,
-      limit: MOVEMENTS_LIMIT,
-      sortOrder: 'DESC',
-    });
-    return history.items.map((op) => toMovement(op, symbol));
+    const [history, returns] = await Promise.all([
+      this.ledger.getHistory({
+        coopname,
+        username,
+        walletName: PROGRAM_SHARE_WALLET,
+        actionNames: ['apply'],
+        operationCodes: [SHARE_SETTLE_OPERATION],
+        limit: MOVEMENTS_LIMIT,
+        sortOrder: 'DESC',
+      }),
+      this.teachers.listShareReturns(coopname, username),
+    ]);
+    const incoming = await Promise.all(
+      history.items.map(async (op): Promise<EduSettlementEntryDTO> => {
+        const contribution = op.processHash ? await this.teachers.findContributionByActHash(coopname, op.processHash) : null;
+        return {
+          id: op.globalSequence,
+          at: op.createdAt,
+          kind: EduSettlementEntryKind.IN,
+          title: i18nT('edubridge.economy.settlement.accepted'),
+          amount: op.quantity ?? `0.0000 ${symbol}`,
+          status: EduSettlementEntryStatus.ACCEPTED,
+          contribution_id: contribution?.id ?? null,
+          return_id: null,
+          payment_hash: null,
+        };
+      })
+    );
+    const outgoing = await Promise.all(
+      returns.map(async (r): Promise<EduSettlementEntryDTO> => {
+        const payment = await this.payments.findByHash(r.payment_hash);
+        return {
+          id: r.id,
+          at: r.created_at,
+          kind: EduSettlementEntryKind.OUT,
+          title: i18nT('edubridge.economy.settlement.return'),
+          amount: r.amount,
+          status: returnStatus(payment?.status),
+          contribution_id: null,
+          return_id: r.id,
+          payment_hash: r.payment_hash,
+        };
+      })
+    );
+    return [...incoming, ...outgoing].sort((a, b) => b.at.getTime() - a.at.getTime());
   }
 
   /** В ленте пайщик называется по ФИО, логин остаётся для копирования. */
@@ -285,14 +325,31 @@ const MOVEMENT_TITLES: Record<string, { title: string; direction: string }> = {
   'o.edu.free': { title: i18nT('edubridge.economy.movement.free'), direction: 'in' },
   'o.edu.settle': { title: i18nT('edubridge.economy.movement.settle'), direction: 'out' },
   'o.edu.refund': { title: i18nT('edubridge.economy.movement.refund'), direction: 'out' },
-  // Кошелёк преподавателя: результат принят — взнос зачислен; перевод в Цифровой Кошелёк — ушёл.
-  'o.edu.ridshr': { title: i18nT('edubridge.economy.movement.ridshr'), direction: 'in' },
-  'o.edu.wthshr': { title: i18nT('edubridge.economy.movement.wthshr'), direction: 'out' },
 };
 
 /** Паевой взнос преподавателя по программе — кошелёк, по которому строится его выписка. */
 const PROGRAM_SHARE_WALLET = 'w.edu.share';
-const SHARE_OPERATIONS = ['o.edu.ridshr', 'o.edu.wthshr'];
+/** Зачисление паевого взноса по принятому результату. */
+const SHARE_SETTLE_OPERATION = 'o.edu.ridshr';
+
+/**
+ * Состояние возврата — по платежу шлюза: ждёт решения совета, одобрен и ждёт
+ * кассира, выплачен, либо не состоялся. Платежа нет — возврат не состоялся.
+ */
+function returnStatus(status: PaymentStatus | undefined): EduSettlementEntryStatus {
+  switch (status) {
+    case PaymentStatus.AWAITING_AUTHORIZATION:
+      return EduSettlementEntryStatus.COUNCIL_REVIEW;
+    case PaymentStatus.PENDING:
+    case PaymentStatus.PROCESSING:
+      return EduSettlementEntryStatus.AWAITING_PAYOUT;
+    case PaymentStatus.PAID:
+    case PaymentStatus.COMPLETED:
+      return EduSettlementEntryStatus.PAID;
+    default:
+      return EduSettlementEntryStatus.DECLINED;
+  }
+}
 
 function toMovement(op: InnerLedger2Operation, symbol: string): EduFundMovementDTO {
   const known = MOVEMENT_TITLES[op.operationCode ?? ''] ?? { title: op.memo ?? i18nT('edubridge.economy.movement.fallback'), direction: 'in' };

@@ -26,6 +26,9 @@ function make(
     coopWallets?: any[];
     memberShares?: any[];
     history?: any[];
+    returns?: any[];
+    contributions?: any[];
+    payments?: Record<string, any>;
   } = {}
 ) {
   const config = {
@@ -38,6 +41,8 @@ function make(
     saveContract: jest.fn(async (c: any) => c),
     listContracts: jest.fn(async () => options.contracts ?? []),
     listAssignments: jest.fn(async () => options.assignments ?? []),
+    listShareReturns: jest.fn(async () => options.returns ?? []),
+    findContributionByActHash: jest.fn(async (_c: string, h: string) => (options.contributions ?? []).find((x: any) => x.act_hash === h) ?? null),
   } as any;
   const names = { displayNames: jest.fn(async (us: string[]) => new Map(us.map((u) => [u, `ФИО ${u}`]))) } as any;
   const extensions = { patchConfig: jest.fn(async (_n: string, patch: any) => ({ config: { markup_percent: patch.markup_percent } })) } as any;
@@ -47,8 +52,9 @@ function make(
     getAccounts: jest.fn(async () => []),
   } as any;
   const userWallets = { findByWallet: jest.fn(async () => options.memberShares ?? []) } as any;
+  const payments = { findByHash: jest.fn(async (h: string) => options.payments?.[h] ?? null) } as any;
   return {
-    service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets),
+    service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets, payments),
     teachers,
     extensions,
     config,
@@ -256,29 +262,58 @@ describe('Деньги программы', () => {
   });
 });
 
-describe('Выписка преподавателя по паевому взносу', () => {
-  it('читается только по его кошельку в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк', async () => {
+describe('Выписка преподавателя', () => {
+  const HASH = 'a'.repeat(64);
+  const accepted = { globalSequence: '201', createdAt: new Date('2026-10-07T11:33:00Z'), operationCode: 'o.edu.ridshr', quantity: '1000.0000 RUB', username: 'ant', processHash: 'act1', memo: '' };
+  const ret = { id: 'R1', amount: '1000.0000 RUB', payment_hash: HASH, created_at: new Date('2026-10-07T12:00:00Z') };
+
+  it('зачисления по актам и возвраты по платежам идут одной лентой, свежее сверху', async () => {
     const { service, ledger } = make({
-      history: [
-        { globalSequence: '201', createdAt: new Date('2026-10-07T11:33:00Z'), operationCode: 'o.edu.ridshr', quantity: '1000.0000 RUB', username: 'ant', memo: '' },
-        { globalSequence: '202', createdAt: new Date('2026-10-07T11:34:00Z'), operationCode: 'o.edu.wthshr', quantity: '1000.0000 RUB', username: 'ant', memo: '' },
-      ],
+      history: [accepted],
+      contributions: [{ id: 'K1', act_hash: 'act1' }],
+      returns: [ret],
+      payments: { [HASH]: { status: 'awaiting_authorization' } },
     });
-    const items = await service.shareHistory('voskhod', 'ant');
-    // Фильтр книги учёта: чужие движения и операции фонда в выписку не попадают.
-    expect(ledger.getHistory).toHaveBeenCalledWith(
-      expect.objectContaining({ coopname: 'voskhod', username: 'ant', walletName: 'w.edu.share', operationCodes: ['o.edu.ridshr', 'o.edu.wthshr'] })
-    );
-    // Направление — относительно кошелька преподавателя: результат принят — пришло, перевод — ушло.
-    expect(items.map((m) => [m.title, m.direction])).toEqual([
-      ['Результат принят в паевой фонд — взнос зачислен', 'in'],
-      ['Паевой взнос переведён в Цифровой Кошелёк', 'out'],
+    const items = await service.settlementJournal('voskhod', 'ant');
+    // Книга учёта читается только по кошельку преподавателя и только по зачислениям: чужое и фонд в выписку не попадают.
+    expect(ledger.getHistory).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', username: 'ant', walletName: 'w.edu.share', operationCodes: ['o.edu.ridshr'] }));
+    expect(items.map((e) => [e.kind, e.status, e.contribution_id, e.return_id])).toEqual([
+      ['out', 'council_review', null, 'R1'],
+      ['in', 'accepted', 'K1', null],
     ]);
-    expect(items[0]!.amount).toBe('1000.0000 RUB');
+    expect(items[1]!.title).toBe('Результат принят, взнос зачислен');
+    expect(items[0]!.payment_hash).toBe(HASH);
+  });
+
+  it.each([
+    ['pending', 'awaiting_payout'],
+    ['processing', 'awaiting_payout'],
+    ['paid', 'paid'],
+    ['completed', 'paid'],
+    ['cancelled', 'declined'],
+    ['failed', 'declined'],
+    ['expired', 'declined'],
+  ])('платёж «%s» показывает возврат как «%s»', async (payment, status) => {
+    const { service } = make({ returns: [ret], payments: { [HASH]: { status: payment } } });
+    const [row] = await service.settlementJournal('voskhod', 'ant');
+    expect(row!.status).toBe(status);
+  });
+
+  it('платёж возврата не найден — возврат показан как несостоявшийся, а не как ожидающий', async () => {
+    const { service } = make({ returns: [ret] });
+    const [row] = await service.settlementJournal('voskhod', 'ant');
+    expect(row!.status).toBe('declined');
+  });
+
+  it('зачисление без взноса в базе остаётся в выписке без ссылки на взнос', async () => {
+    const { service } = make({ history: [accepted] });
+    const [row] = await service.settlementJournal('voskhod', 'ant');
+    expect(row!.contribution_id).toBeNull();
+    expect(row!.amount).toBe('1000.0000 RUB');
   });
 
   it('без движений выписка пуста, а не падает', async () => {
     const { service } = make();
-    expect(await service.shareHistory('voskhod', 'ant')).toEqual([]);
+    expect(await service.settlementJournal('voskhod', 'ant')).toEqual([]);
   });
 });

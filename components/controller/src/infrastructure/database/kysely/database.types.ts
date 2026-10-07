@@ -1314,6 +1314,18 @@ export interface EdubridgeSections {
   updated_at: Generated<Timestamp>;
 }
 
+export interface EdubridgeShareReturns {
+  amount: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  payment_hash: string;
+  return_statement_document: Json;
+  teacher_username: string;
+  transfer_statement_document: Json;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface EdubridgeTeacherAssignments {
   coopname: string;
   course_id: string;
@@ -2610,6 +2622,7 @@ export interface DB {
   edubridge_levels: EdubridgeLevels;
   edubridge_return_requests: EdubridgeReturnRequests;
   edubridge_sections: EdubridgeSections;
+  edubridge_share_returns: EdubridgeShareReturns;
   edubridge_teacher_assignments: EdubridgeTeacherAssignments;
   edubridge_teacher_contracts: EdubridgeTeacherContracts;
   edubridge_teacher_profiles: EdubridgeTeacherProfiles;

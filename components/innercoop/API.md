@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 313.
+Всего экспортов: 317.
 
 ## ACCOUNT_PORT
 
@@ -952,6 +952,24 @@
 - `id: string | number`
 - `expired_at?: string`
 - `[key: string]: any`
+
+## InnerCreateWithdrawInput
+
+`interface` · core-ports
+
+- `coopname: string`
+- `username: string`
+- `quantity: number`
+- `symbol: string`
+- `method_id: string`
+- `payment_hash: string`
+- `statement: ISignedDocument`
+
+## InnerCreateWithdrawResult
+
+`interface` · core-ports
+
+- `withdraw_hash: string`
 
 ## InnerDesktopGrantsContext
 
@@ -2409,6 +2427,12 @@
 - `getVerificationTypes(username: string): Promise<InnerVerificationEntry[]>`
 - `checkRequired(username: string, actionCode: string): Promise<InnerVerificationCheck>`
 
+## IWalletWithdrawPort
+
+`interface` · core-ports
+
+- `createWithdraw(input: InnerCreateWithdrawInput): Promise<InnerCreateWithdrawResult>`
+
 ## LEDGER2_HISTORY_PORT
 
 `const` · core-ports
@@ -2715,3 +2739,9 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Verification')`
+
+## WALLET_WITHDRAW_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.WalletWithdraw')`

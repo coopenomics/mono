@@ -16,6 +16,9 @@ import {
   EduRecipientType,
   EduRidType,
   EduContributionDocumentKind,
+  EduSettlementEntryKind,
+  EduSettlementEntryStatus,
+  EduShareReturnDocumentKind,
 } from '../../domain/enums';
 
 registerEnumType(EduAccessCarrier, { name: 'EduAccessCarrier', description: 'Носитель доступа к курсу (площадка или очный формат)' });
@@ -34,3 +37,6 @@ registerEnumType(EduRidType, { name: 'EduRidType', description: 'Тип резу
 registerEnumType(EduContributionStatus, { name: 'EduContributionStatus', description: 'Состояние взноса результатами работы' });
 registerEnumType(EduCouncilOutcome, { name: 'EduCouncilOutcome', description: 'Исход рассмотрения заявления советом, когда решение о приёме не принято' });
 registerEnumType(EduContributionDocumentKind, { name: 'EduContributionDocumentKind', description: 'Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи' });
+registerEnumType(EduSettlementEntryKind, { name: 'EduSettlementEntryKind', description: 'Строка выписки преподавателя: зачисление или возврат' });
+registerEnumType(EduSettlementEntryStatus, { name: 'EduSettlementEntryStatus', description: 'Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено' });
+registerEnumType(EduShareReturnDocumentKind, { name: 'EduShareReturnDocumentKind', description: 'Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате' });

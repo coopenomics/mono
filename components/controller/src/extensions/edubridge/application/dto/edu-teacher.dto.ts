@@ -3,7 +3,7 @@ import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Len
 import { Type } from 'class-transformer';
 import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
 import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduRidType, EduSettlementEntryKind, EduSettlementEntryStatus, EduShareReturnDocumentKind } from '../../domain/enums';
 import type {
   EdubridgeContributionRecord,
   EdubridgeLessonRecord,
@@ -218,13 +218,6 @@ export class EduShareWithdrawStatementInputDTO {
   @Field(() => String, { description: 'Сумма перевода в Цифровой Кошелёк, с валютой' }) @IsString() @Length(1, 64) amount!: string;
 }
 
-@InputType('EduWithdrawShareInput')
-export class EduWithdrawShareInputDTO {
-  @Field(() => String, { description: 'Сумма перевода в Цифровой Кошелёк, с валютой' }) @IsString() @Length(1, 64) amount!: string;
-  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о трансляции паевого взноса (3015)' })
-  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) document!: SignedDigitalDocumentInputDTO;
-}
-
 @InputType('EduSignActInput')
 export class EduSignActInputDTO {
   @Field(() => ID, { description: 'Взнос' }) @IsUUID() contribution_id!: string;
@@ -319,4 +312,41 @@ export class EduRevokeContributionInputDTO {
   @IsString()
   @Length(1, 2000)
   reason!: string;
+}
+
+/** Возврат паевого взноса со стола расчёта: оба заявления подписаны разом. */
+@InputType('EduRequestShareReturnInput')
+export class EduRequestShareReturnInputDTO {
+  @Field(() => String, { description: 'Сумма возврата, с валютой' }) @IsString() @Length(1, 64) amount!: string;
+  @Field(() => String, { description: 'Реквизиты преподавателя, на которые уйдут деньги' }) @IsString() @Length(1, 128) method_id!: string;
+  @Field(() => String, { description: 'Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир' }) @IsString() @Length(64, 64) payment_hash!: string;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) transfer_statement!: SignedDigitalDocumentInputDTO;
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Подписанное заявление о возврате паевого взноса деньгами (900)' })
+  @ValidateNested() @Type(() => SignedDigitalDocumentInputDTO) return_statement!: SignedDigitalDocumentInputDTO;
+}
+
+/** Строка выписки преподавателя: зачисление по принятому результату или возврат с его состоянием. */
+@ObjectType('EduSettlementEntry')
+export class EduSettlementEntryDTO {
+  @Field(() => String, { description: 'Номер строки выписки' }) id!: string;
+  @Field(() => Date, { description: 'Когда' }) at!: Date;
+  @Field(() => EduSettlementEntryKind, { description: 'Зачисление или возврат' }) kind!: EduSettlementEntryKind;
+  @Field(() => String, { description: 'Что произошло' }) title!: string;
+  @Field(() => String, { description: 'Сумма' }) amount!: string;
+  @Field(() => EduSettlementEntryStatus, { description: 'Состояние строки' }) status!: EduSettlementEntryStatus;
+  @Field(() => ID, { nullable: true, description: 'Взнос, по которому зачислено' }) contribution_id!: string | null;
+  @Field(() => ID, { nullable: true, description: 'Возврат, если строка — возврат' }) return_id!: string | null;
+  @Field(() => String, { nullable: true, description: 'Хэш платежа возврата' }) payment_hash!: string | null;
+}
+
+@ObjectType('EduShareReturnDocument')
+export class EduShareReturnDocumentDTO {
+  @Field(() => EduShareReturnDocumentKind, { description: 'Какое это заявление' }) kind!: EduShareReturnDocumentKind;
+  @Field(() => DocumentAggregateDTO, { description: 'Подписанный документ с исходником' }) document!: DocumentAggregateDTO;
+
+  constructor(kind: EduShareReturnDocumentKind, aggregate: InnerDocumentAggregate) {
+    this.kind = kind;
+    this.document = new DocumentAggregateDTO(aggregate);
+  }
 }

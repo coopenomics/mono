@@ -10,6 +10,7 @@ import {
   USER_AVATAR_PORT,
   USER_DATA_PORT,
   USER_WALLET_PORT,
+  WALLET_WITHDRAW_PORT,
   type ICouncilPort,
   type IDocumentPort,
   type ILoggerPort,
@@ -19,8 +20,10 @@ import {
   type IUserAvatarPort,
   type IUserDataPort,
   type IUserWalletPort,
+  type IWalletWithdrawPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType, EduContributionDocumentKind } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
+import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
 import { guaranteeEndsAt } from '../../domain/economy/guarantee';
 import { EdubridgeFundsService } from './edubridge-funds.service';
 import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
@@ -73,15 +76,28 @@ const MAX_LESSON_STRETCH = 2;
 /** Ответ цепи на повторную подачу заявления по тем же материалам. */
 const ALREADY_SUBMITTED = /уже подано/i;
 
-/** Сумма, на которую подписано заявление о трансляции паевого взноса. */
-function statementAmount(document: ISignedDocument): string {
+/** Метаданные подписанного документа: строкой из цепи или готовым объектом. */
+function documentMeta(document: ISignedDocument): Record<string, unknown> {
   const raw = document.meta as unknown;
   try {
-    const meta = (typeof raw === 'string' ? JSON.parse(raw) : raw ?? {}) as Record<string, unknown>;
-    return String(meta.amount ?? '');
+    return (typeof raw === 'string' ? JSON.parse(raw) : raw ?? {}) as Record<string, unknown>;
   } catch {
-    return '';
+    return {};
   }
+}
+
+/** Сумма, на которую подписано заявление о трансляции паевого взноса. */
+function statementAmount(document: ISignedDocument): string {
+  return String(documentMeta(document).amount ?? '');
+}
+
+/** Заявка на возврат паевого взноса со стола расчёта: оба заявления подписаны разом. */
+export interface ShareReturnRequest {
+  amount: string;
+  method_id: string;
+  payment_hash: string;
+  transfer_statement: ISignedDocument;
+  return_statement: ISignedDocument;
 }
 
 /**
@@ -116,7 +132,8 @@ export class EdubridgeTeacherService {
     private readonly funds: EdubridgeFundsService,
     @Inject(USER_DATA_PORT) private readonly udata: IUserDataPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    private readonly events: EventEmitter2
+    private readonly events: EventEmitter2,
+    @Inject(WALLET_WITHDRAW_PORT) private readonly walletWithdraw: IWalletWithdrawPort
   ) {
     this.logger.setContext(EdubridgeTeacherService.name);
   }
@@ -1166,17 +1183,62 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Трансляция по подписанному заявлению: `wthshare` в цепь, сумма переходит с
-   * паевого кошелька программы на главный паевой. Возврат паевого взноса
-   * преподаватель оформляет уже в «Цифровом Кошельке».
+   * Возврат паевого взноса одной кнопкой со стола расчёта. Преподаватель
+   * подписал разом заявление о трансляции (3015) и заявление о возврате (900):
+   * сумма уходит `wthshare` на главный паевой, затем ядро заводит заявку на
+   * возврат тем же путём, что из кошелька — платёж шлюза, вопрос совету,
+   * выплата. Перевод прошёл, а заявка нет — деньги остались на главном
+   * паевом, и возврат оформляется из кошелька; назад ничего не откатывается.
    */
-  async withdrawShare(coopname: string, teacher: string, amount: string, document: ISignedDocument): Promise<EduTeacherSettlementDTO> {
-    const asset = await this.withdrawableAmount(coopname, teacher, amount);
-    // Преподаватель подписал заявление на конкретную сумму: в цепь уходит она же.
-    if (statementAmount(document) !== asset) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE');
-    await this.chain.withdrawShare({ coopname, username: teacher, amount: asset, statement: document } as never);
+  async requestShareReturn(coopname: string, teacher: string, data: ShareReturnRequest): Promise<EduTeacherSettlementDTO> {
+    const asset = await this.withdrawableAmount(coopname, teacher, data.amount);
+    // Оба заявления подписаны на эту же сумму, заявление о возврате — под этот же платёж.
+    if (statementAmount(data.transfer_statement) !== asset) throw DomainError.badRequest('EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE');
+    const returnMeta = documentMeta(data.return_statement);
+    const sameHash = String(returnMeta.payment_hash ?? '').toLowerCase() === data.payment_hash.toLowerCase();
+    const sameAmount = Number.parseFloat(String(returnMeta.quantity ?? '')) === Number.parseFloat(asset);
+    if (!sameHash || !sameAmount) throw DomainError.badRequest('EDUBRIDGE_SHARE_RETURN_STATEMENT_STALE');
+
+    await this.chain.withdrawShare({ coopname, username: teacher, amount: asset, statement: data.transfer_statement } as never);
     this.logger.info(`[EDU.RID] паевой взнос ${asset} преподавателя ${teacher} транслирован в Цифровой Кошелёк`);
+
+    const [quantity, symbol] = asset.split(' ');
+    await this.walletWithdraw.createWithdraw({
+      coopname,
+      username: teacher,
+      quantity: Number.parseFloat(quantity ?? '0'),
+      symbol: symbol ?? '',
+      method_id: data.method_id,
+      payment_hash: data.payment_hash,
+      statement: data.return_statement,
+    });
+    await this.teachers.saveShareReturn({
+      coopname,
+      teacher_username: teacher,
+      amount: asset,
+      payment_hash: data.payment_hash.toLowerCase(),
+      transfer_statement_document: data.transfer_statement as unknown as Record<string, unknown>,
+      return_statement_document: data.return_statement as unknown as Record<string, unknown>,
+    });
+    this.logger.info(`[EDU.RID] заявка на возврат ${asset} преподавателя ${teacher} подана, платёж ${data.payment_hash.slice(0, 8)}`);
     return this.settlement(coopname, teacher);
+  }
+
+  /** Оба заявления возврата — преподавателю по его возврату. */
+  async shareReturnDocuments(coopname: string, teacher: string, returnId: string): Promise<{ kind: EduShareReturnDocumentKind; aggregate: InnerDocumentAggregate }[]> {
+    const r = await this.teachers.findShareReturn(coopname, returnId);
+    if (!r) throw DomainError.notFound('EDUBRIDGE_SHARE_RETURN_NOT_FOUND');
+    if (r.teacher_username !== teacher) throw DomainError.forbidden('EDUBRIDGE_SHARE_RETURN_FOREIGN');
+    const stored: [EduShareReturnDocumentKind, EdubridgeShareReturnRecord['transfer_statement_document']][] = [
+      [EduShareReturnDocumentKind.TRANSFER_STATEMENT, r.transfer_statement_document],
+      [EduShareReturnDocumentKind.RETURN_STATEMENT, r.return_statement_document],
+    ];
+    const result: { kind: EduShareReturnDocumentKind; aggregate: InnerDocumentAggregate }[] = [];
+    for (const [kind, doc] of stored) {
+      const aggregate = await this.documents.buildAggregate(doc as unknown as ISignedDocument);
+      if (aggregate) result.push({ kind, aggregate });
+    }
+    return result;
   }
 
   /** Сумма трансляции в виде цепи: больше нуля и не больше остатка паевого кошелька программы. */

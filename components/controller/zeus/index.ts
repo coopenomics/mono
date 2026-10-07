@@ -7578,6 +7578,18 @@ export type ValueTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
 };
+	["EduRequestShareReturnInput"]: {
+	/** Сумма возврата, с валютой */
+	amount: string | Variable<any, string>,
+	/** Реквизиты преподавателя, на которые уйдут деньги */
+	method_id: string | Variable<any, string>,
+	/** Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир */
+	payment_hash: string | Variable<any, string>,
+	/** Подписанное заявление о возврате паевого взноса деньгами (900) */
+	return_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) */
+	transfer_statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
+};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ValueTypes["ID"] | Variable<any, string>
@@ -7668,6 +7680,42 @@ export type ValueTypes = {
 	/** Преподаватель (учётное имя) */
 	username: string | Variable<any, string>
 };
+	["EduSettlementEntry"]: AliasType<{
+	/** Сумма */
+	amount?:boolean | `@${string}`,
+	/** Когда */
+	at?:boolean | `@${string}`,
+	/** Взнос, по которому зачислено */
+	contribution_id?:boolean | `@${string}`,
+	/** Номер строки выписки */
+	id?:boolean | `@${string}`,
+	/** Зачисление или возврат */
+	kind?:boolean | `@${string}`,
+	/** Хэш платежа возврата */
+	payment_hash?:boolean | `@${string}`,
+	/** Возврат, если строка — возврат */
+	return_id?:boolean | `@${string}`,
+	/** Состояние строки */
+	status?:boolean | `@${string}`,
+	/** Что произошло */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduSettlementEntry']?: Omit<ValueTypes["EduSettlementEntry"], "...on EduSettlementEntry">
+}>;
+	/** Строка выписки преподавателя: зачисление или возврат */
+["EduSettlementEntryKind"]:EduSettlementEntryKind;
+	/** Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено */
+["EduSettlementEntryStatus"]:EduSettlementEntryStatus;
+	["EduShareReturnDocument"]: AliasType<{
+	/** Подписанный документ с исходником */
+	document?:ValueTypes["DocumentAggregate"],
+	/** Какое это заявление */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduShareReturnDocument']?: Omit<ValueTypes["EduShareReturnDocument"], "...on EduShareReturnDocument">
+}>;
+	/** Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате */
+["EduShareReturnDocumentKind"]:EduShareReturnDocumentKind;
 	["EduShareWithdrawStatementInput"]: {
 	/** Сумма перевода в Цифровой Кошелёк, с валютой */
 	amount: string | Variable<any, string>
@@ -7857,12 +7905,6 @@ export type ValueTypes = {
 	recipient_type: ValueTypes["EduRecipientType"] | Variable<any, string>,
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string | Variable<any, string>
-};
-	["EduWithdrawShareInput"]: {
-	/** Сумма перевода в Цифровой Кошелёк, с валютой */
-	amount: string | Variable<any, string>,
-	/** Подписанное заявление о трансляции паевого взноса (3015) */
-	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>
 };
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
@@ -13361,6 +13403,7 @@ edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolea
 edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<any, string>},ValueTypes["EduLesson"]],
+edubridgeRequestShareReturn?: [{	data: ValueTypes["EduRequestShareReturnInput"] | Variable<any, string>},ValueTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ValueTypes["EduRetryEnrollmentCloseInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
@@ -13386,7 +13429,6 @@ edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, st
 edubridgeTerminateContract?: [{	reason: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ValueTypes["EduUpdateLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
-edubridgeWithdrawShare?: [{	data: ValueTypes["EduWithdrawShareInput"] | Variable<any, string>},ValueTypes["EduTeacherSettlement"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ValueTypes["TwoFactorEnrollment"],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -15343,8 +15385,9 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variab
 	edubridgeMyLessons?:ValueTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ValueTypes["EduTeacherSettlement"],
-	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
-	edubridgeMySettlementHistory?:ValueTypes["EduFundMovement"],
+	/** Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием */
+	edubridgeMySettlementJournal?:ValueTypes["EduSettlementEntry"],
+edubridgeMyShareReturnDocuments?: [{	return_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduShareReturnDocument"]],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ValueTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -24124,6 +24167,18 @@ export type ResolverInputTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ResolverInputTypes["ID"] | undefined | null
 };
+	["EduRequestShareReturnInput"]: {
+	/** Сумма возврата, с валютой */
+	amount: string,
+	/** Реквизиты преподавателя, на которые уйдут деньги */
+	method_id: string,
+	/** Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир */
+	payment_hash: string,
+	/** Подписанное заявление о возврате паевого взноса деньгами (900) */
+	return_statement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) */
+	transfer_statement: ResolverInputTypes["SignedDigitalDocumentInput"]
+};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ResolverInputTypes["ID"]
@@ -24212,6 +24267,40 @@ export type ResolverInputTypes = {
 	/** Преподаватель (учётное имя) */
 	username: string
 };
+	["EduSettlementEntry"]: AliasType<{
+	/** Сумма */
+	amount?:boolean | `@${string}`,
+	/** Когда */
+	at?:boolean | `@${string}`,
+	/** Взнос, по которому зачислено */
+	contribution_id?:boolean | `@${string}`,
+	/** Номер строки выписки */
+	id?:boolean | `@${string}`,
+	/** Зачисление или возврат */
+	kind?:boolean | `@${string}`,
+	/** Хэш платежа возврата */
+	payment_hash?:boolean | `@${string}`,
+	/** Возврат, если строка — возврат */
+	return_id?:boolean | `@${string}`,
+	/** Состояние строки */
+	status?:boolean | `@${string}`,
+	/** Что произошло */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Строка выписки преподавателя: зачисление или возврат */
+["EduSettlementEntryKind"]:EduSettlementEntryKind;
+	/** Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено */
+["EduSettlementEntryStatus"]:EduSettlementEntryStatus;
+	["EduShareReturnDocument"]: AliasType<{
+	/** Подписанный документ с исходником */
+	document?:ResolverInputTypes["DocumentAggregate"],
+	/** Какое это заявление */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате */
+["EduShareReturnDocumentKind"]:EduShareReturnDocumentKind;
 	["EduShareWithdrawStatementInput"]: {
 	/** Сумма перевода в Цифровой Кошелёк, с валютой */
 	amount: string
@@ -24396,12 +24485,6 @@ export type ResolverInputTypes = {
 	recipient_type: ResolverInputTypes["EduRecipientType"],
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
-};
-	["EduWithdrawShareInput"]: {
-	/** Сумма перевода в Цифровой Кошелёк, с валютой */
-	amount: string,
-	/** Подписанное заявление о трансляции паевого взноса (3015) */
-	document: ResolverInputTypes["SignedDigitalDocumentInput"]
 };
 	["EmailVerificationRequestDTO"]: AliasType<{
 	/** Через сколько секунд можно запросить письмо повторно */
@@ -29745,6 +29828,7 @@ edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`
 edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},ResolverInputTypes["EduLesson"]],
+edubridgeRequestShareReturn?: [{	data: ResolverInputTypes["EduRequestShareReturnInput"]},ResolverInputTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ResolverInputTypes["EduRetryEnrollmentCloseInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
 edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
@@ -29770,7 +29854,6 @@ edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverI
 edubridgeTerminateContract?: [{	reason: string,	username: string},ResolverInputTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeUpdateLearner?: [{	data: ResolverInputTypes["EduUpdateLearnerInput"]},ResolverInputTypes["EduLearner"]],
-edubridgeWithdrawShare?: [{	data: ResolverInputTypes["EduWithdrawShareInput"]},ResolverInputTypes["EduTeacherSettlement"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ResolverInputTypes["TwoFactorEnrollment"],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -31652,8 +31735,9 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]}
 	edubridgeMyLessons?:ResolverInputTypes["EduLesson"],
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement?:ResolverInputTypes["EduTeacherSettlement"],
-	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
-	edubridgeMySettlementHistory?:ResolverInputTypes["EduFundMovement"],
+	/** Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием */
+	edubridgeMySettlementJournal?:ResolverInputTypes["EduSettlementEntry"],
+edubridgeMyShareReturnDocuments?: [{	return_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduShareReturnDocument"]],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ResolverInputTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -40156,6 +40240,18 @@ export type ModelTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: ModelTypes["ID"] | undefined | null
 };
+	["EduRequestShareReturnInput"]: {
+	/** Сумма возврата, с валютой */
+	amount: string,
+	/** Реквизиты преподавателя, на которые уйдут деньги */
+	method_id: string,
+	/** Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир */
+	payment_hash: string,
+	/** Подписанное заявление о возврате паевого взноса деньгами (900) */
+	return_statement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) */
+	transfer_statement: ModelTypes["SignedDigitalDocumentInput"]
+};
 	["EduRetryEnrollmentCloseInput"]: {
 	/** Подписка */
 	enrollment_id: ModelTypes["ID"]
@@ -40241,6 +40337,35 @@ export type ModelTypes = {
 	/** Преподаватель (учётное имя) */
 	username: string
 };
+	["EduSettlementEntry"]: {
+		/** Сумма */
+	amount: string,
+	/** Когда */
+	at: ModelTypes["DateTime"],
+	/** Взнос, по которому зачислено */
+	contribution_id?: ModelTypes["ID"] | undefined | null,
+	/** Номер строки выписки */
+	id: string,
+	/** Зачисление или возврат */
+	kind: ModelTypes["EduSettlementEntryKind"],
+	/** Хэш платежа возврата */
+	payment_hash?: string | undefined | null,
+	/** Возврат, если строка — возврат */
+	return_id?: ModelTypes["ID"] | undefined | null,
+	/** Состояние строки */
+	status: ModelTypes["EduSettlementEntryStatus"],
+	/** Что произошло */
+	title: string
+};
+	["EduSettlementEntryKind"]:EduSettlementEntryKind;
+	["EduSettlementEntryStatus"]:EduSettlementEntryStatus;
+	["EduShareReturnDocument"]: {
+		/** Подписанный документ с исходником */
+	document: ModelTypes["DocumentAggregate"],
+	/** Какое это заявление */
+	kind: ModelTypes["EduShareReturnDocumentKind"]
+};
+	["EduShareReturnDocumentKind"]:EduShareReturnDocumentKind;
 	["EduShareWithdrawStatementInput"]: {
 	/** Сумма перевода в Цифровой Кошелёк, с валютой */
 	amount: string
@@ -40420,12 +40545,6 @@ export type ModelTypes = {
 	recipient_type: ModelTypes["EduRecipientType"],
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
-};
-	["EduWithdrawShareInput"]: {
-	/** Сумма перевода в Цифровой Кошелёк, с валютой */
-	amount: string,
-	/** Подписанное заявление о трансляции паевого взноса (3015) */
-	document: ModelTypes["SignedDigitalDocumentInput"]
 };
 	["EmailVerificationRequestDTO"]: {
 		/** Через сколько секунд можно запросить письмо повторно */
@@ -45721,6 +45840,8 @@ export type ModelTypes = {
 	edubridgeReorderSections: Array<ModelTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: ModelTypes["EduLesson"],
+	/** Получить возврат паевого взноса по программе «Образование»: перевод в Цифровой Кошелёк и заявка на возврат по двум подписанным заявлениям */
+	edubridgeRequestShareReturn: ModelTypes["EduTeacherSettlement"],
 	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
 	edubridgeRetryEnrollmentClose: ModelTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
@@ -45771,8 +45892,6 @@ export type ModelTypes = {
 	edubridgeUpdateCourse: ModelTypes["EduCourse"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
 	edubridgeUpdateLearner: ModelTypes["EduLearner"],
-	/** Перевести паевой взнос по программе «Образование» в Цифровой Кошелёк по подписанному заявлению */
-	edubridgeWithdrawShare: ModelTypes["EduTeacherSettlement"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor: ModelTypes["TwoFactorEnrollment"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков */
@@ -47822,8 +47941,10 @@ export type ModelTypes = {
 	edubridgeMyLessons: Array<ModelTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: ModelTypes["EduTeacherSettlement"],
-	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
-	edubridgeMySettlementHistory: Array<ModelTypes["EduFundMovement"]>,
+	/** Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием */
+	edubridgeMySettlementJournal: Array<ModelTypes["EduSettlementEntry"]>,
+	/** Заявления моего возврата паевого взноса: о трансляции в Цифровой Кошелёк и о возврате */
+	edubridgeMyShareReturnDocuments: Array<ModelTypes["EduShareReturnDocument"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: ModelTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -56748,6 +56869,18 @@ export type GraphQLTypes = {
 	/** Раздел, чьи уровни упорядочиваются; для разделов — пусто */
 	section_id?: GraphQLTypes["ID"] | undefined | null
 };
+	["EduRequestShareReturnInput"]: {
+		/** Сумма возврата, с валютой */
+	amount: string,
+	/** Реквизиты преподавателя, на которые уйдут деньги */
+	method_id: string,
+	/** Хэш платежа: им помечено заявление о возврате, по нему платёж находят совет и кассир */
+	payment_hash: string,
+	/** Подписанное заявление о возврате паевого взноса деньгами (900) */
+	return_statement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Подписанное заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) */
+	transfer_statement: GraphQLTypes["SignedDigitalDocumentInput"]
+};
 	["EduRetryEnrollmentCloseInput"]: {
 		/** Подписка */
 	enrollment_id: GraphQLTypes["ID"]
@@ -56838,6 +56971,42 @@ export type GraphQLTypes = {
 	/** Преподаватель (учётное имя) */
 	username: string
 };
+	["EduSettlementEntry"]: {
+	__typename: "EduSettlementEntry",
+	/** Сумма */
+	amount: string,
+	/** Когда */
+	at: GraphQLTypes["DateTime"],
+	/** Взнос, по которому зачислено */
+	contribution_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Номер строки выписки */
+	id: string,
+	/** Зачисление или возврат */
+	kind: GraphQLTypes["EduSettlementEntryKind"],
+	/** Хэш платежа возврата */
+	payment_hash?: string | undefined | null,
+	/** Возврат, если строка — возврат */
+	return_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Состояние строки */
+	status: GraphQLTypes["EduSettlementEntryStatus"],
+	/** Что произошло */
+	title: string,
+	['...on EduSettlementEntry']: Omit<GraphQLTypes["EduSettlementEntry"], "...on EduSettlementEntry">
+};
+	/** Строка выписки преподавателя: зачисление или возврат */
+["EduSettlementEntryKind"]: EduSettlementEntryKind;
+	/** Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено */
+["EduSettlementEntryStatus"]: EduSettlementEntryStatus;
+	["EduShareReturnDocument"]: {
+	__typename: "EduShareReturnDocument",
+	/** Подписанный документ с исходником */
+	document: GraphQLTypes["DocumentAggregate"],
+	/** Какое это заявление */
+	kind: GraphQLTypes["EduShareReturnDocumentKind"],
+	['...on EduShareReturnDocument']: Omit<GraphQLTypes["EduShareReturnDocument"], "...on EduShareReturnDocument">
+};
+	/** Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате */
+["EduShareReturnDocumentKind"]: EduShareReturnDocumentKind;
 	["EduShareWithdrawStatementInput"]: {
 		/** Сумма перевода в Цифровой Кошелёк, с валютой */
 	amount: string
@@ -57027,12 +57196,6 @@ export type GraphQLTypes = {
 	recipient_type: GraphQLTypes["EduRecipientType"],
 	/** Почта / Telegram / код пропуска */
 	recipient_value: string
-};
-	["EduWithdrawShareInput"]: {
-		/** Сумма перевода в Цифровой Кошелёк, с валютой */
-	amount: string,
-	/** Подписанное заявление о трансляции паевого взноса (3015) */
-	document: GraphQLTypes["SignedDigitalDocumentInput"]
 };
 	["EmailVerificationRequestDTO"]: {
 	__typename: "EmailVerificationRequestDTO",
@@ -62698,6 +62861,8 @@ export type GraphQLTypes = {
 	edubridgeReorderSections: Array<GraphQLTypes["EduSection"]>,
 	/** Отчитаться о проведённом занятии: материалы и взнос по ставке часа */
 	edubridgeReportLesson: GraphQLTypes["EduLesson"],
+	/** Получить возврат паевого взноса по программе «Образование»: перевод в Цифровой Кошелёк и заявка на возврат по двум подписанным заявлениям */
+	edubridgeRequestShareReturn: GraphQLTypes["EduTeacherSettlement"],
 	/** Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива */
 	edubridgeRetryEnrollmentClose: GraphQLTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
@@ -62748,8 +62913,6 @@ export type GraphQLTypes = {
 	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
 	edubridgeUpdateLearner: GraphQLTypes["EduLearner"],
-	/** Перевести паевой взнос по программе «Образование» в Цифровой Кошелёк по подписанному заявлению */
-	edubridgeWithdrawShare: GraphQLTypes["EduTeacherSettlement"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor: GraphQLTypes["TwoFactorEnrollment"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков */
@@ -64980,8 +65143,10 @@ export type GraphQLTypes = {
 	edubridgeMyLessons: Array<GraphQLTypes["EduLesson"]>,
 	/** Мой расчёт: принятые взносы и доступное к возврату */
 	edubridgeMySettlement: GraphQLTypes["EduTeacherSettlement"],
-	/** Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк */
-	edubridgeMySettlementHistory: Array<GraphQLTypes["EduFundMovement"]>,
+	/** Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием */
+	edubridgeMySettlementJournal: Array<GraphQLTypes["EduSettlementEntry"]>,
+	/** Заявления моего возврата паевого взноса: о трансляции в Цифровой Кошелёк и о возврате */
+	edubridgeMyShareReturnDocuments: Array<GraphQLTypes["EduShareReturnDocument"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: GraphQLTypes["EduTeacherProfile"],
 	/** Подписаны ли оферты ученика и преподавателя */
@@ -67900,6 +68065,24 @@ export enum EduRidType {
 	METHODICAL_MATERIAL = "METHODICAL_MATERIAL",
 	OTHER = "OTHER"
 }
+/** Строка выписки преподавателя: зачисление или возврат */
+export enum EduSettlementEntryKind {
+	IN = "IN",
+	OUT = "OUT"
+}
+/** Состояние строки выписки: зачислено, на совете, ожидает выплаты, выплачено, отклонено */
+export enum EduSettlementEntryStatus {
+	ACCEPTED = "ACCEPTED",
+	AWAITING_PAYOUT = "AWAITING_PAYOUT",
+	COUNCIL_REVIEW = "COUNCIL_REVIEW",
+	DECLINED = "DECLINED",
+	PAID = "PAID"
+}
+/** Документ возврата паевого взноса преподавателя: заявление о трансляции, заявление о возврате */
+export enum EduShareReturnDocumentKind {
+	RETURN_STATEMENT = "RETURN_STATEMENT",
+	TRANSFER_STATEMENT = "TRANSFER_STATEMENT"
+}
 /** Тип первичного файла расхода. */
 export enum ExpenseFileKind {
 	CLOSING_DOC = "CLOSING_DOC",
@@ -68868,6 +69051,7 @@ type ZEUS_VARIABLES = {
 	["EduQuoteInput"]: ValueTypes["EduQuoteInput"];
 	["EduRecipientType"]: ValueTypes["EduRecipientType"];
 	["EduReorderInput"]: ValueTypes["EduReorderInput"];
+	["EduRequestShareReturnInput"]: ValueTypes["EduRequestShareReturnInput"];
 	["EduRetryEnrollmentCloseInput"]: ValueTypes["EduRetryEnrollmentCloseInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
 	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];
@@ -68881,6 +69065,9 @@ type ZEUS_VARIABLES = {
 	["EduSetCourseStatusInput"]: ValueTypes["EduSetCourseStatusInput"];
 	["EduSetEconomySettingsInput"]: ValueTypes["EduSetEconomySettingsInput"];
 	["EduSetTeacherRateInput"]: ValueTypes["EduSetTeacherRateInput"];
+	["EduSettlementEntryKind"]: ValueTypes["EduSettlementEntryKind"];
+	["EduSettlementEntryStatus"]: ValueTypes["EduSettlementEntryStatus"];
+	["EduShareReturnDocumentKind"]: ValueTypes["EduShareReturnDocumentKind"];
 	["EduShareWithdrawStatementInput"]: ValueTypes["EduShareWithdrawStatementInput"];
 	["EduSignActInput"]: ValueTypes["EduSignActInput"];
 	["EduSignContractInput"]: ValueTypes["EduSignContractInput"];
@@ -68891,7 +69078,6 @@ type ZEUS_VARIABLES = {
 	["EduTeacherProfileInput"]: ValueTypes["EduTeacherProfileInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
-	["EduWithdrawShareInput"]: ValueTypes["EduWithdrawShareInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];
 	["ExpenseCallbackInput"]: ValueTypes["ExpenseCallbackInput"];

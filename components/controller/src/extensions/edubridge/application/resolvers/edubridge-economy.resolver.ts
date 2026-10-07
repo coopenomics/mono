@@ -18,11 +18,11 @@ import {
   EduCourseEconomyInputDTO,
   EduCourseFeeDTO,
   EduEconomySettingsDTO,
-  EduFundMovementDTO,
   EduProgramFundDTO,
   EduSetEconomySettingsInputDTO,
   EduSetTeacherRateInputDTO,
 } from '../dto/edu-economy.dto';
+import { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { EdubridgeEconomyService } from '../services/edubridge-economy.service';
 
 const coop = () => platformSettings().coopname;
@@ -64,11 +64,11 @@ export class EdubridgeEconomyResolver {
     return this.economy.fund(coop());
   }
 
-  @Query(() => [EduFundMovementDTO], { name: 'edubridgeMySettlementHistory', description: 'Выписка по моему паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк' })
+  @Query(() => [EduSettlementEntryDTO], { name: 'edubridgeMySettlementJournal', description: 'Моя выписка: зачисления по принятым результатам и возвраты паевого взноса с их состоянием' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduTeacherWallet', 'read:own', SELF)
-  edubridgeMySettlementHistory(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduFundMovementDTO[]> {
-    return this.economy.shareHistory(coop(), m.username as string);
+  edubridgeMySettlementJournal(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduSettlementEntryDTO[]> {
+    return this.economy.settlementJournal(coop(), m.username as string);
   }
 
   @Mutation(() => EduEconomySettingsDTO, { name: 'edubridgeSetEconomySettings', description: 'Задать целевой членский взнос кооператива' })

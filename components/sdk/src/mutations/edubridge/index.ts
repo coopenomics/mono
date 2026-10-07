@@ -50,7 +50,7 @@ export * as SignAct from './signAct'
 /** Заявление о трансляции паевого взноса в Цифровой Кошелёк для подписи */
 export * as ShareWithdrawStatement from './shareWithdrawStatement'
 /** Перевести паевой взнос по программе в Цифровой Кошелёк */
-export * as WithdrawShare from './withdrawShare'
+export * as RequestShareReturn from './requestShareReturn'
 /** Назначить преподавателю курс */
 export * as CreateAssignment from './createAssignment'
 /** Закрыть назначение */

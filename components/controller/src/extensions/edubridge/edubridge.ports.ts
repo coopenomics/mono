@@ -39,6 +39,8 @@ import {
   USER_DATA_PORT,
   USER_DIRECTORY_PORT,
   USER_WALLET_PORT,
+  WALLET_WITHDRAW_PORT,
+  PAYMENT_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
@@ -74,6 +76,10 @@ export const edubridgePorts = {
     USER_DATA_PORT,
     USER_DIRECTORY_PORT,
     USER_WALLET_PORT,
+    // Возврат паевого взноса со стола расчёта: платёж и заявка в кошельке — ядром.
+    WALLET_WITHDRAW_PORT,
+    // Состояние возврата живёт у платежа шлюза.
+    PAYMENT_PORT,
     VAULT_PORT,
   ],
   optional: [

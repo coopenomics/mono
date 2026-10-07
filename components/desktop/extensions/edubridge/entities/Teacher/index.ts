@@ -5,6 +5,7 @@ import { client } from 'src/shared/api/client';
 import { useSessionStore } from 'src/entities/Session';
 import { useSystemStore } from 'src/entities/System/model';
 import { DigitalDocument } from 'src/shared/lib/document';
+import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
 import { t } from '../../i18n';
 
 export type IContract = NonNullable<Queries.Edubridge.MyContract.IOutput['edubridgeMyContract']>;
@@ -74,28 +75,64 @@ export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.E
 export const revokeContribution = (data: { contribution_id: string; reason: string }) =>
   m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
-/** Выписка по паевому взносу в программе: зачисления по принятым результатам и переводы в Цифровой Кошелёк. */
-export type ISettlementMovement = Queries.Edubridge.MySettlementHistory.IOutput['edubridgeMySettlementHistory'][number];
-export const fetchMySettlementHistory = () =>
-  q<ISettlementMovement[]>(Queries.Edubridge.MySettlementHistory.query, Queries.Edubridge.MySettlementHistory.name);
+/** Строка моей выписки: зачисление по принятому результату или возврат с его состоянием. */
+export type ISettlementEntry = Queries.Edubridge.MySettlementJournal.IOutput['edubridgeMySettlementJournal'][number];
+export const fetchMySettlementJournal = () => q<ISettlementEntry[]>(Queries.Edubridge.MySettlementJournal.query, Queries.Edubridge.MySettlementJournal.name);
+/** Строка выписки — зачисление; иначе это возврат. */
+export const isIncomingEntry = (e: ISettlementEntry) => e.kind === Zeus.EduSettlementEntryKind.IN;
+/** Заявления возврата: о трансляции в Цифровой Кошелёк и о возврате деньгами. */
+export type IShareReturnDocument = Queries.Edubridge.MyShareReturnDocuments.IOutput['edubridgeMyShareReturnDocuments'][number];
+export const fetchMyShareReturnDocuments = (return_id: string) =>
+  q<IShareReturnDocument[]>(Queries.Edubridge.MyShareReturnDocuments.query, Queries.Edubridge.MyShareReturnDocuments.name, { return_id });
+
+export const SETTLEMENT_STATUS_LABELS: Record<string, { label: string; variant: 'pos' | 'neg' | 'warn' | 'info' | 'neutral' }> = {
+  [Zeus.EduSettlementEntryStatus.ACCEPTED]: { label: t('edubridge.settlement.status.ACCEPTED'), variant: 'pos' },
+  [Zeus.EduSettlementEntryStatus.COUNCIL_REVIEW]: { label: t('edubridge.settlement.status.COUNCIL_REVIEW'), variant: 'info' },
+  [Zeus.EduSettlementEntryStatus.AWAITING_PAYOUT]: { label: t('edubridge.settlement.status.AWAITING_PAYOUT'), variant: 'warn' },
+  [Zeus.EduSettlementEntryStatus.PAID]: { label: t('edubridge.settlement.status.PAID'), variant: 'pos' },
+  [Zeus.EduSettlementEntryStatus.DECLINED]: { label: t('edubridge.settlement.status.DECLINED'), variant: 'neg' },
+};
+
+type IGeneratedStatement = { hash: string; html: string; full_title: string; binary: string };
 
 /**
- * Трансляция паевого взноса по программе в Цифровой Кошелёк: заявление (3015)
- * на названную сумму подписывает преподаватель, перевод проводит кооператив.
+ * Возврат паевого взноса одной кнопкой: заявление о трансляции в Цифровой
+ * Кошелёк (3015) и заявление о возврате деньгами (900) подписываются разом
+ * и уходят одной мутацией. Хэш платежа рождается здесь: им помечено
+ * заявление о возврате, по нему совет и кассир находят платёж.
  */
-export async function withdrawShare(amount: string): Promise<ISettlement> {
-  const { username } = who();
-  const statementInput: Mutations.Edubridge.ShareWithdrawStatement.IInput['data'] = { amount };
-  const generated = await m<{ hash: string; html: string; full_title: string; binary: string }>(
-    Mutations.Edubridge.ShareWithdrawStatement.mutation,
-    Mutations.Edubridge.ShareWithdrawStatement.name,
-    { data: statementInput }
-  );
-  const doc = new DigitalDocument(generated as never);
-  await doc.sign(username);
-  if (!doc.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
-  const data: Mutations.Edubridge.WithdrawShare.IInput['data'] = { amount, document: doc.signedDocument };
-  return m<ISettlement>(Mutations.Edubridge.WithdrawShare.mutation, Mutations.Edubridge.WithdrawShare.name, { data });
+export async function requestShareReturn(amount: string, method_id: string): Promise<ISettlement> {
+  const { username, coopname } = who();
+  const payment_hash = await generateUniqueHash();
+  const [quantity, currency] = amount.split(' ');
+  const transferInput: Mutations.Edubridge.ShareWithdrawStatement.IInput['data'] = { amount };
+  const returnInput: Mutations.Wallet.GenerateReturnByMoneyStatementDocument.IInput['data'] = {
+    coopname,
+    username,
+    method_id,
+    quantity: quantity ?? '0',
+    currency: currency ?? '',
+    payment_hash,
+  };
+  const [transferGenerated, returnGenerated] = await Promise.all([
+    m<IGeneratedStatement>(Mutations.Edubridge.ShareWithdrawStatement.mutation, Mutations.Edubridge.ShareWithdrawStatement.name, { data: transferInput }),
+    m<IGeneratedStatement>(Mutations.Wallet.GenerateReturnByMoneyStatementDocument.mutation, Mutations.Wallet.GenerateReturnByMoneyStatementDocument.name, {
+      data: returnInput,
+    }),
+  ]);
+  const transfer = new DigitalDocument(transferGenerated as never);
+  await transfer.sign(username);
+  const ret = new DigitalDocument(returnGenerated as never);
+  await ret.sign(username);
+  if (!transfer.signedDocument || !ret.signedDocument) throw new Error(t('edubridge.error.statementSignFailed'));
+  const data: Mutations.Edubridge.RequestShareReturn.IInput['data'] = {
+    amount,
+    method_id,
+    payment_hash,
+    transfer_statement: transfer.signedDocument,
+    return_statement: ret.signedDocument,
+  };
+  return m<ISettlement>(Mutations.Edubridge.RequestShareReturn.mutation, Mutations.Edubridge.RequestShareReturn.name, { data });
 }
 export const fetchAssignments = () => q<IAssignment[]>(Queries.Edubridge.Assignments.query, Queries.Edubridge.Assignments.name);
 /** Подписанный договор преподавателя для просмотра; `null` — документ у договора не сохранён. */

@@ -20,6 +20,10 @@ export const EduLive = {
   assignments: table('edubridge_teacher_assignments'),
   lessons: table('edubridge_lessons'),
   contributions: table('edubridge_contributions'),
+  /** Возвраты паевого взноса преподавателя — связка с платежом. */
+  shareReturns: table('edubridge_share_returns'),
+  /** Платежи шлюза: состояние возврата меняет совет и кассир. */
+  payments: { code: 'core', table: 'payments' } as ChainTableRef,
   accessTasks: table('edubridge_access_tasks'),
   connectors: table('edubridge_connector_bindings'),
   admins: table('edubridge_admins'),

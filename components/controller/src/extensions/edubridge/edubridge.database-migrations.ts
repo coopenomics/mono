@@ -7,10 +7,11 @@ import { EdubridgeGuaranteeClaims1791203803222 } from './migrations/database/179
 import { EdubridgeAssignmentHourlyRate1791290272066 } from './migrations/database/1791290272066-assignment-hourly-rate';
 import { EdubridgeContributionStorageActDocument1791362839623 } from './migrations/database/1791362839623-contribution-storage-act-document';
 import { EdubridgeContributionDecisionDocument1791365100000 } from './migrations/database/1791365100000-contribution-decision-document';
+import { EdubridgeShareReturns1791380400000 } from './migrations/database/1791380400000-share-returns';
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
  * класса). Объявляются в записи реестра (`databaseMigrations`) рядом с
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const edubridgeDatabaseMigrations = [EdubridgeBaseline1790236885856, EdubridgeAssignmentWithoutAnnex1790834774344, EdubridgeTeacherProfile1790951823745, EdubridgeEnrollmentClosePending1791201397413, EdubridgeContractDocument1791201979422, EdubridgeGuaranteeClaims1791203803222, EdubridgeAssignmentHourlyRate1791290272066, EdubridgeContributionStorageActDocument1791362839623, EdubridgeContributionDecisionDocument1791365100000];
+export const edubridgeDatabaseMigrations = [EdubridgeBaseline1790236885856, EdubridgeAssignmentWithoutAnnex1790834774344, EdubridgeTeacherProfile1790951823745, EdubridgeEnrollmentClosePending1791201397413, EdubridgeContractDocument1791201979422, EdubridgeGuaranteeClaims1791203803222, EdubridgeAssignmentHourlyRate1791290272066, EdubridgeContributionStorageActDocument1791362839623, EdubridgeContributionDecisionDocument1791365100000, EdubridgeShareReturns1791380400000];

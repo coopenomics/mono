@@ -31,7 +31,8 @@ import {
   EduRevokeContributionInputDTO,
   EduShareWithdrawStatementInputDTO,
   EduTeacherSettlementDTO,
-  EduWithdrawShareInputDTO,
+  EduRequestShareReturnInputDTO,
+  EduShareReturnDocumentDTO,
 } from '../dto/edu-teacher.dto';
 import type { IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import { EdubridgeTeacherService } from '../services/edubridge-teacher.service';
@@ -184,11 +185,18 @@ export class EdubridgeTeacherResolver {
     return new GeneratedDocumentDTO(await this.teachers.shareWithdrawStatement(coop(), m.username as string, data.amount));
   }
 
-  @Mutation(() => EduTeacherSettlementDTO, { name: 'edubridgeWithdrawShare', description: 'Перевести паевой взнос по программе «Образование» в Цифровой Кошелёк по подписанному заявлению' })
+  @Mutation(() => EduTeacherSettlementDTO, { name: 'edubridgeRequestShareReturn', description: 'Получить возврат паевого взноса по программе «Образование»: перевод в Цифровой Кошелёк и заявка на возврат по двум подписанным заявлениям' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduTeacherWallet', 'manage:own', SELF)
-  edubridgeWithdrawShare(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduWithdrawShareInputDTO): Promise<EduTeacherSettlementDTO> {
-    return this.teachers.withdrawShare(coop(), m.username as string, data.amount, data.document);
+  edubridgeRequestShareReturn(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduRequestShareReturnInputDTO): Promise<EduTeacherSettlementDTO> {
+    return this.teachers.requestShareReturn(coop(), m.username as string, data);
+  }
+
+  @Query(() => [EduShareReturnDocumentDTO], { name: 'edubridgeMyShareReturnDocuments', description: 'Заявления моего возврата паевого взноса: о трансляции в Цифровой Кошелёк и о возврате' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduTeacherWallet', 'read:own', SELF)
+  async edubridgeMyShareReturnDocuments(@CurrentEduMember() m: IEdubridgeMembership, @Args('return_id', { type: () => ID }) id: string): Promise<EduShareReturnDocumentDTO[]> {
+    return (await this.teachers.shareReturnDocuments(coop(), m.username as string, id)).map(({ kind, aggregate }) => new EduShareReturnDocumentDTO(kind, aggregate));
   }
 
   // ── Администратор / владелец ──────────────────────────────────────────────

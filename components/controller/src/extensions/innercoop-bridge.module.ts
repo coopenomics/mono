@@ -38,6 +38,7 @@ import {
   EXTENSION_DATABASE_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
+  WALLET_WITHDRAW_PORT,
   PAYMENT_METHOD_PORT,
   PAYMENT_NOTICE_LOG_PORT,
   PAYMENT_POLLING_STATE_PORT,
@@ -84,6 +85,7 @@ import { PaymentNoticeLogInnercoopAdapter } from '~/infrastructure/innercoop/pay
 import { PaymentMethodInnercoopAdapter } from '~/infrastructure/innercoop/payment-method-innercoop.adapter';
 import { UserDataInnercoopAdapter } from '~/infrastructure/innercoop/user-data-innercoop.adapter';
 import { PaymentDeskInnercoopAdapter } from '~/infrastructure/innercoop/payment-desk-innercoop.adapter';
+import { WalletWithdrawInnercoopAdapter } from '~/infrastructure/innercoop/wallet-withdraw-innercoop.adapter';
 import {
   ProgramWalletInnercoopAdapter,
   UserWalletInnercoopAdapter,
@@ -210,6 +212,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PaymentMethodInnercoopAdapter,
     UserDataInnercoopAdapter,
     PaymentDeskInnercoopAdapter,
+    WalletWithdrawInnercoopAdapter,
     ProgramWalletInnercoopAdapter,
     UserWalletInnercoopAdapter,
     VaultInnercoopAdapter,
@@ -357,6 +360,10 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     {
       provide: PAYMENT_DESK_PORT,
       useExisting: PaymentDeskInnercoopAdapter,
+    },
+    {
+      provide: WALLET_WITHDRAW_PORT,
+      useExisting: WalletWithdrawInnercoopAdapter,
     },
     {
       provide: PROGRAM_WALLET_PORT,
@@ -534,6 +541,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     PAYMENT_METHOD_PORT,
     USER_DATA_PORT,
     PAYMENT_DESK_PORT,
+    WALLET_WITHDRAW_PORT,
     PROGRAM_WALLET_PORT,
     USER_WALLET_PORT,
     VAULT_PORT,

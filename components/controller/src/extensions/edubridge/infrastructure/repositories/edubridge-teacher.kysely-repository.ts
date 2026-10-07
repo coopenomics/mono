@@ -1,8 +1,8 @@
 import { TableStore, oneOf } from '@coopenomics/extension-kit';
-import { EDUBRIDGE_CONTRIBUTION_STORE, EDUBRIDGE_TEACHER_ASSIGNMENT_STORE, EDUBRIDGE_TEACHER_CONTRACT_STORE, EDUBRIDGE_TEACHER_PROFILE_STORE } from '../database/edubridge-stores';
+import { EDUBRIDGE_CONTRIBUTION_STORE, EDUBRIDGE_SHARE_RETURN_STORE, EDUBRIDGE_TEACHER_ASSIGNMENT_STORE, EDUBRIDGE_TEACHER_CONTRACT_STORE, EDUBRIDGE_TEACHER_PROFILE_STORE } from '../database/edubridge-stores';
 import { Inject, Injectable } from '@nestjs/common';
 import { EduContributionStatus } from '../../domain/enums';
-import { EdubridgeContributionRecord, EdubridgeTeacherAssignmentRecord, EdubridgeTeacherContractRecord, EdubridgeTeacherProfileRecord } from '../entities';
+import { EdubridgeContributionRecord, EdubridgeShareReturnRecord, EdubridgeTeacherAssignmentRecord, EdubridgeTeacherContractRecord, EdubridgeTeacherProfileRecord } from '../entities';
 
 @Injectable()
 export class EdubridgeTeacherKyselyRepository {
@@ -14,8 +14,28 @@ export class EdubridgeTeacherKyselyRepository {
     @Inject(EDUBRIDGE_CONTRIBUTION_STORE)
     private readonly contributions: TableStore<EdubridgeContributionRecord>,
     @Inject(EDUBRIDGE_TEACHER_PROFILE_STORE)
-    private readonly profiles: TableStore<EdubridgeTeacherProfileRecord>
+    private readonly profiles: TableStore<EdubridgeTeacherProfileRecord>,
+    @Inject(EDUBRIDGE_SHARE_RETURN_STORE)
+    private readonly shareReturns: TableStore<EdubridgeShareReturnRecord>
   ) {}
+
+  // ── Возвраты паевого взноса ────────────────────────────────────────────────
+  /** Взнос по хэшу акта приёма-передачи: его несёт проводка зачисления на паевой кошелёк. */
+  findContributionByActHash(coopname: string, actHash: string): Promise<EdubridgeContributionRecord | null> {
+    return this.contributions.findOne({ coopname, act_hash: actHash.toLowerCase() });
+  }
+
+  listShareReturns(coopname: string, teacher: string): Promise<EdubridgeShareReturnRecord[]> {
+    return this.shareReturns.find({ coopname, teacher_username: teacher }, { order: { created_at: 'DESC' } });
+  }
+
+  findShareReturn(coopname: string, id: string): Promise<EdubridgeShareReturnRecord | null> {
+    return this.shareReturns.findOne({ coopname, id });
+  }
+
+  saveShareReturn(data: Partial<EdubridgeShareReturnRecord>): Promise<EdubridgeShareReturnRecord> {
+    return this.shareReturns.save(this.shareReturns.create(data));
+  }
 
   findProfile(coopname: string, teacher: string): Promise<EdubridgeTeacherProfileRecord | null> {
     return this.profiles.findOne({ coopname, teacher_username: teacher });

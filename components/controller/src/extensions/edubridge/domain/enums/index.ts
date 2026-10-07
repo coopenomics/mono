@@ -165,3 +165,30 @@ export enum EduContributionDocumentKind {
   /** Акт приёма-передачи после решения совета. */
   ACT = 'act',
 }
+
+/** Строка выписки преподавателя: пришло на паевой взнос или ушло возвратом. */
+export enum EduSettlementEntryKind {
+  IN = 'in',
+  OUT = 'out',
+}
+
+/** Состояние строки выписки: зачисление конечно, возврат идёт через совет и выплату. */
+export enum EduSettlementEntryStatus {
+  /** Результат принят советом, взнос зачислен. */
+  ACCEPTED = 'accepted',
+  /** Заявление о возврате на рассмотрении совета. */
+  COUNCIL_REVIEW = 'council_review',
+  /** Совет одобрил, кассир ещё не выплатил. */
+  AWAITING_PAYOUT = 'awaiting_payout',
+  PAID = 'paid',
+  /** Совет отказал либо выплата не состоялась. */
+  DECLINED = 'declined',
+}
+
+/** Документы возврата паевого взноса преподавателя. */
+export enum EduShareReturnDocumentKind {
+  /** Заявление о трансляции паевого взноса в Цифровой Кошелёк (3015). */
+  TRANSFER_STATEMENT = 'transfer_statement',
+  /** Заявление о возврате паевого взноса деньгами (900). */
+  RETURN_STATEMENT = 'return_statement',
+}

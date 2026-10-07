@@ -12,3 +12,4 @@ export { EdubridgeTeacherProfileRecord } from './edubridge-teacher-profile.recor
 export { EdubridgeSectionRecord } from './edubridge-section.record';
 export { EdubridgeGuaranteeClaimRecord } from './edubridge-guarantee-claim.record';
 export { EdubridgeLevelRecord } from './edubridge-level.record';
+export { EdubridgeShareReturnRecord } from './edubridge-share-return.record';
