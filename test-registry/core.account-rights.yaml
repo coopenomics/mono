@@ -201,3 +201,16 @@ cases:
     test: components/controller/tests/unit/rights/core-rights-accounts.test.ts
     api: components/api-tests/src/membership/account-rights.test.ts
     status: written
+
+  - id: core.rights.ui.approvals-badge
+    level: ui
+    kind: side
+    scenario: >
+      председатель открывает любой стол — на пункте «Запросы одобрений» стола
+      председателя стоит число ожидающих одобрений, после подписи или отказа
+      оно меняется по ленте одобрений без перезагрузки
+    expect: >
+      число равно количеству одобрений в состоянии «ожидает»; у пайщика без
+      права читать одобрения числа нет и ошибки нет
+    test: ~
+    status: missing   # сценарий harness не написан

@@ -148,3 +148,16 @@ cases:
     test: components/controller/tests/unit/rights/core-rights.test.ts
     api: components/api-tests/src/soviet/council-rights.test.ts
     status: written
+
+  - id: core.rights.ui.agenda-badge
+    level: ui
+    kind: side
+    scenario: >
+      член совета открывает стол совета — на пункте «Повестка» стоит число
+      вопросов, по которым он ещё не голосовал; после голоса число уменьшается
+      по таблице решений без перезагрузки
+    expect: >
+      число равно вопросам повестки без голоса вошедшего; у пайщика без права
+      читать повестку числа нет и ошибки нет
+    test: ~
+    status: missing   # сценарий harness не написан

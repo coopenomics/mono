@@ -34,7 +34,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
       const { info } = useSystemStore();
       const page = await approvalsApi.loadApprovals({
         filter: { coopname: info.coopname, statuses: [Zeus.ApprovalStatus.PENDING] },
-        options: { page: 1, limit: 1 },
+        options: { page: 1, limit: 1, sortOrder: 'DESC' },
       });
       return page?.totalCount ?? 0;
     } catch {
