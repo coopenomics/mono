@@ -41,6 +41,12 @@ const resolvedTextColor = computed(() =>
   flex-shrink: 0;
   max-width: 100%;
 }
+/* Нейтральный бейдж — серый. Без этого он брал цвет q-badge по умолчанию
+   (фирменный) и «Допуск снят», «Выключена» читались как «Действует». */
+.base-badge--neutral {
+  background: var(--p-surface-3);
+  color: var(--p-ink-2);
+}
 .base-badge--dot {
   width: 8px;
   height: 8px;

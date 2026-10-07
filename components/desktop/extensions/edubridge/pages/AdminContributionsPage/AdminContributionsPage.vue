@@ -3,10 +3,13 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
-  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="1200px")
+  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="1080px")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
-    template(#cell-rid_type="{ row }") {{ ridType(row.rid_type) }}
+    //- Взнос опознаётся названием результата, вид взноса — приглушённой строкой под ним.
+    template(#cell-description="{ row }")
+      .edu-contrib__title {{ row.description || '______' }}
+      .t-muted.t-sm {{ ridType(row.rid_type) }}
     template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
@@ -15,8 +18,8 @@
     template(#cell-actions="{ row }")
       .edu-row-actions
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="ghost" size="sm" @click="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
-        BaseButton(v-if="canDecline(row)" variant="ghost" size="sm" @click="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="secondary" size="sm" @click="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
+        BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
   EmptyState(v-if="!firstLoad && !contributions.length" :title="$t('edubridge.adminContributionsPage.emptyTitle')" :body="$t('edubridge.adminContributionsPage.emptyBody')")
     template(#icon)
@@ -87,10 +90,9 @@ const revokeReason = ref('');
 
 const columns: BaseTableColumn<IContribution>[] = [
   { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '240px' },
-  { key: 'rid_type', label: i18nT('edubridge.adminContributionsPage.columnType'), width: '160px' },
   { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
   { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '130px', nowrap: true },
-  { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '190px' },
+  { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '250px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '260px', nowrap: true },
 ];
 
@@ -184,6 +186,10 @@ onMounted(load);
 </script>
 
 <style scoped>
+.edu-contrib__title {
+  font-weight: 600;
+  color: var(--p-ink);
+}
 /* Действия в строке таблицы стоят в ряд с равным зазором и не переносятся. */
 .edu-row-actions {
   display: flex;

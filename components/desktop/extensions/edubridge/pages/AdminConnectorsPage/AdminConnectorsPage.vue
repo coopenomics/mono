@@ -8,13 +8,12 @@
       BaseCard.edu-connector(variant="default" :title="carrierLabel(c.carrier)")
         template(#actions)
           BaseBadge(:variant="stateOf(c).variant") {{ stateOf(c).label }}
-        DataRow(:label="$t('edubridge.adminConnectorsPage.enabledLabel')" :value="c.enabled ? $t('edubridge.adminConnectorsPage.enabledOn') : $t('edubridge.adminConnectorsPage.enabledOff')")
         DataRow(v-if="c.credential_fields.length" :label="$t('edubridge.adminConnectorsPage.credentialsLabel')" :value="c.configured ? $t('edubridge.adminConnectorsPage.credentialsSet') : $t('edubridge.adminConnectorsPage.credentialsNotSet')")
         DataRow(:label="$t('edubridge.adminConnectorsPage.lastCheckLabel')" :value="c.last_check_at ? formatDateTime(c.last_check_at) : '______'")
         DataRow(v-if="c.last_check_message" :label="$t('edubridge.adminConnectorsPage.lastCheckResultLabel')" :value="c.last_check_message")
         .edu-connector__actions
-          BaseButton(v-if="c.credential_fields.length" variant="ghost" size="sm" @click="openCredentials(c)") {{ c.configured ? $t('edubridge.adminConnectorsPage.editCredentialsButton') : $t('edubridge.adminConnectorsPage.setCredentialsButton') }}
-          BaseButton(variant="ghost" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
+          BaseButton(v-if="c.credential_fields.length" variant="secondary" size="sm" @click="openCredentials(c)") {{ c.configured ? $t('edubridge.adminConnectorsPage.editCredentialsButton') : $t('edubridge.adminConnectorsPage.setCredentialsButton') }}
+          BaseButton(variant="secondary" size="sm" :loading="busy === c.carrier + ':toggle'" @click="toggle(c)") {{ c.enabled ? $t('edubridge.adminConnectorsPage.disableButton') : $t('edubridge.adminConnectorsPage.enableButton') }}
           BaseButton(variant="secondary" size="sm" :disabled="!c.configured" :loading="busy === c.carrier" @click="check(c)") {{ $t('edubridge.adminConnectorsPage.checkButton') }}
 
   BaseDialog(v-model="credentialsOpen" :title="editing ? $t(`edubridge.adminConnectorsPage.credentialsDialogTitleFor`, { carrier: carrierLabel(editing.carrier) }) : $t('edubridge.adminConnectorsPage.credentialsDialogTitle')" size="md")

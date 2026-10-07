@@ -3,7 +3,7 @@
   PageHint.q-mb-md(storage-key="edu:admin-members:banner-dismissed")
     | {{ $t('edubridge.adminMembersPage.hint.line1') }}
 
-  BaseInput.q-mb-md(v-model="search" :label="$t('edubridge.adminMembersPage.searchLabel')" type="search" clearable @update:model-value="debouncedLoad")
+  BaseInput(v-model="search" :label="$t('edubridge.adminMembersPage.searchLabel')" type="search" clearable @update:model-value="debouncedLoad")
 
   BaseTable(
     v-if="firstLoad || rows.length"

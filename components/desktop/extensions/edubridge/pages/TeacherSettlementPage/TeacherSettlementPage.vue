@@ -5,13 +5,13 @@
     | {{ $t('edubridge.teacherSettlementPage.hintReturn') }}
   .row.q-col-gutter-md
     .col-12.col-md-6
-      BaseCard(variant="default" :title="$t('edubridge.teacherSettlementPage.title')")
+      BaseCard(variant="default")
         CardListSkeleton(v-if="!settlement" :count="1")
         template(v-else)
-          DataRow(:label="$t('edubridge.teacherSettlementPage.acceptedTotalLabel')" :value="formatAsset2Digits(settlement.accepted_total)")
-          DataRow(:label="$t('edubridge.teacherSettlementPage.programShareLabel')" :value="formatAsset2Digits(settlement.program_share)")
-          DataRow(:label="$t('edubridge.teacherSettlementPage.availableLabel')" :value="formatAsset2Digits(settlement.available)")
-          DataRow(:label="$t('edubridge.teacherSettlementPage.lastAcceptedLabel')" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '______'")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.acceptedTotalLabel')" align="spread" :value="formatAsset2Digits(settlement.accepted_total)")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.programShareLabel')" align="spread" :value="formatAsset2Digits(settlement.program_share)")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.availableLabel')" align="spread" :value="formatAsset2Digits(settlement.available)")
+          DataRow(:label="$t('edubridge.teacherSettlementPage.lastAcceptedLabel')" align="spread" :value="settlement.last_accepted_at ? formatDate(settlement.last_accepted_at) : '______'")
           .q-mt-md
             BaseButton(variant="secondary" @click="goToWallet") {{ $t('edubridge.teacherSettlementPage.walletReturnButton') }}
     .col-12.col-md-6(v-if="settlement && programShare > 0")

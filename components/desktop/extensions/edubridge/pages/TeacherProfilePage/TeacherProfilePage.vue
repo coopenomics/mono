@@ -21,7 +21,7 @@
       //- Рассказ о себе: его видит администратор, когда допускает преподавателя к курсу.
       BaseCard.q-mt-md(variant="default" :title="$t('edubridge.teacherProfilePage.aboutTitle')")
         template(#actions)
-          BaseButton(variant="ghost" size="sm" @click="openAbout") {{ profile?.about ? $t('edubridge.teacherProfilePage.aboutEdit') : $t('edubridge.teacherProfilePage.aboutFill') }}
+          BaseButton(variant="secondary" size="sm" @click="openAbout") {{ profile?.about ? $t('edubridge.teacherProfilePage.aboutEdit') : $t('edubridge.teacherProfilePage.aboutFill') }}
         .edu-profile__about(v-if="profile?.about") {{ profile.about }}
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.aboutEmpty') }}
 
@@ -30,7 +30,7 @@
           q-item(v-for="a in assignments" :key="asText(a.id)")
             q-item-section
               .text-weight-medium {{ a.course_title }}
-              .t-muted.t-sm {{ a.period_from }} — {{ a.period_to }}
+              .t-muted.t-sm {{ formatDate(a.period_from) }} — {{ formatDate(a.period_to) }}
             q-item-section(side)
               BaseBadge(:variant="statusOf(a.status).variant") {{ statusOf(a.status).label }}
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noAssignmentsEmpty') }}
