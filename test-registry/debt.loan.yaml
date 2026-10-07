@@ -1,0 +1,160 @@
+feature: debt.loan
+title: Беспроцентный заём пайщику под обеспечение паевым взносом
+
+# Компонент 73 «Беспроцентные займы» (проект «Благорост»), эпик 367-1.
+#
+# Контракт debt — единый реестр беспроцентных займов. Заём под паевой взнос
+# программы «Благорост» контракт выдаёт сам: пайщик подписывает заявление и
+# договор, сумма обеспечения переходит на кошелёк обеспечения и в программе
+# не участвует, совет принимает решение, председатель подписывает договор,
+# кассир выплачивает деньги через транзитный кошелёк «к выдаче». Возврат — с
+# главного кошелька, целиком или частями, обеспечение возвращается на ту же
+# сумму. После срока — просрочка, через пять дней — обращение обеспечения.
+# Займы других приложений (Генерация) регистрируются источником при выдаче.
+#
+# Решения владельца — PRD компонента 73 (Р1–Р41). Односторонний акт при
+# невозврате не формируется (Р41). Возврат деньгами займов Генерации — позже
+# (Р37): контракт отвечает отказом.
+
+sources:
+  contract:
+    - components/contracts/cpp/debt/**
+    - components/contracts/cpp/lib/core/debt/**
+    - components/contracts/cpp/lib/domain/table_debt_debts.hpp
+    - components/contracts/cpp/lib/domain/table_debt_summaries.hpp
+    - components/contracts/cpp/capital/app/debt_managment/pledge/pledgesync.cpp
+    - components/contracts/cpp/lib/core/ledger2/operations.hpp
+    - components/contracts/cpp/lib/core/ledger2/wallets.hpp
+    - components/contracts/cpp/lib/core/registrator/exit.hpp
+  types:
+    - components/cooptypes/src/contracts/debt/**
+    - components/cooptypes/src/debt/**
+    - components/cooptypes/scripts/gen-from-cpp.ts
+
+standard: components/contracts/cpp/debt/p.dbt.loan.standard.yaml
+
+cases:
+  # ── Уровень контракта ──────────────────────────────────────────────────
+
+  - id: dbt.loan.happy.01
+    level: contract
+    kind: happy
+    scenario: >
+      Пайщик с одобренным договором об участии и средствами в «Благоросте»
+      подаёт заявление на заём меньше остатка в программе; совет разрешает,
+      председатель подписывает договор, кассир подтверждает выплату; затем
+      пайщик возвращает заём с главного кошелька двумя частями.
+    expect: >
+      после заявления сумма обеспечения ушла с кошелька программы на кошелёк
+      обеспечения; после решения совета договор ждёт председателя; после его
+      подписи сумма начислена к выдаче; после кассира заём выдан, числится в
+      выданных и в сводке долга пайщика; частичный возврат уменьшает остаток,
+      сводку, выданное и обеспечение на ту же сумму и списывает главный
+      кошелёк; возврат остатка удаляет запись и сводку, обеспечение целиком в
+      программе
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.01
+    level: contract
+    kind: side
+    scenario: Сумма займа больше остатка пайщика в программе.
+    expect: заявление отклонено, обеспечение не тронуто
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.02
+    level: contract
+    kind: side
+    scenario: Ключ обеспечения, которого нет в реестре.
+    expect: заявление отклонено с «не предусмотрено»
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.03
+    level: contract
+    kind: side
+    scenario: >
+      Договор об участии пайщика не одобрен председателем (ожидание), средства
+      в программе есть.
+    expect: заявление отклонено — договор-основание не действует (Р32)
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.04
+    level: contract
+    kind: side
+    scenario: Кооператив отменяет выдачу до решения совета.
+    expect: обеспечение вернулось в программу, запись удалена
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.05
+    level: contract
+    kind: side
+    scenario: Кассир отклонил платёж по реквизитам, кооператив отправил платёж повторно.
+    expect: >
+      решение совета и подпись в силе, причина сохранена, начисление к выдаче
+      осталось; после повтора и подтверждения кассира заём выдан, причина
+      очищена
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.06
+    level: contract
+    kind: side
+    scenario: Возврат больше остатка; возврат займа другим пайщиком.
+    expect: оба отклонены
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.07
+    level: contract
+    kind: side
+    scenario: >
+      Срок займа прошёл; сверка сроков; повторная сверка раньше пяти дней;
+      заявление о продлении и подтверждение председателя.
+    expect: >
+      заём в просрочке; повторная сверка обеспечение не трогает; после
+      подтверждения продления заём снова выдан с новым сроком
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: missing
+
+  - id: dbt.loan.side.08
+    level: contract
+    kind: side
+    scenario: Заём в просрочке дольше пяти дней, сверка сроков.
+    expect: >
+      обеспечение списано в пользу кооператива, выданное закрыто, сводка
+      уменьшена, запись удалена
+    test: null
+    status: missing
+    note: на живой цепи пять дней не промотать — проверяется на локальной цепи с управляемым временем либо вручную
+
+  - id: dbt.loan.side.09
+    level: contract
+    kind: side
+    scenario: Приложение регистрирует свой заём, гасит его частью и закрывает без денег.
+    expect: >
+      запись выдана с источником-приложением, сводка растёт; погашение
+      уменьшает остаток и сводку; закрытие удаляет запись; возврат деньгами
+      через контракт займов по такому займу отклоняется (Р37)
+    test: null
+    status: missing
+    note: вызов возможен только из контракта белого списка — покрывается в эпике 367-5 вместе с Генерацией
+
+  - id: dbt.loan.break.01
+    level: contract
+    kind: break
+    scenario: Пайщик с открытым займом подаёт заявление о выходе из кооператива.
+    expect: выход отклонён до закрытия займа
+    test: null
+    status: missing
+
+  - id: dbt.loan.break.02
+    level: contract
+    kind: break
+    scenario: Заявление или договор подписаны не ключом пайщика; подписан не тот договор председателем.
+    expect: отклонено проверкой подписи; отклонено сверкой хэша договора
+    test: null
+    status: missing
