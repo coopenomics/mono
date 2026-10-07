@@ -1148,6 +1148,7 @@ export interface EdubridgeContributions {
   council_project_hash: string | null;
   created_at: Generated<Timestamp>;
   decided_at: Timestamp | null;
+  decision_document: Json | null;
   decision_hash: string | null;
   decline_reason: string | null;
   description: Generated<string>;
