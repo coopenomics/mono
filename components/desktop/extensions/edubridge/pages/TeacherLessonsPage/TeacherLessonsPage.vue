@@ -7,7 +7,8 @@
   //- Журнал — строками, а не таблицей: блоки переносятся при узком окне,
   //- горизонтальной прокрутки нет, состояние и действие видны всегда.
   BaseCard.edu-lessons(v-else-if="rows.length" variant="default")
-    .edu-lesson(v-for="row in rows" :key="asText(row.id)")
+    //- Строка целиком — вход в правую панель с занятием.
+    .edu-lesson(v-for="row in rows" :key="asText(row.id)" role="button" tabindex="0" @click="openDetails(row)" @keydown.enter="openDetails(row)")
       //- Номер занятия — отдельной плашкой: по нему строку находят глазами.
       .edu-lesson__num
         .edu-lesson__num-value {{ row.lesson_number }}
@@ -16,7 +17,7 @@
         .edu-lesson__title {{ row.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}
         .edu-lesson__meta {{ row.course_title }} · {{ formatDate(row.held_at) }} · {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
         .edu-lesson__links(v-if="row.materials.length")
-          a.edu-lesson__link(v-for="link in row.materials" :key="link" :href="link" :title="link" target="_blank" rel="noopener")
+          a.edu-lesson__link(v-for="link in row.materials" :key="link" :href="link" :title="link" target="_blank" rel="noopener" @click.stop)
             q-icon(name="link" size="14px")
             span {{ linkLabel(link) }}
       .edu-lesson__amount(v-if="row.contribution")
@@ -26,8 +27,32 @@
         .edu-lesson__note(v-if="row.contribution.status === Zeus.EduContributionStatus.HELD && row.contribution.hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(row.contribution.hold_until) }) }}
         .edu-lesson__note(v-if="row.contribution.decline_reason") {{ row.contribution.decline_reason }}
         //- Действие преподавателя — под состоянием: передать материалы либо подписать акт.
-        BaseButton(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-        BaseButton(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+        BaseButton(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+
+  //- Занятие целиком: сведения, материалы, взнос и его состояние; действие преподавателя — внизу панели.
+  DetailsDrawer(v-model="detailsOpen" :title="details ? (details.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: details.lesson_number })) : ''" :width="560")
+    template(v-if="details")
+      BaseBadge.q-mb-md(v-if="details.contribution" :variant="statusOf(details.contribution.status).variant") {{ statusOf(details.contribution.status).label }}
+      DataRow(:label="$t('edubridge.teacherLessonsPage.details.course')" :value="details.course_title")
+      DataRow(:label="$t('edubridge.teacherLessonsPage.details.number')" :value="String(details.lesson_number)")
+      DataRow(:label="$t('edubridge.teacherLessonsPage.details.heldAt')" :value="formatDate(details.held_at)")
+      DataRow(:label="$t('edubridge.teacherLessonsPage.details.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: details.duration_minutes })")
+      template(v-if="details.contribution")
+        DataRow(:label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(details.contribution.amount)")
+        DataRow(v-if="details.contribution.hold_until" :label="$t('edubridge.teacherLessonsPage.details.holdUntil')" :value="formatDate(details.contribution.hold_until)")
+        DataRow(v-if="details.contribution.decline_reason" :label="$t('edubridge.teacherLessonsPage.details.declineReason')" :value="details.contribution.decline_reason")
+      .edu-lesson__section
+        .t-eyebrow.q-mb-sm {{ $t('edubridge.teacherLessonsPage.details.materials') }}
+        .edu-lesson__files(v-if="details.materials.length")
+          a.edu-lesson__link(v-for="link in details.materials" :key="link" :href="link" target="_blank" rel="noopener")
+            q-icon(name="link" size="14px")
+            span {{ link }}
+        .t-muted.t-sm(v-else) ______
+    template(v-if="detailsAction" #footer)
+      .row.justify-end
+        BaseButton(v-if="detailsAction === 'transfer'" variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onTransfer(details)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        BaseButton(v-else variant="primary" :loading="rowBusy === asText(details?.id)" @click="details && onSignAct(details)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   EmptyState(v-if="!firstLoad && !lessons.length" :title="$t('edubridge.teacherLessonsPage.emptyTitle')" :body="$t('edubridge.teacherLessonsPage.emptyBody')")
     template(#icon)
@@ -60,7 +85,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import {
   CONTRIBUTION_STATUS_LABELS,
   commitLessonMaterials,
@@ -108,6 +133,22 @@ const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, var
 const contributionOf = (lesson: ILesson) => contributions.value.find((c) => asText(c.id) === asText(lesson.contribution_id)) ?? null;
 
 const rows = computed<ILessonRow[]>(() => lessons.value.map((l) => ({ ...l, contribution: contributionOf(l) })));
+
+/** Занятие в правой панели — по идентификатору: панель показывает свежее состояние после действия и обновления журнала. */
+const detailsOpen = ref(false);
+const detailsId = ref<string | null>(null);
+const details = computed(() => rows.value.find((r) => asText(r.id) === detailsId.value) ?? null);
+/** Действие, которое сейчас за преподавателем по этому занятию. */
+const detailsAction = computed<'transfer' | 'sign' | null>(() => {
+  const status = details.value?.contribution?.status;
+  if (status === Zeus.EduContributionStatus.DRAFT) return 'transfer';
+  if (status === Zeus.EduContributionStatus.COUNCIL_APPROVED) return 'sign';
+  return null;
+});
+function openDetails(row: ILessonRow): void {
+  detailsId.value = asText(row.id);
+  detailsOpen.value = true;
+}
 
 function replaceContribution(c: IContribution): void {
   const i = contributions.value.findIndex((x) => x.id === c.id);
@@ -335,5 +376,29 @@ onMounted(() => {
   flex-direction: column;
   align-items: flex-start;
   gap: var(--p-1);
+}
+.edu-lesson {
+  cursor: pointer;
+}
+.edu-lesson:hover .edu-lesson__title,
+.edu-lesson:focus-visible .edu-lesson__title {
+  color: var(--p-primary);
+}
+.edu-lesson:focus-visible {
+  outline: none;
+}
+.edu-lesson__section {
+  margin-top: var(--p-5);
+  padding-top: var(--p-4);
+  border-top: 1px solid var(--p-line);
+}
+.edu-lesson__files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+.edu-lesson__files .edu-lesson__link span {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 </style>

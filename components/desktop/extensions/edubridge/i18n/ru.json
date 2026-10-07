@@ -815,6 +815,16 @@
     "teacherLessonsPage": {
       "cancel": "Отменить",
       "courseLabel": "Курс",
+      "details": {
+        "amount": "Взнос",
+        "course": "Курс",
+        "declineReason": "Причина отклонения",
+        "duration": "Длительность",
+        "heldAt": "Проведено",
+        "holdUntil": "На хранении до",
+        "materials": "Материалы",
+        "number": "Номер занятия"
+      },
       "dialogTitle": "Отчёт о занятии",
       "durationMinutes": "{minutes} мин",
       "emptyBody": "Здесь появятся отчёты о проведённых занятиях и состояние взносов по ним.",

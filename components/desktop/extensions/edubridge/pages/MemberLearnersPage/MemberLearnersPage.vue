@@ -9,19 +9,19 @@
       template(#icon)
         q-icon(name="groups" size="32px")
     template(v-else)
-      .person.person--row(v-for="l in learners" :key="asText(l.id)")
+      //- Строка целиком — вход в правую панель с данными обучающегося.
+      .person.person--row.edu-learner(v-for="l in learners" :key="asText(l.id)" role="button" tabindex="0" @click="editLearner(l)" @keydown.enter="editLearner(l)")
         Avatar(:name="l.display_name" size="md" :tone="l.is_self ? 'primary' : 'neutral'")
         .person__main
           .person__name {{ l.display_name }}
           .person__meta {{ l.recipient_value }}
         .person__right
           BaseChip(v-if="l.is_self" variant="neutral" size="sm") {{ $t('edubridge.memberLearnersPage.selfChip') }}
-          BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberLearnersPage.editAriaLabel')" @click="editLearner(l)")
-            template(#icon-left)
-              q-icon(name="edit" size="18px")
+          q-icon.edu-learner__chevron(name="chevron_right" size="20px")
 
-  BaseDialog(v-model="learnerDialogOpen" :title="editingLearner ? $t('edubridge.memberLearnersPage.editDialogTitle') : $t('edubridge.memberLearnersPage.newDialogTitle')" size="md")
-    LearnerForm(:learner="editingLearner" :default-self="!learners.length" :has-self="learners.some((l) => l.is_self)" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")
+  //- Данные обучающегося правятся в правой панели — список остаётся на виду.
+  DetailsDrawer(v-model="learnerDialogOpen" :title="editingLearner ? $t('edubridge.memberLearnersPage.editDialogTitle') : $t('edubridge.memberLearnersPage.newDialogTitle')" :width="520")
+    LearnerForm(v-if="learnerDialogOpen" :key="editingLearner ? asText(editingLearner.id) : 'new'" :learner="editingLearner" :default-self="!learners.length" :has-self="learners.some((l) => l.is_self)" @saved="onLearnerSaved" @cancel="learnerDialogOpen = false")
 </template>
 
 <script setup lang="ts">
@@ -30,8 +30,8 @@ import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useHeaderActions } from 'src/shared/hooks';
-import { Avatar, BaseButton, BaseCard, BaseChip, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { PageHint } from 'src/shared/ui/domain';
+import { Avatar, BaseCard, BaseChip, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { PageHint, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchMyLearners, type ILearner } from '../../entities/Learner';
 import { LearnerForm } from '../../widgets/LearnerForm';
 import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
@@ -87,3 +87,19 @@ onMounted(async () => {
   await load();
 });
 </script>
+
+<style scoped>
+.edu-learner {
+  cursor: pointer;
+  border-radius: var(--p-r-sm);
+  transition: background var(--p-dur-fast, 120ms) ease;
+}
+.edu-learner:hover,
+.edu-learner:focus-visible {
+  background: var(--p-surface-2);
+  outline: none;
+}
+.edu-learner__chevron {
+  color: var(--p-ink-3);
+}
+</style>
