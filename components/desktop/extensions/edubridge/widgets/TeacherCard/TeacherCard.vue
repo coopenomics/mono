@@ -7,8 +7,9 @@
       AccountBadge(:account-name="teacher.username")
       BaseBadge.q-mt-xs(:variant="contractStatusOf(teacher.contract_status).variant") {{ contractStatusOf(teacher.contract_status).label }}
 
-  //- Чем преподаватель занят и сколько принёс: три числа под именем.
-  StatStrip.q-mt-md(:items="stats" compact)
+  //- Чем преподаватель занят и сколько принёс: три числа под именем. Ставка часа
+  //- в документы не попадает, она живёт в записи расширения — и правится здесь же.
+  StatStrip.q-mt-md(:items="stats" compact @edit="openRate")
 
   //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
   .edu-teacher-card__about(v-if="teacher.about")
@@ -35,15 +36,6 @@
     //- Сам договор — первой строкой вкладки, текст открывается по нажатию.
     ComplexDocument.q-mt-md.q-mb-sm(v-if="contractDocument" :document="contractDocument" collapsible)
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.numberLabel')" :value="teacher.contract_number" mono copyable)
-    //- Ставка часа в документы не попадает: она живёт в договоре расширения
-    //- и правится администратором здесь же.
-    DataRow(:label="$t('edubridge.adminTeachersPage.contract.hourlyRateLabel')")
-      template(#value-override)
-        .row.items-center.no-wrap.q-gutter-sm
-          span {{ formatAsset2Digits(teacher.hourly_rate) }}
-          BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
-            template(#icon-left)
-              q-icon(name="edit" size="18px")
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByTeacherLabel')" :value="formatDate(teacher.signed_at)")
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByChairmanLabel')" :value="teacher.approved_at ? formatDate(teacher.approved_at) : '______'")
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsActiveLabel')" :value="String(teacher.assignments_active)")
@@ -226,7 +218,7 @@ const acceptedTotal = computed(() => {
   return formatAsset2Digits(`${total.toFixed(4)} ${symbol.value}`);
 });
 const stats = computed<StatStripItem[]>(() => [
-  { key: 'rate', icon: 'schedule', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate) },
+  { key: 'rate', icon: 'schedule', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate), editLabel: i18nT('edubridge.adminTeachersPage.rate.edit') },
   {
     key: 'courses',
     icon: 'library_books',

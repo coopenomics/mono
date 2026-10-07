@@ -7,7 +7,7 @@
       q-icon(name="search_off" size="40px")
 
   template(v-else)
-    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
+    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url" :back-label="$t('edubridge.courseCardPage.backToCatalog')" @back="goBack")
       template(#facts)
         span(v-if="course.schedule") {{ course.schedule }}
         span(v-if="course.starts_at") {{ $t('edubridge.courseCardPage.startsFrom', { date: formatDate(course.starts_at) }) }}
@@ -22,9 +22,9 @@
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      CourseHeroFigure(:caption="$t('edubridge.courseCardPage.feeMonthCaption')")
+      CourseHeroFigure(:caption="$t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.courseCardPage.feeCourseCaption')")
+      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
         FeeAmount(:value="course.fee_course" size="lg")
       CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
       CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
@@ -117,6 +117,11 @@ watch(
     if (list?.length) void enrichFio(list);
   },
 );
+
+/** Назад в каталог: страница курса открывается из него. */
+function goBack(): void {
+  void router.push({ name: 'edubridge-catalog', params: { coopname: route.params.coopname } });
+}
 
 async function getAccess(): Promise<void> {
   if (!session.isAuth) {

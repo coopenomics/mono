@@ -31,8 +31,11 @@
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
                   q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
-      CourseHeroFigure(:caption="$t('edubridge.adminCoursePage.feeMonthCaption')")
+      //- Числа курса — те же и в том же порядке, что видит ученик в каталоге.
+      CourseHeroFigure(:caption="$t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
+      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
+        FeeAmount(:value="course.fee_course" size="lg")
       CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
       CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 

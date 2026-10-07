@@ -11,4 +11,6 @@ export interface StatStripItem {
   sub?: string;
   /** Подробность во всплывающей подсказке у подписи. */
   hint?: string;
+  /** Подпись кнопки правки: число правится здесь же, карандашом у значения. */
+  editLabel?: string;
 }

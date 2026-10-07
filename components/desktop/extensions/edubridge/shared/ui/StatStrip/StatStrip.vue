@@ -19,14 +19,18 @@ BaseCard.edu-stats(variant="default" :class="{ 'edu-stats--compact': compact }")
           template(v-else)
             | {{ it.value }}
             span.edu-stats__ccy(v-if="it.symbol") {{ it.symbol }}
+          BaseButton.edu-stats__edit(v-if="it.editLabel && !loading" variant="ghost" size="sm" icon-only :aria-label="it.editLabel" @click="emit('edit', it.key)")
+            template(#icon-left)
+              q-icon(name="edit" size="16px")
         .edu-stats__sub(v-if="it.sub") {{ it.sub }}
 </template>
 
 <script setup lang="ts">
-import { BaseCard } from 'src/shared/ui/base';
+import { BaseButton, BaseCard } from 'src/shared/ui/base';
 import type { StatStripItem } from './StatStrip.types';
 
 withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; compact?: boolean }>(), { loading: false, compact: false });
+const emit = defineEmits<{ edit: [key: string] }>();
 </script>
 
 <style scoped>
@@ -73,6 +77,9 @@ withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; compact?: 
   cursor: help;
 }
 .edu-stats__value {
+  display: flex;
+  align-items: center;
+  gap: var(--p-1);
   margin-top: var(--p-1);
   font-size: var(--p-fs-h1);
   line-height: var(--p-lh-h1);
@@ -81,6 +88,10 @@ withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; compact?: 
   color: var(--p-ink);
   font-feature-settings: 'tnum' 1;
   white-space: nowrap;
+}
+.edu-stats__edit {
+  flex: none;
+  color: var(--p-ink-3);
 }
 .edu-stats__ccy {
   margin-left: 0.3em;

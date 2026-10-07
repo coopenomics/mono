@@ -77,12 +77,9 @@ onUnmounted(() => desktopStore.clearPageTitleOverride());
 </script>
 
 <style scoped>
-/* Карточка читается колонкой: на всю ширину экрана строки «подпись — значение» расползаются. */
+/* Карточка на всю ширину, как остальные страницы стола (слово владельца 07.10.2026). */
 .edu-teacher__crumb {
   margin-bottom: var(--p-4);
   font-size: var(--p-fs-body-sm);
-}
-.edu-teacher__content {
-  max-width: 880px;
 }
 </style>

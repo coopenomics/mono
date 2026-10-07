@@ -158,7 +158,6 @@
       "economyTitle": "Экономика курса",
       "editButton": "Изменить",
       "externalRefLabel": "Курс на площадке",
-      "feeMonthCaption": "взнос в месяц",
       "guaranteeLabel": "Гарантийный срок",
       "markupLabel": "Целевой членский взнос, {percent}%",
       "moreActionsAriaLabel": "Ещё действия",
@@ -342,7 +341,6 @@
       "contract": {
         "assignmentsActiveLabel": "Назначений действует",
         "assignmentsTotalLabel": "Назначений всего",
-        "hourlyRateLabel": "Ставка часа по договору",
         "numberLabel": "Номер договора",
         "signedByChairmanLabel": "Подписан председателем",
         "signedByTeacherLabel": "Подписан преподавателем"
@@ -487,7 +485,9 @@
         "ARCHIVED": "В архиве",
         "DRAFT": "Черновик",
         "PUBLISHED": "Опубликован"
-      }
+      },
+      "feeMonthCaption": "взнос в месяц",
+      "feeCourseCaption": "за весь курс разом"
     },
     "courseCard": {
       "feeCourseLabel": "За весь курс",
@@ -500,8 +500,6 @@
       "daysLeft": "остался {n} день | осталось {n} дня | осталось {n} дней",
       "descriptionEmpty": "Описание курса появится позже.",
       "extend": "Продлить",
-      "feeCourseCaption": "за весь курс разом",
-      "feeMonthCaption": "взнос в месяц",
       "getAccess": "Получить доступ",
       "guestHint": "Для записи нужно вступить в кооператив",
       "notFoundBody": "Возможно, курс снят с публикации.",
@@ -511,7 +509,8 @@
       "syllabusEmpty": "Программа будет опубликована позже.",
       "syllabusTitle": "Учебная программа",
       "teachersTitleMany": "Курс ведут",
-      "teachersTitleOne": "Курс ведёт"
+      "teachersTitleOne": "Курс ведёт",
+      "backToCatalog": "К каталогу курсов"
     },
     "courseForm": {
       "addTeacherLabel": "Назначить преподавателя",
