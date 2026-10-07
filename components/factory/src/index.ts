@@ -215,6 +215,10 @@ export class Generator implements IGenerator {
 
       [Actions.GetLoanStatement.Template.registry_id]: new Actions.GetLoanStatement.Factory(this.storage), // 1050
       [Actions.GetLoanDecision.Template.registry_id]: new Actions.GetLoanDecision.Factory(this.storage), // 1051
+      [Actions.LoanContractProperty.Template.registry_id]: new Actions.LoanContractProperty.Factory(this.storage), // 1052
+      [Actions.LoanContractShare.Template.registry_id]: new Actions.LoanContractShare.Factory(this.storage), // 1053
+      [Actions.LoanRepaymentStatement.Template.registry_id]: new Actions.LoanRepaymentStatement.Factory(this.storage), // 1054
+      [Actions.LoanExtensionStatement.Template.registry_id]: new Actions.LoanExtensionStatement.Factory(this.storage), // 1055
 
       [Actions.GenerationPropertyInvestStatement.Template.registry_id]: new Actions.GenerationPropertyInvestStatement.Factory(this.storage), // 1060
       [Actions.GenerationPropertyInvestDecision.Template.registry_id]: new Actions.GenerationPropertyInvestDecision.Factory(this.storage), // 1061

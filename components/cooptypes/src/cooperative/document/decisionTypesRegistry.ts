@@ -5,6 +5,7 @@ import {
   DecisionOfParticipantApplication, // 501
   DecisionOfParticipantExit, // 201
   FreeDecision,
+  GetLoanDecision, // 1051
   MarketplaceReturnCancelDecision, // 1117
   MarketplaceShareReturnDecision, // 1114
   MarketplaceWriteoffProtocol, // 1107
@@ -53,7 +54,7 @@ export interface IDecisionTypeInfo {
  *     нечего подписать ключом председателя, автоматизировать такой тип нельзя.
  *
  * Повестки без протокола (`createexp`, `ledgerwthd`, `capresexpns`,
- * `capwthdrprog`, `createdebt`) в реестр не входят намеренно: пока шаблон не
+ * `capwthdrprog`) в реестр не входят намеренно: пока шаблон не
  * описан, показывать их в столе робота незачем.
  *
  * ПОДДЕРЖИВАТЬ ЗДЕСЬ. Появился новый тип повестки или шаблон протокола у
@@ -138,6 +139,13 @@ export const decisionTypesRegistry: Record<string, IDecisionTypeInfo> = {
     title: 'Приём результата интеллектуальной деятельности',
     description: 'Заявление о внесении результата интеллектуальной деятельности из задания.',
     protocol_registry_id: ResultContributionDecision.registry_id,
+    extension: 'capital',
+  },
+  createdebt: {
+    type: 'createdebt',
+    title: 'Предоставление беспроцентного займа',
+    description: 'Заявление пайщика о беспроцентном займе под обеспечение имуществом на ответственном хранении или паевым взносом в программе.',
+    protocol_registry_id: GetLoanDecision.registry_id,
     extension: 'capital',
   },
 }

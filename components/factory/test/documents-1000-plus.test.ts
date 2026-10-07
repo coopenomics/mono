@@ -46,6 +46,38 @@ beforeAll(async () => {
     })
   }
 
+  // Протокол решения о беспроцентном займе (1051): голоса совета приходят из
+  // обозревателя цепи, в тесте обращений к нему нет.
+  const factory1051 = (generator as any).factories['1051']
+  if (factory1051) {
+    vi.spyOn(factory1051, 'getDecision').mockImplementation(async () => {
+      return {
+        id: 7,
+        date: '07.10.2026',
+        time: '12:00',
+        votes_for: 3,
+        votes_against: 0,
+        votes_abstained: 0,
+        voters_percent: 100,
+      }
+    })
+  }
+
+  // Реквизиты пайщика для заявления на заём (1050).
+  await generator.save('paymentMethod', {
+    username: 'ant',
+    method_id: 'loan-test-1',
+    method_type: 'bank_transfer',
+    is_default: false,
+    data: {
+      account_number: '40817810000000000001',
+      bank_name: 'ПАО Сбербанк',
+      currency: 'RUB',
+      details: { bik: '044525225', corr: '30101810400000000225', kpp: '' },
+    },
+    deleted: false,
+  } as any)
+
   const commonUdata = {
     coopname: 'voskhod',
     username: 'ant',
@@ -396,23 +428,7 @@ describe('тест генератора документов с registry_id >= 1
   })
 
   // Документы получения займов
-  it('генерируем заявление о получении займа', async () => {
-    await testDocumentGeneration({
-      registry_id: 1050,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
-
-  it('генерируем решение о получении займа', async () => {
-    await testDocumentGeneration({
-      registry_id: 1051,
-      coopname: 'voskhod',
-      username: 'ant',
-      lang: 'ru',
-    })
-  })
+  // Документы беспроцентных займов (1050–1055) — в конце файла, блок «Беспроцентные займы».
 
   // Документы инвестиций имущества в генерацию
   it('генерируем заявление об инвестициях имущества в генерацию', async () => {
@@ -542,6 +558,89 @@ describe('тест генератора документов с registry_id >= 1
       cycle_started_at: '2026-06-01',
       total_amount: '1505.0000 RUB',
       items_count: 2,
+    })
+  })
+
+  // Беспроцентные займы (компонент 73, задача 367-2)
+  const loanBase = {
+    coopname: 'voskhod',
+    username: 'ant',
+    lang: 'ru',
+    debt_hash: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+    amount: '30000.0000 RUB',
+    due_at: '2027-04-07T00:00:00',
+  }
+
+  it('генерируем заявление на беспроцентный заём под паевой взнос «Благорост»', async () => {
+    await testDocumentGeneration({
+      registry_id: 1050,
+      ...loanBase,
+      basis_type: 'uhd',
+      method_id: 'loan-test-1',
+      collateral: 'blago',
+    })
+  })
+
+  it('генерируем заявление на беспроцентный заём под имущество на ответственном хранении', async () => {
+    await testDocumentGeneration({
+      registry_id: 1050,
+      ...loanBase,
+      basis_type: 'uhd',
+      method_id: 'loan-test-1',
+      storage_appendix_number: 'A001ZSA1',
+    })
+  })
+
+  it('генерируем протокол решения совета о предоставлении беспроцентного займа', async () => {
+    await testDocumentGeneration({
+      registry_id: 1051,
+      ...loanBase,
+      decision_id: 7,
+      basis_type: 'uhd',
+      collateral: 'blago',
+    })
+  })
+
+  it('генерируем договор о беспроцентном займе под обеспечение имуществом', async () => {
+    await testDocumentGeneration({
+      registry_id: 1052,
+      ...loanBase,
+      basis_type: 'uhd',
+      storage_appendix_number: 'A001ZSA1',
+    })
+  })
+
+  it('генерируем договор о беспроцентном займе под обеспечение паевым взносом', async () => {
+    await testDocumentGeneration({
+      registry_id: 1053,
+      ...loanBase,
+      basis_type: 'uhd',
+      collateral: 'blago',
+    })
+  })
+
+  it('генерируем заявление о возврате беспроцентного займа', async () => {
+    await testDocumentGeneration({
+      registry_id: 1054,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      debt_hash: loanBase.debt_hash,
+      amount: '10000.0000 RUB',
+      contract_date: '2026-10-07T12:00:00',
+    })
+  })
+
+  it('генерируем заявление о продлении срока возврата беспроцентного займа', async () => {
+    await testDocumentGeneration({
+      registry_id: 1055,
+      coopname: 'voskhod',
+      username: 'ant',
+      lang: 'ru',
+      debt_hash: loanBase.debt_hash,
+      new_due_at: '2027-07-07T00:00:00',
+      remaining: '20000.0000 RUB',
+      contract_date: '2026-10-07T12:00:00',
     })
   })
 })

@@ -326,13 +326,11 @@ documents:
     registry_id: 1050
     signed_by: [ Пайщик ]
     stored_in: debts.statement
-    note: Шаблон переписывается в задаче 367-2 (выбор обеспечения, переменное основание).
   - action: debt::createloan
     title: Договор о беспроцентном займе под обеспечение паевым взносом
-    registry_id: 0
+    registry_id: 1053
     signed_by: [ Пайщик ]
     stored_in: debts.contract
-    note: "TODO: создать шаблон в cooptypes/cooperative/registry/1053.LoanContractShare + factory/src/Templates/1053.LoanContractShare (задача 367-2)."
   - action: debt::loanauth
     title: Решение совета о предоставлении займа
     registry_id: 1051
@@ -340,25 +338,24 @@ documents:
     stored_in: debts.decision
   - action: debt::loansigned
     title: Договор о беспроцентном займе под обеспечение паевым взносом
-    registry_id: 0
+    registry_id: 1053
     signed_by: [ Пайщик, Председатель ]
     stored_in: debts.signed_contract
     note: Тот же договор, что подписал пайщик, со второй подписью председателя.
   - action: debt::repayloan
-    title: Заявление о возврате займа
-    registry_id: 0
+    title: Заявление о возврате беспроцентного займа
+    registry_id: 1054
     signed_by: [ Пайщик ]
     stored_in: null
-    note: Свободная форма; документ остаётся в истории действия, в записи займа не хранится.
+    note: Документ остаётся в истории действия, в записи займа не хранится.
   - action: debt::extendloan
-    title: Заявление о продлении срока займа
-    registry_id: 0
+    title: Заявление о продлении срока возврата беспроцентного займа
+    registry_id: 1055
     signed_by: [ Пайщик ]
     stored_in: debts.extension_statement
-    note: Свободная форма.
   - action: debt::loanextok
-    title: Заявление о продлении срока займа
-    registry_id: 0
+    title: Заявление о продлении срока возврата беспроцентного займа
+    registry_id: 1055
     signed_by: [ Пайщик, Председатель ]
     stored_in: debts.extension_statement
   - action: debt::regloan
@@ -369,10 +366,9 @@ documents:
     note: Передаёт приложение-источник; у Генерации обеспечение — имущество на ответственном хранении.
   - action: debt::regloan
     title: Договор о беспроцентном займе под обеспечение имуществом на ответственном хранении
-    registry_id: 0
+    registry_id: 1052
     signed_by: [ Пайщик, Председатель ]
     stored_in: debts.contract
-    note: "TODO: создать шаблон 1052.LoanContractProperty (задача 367-2)."
 
 # ── Секция 5. Операции (Ledger2) ────────────────────────────────────────────
 operations:

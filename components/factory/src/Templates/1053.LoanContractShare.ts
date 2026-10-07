@@ -6,13 +6,13 @@ import { IMetaJSONSchema } from '../Schema/MetaSchema'
 import { VarsSchema } from '../Schema/VarsSchema'
 import { CommonUserSchema } from '../Schema/CommonUserSchema'
 
-export const registry_id = Cooperative.Registry.GetLoanStatement.registry_id
+export const registry_id = Cooperative.Registry.LoanContractShare.registry_id
 
 // Модель действия для генерации
-export type Action = Cooperative.Registry.GetLoanStatement.Action
+export type Action = Cooperative.Registry.LoanContractShare.Action
 
 // Модель данных
-export type Model = Cooperative.Registry.GetLoanStatement.Model
+export type Model = Cooperative.Registry.LoanContractShare.Model
 
 // Схема для сверки
 export const Schema: JSONSchemaType<Model> = {
@@ -31,17 +31,16 @@ export const Schema: JSONSchemaType<Model> = {
     amount_digits: { type: 'string' },
     amount_words: { type: 'string' },
     due_at: { type: 'string' },
-    payment_details: { type: 'string' },
-    collateral_text: { type: 'string' },
+    collateral_program_dative: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'amount_words', 'due_at', 'payment_details', 'collateral_text'],
+  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'amount_words', 'due_at', 'collateral_program_dative'],
   additionalProperties: true,
 }
 
 export const Template: ITemplate<Model> = {
-  title: Cooperative.Registry.GetLoanStatement.title,
-  description: Cooperative.Registry.GetLoanStatement.description,
+  title: Cooperative.Registry.LoanContractShare.title,
+  description: Cooperative.Registry.LoanContractShare.description,
   model: Schema,
-  context: Cooperative.Registry.GetLoanStatement.context,
-  translations: Cooperative.Registry.GetLoanStatement.translations,
+  context: Cooperative.Registry.LoanContractShare.context,
+  translations: Cooperative.Registry.LoanContractShare.translations,
 }

@@ -51,6 +51,10 @@ export * as ResultContributionAct from './1042.ResultContributionAct'
 
 export * as GetLoanStatement from './1050.GetLoanStatement'
 export * as GetLoanDecision from './1051.GetLoanDecision'
+export * as LoanContractProperty from './1052.LoanContractProperty'
+export * as LoanContractShare from './1053.LoanContractShare'
+export * as LoanRepaymentStatement from './1054.LoanRepaymentStatement'
+export * as LoanExtensionStatement from './1055.LoanExtensionStatement'
 
 export * as GenerationPropertyInvestStatement from './1060.GenerationPropertyInvestStatement'
 export * as GenerationPropertyInvestDecision from './1061.GenerationPropertyInvestDecision'
