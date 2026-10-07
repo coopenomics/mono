@@ -14,30 +14,35 @@
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
   BaseCard(variant="default" :title="$t('edubridge.memberSubscriptionsPage.title')")
-    CardListSkeleton(v-if="firstLoad" :count="2")
-    //- Подписки — строками, а не таблицей: блоки строки переносятся при узком
-    //- окне, горизонтальной прокрутки нет, «Продлить» видна всегда.
-    .edu-subs(v-else-if="enrollments.length")
-      //- Строка целиком — вход в правую панель с подпиской; «Продлить» остаётся на виду.
-      .edu-sub(v-for="row in enrollments" :key="asText(row.id)" role="button" tabindex="0" @click="openDetails(row)" @keydown.enter="openDetails(row)")
-        .edu-sub__main
-          .edu-sub__title {{ row.course_title }}
-          .edu-sub__meta {{ learnerName(row.learner_id) }} · {{ periodLabel(row.period) }}
-          //- Пояснение к состоянию: заявление по гарантии на рассмотрении либо основание возврата.
-          .edu-sub__meta(v-if="claimOf(row)") {{ $t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(row)?.number }) }} · {{ $t(`edubridge.guaranteeClaim.status.${claimOf(row)?.status}`) }}
-          .edu-sub__meta(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
-        .edu-sub__term
-          .edu-sub__label {{ $t('edubridge.memberSubscriptionsPage.columns.paidUntil') }}
-          .edu-sub__date {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
-          //- Сколько осталось — когда срок подходит: взнос вносится заново на каждый период.
-          .edu-sub__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
-        .edu-sub__state
+    //- Подписки — реестр: базовая таблица из четырёх столбцов, которая помещается
+    //- и при узком окне. Строка открывает правую панель; «Продлить» — в строке.
+    BaseTable(
+      v-if="firstLoad || enrollments.length"
+      :columns="columns"
+      :rows="enrollments"
+      row-key="id"
+      :loading="firstLoad"
+      :clickable-rows="true"
+      min-width="700px"
+      @row-click="openDetails"
+    )
+      template(#cell-course_title="{ row }")
+        .edu-subs__title {{ row.course_title }}
+        .t-muted.t-sm {{ learnerName(row.learner_id) }} · {{ periodLabel(row.period) }}
+        //- Пояснение к состоянию: ход заявления по гарантии либо основание возврата.
+        .t-muted.t-sm(v-if="claimOf(row)") {{ $t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(row)?.number }) }} · {{ $t(`edubridge.guaranteeClaim.status.${claimOf(row)?.status}`) }}
+        .t-muted.t-sm(v-else-if="!isActive(row) && row.refund_reason") {{ refundReason(row.refund_reason) }}
+      template(#cell-paid_until="{ row }")
+        div {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
+        //- Сколько осталось — когда срок подходит: взнос вносится заново на каждый период.
+        .edu-subs__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
+      template(#cell-status="{ row }")
+        .edu-subs__state
           BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
           BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
-        //- «Продлить» — главное действие и видно в строке; остальные действия — в панели подписки.
-        .edu-sub__actions
-          BaseButton(v-if="isActive(row)" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
-          q-icon.edu-sub__chevron(name="chevron_right" size="20px")
+      //- «Продлить» нажимают каждый период — кнопка в строке; остальные действия — в панели.
+      template(#cell-actions="{ row }")
+        BaseButton(v-if="isActive(row)" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
         q-icon(name="school" size="32px")
@@ -97,7 +102,7 @@ import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, EmptyState, BaseTable, type BaseTableColumn, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, PageHint, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import {
@@ -148,6 +153,14 @@ const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, varia
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 // Дата из API приходит скаляром без точного типа — приводим к строке сами.
 const formatDate = (v: unknown) => new Date(v instanceof Date ? v : String(v)).toLocaleDateString('ru-RU');
+// Сетка таблицы: «Курс» без ширины получает остаток. Сумма заданных ширин —
+// 460px при минимуме таблицы 700px, курсу остаётся не меньше 240px.
+const columns: BaseTableColumn<IEnrollment>[] = [
+  { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
+  { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '150px', nowrap: true },
+  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '180px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '130px', nowrap: true },
+];
 const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
 /** Подписки, которые пора продлить: действуют, а оплаченный срок кончается в ближайшие дни. */
 const dueSoon = computed(() => enrollments.value.filter((e) => isRenewSoon(e)));
@@ -248,83 +261,21 @@ onMounted(load);
 </script>
 
 <style scoped>
-.edu-subs {
-  display: flex;
-  flex-direction: column;
-}
-/* Строка подписки: курс тянется, срок и состояние — по содержимому, действия
-   прижаты вправо. При узком окне блоки переносятся, а не уезжают за край. */
-.edu-sub {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--p-3) var(--p-6);
-  padding: var(--p-4) 0;
-  border-top: 1px solid var(--p-line);
-}
-.edu-sub:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-.edu-sub:last-child {
-  padding-bottom: 0;
-}
-.edu-sub__main {
-  flex: 1 1 240px;
-  min-width: 0;
-}
-.edu-sub__title {
-  font-size: var(--p-fs-body);
+.edu-subs__title {
   font-weight: 600;
-  line-height: 1.35;
   color: var(--p-ink);
 }
-.edu-sub__meta,
-.edu-sub__label {
-  font-size: var(--p-fs-meta, 12px);
-  line-height: 1.4;
-  color: var(--p-ink-3);
-}
-.edu-sub__meta {
-  margin-top: 2px;
-}
-.edu-sub__date {
-  font-size: var(--p-fs-body-sm);
-  color: var(--p-ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.edu-sub__due {
+.edu-subs__due {
   font-size: var(--p-fs-meta, 12px);
   color: var(--p-warn);
-  white-space: nowrap;
 }
-.edu-sub__state {
+.edu-subs__state {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--p-1);
 }
-.edu-sub__actions {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--p-1);
-  margin-left: auto;
-}
-.edu-sub {
-  cursor: pointer;
-}
-.edu-sub:hover .edu-sub__title,
-.edu-sub:focus-visible .edu-sub__title {
-  color: var(--p-primary);
-}
-.edu-sub:focus-visible {
-  outline: none;
-}
-.edu-sub__chevron {
-  color: var(--p-ink-3);
-}
+/* Панель подписки. */
 .edu-sub__badges {
   display: flex;
   flex-wrap: wrap;

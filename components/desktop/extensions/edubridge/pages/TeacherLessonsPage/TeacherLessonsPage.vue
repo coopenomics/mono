@@ -3,32 +3,34 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
-  CardListSkeleton(v-if="firstLoad" :count="3")
-  //- Журнал — строками, а не таблицей: блоки переносятся при узком окне,
-  //- горизонтальной прокрутки нет, состояние и действие видны всегда.
-  BaseCard.edu-lessons(v-else-if="rows.length" variant="default")
-    //- Строка целиком — вход в правую панель с занятием.
-    .edu-lesson(v-for="row in rows" :key="asText(row.id)" role="button" tabindex="0" @click="openDetails(row)" @keydown.enter="openDetails(row)")
-      //- Номер занятия — отдельной плашкой: по нему строку находят глазами.
-      .edu-lesson__num
-        .edu-lesson__num-value {{ row.lesson_number }}
-        .edu-lesson__num-label {{ $t('edubridge.teacherLessonsPage.numberCaption') }}
-      .edu-lesson__main
-        .edu-lesson__title {{ row.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}
-        .edu-lesson__meta {{ row.course_title }} · {{ formatDate(row.held_at) }} · {{ $t('edubridge.teacherLessonsPage.durationMinutes', { minutes: row.duration_minutes }) }}
-        .edu-lesson__links(v-if="row.materials.length")
-          a.edu-lesson__link(v-for="link in row.materials" :key="link" :href="link" :title="link" target="_blank" rel="noopener" @click.stop)
-            q-icon(name="link" size="14px")
-            span {{ linkLabel(link) }}
-      .edu-lesson__amount(v-if="row.contribution")
-        FeeAmount(:value="asText(row.contribution.amount)" size="md")
-      .edu-lesson__state(v-if="row.contribution")
+  //- Журнал занятий — реестр: базовая таблица, строка открывает правую панель
+  //- с занятием. В таблице только то, по чему занятие находят и оценивают;
+  //- материалы, длительность и срок хранения — в панели.
+  BaseTable(
+    v-if="firstLoad || rows.length"
+    :columns="columns"
+    :rows="rows"
+    row-key="id"
+    :loading="firstLoad"
+    :clickable-rows="true"
+    min-width="820px"
+    @row-click="openDetails"
+  )
+    template(#cell-lesson="{ row }")
+      .edu-lessons__title {{ row.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: row.lesson_number }) }}
+      .t-muted.t-sm {{ row.course_title }}
+    template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
+    template(#cell-amount="{ row }")
+      span.t-num {{ row.contribution ? formatAsset2Digits(row.contribution.amount) : '______' }}
+    template(#cell-status="{ row }")
+      template(v-if="row.contribution")
         BaseBadge(:variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
-        .edu-lesson__note(v-if="row.contribution.status === Zeus.EduContributionStatus.HELD && row.contribution.hold_until") {{ $t('edubridge.teacherLessonsPage.heldUntil', { date: formatDate(row.contribution.hold_until) }) }}
-        .edu-lesson__note(v-if="row.contribution.decline_reason") {{ row.contribution.decline_reason }}
-        //- Действие преподавателя — под состоянием: передать материалы либо подписать акт.
-        BaseButton(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-        BaseButton(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+        //- Действие за преподавателем видно прямо в строке; нажатие строку не открывает.
+        .q-mt-xs(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT")
+          BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+        .q-mt-xs(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED")
+          BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+      template(v-else) ______
 
   //- Занятие целиком: сведения, материалы, взнос и его состояние; действие преподавателя — внизу панели.
   DetailsDrawer(v-model="detailsOpen" :title="details ? (details.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: details.lesson_number })) : ''" :width="560")
@@ -84,7 +86,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
+import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import {
   CONTRIBUTION_STATUS_LABELS,
@@ -100,7 +102,6 @@ import {
 } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
-import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { t } from '../../i18n';
 
 /**
@@ -127,6 +128,16 @@ const form = reactive({ assignment_id: '', topic: '' });
 /** Строка журнала: занятие вместе со взносом по нему. */
 type ILessonRow = ILesson & { contribution: IContribution | null };
 
+
+// Сетка таблицы: «Занятие» без ширины получает остаток. Сумма заданных ширин —
+// 590px при минимуме таблицы 820px, занятию остаётся не меньше 230px.
+const columns: BaseTableColumn<ILessonRow>[] = [
+  { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '70px', nowrap: true },
+  { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
+  { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
+  { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '150px', nowrap: true },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px' },
+];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 /** Взнос занятия: отчёт заводит его сам, связь — по идентификатору взноса. */
@@ -163,17 +174,6 @@ const assignmentOptions = computed(() =>
 );
 
 const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('ru-RU') : '______');
-/** Ссылка на материал — коротко: адрес сайта без протокола; не адрес — как есть. */
-function linkLabel(link: string): string {
-  try {
-    const url = new URL(link);
-    const path = url.pathname === '/' ? '' : url.pathname;
-    const text = `${url.host}${path}`;
-    return text.length > 42 ? `${text.slice(0, 41)}…` : text;
-  } catch {
-    return link;
-  }
-}
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -282,111 +282,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Строка занятия: номер, суть, сумма, состояние. Суть тянется, остальное — по
-   содержимому; при узком окне блоки переносятся, а не уезжают за край. */
-.edu-lesson {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--p-3) var(--p-5);
-  padding: var(--p-4) 0;
-  border-top: 1px solid var(--p-line);
-}
-.edu-lesson:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-.edu-lesson:last-child {
-  padding-bottom: 0;
-}
-.edu-lesson__num {
-  flex: 0 0 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 56px;
-  border-radius: var(--p-r-md);
-  background: var(--p-surface-2);
-}
-.edu-lesson__num-value {
-  font-size: 20px;
+.edu-lessons__title {
   font-weight: 600;
-  line-height: 1.1;
   color: var(--p-ink);
-  font-variant-numeric: tabular-nums;
 }
-.edu-lesson__num-label {
-  font-size: 10px;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--p-ink-3);
-}
-.edu-lesson__main {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-.edu-lesson__title {
-  font-size: var(--p-fs-body);
-  font-weight: 600;
-  line-height: 1.35;
-  color: var(--p-ink);
-  overflow-wrap: anywhere;
-}
-.edu-lesson__meta,
-.edu-lesson__note {
-  font-size: var(--p-fs-meta, 12px);
-  line-height: 1.4;
-  color: var(--p-ink-3);
-}
-.edu-lesson__meta {
-  margin-top: 2px;
-}
-.edu-lesson__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--p-1) var(--p-3);
-  margin-top: var(--p-2);
-}
-.edu-lesson__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 100%;
-  font-size: var(--p-fs-body-sm);
-  color: var(--p-primary);
-  text-decoration: none;
-}
-.edu-lesson__link:hover {
-  text-decoration: underline;
-}
-.edu-lesson__link span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.edu-lesson__amount {
-  flex: 0 0 auto;
-  padding-top: 2px;
-}
-.edu-lesson__state {
-  flex: 0 0 220px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--p-1);
-}
-.edu-lesson {
-  cursor: pointer;
-}
-.edu-lesson:hover .edu-lesson__title,
-.edu-lesson:focus-visible .edu-lesson__title {
-  color: var(--p-primary);
-}
-.edu-lesson:focus-visible {
-  outline: none;
-}
+/* Панель занятия: материалы отдельным блоком под сведениями. */
 .edu-lesson__section {
   margin-top: var(--p-5);
   padding-top: var(--p-4);
@@ -397,8 +297,16 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--p-2);
 }
-.edu-lesson__files .edu-lesson__link span {
-  white-space: normal;
+.edu-lesson__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--p-1);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-primary);
+  text-decoration: none;
   overflow-wrap: anywhere;
+}
+.edu-lesson__link:hover {
+  text-decoration: underline;
 }
 </style>

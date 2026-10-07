@@ -731,7 +731,9 @@
       "cancelSubscription": "Отменить подписку",
       "cancelSuccess": "Подписка отменена, возврат {refundAmount}",
       "columns": {
-        "paidUntil": "Оплачено до"
+        "course": "Курс",
+        "paidUntil": "Оплачено до",
+        "status": "Подписка и доступ"
       },
       "daysLeft": "остался {n} день | осталось {n} дня | осталось {n} дней",
       "details": {
@@ -798,7 +800,9 @@
     "teacherAssignmentsPage": {
       "aboutTitle": "О курсе",
       "columns": {
-        "period": "Период ведения"
+        "course": "Курс",
+        "period": "Период ведения",
+        "status": "Состояние"
       },
       "contractPendingBanner": "Отчитываться по занятиям можно после того, как договор участия подпишет председатель совета.",
       "detailsTitleFallback": "Назначение",
@@ -816,6 +820,13 @@
     },
     "teacherLessonsPage": {
       "cancel": "Отменить",
+      "column": {
+        "amount": "Взнос",
+        "heldAt": "Проведено",
+        "lesson": "Занятие",
+        "number": "№",
+        "status": "Состояние"
+      },
       "courseLabel": "Курс",
       "details": {
         "amount": "Взнос",
@@ -844,7 +855,6 @@
       "transferMaterials": "Передать материалы",
       "signAct": "Подписать акт",
       "actSignedSuccess": "Акт подписан и направлен на подпись председателю",
-      "numberCaption": "занятие",
       "lessonTitle": "Занятие № {number}"
     },
     "teacherOnboardingPage": {
