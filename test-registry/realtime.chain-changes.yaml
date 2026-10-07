@@ -257,6 +257,7 @@ cases:
       её колонка, стол слушает только объявленное сервером; расхождение
       роняет тест, а не выключает молча живое обновление экрана
     test: components/controller/tests/unit/edubridge/live-feed.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
     status: passing
 
   - id: rt.cc.ui.04

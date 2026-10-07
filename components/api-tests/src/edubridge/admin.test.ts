@@ -51,7 +51,7 @@ const ATTENTION = 'query{ edubridgeAttention{ learners teachers } }'
 const TEACHER_APPROVALS = 'query($u:String!){ edubridgeTeacherApprovals(username:$u){ approval_hash username action title created_at } }'
 const EXTENSIONS = 'query($d:GetExtensionsInput){ getExtensions(data:$d){ name enabled config } }'
 const UPDATE_EXTENSION = 'mutation($d:ExtensionInput!){ updateExtension(data:$d){ name enabled } }'
-const REGISTRATION = 'query($t:AccountType!,$c:String!){ getRegistrationConfig(account_type:$t, coopname:$c){ programs{ key title applicable_account_types } } }'
+const REGISTRATION = 'query($t:AccountType!,$c:String!){ getRegistrationConfig(account_type:$t, coopname:$c){ programs{ key title applicable_account_types intake_forms{ id } } } }'
 const DESKTOP = 'query{ getDesktop{ workspaces{ name extension_name grants } } }'
 
 const R = { program: 3000, parentOffer: 3002, teacherOffer: 3004, contract: 3006 }
@@ -69,6 +69,11 @@ describe('Образование: стол администратора, выд�
   const card = async (t: string) => (await gql<any>(t, MEMBER_CARD, { u: learner.account })).edubridgeMemberCard
   const programKeys = async (): Promise<string[]> =>
     ((await gql<any>(null, REGISTRATION, { t: 'individual', c: COOP })).getRegistrationConfig.programs as any[]).map(p => String(p.key))
+  /** Анкеты программ витрины вступления; с образцом — только программ с подходящим ключом. */
+  const programForms = async (only?: RegExp): Promise<string[]> =>
+    ((await gql<any>(null, REGISTRATION, { t: 'individual', c: COOP })).getRegistrationConfig.programs as any[])
+      .filter(p => !only || only.test(String(p.key)))
+      .flatMap(p => (p.intake_forms as any[]).map(f => String(f.id)))
   const capitalGrants = async (t: string | null): Promise<string[]> =>
     ((await gql<any>(t, DESKTOP)).getDesktop.workspaces as any[]).filter(w => w.extension_name === 'capital').flatMap(w => (w.grants ?? []) as string[])
 
@@ -294,7 +299,14 @@ describe('Образование: стол администратора, выд�
 
     it(caseName('edu.gating.happy.05', 'связка с Благоростом: его столы остаются совету, рядовому пайщику закрыты, программы при вступлении скрыты'), async () => {
       const member = await tokenOf(ROLES.member())
-      const before = { programs: await programKeys(), member: await capitalGrants(member), council: await capitalGrants(council) }
+      const before = {
+        programs: await programKeys(),
+        member: await capitalGrants(member),
+        council: await capitalGrants(council),
+        forms: await programForms(/GENERATION|CAPITALIZATION/),
+        education: await deskGrants(member),
+        educationCouncil: await deskGrants(council),
+      }
       expect(before.programs.some(k => /GENERATION|CAPITALIZATION/.test(k)), 'без связки программы Благороста предлагаются').toBe(true)
       expect(before.council.length).toBeGreaterThan(0)
 
@@ -302,6 +314,13 @@ describe('Образование: стол администратора, выд�
       await waitFor(async () => ((await programKeys()).some(k => /GENERATION|CAPITALIZATION/.test(k)) ? null : true),
         { timeoutMs: 60_000, intervalMs: 2_000, label: 'программы Благороста скрыты при вступлении' })
       expect(await programKeys()).toEqual(expect.arrayContaining(['EDUCATION', 'EDUCATION_TEACHING']))
+      // Скрытая программа уходит из витрины вместе со своей анкетой.
+      expect(before.forms.length, 'у программ Благороста есть своя анкета').toBeGreaterThan(0)
+      const offered = await programForms()
+      for (const form of before.forms) expect(offered, `анкета скрытой программы ${form}`).not.toContain(form)
+      // Собственные столы автора правила правило не трогает.
+      expect(await deskGrants(member), 'столы образования у пайщика прежние').toEqual(before.education)
+      expect(await deskGrants(council)).toEqual(before.educationCouncil)
       expect(await capitalGrants(member), 'рядовому пайщику столы Благороста закрыты').toEqual([])
       expect(await capitalGrants(null)).toEqual([])
       expect((await capitalGrants(council)).sort(), 'совету столы Благороста оставлены').toEqual([...before.council].sort())

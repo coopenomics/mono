@@ -133,6 +133,7 @@ cases:
       контракта образования; действий приложения к договору на курс в
       контракте и карте типов нет
     test: components/controller/tests/unit/chairman/approval-types.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
     status: passing
   # Права стола председателя по таблице прав (C28-87, кусок 2, 05.10.2026):
   # операции одобрений и шагов подключения стоят под общим гардом над

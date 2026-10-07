@@ -461,6 +461,7 @@ cases:
     scenario: Заявление об аннулировании соглашений ЦПП (190) объявлено формой рядом с заявлением на выход (200)
     expect: документ входит в набор core_forms и предлагается к подписи вместе с заявлением на выход; порядковые номера форм ядра не пересекаются
     test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: written
 # 2026-09-23 (EEA-6…EEA-9): тексты интерфейса, отказов и уведомлений фичи вынесены из
 # кода в словари i18n, отказы бэкенда переведены на DomainError с кодом — текст
@@ -483,4 +484,5 @@ cases:
       пояса — московское время), старая дата остаётся как есть; сырого ISO в
       шапках документов («Протокол № 4 от 2026-10-02T14:10:39.662Z») нет
     test: components/controller/tests/unit/decision-tracking/protocol-date.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
     status: passing

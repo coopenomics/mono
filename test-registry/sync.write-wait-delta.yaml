@@ -78,6 +78,7 @@ cases:
     scenario: "Дельта educontracts: договор стал active; строка ждущего договора стёрта; позже приходит действие apprvcontr."
     expect: "Договор становится действующим с датой подписи из цепи сразу по дельте; стёртая строка ждущего — отказ; действие дату не перетирает, уведомление шлёт оно."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/links.test.ts
     status: passing
   - id: sync.wwd.ui.01
     level: ui

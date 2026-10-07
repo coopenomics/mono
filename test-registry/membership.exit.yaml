@@ -46,6 +46,7 @@ cases:
     scenario: Заявление 190 у пайщика с двумя программами.
     expect: Программы печатаются таблицей с датой соглашения и остатками кошельков; итог к переводу — сумма возвратных.
     test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.side.02
     level: backend
@@ -53,6 +54,7 @@ cases:
     scenario: Возврат, который выход ещё положит на кошельки программ (действующие подписки на курсы).
     expect: Расширения сообщают его реестру выхода; нулевые суммы отбрасываются, сбой расширения предрасчёт не роняет; в таблице 190 — отдельной строкой программы, в итоге — вместе с остатками.
     test: components/controller/tests/unit/membership-exit/member-exit-registry.test.ts
+    api: components/api-tests/src/edubridge/exit.test.ts
     status: passing
   - id: exit.doc.happy.02
     level: backend
@@ -60,6 +62,7 @@ cases:
     scenario: Кошелёк возвращается либо остаётся кооперативу.
     expect: У возвратного — отметка о переводе на главный паевой, у остающегося — ссылка на Положение программы.
     test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.side.01
     level: backend
@@ -67,6 +70,7 @@ cases:
     scenario: Заявление 190 подписывается без выхода из кооператива (вторая очередь).
     expect: Связи с заявлением на выход в тексте нет, просьба об аннулировании остаётся.
     test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.doc.happy.03
     level: backend
@@ -74,6 +78,7 @@ cases:
     scenario: Оговорка об отсутствии иных требований и о сумме на день решения совета.
     expect: Обе формулировки стоят в тексте заявления.
     test: components/factory/test/program-agreements-annulment.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.wallets.happy.01
     level: backend
@@ -81,6 +86,7 @@ cases:
     scenario: Таблица политики кошельков при выходе.
     expect: Возвращаются минимальный и главный паевой, Благорост, паевой Стола заказов, членский взнос и паевой взнос преподавателя «Образования»; главный паевой ровно один.
     test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.wallets.break.01
     level: backend
@@ -88,6 +94,8 @@ cases:
     scenario: Новый пользовательский кошелёк завели без строки политики выхода.
     expect: Сборка контракта падает с указанием добавить строку; генератор cooptypes отказывается собирать зеркало.
     test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    external: unreachable
+    external_reason: "страховка сборки контракта и генератора типов: новый кошелёк без строки политики не собирается; у работающего узла такого состояния нет"
     status: passing
   - id: exit.wallets.side.01
     level: backend
@@ -95,6 +103,7 @@ cases:
     scenario: Членский взнос «Стола заказов» и кошельки-блокеры.
     expect: Членский взнос остаётся кооперативу; резерв под заказы и незакрытый подотчёт перечислены как держащие выход.
     test: components/cooptypes/test/wallets-registry.snapshot.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
   - id: exit.chain.happy.01
     level: contract
@@ -296,6 +305,7 @@ cases:
       свой выход; член совета и председатель формируют заявление за любого;
       мутация объявлена правом матрицы, а не ролью
     test: components/controller/tests/unit/membership-exit/annulment-generation-rights.test.ts
+    api: components/api-tests/src/membership/exit-annulment.test.ts
     status: passing
 
   - id: mem.exit.break.10

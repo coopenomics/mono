@@ -31,6 +31,7 @@ cases:
     scenario: Один фильтр оставляет часть прав чужого стола.
     expect: Результат — пересечение; прав, которых не было у владельца, в ответе нет.
     test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: ext.narrow.happy.02
     level: backend
@@ -38,6 +39,8 @@ cases:
     scenario: Два фильтра зарегистрированы в разном порядке.
     expect: Итог одинаков.
     test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    external: unreachable
+    external_reason: "нужны два сужающих правила от разных расширений; на стенде правило одно — у образования"
     status: passing
   - id: ext.narrow.side.01
     level: backend
@@ -45,6 +48,8 @@ cases:
     scenario: Фильтр бросает исключение.
     expect: Набор владельца не меняется, предупреждение в журнале (fail-open).
     test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    external: unreachable
+    external_reason: "правило должно бросить исключение — отказ внутри расширения, снаружи его не создать"
     status: passing
   - id: ext.narrow.side.02
     level: backend
@@ -52,6 +57,7 @@ cases:
     scenario: Фильтр зарегистрирован расширением-владельцем стола.
     expect: К собственному столу не применяется.
     test: components/controller/tests/unit/desktop/extension-grants-filter.registry.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: ext.narrow.happy.03
     level: backend
@@ -59,6 +65,7 @@ cases:
     scenario: Фильтр витрины вступления скрывает чужие программы.
     expect: Свои программы автора остаются и фильтру не предлагаются; чужие — пересечение; оферты — та же дисциплина.
     test: components/controller/tests/unit/registration/extension-offer-filter.registry.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
     status: passing
   - id: ext.narrow.side.03
     level: backend
