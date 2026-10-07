@@ -1,5 +1,11 @@
 import './i18n';
 import { markRaw } from 'vue';
+import { SovietContract } from 'cooptypes';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { liveTable, registerLiveReload } from 'src/shared/lib/realtime';
+import { useSystemStore } from 'src/entities/System/model';
+import { useSessionStore } from 'src/entities/Session';
+import { api as agendaApi } from 'src/entities/Agenda';
 import { ListOfAgendaQuestions } from 'src/pages/Cooperative/ListOfAgenda';
 import { ListOfParticipantsPage } from 'src/pages/Cooperative/ListOfParticipants';
 import { ParticipantDetailsPage } from 'src/pages/Cooperative/ParticipantDetails';
@@ -20,6 +26,21 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  // Число на пункте «Повестка»: вопросы, по которым член совета ещё не голосовал.
+  // Меняется по таблице решений — голос, принятие, снятие вопроса.
+  registerMenuBadge('agenda', async () => {
+    try {
+      const { info } = useSystemStore();
+      const me = useSessionStore().username;
+      const agenda = await agendaApi.loadAgenda({ coopname: info.coopname });
+      return agenda.filter((a) => !a.table.votes_for.includes(me) && !a.table.votes_against.includes(me)).length;
+    } catch {
+      // Повестку читает совет — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([liveTable(SovietContract, SovietContract.Tables.Decisions)], () => refreshMenuBadges(['agenda']));
+
   return [{
     workspace: 'soviet',
     extension_name: 'soviet',

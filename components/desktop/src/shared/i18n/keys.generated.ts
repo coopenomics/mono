@@ -1713,6 +1713,7 @@ export type MessageKey =
   | 'chairman.approvalActionLabels.blagorostProjectAccess'
   | 'chairman.approvalActionLabels.blagorostRidContribution'
   | 'chairman.approvalActionLabels.blagorostUhdContract'
+  | 'chairman.approvalActionLabels.eduRidAct'
   | 'chairman.approvalActionLabels.eduTeacherContract'
   | 'chairman.approvalActionLabels.unitChairmanLiabilityContract'
   | 'chairman.approvalActionLabels.unitChairmanPowerOfAttorney'

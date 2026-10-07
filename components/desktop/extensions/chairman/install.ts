@@ -1,5 +1,10 @@
 import './i18n';
 import { markRaw } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
+import { refreshMenuBadges, registerMenuBadge } from 'src/shared/lib/menuBadges';
+import { registerLiveReload, type ChainTableRef } from 'src/shared/lib/realtime';
+import { useSystemStore } from 'src/entities/System/model';
+import { api as approvalsApi } from 'app/extensions/chairman/entities/Approval/api';
 import { ExtensionsShowcase } from 'src/pages/ExtensionStore/ExtensionsShowcase';
 import { InstalledExtensions } from 'src/pages/ExtensionStore/InstalledExtensions';
 import { ExtensionPage } from 'src/pages/ExtensionStore/ExtensionPage';
@@ -21,6 +26,24 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import { t } from './i18n';
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  // Число на пункте «Запросы одобрений»: сколько документов ждёт подписи
+  // председателя. Меняется по ленте одобрений — подпись, отказ, новый запрос.
+  const APPROVALS_TABLE: ChainTableRef = { code: 'chairman', table: 'chairman_approvals' };
+  registerMenuBadge('approvals', async () => {
+    try {
+      const { info } = useSystemStore();
+      const page = await approvalsApi.loadApprovals({
+        filter: { coopname: info.coopname, statuses: [Zeus.ApprovalStatus.PENDING] },
+        options: { page: 1, limit: 1 },
+      });
+      return page?.totalCount ?? 0;
+    } catch {
+      // Одобрения читает только председатель — остальным число не показывается.
+      return 0;
+    }
+  });
+  registerLiveReload([APPROVALS_TABLE], () => refreshMenuBadges(['approvals']));
+
   return [{
     workspace: 'chairman',
     extension_name: 'chairman',
