@@ -23,7 +23,7 @@ src/
 │   ├── marketplace/     — MarketContract: маркетплейс
 │   ├── ledger/          — LedgerContract: бухгалтерская книга
 │   ├── meet/            — MeetContract: общие собрания
-│   ├── loan/            — LoanContract: займы
+│   ├── debt/            — DebtContract: беспроцентные займы
 │   ├── system/          — SystemContract: системные операции
 │   ├── msig/            — MsigContract: мульти-подписи
 │   └── wrap/            — WrapContract: привилегированные действия
@@ -39,7 +39,7 @@ src/
 ├── interfaces/          — Общие интерфейсы системы
 │   ├── index.ts         — Экспорт всех интерфейсов
 │   ├── branch.ts, capital.ts, draft.ts, fund.ts
-│   ├── gateway.ts, ledger.ts, loan.ts, marketplace.ts
+│   ├── gateway.ts, ledger.ts, debt.ts, marketplace.ts
 │   ├── meet.ts, msig.ts, registrator.ts, soviet.ts
 │   ├── system.ts, token.ts, wallet.ts, wrap.ts
 │   └── ...

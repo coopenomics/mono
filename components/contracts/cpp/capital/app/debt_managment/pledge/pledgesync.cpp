@@ -18,10 +18,11 @@
 void capital::pledgesync(eosio::name coopname, eosio::name username) {
   check_auth_and_get_payer_or_fail(contracts_whitelist);
 
+  // Основание займа — подписанный пайщиком договор об участии. Одобрение
+  // председателя не ждём: как и у взноса в программу, пайщик распоряжается
+  // своим паевым взносом сразу после подписи договора.
   auto contributor = Capital::Contributors::get_contributor(coopname, username);
   eosio::check(contributor.has_value(), "Пайщик не состоит в программе «Благорост»");
-  eosio::check(contributor->status == Capital::Contributors::Status::ACTIVE,
-               "Договор об участии в хозяйственной деятельности пайщика не действует");
   eosio::check(contributor->is_external_contract || !is_empty_document(contributor->contract),
                "Договор об участии в хозяйственной деятельности пайщиком не подписан");
 

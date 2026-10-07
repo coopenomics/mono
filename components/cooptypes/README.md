@@ -71,7 +71,7 @@ src/
 │   ├── marketplace.ts
 │   ├── branch.ts
 │   ├── ledger.ts
-│   ├── loan.ts
+│   ├── debt.ts
 │   ├── token.ts
 │   ├── system.ts
 │   └── index.ts

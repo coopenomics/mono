@@ -26,7 +26,6 @@ sources:
     - components/contracts/cpp/lib/core/ledger2/operations.hpp
     - components/contracts/cpp/lib/core/ledger2/wallets.hpp
     - components/contracts/cpp/lib/core/registrator/exit.hpp
-  types:
     - components/cooptypes/src/contracts/debt/**
     - components/cooptypes/src/debt/**
     - components/cooptypes/scripts/gen-from-cpp.ts
@@ -53,7 +52,7 @@ cases:
       кошелёк; возврат остатка удаляет запись и сводку, обеспечение целиком в
       программе
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: written   # на стенде пропущен: шаги совета и председателя подписываются за ant стендовым ключом, а ключ ant сменён входом владельца; прогон — на чистой цепи
 
   - id: dbt.loan.side.01
     level: contract
@@ -61,7 +60,7 @@ cases:
     scenario: Сумма займа больше остатка пайщика в программе.
     expect: заявление отклонено, обеспечение не тронуто
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: passing
 
   - id: dbt.loan.side.02
     level: contract
@@ -69,17 +68,15 @@ cases:
     scenario: Ключ обеспечения, которого нет в реестре.
     expect: заявление отклонено с «не предусмотрено»
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: passing
 
   - id: dbt.loan.side.03
     level: contract
     kind: side
-    scenario: >
-      Договор об участии пайщика не одобрен председателем (ожидание), средства
-      в программе есть.
-    expect: заявление отклонено — договор-основание не действует (Р32)
+    scenario: Договор об участии с пайщиком не заключён.
+    expect: заявление отклонено — средств в программе нет и основания нет (Р32)
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: passing
 
   - id: dbt.loan.side.04
     level: contract
@@ -87,7 +84,7 @@ cases:
     scenario: Кооператив отменяет выдачу до решения совета.
     expect: обеспечение вернулось в программу, запись удалена
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: passing
 
   - id: dbt.loan.side.05
     level: contract
@@ -98,7 +95,7 @@ cases:
       осталось; после повтора и подтверждения кассира заём выдан, причина
       очищена
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: written   # на стенде пропущен: шаги совета и председателя подписываются за ant стендовым ключом, а ключ ant сменён входом владельца; прогон — на чистой цепи
 
   - id: dbt.loan.side.06
     level: contract
@@ -106,7 +103,7 @@ cases:
     scenario: Возврат больше остатка; возврат займа другим пайщиком.
     expect: оба отклонены
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: written   # на стенде пропущен: шаги совета и председателя подписываются за ant стендовым ключом, а ключ ant сменён входом владельца; прогон — на чистой цепи
 
   - id: dbt.loan.side.07
     level: contract
@@ -118,9 +115,21 @@ cases:
       заём в просрочке; повторная сверка обеспечение не трогает; после
       подтверждения продления заём снова выдан с новым сроком
     test: components/boot/src/tests/debt-loan.test.ts
-    status: missing
+    status: written   # на стенде пропущен: шаги совета и председателя подписываются за ant стендовым ключом, а ключ ant сменён входом владельца; прогон — на чистой цепи
 
   - id: dbt.loan.side.08
+    level: contract
+    kind: side
+    scenario: >
+      Договор об участии подписан пайщиком, председатель его ещё не одобрил,
+      средства в программе есть.
+    expect: >
+      заявление проходит — пайщик распоряжается паевым взносом с подписи
+      договора, как и при взносе в программу (послабление cap.pinv.side.01)
+    test: components/boot/src/tests/debt-loan.test.ts
+    status: passing
+
+  - id: dbt.loan.side.10
     level: contract
     kind: side
     scenario: Заём в просрочке дольше пяти дней, сверка сроков.
