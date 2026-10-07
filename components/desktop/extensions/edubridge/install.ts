@@ -8,6 +8,7 @@ import { invalidateAttention, sharedAttention } from './entities/Admin';
 import { EduLive } from './shared/lib/live';
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
+import { registerEdubridgeDecisionHandlers } from './app/decisions';
 import {
   AdminAdminsPage,
   AdminConnectorsPage,
@@ -127,6 +128,9 @@ function teacherWorkspace(): IWorkspaceConfig {
 }
 
 export default async function (): Promise<IWorkspaceConfig[]> {
+  // Решения совета по заявлениям образования: протокол собирается по заявлению,
+  // как по возврату в Столе заказов.
+  registerEdubridgeDecisionHandlers();
   // Числа дел на пунктах меню стола администратора: документы преподавателей
   // на подписи председателя и застрявшая выдача доступа ученикам.
   registerMenuBadge('edubridge-admin-teachers', async () => (await sharedAttention()).teachers);

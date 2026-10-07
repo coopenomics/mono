@@ -71,6 +71,9 @@ static constexpr eosio::name _marketplace_writeoff_action = "mktwroff"_n;     //
 static constexpr eosio::name _marketplace_issue_action = "mktissue"_n;        ///< Выдача имущества пайщику в паевой ветке Стола заказов по решению совета (p.mkt.supply)
 static constexpr eosio::name _marketplace_return_action = "mktretrn"_n;       ///< Гарантийный возврат: принятие имущества и восстановление паевого взноса по решению совета (p.mkt.return)
 
+// edubridge linked actions
+static constexpr eosio::name _edubridge_rid_action = "eduacptrid"_n;          ///< Приём паевого взноса результатом интеллектуальной деятельности преподавателя по решению совета (p.edu.rid)
+
 // branch linked actions
 static constexpr eosio::name _branch_aid_action = "brnaid"_n;                ///< Материальная помощь доверенному КУ по решению совета (p.brn.aid)
 
@@ -130,6 +133,9 @@ static const std::set<eosio::name> soviet_actions = {
     "mktwroff"_n, //проект списания скоропорта на повестку совета (p.mkt.wroff)
     "mktissue"_n, //заявление о выдаче имущества пайщику в паевой ветке на повестку совета (p.mkt.supply)
     "mktretrn"_n, //заявление о внесении паевого взноса имуществом при гарантийном возврате на повестку совета (p.mkt.return)
+
+    //EDUBRIDGE
+    "eduacptrid"_n, //заявление преподавателя о паевом взносе результатом интеллектуальной деятельности на повестку совета (p.edu.rid)
 };
 
 //program_ids

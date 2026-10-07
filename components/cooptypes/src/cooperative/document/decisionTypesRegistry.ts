@@ -4,6 +4,7 @@ import {
   BranchFinancialAidProtocol, // 1112
   DecisionOfParticipantApplication, // 501
   DecisionOfParticipantExit, // 201
+  EducationRidDecision, // 3009
   FreeDecision,
   MarketplaceReturnCancelDecision, // 1117
   MarketplaceShareReturnDecision, // 1114
@@ -35,7 +36,7 @@ export interface IDecisionTypeInfo {
    * участок» их нет, его ставит председатель, и до установки решений участка у
    * кооператива не бывает.
    */
-  extension: 'capital' | 'market' | 'trustee' | null
+  extension: 'capital' | 'market' | 'trustee' | 'edubridge' | null
 }
 
 /**
@@ -139,6 +140,13 @@ export const decisionTypesRegistry: Record<string, IDecisionTypeInfo> = {
     description: 'Заявление о внесении результата интеллектуальной деятельности из задания.',
     protocol_registry_id: ResultContributionDecision.registry_id,
     extension: 'capital',
+  },
+  eduacptrid: {
+    type: 'eduacptrid',
+    title: 'Приём паевого взноса результатом интеллектуальной деятельности преподавателя',
+    description: 'Заявление преподавателя о паевом взносе материалами занятия по договору участия в хозяйственной деятельности ЦПП «Образование».',
+    protocol_registry_id: EducationRidDecision.registry_id,
+    extension: 'edubridge',
   },
 }
 

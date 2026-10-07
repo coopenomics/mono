@@ -43,6 +43,27 @@ export class EdubridgeApprovalListener {
     await this.teachers.onContractDeclined(String(d.coopname), String(d.contract_hash), String(d.reason ?? ''));
   }
 
+  /**
+   * Совет принял заявление о паевом взносе РИД: `soviet::exec` вызвал
+   * `edubridge::onridauth` с подписанным председателем протоколом 3009 — он и
+   * есть документ решения. Документ из цепи приходит в её формате.
+   */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.OnRidAuth.actionName}`)
+  async onRidApproved(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.OnRidAuth.IOnRidAuth;
+    if (!d?.coopname || !d?.hash) return;
+    const protocol = d.authorization ? DomainToBlockchainUtils.convertChainDocumentToDomainFormat(d.authorization as never) : undefined;
+    await this.teachers.onCouncilApproved(String(d.coopname), String(d.hash), protocol as never);
+  }
+
+  /** Совет отказал в приёме РИД (`edubridge::onriddecl`) — заявление помечается по хэшу материалов. */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.OnRidDecl.actionName}`)
+  async onRidDeclined(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.OnRidDecl.IOnRidDecl;
+    if (!d?.coopname || !d?.hash) return;
+    await this.teachers.onCouncilDeclinedByHash(String(d.coopname), String(d.hash));
+  }
+
   /** Совет отклонил вопрос о приёме результата — заявление помечается, материалы снимает председатель. */
   @OnEvent(`action::${SOVIET}::${SovietContract.Actions.Decisions.Declinedec.actionName}`)
   async onCouncilDeclined(action: InnerChainActionRecord): Promise<void> {

@@ -56,6 +56,10 @@ export * as Holdrid from './holdrid'
  * Заявление преподавателя о взносе РИД.
  */
 export * as Submitrid from './submitrid'
+/** Обратный вызов совета: заявление о паевом взносе РИД принято (p.edu.rid) */
+export * as OnRidAuth from './onRidAuth'
+/** Обратный вызов совета: в приёме паевого взноса РИД отказано (p.edu.rid) */
+export * as OnRidDecl from './onRidDecl'
 
 /**
  * Приём РИД по решению совета и акту: o.edu.rid.

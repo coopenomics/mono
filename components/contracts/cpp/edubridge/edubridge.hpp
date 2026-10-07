@@ -35,8 +35,8 @@ using namespace Edubridge;
  *    истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (6 actions): holdrid, submitrid, acceptrid, declinerid,
- *    recallrid, wthshare — преподаватель отчитывается по занятию и передаёт
+ *  - **p.edu.rid** (8 actions): holdrid, submitrid, onridauth, onriddecl,
+ *    acceptrid, declinerid, recallrid, wthshare — преподаватель отчитывается по занятию и передаёт
  *    материалы на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по
  *    истечении гарантийного срока курса заявление уходит в совет, и по
  *    решению с актом результат принимается в паевой фонд (o.edu.rid,
@@ -280,6 +280,27 @@ public:
                                    eosio::asset amount,
                                    eosio::name rid_type,
                                    document2 statement);
+
+  /**
+   * @brief Обратный вызов совета: заявление о паевом взносе РИД принято
+   * (протокол 3009 подписан председателем). Движений средств нет — паевой
+   * фонд признаётся позже, по акту приёма-передачи (`acceptrid`).
+   * require_auth(_soviet).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void onridauth(eosio::name coopname,
+                                   checksum256 hash,
+                                   document2 authorization);
+
+  /**
+   * @brief Обратный вызов совета: в приёме паевого взноса РИД отказано либо
+   * вопрос снят с повестки. Движений средств нет — материалы с хранения
+   * снимает председатель (`recallrid`). require_auth(_soviet).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void onriddecl(eosio::name coopname,
+                                   checksum256 hash,
+                                   std::string reason);
 
   /**
    * @brief Приём РИД в паевой фонд по Протоколу совета (3009) и Акту

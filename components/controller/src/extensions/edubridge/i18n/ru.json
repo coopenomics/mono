@@ -204,11 +204,6 @@
     "teacher": {
       "assignmentExpectedResult": "Проведение занятий курса «{courseTitle}» по его учебной программе",
       "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
-      "ridDecision": {
-        "decision": "Принять паевой взнос результатом интеллектуальной деятельности ({ridType}) от {teacher} на сумму {amount} по заявлению {statementHash}.",
-        "question": "О приёме паевого взноса результатом интеллектуальной деятельности от {teacher}",
-        "title": "Приём паевого взноса РИД преподавателя {teacher} на {amount}"
-      },
       "ridRecallReason": "совет не принял решение о приёме: {reason}"
     }
   },

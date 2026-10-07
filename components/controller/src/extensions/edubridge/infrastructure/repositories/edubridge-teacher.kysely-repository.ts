@@ -97,13 +97,13 @@ export class EdubridgeTeacherKyselyRepository {
       .getMany();
   }
 
-  /** Заявление в цепи есть, а проекта решения совета нет — сбой между двумя шагами подачи. */
+  /** Заявление в цепи есть, а номер вопроса в повестке совета ещё не записан — очередь подачи допишет его. */
   findSubmittedWithoutProject(coopname: string, limit = 50): Promise<EdubridgeContributionRecord[]> {
     return this.contributions
       .sqlBuilder('c')
       .where('c.coopname = :coopname', { coopname })
       .andWhere('c.status = :status', { status: EduContributionStatus.SUBMITTED })
-      .andWhere('c.council_project_hash IS NULL')
+      .andWhere('c.council_agenda_id IS NULL')
       .orderBy('c.updated_at', 'ASC')
       .limit(limit)
       .getMany();
@@ -112,10 +112,6 @@ export class EdubridgeTeacherKyselyRepository {
   /** Заявление по номеру вопроса в повестке совета. */
   findContributionByAgendaId(coopname: string, agendaId: string): Promise<EdubridgeContributionRecord | null> {
     return this.contributions.findOne({ coopname, council_agenda_id: agendaId });
-  }
-
-  findContributionByProjectHash(hash: string): Promise<EdubridgeContributionRecord | null> {
-    return this.contributions.findOne({ council_project_hash: hash.toLowerCase() });
   }
 
   createContribution(data: Partial<EdubridgeContributionRecord>): EdubridgeContributionRecord {

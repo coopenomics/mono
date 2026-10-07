@@ -215,6 +215,18 @@ export interface IRecallrid {
   reason: string
 }
 
+export interface IOnRidAuth {
+  coopname: IName
+  hash: IChecksum256
+  authorization: IDocument2
+}
+
+export interface IOnRidDecl {
+  coopname: IName
+  hash: IChecksum256
+  reason: string
+}
+
 // ── p.edu.teach: actions ─────────────────────────────────────────────────
 
 export interface ISigncontract {

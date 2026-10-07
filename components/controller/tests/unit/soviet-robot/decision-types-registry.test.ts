@@ -170,7 +170,7 @@ describe('Реестр решений совета сверен с контра�
   });
 
   it('расширение-владелец указано именем из реестра расширений платформы', () => {
-    const allowed = new Set(['capital', 'market', 'trustee']);
+    const allowed = new Set(['capital', 'market', 'trustee', 'edubridge']);
     const wrong = Object.values(registry).filter((info) => info.extension !== null && !allowed.has(info.extension));
     expect(wrong).toEqual([]);
   });

@@ -51,6 +51,13 @@ export class EdubridgeContributionRecord {
   /** Акт с подписью преподавателя — председатель присоединяет свою к этому же документу. */
   public act_signed!: Record<string, unknown> | null;
 
+  /**
+   * Протокол совета (3009) с подписью председателя — приходит обратным вызовом
+   * `onridauth`; им закрываются приём и отказ. У взносов, прошедших совет до
+   * появления повестки контракта, пуст.
+   */
+  public decision_document!: Record<string, unknown> | null;
+
   public decline_reason!: string | null;
 
   /** Хеш проекта решения совета (правило отслеживания ядра). */

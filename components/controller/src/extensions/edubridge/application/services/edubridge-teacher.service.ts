@@ -1,23 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { createHash, randomUUID } from 'crypto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { createHash } from 'crypto';
 import { Cooperative } from 'cooptypes';
 import { platformSettings, DomainError } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
-  DECISION_TRACKING_PORT,
   DOCUMENT_PORT,
-  DecisionEventType,
-  DecisionTrackedEvent,
-  FREE_DECISION_PORT,
   LOGGER_PORT,
   USER_AVATAR_PORT,
   USER_DATA_PORT,
   USER_WALLET_PORT,
   type ICouncilPort,
-  type IDecisionTrackingPort,
   type IDocumentPort,
-  type IFreeDecisionPort,
   type ILoggerPort,
   type InnerDocumentAggregate,
   type InnerGeneratedDocument,
@@ -61,8 +55,6 @@ import { t } from '../../i18n';
 const SHARE_WALLET = 'w.wal.share';
 /** Паевой взнос преподавателя по программе — сюда зачисляется принятый результат. */
 const PROGRAM_SHARE_WALLET = 'w.edu.share';
-/** Одно поле vars под все решения о РИД — ядро пишет туда номер и дату последнего решения. */
-const RID_VARS_FIELD = 'education_rid_decision';
 /** Договор в этих статусах не действует, и преподаватель подписывает его заново. */
 const RESIGNABLE_CONTRACT = [EduContractStatus.DECLINED, EduContractStatus.TERMINATED];
 /** Взносы, по которым расчёт с преподавателем ещё не закрыт. */
@@ -93,8 +85,8 @@ function statementAmount(document: ISignedDocument): string {
 
 /**
  * Преподавательский контур: ДУХД → допуск к курсу (назначение) → взнос РИД по
- * заявлению → решение совета (платформенный проект свободного решения) →
- * акт приёма-передачи → `acceptrid` (Дт 04 / Кт 08 и Дт 76 / Кт 80, паевой
+ * заявлению → решение совета (повестку ставит контракт, тип `eduacptrid`,
+ * протокол 3009 подписывает председатель) → акт приёма-передачи → `acceptrid` (Дт 04 / Кт 08 и Дт 76 / Кт 80, паевой
  * взнос на кошельке программы) → заявление о трансляции в «Цифровой Кошелёк»
  * (`wthshare`); возврат паевого взноса — оттуда штатным механизмом платформы.
  *
@@ -116,8 +108,6 @@ export class EdubridgeTeacherService {
     private readonly lessons: EdubridgeLessonKyselyRepository,
     @Inject(EDUBRIDGE_CHAIN_PORT) private readonly chain: EdubridgeChainPort,
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
-    @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
-    @Inject(DECISION_TRACKING_PORT) private readonly tracking: IDecisionTrackingPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
     @Inject(USER_AVATAR_PORT) private readonly avatars: IUserAvatarPort,
@@ -850,40 +840,17 @@ export class EdubridgeTeacherService {
       c.status = EduContributionStatus.SUBMITTED;
       await this.teachers.saveContribution(c);
     }
-    if (c.council_project_hash) return c;
+    if (c.council_agenda_id) return c;
 
-    // Решение совета — платформенный проект свободного решения; по принятию ядро
-    // эмитит DecisionTrackedEvent с нашими метаданными.
-    const projectId = randomUUID();
-    const title = t('edubridge.teacher.ridDecision.title', { teacher, amount: c.amount });
-    await this.freeDecisions.createProjectOfFreeDecision({
-      id: projectId,
-      title,
-      question: t('edubridge.teacher.ridDecision.question', { teacher }),
-      decision: t('edubridge.teacher.ridDecision.decision', { ridType: c.rid_type, teacher, amount: c.amount, statementHash: c.statement_hash }),
-    });
-    const project = await this.freeDecisions.generateProjectOfFreeDecisionDocument(
-      { project_id: projectId, coopname, username: await this.chairman(coopname), registry_id: Cooperative.Registry.ProjectFreeDecision.registry_id, title },
-      {}
-    );
-    const meta = project.meta as Record<string, any>;
-    await this.freeDecisions.publishProjectOfFreeDecision({
-      coopname,
-      username: await this.chairman(coopname),
-      meta: JSON.stringify({ extension: 'edubridge', rid_hash: c.rid_hash, project_id: projectId, title }),
-      document: { version: meta?.version || '1.0', hash: project.hash, doc_hash: meta?.doc_hash || project.hash, meta_hash: meta?.meta_hash || project.hash, meta: project.meta, signatures: meta?.signatures || [] },
-    });
-    await this.tracking.registerTrackingRule({
-      hash: project.hash,
-      event_type: DecisionEventType.SOVIET_DECISION,
-      vars_field: RID_VARS_FIELD,
-      metadata: { extension: 'edubridge', rid_hash: c.rid_hash, project_id: projectId },
-    });
-    c.council_project_hash = project.hash.toLowerCase();
-    c.council_agenda_id = await this.lookupAgendaId(coopname, project.hash);
+    // Повестку совета ставит сам контракт (`submitrid` → `soviet::createagenda`,
+    // type = eduacptrid, hash = rid_hash, документ — заявление 3008): совет
+    // подписывает протокол 3009 по заявлению, как по возврату в Столе заказов.
+    // Здесь остаётся запомнить номер вопроса — по нему приходят отказ и снятие
+    // по сроку; принятое решение приходит обратным вызовом `onridauth`.
+    c.council_agenda_id = await this.lookupAgendaId(coopname, c.rid_hash);
     const saved = await this.teachers.saveContribution(c);
     this.events.emit(EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT, { coopname, contribution_id: saved.id, teacher_username: teacher });
-    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подан, проект решения ${project.hash}`);
+    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подан, вопрос в повестке совета ${c.council_agenda_id ?? 'ещё не найден'}`);
     return saved;
   }
 
@@ -936,19 +903,19 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Номер вопроса в повестке совета по хэшу проекта решения: по нему придёт
-   * отклонение либо снятие просроченного вопроса. Не нашёлся — заявление
-   * остаётся без автоматической пометки, председатель снимает материалы сам.
+   * Номер вопроса в повестке совета по хэшу материалов (контракт ставит повестку
+   * с `hash = rid_hash`): по нему придёт отклонение либо снятие просроченного
+   * вопроса. Не нашёлся — номер допишет очередь подачи следующим проходом.
    */
-  private async lookupAgendaId(coopname: string, projectHash: string): Promise<string | null> {
+  private async lookupAgendaId(coopname: string, ridHash: string): Promise<string | null> {
     try {
       const decisions = await this.council.getDecisions(coopname);
-      const found = decisions.find((d) => String(d.hash ?? '').toLowerCase() === projectHash.toLowerCase());
+      const found = decisions.find((d) => String(d.hash ?? '').toLowerCase() === ridHash.toLowerCase());
       if (found) return String(found.id);
     } catch (e) {
       this.logger.warn(`[EDU.RID] повестка совета не прочитана: ${(e as Error)?.message ?? e}`);
     }
-    this.logger.warn(`[EDU.RID] вопрос по проекту ${projectHash} в повестке совета не найден — исход совета сам не отметится`);
+    this.logger.warn(`[EDU.RID] вопрос по материалам ${ridHash} в повестке совета пока не найден — номер допишет очередь подачи`);
     return null;
   }
 
@@ -965,19 +932,59 @@ export class EdubridgeTeacherService {
     this.logger.info(`[EDU.RID] совет не принял решение по взносу ${c.rid_hash} (${outcome}) — материалы ждут снятия с хранения`);
   }
 
-  /** Совет принял решение: ждём акт преподавателя. */
-  @OnEvent(DecisionTrackedEvent.eventName)
-  async onDecisionTracked(event: DecisionTrackedEvent): Promise<void> {
-    const r = event.result;
-    if (!r.matched || r.metadata?.extension !== 'edubridge' || !r.metadata?.rid_hash) return;
-    const c = await this.teachers.findContributionByRidHash(String(r.metadata.rid_hash));
-    if (!c || c.status !== EduContributionStatus.SUBMITTED) return;
+  /**
+   * Совет принял решение (`edubridge::onridauth` из `soviet::exec`): протокол
+   * 3009 подписан председателем и пришёл с действием. Он и есть документ
+   * решения — им закрываются приём (`acceptrid`) и отказ (`declinerid`).
+   * Дальше ждём акт преподавателя.
+   */
+  async onCouncilApproved(coopname: string, ridHash: string, authorization: ISignedDocument | undefined): Promise<void> {
+    const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
+    if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
+    const meta = (authorization?.meta ?? {}) as Record<string, unknown>;
     c.status = EduContributionStatus.COUNCIL_APPROVED;
     c.council_outcome = null;
-    c.council_decision_id = r.decision_id ? String(r.decision_id) : null;
-    c.decided_at = r.decision_date ? new Date(r.decision_date) : new Date();
+    if (meta.decision_id !== undefined && meta.decision_id !== null) c.council_decision_id = String(meta.decision_id);
+    if (authorization?.hash) {
+      c.decision_hash = authorization.hash.toLowerCase();
+      c.decision_document = authorization as unknown as Record<string, unknown>;
+    }
+    c.decided_at = new Date();
     await this.teachers.saveContribution(c);
-    this.logger.info(`[EDU.RID] совет принял решение ${r.decision_id} по взносу ${c.rid_hash} — ждём акт преподавателя`);
+    this.logger.info(`[EDU.RID] совет принял решение ${c.council_decision_id ?? ''} по взносу ${c.rid_hash} — ждём акт преподавателя`);
+  }
+
+  /** Совет отказал (`edubridge::onriddecl`): заявление помечается, материалы снимает председатель. */
+  async onCouncilDeclinedByHash(coopname: string, ridHash: string): Promise<void> {
+    const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
+    if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.SUBMITTED) return;
+    c.council_outcome = EduCouncilOutcome.DECLINED;
+    await this.teachers.saveContribution(c);
+    this.logger.info(`[EDU.RID] совет отказал в приёме взноса ${c.rid_hash} — материалы ждут снятия с хранения`);
+  }
+
+  /**
+   * Протокол совета по взносу: подписанный председателем документ, пришедший с
+   * решением (`onridauth`). У взносов, прошедших совет до появления повестки
+   * контракта, протокола в записи нет — он собирается по номеру решения без
+   * подписи, как раньше.
+   */
+  private async councilProtocol(coopname: string, c: EdubridgeContributionRecord): Promise<ISignedDocument> {
+    if (c.decision_document) return c.decision_document as unknown as ISignedDocument;
+    const generated = await this.documents.generate({
+      data: {
+        registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
+        coopname,
+        username: c.teacher_username,
+        lang: 'ru',
+        rid_hash: c.rid_hash,
+        rid_type: c.rid_type,
+        amount: c.amount,
+        decision_id: Number(c.council_decision_id ?? 0),
+        skip_save: false,
+      } as Cooperative.Registry.EducationRidDecision.Action,
+    });
+    return this.unsigned(generated);
   }
 
   /** Акт приёма-передачи (3010) без подписи — после решения совета. */
@@ -1058,23 +1065,11 @@ export class EdubridgeTeacherService {
     if (!signers.has(c.teacher_username) || !signers.has(chairman)) {
       throw DomainError.badRequest('EDUBRIDGE_ACT_SIGNATURES_REQUIRED');
     }
-    const decision = await this.documents.generate({
-      data: {
-        registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
-        coopname,
-        username: c.teacher_username,
-        lang: 'ru',
-        rid_hash: c.rid_hash,
-        rid_type: c.rid_type,
-        amount: c.amount,
-        decision_id: Number(c.council_decision_id ?? 0),
-        skip_save: false,
-      } as Cooperative.Registry.EducationRidDecision.Action,
-    });
+    const decision = await this.councilProtocol(coopname, c);
     // Резерв курса наполняет очередь раз в десять минут; перед приёмом он
     // доводится до текущего состояния сразу, чтобы приём не ждал её прохода.
     await this.fillCourseReserve(coopname, c);
-    await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision), act } as never);
+    await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision, act } as never);
     await this.settleReserve(coopname, c);
     c.decision_hash = decision.hash.toLowerCase();
     c.act_signed = act as unknown as Record<string, unknown>;
@@ -1118,20 +1113,8 @@ export class EdubridgeTeacherService {
     if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED');
     if (c.council_decision_id) {
       // Решение совета есть, приём не состоялся: заявление закрывается его протоколом.
-      const decision = await this.documents.generate({
-        data: {
-          registry_id: Cooperative.Registry.EducationRidDecision.registry_id,
-          coopname,
-          username: c.teacher_username,
-          lang: 'ru',
-          rid_hash: c.rid_hash,
-          rid_type: c.rid_type,
-          amount: c.amount,
-          decision_id: Number(c.council_decision_id),
-          skip_save: false,
-        } as Cooperative.Registry.EducationRidDecision.Action,
-      });
-      await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision: this.unsigned(decision) } as never);
+      const decision = await this.councilProtocol(coopname, c);
+      await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision } as never);
       c.decision_hash = decision.hash.toLowerCase();
     } else {
       // Совет решения не принял — отрицательного протокола у него не бывает.
@@ -1222,10 +1205,6 @@ export class EdubridgeTeacherService {
   private unsigned(doc: InnerGeneratedDocument): ISignedDocument {
     const meta = doc.meta as Record<string, any>;
     return { version: meta?.version || '1.0', hash: doc.hash, doc_hash: meta?.doc_hash || doc.hash, meta_hash: meta?.meta_hash || doc.hash, meta: doc.meta as ISignedDocument['meta'], signatures: [] };
-  }
-
-  private async chairman(_coopname: string): Promise<string> {
-    return platformSettings().coopname; // документы совета формируются от имени кооператива
   }
 }
 
