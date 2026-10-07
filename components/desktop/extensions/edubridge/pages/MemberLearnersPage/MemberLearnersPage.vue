@@ -39,8 +39,7 @@
           q-item(v-for="e in subscriptionsOf(current)" :key="asText(e.id)")
             q-item-section
               .text-weight-medium {{ e.course_title }}
-              .t-meta.t-muted {{ periodLabel(e.period) }}
-                template(v-if="e.paid_until") · {{ $t('edubridge.memberLearnersPage.details.paidUntil', { date: formatDate(e.paid_until) }) }}
+              .t-meta.t-muted {{ subscriptionMeta(e) }}
             q-item-section(side)
               .edu-learner__badges
                 BaseBadge(:variant="statusOf(e.status).variant") {{ statusOf(e.status).label }}
@@ -110,6 +109,11 @@ const drawerTitle = computed(() => {
 
 const subscriptionsOf = (l: ILearner) => enrollments.value.filter((e) => asText(e.learner_id) === asText(l.id));
 const periodLabel = (p: string) => PERIOD_LABELS[p] ?? p;
+/** Вторая строка подписки: период взноса и, если срок есть, до какого числа оплачено. */
+const subscriptionMeta = (e: IEnrollment) =>
+  [periodLabel(e.period), e.paid_until ? t('edubridge.memberLearnersPage.details.paidUntil', { date: formatDate(e.paid_until) }) : '']
+    .filter(Boolean)
+    .join(' · ');
 const statusOf = (s: string) => ENROLLMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const recipientLabel = (k: string) => RECIPIENT_LABELS[k] ?? k;

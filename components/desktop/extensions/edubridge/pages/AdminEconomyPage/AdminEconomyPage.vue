@@ -5,8 +5,8 @@
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
     //- Действие вкладки живёт в её полосе, а не плавает над списком.
-    template(#actions)
-      BaseButton(v-if="tab === 'expenses'" variant="primary" size="sm" @click="expenseOpen = true")
+    template(v-if="tab === 'expenses'" #actions)
+      BaseButton(variant="primary" size="sm" @click="expenseOpen = true")
         template(#icon-left)
           q-icon(name="add" size="18px")
         | {{ $t('edubridge.adminEconomyPage.submitExpense') }}
@@ -173,11 +173,11 @@ const markupHelp = computed(
  * конца гарантии, освобождается в фонд, из фонда уходит в резерв преподавателям.
  * Имя сервера длинное и формальное — в полосе короткая подпись, полное имя в подсказке.
  */
-const WALLET_VIEW: Record<string, { icon: string; tone: StatStripItem['tone']; order: number; caption: string }> = {
-  'w.edu.member': { icon: 'account_balance_wallet', tone: 'info', order: 0, caption: i18nT('edubridge.adminEconomyPage.walletShort.members') },
-  'w.edu.escrow': { icon: 'lock_clock', tone: 'warn', order: 1, caption: i18nT('edubridge.adminEconomyPage.walletShort.escrow') },
-  'w.edu.fund': { icon: 'account_balance', tone: 'primary', order: 2, caption: i18nT('edubridge.adminEconomyPage.walletShort.fund') },
-  'w.edu.teach': { icon: 'co_present', tone: 'pos', order: 3, caption: i18nT('edubridge.adminEconomyPage.walletShort.reserve') },
+const WALLET_VIEW: Record<string, { icon: string; order: number; caption: string }> = {
+  'w.edu.member': { icon: 'account_balance_wallet', order: 0, caption: i18nT('edubridge.adminEconomyPage.walletShort.members') },
+  'w.edu.escrow': { icon: 'lock_clock', order: 1, caption: i18nT('edubridge.adminEconomyPage.walletShort.escrow') },
+  'w.edu.fund': { icon: 'account_balance', order: 2, caption: i18nT('edubridge.adminEconomyPage.walletShort.fund') },
+  'w.edu.teach': { icon: 'co_present', order: 3, caption: i18nT('edubridge.adminEconomyPage.walletShort.reserve') },
 };
 const walletStats = computed<StatStripItem[]>(() =>
   [...(fund.value?.wallets ?? [])]
@@ -188,7 +188,6 @@ const walletStats = computed<StatStripItem[]>(() =>
       return {
         key: w.id,
         icon: view?.icon ?? 'savings',
-        tone: view?.tone ?? 'neutral',
         caption: view?.caption ?? w.name,
         value: money.amount,
         symbol: money.symbol || symbol.value,

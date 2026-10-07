@@ -226,11 +226,10 @@ const acceptedTotal = computed(() => {
   return formatAsset2Digits(`${total.toFixed(4)} ${symbol.value}`);
 });
 const stats = computed<StatStripItem[]>(() => [
-  { key: 'rate', icon: 'schedule', tone: 'primary', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate) },
+  { key: 'rate', icon: 'schedule', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate) },
   {
     key: 'courses',
     icon: 'library_books',
-    tone: 'info',
     caption: i18nT('edubridge.adminTeachersPage.stats.courses'),
     value: props.teacher.assignments_active,
     sub: i18nT('edubridge.adminTeachersPage.stats.coursesSub', { total: props.teacher.assignments_total }),
@@ -238,7 +237,6 @@ const stats = computed<StatStripItem[]>(() => [
   {
     key: 'accepted',
     icon: 'workspace_premium',
-    tone: 'pos',
     caption: i18nT('edubridge.adminTeachersPage.stats.accepted'),
     value: acceptedContributions.value.length,
     sub: i18nT('edubridge.adminTeachersPage.stats.acceptedSub', { amount: acceptedTotal.value }),

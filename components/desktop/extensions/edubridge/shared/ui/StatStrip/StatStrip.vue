@@ -1,12 +1,13 @@
 <template lang="pug">
-//- Полоса показателей: несколько чисел в одной карточке, у каждого свой значок,
+//- Полоса показателей: несколько чисел в одной карточке, у каждого свой значок
+//- одного нейтрального цвета (разноцветные плитки владелец отверг 07.10.2026),
 //- подпись над числом и пояснение под ним. Порядок слева направо — путь денег
 //- или важность. Разделитель между ячейками — волосяная линия фона сетки,
 //- поэтому при переносе на узком экране линии остаются и по горизонтали.
 BaseCard.edu-stats(variant="default" :class="{ 'edu-stats--compact': compact }")
   .edu-stats__grid
     .edu-stats__item(v-for="it in items" :key="it.key")
-      span.edu-stats__icon(:class="`edu-stats__icon--${it.tone || 'neutral'}`")
+      span.edu-stats__icon
         q-icon(:name="it.icon" :size="compact ? '18px' : '20px'")
       .edu-stats__body
         .edu-stats__caption
@@ -58,22 +59,6 @@ withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; compact?: 
   border-radius: var(--p-r-md);
   background: var(--p-surface-3);
   color: var(--p-ink-2);
-}
-.edu-stats__icon--primary {
-  background: var(--p-primary-soft);
-  color: var(--p-primary);
-}
-.edu-stats__icon--info {
-  background: var(--p-info-soft);
-  color: var(--p-info);
-}
-.edu-stats__icon--warn {
-  background: var(--p-warn-soft);
-  color: var(--p-warn);
-}
-.edu-stats__icon--pos {
-  background: var(--p-pos-soft);
-  color: var(--p-pos);
 }
 .edu-stats__body {
   min-width: 0;

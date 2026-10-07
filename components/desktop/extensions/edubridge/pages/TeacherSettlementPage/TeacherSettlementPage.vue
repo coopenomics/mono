@@ -108,10 +108,10 @@ const money = (v: string | undefined) => splitAsset2Digits(v ?? '');
 const stats = computed<StatStripItem[]>(() => {
   const s = settlement.value;
   return [
-    { key: 'accepted', icon: 'workspace_premium', tone: 'pos', caption: t('edubridge.teacherSettlementPage.acceptedTotalLabel'), value: money(s?.accepted_total).amount, symbol: money(s?.accepted_total).symbol, sub: t('edubridge.teacherSettlementPage.acceptedTotalSub', { n: accepted.value.length }, accepted.value.length) },
-    { key: 'share', icon: 'school', tone: 'primary', caption: t('edubridge.teacherSettlementPage.programShareLabel'), value: money(s?.program_share).amount, symbol: money(s?.program_share).symbol, sub: t('edubridge.teacherSettlementPage.programShareSub') },
-    { key: 'available', icon: 'account_balance_wallet', tone: 'info', caption: t('edubridge.teacherSettlementPage.availableLabel'), value: money(s?.available).amount, symbol: money(s?.available).symbol, sub: t('edubridge.teacherSettlementPage.availableSub') },
-    { key: 'last', icon: 'event_available', tone: 'neutral', caption: t('edubridge.teacherSettlementPage.lastAcceptedLabel'), value: s?.last_accepted_at ? formatDate(s.last_accepted_at) : '______', sub: t('edubridge.teacherSettlementPage.lastAcceptedSub') },
+    { key: 'accepted', icon: 'workspace_premium', caption: t('edubridge.teacherSettlementPage.acceptedTotalLabel'), value: money(s?.accepted_total).amount, symbol: money(s?.accepted_total).symbol, sub: t('edubridge.teacherSettlementPage.acceptedTotalSub', { n: accepted.value.length }, accepted.value.length) },
+    { key: 'share', icon: 'school', caption: t('edubridge.teacherSettlementPage.programShareLabel'), value: money(s?.program_share).amount, symbol: money(s?.program_share).symbol, sub: t('edubridge.teacherSettlementPage.programShareSub') },
+    { key: 'available', icon: 'account_balance_wallet', caption: t('edubridge.teacherSettlementPage.availableLabel'), value: money(s?.available).amount, symbol: money(s?.available).symbol, sub: t('edubridge.teacherSettlementPage.availableSub') },
+    { key: 'last', icon: 'event_available', caption: t('edubridge.teacherSettlementPage.lastAcceptedLabel'), value: s?.last_accepted_at ? formatDate(s.last_accepted_at) : '______', sub: t('edubridge.teacherSettlementPage.lastAcceptedSub') },
   ];
 });
 

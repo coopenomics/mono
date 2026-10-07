@@ -31,10 +31,10 @@
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.cancelUnderfilledMenuItem') }}
                   q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
-      CourseHeroFigure(icon="payments" tone="primary" :caption="$t('edubridge.adminCoursePage.feeMonthCaption')")
+      CourseHeroFigure(:caption="$t('edubridge.adminCoursePage.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(icon="event_repeat" tone="info" :value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      CourseHeroFigure(icon="school" :value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
