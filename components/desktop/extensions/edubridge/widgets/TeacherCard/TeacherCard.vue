@@ -67,7 +67,7 @@
       q-item(v-for="a in ownAssignments" :key="asText(a.id)")
         q-item-section
           .text-weight-medium {{ a.course_title }}
-          .t-meta.t-muted {{ a.period_from }} — {{ a.period_to }}
+          .t-meta.t-muted {{ formatDate(a.period_from) }} — {{ formatDate(a.period_to) }}
           .t-meta.t-muted(v-if="a.schedule") {{ a.schedule }}
           //- Ставка на этом курсе своя: по умолчанию из договора, не выше плановой ставки курса.
           .row.items-center.no-wrap.q-gutter-xs
@@ -78,7 +78,7 @@
         q-item-section(side)
           .row.items-center.q-gutter-sm
             BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
-            BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
+            BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="secondary" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
     //- «Курсов нет» — только после загрузки: до неё список пуст потому, что ещё не прочитан.
     .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
     CardListSkeleton(v-else :count="1")
