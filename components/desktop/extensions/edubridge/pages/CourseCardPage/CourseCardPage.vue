@@ -152,7 +152,10 @@ function onSubscribed(): void {
 
 /** Курс из каталога; живое перечитывание — без скелетона, курс остаётся на экране. */
 async function loadCourse(): Promise<void> {
-  course.value = await fetchCatalogCourse(String(route.params.id));
+  // Страницу уже покидают, адрес сменился — запрос с идентификатором «undefined» не шлём.
+  const id = route.params.id ? String(route.params.id) : '';
+  if (!id) return;
+  course.value = await fetchCatalogCourse(id);
   await loadOwnEnrollments();
 }
 
@@ -170,17 +173,24 @@ async function loadOwnEnrollments(): Promise<void> {
 // Живое обновление: администратор правит курс — карточка показывает новое.
 useLiveReload([EduLive.courses, EduLive.enrollments], loadCourse);
 
+/** Страницу покинули: ответы запросов, начатых на ней, больше ничего не меняют. */
+let pageLeft = false;
+
 onMounted(async () => {
   try {
     await loadCourse();
-    if (course.value) desktopStore.setPageTitleOverride(t('edubridge.courseCardPage.pageTitle'));
+    // Ответ пришёл после ухода со страницы: заголовок шапки уже сброшен, возвращать его нельзя.
+    if (course.value && !pageLeft) desktopStore.setPageTitleOverride(t('edubridge.courseCardPage.pageTitle'));
   } catch (e) {
     FailAlert(e);
   } finally {
     loading.value = false;
   }
 });
-onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
+onBeforeUnmount(() => {
+  pageLeft = true;
+  desktopStore.clearPageTitleOverride();
+});
 </script>
 
 <style scoped>

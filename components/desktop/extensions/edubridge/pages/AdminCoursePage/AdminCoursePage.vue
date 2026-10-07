@@ -167,12 +167,21 @@ async function unpublish(): Promise<void> {
   if (agreed) await setStatus(Zeus.EduCourseStatus.DRAFT);
 }
 
+/** Страницу покинули: ответы запросов, начатых на ней, больше ничего не меняют. */
+let pageLeft = false;
+
 async function load(): Promise<void> {
+  // Идентификатор берётся один раз: пока идёт первый запрос, со страницы можно
+  // уйти, адрес сменится, и второй запрос ушёл бы с идентификатором «undefined».
+  const id = route.params.id ? String(route.params.id) : '';
+  if (!id) return;
   loading.value = true;
   try {
-    course.value = await fetchCourse(String(route.params.id));
+    course.value = await fetchCourse(id);
+    // Ответ пришёл после ухода со страницы: заголовок шапки уже сброшен, возвращать его нельзя.
+    if (pageLeft) return;
     if (course.value) desktopStore.setPageTitleOverride(t('edubridge.adminCoursePage.pageTitle'));
-    economy.value = await fetchCourseEconomy(String(route.params.id));
+    economy.value = await fetchCourseEconomy(id);
   } catch (e) {
     FailAlert(e);
   } finally {
@@ -251,7 +260,10 @@ async function setStatus(next: ICourse['status']): Promise<void> {
 useLiveReload([EduLive.courses, EduLive.enrollments], load);
 
 onMounted(load);
-onBeforeUnmount(() => desktopStore.clearPageTitleOverride());
+onBeforeUnmount(() => {
+  pageLeft = true;
+  desktopStore.clearPageTitleOverride();
+});
 </script>
 
 <style scoped>
