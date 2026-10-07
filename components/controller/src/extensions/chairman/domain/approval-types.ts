@@ -35,6 +35,10 @@ export const APPROVAL_TYPE_MAP = {
     title: t('chairman.approvalTypes.teacherContract.title'),
     description: t('chairman.approvalTypes.teacherContract.description'),
   },
+  apprvridact: {
+    title: t('chairman.approvalTypes.teacherRidAct.title'),
+    description: t('chairman.approvalTypes.teacherRidAct.description'),
+  },
 } as const;
 
 export type ApprovalType = keyof typeof APPROVAL_TYPE_MAP;

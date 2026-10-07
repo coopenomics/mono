@@ -145,7 +145,12 @@ const actionOf = (row: ILessonRow): 'transfer' | 'sign' | null => lessonActionOf
 /** Взнос занятия: отчёт заводит его сам, связь — по идентификатору взноса. */
 const contributionOf = (lesson: ILesson) => contributions.value.find((c) => asText(c.id) === asText(lesson.contribution_id)) ?? null;
 
-const rows = computed<ILessonRow[]>(() => lessons.value.map((l) => ({ ...l, contribution: contributionOf(l) })));
+// Журнал — свежие занятия сверху: по дате проведения, при одной дате — по номеру.
+const rows = computed<ILessonRow[]>(() =>
+  [...lessons.value]
+    .sort((a, b) => String(b.held_at).localeCompare(String(a.held_at)) || Number(b.lesson_number) - Number(a.lesson_number))
+    .map((l) => ({ ...l, contribution: contributionOf(l) })),
+);
 
 /** Занятие в правой панели — по идентификатору: панель показывает свежее состояние после действия и обновления журнала. */
 const detailsOpen = ref(false);

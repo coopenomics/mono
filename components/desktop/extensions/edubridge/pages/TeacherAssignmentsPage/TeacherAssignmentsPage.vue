@@ -33,18 +33,7 @@
 
   //- Назначение целиком: условия допуска и программа курса — читать её на столе ученика незачем.
   DetailsDrawer(v-model="detailsOpen" :title="details?.course_title || $t('edubridge.teacherAssignmentsPage.detailsTitleFallback')" :width="640")
-    template(v-if="details")
-      BaseBadge.q-mb-md(:variant="statusOf(details.status).variant") {{ statusOf(details.status).label }}
-      DataRow(:label="$t('edubridge.teacherAssignmentsPage.scheduleLabel')" :value="details.schedule || '______'")
-      DataRow(:label="$t('edubridge.teacherAssignmentsPage.periodLabel')" :value="$t(`edubridge.teacherAssignmentsPage.periodRange`, { dateFrom: ruDate(details.period_from), dateTo: ruDate(details.period_to) })")
-      DataRow(:label="$t('edubridge.teacherAssignmentsPage.expectedResultLabel')" :value="details.expected_result || '______'")
-      .edu-assignment__section(v-if="details.course_description")
-        .t-eyebrow.q-mb-sm {{ $t('edubridge.teacherAssignmentsPage.aboutTitle') }}
-        .edu-assignment__text {{ details.course_description }}
-      .edu-assignment__section
-        .t-eyebrow.q-mb-sm {{ $t('edubridge.teacherAssignmentsPage.syllabusTitle') }}
-        .edu-assignment__text(v-if="details.course_syllabus") {{ details.course_syllabus }}
-        .t-muted.t-sm(v-else) {{ $t('edubridge.teacherAssignmentsPage.syllabusEmpty') }}
+    AssignmentDetails(v-if="details" :assignment="details")
 </template>
 
 <script setup lang="ts">
@@ -53,8 +42,9 @@ import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseBadge, BaseBanner, BaseTable, CardListSkeleton, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
+import { DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import { ASSIGNMENT_STATUS_LABELS, fetchMyAssignments, fetchMyContract, type IAssignment, type IContract } from '../../entities/Teacher';
+import { AssignmentDetails } from '../../widgets/AssignmentDetails';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
@@ -113,16 +103,6 @@ onMounted(load);
 </script>
 
 <style scoped>
-.edu-assignment__section {
-  margin-top: var(--p-5);
-  padding-top: var(--p-4);
-  border-top: 1px solid var(--p-line);
-}
-.edu-assignment__text {
-  white-space: pre-wrap;
-  font-size: var(--p-fs-body);
-  line-height: 1.6;
-}
 .edu-assignment__title {
   font-weight: 600;
   color: var(--p-ink);

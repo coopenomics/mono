@@ -10,6 +10,7 @@ import { APPROVAL_TYPE_MAP, approvalInfoOf } from '~/extensions/chairman/domain/
 describe('типы одобрений образования', () => {
   const EDU_TYPES = {
     apprvcontr: 'Договор УХД преподавателя',
+    apprvridact: 'Акт приёма-передачи результата работы преподавателя',
   } as const;
 
   it('договор преподавателя несёт свой заголовок и описание', () => {

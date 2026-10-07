@@ -26,14 +26,20 @@
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.aboutEmpty') }}
 
       BaseCard.q-mt-md(variant="default" :title="$t('edubridge.teacherProfilePage.coursesTitle')")
+        //- Курс открывается справа тем же назначением, что на странице «Назначения»: условия допуска и программа.
         q-list(v-if="assignments.length" separator)
-          q-item(v-for="a in assignments" :key="asText(a.id)")
+          q-item(v-for="a in assignments" :key="asText(a.id)" clickable @click="openAssignment(a)")
             q-item-section
               .text-weight-medium {{ a.course_title }}
               .t-muted.t-sm {{ formatDate(a.period_from) }} — {{ formatDate(a.period_to) }}
             q-item-section(side)
-              BaseBadge(:variant="statusOf(a.status).variant") {{ statusOf(a.status).label }}
+              .edu-profile__course-side
+                BaseBadge(:variant="statusOf(a.status).variant") {{ statusOf(a.status).label }}
+                q-icon.edu-profile__chevron(name="chevron_right" size="20px")
         .t-muted.t-sm(v-else) {{ $t('edubridge.teacherProfilePage.noAssignmentsEmpty') }}
+
+  DetailsDrawer(v-model="assignmentOpen" :title="assignment?.course_title || ''" :width="640")
+    AssignmentDetails(v-if="assignment" :assignment="assignment")
 
     .col-12.col-md-5
       BaseCard(variant="default" :title="$t('edubridge.teacherProfilePage.contractTitle')")
@@ -77,7 +83,8 @@ import { getName } from 'src/shared/lib/utils/account';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseCard, BaseDialog, BaseForm, BaseInput, CardListSkeleton } from 'src/shared/ui/base';
-import { DataRow, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, IdentityPanel, PageHint, type Identity } from 'src/shared/ui/domain';
+import { AssignmentDetails } from '../../widgets/AssignmentDetails';
 import {
   ASSIGNMENT_STATUS_LABELS,
   fetchMyAssignments,
@@ -131,6 +138,14 @@ const contractStatus = computed(
 const pendingApproval = computed(() => contract.value?.status === Zeus.EduContractStatus.PENDING_APPROVAL);
 const declined = computed(() => contract.value?.status === Zeus.EduContractStatus.DECLINED);
 const activeAssignments = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).length);
+/** Назначение в правой панели — по идентификатору: после обновления панель показывает свежее. */
+const assignmentOpen = ref(false);
+const assignmentId = ref<string | null>(null);
+const assignment = computed(() => assignments.value.find((a) => asText(a.id) === assignmentId.value) ?? null);
+function openAssignment(a: IAssignment): void {
+  assignmentId.value = asText(a.id);
+  assignmentOpen.value = true;
+}
 
 const statusOf = (s: string) => ASSIGNMENT_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const formatDate = (v: unknown) => {
@@ -179,6 +194,14 @@ onMounted(load);
 </script>
 
 <style scoped>
+.edu-profile__course-side {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+}
+.edu-profile__chevron {
+  color: var(--p-ink-3);
+}
 .edu-profile__about {
   white-space: pre-wrap;
   font-size: var(--p-fs-body);
