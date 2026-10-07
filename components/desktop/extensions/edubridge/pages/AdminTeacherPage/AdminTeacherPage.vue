@@ -7,11 +7,6 @@
       q-icon(name="person_off" size="40px")
 
   template(v-else)
-    BaseButton.edu-teacher__back(variant="ghost" size="sm" @click="goBack")
-      template(#icon-left)
-        q-icon(name="arrow_back" size="16px")
-      | {{ $t('edubridge.adminTeachersPage.backToRegistry') }}
-
     //- На странице карточка лежит на белой подложке, как остальные страницы стола.
     BaseCard.edu-teacher__content(variant="default")
       TeacherCard(:key="teacher.username" :teacher="teacher" @change="(updated) => (teacher = updated)" @refresh="load")
@@ -23,8 +18,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { BaseButton, BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
+import { BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { useLiveReload } from 'src/shared/lib/realtime';
+import { useBackButton } from 'src/shared/lib/navigation';
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 import { TeacherCard } from '../../widgets/TeacherCard';
 import { EduLive } from '../../shared/lib/live';
@@ -59,6 +55,8 @@ async function load(): Promise<void> {
 function goBack(): void {
   void router.push({ name: 'edubridge-admin-teachers', params: { coopname: route.params.coopname } });
 }
+// Возврат к списку стоит в шапке перед заголовком, а не строкой над карточкой.
+useBackButton({ text: t('edubridge.adminTeachersPage.backToRegistry'), componentId: 'edubridge-admin-teacher', onClick: goBack });
 
 // Живое обновление: договор подписывает председатель, назначения меняют
 // другие администраторы — страница узнаёт об этом по ленте изменений.
@@ -79,9 +77,6 @@ onUnmounted(() => desktopStore.clearPageTitleOverride());
 </script>
 
 <style scoped>
-.edu-teacher__back {
-  margin: 0 0 var(--p-3) calc(-1 * var(--p-2));
-}
 /* Карточка читается колонкой: на всю ширину экрана строки «подпись — значение» расползаются. */
 .edu-teacher__content {
   max-width: 880px;
