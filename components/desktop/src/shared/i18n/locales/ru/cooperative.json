@@ -10,7 +10,7 @@
       "usernameNotFoundError": "Имя аккаунта не найдено"
     },
     "addMemberDialog": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "requiredRule": "Обязательное поле",
       "searchLabel": "Начните ввод ФИО нового члена совета",
       "title": "Добавить члена совета",

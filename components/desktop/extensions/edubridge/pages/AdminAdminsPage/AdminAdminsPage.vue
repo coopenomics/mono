@@ -17,7 +17,7 @@
 
   BaseDialog(v-model="dialogOpen" :title="$t('edubridge.adminAdminsPage.appointDialogTitle')" size="md")
     .text-body2.q-mb-md {{ $t('edubridge.adminAdminsPage.appointDialogHint') }}
-    UserSearchSelector(v-model="username" :label="$t('edubridge.adminAdminsPage.memberLabel')" :exclude="items.map((a) => a.username)")
+    UserSearchSelector(v-model="username" outlined :label="$t('edubridge.adminAdminsPage.memberLabel')" :exclude="items.map((a) => a.username)")
     template(#footer)
       BaseButton(variant="ghost" :disabled="busy" @click="dialogOpen = false") {{ $t('edubridge.adminAdminsPage.cancel') }}
       BaseButton(variant="primary" :disabled="!username" :loading="busy" @click="onAppoint") {{ $t('edubridge.adminAdminsPage.appointSubmit') }}

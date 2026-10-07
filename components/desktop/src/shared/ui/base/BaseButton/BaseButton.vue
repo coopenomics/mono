@@ -1,8 +1,8 @@
 <template>
   <q-btn
     :unelevated="isUnelevated"
-    :outline="variant === 'secondary'"
-    :flat="variant === 'ghost' || variant === 'danger'"
+    :outline="variant === 'secondary' || variant === 'danger'"
+    :flat="variant === 'ghost'"
     :color="resolvedColor"
     :text-color="resolvedTextColor"
     :type="type"

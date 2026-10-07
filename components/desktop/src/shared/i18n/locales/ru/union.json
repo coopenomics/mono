@@ -1,7 +1,7 @@
 {
   "union": {
     "addCooperativeForm": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "domainHint": "domovoy.com или coop.domovoy.com",
       "domainLabel": "Домен или поддомен для запуска",
       "initialIndividualLabel": "Вступительный взнос для физлиц и ИП",

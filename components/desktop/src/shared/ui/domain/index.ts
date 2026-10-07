@@ -2,6 +2,7 @@ export * from './AccountBadge';
 export * from './ActivityTimeline';
 export * from './AmountInput';
 export * from './AuthCard';
+export * from './BackLink';
 export * from './CommandPalette';
 export * from './ContactSheet';
 export * from './ConfirmDialog';

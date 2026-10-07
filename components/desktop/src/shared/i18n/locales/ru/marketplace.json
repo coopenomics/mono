@@ -267,7 +267,7 @@
       "widthLabel": "Ширина, см"
     },
     "coopStockSection": {
-      "cancelButton": "Отменить",
+      "cancelButton": "Отмена",
       "column": {
         "arrivalPrice": "Цена прибытия",
         "expiry": "Годен до",
@@ -339,7 +339,7 @@
       "branchesHint": "Отметьте кооперативные участки, на которые готовы обеспечить доставку, и укажите объём поставки на каждый.",
       "branchesLoading": "Загрузка участков…",
       "byMeasureStockHint": "Столько {unit} готовы отдать заказчикам",
-      "cancelButton": "Отменить",
+      "cancelButton": "Отмена",
       "categoryLabel": "Категория",
       "categoryRequiredError": "Выберите категорию",
       "changesSavedSuccess": "Изменения сохранены.",
@@ -1113,7 +1113,7 @@
     },
     "onsiteSignatureGateOverlay": {
       "actLabel": "Акт приёма-передачи",
-      "cancelButton": "Отменить",
+      "cancelButton": "Отмена",
       "column": {
         "amount": "Сумма",
         "product": "Товар",

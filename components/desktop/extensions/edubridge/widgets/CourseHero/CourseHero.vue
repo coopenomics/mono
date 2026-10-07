@@ -25,7 +25,7 @@ BaseCard.edu-hero(variant="default")
 <script setup lang="ts">
 import { BaseCard } from 'src/shared/ui/base';
 import { courseSectionLabel } from '../../entities/Course';
-import { BackLink } from '../../shared/ui/BackLink';
+import { BackLink } from 'src/shared/ui/domain';
 
 defineProps<{
   title: string;

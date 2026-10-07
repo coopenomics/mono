@@ -119,6 +119,22 @@
   border-color: var(--p-line-2) !important;
 }
 
+/* Danger — красная рамка: опасное действие отличимо от «Отмены» рядом, но
+   тише сплошной заливки. Раньше было красным текстом без рамки и в диалоге
+   терялось рядом с такой же текстовой отменой. */
+.q-btn--outline.text-negative {
+  color: var(--p-neg) !important;
+}
+.q-btn--outline.text-negative:before {
+  border-color: var(--p-neg) !important;
+}
+.q-btn--outline.text-negative:hover {
+  background: var(--p-neg-soft);
+}
+.q-btn--outline.text-negative:hover:before {
+  border-color: var(--p-neg) !important;
+}
+
 /* Ghost — flat (не трогаем destructive: text-negative остаётся красным) */
 .q-btn--flat:not(.text-negative) {
   color: var(--p-ink) !important;

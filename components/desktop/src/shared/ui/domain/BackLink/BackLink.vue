@@ -1,7 +1,7 @@
 <template lang="pug">
 //- Возврат к списку — первой крошкой в строке контекста карточки сущности:
 //- отдельной строкой над карточкой он висел на голом фоне и отлипал от страницы.
-button.edu-back-link(type="button" @click="emit('click')")
+button.back-link(type="button" @click="emit('click')")
   q-icon(name="arrow_back" size="14px")
   span {{ label }}
 </template>
@@ -12,7 +12,7 @@ const emit = defineEmits<{ (e: 'click'): void }>();
 </script>
 
 <style scoped>
-.edu-back-link {
+.back-link {
   display: inline-flex;
   align-items: center;
   gap: var(--p-1);
@@ -23,10 +23,10 @@ const emit = defineEmits<{ (e: 'click'): void }>();
   color: var(--p-ink-2);
   cursor: pointer;
 }
-.edu-back-link:hover {
+.back-link:hover {
   color: var(--p-primary);
 }
-.edu-back-link:focus-visible {
+.back-link:focus-visible {
   outline: 1px solid var(--p-primary);
   outline-offset: var(--p-1);
   border-radius: var(--p-r-sm);

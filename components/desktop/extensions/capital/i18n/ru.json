@@ -17,7 +17,7 @@
     "addAuthorButton": {
       "addedCountSuccess": "Добавлено соавторов: {count}",
       "ariaLabel": "Добавить соавтора",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "dialogTitle": "Добавить соавторов",
       "label": "Соавтор",
       "missingUsernameError": "У некоторых выбранных участников отсутствует имя пользователя",
@@ -513,7 +513,7 @@
       "amountLabel": "Сумма",
       "amountPositiveError": "Сумма должна быть положительной",
       "ariaLabel": "Инвестировать в программу",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "dialogTitle": "Инвестирование в программу",
       "label": "Инвестировать",
       "success": "Инвестиция принята"
@@ -541,7 +541,7 @@
     "createProjectInvestButton": {
       "amountLabel": "Сумма",
       "ariaLabel": "Инвестировать в проект",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "dialogTitle": "Инвестирование в проект",
       "label": "Инвестиция",
       "positiveAmountError": "Сумма инвестиций должна быть положительной",
@@ -636,7 +636,7 @@
     },
     "deleteIssueButton": {
       "ariaLabel": "Удалить задачу",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "confirmText": "Вы уверены, что хотите удалить задачу?",
       "dialogTitle": "Удаление задачи",
       "error": "Возникла ошибка при удалении",
@@ -646,7 +646,7 @@
       "label": "Удалить проект"
     },
     "deleteProjectSidebarButton": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "confirmText": "Вы уверены, что хотите удалить {entityLabel}?",
       "dialogTitle": "Удаление {firstLetter}{rest}",
       "entityLabel": "проект",
@@ -654,7 +654,7 @@
       "success": "Удалено"
     },
     "deleteStoryButton": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "confirmText": "Вы уверены, что хотите удалить?",
       "dialogTitle": "Удаление",
       "error": "Возникла ошибка при удалении",
@@ -1169,7 +1169,7 @@
       "assignSubmit": "Назначить",
       "assignSuccess": "Компонент назначен",
       "assignTitle": "Назначить компонент",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "componentLabel": "Компонент",
       "componentPlaceholder": "Компонент для переноса",
       "loadError": "Не удалось загрузить список компонентов",
@@ -1802,7 +1802,7 @@
       "addTimeButton": "Добавить время",
       "addTimeDialogTitle": "Добавить время",
       "addedNotice": "Время добавлено",
-      "cancelButton": "Отменить",
+      "cancelButton": "Отмена",
       "emptyText": "Записей рабочего времени пока нет",
       "hoursHint": "Фактические часы по этой задаче",
       "hoursLabel": "Часы",

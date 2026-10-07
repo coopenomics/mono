@@ -5,7 +5,7 @@
       "bankNameLabel": "Наименование банка",
       "bikLabel": "БИК",
       "buttonLabel": "Добавить реквизиты",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "correspondentAccountLabel": "Корреспондентский счет",
       "currencyLabel": "Валюта счёта",
       "expect20DigitsError": "ожидаем 20 цифр",
@@ -20,7 +20,7 @@
       "title": "Добавить метод платежа"
     },
     "deletePaymentMethodButton": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "confirm": "Продолжить",
       "confirmText": "Вы уверены, что хотите удалить метод платежа?",
       "deleteSuccess": "Метод платежа успешно удалён",

@@ -211,7 +211,7 @@
       "copyValueAriaLabel": "Скопировать значение"
     },
     "descriptionSaveButtons": {
-      "cancelLabel": "Отменить"
+      "cancelLabel": "Отмена"
     },
     "documentPreview": {
       "loadErrorText": "Не удалось загрузить документ.",
@@ -247,7 +247,7 @@
       "unavailableText": "Документ недоступен"
     },
     "editableActions": {
-      "cancelLabel": "Отменить"
+      "cancelLabel": "Отмена"
     },
     "editableEntrepreneurCard": {
       "addressLabel": "Адрес регистрации",
@@ -427,7 +427,7 @@
       "resetLabel": "Сбросить"
     },
     "form": {
-      "cancelLabel": "Отменить",
+      "cancelLabel": "Отмена",
       "continueLabel": "Продолжить"
     },
     "formatPaymentMethod": {

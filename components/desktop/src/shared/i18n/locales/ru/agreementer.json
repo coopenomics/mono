@@ -11,7 +11,7 @@
       "loggedOutLabel": "На главную"
     },
     "readAgreementDialog": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "loadingText": "Загружаем документ..."
     },
     "signAgreementDialog": {
@@ -23,7 +23,7 @@
       "titleModify": "Прочитайте и подпишите обновлённый документ"
     },
     "staticPrivacyDialog": {
-      "cancel": "Отменить"
+      "cancel": "Отмена"
     },
     "staticPrivacyPolicy": {
       "loadError": "Не удалось загрузить текст политики конфиденциальности",

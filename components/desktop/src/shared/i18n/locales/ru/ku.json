@@ -133,7 +133,7 @@
       "startAddressPlaceholder": "город, улица, дом",
       "startBranchNameLabel": "Наименование кооперативного участка",
       "startBranchNamePlaceholder": "например: РОМАШКА",
-      "startCancelButton": "Отменить",
+      "startCancelButton": "Отмена",
       "startChairmanHint": "Избирается собранием из числа присоединившихся участников — только физические лица",
       "startChairmanLabel": "Председатель кооперативного участка",
       "startDialogNotice": "Голосование продлится 15 минут. Участники собрания получат уведомление.",
@@ -173,7 +173,7 @@
       "agendaTitleCreateBranch": "Об организации кооперативного участка{coopSuffix}",
       "agendaTitleElectChairman": "Об избрании председателя кооперативного участка{coopSuffix} и уполномочивании его обратиться в совет",
       "branchEstablishmentTitle": "Учреждение участка",
-      "cancelCreateAction": "Отменить",
+      "cancelCreateAction": "Отмена",
       "column": {
         "branch": "Участок",
         "dateTime": "Дата и время ({timezone})",

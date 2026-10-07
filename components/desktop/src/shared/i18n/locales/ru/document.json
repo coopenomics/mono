@@ -2,7 +2,7 @@
   "document": {
     "chairmanApprovalActions": {
       "awaitingChairman": "Ждёт подписи председателя",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "decline": "Отклонить",
       "declineConfirmText": "Документ «{documentTitle}» вернётся пайщику с причиной отказа.",
       "declineDialogTitle": "Отклонить документ",

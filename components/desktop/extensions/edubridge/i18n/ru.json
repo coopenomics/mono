@@ -36,7 +36,7 @@
       "appointDialogTitle": "Назначить администратора",
       "appointSubmit": "Назначить",
       "appointSuccess": "Администратор назначен",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "columnAdmin": "Администратор",
       "columnAppointedBy": "Назначил",
       "columnSince": "С",
@@ -47,7 +47,7 @@
       "memberLabel": "Пайщик"
     },
     "adminConnectorsPage": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "checkButton": "Проверить",
       "credentialKeepHint": "Задано — оставьте пустым, чтобы не менять",
       "credentialKeepHintWithNote": "{note}. Задано — оставьте пустым, чтобы не менять",
@@ -72,7 +72,7 @@
     },
     "adminContributionsPage": {
       "actSignedSuccess": "Акт подписан — взнос принят в паевой фонд",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "columnAmount": "Сумма",
       "columnDescription": "Взнос",
       "columnStatus": "Состояние",
@@ -102,7 +102,7 @@
     },
     "adminCourseEditPage": {
       "addCourseSubmit": "Добавить курс",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "notFoundBody": "Возможно, курс удалён из реестра.",
       "notFoundTitle": "Курс не найден",
       "step": {
@@ -276,7 +276,7 @@
       "archive": "В архив",
       "archivedBadge": "в архиве",
       "dialog": {
-        "cancel": "Отменить",
+        "cancel": "Отмена",
         "levelTitleLabel": "Название уровня",
         "newLevelTitle": "Новый уровень",
         "newSectionTitle": "Новый раздел",
@@ -317,7 +317,7 @@
         "submit": "Назначить"
       },
       "backToRegistry": "К списку преподавателей",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "cardFallbackTitle": "Преподаватель",
       "column": {
         "assignments": "Курсы",
@@ -491,7 +491,7 @@
     },
     "courseForm": {
       "addTeacherLabel": "Назначить преподавателя",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "carrierLabel": "Носитель доступа",
       "courseDiscountLabel": "Скидка за взнос разом, %",
       "coursePaymentCheckbox": "Принимать взнос за весь курс разом",
@@ -666,7 +666,7 @@
       }
     },
     "guaranteeClaim": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "claimNumber": "Заявление № ЗАП-{number}",
       "dialogTitle": "Возврат по гарантии",
       "linksHint": "По одной ссылке на строку",
@@ -685,7 +685,7 @@
       "until": "Гарантийный срок до {date}"
     },
     "learnerForm": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "createdSuccess": "Обучающийся добавлен",
       "displayNameLabel": "Имя",
       "recipientLabel": {
@@ -716,7 +716,7 @@
       "offerTitle": "офертой ученика по ЦПП «Образование»"
     },
     "memberSubscriptionsPage": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "cancelDialog": {
         "lessonsUsedLabel": "Занятий прошло",
         "lessonsUsedValue": "{lessonsUsed} из {lessonsPaid}",
@@ -773,7 +773,7 @@
     "subscribeDialog": {
       "addLearnerAriaLabel": "Добавить обучающегося",
       "availableShareLabel": "Доступно паевого в главном кошельке",
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "courseDiscountMeta": "за {months} · меньше на {discount}",
       "courseLabel": "Курс",
       "courseTotalMeta": "за {months} — {amount}",
@@ -814,7 +814,7 @@
       "syllabusTitle": "Учебная программа"
     },
     "teacherLessonsPage": {
-      "cancel": "Отменить",
+      "cancel": "Отмена",
       "column": {
         "amount": "Взнос",
         "heldAt": "Проведено",

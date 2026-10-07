@@ -1,7 +1,7 @@
 {
   "extension": {
     "cancelButton": {
-      "label": "Отменить"
+      "label": "Отмена"
     },
     "disableButton": {
       "disableError": "Ошибка отключения расширения: {errorMessage}",

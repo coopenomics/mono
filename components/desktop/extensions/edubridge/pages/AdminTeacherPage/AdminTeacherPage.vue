@@ -22,7 +22,7 @@ import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { BackLink } from '../../shared/ui/BackLink';
+import { BackLink } from 'src/shared/ui/domain';
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 import { TeacherCard } from '../../widgets/TeacherCard';
 import { EduLive } from '../../shared/lib/live';

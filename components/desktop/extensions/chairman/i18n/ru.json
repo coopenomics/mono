@@ -69,13 +69,13 @@
     },
     "confirmApprovalButton": {
       "approveLabel": "Одобрить",
-      "cancelLabel": "Отменить",
+      "cancelLabel": "Отмена",
       "confirmText": "Вы уверены, что хотите одобрить документ?",
       "successMessage": "Одобрение подтверждено",
       "title": "Подтверждение одобрения"
     },
     "declineApprovalButton": {
-      "cancelLabel": "Отменить",
+      "cancelLabel": "Отмена",
       "confirmText": "Вы уверены, что хотите отклонить одобрение?",
       "declineLabel": "Отклонить",
       "errorMessage": "Возникла ошибка: {message}",
@@ -189,7 +189,7 @@
       "title": "Адаптируйте кооператив к работе на платформе"
     },
     "paymentProviderForm": {
-      "cancelLabel": "Отменить",
+      "cancelLabel": "Отмена",
       "providerLabel": "Провайдер входящих платежей",
       "providerPlaceholder": "Выберите провайдера",
       "qrProviderHint": "Пайщик получает реквизиты для оплаты по QR-коду, который можно отсканировать любым банковским приложением. Обработка платежей производится вручную в разделе \"Реестр платежей\" кассиром.",
