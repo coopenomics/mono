@@ -87,7 +87,22 @@ namespace operations {
     inline constexpr eosio::name WITHDRAW_FROM_CAPITAL = "o.cap.wthcap"_n; ///< Возврат паевого из ЦПП «Благорост» в кошелёк пайщика (TRANSFER BLAGOROST_FUND → SHARE_FUND_PAY, без Dr/Cr).
     inline constexpr eosio::name CONVERT_TO_SHARE    = "o.cap.cnvshr"_n;   ///< Конвертация сегмента: РИД → главный кошелёк (TRANSFER GENERATOR_FUND → SHARE_FUND_PAY, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
     inline constexpr eosio::name CONVERT_TO_BLAGO    = "o.cap.cnvbl"_n;    ///< Конвертация сегмента: РИД → ЦПП «Благорост» (TRANSFER GENERATOR_FUND → BLAGOROST_FUND, без Dr/Cr — бухпроводка уже была сделана в ACCEPT_RID).
+    inline constexpr eosio::name PLEDGE              = "o.cap.pledge"_n;   ///< Обеспечение займа паевым взносом: TRANSFER BLAGOROST_FUND → LOAN_PLEDGE, без Dr/Cr (паевой остаётся на 80).
+    inline constexpr eosio::name UNPLEDGE            = "o.cap.unpldg"_n;   ///< Возврат обеспечения в программу: TRANSFER LOAN_PLEDGE → BLAGOROST_FUND, без Dr/Cr.
+    inline constexpr eosio::name SEIZE               = "o.cap.seize"_n;    ///< Обращение обеспечения в пользу кооператива при невозврате (BURN LOAN_PLEDGE, Dr 80 / Cr 58).
     inline constexpr eosio::name PROGRAM_EXPENSE_TOPUP = "o.cap.pgtop"_n; ///< Пополнение пула программных расходов из инвестиций программы (ISSUE PROGRAM_EXPENSE_POOL, без Dr/Cr — деньги уже на 51, выделяется кооперативный резерв под расходы; паевые L3-кошельки пайщиков не трогаются).
+  }
+
+  // debt — беспроцентные займы (компонент 73): выдача через транзитный кошелёк
+  // «к выдаче» и возврат с главного кошелька пайщика. Одна операция двигает один
+  // кошелёк, поэтому возврат и списание складываются из пары операций:
+  // REPAY/SEIZE делают проводку, CLOSE закрывает выданный заём без проводки.
+  namespace debt {
+    inline constexpr eosio::name ACCRUE  = "o.dbt.accrue"_n; ///< Начисление займа к выдаче по подписанному договору (ISSUE LOAN_PENDING, Dr 58 / Cr 76).
+    inline constexpr eosio::name LEND    = "o.dbt.lend"_n;   ///< Выплата займа кассиром (TRANSFER LOAN_PENDING → LOAN_ISSUED, Dr 76 / Cr 51).
+    inline constexpr eosio::name CANCEL  = "o.dbt.cancel"_n; ///< Отмена выдачи до выплаты (BURN LOAN_PENDING, Dr 76 / Cr 58 — обратная запись).
+    inline constexpr eosio::name REPAY   = "o.dbt.repay"_n;  ///< Возврат займа с главного кошелька пайщика (BURN SHARE_FUND_PAY, Dr 80 / Cr 58).
+    inline constexpr eosio::name CLOSE   = "o.dbt.wroff"_n;  ///< Закрытие выданного займа на сумму возврата или списания (BURN LOAN_ISSUED, без Dr/Cr — проводка у парной операции).
   }
 
   // marketplace — паевая модель «Стола заказов» (компонент 68, решение 06.09.2026).
@@ -369,6 +384,53 @@ static constexpr OperationRegistryEntry OPERATION_REGISTRY[] = {
     ledger2_wallets::LOAN_ISSUED, ledger2_wallets::SHARE_FUND_PAY,
     ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
     "Возврат беспроцентного займа пайщика по акту-2" },
+
+  // 11а. Обеспечение займа паевым взносом «Благорост»: TRANSFER BLAGOROST_FUND → LOAN_PLEDGE, без Dr/Cr
+  { operations::capital::PLEDGE, processes::debt::LOAN, WalletOp::TRANSFER,
+    ledger2_wallets::BLAGOROST_FUND, ledger2_wallets::LOAN_PLEDGE,
+    0, 0,
+    "Обеспечение беспроцентного займа паевым взносом в ЦПП «Благорост»" },
+
+  // 11б. Возврат обеспечения в программу: TRANSFER LOAN_PLEDGE → BLAGOROST_FUND, без Dr/Cr
+  { operations::capital::UNPLEDGE, processes::debt::LOAN, WalletOp::TRANSFER,
+    ledger2_wallets::LOAN_PLEDGE, ledger2_wallets::BLAGOROST_FUND,
+    0, 0,
+    "Возврат обеспечения беспроцентного займа в ЦПП «Благорост»" },
+
+  // 11в. Обращение обеспечения в пользу кооператива: BURN LOAN_PLEDGE, Dr 80 / Cr 58
+  { operations::capital::SEIZE, processes::debt::LOAN, WalletOp::BURN,
+    ledger2_wallets::LOAN_PLEDGE, eosio::name{},
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
+    "Обращение обеспечения беспроцентного займа в пользу кооператива" },
+
+  // 11г. Беспроцентный заём к выдаче: ISSUE LOAN_PENDING, Dr 58 / Cr 76
+  { operations::debt::ACCRUE, processes::debt::LOAN, WalletOp::ISSUE, eosio::name{}, ledger2_wallets::LOAN_PENDING,
+    ledger2_accounts::FINANCIAL_INVESTMENTS, ledger2_accounts::OTHER_SETTLEMENTS,
+    "Начисление беспроцентного займа к выдаче" },
+
+  // 11д. Выплата займа кассиром: TRANSFER LOAN_PENDING → LOAN_ISSUED, Dr 76 / Cr 51
+  { operations::debt::LEND, processes::debt::LOAN, WalletOp::TRANSFER,
+    ledger2_wallets::LOAN_PENDING, ledger2_wallets::LOAN_ISSUED,
+    ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::BANK_ACCOUNT,
+    "Выдача беспроцентного займа пайщику" },
+
+  // 11е. Отмена выдачи до выплаты: BURN LOAN_PENDING, Dr 76 / Cr 58
+  { operations::debt::CANCEL, processes::debt::LOAN, WalletOp::BURN,
+    ledger2_wallets::LOAN_PENDING, eosio::name{},
+    ledger2_accounts::OTHER_SETTLEMENTS, ledger2_accounts::FINANCIAL_INVESTMENTS,
+    "Отмена выдачи беспроцентного займа" },
+
+  // 11ж. Возврат займа с главного кошелька: BURN SHARE_FUND_PAY, Dr 80 / Cr 58
+  { operations::debt::REPAY, processes::debt::LOAN, WalletOp::BURN,
+    ledger2_wallets::SHARE_FUND_PAY, eosio::name{},
+    ledger2_accounts::SHARE_FUND, ledger2_accounts::FINANCIAL_INVESTMENTS,
+    "Возврат беспроцентного займа с главного кошелька пайщика" },
+
+  // 11з. Закрытие выданного займа: BURN LOAN_ISSUED, без Dr/Cr (проводка у REPAY или SEIZE)
+  { operations::debt::CLOSE, processes::debt::LOAN, WalletOp::BURN,
+    ledger2_wallets::LOAN_ISSUED, eosio::name{},
+    0, 0,
+    "Закрытие беспроцентного займа" },
 
   // 12a. p.mkt.supply: Паевой резерв под Order (TRANSFER w.wal.share → w.mkt.order,
   //      без Dr/Cr — оба кошелька на 80). Единственный обязательный шаг ledger2

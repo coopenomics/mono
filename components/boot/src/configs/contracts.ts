@@ -114,9 +114,9 @@ export default [
     target: 'wallet',
   },
   {
-    name: 'loan',
-    path: path.join(userBase, 'loan'),
-    target: 'loan',
+    name: 'debt',
+    path: path.join(userBase, 'debt'),
+    target: 'debt',
   },
   {
     name: 'meet',

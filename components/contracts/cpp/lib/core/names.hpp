@@ -82,9 +82,23 @@ namespace Names {
     constexpr eosio::name ON_BRANCH_EXPENSE_DONE = "onexpdone"_n;
   }
 
-  namespace Loan {
-    constexpr eosio::name CREATE_DEBT = "createdebt"_n;
-    constexpr eosio::name SETTLE_DEBT = "settledebt"_n;
+  namespace Debt {
+    // Действия контракта debt, которые зовут другие контракты
+    constexpr eosio::name REGISTER_LOAN = "regloan"_n;   // запись о займе, выданном другим приложением
+    constexpr eosio::name SETTLE_LOAN   = "settleloan"_n; // погашение такого займа (целиком или частью)
+    constexpr eosio::name WRITEOFF_LOAN = "wroffloan"_n;  // закрытие такого займа без денег
+    // Обратные вызовы совета и шлюза в контракт debt
+    constexpr eosio::name ON_AUTHORIZED   = "loanauth"_n;    // совет разрешил выдачу
+    constexpr eosio::name ON_DECLINED     = "loandecl"_n;    // совет отказал
+    constexpr eosio::name ON_SIGNED       = "loansigned"_n;  // председатель подписал договор
+    constexpr eosio::name ON_SIGN_DECLINE = "loansgndecl"_n; // председатель отказался подписывать
+    constexpr eosio::name ON_PAID         = "loanpaid"_n;    // кассир выплатил
+    constexpr eosio::name ON_PAY_DECLINE  = "loanpaydecl"_n; // платёж не прошёл по реквизитам
+    constexpr eosio::name ON_EXTEND_OK    = "loanextok"_n;   // председатель подтвердил продление срока
+    constexpr eosio::name ON_EXTEND_DECL  = "loanextdecl"_n; // председатель отказал в продлении
+    // Типы запросов одобрения (подпись председателя)
+    constexpr eosio::name SIGN_CONTRACT = "signloan"_n;
+    constexpr eosio::name EXTEND_TERM   = "extendloan"_n;
   }
   
   namespace External {

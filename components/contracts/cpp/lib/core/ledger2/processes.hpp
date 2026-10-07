@@ -70,6 +70,11 @@ namespace processes {
     inline constexpr eosio::name PGEXP     = "p.cap.pgexp"_n;    ///< Пул программных расходов: пополнение из инвестиций программы (o.cap.pgtop, одноактовый).
   }
 
+  // debt
+  namespace debt {
+    inline constexpr eosio::name LOAN      = "p.dbt.loan"_n;     ///< Беспроцентный заём пайщику: обеспечение, начисление к выдаче, выплата, возврат, списание.
+  }
+
   // marketplace
   namespace marketplace {
     inline constexpr eosio::name SUPPLY    = "p.mkt.supply"_n;   ///< Прямая поставка-приобретение имущества (5 операций: o.mkt.lock + o.mkt.unlock + o.mkt.purch + o.mkt.payout + o.mkt.consum).
@@ -128,6 +133,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   capital::IMPORT,       capital::INVEST,      capital::DEBT,
   capital::RID,          capital::PROPERTY,    capital::PREIMP,
   capital::WTHCAP,       capital::PGEXP,
+  debt::LOAN,
   marketplace::SUPPLY,   marketplace::RETURN,  marketplace::WRITEOFF, marketplace::CLAIM,
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,

@@ -107,7 +107,7 @@ static const std::set<eosio::name> soviet_actions = {
     //CAPITAL
     "capitalinvst"_n, //заявление на инвестиции по договору УХД
     "createresult"_n, //клайм прироста благороста из задания
-    "createdebt"_n, //взять ссуду под залог будущего задания
+    "createdebt"_n, //заявление на беспроцентный заём (Генерация — под коммиты, debt — под паевой взнос)
     "capresexpns"_n, //произвести выплату по расходам задания
     "capwthdrprog"_n, //произвести возврат накопленных членских взносов по программе на капиталиста
     "capwthdrproj"_n, //произвести возврат накопленных членских взносов по проекту на актора
@@ -154,7 +154,7 @@ static constexpr uint64_t _capital_program_id = 4;
 #define BRANCH "branch"
 #define CAPITAL "capital"
 #define WALLET "wallet"
-#define LOAN "loan"
+#define DEBT_CONTRACT "debt"
 #define MEET "meet"
 #define LEDGER "ledger"
 #define LEDGER2 "ledger2"
@@ -179,7 +179,7 @@ static constexpr uint64_t _capital_program_id = 4;
     static constexpr eosio::name _system = "eosio"_n;
     static constexpr eosio::name _fund = "fund"_n;
     static constexpr eosio::name _branch = "branch"_n;
-    static constexpr eosio::name _loan = "loan"_n;
+    static constexpr eosio::name _debt = "debt"_n;
     static constexpr eosio::name _meet = "meet"_n;
     static constexpr eosio::name _ledger = "ledger"_n;
     static constexpr eosio::name _ledger2 = "ledger2"_n;
@@ -202,7 +202,7 @@ static constexpr uint64_t _capital_program_id = 4;
         "branch"_n,
         "wallet"_n,
         "meet"_n,
-        "loan"_n,
+        "debt"_n,
         "test"_n,
         "contributor"_n,
         "eosio.token"_n,

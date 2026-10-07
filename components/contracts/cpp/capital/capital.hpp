@@ -267,6 +267,9 @@ public:
     // Членские взносы
     [[eosio::action]] void fundprog(eosio::name coopname, asset amount, std::string memo);
     [[eosio::action]] void refreshprog(name coopname, name username);
+
+    /// Согласование обеспечения займа паевым взносом «Благорост» по запросу контракта займов: проверка договора об участии и пересчёт начислений.
+    [[eosio::action]] void pledgesync(eosio::name coopname, eosio::name username);
     
     // Возврат из программы
     [[eosio::action]]

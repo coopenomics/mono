@@ -96,6 +96,7 @@
 #include "app/debt_managment/create_debt/debtpaydcln.cpp"
 #include "app/debt_managment/create_debt/declinedebt.cpp"
 #include "app/debt_managment/settle_debt/settledebt.cpp"
+#include "app/debt_managment/pledge/pledgesync.cpp"
 
 // Управление программными расходами через шасси expense.
 // capital — инициатор + получатель callback, шасси обслуживает весь flow.

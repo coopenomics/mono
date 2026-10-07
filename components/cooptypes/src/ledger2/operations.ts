@@ -108,9 +108,9 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
 
   { code: 'o.cap.drppre', process_type: 'p.cap.import', contract: 'capital', name: 'DROP_PREIMP', wallet_op: 'BURN', wallet_from: 'w.cap.preimp', wallet_to: null, debit: 80, credit: 4, human_name: 'Закрытие пред-импорт-учёта РИД-взноса при переходе на электронный учёт' },
 
-  { code: 'o.cap.lend', process_type: 'p.cap.debt', contract: 'capital', name: 'LEND', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.loan', debit: 58, credit: 51, human_name: 'Выдача пайщику беспроцентного займа' },
+  { code: 'o.cap.lend', process_type: 'p.cap.debt', contract: 'capital', name: 'LEND', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.dbt.issued', debit: 58, credit: 51, human_name: 'Выдача пайщику беспроцентного займа' },
 
-  { code: 'o.cap.repay', process_type: 'p.cap.rid', contract: 'capital', name: 'REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.cap.loan', wallet_to: 'w.wal.share', debit: 80, credit: 58, human_name: 'Возврат беспроцентного займа пайщика по акту-2' },
+  { code: 'o.cap.repay', process_type: 'p.cap.rid', contract: 'capital', name: 'REPAY', wallet_op: 'TRANSFER', wallet_from: 'w.dbt.issued', wallet_to: 'w.wal.share', debit: 80, credit: 58, human_name: 'Возврат беспроцентного займа пайщика по акту-2' },
 
   { code: 'o.cap.wthcap', process_type: 'p.cap.wthcap', contract: 'capital', name: 'WITHDRAW_FROM_CAPITAL', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.wal.share', debit: null, credit: null, human_name: 'Возврат паевого из ЦПП «Благорост» в Цифровой Кошелёк' },
 
@@ -122,6 +122,23 @@ export const LEDGER2_OPERATION_REGISTRY: readonly OperationMeta[] = [
     name: 'PROGRAM_EXPENSE_TOPUP', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.cap.pgexp',
     debit: null, credit: null,
     human_name: 'Пополнение пула программных расходов ЦПП «Благорост»' },
+
+  { code: 'o.cap.pledge', process_type: 'p.dbt.loan', contract: 'capital', name: 'PLEDGE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.blago', wallet_to: 'w.cap.pledge', debit: null, credit: null, human_name: 'Обеспечение беспроцентного займа паевым взносом в ЦПП «Благорост»' },
+
+  { code: 'o.cap.unpldg', process_type: 'p.dbt.loan', contract: 'capital', name: 'UNPLEDGE', wallet_op: 'TRANSFER', wallet_from: 'w.cap.pledge', wallet_to: 'w.cap.blago', debit: null, credit: null, human_name: 'Возврат обеспечения беспроцентного займа в ЦПП «Благорост»' },
+
+  { code: 'o.cap.seize', process_type: 'p.dbt.loan', contract: 'capital', name: 'SEIZE', wallet_op: 'BURN', wallet_from: 'w.cap.pledge', wallet_to: null, debit: 80, credit: 58, human_name: 'Обращение обеспечения беспроцентного займа в пользу кооператива' },
+
+  // debt — беспроцентные займы (компонент 73)
+  { code: 'o.dbt.accrue', process_type: 'p.dbt.loan', contract: 'debt', name: 'ACCRUE', wallet_op: 'ISSUE', wallet_from: null, wallet_to: 'w.dbt.pend', debit: 58, credit: 76, human_name: 'Начисление беспроцентного займа к выдаче' },
+
+  { code: 'o.dbt.lend', process_type: 'p.dbt.loan', contract: 'debt', name: 'LEND', wallet_op: 'TRANSFER', wallet_from: 'w.dbt.pend', wallet_to: 'w.dbt.issued', debit: 76, credit: 51, human_name: 'Выдача беспроцентного займа пайщику' },
+
+  { code: 'o.dbt.cancel', process_type: 'p.dbt.loan', contract: 'debt', name: 'CANCEL', wallet_op: 'BURN', wallet_from: 'w.dbt.pend', wallet_to: null, debit: 76, credit: 58, human_name: 'Отмена выдачи беспроцентного займа' },
+
+  { code: 'o.dbt.repay', process_type: 'p.dbt.loan', contract: 'debt', name: 'REPAY', wallet_op: 'BURN', wallet_from: 'w.wal.share', wallet_to: null, debit: 80, credit: 58, human_name: 'Возврат беспроцентного займа с главного кошелька пайщика' },
+
+  { code: 'o.dbt.wroff', process_type: 'p.dbt.loan', contract: 'debt', name: 'CLOSE', wallet_op: 'BURN', wallet_from: 'w.dbt.issued', wallet_to: null, debit: null, credit: null, human_name: 'Закрытие беспроцентного займа' },
 
   // expense — шасси расходов (оплата СЗ из кооперативного пула расходов)
   { code: 'o.exp.blgadv',  process_type: 'p.exp.expns', contract: 'expense',

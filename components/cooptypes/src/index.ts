@@ -13,5 +13,6 @@
 export * as _Common from './common'
 export * from './contracts'
 export * as Cooperative from './cooperative'
+export * as Debt from './debt'
 export * as Interfaces from './interfaces'
 export * as Ledger2 from './ledger2'

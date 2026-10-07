@@ -99,8 +99,8 @@ export default {
       code_permissions_to: ['capital'],
     },
     {
-      name: 'loan',
-      code_permissions_to: ['loan'],
+      name: 'debt',
+      code_permissions_to: ['debt'],
     },
     {
       name: 'ledger',

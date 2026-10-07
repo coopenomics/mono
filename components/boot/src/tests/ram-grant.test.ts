@@ -101,7 +101,7 @@ describe('автопополнение памяти контрактов', () =>
     // На стенде квоты контрактов не ограничены, а неограниченному контракту
     // выдавать нечего. Берём контракт, который почти не пишет, и ограничиваем
     // его квоту чуть выше занятого — так он заведомо выше порога.
-    const target = 'loan'
+    const target = 'debt'
     const used = await readUsage(target)
     await setLimits(target, used + 20_000)
     await setGrant(70, 1, [target])
@@ -114,7 +114,7 @@ describe('автопополнение памяти контрактов', () =>
   })
 
   it('до срока следующей проверки заявка ничего не выдаёт', async () => {
-    const target = 'loan'
+    const target = 'debt'
     await setGrant(1, 3600, [target])
     await new Promise(resolve => setTimeout(resolve, 1500))
     await ramreq(target) // срок из прошлого теста вышел — эта заявка проходит и ставит срок на час

@@ -1,0 +1,517 @@
+# ──────────────────────────────────────────────────────────────────
+# Стандарт «Беспроцентный заём пайщику» — кооператив выдаёт пайщику
+# беспроцентный заём под обеспечение его паевым взносом в целевой программе
+# и получает его обратно деньгами, а при невозврате — обращает обеспечение.
+#
+# Контракт займов ведёт единый реестр: сюда же попадают займы, которые
+# выдают другие приложения кооператива (Генерация в «Благоросте»).
+# ──────────────────────────────────────────────────────────────────
+
+# ── Секция 1. Паспорт ───────────────────────────────────────────────────────
+process_type: p.dbt.loan
+id: public_debt_loan_process
+title: Беспроцентный заём пайщику
+slug: loan
+status: proposed
+contract: debt
+purpose: >
+  Пайщик получает от кооператива беспроцентный заём под обеспечение своим
+  паевым взносом в целевой программе: с подписью заявления и договора сумма
+  обеспечения переходит на кошелёк обеспечения и в программе больше не
+  участвует. Совет принимает решение, председатель подписывает договор,
+  кассир выплачивает деньги. Заём возвращается с главного кошелька пайщика
+  целиком или частями, обеспечение возвращается в программу на ту же сумму.
+  Если срок прошёл и за пять дней расчёт не состоялся, обеспечение переходит
+  кооперативу и заём закрывается.
+roles:
+  - member
+  - soviet
+  - chairman
+  - gateway_operator
+
+# ── Секция 2. Действия контракта ────────────────────────────────────────────
+actions:
+  - name: debt::createloan
+    human: Подать заявление
+    actor: Пайщик
+    role: opener
+    purpose: >
+      Пайщик выбирает программу, паевой взнос в которой станет обеспечением,
+      сумму и срок возврата, подписывает заявление и договор о беспроцентном
+      займе. Кооператив проверяет, что пайщик состоит в программе по
+      подписанному договору об участии и что средств в программе хватает,
+      переводит сумму обеспечения на кошелёк обеспечения и передаёт заявление
+      в совет.
+    links:
+      - process_type: sov.authpkg
+        label: Решение совета
+  - name: debt::loanauth
+    human: Разрешить выдачу
+    actor: Совет
+    role: progress
+    purpose: >
+      Совет принял положительное решение. Решение сохраняется в займе, договор
+      с подписью пайщика поступает председателю на подпись.
+  - name: debt::loandecl
+    human: Отказать
+    actor: Совет
+    role: closer
+    purpose: >
+      Совет отказал. Обеспечение возвращается пайщику в программу, запись о
+      займе закрывается.
+  - name: debt::loansigned
+    human: Подписать договор
+    actor: Председатель
+    role: progress
+    purpose: >
+      Председатель подписал договор. Сумма займа начислена пайщику к выдаче,
+      платёж передан кассиру с назначением «заём по договору № …».
+  - name: debt::loansgndecl
+    human: Отказать в подписи
+    actor: Председатель
+    role: closer
+    purpose: >
+      Председатель отказался подписывать договор. Обеспечение возвращается
+      пайщику в программу, запись о займе закрывается.
+  - name: debt::loanpaid
+    human: Подтвердить выплату
+    actor: Кассир
+    role: progress
+    purpose: >
+      Кассир подтвердил перечисление денег пайщику. Заём выдан, идёт срок
+      возврата, общий долг пайщика увеличен на сумму займа.
+  - name: debt::loanpaydecl
+    human: Отклонить платёж
+    actor: Кассир
+    role: progress
+    purpose: >
+      Платёж не прошёл по реквизитам. Решение совета и подпись председателя
+      остаются в силе, причина сохраняется, заём ждёт повторной отправки.
+  - name: debt::retrypay
+    human: Повторить платёж
+    actor: Кооператив
+    role: progress
+    purpose: >
+      После отказа по реквизитам платёж отправляется кассиру повторно тем же
+      решением — новое заседание и новая подпись не нужны.
+  - name: debt::cancelloan
+    human: Отменить выдачу
+    actor: Кооператив
+    role: closer
+    purpose: >
+      Выдача отменяется до выплаты: обеспечение возвращается в программу,
+      начисление к выдаче снимается, запись закрывается. Платёж, уже
+      переданный кассиру, отменяет кассир.
+  - name: debt::repayloan
+    human: Вернуть заём
+    actor: Пайщик
+    role: progress
+    purpose: >
+      Пайщик возвращает заём с главного кошелька по заявлению — досрочно,
+      целиком или частью. Остаток уменьшается, обеспечение на ту же сумму
+      возвращается в программу. При нулевом остатке заём закрыт.
+  - name: debt::extendloan
+    human: Продлить срок
+    actor: Пайщик
+    role: progress
+    purpose: >
+      Пайщик подаёт заявление о новом сроке возврата. Срок меняется после
+      подтверждения председателем.
+  - name: debt::loanextok
+    human: Подтвердить продление
+    actor: Председатель
+    role: progress
+    purpose: >
+      Председатель подтвердил новый срок. Заём в просрочке возвращается в
+      выданные.
+  - name: debt::loanextdecl
+    human: Отказать в продлении
+    actor: Председатель
+    role: progress
+    purpose: >
+      Председатель отказал в продлении, срок остаётся прежним.
+  - name: debt::sweep
+    human: Сверить сроки
+    actor: Кооператив
+    role: progress
+    purpose: >
+      Ежедневная сверка. Выданный заём с прошедшим сроком переходит в
+      просрочку, пайщик получает уведомление. Заём, пробывший в просрочке пять
+      дней, закрывается: обеспечение переходит кооперативу. За один вызов
+      обрабатывается не больше 25 займов.
+  - name: debt::regloan
+    human: Зарегистрировать заём приложения
+    actor: Приложение кооператива
+    role: opener
+    purpose: >
+      Приложение, которое выдало заём своими средствами (Генерация в
+      «Благоросте»), записывает его в общий реестр выданным: пайщик, сумма,
+      срок, источник. Обеспечение остаётся у приложения.
+  - name: debt::settleloan
+    human: Погасить заём приложения
+    actor: Приложение кооператива
+    role: progress
+    purpose: >
+      Приложение сообщило о погашении своего займа на сумму. Остаток
+      уменьшается, при нуле запись закрывается.
+  - name: debt::wroffloan
+    human: Закрыть заём приложения
+    actor: Приложение кооператива
+    role: closer
+    purpose: >
+      Приложение обратило своё обеспечение и закрыло заём без денег. В реестре
+      заём закрывается, общий долг пайщика уменьшается на остаток.
+
+# ── Секция 3. Граф состояний ────────────────────────────────────────────────
+entity: debt::debt
+entity_human: Заём
+
+states:
+  - name: created
+    human: Заявление подано
+    description: >
+      Заявление и договор подписаны пайщиком, обеспечение переведено на
+      кошелёк обеспечения и в программе не участвует. Заявление на
+      рассмотрении совета.
+    kind: normal
+  - name: authorized
+    human: Разрешён советом
+    description: >
+      Совет разрешил выдачу. Договор ждёт подписи председателя.
+    kind: normal
+  - name: paying
+    human: Передан на выплату
+    description: >
+      Договор подписан председателем, сумма начислена к выдаче, платёж у
+      кассира.
+    kind: normal
+  - name: signed
+    human: Платёж не прошёл
+    description: >
+      Кассир отклонил платёж по реквизитам. Решение и подпись в силе, заём
+      ждёт повторной отправки платежа или отмены.
+    kind: normal
+  - name: issued
+    human: Выдан
+    description: >
+      Деньги у пайщика, идёт срок возврата. Заём возвращается с главного
+      кошелька целиком или частями, срок можно продлить.
+    kind: normal
+  - name: overdue
+    human: Просрочен
+    description: >
+      Срок возврата прошёл. Пять дней на расчёт; затем обеспечение переходит
+      кооперативу и заём закрывается.
+    kind: normal
+  - name: settled
+    human: Возвращён
+    description: >
+      Остаток долга нулевой, обеспечение возвращено в программу. Запись о
+      займе удалена, история — в выписке.
+    kind: final
+  - name: writeoff
+    human: Закрыт обеспечением
+    description: >
+      Обеспечение перешло кооперативу, заём закрыт. Запись удалена, история —
+      в выписке.
+    kind: final
+  - name: declined
+    human: Отклонён
+    description: >
+      Выдача не состоялась: совет или председатель отказали либо кооператив
+      отменил выдачу. Обеспечение возвращено пайщику в программу.
+    kind: final
+
+transitions:
+  - from: "∅"
+    to: created
+    action: debt::createloan
+    actor: Пайщик
+    guards:
+      - Обеспечение из реестра обеспечения.
+      - Пайщик состоит в программе по подписанному договору об участии.
+      - Средств пайщика в программе хватает на сумму займа.
+      - Срок возврата в будущем.
+  - from: created
+    to: authorized
+    action: debt::loanauth
+    actor: Совет
+  - from: created
+    to: declined
+    action: debt::loandecl
+    actor: Совет
+  - from: authorized
+    to: paying
+    action: debt::loansigned
+    actor: Председатель
+    guards:
+      - Подписан тот же договор, что подписал пайщик.
+  - from: authorized
+    to: declined
+    action: debt::loansgndecl
+    actor: Председатель
+  - from: paying
+    to: issued
+    action: debt::loanpaid
+    actor: Кассир
+  - from: paying
+    to: signed
+    action: debt::loanpaydecl
+    actor: Кассир
+  - from: signed
+    to: paying
+    action: debt::retrypay
+    actor: Кооператив
+  - from: created
+    to: declined
+    action: debt::cancelloan
+    actor: Кооператив
+  - from: authorized
+    to: declined
+    action: debt::cancelloan
+    actor: Кооператив
+  - from: signed
+    to: declined
+    action: debt::cancelloan
+    actor: Кооператив
+  - from: issued
+    to: issued
+    action: debt::repayloan
+    actor: Пайщик
+    guards:
+      - Сумма не больше остатка займа и свободного на главном кошельке.
+  - from: issued
+    to: settled
+    action: debt::repayloan
+    actor: Пайщик
+    guards:
+      - Возвращён весь остаток.
+  - from: overdue
+    to: settled
+    action: debt::repayloan
+    actor: Пайщик
+  - from: issued
+    to: overdue
+    action: debt::sweep
+    actor: Кооператив
+    guards:
+      - Срок возврата прошёл.
+  - from: overdue
+    to: issued
+    action: debt::loanextok
+    actor: Председатель
+  - from: overdue
+    to: writeoff
+    action: debt::sweep
+    actor: Кооператив
+    guards:
+      - В просрочке пять дней и больше.
+  - from: "∅"
+    to: issued
+    action: debt::regloan
+    actor: Приложение кооператива
+  - from: issued
+    to: settled
+    action: debt::settleloan
+    actor: Приложение кооператива
+  - from: issued
+    to: writeoff
+    action: debt::wroffloan
+    actor: Приложение кооператива
+
+# ── Секция 4. Документы ─────────────────────────────────────────────────────
+documents:
+  - action: debt::createloan
+    title: Заявление на получение займа
+    registry_id: 1050
+    signed_by: [ Пайщик ]
+    stored_in: debts.statement
+    note: Шаблон переписывается в задаче 367-2 (выбор обеспечения, переменное основание).
+  - action: debt::createloan
+    title: Договор о беспроцентном займе под обеспечение паевым взносом
+    registry_id: 0
+    signed_by: [ Пайщик ]
+    stored_in: debts.contract
+    note: "TODO: создать шаблон в cooptypes/cooperative/registry/1053.LoanContractShare + factory/src/Templates/1053.LoanContractShare (задача 367-2)."
+  - action: debt::loanauth
+    title: Решение совета о предоставлении займа
+    registry_id: 1051
+    signed_by: [ Совет ]
+    stored_in: debts.decision
+  - action: debt::loansigned
+    title: Договор о беспроцентном займе под обеспечение паевым взносом
+    registry_id: 0
+    signed_by: [ Пайщик, Председатель ]
+    stored_in: debts.signed_contract
+    note: Тот же договор, что подписал пайщик, со второй подписью председателя.
+  - action: debt::repayloan
+    title: Заявление о возврате займа
+    registry_id: 0
+    signed_by: [ Пайщик ]
+    stored_in: null
+    note: Свободная форма; документ остаётся в истории действия, в записи займа не хранится.
+  - action: debt::extendloan
+    title: Заявление о продлении срока займа
+    registry_id: 0
+    signed_by: [ Пайщик ]
+    stored_in: debts.extension_statement
+    note: Свободная форма.
+  - action: debt::loanextok
+    title: Заявление о продлении срока займа
+    registry_id: 0
+    signed_by: [ Пайщик, Председатель ]
+    stored_in: debts.extension_statement
+  - action: debt::regloan
+    title: Заявление на получение займа
+    registry_id: 1050
+    signed_by: [ Пайщик ]
+    stored_in: debts.statement
+    note: Передаёт приложение-источник; у Генерации обеспечение — имущество на ответственном хранении.
+  - action: debt::regloan
+    title: Договор о беспроцентном займе под обеспечение имуществом на ответственном хранении
+    registry_id: 0
+    signed_by: [ Пайщик, Председатель ]
+    stored_in: debts.contract
+    note: "TODO: создать шаблон 1052.LoanContractProperty (задача 367-2)."
+
+# ── Секция 5. Операции (Ledger2) ────────────────────────────────────────────
+operations:
+  - ledger_code: o.cap.pledge
+    human_name: Обеспечение займа паевым взносом
+    wallet_op: TRANSFER
+    debit: null
+    credit: null
+    wallet_from: w.cap.blago
+    wallet_to: w.cap.pledge
+    l3:
+      - user_wallet: w.cap.blago
+        user_ref: debt.username
+        available_delta: -debt.amount
+      - user_wallet: w.cap.pledge
+        user_ref: debt.username
+        available_delta: +debt.amount
+    amount_ref: debt.amount
+    triggered_by: debt::createloan
+    description: >
+      Сумма обеспечения переходит из программы на кошелёк обеспечения
+      пайщика. Паевой взнос остаётся паевым, в распределении программы эти
+      средства больше не участвуют.
+  - ledger_code: o.cap.unpldg
+    human_name: Возврат обеспечения в программу
+    wallet_op: TRANSFER
+    debit: null
+    credit: null
+    wallet_from: w.cap.pledge
+    wallet_to: w.cap.blago
+    l3:
+      - user_wallet: w.cap.pledge
+        user_ref: debt.username
+        available_delta: -amount
+      - user_wallet: w.cap.blago
+        user_ref: debt.username
+        available_delta: +amount
+    amount_ref: amount
+    triggered_by: debt::repayloan
+    description: >
+      Обеспечение возвращается пайщику в программу — на сумму возврата или
+      целиком при отказе и отмене выдачи.
+  - ledger_code: o.dbt.accrue
+    human_name: Начисление займа к выдаче
+    wallet_op: ISSUE
+    debit: 58
+    credit: 76
+    wallet_from: null
+    wallet_to: w.dbt.pend
+    user_wallet: w.dbt.pend
+    user_ref: debt.username
+    available_delta: +debt.amount
+    blocked_delta: null
+    amount_ref: debt.amount
+    triggered_by: debt::loansigned
+    description: >
+      Договор подписан обеими сторонами: у кооператива возникло финансовое
+      вложение и обязательство перечислить заём пайщику.
+  - ledger_code: o.dbt.lend
+    human_name: Выдача займа
+    wallet_op: TRANSFER
+    debit: 76
+    credit: 51
+    wallet_from: w.dbt.pend
+    wallet_to: w.dbt.issued
+    l3:
+      - user_wallet: w.dbt.pend
+        user_ref: debt.username
+        available_delta: -debt.amount
+      - user_wallet: w.dbt.issued
+        user_ref: debt.username
+        available_delta: +debt.amount
+    amount_ref: debt.amount
+    triggered_by: debt::loanpaid
+    description: >
+      Деньги ушли пайщику с расчётного счёта, обязательство выплатить
+      закрыто, заём числится выданным.
+  - ledger_code: o.dbt.cancel
+    human_name: Отмена выдачи
+    wallet_op: BURN
+    debit: 76
+    credit: 58
+    wallet_from: w.dbt.pend
+    wallet_to: null
+    user_wallet: w.dbt.pend
+    user_ref: debt.username
+    available_delta: -debt.amount
+    blocked_delta: null
+    amount_ref: debt.amount
+    triggered_by: debt::cancelloan
+    description: >
+      Выдача отменена до выплаты: начисление к выдаче снимается обратной
+      записью.
+  - ledger_code: o.dbt.repay
+    human_name: Возврат займа с главного кошелька
+    wallet_op: BURN
+    debit: 80
+    credit: 58
+    wallet_from: w.wal.share
+    wallet_to: null
+    user_wallet: w.wal.share
+    user_ref: debt.username
+    available_delta: -amount
+    blocked_delta: null
+    amount_ref: amount
+    triggered_by: debt::repayloan
+    description: >
+      Пайщик возвращает заём своим паевым взносом с главного кошелька:
+      паевой фонд уменьшается, финансовое вложение кооператива закрывается на
+      сумму возврата.
+  - ledger_code: o.dbt.wroff
+    human_name: Закрытие выданного займа
+    wallet_op: BURN
+    debit: null
+    credit: null
+    wallet_from: w.dbt.issued
+    wallet_to: null
+    user_wallet: w.dbt.issued
+    user_ref: debt.username
+    available_delta: -amount
+    blocked_delta: null
+    amount_ref: amount
+    triggered_by: debt::repayloan
+    description: >
+      Выданный заём уменьшается на сумму возврата или списания. Проводку
+      делает парная операция — возврат или обращение обеспечения.
+  - ledger_code: o.cap.seize
+    human_name: Обращение обеспечения в пользу кооператива
+    wallet_op: BURN
+    debit: 80
+    credit: 58
+    wallet_from: w.cap.pledge
+    wallet_to: null
+    user_wallet: w.cap.pledge
+    user_ref: debt.username
+    available_delta: -debt.remaining
+    blocked_delta: null
+    amount_ref: debt.remaining
+    triggered_by: debt::sweep
+    description: >
+      Срок прошёл, пять дней на расчёт истекли: обеспечение переходит
+      кооперативу, паевой взнос пайщика уменьшается, заём закрыт.

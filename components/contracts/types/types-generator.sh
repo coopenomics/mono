@@ -10,7 +10,7 @@ declare -A contract_params_test=(
   [branch]="branch"
   [capital]="capital"
   [wallet]="wallet"
-  [loan]="loan"
+  [debt]="debt"
   [meet]="meet"
   [ledger]="ledger"
 )

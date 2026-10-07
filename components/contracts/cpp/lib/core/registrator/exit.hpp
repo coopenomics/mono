@@ -14,6 +14,9 @@ namespace Core::Registrator {
 /// Выход возможен: ни одна программа не держит незавершённого.
 inline void check_member_can_exit(eosio::name coopname, eosio::name username) {
   Marketplace::check_member_can_exit(coopname, username);
+  // Открытый беспроцентный заём держит выход: обеспечение и долг закрываются
+  // только возвратом, результатом или обращением обеспечения.
+  Debt::check_member_can_exit(coopname, username);
 }
 
 /// Выход состоялся: программы закрывают членские кошельки пайщика. `actor` —

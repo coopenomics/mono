@@ -38,6 +38,9 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.cap.wthcap',   contract: 'capital',      name: 'WTHCAP',      human_name: 'Возврат паевого из ЦПП «Благорост» в кошелёк' },
   { type: 'p.cap.pgexp',    contract: 'capital',      name: 'PGEXP',       human_name: 'Пополнение пула программных расходов' },
 
+  // debt
+  { type: 'p.dbt.loan',     contract: 'debt',         name: 'LOAN',        human_name: 'Беспроцентный заём пайщику' },
+
   // expense
   { type: 'p.exp.expns',    contract: 'expense',      name: 'PROPOSAL',    human_name: 'Расход по служебной записке' },
 

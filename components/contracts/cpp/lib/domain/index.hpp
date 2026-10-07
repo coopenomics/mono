@@ -56,7 +56,7 @@
 #include "table_branch_decisions.hpp"
 #include "table_branch_trustreqs.hpp"
 
-// wallet / gateway / ledger / loan / marketplace
+// wallet / gateway / ledger / debt / marketplace
 #include "table_wallet_deposits.hpp"
 #include "table_wallet_users.hpp"
 #include "table_wallet_withdraws.hpp"
@@ -71,8 +71,8 @@
 // собирается на бэкенде из blockchain_actions[ledger2::apply/walletop/debit/credit]
 // и blockchain_deltas[ledger2::accounts/wallets].
 #include "table_ledger2_meta.hpp"
-#include "table_loan_debts.hpp"
-#include "table_loan_summaries.hpp"
+#include "table_debt_debts.hpp"
+#include "table_debt_summaries.hpp"
 
 // marketplace (Story 11.1, canonical) — anchor-таблицы трёх процессов
 // p.mkt.supply / p.mkt.return / p.mkt.wroff. Donor-таблицы (requests/segments/

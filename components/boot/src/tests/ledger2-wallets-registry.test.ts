@@ -46,7 +46,9 @@ const CORE_WALLETS: Record<string, 'USER_SHARED' | 'COOPERATIVE'> = {
   'w.wal.wpend': 'COOPERATIVE',
   'w.sov.infra': 'COOPERATIVE',
   'w.sov.delgte': 'COOPERATIVE',
-  'w.cap.loan': 'COOPERATIVE',
+  'w.dbt.issued': 'USER_SHARED',
+  'w.dbt.pend': 'USER_SHARED',
+  'w.cap.pledge': 'USER_SHARED',
   'w.mkt.payout': 'COOPERATIVE',
 }
 
@@ -151,8 +153,8 @@ describe('ledger2 OPERATION_REGISTRY — sanity (WalletOp cleanup, ADR-003 / ADR
     expect(invest!.wallet_to).toBe('w.cap.blago')
   })
 
-  it('capital операции используют только унифицированные w.cap.{blago,gen,loan} (ADR-009)', () => {
-    const allowedCapitalWallets = new Set(['w.cap.blago', 'w.cap.gen', 'w.cap.loan', 'w.cap.preimp', 'w.cap.pgexp', 'w.wal.share'])
+  it('capital операции используют только унифицированные w.cap.{blago,gen,pledge} и общий кошелёк займов w.dbt.issued (ADR-009)', () => {
+    const allowedCapitalWallets = new Set(['w.cap.blago', 'w.cap.gen', 'w.dbt.issued', 'w.cap.pledge', 'w.cap.preimp', 'w.cap.pgexp', 'w.wal.share'])
     const capitalOps = Ledger2.LEDGER2_OPERATION_REGISTRY.filter((o) => o.contract === 'capital')
     expect(capitalOps.length, 'capital должен иметь ≥5 операций после ADR-009').toBeGreaterThanOrEqual(5)
 

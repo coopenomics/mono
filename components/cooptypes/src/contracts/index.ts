@@ -115,3 +115,8 @@ export * as ExpenseContract from './expense'
  * вопрос — вправе ли он вообще их выпускать.
  */
 export * as AnoContract from './ano'
+
+/**
+ * Смарт-контракт беспроцентных займов пайщикам: единый реестр займов и реестр обеспечения.
+ */
+export * as DebtContract from './debt'
