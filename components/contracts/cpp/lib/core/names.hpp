@@ -95,6 +95,9 @@ namespace Names {
     // Коллбэки одобрений председателя: договор УХД преподавателя
     constexpr eosio::name APPROVE_CONTRACT = "apprvcontr"_n;
     constexpr eosio::name DECLINE_CONTRACT = "dclinecontr"_n;
+    // Коллбэки одобрений председателя: акт приёма-передачи РИД (p.edu.rid)
+    constexpr eosio::name APPROVE_RID_ACT = "apprvridact"_n;
+    constexpr eosio::name DECLINE_RID_ACT = "dclridact"_n;
   }
 
   namespace External {
@@ -155,5 +158,6 @@ namespace Names {
 
   namespace Edubridge {
     constexpr eosio::name SIGN_CONTRACT = "signcontract"_n; // акцепт договора УХД преподавателя
+    constexpr eosio::name SIGN_RID_ACT = "signridact"_n; // акт приёма-передачи РИД на вторую подпись председателя
   }
 }

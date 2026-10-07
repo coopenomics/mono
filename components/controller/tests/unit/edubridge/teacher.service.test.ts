@@ -70,7 +70,7 @@ function make(
   } as any;
   const chain = {
     holdRid: jest.fn(async () => ({})), recallRid: jest.fn(async () => ({})),
-    submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})),
+    submitRid: jest.fn(async () => ({})), acceptRid: jest.fn(async () => ({})), declineRid: jest.fn(async () => ({})), signRidAct: jest.fn(async () => ({})),
     signContract: jest.fn(async () => ({})), terminateContract: jest.fn(async () => ({})),
     withdrawShare: jest.fn(async () => ({})),
   } as any;
@@ -315,7 +315,7 @@ describe('EdubridgeTeacherService', () => {
     expect(submitted.council_agenda_id).toBe('77');
   });
 
-  it('решение совета (onridauth с протоколом) → COUNCIL_APPROVED; акт преподавателя → ACT_SIGNED; тот же акт с подписью председателя → acceptrid тем же протоколом, ACCEPTED', async () => {
+  it('решение совета (onridauth с протоколом) → COUNCIL_APPROVED; акт преподавателя → signridact с тем же протоколом, ACT_SIGNED; подпись председателя в одобрении (apprvridact) → ACCEPTED', async () => {
     const { funds, service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
@@ -330,49 +330,55 @@ describe('EdubridgeTeacherService', () => {
     const teacherAct = signedBy('teach', 'ACT');
     const signedByTeacher = await service.signAct('voskhod', 'teach', c.id, teacherAct);
     expect(signedByTeacher.status).toBe(EduContributionStatus.ACT_SIGNED);
+    // В цепь уходят протокол, подписанный советом, и акт с первой подписью — вторую ставит председатель в одобрении.
+    expect(chain.signRidAct).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }), act: expect.objectContaining({ hash: 'ACT' }) }));
     expect(chain.acceptRid).not.toHaveBeenCalled();
-
-    // Председатель получает тот же документ и подписывает его вторым — без перегенерации.
-    const payload = await service.actSignablePayload('voskhod', c.id);
-    expect(payload.hash).toBe('ACT');
-    expect(documents.generate.mock.calls.filter((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id).length).toBe(1);
-
-    const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
-    const accepted = await service.acceptContribution('voskhod', 'ant', c.id, bothSigned);
-    // В цепь уходит протокол, подписанный советом, — без перегенерации.
-    expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }), act: expect.objectContaining({ hash: 'ACT' }) }));
     expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)).toBe(false);
     // Акт ссылается на протокол совета, которым принят взнос.
     const actData = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id)![0].data;
     expect(actData.decision_id).toBe(17);
-    expect(accepted.status).toBe(EduContributionStatus.ACCEPTED);
+    // До второй подписи резерв курса доводится до текущего состояния — приём по одобрению не ждёт прохода очереди.
+    expect(funds.unlockDue).toHaveBeenCalledWith('voskhod', expect.any(Date), 'C1');
+
+    // Председатель подписал акт в запросах одобрений — контракт принял результат и вызвал apprvridact.
+    const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
+    await service.onActApproved('voskhod', c.rid_hash, bothSigned);
+    expect(c.status).toBe(EduContributionStatus.ACCEPTED);
+    expect((c.act_signed as any).signatures).toHaveLength(2);
     // Цепь списала резерв преподавателям — обязательство по курсу уменьшается на стоимость результата.
     expect(funds.onSettled).toHaveBeenCalledWith('voskhod', 'C1', '1000.0000 RUB');
-    // Перед приёмом резерв курса доводится до текущего состояния — приём не ждёт прохода очереди.
-    expect(funds.unlockDue).toHaveBeenCalledWith('voskhod', expect.any(Date), 'C1');
   });
 
   it('сбой учёта резерва приём результата не отменяет; у взноса без сохранённого протокола он собирается по номеру решения', async () => {
     const { service, funds, documents, chain, store } = make();
     funds.onSettled.mockRejectedValue(new Error('база недоступна'));
     const c = await contributionOfLesson(service, store);
-    Object.assign(c, { status: EduContributionStatus.ACT_SIGNED, act_hash: 'act', council_decision_id: '17' });
-    const act = { ...signedBy('teach', 'ACT'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
-    await expect(service.acceptContribution('voskhod', 'ant', c.id, act)).resolves.toMatchObject({ status: EduContributionStatus.ACCEPTED });
+    Object.assign(c, { status: EduContributionStatus.COUNCIL_APPROVED, council_decision_id: '17' });
+    await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
     // Протокол называет пайщиком преподавателя, а не председателя, и несёт вид результата.
     const protocol = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)![0].data;
     expect(protocol).toMatchObject({ username: c.teacher_username, rid_type: c.rid_type, decision_id: 17 });
-    expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ decision: expect.objectContaining({ hash: `H${R.EducationRidDecision.registry_id}` }) }));
+    expect(chain.signRidAct).toHaveBeenCalledWith(expect.objectContaining({ decision: expect.objectContaining({ hash: `H${R.EducationRidDecision.registry_id}` }) }));
+    await service.onActApproved('voskhod', c.rid_hash, { ...signedBy('teach', 'ACT'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] });
+    expect(c.status).toBe(EduContributionStatus.ACCEPTED);
   });
 
-  it('приём отклоняется, если на акте нет обеих подписей или хэш другой', async () => {
-    const { service, store } = make();
+  it('акт без подписи преподавателя в цепь не уходит; одобрение по взносу не на подписи игнорируется; отказ председателя закрывает заявление', async () => {
+    const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     await service.onCouncilApproved('voskhod', c.rid_hash, { ...signedBy('ant', 'PROTO'), meta: { decision_id: 1 } } as any);
+    await expect(service.signAct('voskhod', 'teach', c.id, signedBy('ant', 'ACT'))).rejects.toThrow(/не подписан преподавателем/);
+    expect(chain.signRidAct).not.toHaveBeenCalled();
+    await service.onActApproved('voskhod', c.rid_hash, signedBy('ant', 'ACT'));
+    expect(c.status).toBe(EduContributionStatus.COUNCIL_APPROVED);
+
     await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
-    await expect(service.acceptContribution('voskhod', 'ant', c.id, signedBy('teach', 'ACT'))).rejects.toThrow(/подписи преподавателя и председателя/);
-    await expect(service.acceptContribution('voskhod', 'ant', c.id, { ...signedBy('ant', 'OTHER'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] })).rejects.toThrow(/хэш акта/);
+    await service.onActDeclined('voskhod', c.rid_hash, 'Акт расходится с материалами');
+    expect(c.status).toBe(EduContributionStatus.DECLINED);
+    expect(c.decline_reason).toBe('Акт расходится с материалами');
+    // Решение совета есть — заявление закрывается его протоколом.
+    expect(chain.declineRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }) }));
   });
 
   it('акт до решения совета недоступен; решение по чужим материалам игнорируется', async () => {

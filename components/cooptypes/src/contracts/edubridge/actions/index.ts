@@ -60,6 +60,12 @@ export * as Submitrid from './submitrid'
 export * as OnRidAuth from './onRidAuth'
 /** Обратный вызов совета: в приёме паевого взноса РИД отказано (p.edu.rid) */
 export * as OnRidDecl from './onRidDecl'
+/** Акт приёма-передачи РИД — первая подпись преподавателя, акт уходит на одобрение председателя */
+export * as SignRidAct from './signRidAct'
+/** Коллбэк одобрения: председатель подписал акт — результат принимается в паевой фонд */
+export * as ApprvRidAct from './apprvRidAct'
+/** Коллбэк одобрения: председатель отказал в подписи акта */
+export * as DclRidAct from './dclRidAct'
 
 /**
  * Приём РИД по решению совета и акту: o.edu.rid.

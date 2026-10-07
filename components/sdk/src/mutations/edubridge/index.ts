@@ -71,8 +71,6 @@ export * as SetConnectorCredentials from './setConnectorCredentials'
 export * as AppointAdmin from './appointAdmin'
 /** Снять администратора */
 export * as DismissAdmin from './dismissAdmin'
-/** Председатель подписал акт — взнос принят */
-export * as AcceptContribution from './acceptContribution'
 
 /** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
 export * as SaveSection from './saveSection'

@@ -50,6 +50,8 @@ export interface EdubridgeChainPort {
   holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
+  /** Акт приёма-передачи РИД с подписью преподавателя — уходит председателю на одобрение вместе с протоколом совета. */
+  signRidAct(data: EdubridgeContract.Actions.SignRidAct.ISignRidAct): Promise<InnerTransactResult>;
   declineRid(data: EdubridgeContract.Actions.Declinerid.IDeclinerid): Promise<InnerTransactResult>;
   /** Снятие материалов с ответственного хранения по рекламации внутри срока. */
   recallRid(data: EdubridgeContract.Actions.Recallrid.IRecallrid): Promise<InnerTransactResult>;

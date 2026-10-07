@@ -13,7 +13,7 @@
     row-key="id"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="820px"
+    min-width="1000px"
     @row-click="openDetails"
   )
     template(#cell-lesson="{ row }")
@@ -23,14 +23,12 @@
     template(#cell-amount="{ row }")
       span.t-num {{ row.contribution ? formatAsset2Digits(row.contribution.amount) : '______' }}
     template(#cell-status="{ row }")
-      template(v-if="row.contribution")
-        BaseBadge(:variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
-        //- Действие за преподавателем видно прямо в строке; нажатие строку не открывает.
-        .q-mt-xs(v-if="row.contribution.status === Zeus.EduContributionStatus.DRAFT")
-          BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
-        .q-mt-xs(v-else-if="row.contribution.status === Zeus.EduContributionStatus.COUNCIL_APPROVED")
-          BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
+      BaseBadge(v-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
       template(v-else) ______
+    //- Действие за преподавателем — своей колонкой справа, как в реестрах Стола заказов; нажатие строку не открывает.
+    template(#cell-actions="{ row }")
+      BaseButton(v-if="actionOf(row) === 'transfer'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onTransfer(row)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+      BaseButton(v-else-if="actionOf(row) === 'sign'" variant="primary" size="sm" :loading="rowBusy === asText(row.id)" @click.stop="onSignAct(row)") {{ $t('edubridge.teacherLessonsPage.signAct') }}
 
   //- Занятие целиком: сведения, материалы, взнос и его состояние; действие преподавателя — внизу панели.
   DetailsDrawer(v-model="detailsOpen" :title="details ? (details.topic || $t('edubridge.teacherLessonsPage.lessonTitle', { number: details.lesson_number })) : ''" :width="560")
@@ -102,6 +100,7 @@ import {
 } from '../../entities/Teacher';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+import { lessonActionOf } from '../../shared/lib/lessonAction';
 import { t } from '../../i18n';
 
 /**
@@ -130,16 +129,19 @@ type ILessonRow = ILesson & { contribution: IContribution | null };
 
 
 // Сетка таблицы: «Занятие» без ширины получает остаток. Сумма заданных ширин —
-// 590px при минимуме таблицы 820px, занятию остаётся не меньше 230px.
+// 790px при минимуме таблицы 1000px, занятию остаётся не меньше 210px.
 const columns: BaseTableColumn<ILessonRow>[] = [
   { key: 'lesson_number', label: t('edubridge.teacherLessonsPage.column.number'), width: '70px', nowrap: true },
   { key: 'lesson', label: t('edubridge.teacherLessonsPage.column.lesson') },
   { key: 'held_at', label: t('edubridge.teacherLessonsPage.column.heldAt'), width: '130px', nowrap: true },
   { key: 'amount', label: t('edubridge.teacherLessonsPage.column.amount'), numeric: true, width: '150px', nowrap: true },
-  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px' },
+  { key: 'status', label: t('edubridge.teacherLessonsPage.column.status'), width: '240px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '200px', nowrap: true },
 ];
 
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+/** Действие, которое сейчас за преподавателем по занятию: передать материалы либо подписать акт. */
+const actionOf = (row: ILessonRow): 'transfer' | 'sign' | null => lessonActionOf(row.contribution?.status);
 /** Взнос занятия: отчёт заводит его сам, связь — по идентификатору взноса. */
 const contributionOf = (lesson: ILesson) => contributions.value.find((c) => asText(c.id) === asText(lesson.contribution_id)) ?? null;
 
@@ -150,12 +152,7 @@ const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
 const details = computed(() => rows.value.find((r) => asText(r.id) === detailsId.value) ?? null);
 /** Действие, которое сейчас за преподавателем по этому занятию. */
-const detailsAction = computed<'transfer' | 'sign' | null>(() => {
-  const status = details.value?.contribution?.status;
-  if (status === Zeus.EduContributionStatus.DRAFT) return 'transfer';
-  if (status === Zeus.EduContributionStatus.COUNCIL_APPROVED) return 'sign';
-  return null;
-});
+const detailsAction = computed<'transfer' | 'sign' | null>(() => lessonActionOf(details.value?.contribution?.status));
 function openDetails(row: ILessonRow): void {
   detailsId.value = asText(row.id);
   detailsOpen.value = true;

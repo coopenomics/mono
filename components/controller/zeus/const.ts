@@ -614,9 +614,6 @@ export const AllTypesProps: Record<string,any> = {
 	EditProjectInput:{
 		origin:"CapitalContentRevisionOrigin"
 	},
-	EduAcceptContributionInput:{
-		document:"SignedDigitalDocumentInput"
-	},
 	EduAccessCarrier: "enum" as const,
 	EduAccessState: "enum" as const,
 	EduAccessTaskKind: "enum" as const,
@@ -2032,9 +2029,6 @@ export const AllTypesProps: Record<string,any> = {
 		editBranch:{
 			data:"EditBranchInput"
 		},
-		edubridgeAcceptContribution:{
-			data:"EduAcceptContributionInput"
-		},
 		edubridgeAddLearner:{
 			data:"EduLearnerInput"
 		},
@@ -3153,9 +3147,6 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		documentTemplatesAttention:{
-
-		},
-		edubridgeActSignablePayload:{
 
 		},
 		edubridgeCatalog:{
@@ -7682,7 +7673,6 @@ export const ReturnTypes: Record<string,any> = {
 		deleteTrustedAccount:"Branch",
 		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
-		edubridgeAcceptContribution:"EduContribution",
 		edubridgeAddLearner:"EduLearner",
 		edubridgeAppointAdmin:"EduAdmin",
 		edubridgeArchiveLevel:"EduLevel",
@@ -8584,7 +8574,6 @@ export const ReturnTypes: Record<string,any> = {
 		documentTemplateBlank:"DocumentTemplateBlank",
 		documentTemplates:"DocumentTemplate",
 		documentTemplatesAttention:"Int",
-		edubridgeActSignablePayload:"DocumentAggregate",
 		edubridgeAdmins:"EduAdmin",
 		edubridgeAssignments:"EduAssignment",
 		edubridgeAttention:"EduAttention",

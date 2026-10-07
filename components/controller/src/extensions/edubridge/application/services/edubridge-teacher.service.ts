@@ -47,6 +47,7 @@ import type {
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import {
   EDUBRIDGE_CONTRACT_DECIDED_EVENT,
+  EDUBRIDGE_CONTRIBUTION_COUNCIL_APPROVED_EVENT,
   EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT,
   EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT,
 } from '../events/edubridge.events';
@@ -950,7 +951,8 @@ export class EdubridgeTeacherService {
       c.decision_document = authorization as unknown as Record<string, unknown>;
     }
     c.decided_at = new Date();
-    await this.teachers.saveContribution(c);
+    const saved = await this.teachers.saveContribution(c);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_COUNCIL_APPROVED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username });
     this.logger.info(`[EDU.RID] совет принял решение ${c.council_decision_id ?? ''} по взносу ${c.rid_hash} — ждём акт преподавателя`);
   }
 
@@ -1006,17 +1008,51 @@ export class EdubridgeTeacherService {
     return this.documents.generate({ data: action });
   }
 
-  /** Преподаватель подписал акт: сохраняем документ и ждём подпись председателя на нём же. */
+  /**
+   * Преподаватель подписал акт — первая подпись. Акт уходит в цепь вместе с
+   * протоколом совета (`signridact`): контракт публикует протокол и ставит акт
+   * в запросы одобрений председателя, как договор УХД. Вторая подпись придёт
+   * обратным вызовом `apprvridact`.
+   */
   async signAct(coopname: string, teacher: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionRecord> {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.COUNCIL_APPROVED) throw DomainError.badRequest('EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION');
     if (!act.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_SIGNED_BY_TEACHER');
+    const decision = await this.councilProtocol(coopname, c);
+    // Резерв курса наполняет очередь раз в десять минут; до второй подписи он
+    // доводится до текущего состояния сразу, чтобы приём по одобрению не упёрся в резерв.
+    await this.fillCourseReserve(coopname, c);
+    await this.chain.signRidAct({ coopname, username: teacher, rid_hash: c.rid_hash, decision, act } as never);
     c.act_hash = act.hash.toLowerCase();
     c.act_signed = act as unknown as Record<string, unknown>;
+    c.decision_hash = decision.hash.toLowerCase();
     c.status = EduContributionStatus.ACT_SIGNED;
     const saved = await this.teachers.saveContribution(c);
-    this.logger.info(`[EDU.RID] акт ${c.act_hash} подписан преподавателем — ждём подпись председателя`);
+    this.logger.info(`[EDU.RID] акт ${c.act_hash} подписан преподавателем — ушёл председателю на одобрение`);
     return saved;
+  }
+
+  /**
+   * Председатель подписал акт в запросах одобрений (`edubridge::apprvridact`):
+   * контракт принял результат в паевой фонд — у нас остаётся записать
+   * двухподписный акт, состояние и расчёт резерва курса.
+   */
+  async onActApproved(coopname: string, ridHash: string, approved: ISignedDocument | undefined): Promise<void> {
+    const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
+    if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.ACT_SIGNED) return;
+    if (approved) c.act_signed = approved as unknown as Record<string, unknown>;
+    c.status = EduContributionStatus.ACCEPTED;
+    const saved = await this.teachers.saveContribution(c);
+    await this.settleReserve(coopname, c);
+    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: true });
+    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — акт подписан председателем, право требования в кошельке ${c.teacher_username}`);
+  }
+
+  /** Председатель отказал в подписи акта (`edubridge::dclridact`): заявление закрывается с его причиной. */
+  async onActDeclined(coopname: string, ridHash: string, reason: string): Promise<void> {
+    const c = await this.teachers.findContributionByRidHash(ridHash.toLowerCase());
+    if (!c || c.coopname !== coopname || c.status !== EduContributionStatus.ACT_SIGNED) return;
+    await this.decline(coopname, c.id, reason.trim() || t('edubridge.teacher.actDeclinedReason'));
   }
 
   /**
@@ -1042,49 +1078,6 @@ export class EdubridgeTeacherService {
     return result;
   }
 
-  /** Агрегат акта для второй подписи: тот же документ, без перегенерации. */
-  async actSignablePayload(coopname: string, contributionId: string): Promise<InnerDocumentAggregate> {
-    const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
-    if (c.status !== EduContributionStatus.ACT_SIGNED || !c.act_signed) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER');
-    const aggregate = await this.documents.buildAggregate(c.act_signed as unknown as ISignedDocument);
-    if (!aggregate) throw DomainError.notFound('EDUBRIDGE_ACT_NOT_IN_REGISTRY');
-    return aggregate;
-  }
-
-  /**
-   * Председатель подписал тот же акт (вторая подпись по хэшу) → протокол (3009)
-   * + акт с двумя подписями → `acceptrid`: проводка Дт 04 / Кт 80, право требования.
-   */
-  async acceptContribution(coopname: string, chairman: string, contributionId: string, act: ISignedDocument): Promise<EdubridgeContributionRecord> {
-    const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
-    if (c.status !== EduContributionStatus.ACT_SIGNED) throw DomainError.badRequest('EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER');
-    if (act.hash.toLowerCase() !== c.act_hash) throw DomainError.badRequest('EDUBRIDGE_ACT_HASH_MISMATCH');
-    const signers = new Set((act.signatures ?? []).map((s) => s.signer));
-    if (!signers.has(c.teacher_username) || !signers.has(chairman)) {
-      throw DomainError.badRequest('EDUBRIDGE_ACT_SIGNATURES_REQUIRED');
-    }
-    const decision = await this.councilProtocol(coopname, c);
-    // Резерв курса наполняет очередь раз в десять минут; перед приёмом он
-    // доводится до текущего состояния сразу, чтобы приём не ждал её прохода.
-    await this.fillCourseReserve(coopname, c);
-    await this.chain.acceptRid({ coopname, rid_hash: c.rid_hash, decision, act } as never);
-    await this.settleReserve(coopname, c);
-    c.decision_hash = decision.hash.toLowerCase();
-    c.act_signed = act as unknown as Record<string, unknown>;
-    c.status = EduContributionStatus.ACCEPTED;
-    const saved = await this.teachers.saveContribution(c);
-    this.events.emit(EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT, { coopname, contribution_id: saved.id, teacher_username: c.teacher_username, accepted: true });
-    this.logger.info(`[EDU.RID] взнос ${c.rid_hash} принят — acceptrid, право требования в кошельке ${c.teacher_username}`);
-    return saved;
-  }
-
-  /**
-   * Цепь при приёме списала резерв преподавателям на стоимость результата —
-   * обязательство по курсу уменьшается на ту же сумму. Сбой учёта приём не
-   * отменяет: результат уже в паевом фонде.
-   */
   /** Резерв курса взноса доводится до текущего состояния; сбой приём не отменяет — отказ даст сам контракт. */
   private async fillCourseReserve(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
     try {
@@ -1095,6 +1088,11 @@ export class EdubridgeTeacherService {
     }
   }
 
+  /**
+   * Цепь при приёме списала резерв преподавателям на стоимость результата —
+   * обязательство по курсу уменьшается на ту же сумму. Сбой учёта приём не
+   * отменяет: результат уже в паевом фонде.
+   */
   private async settleReserve(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
     try {
       const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);

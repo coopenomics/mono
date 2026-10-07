@@ -61,6 +61,7 @@ import { workflow as marketplaceAidCouncilDecidedWorkflow } from './marketplace-
 import { workflow as edubridgeAccessGrantedWorkflow } from './edubridge-access-granted';
 import { workflow as edubridgeAccessExpiringWorkflow } from './edubridge-access-expiring';
 import { workflow as edubridgeAccessNeedsAttentionWorkflow } from './edubridge-access-needs-attention';
+import { workflow as edubridgeRidCouncilApprovedWorkflow } from './edubridge-rid-council-approved';
 import { workflow as branchVotingStartedWorkflow } from './branch-voting-started';
 import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-reminder';
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
@@ -129,6 +130,7 @@ export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided
 export * as EdubridgeAccessGranted from './edubridge-access-granted';
 export * as EdubridgeAccessExpiring from './edubridge-access-expiring';
 export * as EdubridgeAccessNeedsAttention from './edubridge-access-needs-attention';
+export * as EdubridgeRidCouncilApproved from './edubridge-rid-council-approved';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 
 // Массив всех воркфлоу для автоматической регистрации
@@ -193,6 +195,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   edubridgeAccessGrantedWorkflow,
   edubridgeAccessExpiringWorkflow,
   edubridgeAccessNeedsAttentionWorkflow,
+  edubridgeRidCouncilApprovedWorkflow,
   marketplaceAidCouncilDecidedWorkflow,
   branchVotingStartedWorkflow,
   branchMeetingReminderWorkflow,

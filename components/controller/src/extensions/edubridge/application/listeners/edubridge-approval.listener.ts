@@ -43,6 +43,23 @@ export class EdubridgeApprovalListener {
     await this.teachers.onContractDeclined(String(d.coopname), String(d.contract_hash), String(d.reason ?? ''));
   }
 
+  /** Председатель подписал акт приёма-передачи РИД в запросах одобрений — контракт принял результат. */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.ApprvRidAct.actionName}`)
+  async onActApproved(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.ApprvRidAct.IApprvRidAct;
+    if (!d?.coopname || !d?.rid_hash) return;
+    const approved = d.approved_document ? DomainToBlockchainUtils.convertChainDocumentToDomainFormat(d.approved_document as never) : undefined;
+    await this.teachers.onActApproved(String(d.coopname), String(d.rid_hash), approved as never);
+  }
+
+  /** Председатель отказал в подписи акта — заявление закрывается с его причиной. */
+  @OnEvent(`action::${CONTRACT}::${EdubridgeContract.Actions.DclRidAct.actionName}`)
+  async onActDeclined(action: InnerChainActionRecord): Promise<void> {
+    const d = action.data as EdubridgeContract.Actions.DclRidAct.IDclRidAct;
+    if (!d?.coopname || !d?.rid_hash) return;
+    await this.teachers.onActDeclined(String(d.coopname), String(d.rid_hash), String(d.reason ?? ''));
+  }
+
   /**
    * Совет принял заявление о паевом взносе РИД: `soviet::exec` вызвал
    * `edubridge::onridauth` с подписанным председателем протоколом 3009 — он и

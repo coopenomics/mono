@@ -6,21 +6,50 @@ import { Workflows } from '@coopenomics/notifications';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
-import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT } from '../events/edubridge.events';
+import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
+import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
+import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT, EDUBRIDGE_CONTRIBUTION_COUNCIL_APPROVED_EVENT } from '../events/edubridge.events';
 import { EdubridgeOwnerDirectory } from '../membership/edubridge-owner.directory';
 
-/** Доменные события → уведомления: пайщику о выданном доступе, владельцу о застрявшей задаче. */
+/**
+ * Доменные события → уведомления: пайщику о выданном доступе, владельцу о
+ * застрявшей задаче, преподавателю о решении совета по его заявлению.
+ * Вторая подпись председателя на акте идёт через запросы одобрений — о ней
+ * обе стороны извещает ядро само.
+ */
 @Injectable()
 export class EdubridgeNotificationListener {
   constructor(
     private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
     private readonly learners: EdubridgeLearnerKyselyRepository,
     private readonly courses: EdubridgeCourseKyselyRepository,
+    private readonly lessons: EdubridgeLessonKyselyRepository,
+    private readonly teachers: EdubridgeTeacherKyselyRepository,
     private readonly owners: EdubridgeOwnerDirectory,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(EdubridgeNotificationListener.name);
+  }
+
+  /** Совет принял заявление о взносе результатом работы — преподавателю пора подписать акт. */
+  @OnEvent(EDUBRIDGE_CONTRIBUTION_COUNCIL_APPROVED_EVENT)
+  async onCouncilApproved(payload: { coopname: string; contribution_id: string; teacher_username: string }): Promise<void> {
+    try {
+      const contribution = await this.teachers.findContribution(payload.coopname, payload.contribution_id);
+      if (!contribution) return;
+      const lesson = contribution.lesson_id ? await this.lessons.findById(payload.coopname, contribution.lesson_id) : null;
+      const course = lesson ? await this.courses.findById(payload.coopname, lesson.course_id) : null;
+      await this.notifications.notifyUser(payload.teacher_username, Workflows.EdubridgeRidCouncilApproved.id, {
+        courseTitle: course?.title ?? '',
+        lessonTitle: lesson?.topic || contribution.description || '',
+        decisionId: contribution.council_decision_id ?? '',
+        coopname: payload.coopname,
+        deepLinkUrl: `${platformSettings().frontendUrl}/${payload.coopname}/edubridge-teacher/lessons`,
+      });
+    } catch (e) {
+      this.logger.warn(`уведомление преподавателю о решении совета: ${(e as Error)?.message ?? e}`);
+    }
   }
 
   @OnEvent(EDUBRIDGE_ACCESS_GRANTED_EVENT)

@@ -35,8 +35,9 @@ using namespace Edubridge;
  *    истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (8 actions): holdrid, submitrid, onridauth, onriddecl,
- *    acceptrid, declinerid, recallrid, wthshare — преподаватель отчитывается по занятию и передаёт
+ *  - **p.edu.rid** (11 actions): holdrid, submitrid, onridauth, onriddecl,
+ *    signridact, apprvridact, dclridact, acceptrid, declinerid, recallrid,
+ *    wthshare — преподаватель отчитывается по занятию и передаёт
  *    материалы на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по
  *    истечении гарантийного срока курса заявление уходит в совет, и по
  *    решению с актом результат принимается в паевой фонд (o.edu.rid,
@@ -300,6 +301,39 @@ public:
    */
   [[eosio::action]] void onriddecl(eosio::name coopname,
                                    checksum256 hash,
+                                   std::string reason);
+
+  /**
+   * @brief Преподаватель подписал Акт приёма-передачи РИД (шаблон 3010) —
+   * первая подпись. Протокол совета (3009) публикуется в реестр, акт уходит
+   * на вторую подпись председателю через одобрение («Запросы одобрений»).
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void signridact(eosio::name coopname,
+                                    eosio::name username,
+                                    checksum256 rid_hash,
+                                    document2 decision,
+                                    document2 act);
+
+  /**
+   * @brief Председатель подписал акт — вторая подпись. Вызывается контрактом
+   * совета после подтверждения одобрения: результат принимается в паевой
+   * фонд, как в `acceptrid`.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void apprvridact(eosio::name coopname,
+                                     eosio::name username,
+                                     checksum256 rid_hash,
+                                     document2 approved_document);
+
+  /**
+   * @brief Председатель отказал в подписи акта — материалы остаются на
+   * хранении, заявление закрывает председатель отдельным действием.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void dclridact(eosio::name coopname,
+                                   eosio::name username,
+                                   checksum256 rid_hash,
                                    std::string reason);
 
   /**

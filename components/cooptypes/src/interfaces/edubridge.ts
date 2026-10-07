@@ -227,6 +227,28 @@ export interface IOnRidDecl {
   reason: string
 }
 
+export interface ISignRidAct {
+  coopname: IName
+  username: IName
+  rid_hash: IChecksum256
+  decision: IDocument2
+  act: IDocument2
+}
+
+export interface IApprvRidAct {
+  coopname: IName
+  username: IName
+  rid_hash: IChecksum256
+  approved_document: IDocument2
+}
+
+export interface IDclRidAct {
+  coopname: IName
+  username: IName
+  rid_hash: IChecksum256
+  reason: string
+}
+
 // ── p.edu.teach: actions ─────────────────────────────────────────────────
 
 export interface ISigncontract {

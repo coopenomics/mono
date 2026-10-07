@@ -18,7 +18,6 @@
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .edu-row-actions
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click.stop="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
         BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="secondary" size="sm" @click.stop="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
         BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click.stop="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
@@ -31,11 +30,11 @@
     template(v-if="details")
       ContributionDetails(:contribution="details" :teacher-name="teacherName(details.teacher_username)" show-teacher)
       .t-sm.text-negative.q-mt-md(v-if="councilOutcome(details)") {{ councilOutcome(details) }}
-    template(v-if="details && (details.status === Zeus.EduContributionStatus.ACT_SIGNED || details.status === Zeus.EduContributionStatus.HELD || canDecline(details))" #footer)
+    //- Вторая подпись на акте — у председателя в «Запросах одобрений», здесь её нет.
+    template(v-if="details && (details.status === Zeus.EduContributionStatus.HELD || canDecline(details))" #footer)
       .edu-row-actions
         BaseButton(v-if="details.status === Zeus.EduContributionStatus.HELD" variant="secondary" @click="openRevoke(details)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
         BaseButton(v-if="canDecline(details)" variant="secondary" @click="openDecline(details)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
-        BaseButton(v-if="details.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" :loading="busyId === asText(details.id)" @click="onAccept(details)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
 
   //- Подтверждённая рекламация в гарантийный срок: заявление снимается до
   //- совета, материал остаётся за преподавателем.
@@ -69,7 +68,6 @@ import { ContributionDetails } from '../../widgets/ContributionDetails';
 import {
   CONTRIBUTION_STATUS_LABELS,
   RID_TYPE_LABELS,
-  acceptContributionAsChairman,
   declineContribution,
   fetchContributions,
   revokeContribution,
@@ -84,8 +82,8 @@ import { t as i18nT } from '../../i18n';
 /**
  * Взносы результатами работы — отдельной страницей: председатель разбирает их
  * сам по себе, а не попутно с назначениями. Решение по взносу принимает совет
- * в повестке; здесь ставится вторая подпись на акте приёма-передачи и
- * оформляется отказ с причиной.
+ * в повестке, вторую подпись на акте председатель ставит в «Запросах
+ * одобрений»; здесь — снятие по рекламации и отказ с причиной.
  */
 const contributions = ref<IContribution[]>([]);
 const teachers = ref<ITeacher[]>([]);
@@ -93,7 +91,6 @@ const teachers = ref<ITeacher[]>([]);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
-const busyId = ref<string | null>(null);
 const declineOpen = ref(false);
 const declineTarget = ref<IContribution | null>(null);
 const declineReason = ref('');
@@ -134,19 +131,6 @@ async function load(): Promise<void> {
     FailAlert(e);
   } finally {
     loading.value = false;
-  }
-}
-
-async function onAccept(c: IContribution): Promise<void> {
-  busyId.value = asText(c.id);
-  try {
-    const updated = await acceptContributionAsChairman(c);
-    contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
-    SuccessAlert(i18nT('edubridge.adminContributionsPage.actSignedSuccess'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busyId.value = null;
   }
 }
 

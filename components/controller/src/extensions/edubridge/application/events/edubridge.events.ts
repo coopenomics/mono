@@ -8,6 +8,8 @@ export const EDUBRIDGE_ACCESS_GRANTED_EVENT = 'edubridge.access.granted';
 export const EDUBRIDGE_ACCESS_REVOKED_EVENT = 'edubridge.access.revoked';
 export const EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT = 'edubridge.access.needs_attention';
 export const EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT = 'edubridge.contribution.submitted';
+/** Совет принял заявление о взносе — преподавателю пора подписать акт приёма-передачи. */
+export const EDUBRIDGE_CONTRIBUTION_COUNCIL_APPROVED_EVENT = 'edubridge.contribution.council_approved';
 export const EDUBRIDGE_CONTRIBUTION_DECIDED_EVENT = 'edubridge.contribution.decided';
 
 export interface IEduEnrollmentEventPayload {

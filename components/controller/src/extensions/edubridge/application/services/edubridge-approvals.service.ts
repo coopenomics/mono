@@ -11,6 +11,7 @@ import { t } from '../../i18n';
  */
 export const EDU_APPROVAL_TITLES: Record<string, string> = {
   apprvcontr: t('edubridge.approvals.title.apprvcontr'),
+  apprvridact: t('edubridge.approvals.title.apprvridact'),
 };
 
 @Injectable()

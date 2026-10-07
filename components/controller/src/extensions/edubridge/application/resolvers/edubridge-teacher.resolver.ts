@@ -12,7 +12,6 @@ import {
 } from '@coopenomics/extension-kit';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import {
-  EduAcceptContributionInputDTO,
   EduAssignmentDTO,
   EduAssignmentInputDTO,
   EduSetAssignmentRateInputDTO,
@@ -295,20 +294,6 @@ export class EdubridgeTeacherResolver {
   @RequireRight('EduContribution', 'read:own', SELF)
   async edubridgeMyContributionDocuments(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<EduContributionDocumentDTO[]> {
     return (await this.teachers.contributionDocuments(coop(), id, m.username as string)).map(({ kind, aggregate }) => new EduContributionDocumentDTO(kind, aggregate));
-  }
-
-  @Query(() => DocumentAggregateDTO, { name: 'edubridgeActSignablePayload', description: 'Акт с подписью преподавателя для второй подписи председателя (тот же документ)' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduContribution', 'decide')
-  async edubridgeActSignablePayload(@Args('contribution_id', { type: () => ID }) id: string): Promise<DocumentAggregateDTO> {
-    return new DocumentAggregateDTO(await this.teachers.actSignablePayload(coop(), id));
-  }
-
-  @Mutation(() => EduContributionDTO, { name: 'edubridgeAcceptContribution', description: 'Председатель подписал акт — взнос принимается в паевой фонд' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduContribution', 'decide')
-  async edubridgeAcceptContribution(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduAcceptContributionInputDTO): Promise<EduContributionDTO> {
-    return new EduContributionDTO(await this.teachers.acceptContribution(coop(), m.username as string, data.contribution_id, data.document));
   }
 
   @Mutation(() => EduContributionDTO, { name: 'edubridgeDeclineContribution', description: 'Отклонить взнос РИД с причиной' })
