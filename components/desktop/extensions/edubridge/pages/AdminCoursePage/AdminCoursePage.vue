@@ -32,12 +32,12 @@
                   q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
       //- Числа курса — те же и в том же порядке, что видит ученик в каталоге.
-      CourseHeroFigure(:caption="$t('edubridge.course.feeMonthCaption')")
+      StatTile(:caption="$t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
+      StatTile(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
         FeeAmount(:value="course.fee_course" size="lg")
-      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -116,7 +116,8 @@ import {
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
-import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
+import { CourseHero } from '../../widgets/CourseHero';
+import { StatTile } from '../../shared/ui/StatStrip';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';

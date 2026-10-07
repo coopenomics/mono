@@ -7,15 +7,6 @@
       AccountBadge(:account-name="teacher.username")
       BaseBadge.q-mt-xs(:variant="contractStatusOf(teacher.contract_status).variant") {{ contractStatusOf(teacher.contract_status).label }}
 
-  //- Чем преподаватель занят и сколько принёс: три числа под именем. Ставка часа
-  //- в документы не попадает, она живёт в записи расширения — и правится здесь же.
-  StatStrip.q-mt-md(:items="stats" compact @edit="openRate")
-
-  //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
-  .edu-teacher-card__about(v-if="teacher.about")
-    .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
-    .edu-teacher-card__about-text {{ teacher.about }}
-
   //- Документы на подписи у председателя — здесь же, чтобы подписать, не
   //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
   //- его и в «Запросах одобрений».
@@ -30,16 +21,24 @@
         .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.approvalSentAt', { date: formatDate(a.created_at) }) }}
         ChairmanApprovalActions(:coopname="coopname" :approval-hash="a.approval_hash" :title="a.title" @decided="onApprovalDecided")
 
+  //- Вкладки сразу под именем, как на странице курса: обзор, договор, назначения, взносы.
   PageTabs.q-mt-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
 
-  template(v-if="tab === 'contract'")
+  //- Обзор: чем преподаватель занят и сколько принёс — плитками, как числа курса;
+  //- ставка часа в документы не попадает, она живёт в записи расширения и правится здесь же.
+  template(v-if="tab === 'overview'")
+    StatStrip.q-mt-md(:items="stats" :framed="false" @edit="openRate")
+    //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
+    .edu-teacher-card__about(v-if="teacher.about")
+      .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
+      .edu-teacher-card__about-text {{ teacher.about }}
+
+  template(v-else-if="tab === 'contract'")
     //- Сам договор — первой строкой вкладки, текст открывается по нажатию.
     ComplexDocument.q-mt-md.q-mb-sm(v-if="contractDocument" :document="contractDocument" collapsible)
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.numberLabel')" :value="teacher.contract_number" mono copyable)
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByTeacherLabel')" :value="formatDate(teacher.signed_at)")
     DataRow(:label="$t('edubridge.adminTeachersPage.contract.signedByChairmanLabel')" :value="teacher.approved_at ? formatDate(teacher.approved_at) : '______'")
-    DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsActiveLabel')" :value="String(teacher.assignments_active)")
-    DataRow(:label="$t('edubridge.adminTeachersPage.contract.assignmentsTotalLabel')" :value="String(teacher.assignments_total)")
 
     //- Прекращение по соглашению сторон: основание уходит в цепь вместе с действием.
     //- Кнопка красная и заметная, а от случайного нажатия защищают три шага:
@@ -190,13 +189,14 @@ const session = useSessionStore();
 const system = useSystemStore();
 const coopname = computed(() => system.info?.coopname ?? '');
 const symbol = computed(() => system.governSymbol);
-const tab = ref('contract');
+const tab = ref('overview');
 const assignFormOpen = ref(false);
 const terminateFormOpen = ref(false);
 const terminateReason = ref('');
 const { confirm } = useConfirm();
 
 const tabs: PageTab[] = [
+  { key: 'overview', label: i18nT('edubridge.adminTeachersPage.tab.overview') },
   { key: 'contract', label: i18nT('edubridge.adminTeachersPage.tab.contract') },
   { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.tab.assignments') },
   { key: 'contributions', label: i18nT('edubridge.adminTeachersPage.tab.contributions') },

@@ -22,12 +22,12 @@
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      CourseHeroFigure(:caption="$t('edubridge.course.feeMonthCaption')")
+      StatTile(:caption="$t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
+      StatTile(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
         FeeAmount(:value="course.fee_course" size="lg")
-      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12(:class="hasSide ? 'col-md-8' : ''")
@@ -71,7 +71,8 @@ import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } 
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
-import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
+import { CourseHero } from '../../widgets/CourseHero';
+import { StatTile } from '../../shared/ui/StatStrip';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';

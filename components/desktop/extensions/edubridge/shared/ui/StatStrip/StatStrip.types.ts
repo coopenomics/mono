@@ -1,7 +1,5 @@
 export interface StatStripItem {
   key: string;
-  /** Material-значок; у соседних показателей значки разные. */
-  icon: string;
   /** Короткая подпись над числом. */
   caption: string;
   value: string | number;
@@ -11,6 +9,8 @@ export interface StatStripItem {
   sub?: string;
   /** Подробность во всплывающей подсказке у подписи. */
   hint?: string;
+  /** Material-значок справа от подписи, одним цветом; у соседних плиток значки разные. */
+  icon?: string;
   /** Подпись кнопки правки: число правится здесь же, карандашом у значения. */
   editLabel?: string;
 }

@@ -339,8 +339,6 @@
         "teacher": "Преподаватель"
       },
       "contract": {
-        "assignmentsActiveLabel": "Назначений действует",
-        "assignmentsTotalLabel": "Назначений всего",
         "numberLabel": "Номер договора",
         "signedByChairmanLabel": "Подписан председателем",
         "signedByTeacherLabel": "Подписан преподавателем"
@@ -353,7 +351,8 @@
       "tab": {
         "assignments": "Назначения",
         "contract": "Договор",
-        "contributions": "Взносы"
+        "contributions": "Взносы",
+        "overview": "Обзор"
       },
       "terminate": {
         "confirmLabel": "Прекратить договор",

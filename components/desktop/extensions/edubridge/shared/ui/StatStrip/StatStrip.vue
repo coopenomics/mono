@@ -1,126 +1,30 @@
 <template lang="pug">
-//- Полоса показателей: несколько чисел в одной карточке, у каждого свой значок
-//- одного нейтрального цвета (разноцветные плитки владелец отверг 07.10.2026),
-//- подпись над числом и пояснение под ним. Порядок слева направо — путь денег
-//- или важность. Разделитель между ячейками — волосяная линия фона сетки,
-//- поэтому при переносе на узком экране линии остаются и по горизонтали.
-BaseCard.edu-stats(variant="default" :class="{ 'edu-stats--compact': compact }")
+//- Ряд плиток чисел. Плитка та же, что в шапке курса, поэтому числа на всех
+//- экранах образования выглядят одинаково. На фоне страницы ряд лежит в
+//- карточке (`framed`), внутри чужой карточки — сам по себе.
+BaseCard.edu-stats(v-if="framed" variant="default")
   .edu-stats__grid
-    .edu-stats__item(v-for="it in items" :key="it.key")
-      span.edu-stats__icon
-        q-icon(:name="it.icon" :size="compact ? '18px' : '20px'")
-      .edu-stats__body
-        .edu-stats__caption
-          span.t-eyebrow {{ it.caption }}
-          q-icon.edu-stats__hint(v-if="it.hint" name="help_outline" size="14px")
-            q-tooltip(max-width="320px") {{ it.hint }}
-        .edu-stats__value
-          template(v-if="loading") —
-          template(v-else)
-            | {{ it.value }}
-            span.edu-stats__ccy(v-if="it.symbol") {{ it.symbol }}
-          BaseButton.edu-stats__edit(v-if="it.editLabel && !loading" variant="ghost" size="sm" icon-only :aria-label="it.editLabel" @click="emit('edit', it.key)")
-            template(#icon-left)
-              q-icon(name="edit" size="16px")
-        .edu-stats__sub(v-if="it.sub") {{ it.sub }}
+    StatTile(v-for="it in items" :key="it.key" v-bind="it" :loading="loading" @edit="emit('edit', it.key)")
+.edu-stats__grid(v-else)
+  StatTile(v-for="it in items" :key="it.key" v-bind="it" :loading="loading" @edit="emit('edit', it.key)")
 </template>
 
 <script setup lang="ts">
-import { BaseButton, BaseCard } from 'src/shared/ui/base';
+import { BaseCard } from 'src/shared/ui/base';
+import StatTile from './StatTile.vue';
 import type { StatStripItem } from './StatStrip.types';
 
-withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; compact?: boolean }>(), { loading: false, compact: false });
+withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; framed?: boolean }>(), { loading: false, framed: true });
 const emit = defineEmits<{ edit: [key: string] }>();
 </script>
 
 <style scoped>
 .edu-stats :deep(.base-card__body) {
-  padding: 0;
+  padding: var(--p-4);
 }
 .edu-stats__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1px;
-  background: var(--p-line);
-  border-radius: inherit;
-  overflow: hidden;
-}
-.edu-stats__item {
-  display: flex;
-  align-items: flex-start;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--p-3);
-  padding: var(--p-5);
-  min-width: 0;
-  background: var(--p-surface);
-}
-.edu-stats__icon {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--p-r-md);
-  background: var(--p-surface-3);
-  color: var(--p-ink-2);
-}
-.edu-stats__body {
-  min-width: 0;
-}
-.edu-stats__caption {
-  display: flex;
-  align-items: center;
-  gap: var(--p-1);
-}
-.edu-stats__hint {
-  color: var(--p-ink-3);
-  cursor: help;
-}
-.edu-stats__value {
-  display: flex;
-  align-items: center;
-  gap: var(--p-1);
-  margin-top: var(--p-1);
-  font-size: var(--p-fs-h1);
-  line-height: var(--p-lh-h1);
-  letter-spacing: var(--p-ls-h1);
-  font-weight: 600;
-  color: var(--p-ink);
-  font-feature-settings: 'tnum' 1;
-  white-space: nowrap;
-}
-.edu-stats__edit {
-  flex: none;
-  color: var(--p-ink-3);
-}
-.edu-stats__ccy {
-  margin-left: 0.3em;
-  font-size: var(--p-fs-body-sm);
-  font-weight: 400;
-  letter-spacing: 0;
-  color: var(--p-ink-3);
-}
-.edu-stats__sub {
-  margin-top: 2px;
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-2);
-}
-.edu-stats--compact .edu-stats__grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
-.edu-stats--compact .edu-stats__item {
-  padding: var(--p-3) var(--p-4);
-  gap: var(--p-2);
-}
-.edu-stats--compact .edu-stats__icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--p-r-sm);
-}
-.edu-stats--compact .edu-stats__value {
-  font-size: var(--p-fs-h2);
-  line-height: var(--p-lh-h2);
-  letter-spacing: var(--p-ls-h2);
 }
 </style>
