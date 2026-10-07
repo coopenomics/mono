@@ -7,7 +7,12 @@ BaseCard.edu-hero(variant="default")
   .edu-hero__body
     .edu-hero__head
       .edu-hero__text
-        .edu-hero__subject {{ courseSectionLabel(section, level, ', ') }}
+        //- Строка контекста: откуда пришли и к чему курс относится.
+        .edu-hero__subject
+          template(v-if="backLabel")
+            BackLink(:label="backLabel" @click="emit('back')")
+            span(aria-hidden="true") ·
+          span {{ courseSectionLabel(section, level, ', ') }}
         h1.edu-hero__title {{ title }}
         .edu-hero__facts(v-if="$slots.facts")
           slot(name="facts")
@@ -20,13 +25,17 @@ BaseCard.edu-hero(variant="default")
 <script setup lang="ts">
 import { BaseCard } from 'src/shared/ui/base';
 import { courseSectionLabel } from '../../entities/Course';
+import { BackLink } from '../../shared/ui/BackLink';
 
 defineProps<{
   title: string;
   section: string;
   level: string;
   imageUrl?: string | null;
+  /** Подпись возврата к списку; без неё крошка не выводится. */
+  backLabel?: string;
 }>();
+const emit = defineEmits<{ (e: 'back'): void }>();
 </script>
 
 <style scoped>
@@ -58,6 +67,10 @@ defineProps<{
   min-width: 0;
 }
 .edu-hero__subject {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--p-1) var(--p-2);
   font-size: var(--p-fs-body-sm);
   line-height: var(--p-lh-body-sm);
   color: var(--p-ink-3);

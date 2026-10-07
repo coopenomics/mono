@@ -9,6 +9,8 @@
   template(v-else)
     //- На странице карточка лежит на белой подложке, как остальные страницы стола.
     BaseCard.edu-teacher__content(variant="default")
+      .edu-teacher__crumb
+        BackLink(:label="$t('edubridge.adminTeachersPage.backToRegistry')" @click="goBack")
       TeacherCard(:key="teacher.username" :teacher="teacher" @change="(updated) => (teacher = updated)" @refresh="load")
 </template>
 
@@ -20,7 +22,7 @@ import { FailAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
 import { BaseCard, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { useBackButton } from 'src/shared/lib/navigation';
+import { BackLink } from '../../shared/ui/BackLink';
 import { fetchTeachers, type ITeacher } from '../../entities/Teacher';
 import { TeacherCard } from '../../widgets/TeacherCard';
 import { EduLive } from '../../shared/lib/live';
@@ -55,8 +57,6 @@ async function load(): Promise<void> {
 function goBack(): void {
   void router.push({ name: 'edubridge-admin-teachers', params: { coopname: route.params.coopname } });
 }
-// Возврат к списку стоит в шапке перед заголовком, а не строкой над карточкой.
-useBackButton({ text: t('edubridge.adminTeachersPage.backToRegistry'), componentId: 'edubridge-admin-teacher', onClick: goBack });
 
 // Живое обновление: договор подписывает председатель, назначения меняют
 // другие администраторы — страница узнаёт об этом по ленте изменений.
@@ -78,6 +78,10 @@ onUnmounted(() => desktopStore.clearPageTitleOverride());
 
 <style scoped>
 /* Карточка читается колонкой: на всю ширину экрана строки «подпись — значение» расползаются. */
+.edu-teacher__crumb {
+  margin-bottom: var(--p-4);
+  font-size: var(--p-fs-body-sm);
+}
 .edu-teacher__content {
   max-width: 880px;
 }

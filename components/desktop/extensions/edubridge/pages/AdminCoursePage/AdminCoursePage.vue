@@ -7,7 +7,7 @@
       q-icon(name="search_off" size="40px")
 
   template(v-else)
-    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url")
+    CourseHero(:title="course.title" :section="course.section_title" :level="course.level_title" :image-url="course.image_url" :back-label="$t('edubridge.adminCoursePage.backToRegistry')" @back="goBack")
       template(#facts)
         BaseBadge(:variant="status.variant") {{ status.label }}
         span(v-if="course.schedule") {{ course.schedule }}
@@ -115,7 +115,6 @@ import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy'
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero, CourseHeroFigure } from '../../widgets/CourseHero';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { useBackButton } from 'src/shared/lib/navigation';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
 
@@ -152,8 +151,6 @@ const directionLabel = computed(() => DIRECTION_LABELS[course.value?.direction ?
 function goBack(): void {
   void router.push({ name: 'edubridge-admin-courses', params: { coopname: route.params.coopname } });
 }
-// Возврат к реестру стоит в шапке перед заголовком, а не строкой над карточкой.
-useBackButton({ text: t('edubridge.adminCoursePage.backToRegistry'), componentId: 'edubridge-admin-course', onClick: goBack });
 
 function edit(): void {
   void router.push({ name: 'edubridge-admin-course-edit', params: { coopname: route.params.coopname, id: String(route.params.id) } });
