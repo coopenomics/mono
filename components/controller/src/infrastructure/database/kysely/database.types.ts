@@ -1160,6 +1160,7 @@ export interface EdubridgeContributions {
   statement_document: Json | null;
   statement_hash: string | null;
   status: Generated<EdubridgeContributionsStatusEnum>;
+  storage_act_document: Json | null;
   storage_act_hash: string | null;
   teacher_username: string;
   updated_at: Generated<Timestamp>;
