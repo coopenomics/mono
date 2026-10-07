@@ -4,7 +4,7 @@ import { LOGGER_PORT, type ILoggerPort, ACCOUNT_PORT, type IAccountPort, NOTIFIC
 import { platformSettings } from '@coopenomics/extension-kit';
 import { Workflows } from '@coopenomics/notifications';
 import { SovietContract } from 'cooptypes';
-import { ApprovalInfo, APPROVAL_TYPE_MAP } from '../../domain/approval-types';
+import { ApprovalInfo, approvalInfoOf } from '../../domain/approval-types';
 import type { IDelta } from '@coopenomics/extension-kit/sync';
 import { t } from '../../i18n';
 
@@ -77,7 +77,7 @@ export class ApprovalNotificationService implements OnModuleInit {
       const authorName = await this.accountPort.getDisplayName(approvalData.username);
 
       // Получаем заголовок и описание на основе типа одобрения
-      const approvalInfo: ApprovalInfo | undefined = APPROVAL_TYPE_MAP[approvalData.type as keyof typeof APPROVAL_TYPE_MAP];
+      const approvalInfo: ApprovalInfo | undefined = approvalInfoOf(approvalData);
       const requestTitle = approvalInfo?.title || t('chairman.approvalNotification.defaultTitle');
       const requestDescription = approvalInfo?.description || t('chairman.approvalNotification.defaultDescription');
 

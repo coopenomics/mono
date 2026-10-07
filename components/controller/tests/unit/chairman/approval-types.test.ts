@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { APPROVAL_TYPE_MAP } from '~/extensions/chairman/domain/approval-types';
+import { APPROVAL_TYPE_MAP, approvalInfoOf } from '~/extensions/chairman/domain/approval-types';
 
 /**
  * Заголовок уведомления председателю берётся по типу одобрения — имени
@@ -28,6 +28,12 @@ describe('типы одобрений образования', () => {
     for (const type of Object.keys(EDU_TYPES)) {
       expect(header).toMatch(new RegExp(`\\[\\[eosio::action\\]\\]\\s+void\\s+${type}\\(`));
     }
+  });
+
+  it('запись цепи несёт действие подачи и действие одобрения — заголовок находится по действию одобрения', () => {
+    expect(approvalInfoOf({ type: 'signcontract', callback_action_approve: 'apprvcontr' })?.title).toBe('Договор УХД преподавателя');
+    expect(approvalInfoOf({ type: 'createcmmt', callback_action_approve: 'approvecmmt' })).toBe(APPROVAL_TYPE_MAP.approvecmmt);
+    expect(approvalInfoOf({ type: 'unknown', callback_action_approve: 'unknown' })).toBeUndefined();
   });
 
   it('допуск к курсу одобрения не требует — действий приложения к договору в контракте и карте нет', () => {

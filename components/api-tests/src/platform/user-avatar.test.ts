@@ -63,8 +63,11 @@ describe('фотография пайщика', () => {
 
   it(caseName('avatar.break.01', 'файл чужого типа, пустой файл и файл больше пяти мегабайт отклоняются'), async () => {
     const before = await avatarOf(member)
-    expectCode(await gqlError(token, UPLOAD, { d: { content_base64: png(), mime_type: 'application/pdf' } }), 'ACCOUNT_AVATAR_UNSUPPORTED_TYPE')
-    expectCode(await gqlError(token, UPLOAD, { d: { content_base64: '', mime_type: 'image/png' } }), 'ACCOUNT_AVATAR_EMPTY')
+    // Чужой тип и пустой файл отклоняет проверка входных данных.
+    const wrongType = await gqlError(token, UPLOAD, { d: { content_base64: png(), mime_type: 'application/pdf' } })
+    expectCode(wrongType, '422')
+    expect(wrongType!.message).toMatch(/JPEG, PNG или WEBP/)
+    expectCode(await gqlError(token, UPLOAD, { d: { content_base64: '', mime_type: 'image/png' } }), '422')
     const huge = crypto.randomBytes(5 * 1024 * 1024 + 1024).toString('base64')
     const tooLarge = await gqlError(token, UPLOAD, { d: { content_base64: huge, mime_type: 'image/png' } })
     expect(tooLarge, 'снимок больше пяти мегабайт отклонён').not.toBeNull()

@@ -40,3 +40,13 @@ export const APPROVAL_TYPE_MAP = {
 export type ApprovalType = keyof typeof APPROVAL_TYPE_MAP;
 
 export type ApprovalInfo = (typeof APPROVAL_TYPE_MAP)[ApprovalType];
+
+/**
+ * Заголовок и описание одобрения. Запись одобрения в цепи несёт имя действия
+ * подачи (`type`) и имя действия одобрения (`callback_action_approve`); карта
+ * ведётся по действию одобрения.
+ */
+export function approvalInfoOf(approval: { type?: string; callback_action_approve?: string }): ApprovalInfo | undefined {
+  const map = APPROVAL_TYPE_MAP as Record<string, ApprovalInfo>;
+  return map[approval.callback_action_approve ?? ''] ?? map[approval.type ?? ''];
+}

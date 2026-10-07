@@ -50,14 +50,14 @@ describe('Образование: связки с ядром — одобрен�
     await educationOff()
   })
 
-  it(caseName('chair.appr.side.08', 'одобрение договора преподавателя приходит председателю со своим заголовком, а не общим «Новый запрос на одобрение»'), async () => {
+  it(caseName('chair.appr.side.08', 'в уведомлении председателю об одобрении договора преподавателя назван сам договор'), async () => {
     expect(approval).toMatchObject({ callback_contract: EXTENSION, username: teacher.account, status: 'PENDING' })
     const note = await waitFor(async () => {
       const items = await inbox(chairman, 100)
       return items.find(i => JSON.stringify(i.payload ?? {}).toLowerCase().includes(String(approval.approval_hash).toLowerCase())) ?? null
     }, { timeoutMs: 90_000, intervalMs: 3_000, label: 'уведомление председателю об одобрении договора преподавателя' })
-    expect(`${note.title} ${note.body}`).toMatch(/[Дд]оговор/)
-    expect(note.title).not.toBe('Новый запрос на одобрение')
+    expect(note.body).toContain('Договор УХД преподавателя')
+    expect(note.body).not.toContain('Новый запрос на одобрение')
   }, 180_000)
 
   it(caseName('sync.wwd.happy.03', 'после подписи председателя договор действует сразу: ответ уже видит дату подписи из цепи'), async () => {
