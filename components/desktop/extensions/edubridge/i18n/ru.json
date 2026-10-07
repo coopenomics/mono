@@ -720,7 +720,6 @@
       "offerTitle": "офертой ученика по ЦПП «Образование»"
     },
     "memberSubscriptionsPage": {
-      "actionsAriaLabel": "Действия с подпиской",
       "cancel": "Отменить",
       "cancelDialog": {
         "lessonsUsedLabel": "Занятий прошло",
@@ -735,6 +734,13 @@
         "paidUntil": "Оплачено до"
       },
       "daysLeft": "остался {n} день | осталось {n} дня | осталось {n} дней",
+      "details": {
+        "guaranteeClaim": "Заявление по гарантии",
+        "guaranteeUntil": "Гарантийный срок до",
+        "learner": "Обучающийся",
+        "period": "Взнос",
+        "refund": "Возврат"
+      },
       "emptyBody": "Выберите курс в каталоге и нажмите «Получить доступ».",
       "emptyTitle": "Подписок пока нет",
       "extend": "Продлить",

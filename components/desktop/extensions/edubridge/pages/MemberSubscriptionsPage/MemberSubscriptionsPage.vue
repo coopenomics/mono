@@ -18,7 +18,8 @@
     //- Подписки — строками, а не таблицей: блоки строки переносятся при узком
     //- окне, горизонтальной прокрутки нет, «Продлить» видна всегда.
     .edu-subs(v-else-if="enrollments.length")
-      .edu-sub(v-for="row in enrollments" :key="asText(row.id)")
+      //- Строка целиком — вход в правую панель с подпиской; «Продлить» остаётся на виду.
+      .edu-sub(v-for="row in enrollments" :key="asText(row.id)" role="button" tabindex="0" @click="openDetails(row)" @keydown.enter="openDetails(row)")
         .edu-sub__main
           .edu-sub__title {{ row.course_title }}
           .edu-sub__meta {{ learnerName(row.learner_id) }} · {{ periodLabel(row.period) }}
@@ -33,23 +34,10 @@
         .edu-sub__state
           BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
           BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
-        //- «Продлить» — главное действие; отмена нужна редко и лежит в меню (слот #menu кнопки-иконки).
-        .edu-sub__actions(v-if="isActive(row)")
-          BaseButton(variant="primary" size="sm" @click="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
-          //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
-          BaseButton(v-if="canClaimGuarantee(row) || !underReview.has(asText(row.id))" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.memberSubscriptionsPage.actionsAriaLabel')")
-            template(#icon-left)
-              q-icon(name="more_horiz" size="20px")
-            template(#menu)
-              q-menu(anchor="bottom right" self="top right")
-                q-list.edu-sub__menu(dense)
-                  //- Возврат по гарантии — пока идёт гарантийный срок и заявление ещё не подавалось.
-                  q-item(v-if="canClaimGuarantee(row)" clickable v-close-popup @click="openGuarantee(row)")
-                    q-item-section
-                      q-item-label {{ $t('edubridge.guaranteeClaim.open') }}
-                      q-item-label(v-if="guaranteeOf(row)?.guarantee_until" caption) {{ $t('edubridge.guaranteeClaim.until', { date: formatDate(guaranteeOf(row)?.guarantee_until) }) }}
-                  q-item(v-if="!underReview.has(asText(row.id))" clickable v-close-popup @click="openCancel(row)")
-                    q-item-section.text-negative {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
+        //- «Продлить» — главное действие и видно в строке; остальные действия — в панели подписки.
+        .edu-sub__actions
+          BaseButton(v-if="isActive(row)" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+          q-icon.edu-sub__chevron(name="chevron_right" size="20px")
     EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
       template(#icon)
         q-icon(name="school" size="32px")
@@ -78,6 +66,27 @@
     @subscribed="onSubscribed"
   )
 
+  //- Подписка целиком: срок, состояние, гарантия; все действия — внизу панели.
+  DetailsDrawer(v-model="detailsOpen" :title="details?.course_title || ''" :width="520")
+    template(v-if="details")
+      .edu-sub__badges
+        BaseBadge(:variant="statusOf(details.status).variant") {{ statusOf(details.status).label }}
+        BaseBadge(:variant="accessOf(details.access_state).variant") {{ accessOf(details.access_state).label }}
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.learner')" :value="learnerName(details.learner_id)")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.period')" :value="periodLabel(details.period)")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.columns.paidUntil')" :value="details.paid_until ? formatDate(details.paid_until) : '______'" :hint="isRenewSoon(details) ? $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(details.paid_until) }, Number(daysLeft(details.paid_until))) : undefined")
+      DataRow(v-if="!isActive(details) && details.refund_reason" :label="$t('edubridge.memberSubscriptionsPage.details.refund')" :value="refundReason(details.refund_reason)")
+      template(v-if="guaranteeOf(details)")
+        DataRow(v-if="claimOf(details)" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeClaim')" :value="`${$t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(details)?.number })} · ${$t(`edubridge.guaranteeClaim.status.${claimOf(details)?.status}`)}`")
+        DataRow(v-else-if="canClaimGuarantee(details) && guaranteeOf(details)?.guarantee_until" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeUntil')" :value="formatDate(guaranteeOf(details)?.guarantee_until)")
+    template(v-if="details && isActive(details)" #footer)
+      .edu-sub__footer
+        //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
+        BaseButton(v-if="!underReview.has(asText(details.id))" variant="ghost" @click="openCancel(details)") {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
+        BaseButton(v-if="canClaimGuarantee(details)" variant="secondary" @click="openGuarantee(details)") {{ $t('edubridge.guaranteeClaim.open') }}
+        q-space
+        BaseButton(variant="primary" @click="extend(details)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+
   GuaranteeClaimDialog(v-model="guaranteeOpen" :state="guaranteeTarget" @submitted="load")
 </template>
 
@@ -89,7 +98,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseBadge, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
-import { DataRow, PageHint } from 'src/shared/ui/domain';
+import { DataRow, PageHint, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import {
   ACCESS_STATE_LABELS,
@@ -150,6 +159,14 @@ const guaranteeOf = (row: IEnrollment) => guarantees.value.get(asText(row.id)) ?
 const claimOf = (row: IEnrollment) => guaranteeOf(row)?.claim ?? null;
 /** Заявление по гарантии подаётся один раз, пока идёт гарантийный срок. */
 const canClaimGuarantee = (row: IEnrollment) => Boolean(guaranteeOf(row)?.available) && !claimOf(row);
+/** Подписка в правой панели — по идентификатору: после действия панель показывает свежее состояние. */
+const detailsOpen = ref(false);
+const detailsId = ref<string | null>(null);
+const details = computed(() => enrollments.value.find((e) => asText(e.id) === detailsId.value) ?? null);
+function openDetails(row: IEnrollment): void {
+  detailsId.value = asText(row.id);
+  detailsOpen.value = true;
+}
 const guaranteeOpen = ref(false);
 const guaranteeTarget = ref<IGuaranteeState | null>(null);
 function openGuarantee(row: IEnrollment): void {
@@ -295,7 +312,29 @@ onMounted(load);
   gap: var(--p-1);
   margin-left: auto;
 }
-.edu-sub__menu {
-  min-width: 200px;
+.edu-sub {
+  cursor: pointer;
+}
+.edu-sub:hover .edu-sub__title,
+.edu-sub:focus-visible .edu-sub__title {
+  color: var(--p-primary);
+}
+.edu-sub:focus-visible {
+  outline: none;
+}
+.edu-sub__chevron {
+  color: var(--p-ink-3);
+}
+.edu-sub__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--p-2);
+  margin-bottom: var(--p-4);
+}
+.edu-sub__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-2);
 }
 </style>
