@@ -1,5 +1,4 @@
-/** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета, акт → acceptrid, отклонение. */
-import { DecisionEventType, DecisionTrackedEvent } from '@coopenomics/innercoop';
+/** Преподавательский контур: ДУХД и приложение двухподписные через одобрение председателя, взнос РИД, решение совета повесткой контракта, акт → acceptrid, отклонение. */
 import { EdubridgeTeacherService, coursePeriod, rateCoverageError } from '~/extensions/edubridge/application/services/edubridge-teacher.service';
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome } from '~/extensions/edubridge/domain/enums';
 import { Cooperative } from 'cooptypes';
@@ -79,14 +78,8 @@ function make(
     generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
     buildAggregate: jest.fn(async (d: any) => ({ hash: d.hash, document: d, rawDocument: { hash: d.hash, html: '', meta: {} } })),
   } as any;
-  const freeDecisions = {
-    createProjectOfFreeDecision: jest.fn(async () => ({})),
-    generateProjectOfFreeDecisionDocument: jest.fn(async () => ({ hash: 'PROJ', meta: {} })),
-    publishProjectOfFreeDecision: jest.fn(async () => true),
-  } as any;
-  const tracking = { registerTrackingRule: jest.fn(async () => ({})) } as any;
-  // Вопрос в повестке совета находится по хэшу проекта решения.
-  const council = { getDecisions: jest.fn(async () => [{ id: 77, hash: 'PROJ' }]) } as any;
+  // Повестку ставит контракт с hash = rid_hash: вопрос находится по хэшу материалов.
+  const council = { getDecisions: jest.fn(async () => [...store.values()].map((c: any) => ({ id: 77, hash: c.rid_hash }))) } as any;
   // Паевой взнос по программе и главный паевой — разные кошельки с разными остатками.
   const balances: Record<string, string> = { 'w.edu.share': '3000.0000 RUB', 'w.wal.share': '7000.0000 RUB' };
   const wallets = { findByWalletAndUsername: jest.fn(async (_c: string, wallet: string) => (balances[wallet] ? { available: balances[wallet] } : null)) } as any;
@@ -98,8 +91,8 @@ function make(
   const events = { emit: jest.fn() } as any;
   // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
   const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, freeDecisions, tracking, council, wallets, avatars, names, funds, udata, logger, events);
-  return { udata, service, teachers, courses, chain, documents, freeDecisions, tracking, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events);
+  return { udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances };
 }
 
 
@@ -311,25 +304,27 @@ describe('EdubridgeTeacherService', () => {
     await expect(contributionOfLesson(service, store)).rejects.toThrow(/Допуск к курсу снят/);
   });
 
-  it('подача: submitrid, проект решения совета, правило отслеживания, статус SUBMITTED', async () => {
-    const { service, chain, freeDecisions, tracking, store } = make();
+  it('подача: submitrid в цепь (повестку ставит контракт), номер вопроса из повестки по хэшу материалов, статус SUBMITTED', async () => {
+    const { service, chain, council, store } = make();
     const c = await contributionOfLesson(service, store);
     const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
-    expect(chain.submitRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, amount: '1000.0000 RUB' }));
-    expect(freeDecisions.publishProjectOfFreeDecision).toHaveBeenCalled();
-    expect(tracking.registerTrackingRule).toHaveBeenCalledWith(expect.objectContaining({ hash: 'PROJ', event_type: DecisionEventType.SOVIET_DECISION, metadata: expect.objectContaining({ rid_hash: c.rid_hash }) }));
+    expect(chain.submitRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, amount: '1000.0000 RUB', statement: expect.objectContaining({ hash: 'STMT' }) }));
+    expect(council.getDecisions).toHaveBeenCalledWith('voskhod');
     expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
     expect(submitted.statement_hash).toBe('stmt');
+    expect(submitted.council_agenda_id).toBe('77');
   });
 
-  it('решение совета → COUNCIL_APPROVED; акт преподавателя → ACT_SIGNED; тот же акт с подписью председателя → acceptrid, ACCEPTED', async () => {
+  it('решение совета (onridauth с протоколом) → COUNCIL_APPROVED; акт преподавателя → ACT_SIGNED; тот же акт с подписью председателя → acceptrid тем же протоколом, ACCEPTED', async () => {
     const { funds, service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    await service.onDecisionTracked(new DecisionTrackedEvent({ matched: true, hash: 'PROJ', event_type: DecisionEventType.SOVIET_DECISION, decision_id: '17', decision_date: '2026-03-01', metadata: { extension: 'edubridge', rid_hash: c.rid_hash } }));
+    // Протокол 3009 подписал председатель — он приходит обратным вызовом контракта, с номером решения в метаданных.
+    await service.onCouncilApproved('voskhod', c.rid_hash, { ...signedBy('ant', 'PROTO'), meta: { decision_id: 17 } } as any);
     const approved = await service.listContributions('voskhod', 'teach');
     expect(approved[0]!.status).toBe(EduContributionStatus.COUNCIL_APPROVED);
     expect(approved[0]!.council_decision_id).toBe('17');
+    expect(approved[0]!.decision_hash).toBe('proto');
 
     await expect(service.act('voskhod', 'teach', c.id)).resolves.toBeTruthy();
     const teacherAct = signedBy('teach', 'ACT');
@@ -344,11 +339,9 @@ describe('EdubridgeTeacherService', () => {
 
     const bothSigned = { ...teacherAct, signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
     const accepted = await service.acceptContribution('voskhod', 'ant', c.id, bothSigned);
-    expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, act: expect.objectContaining({ hash: 'ACT' }) }));
-    expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id && x[0].data.decision_id === 17)).toBe(true);
-    // Протокол называет пайщиком преподавателя, а не председателя, и несёт вид результата.
-    const protocol = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)![0].data;
-    expect(protocol).toMatchObject({ username: c.teacher_username, rid_type: c.rid_type });
+    // В цепь уходит протокол, подписанный советом, — без перегенерации.
+    expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ rid_hash: c.rid_hash, decision: expect.objectContaining({ hash: 'PROTO' }), act: expect.objectContaining({ hash: 'ACT' }) }));
+    expect(documents.generate.mock.calls.some((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)).toBe(false);
     // Акт ссылается на протокол совета, которым принят взнос.
     const actData = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidAct.registry_id)![0].data;
     expect(actData.decision_id).toBe(17);
@@ -359,31 +352,44 @@ describe('EdubridgeTeacherService', () => {
     expect(funds.unlockDue).toHaveBeenCalledWith('voskhod', expect.any(Date), 'C1');
   });
 
-  it('сбой учёта резерва приём результата не отменяет', async () => {
-    const { service, funds, store } = make();
+  it('сбой учёта резерва приём результата не отменяет; у взноса без сохранённого протокола он собирается по номеру решения', async () => {
+    const { service, funds, documents, chain, store } = make();
     funds.onSettled.mockRejectedValue(new Error('база недоступна'));
     const c = await contributionOfLesson(service, store);
     Object.assign(c, { status: EduContributionStatus.ACT_SIGNED, act_hash: 'act', council_decision_id: '17' });
     const act = { ...signedBy('teach', 'ACT'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] };
     await expect(service.acceptContribution('voskhod', 'ant', c.id, act)).resolves.toMatchObject({ status: EduContributionStatus.ACCEPTED });
+    // Протокол называет пайщиком преподавателя, а не председателя, и несёт вид результата.
+    const protocol = documents.generate.mock.calls.find((x: any) => x[0].data.registry_id === R.EducationRidDecision.registry_id)![0].data;
+    expect(protocol).toMatchObject({ username: c.teacher_username, rid_type: c.rid_type, decision_id: 17 });
+    expect(chain.acceptRid).toHaveBeenCalledWith(expect.objectContaining({ decision: expect.objectContaining({ hash: `H${R.EducationRidDecision.registry_id}` }) }));
   });
 
   it('приём отклоняется, если на акте нет обеих подписей или хэш другой', async () => {
     const { service, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    await service.onDecisionTracked(new DecisionTrackedEvent({ matched: true, hash: 'PROJ', event_type: DecisionEventType.SOVIET_DECISION, decision_id: '1', metadata: { extension: 'edubridge', rid_hash: c.rid_hash } }));
+    await service.onCouncilApproved('voskhod', c.rid_hash, { ...signedBy('ant', 'PROTO'), meta: { decision_id: 1 } } as any);
     await service.signAct('voskhod', 'teach', c.id, signedBy('teach', 'ACT'));
     await expect(service.acceptContribution('voskhod', 'ant', c.id, signedBy('teach', 'ACT'))).rejects.toThrow(/подписи преподавателя и председателя/);
     await expect(service.acceptContribution('voskhod', 'ant', c.id, { ...signedBy('ant', 'OTHER'), signatures: [{ signer: 'teach' }, { signer: 'ant' }] })).rejects.toThrow(/хэш акта/);
   });
 
-  it('акт до решения совета недоступен; чужое решение игнорируется', async () => {
+  it('акт до решения совета недоступен; решение по чужим материалам игнорируется', async () => {
     const { service, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
-    await service.onDecisionTracked(new DecisionTrackedEvent({ matched: true, hash: 'X', event_type: DecisionEventType.SOVIET_DECISION, metadata: { extension: 'market' } }));
+    await service.onCouncilApproved('voskhod', 'x', signedBy('ant', 'PROTO'));
     await expect(service.act('voskhod', 'teach', c.id)).rejects.toThrow(/после решения совета/);
+  });
+
+  it('отказ совета обратным вызовом контракта помечает заявление исходом; материалы ждут снятия', async () => {
+    const { service, store } = make();
+    const c = await contributionOfLesson(service, store);
+    await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
+    await service.onCouncilDeclinedByHash('voskhod', c.rid_hash);
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+    expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
   });
 
   it('отказ без решения совета: протокола нет, материалы снимаются с хранения с основанием', async () => {
@@ -455,28 +461,28 @@ describe('EdubridgeTeacherService', () => {
     expect(chain.recallRid).not.toHaveBeenCalled();
   });
 
-  it('сбой на проекте решения: заявление в цепи зафиксировано, очередь доводит его до совета без повторной подачи', async () => {
-    const { service, chain, freeDecisions, teachers, store } = make();
+  it('повестка ещё не прочитана: заявление в цепи зафиксировано, номер вопроса допишет очередь без повторной подачи', async () => {
+    const { service, chain, council, teachers, store } = make();
     const c = await contributionOfLesson(service, store);
-    freeDecisions.publishProjectOfFreeDecision.mockRejectedValueOnce(new Error('совет недоступен'));
-    await expect(service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'))).rejects.toThrow(/совет недоступен/);
-    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+    council.getDecisions.mockResolvedValueOnce([]);
+    const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
+    expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
     expect(c.statement_document).toBeTruthy();
-    expect(c.council_project_hash ?? null).toBeNull();
+    expect(c.council_agenda_id ?? null).toBeNull();
 
     teachers.findSubmittedWithoutProject.mockResolvedValue([c]);
     await expect(service.publishDueContributions('voskhod')).resolves.toBe(1);
     expect(chain.submitRid).toHaveBeenCalledTimes(1);
-    expect(c.council_project_hash).toBe('proj');
+    expect(c.council_agenda_id).toBe('77');
   });
 
-  it('цепь отвечает «уже подано» — подача продолжается с проекта решения', async () => {
-    const { service, chain, freeDecisions, store } = make();
+  it('цепь отвечает «уже подано» — подача продолжается с поиска вопроса в повестке', async () => {
+    const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
     chain.submitRid.mockRejectedValueOnce(new Error('assertion failure with message: Заявление о паевом взносе по этим материалам уже подано'));
     const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
     expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
-    expect(freeDecisions.publishProjectOfFreeDecision).toHaveBeenCalled();
+    expect(submitted.council_agenda_id).toBe('77');
   });
 
   it('иная ошибка цепи при подаче статус не меняет', async () => {
@@ -738,14 +744,14 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
   });
 
   it('пока идёт гарантийный срок, подписанное заявление в совет не уходит', async () => {
-    const { service, chain, freeDecisions, store } = make();
+    const { service, chain, council, store } = make();
     const lesson = await service.reportLesson('voskhod', 'teach', report as any);
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     const held = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
     expect(held.status).toBe(EduContributionStatus.HELD);
     expect(chain.submitRid).not.toHaveBeenCalled();
-    expect(freeDecisions.createProjectOfFreeDecision).not.toHaveBeenCalled();
+    expect(council.getDecisions).not.toHaveBeenCalled();
   });
 
   it('по истечении срока очередь отправляет заявление сама, без участия преподавателя', async () => {

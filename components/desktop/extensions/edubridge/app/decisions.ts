@@ -1,4 +1,4 @@
-import type { Cooperative } from 'cooptypes';
+import { Cooperative } from 'cooptypes';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { useSystemStore } from 'src/entities/System/model';
