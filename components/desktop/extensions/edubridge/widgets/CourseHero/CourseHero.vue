@@ -99,13 +99,11 @@ const emit = defineEmits<{ (e: 'back'): void }>();
   align-items: flex-end;
   gap: var(--p-2);
 }
-/* Числа курса под тонкой линией, равными колонками одного веса. */
+/* Числа курса — ряд равных плиток под шапкой. */
 .edu-hero__figures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--p-5) var(--p-6);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--p-3);
   margin-top: var(--p-6);
-  padding-top: var(--p-5);
-  border-top: 1px solid var(--p-line);
 }
 </style>

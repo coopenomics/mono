@@ -3,8 +3,10 @@
   PageHint.q-mb-md(storage-key="edu:admin-sections:banner-dismissed")
     | {{ $t('edubridge.adminSectionsPage.hint.line1') }}
 
-  .row.justify-end.q-mb-md(v-if="hasArchived")
-    BaseCheckbox(v-model="showArchived") {{ $t('edubridge.adminSectionsPage.showArchived') }}
+  //- Строка над списком: сколько разделов и уровней, справа — показ архива.
+  .edu-sections__toolbar.q-mb-md(v-if="!firstLoad && sections.length")
+    .t-sm.t-muted {{ $t('edubridge.adminSectionsPage.summary', { sections: sections.length, levels: levelsTotal }) }}
+    BaseCheckbox(v-if="hasArchived" v-model="showArchived") {{ $t('edubridge.adminSectionsPage.showArchived') }}
 
   CardListSkeleton(v-if="firstLoad" :count="2")
   EmptyState(v-else-if="!visible.length" :title="$t('edubridge.adminSectionsPage.emptyTitle')" :body="$t('edubridge.adminSectionsPage.emptyBody')")
@@ -50,8 +52,8 @@
         )
     .t-muted.t-sm.q-mt-sm(v-else) {{ $t('edubridge.adminSectionsPage.noLevels') }}
 
-    .q-mt-sm(v-if="!section.archived")
-      BaseButton(variant="ghost" size="sm" :disabled="busy" @click="openCreateLevel(section)")
+    .q-mt-md(v-if="!section.archived")
+      BaseButton(variant="secondary" size="sm" :disabled="busy" @click="openCreateLevel(section)")
         template(#icon-left)
           q-icon(name="add" size="18px")
         | {{ $t('edubridge.adminSectionsPage.addLevel') }}
@@ -102,6 +104,7 @@ const dialog = reactive({ open: false, kind: 'section' as 'section' | 'level', i
 
 const hasArchived = computed(() => sections.value.some((s) => s.archived || s.levels.some((l) => l.archived)));
 const visible = computed(() => sections.value.filter((s) => showArchived.value || !s.archived));
+const levelsTotal = computed(() => sections.value.reduce((n, s) => n + s.levels.length, 0));
 const levelsOf = (s: ISection): ILevel[] => s.levels.filter((l) => showArchived.value || !l.archived);
 const dialogTitle = computed(() => {
   if (dialog.kind === 'level') return dialog.id ? t('edubridge.adminSectionsPage.dialog.renameLevelTitle') : t('edubridge.adminSectionsPage.dialog.newLevelTitle');
@@ -186,6 +189,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.edu-sections__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+  min-height: 32px;
+}
 .edu-sections__row {
   display: flex;
   align-items: center;

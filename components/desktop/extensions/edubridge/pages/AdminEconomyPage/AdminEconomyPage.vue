@@ -4,37 +4,41 @@
     | {{ $t('edubridge.adminEconomyPage.hint.line1') }}
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
+    //- Действие вкладки живёт в её полосе, а не плавает над списком.
+    template(#actions)
+      BaseButton(v-if="tab === 'expenses'" variant="primary" size="sm" @click="expenseOpen = true")
+        template(#icon-left)
+          q-icon(name="add" size="18px")
+        | {{ $t('edubridge.adminEconomyPage.submitExpense') }}
 
   template(v-if="tab === 'money'")
-    .row.q-col-gutter-md
-      .col-12.col-md-6(v-for="w in wallets" :key="w.id")
-        WalletCard(
-          :title="w.name"
-          :subtitle="w.summary"
-          :hint="w.hint"
-          :balance="splitAsset2Digits(w.available).amount"
-          :symbol="splitAsset2Digits(w.available).symbol || symbol"
-          :balance-label="$t('edubridge.adminEconomyPage.wallet.balanceLabel')"
-          icon="savings"
-          stacked
-          :loading="firstLoad"
-        )
+    //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
+    //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
+    StatStrip(:items="walletStats" :loading="firstLoad")
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
     //- фоновое обновление по ленте изменений её не прячет и не показывает заново.
+    //- Строка открывает движение в правой панели.
     BaseTable.q-mt-lg(
       v-if="firstLoad || movements.length"
       :columns="movementColumns"
       :rows="movements"
       row-key="id"
       :loading="firstLoad"
+      :clickable-rows="true"
       min-width="720px"
+      @row-click="openMovement"
     )
       template(#cell-at="{ row }") {{ formatDate(row.at) }}
+      template(#cell-title="{ row }")
+        .edu-economy__move
+          q-icon.edu-economy__dir(:name="row.direction === 'in' ? 'south_west' : 'north_east'" :class="row.direction === 'in' ? 'edu-economy__dir--in' : 'edu-economy__dir--out'" size="16px")
+          span {{ row.title }}
       template(#cell-username="{ row }")
         IdentityCell(v-if="row.username" :account-name="row.username" :full-name="row.display_name")
         span(v-else) ______
-      template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
+      template(#cell-amount="{ row }")
+        span.t-num {{ formatAsset2Digits(row.amount) }}
 
     EmptyState.q-mt-lg(
       v-if="!firstLoad && !movements.length"
@@ -44,13 +48,21 @@
       template(#icon)
         q-icon(name="receipt_long" size="32px")
 
-  template(v-else-if="tab === 'expenses'")
-    .row.justify-end.q-mb-md
-      BaseButton(variant="primary" @click="expenseOpen = true")
-        template(#icon-left)
-          q-icon(name="add" size="18px")
-        | {{ $t('edubridge.adminEconomyPage.submitExpense') }}
+    //- Движение целиком: сумма крупно, затем когда, куда и от кого.
+    DetailsDrawer(v-model="movementOpen" :title="movement?.title || ''" :width="480")
+      template(v-if="movement")
+        .edu-economy__amount
+          .t-eyebrow {{ $t('edubridge.adminEconomyPage.column.amount') }}
+          FeeAmount(:value="movement.amount" size="lg")
+        DataRow(:label="$t('edubridge.adminEconomyPage.column.at')" :value="formatDate(movement.at)")
+        DataRow(:label="$t('edubridge.adminEconomyPage.movement.directionLabel')" :value="movement.direction === 'in' ? $t('edubridge.adminEconomyPage.movement.in') : $t('edubridge.adminEconomyPage.movement.out')")
+        DataRow(:label="$t('edubridge.adminEconomyPage.column.username')")
+          template(#value-override)
+            IdentityCell(v-if="movement.username" :account-name="movement.username" :full-name="movement.display_name" copyable)
+            span(v-else) ______
+        DataRow(:label="$t('edubridge.adminEconomyPage.movement.idLabel')" :value="asText(movement.id)" mono copyable)
 
+  template(v-else-if="tab === 'expenses'")
     ExpenseProposalList(
       :rows="expenseRows"
       :loading="firstLoad"
@@ -100,7 +112,9 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
-import { DataRow, IdentityCell, PageHint, WalletCard } from 'src/shared/ui/domain';
+import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { FeeAmount } from '../../shared/ui/FeeAmount';
+import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { ExpenseCreateDialog, ExpenseProposalList, type ExpenseCreatePayload, type ExpenseProposalListRow } from 'src/shared/ui/domain';
 import {
@@ -153,7 +167,44 @@ const markupHelp = computed(
     i18nT('edubridge.adminEconomyPage.markupHelp', { maxDiscount: maxDiscount.value }),
 );
 
-const wallets = computed(() => fund.value?.wallets ?? []);
+/**
+ * Как показывать каждый кошелёк программы: значок, оттенок и место в полосе.
+ * Порядок — путь денег: взнос ученика лежит на его кошельке, удерживается до
+ * конца гарантии, освобождается в фонд, из фонда уходит в резерв преподавателям.
+ * Имя сервера длинное и формальное — в полосе короткая подпись, полное имя в подсказке.
+ */
+const WALLET_VIEW: Record<string, { icon: string; tone: StatStripItem['tone']; order: number; caption: string }> = {
+  'w.edu.member': { icon: 'account_balance_wallet', tone: 'info', order: 0, caption: i18nT('edubridge.adminEconomyPage.walletShort.members') },
+  'w.edu.escrow': { icon: 'lock_clock', tone: 'warn', order: 1, caption: i18nT('edubridge.adminEconomyPage.walletShort.escrow') },
+  'w.edu.fund': { icon: 'account_balance', tone: 'primary', order: 2, caption: i18nT('edubridge.adminEconomyPage.walletShort.fund') },
+  'w.edu.teach': { icon: 'co_present', tone: 'pos', order: 3, caption: i18nT('edubridge.adminEconomyPage.walletShort.reserve') },
+};
+const walletStats = computed<StatStripItem[]>(() =>
+  [...(fund.value?.wallets ?? [])]
+    .sort((a, b) => (WALLET_VIEW[a.id]?.order ?? 9) - (WALLET_VIEW[b.id]?.order ?? 9))
+    .map((w) => {
+      const view = WALLET_VIEW[w.id];
+      const money = splitAsset2Digits(w.available);
+      return {
+        key: w.id,
+        icon: view?.icon ?? 'savings',
+        tone: view?.tone ?? 'neutral',
+        caption: view?.caption ?? w.name,
+        value: money.amount,
+        symbol: money.symbol || symbol.value,
+        sub: w.summary,
+        hint: `${w.name}. ${w.hint}`,
+      };
+    }),
+);
+
+/** Движение в правой панели. */
+const movementOpen = ref(false);
+const movement = ref<IFundMovement | null>(null);
+function openMovement(row: IFundMovement): void {
+  movement.value = row;
+  movementOpen.value = true;
+}
 // Список расходов собирает общий виджет шасси: заголовком идёт назначение
 // первой позиции — так расход узнаётся, не раскрывая карточку.
 const expenseRows = computed<ExpenseProposalListRow[]>(() =>
@@ -236,3 +287,30 @@ useLiveReload([EduLive.teacherContracts, EduLive.contributions, EduLive.userWall
 
 onMounted(load);
 </script>
+
+<style scoped>
+.edu-economy__move {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  min-width: 0;
+}
+/* Направление движения — значком у названия: в фонд или из фонда. */
+.edu-economy__dir {
+  flex: none;
+}
+.edu-economy__dir--in {
+  color: var(--p-pos);
+}
+.edu-economy__dir--out {
+  color: var(--p-ink-3);
+}
+.edu-economy__amount {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-1);
+  padding-bottom: var(--p-4);
+  margin-bottom: var(--p-2);
+  border-bottom: 1px solid var(--p-line);
+}
+</style>

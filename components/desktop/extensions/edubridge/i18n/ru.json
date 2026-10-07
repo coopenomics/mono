@@ -221,6 +221,18 @@
       },
       "wallet": {
         "balanceLabel": "Остаток"
+      },
+      "walletShort": {
+        "members": "Кошельки учеников",
+        "escrow": "Удержано по гарантии",
+        "fund": "Фонд программы",
+        "reserve": "Резерв преподавателям"
+      },
+      "movement": {
+        "directionLabel": "Движение",
+        "in": "Поступление в фонд программы",
+        "out": "Выбытие из фонда программы",
+        "idLabel": "Идентификатор"
       }
     },
     "adminMembersPage": {
@@ -298,7 +310,8 @@
       "showArchived": "Показывать архив",
       "unarchive": "Вернуть",
       "addLevel": "Добавить уровень",
-      "more": "Действия"
+      "more": "Действия",
+      "summary": "Разделов: {sections} · уровней: {levels}"
     },
     "adminTeachersPage": {
       "approvalSentAt": "Отправлен {date}",
@@ -341,7 +354,8 @@
       },
       "tab": {
         "assignments": "Назначения",
-        "contract": "Договор"
+        "contract": "Договор",
+        "contributions": "Взносы"
       },
       "terminate": {
         "confirmLabel": "Прекратить договор",
@@ -365,6 +379,16 @@
         "dialogTitle": "Ставка часа",
         "label": "Ставка часа",
         "saved": "Ставка сохранена"
+      },
+      "contributions": {
+        "empty": "Взносов результатами работы пока нет"
+      },
+      "stats": {
+        "rate": "Ставка часа",
+        "courses": "Курсов ведёт",
+        "coursesSub": "назначений всего: {total}",
+        "accepted": "Взносов принято",
+        "acceptedSub": "на сумму {amount}"
       }
     },
     "appointAdminHeaderButton": {
@@ -708,7 +732,15 @@
         "line1": "Обучающийся — тот, кто проходит курс: вы сами или тот, кого вы записываете. Доступ к курсу отправляется на его адрес."
       },
       "newDialogTitle": "Новый обучающийся",
-      "selfChip": "Это вы"
+      "selfChip": "Это вы",
+      "subscriptionsCount": "нет подписок | {n} подписка | {n} подписки | {n} подписок",
+      "details": {
+        "createdAt": "Добавлен",
+        "subscriptions": "Подписки",
+        "paidUntil": "оплачено до {date}",
+        "noSubscriptions": "Подписок пока нет — курс выбирается в каталоге.",
+        "enroll": "Записать на курс"
+      }
     },
     "memberOnboardingPage": {
       "hint": "Чтобы записываться на курсы, подпишите оферту ученика по ЦПП «Образование».",
@@ -737,7 +769,10 @@
         "guaranteeUntil": "Гарантийный срок до",
         "learner": "Обучающийся",
         "period": "Взнос",
-        "refund": "Возврат"
+        "refund": "Возврат",
+        "paidAmount": "Внесено",
+        "schedule": "Расписание",
+        "openCourse": "Открыть курс"
       },
       "emptyBody": "Выберите курс в каталоге и нажмите «Получить доступ».",
       "emptyTitle": "Подписок пока нет",
@@ -899,7 +934,20 @@
       "withdrawAmountLabel": "Сумма перевода",
       "withdrawButton": "Перевести в Цифровой Кошелёк",
       "withdrawSuccess": "Паевой взнос переведён в Цифровой Кошелёк",
-      "withdrawTitle": "Перевод в Цифровой Кошелёк"
+      "withdrawTitle": "Перевод в Цифровой Кошелёк",
+      "returnTitle": "Возврат паевого взноса",
+      "acceptedTitle": "Принятые взносы",
+      "acceptedEmptyTitle": "Принятых взносов пока нет",
+      "acceptedEmptyBody": "Взнос появится здесь после решения совета и подписания акта приёма-передачи.",
+      "acceptedTotalSub": "нет взносов | {n} взнос | {n} взноса | {n} взносов",
+      "programShareSub": "зачислено по программе «Образование»",
+      "availableSub": "можно вернуть заявлением",
+      "lastAcceptedSub": "дата решения совета",
+      "column": {
+        "contribution": "Взнос",
+        "decidedAt": "Принят",
+        "amount": "Сумма"
+      }
     },
     "useCourseForm": {
       "courseFeeLabel": "Взнос за весь курс",
@@ -924,6 +972,23 @@
       "aboutHint": "Предметы, опыт, образование.",
       "aboutPlaceholder": "Например: преподаю математику в 5–9 классах, 12 лет в школе, готовлю к ОГЭ",
       "submit": "Сохранить и продолжить"
+    },
+    "contributionDetails": {
+      "amount": "Сумма взноса",
+      "teacher": "Преподаватель",
+      "kind": "Вид взноса",
+      "description": "Результат работы",
+      "createdAt": "Подан",
+      "holdUntil": "На хранении до",
+      "decidedAt": "Решение принято",
+      "materials": "Материалы",
+      "documents": "Документы",
+      "doc": {
+        "statement": "Заявление о взносе",
+        "storageAct": "Акт ответственного хранения",
+        "decision": "Решение совета",
+        "act": "Акт приёма-передачи"
+      }
     }
   }
 }

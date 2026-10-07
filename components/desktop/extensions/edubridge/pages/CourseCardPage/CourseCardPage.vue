@@ -22,12 +22,12 @@
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      CourseHeroFigure(:caption="$t('edubridge.courseCardPage.feeMonthCaption')")
+      CourseHeroFigure(icon="payments" tone="primary" :caption="$t('edubridge.courseCardPage.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      CourseHeroFigure(v-if="course.fee_course" :caption="$t('edubridge.courseCardPage.feeCourseCaption')")
+      CourseHeroFigure(v-if="course.fee_course" icon="savings" tone="pos" :caption="$t('edubridge.courseCardPage.feeCourseCaption')")
         FeeAmount(:value="course.fee_course" size="lg")
-      CourseHeroFigure(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
-      CourseHeroFigure(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
+      CourseHeroFigure(icon="event_repeat" tone="info" :value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
+      CourseHeroFigure(icon="school" :value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
     .row.q-col-gutter-md
       .col-12(:class="hasSide ? 'col-md-8' : ''")

@@ -78,24 +78,33 @@
         BaseBadge(:variant="accessOf(details.access_state).variant") {{ accessOf(details.access_state).label }}
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.learner')" :value="learnerName(details.learner_id)")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.period')" :value="periodLabel(details.period)")
+      DataRow(:label="$t('edubridge.memberSubscriptionsPage.details.paidAmount')" :value="formatAsset2Digits(details.paid_amount)")
+      //- Сведения курса — чтобы из подписки было видно, когда занятия; сам курс открывается внизу панели.
+      DataRow(v-if="courseOf(details)?.schedule" :label="$t('edubridge.memberSubscriptionsPage.details.schedule')" :value="courseOf(details)?.schedule")
       DataRow(:label="$t('edubridge.memberSubscriptionsPage.columns.paidUntil')" :value="details.paid_until ? formatDate(details.paid_until) : '______'" :hint="isRenewSoon(details) ? $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(details.paid_until) }, Number(daysLeft(details.paid_until))) : undefined")
       DataRow(v-if="!isActive(details) && details.refund_reason" :label="$t('edubridge.memberSubscriptionsPage.details.refund')" :value="refundReason(details.refund_reason)")
       template(v-if="guaranteeOf(details)")
         DataRow(v-if="claimOf(details)" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeClaim')" :value="`${$t('edubridge.guaranteeClaim.claimNumber', { number: claimOf(details)?.number })} · ${$t(`edubridge.guaranteeClaim.status.${claimOf(details)?.status}`)}`")
         DataRow(v-else-if="canClaimGuarantee(details) && guaranteeOf(details)?.guarantee_until" :label="$t('edubridge.memberSubscriptionsPage.details.guaranteeUntil')" :value="formatDate(guaranteeOf(details)?.guarantee_until)")
-    template(v-if="details && isActive(details)" #footer)
+    template(v-if="details" #footer)
       .edu-sub__footer
-        //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
-        BaseButton(v-if="!underReview.has(asText(details.id))" variant="ghost" @click="openCancel(details)") {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
-        BaseButton(v-if="canClaimGuarantee(details)" variant="secondary" @click="openGuarantee(details)") {{ $t('edubridge.guaranteeClaim.open') }}
-        q-space
-        BaseButton(variant="primary" @click="extend(details)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+        BaseButton(variant="ghost" @click="openCourse(details)")
+          template(#icon-left)
+            q-icon(name="open_in_new" size="16px")
+          | {{ $t('edubridge.memberSubscriptionsPage.details.openCourse') }}
+        template(v-if="isActive(details)")
+          //- Пока заявление по гарантии на рассмотрении совета, обычная отмена закрыта: возврат по подписке один.
+          BaseButton(v-if="!underReview.has(asText(details.id))" variant="ghost" @click="openCancel(details)") {{ $t('edubridge.memberSubscriptionsPage.cancelSubscription') }}
+          BaseButton(v-if="canClaimGuarantee(details)" variant="secondary" @click="openGuarantee(details)") {{ $t('edubridge.guaranteeClaim.open') }}
+          q-space
+          BaseButton(variant="primary" @click="extend(details)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
 
   GuaranteeClaimDialog(v-model="guaranteeOpen" :state="guaranteeTarget" @submitted="load")
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
@@ -130,6 +139,8 @@ import { t } from '../../i18n';
  * Новая подписка оформляется в карточке курса, здесь — только продление
  * существующей: тот же диалог с закреплённым курсом.
  */
+const route = useRoute();
+const router = useRouter();
 const learners = ref<ILearner[]>([]);
 const enrollments = ref<IEnrollment[]>([]);
 const courses = ref<ICatalogCourse[]>([]);
@@ -212,6 +223,11 @@ async function load(): Promise<void> {
 function extend(row: IEnrollment): void {
   lockedCourseId.value = asText(row.course_id);
   extendOpen.value = true;
+}
+/** Курс подписки из каталога — за расписанием; снятый с публикации курс в каталоге не найдётся. */
+const courseOf = (row: IEnrollment) => courses.value.find((c) => asText(c.id) === asText(row.course_id)) ?? null;
+function openCourse(row: IEnrollment): void {
+  void router.push({ name: 'edubridge-catalog-course', params: { coopname: route.params.coopname, id: asText(row.course_id) } });
 }
 async function openCancel(row: IEnrollment): Promise<void> {
   cancelTarget.value = row;

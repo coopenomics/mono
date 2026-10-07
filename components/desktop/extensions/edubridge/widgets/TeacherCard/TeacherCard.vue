@@ -7,6 +7,9 @@
       AccountBadge(:account-name="teacher.username")
       BaseBadge.q-mt-xs(:variant="contractStatusOf(teacher.contract_status).variant") {{ contractStatusOf(teacher.contract_status).label }}
 
+  //- Чем преподаватель занят и сколько принёс: три числа под именем.
+  StatStrip.q-mt-md(:items="stats" compact)
+
   //- Что преподаватель рассказал о себе — по этому администратор судит, кого допускает к курсу.
   .edu-teacher-card__about(v-if="teacher.about")
     .t-eyebrow.q-mb-xs {{ $t('edubridge.adminTeachersPage.aboutTitle') }}
@@ -61,6 +64,20 @@
           .row.justify-end.q-gutter-sm
             BaseButton(variant="ghost" type="button" :disabled="busy" @click="terminateFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
             BaseButton(variant="danger" type="submit" :disabled="!terminateReason.trim()" :loading="busy") {{ $t('edubridge.adminTeachersPage.terminate.submit') }}
+
+  //- Взносы результатами работы: что передал, когда, на сколько и в каком состоянии.
+  template(v-else-if="tab === 'contributions'")
+    q-list.q-mb-md(v-if="ownContributions.length" separator)
+      q-item(v-for="c in ownContributions" :key="asText(c.id)")
+        q-item-section
+          .text-weight-medium {{ c.description || '______' }}
+          .t-meta.t-muted {{ ridType(c.rid_type) }} · {{ formatDate(c.created_at) }}
+        q-item-section(side)
+          .edu-teacher-card__contrib-side
+            span.t-num.text-weight-medium {{ formatAsset2Digits(c.amount) }}
+            BaseBadge(:variant="contributionStatusOf(c.status).variant") {{ contributionStatusOf(c.status).label }}
+    .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.contributions.empty') }}
+    CardListSkeleton(v-else :count="1")
 
   template(v-else)
     q-list.q-mb-md(v-if="ownAssignments.length" separator)
@@ -134,18 +151,23 @@ import { setTeacherRate } from '../../entities/Economy';
 import {
   ASSIGNMENT_STATUS_LABELS,
   CONTRACT_STATUS_LABELS,
+  CONTRIBUTION_STATUS_LABELS,
+  RID_TYPE_LABELS,
   closeAssignment,
   setAssignmentRate,
   createAssignment,
   fetchAssignments,
+  fetchContributions,
   fetchTeacherApprovals,
   fetchTeacherContractDocument,
   terminateContract,
   type IAssignment,
   type IAssignmentInput,
+  type IContribution,
   type ITeacher,
   type ITeacherApproval,
 } from '../../entities/Teacher';
+import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
 
@@ -185,7 +207,43 @@ const { confirm } = useConfirm();
 const tabs: PageTab[] = [
   { key: 'contract', label: i18nT('edubridge.adminTeachersPage.tab.contract') },
   { key: 'assignments', label: i18nT('edubridge.adminTeachersPage.tab.assignments') },
+  { key: 'contributions', label: i18nT('edubridge.adminTeachersPage.tab.contributions') },
 ];
+
+/** Взносы преподавателя результатами работы — всех преподавателей, отфильтрованные по этому. */
+const contributions = ref<IContribution[]>([]);
+const ownContributions = computed(() =>
+  contributions.value
+    .filter((c) => c.teacher_username === props.teacher.username)
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))),
+);
+const contributionStatusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
+const ridType = (k: string) => RID_TYPE_LABELS[k] ?? k;
+/** Принято советом: сколько взносов и на какую сумму. Суммы — ассеты одного тикера. */
+const acceptedContributions = computed(() => ownContributions.value.filter((c) => c.status === Zeus.EduContributionStatus.ACCEPTED));
+const acceptedTotal = computed(() => {
+  const total = acceptedContributions.value.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0);
+  return formatAsset2Digits(`${total.toFixed(4)} ${symbol.value}`);
+});
+const stats = computed<StatStripItem[]>(() => [
+  { key: 'rate', icon: 'schedule', tone: 'primary', caption: i18nT('edubridge.adminTeachersPage.stats.rate'), value: formatAsset2Digits(props.teacher.hourly_rate) },
+  {
+    key: 'courses',
+    icon: 'library_books',
+    tone: 'info',
+    caption: i18nT('edubridge.adminTeachersPage.stats.courses'),
+    value: props.teacher.assignments_active,
+    sub: i18nT('edubridge.adminTeachersPage.stats.coursesSub', { total: props.teacher.assignments_total }),
+  },
+  {
+    key: 'accepted',
+    icon: 'workspace_premium',
+    tone: 'pos',
+    caption: i18nT('edubridge.adminTeachersPage.stats.accepted'),
+    value: acceptedContributions.value.length,
+    sub: i18nT('edubridge.adminTeachersPage.stats.acceptedSub', { amount: acceptedTotal.value }),
+  },
+]);
 
 const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', schedule: '', expected_result: '', period_from: '', period_to: '' });
 
@@ -217,11 +275,17 @@ const formatDate = (v: unknown) => {
   return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
 };
 
-/** Назначения и курсы для формы назначения. */
+/** Назначения, курсы для формы назначения и взносы преподавателя. */
 async function loadAssignments(): Promise<void> {
-  const [a, c] = await Promise.all([fetchAssignments(), fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } })]);
+  const [a, c, k] = await Promise.all([
+    fetchAssignments(),
+    fetchCourses({ options: { page: 1, limit: 200, sortBy: 'sort_order', sortOrder: 'ASC' } }),
+    // Взносы читает тот, кто по ним решает; остальным карточка показывает их пустыми.
+    fetchContributions().catch(() => [] as IContribution[]),
+  ]);
   assignments.value = a;
   courses.value = c.items;
+  contributions.value = k;
   assignmentsLoaded.value = true;
 }
 
@@ -378,7 +442,7 @@ function patch(fn: (t: ITeacher) => ITeacher): void {
 // Живое обновление: назначения и курсы меняют другие администраторы, одобрения
 // закрывает председатель — карточка узнаёт об этом по ленте изменений. Самого
 // преподавателя перечитывает владелец карточки.
-useLiveReload([EduLive.assignments, EduLive.courses], loadAssignments);
+useLiveReload([EduLive.assignments, EduLive.courses, EduLive.contributions], loadAssignments);
 useLiveReload([EduLive.approvals], loadApprovals);
 
 onMounted(async () => {
@@ -432,5 +496,11 @@ onMounted(async () => {
   align-items: flex-start;
   gap: var(--p-1);
   min-width: 0;
+}
+.edu-teacher-card__contrib-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--p-1);
 }
 </style>

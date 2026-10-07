@@ -3,7 +3,8 @@
   PageHint.q-mb-md(storage-key="edu:admin-contributions:banner-dismissed")
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
-  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" min-width="1080px")
+  //- Строка открывает взнос в правой панели; действия доступны и в строке, и в панели.
+  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" :clickable-rows="true" min-width="1080px" @row-click="openDetails")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
     //- Взнос опознаётся названием результата, вид взноса — приглушённой строкой под ним.
@@ -17,13 +18,24 @@
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .edu-row-actions
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="secondary" size="sm" @click="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
-        BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" size="sm" :loading="busyId === row.id" @click.stop="onAccept(row)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
+        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="secondary" size="sm" @click.stop="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
+        BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click.stop="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
   EmptyState(v-if="!firstLoad && !contributions.length" :title="$t('edubridge.adminContributionsPage.emptyTitle')" :body="$t('edubridge.adminContributionsPage.emptyBody')")
     template(#icon)
       q-icon(name="workspace_premium" size="32px")
+
+  //- Взнос целиком: состояние, сумма, материалы и документы цепи; решение — внизу панели.
+  DetailsDrawer(v-model="detailsOpen" :title="details?.description || $t('edubridge.adminContributionsPage.columnDescription')" :width="560")
+    template(v-if="details")
+      ContributionDetails(:contribution="details" :teacher-name="teacherName(details.teacher_username)" show-teacher)
+      .t-sm.text-negative.q-mt-md(v-if="councilOutcome(details)") {{ councilOutcome(details) }}
+    template(v-if="details && (details.status === Zeus.EduContributionStatus.ACT_SIGNED || details.status === Zeus.EduContributionStatus.HELD || canDecline(details))" #footer)
+      .edu-row-actions
+        BaseButton(v-if="details.status === Zeus.EduContributionStatus.HELD" variant="secondary" @click="openRevoke(details)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
+        BaseButton(v-if="canDecline(details)" variant="secondary" @click="openDecline(details)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
+        BaseButton(v-if="details.status === Zeus.EduContributionStatus.ACT_SIGNED" variant="primary" :loading="busyId === asText(details.id)" @click="onAccept(details)") {{ $t('edubridge.adminContributionsPage.signActButton') }}
 
   //- Подтверждённая рекламация в гарантийный срок: заявление снимается до
   //- совета, материал остаётся за преподавателем.
@@ -45,14 +57,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
-import { IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { ContributionDetails } from '../../widgets/ContributionDetails';
 import {
   CONTRIBUTION_STATUS_LABELS,
   RID_TYPE_LABELS,
@@ -87,6 +100,14 @@ const declineReason = ref('');
 const revokeOpen = ref(false);
 const revokeTarget = ref<IContribution | null>(null);
 const revokeReason = ref('');
+/** Взнос в правой панели — по идентификатору: после действия панель показывает свежее состояние. */
+const detailsOpen = ref(false);
+const detailsId = ref<string | null>(null);
+const details = computed(() => contributions.value.find((c) => asText(c.id) === detailsId.value) ?? null);
+function openDetails(row: IContribution): void {
+  detailsId.value = asText(row.id);
+  detailsOpen.value = true;
+}
 
 const columns: BaseTableColumn<IContribution>[] = [
   { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '240px' },
