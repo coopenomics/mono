@@ -11,7 +11,8 @@ describe('EdubridgeApprovalsService — документы преподават�
     const service = new EdubridgeApprovalsService(port as any);
     const found = await service.pendingForTeacher('voskhod', 'ant');
 
-    expect(port.list).toHaveBeenCalledWith({ coopname: 'voskhod', actions: ['apprvcontr'], usernames: ['ant'], statuses: ['pending'] });
+    // Документы преподавателя на подписи председателя: договор и акт приёма-передачи РИД.
+    expect(port.list).toHaveBeenCalledWith({ coopname: 'voskhod', actions: ['apprvcontr', 'apprvridact'], usernames: ['ant'], statuses: ['pending'] });
     expect(found.map((a) => a.title)).toEqual(['Договор участия в хозяйственной деятельности']);
     expect(found[0]!.created_at).toEqual(new Date('2026-09-23T08:08:30.000Z'));
   });

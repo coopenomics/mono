@@ -53,6 +53,7 @@ const FROZEN_IDS = [
   'sobytie-bezopasnosti-akkaunta',
   'sovet-avtorizoval-proekt-spisaniya-skoroporta',
   'sovet-otklonil-proekt-spisaniya-skoroporta',
+  'sovet-prinyal-zayavlenie-o-vznose-rid',
   'sovet-reshil-po-garantiynomu-vozvratu',
   'sovet-reshil-po-vydache-imuschestva',
   'spisanie-skoroporta-ispolneno',
