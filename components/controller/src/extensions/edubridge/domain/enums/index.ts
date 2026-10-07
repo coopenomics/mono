@@ -155,3 +155,13 @@ export enum EduContributionStatus {
   ACCEPTED = 'accepted',
   DECLINED = 'declined',
 }
+
+/** Документы взноса результатом работы — по шагам его пути. */
+export enum EduContributionDocumentKind {
+  /** Заявление о паевом взносе РИД (3008). */
+  STATEMENT = 'statement',
+  /** Акт передачи материалов на ответственное хранение (3012). */
+  STORAGE_ACT = 'storage_act',
+  /** Акт приёма-передачи после решения совета. */
+  ACT = 'act',
+}

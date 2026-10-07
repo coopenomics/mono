@@ -1,8 +1,9 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, Length, Matches, Max, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
+import { DocumentAggregateDTO, SignedDigitalDocumentInputDTO, validationMessage } from '@coopenomics/extension-kit';
+import type { InnerDocumentAggregate } from '@coopenomics/innercoop';
+import { EduAssignmentStatus, EduContractStatus, EduContributionDocumentKind, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
 import type {
   EdubridgeContributionRecord,
   EdubridgeLessonRecord,
@@ -184,6 +185,17 @@ export class EduContributionDTO {
       decision_hash: e.decision_hash, act_hash: e.act_hash, storage_act_hash: e.storage_act_hash, decline_reason: e.decline_reason, council_decision_id: e.council_decision_id, council_outcome: e.council_outcome ?? null,
       decided_at: e.decided_at, created_at: e.created_at, hold_until: e.hold_until,
     });
+  }
+}
+
+@ObjectType('EduContributionDocument')
+export class EduContributionDocumentDTO {
+  @Field(() => EduContributionDocumentKind, { description: 'Какой это документ на пути взноса' }) kind!: EduContributionDocumentKind;
+  @Field(() => DocumentAggregateDTO, { description: 'Подписанный документ с исходником' }) document!: DocumentAggregateDTO;
+
+  constructor(kind: EduContributionDocumentKind, aggregate: InnerDocumentAggregate) {
+    this.kind = kind;
+    this.document = new DocumentAggregateDTO(aggregate);
   }
 }
 

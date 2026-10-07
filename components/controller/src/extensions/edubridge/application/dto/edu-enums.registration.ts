@@ -15,6 +15,7 @@ import {
   EduEnrollmentStatus,
   EduRecipientType,
   EduRidType,
+  EduContributionDocumentKind,
 } from '../../domain/enums';
 
 registerEnumType(EduAccessCarrier, { name: 'EduAccessCarrier', description: 'Носитель доступа к курсу (площадка или очный формат)' });
@@ -32,3 +33,4 @@ registerEnumType(EduContractStatus, { name: 'EduContractStatus', description: '�
 registerEnumType(EduRidType, { name: 'EduRidType', description: 'Тип результата интеллектуальной деятельности' });
 registerEnumType(EduContributionStatus, { name: 'EduContributionStatus', description: 'Состояние взноса результатами работы' });
 registerEnumType(EduCouncilOutcome, { name: 'EduCouncilOutcome', description: 'Исход рассмотрения заявления советом, когда решение о приёме не принято' });
+registerEnumType(EduContributionDocumentKind, { name: 'EduContributionDocumentKind', description: 'Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи' });

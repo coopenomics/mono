@@ -82,9 +82,9 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeContributionRecord>(db, {
         table: 'edubridge_contributions',
-        columns: ['id', 'coopname', 'teacher_username', 'assignment_id', 'rid_hash', 'rid_type', 'links', 'description', 'amount', 'status', 'statement_hash', 'storage_act_hash', 'statement_document', 'hold_until', 'lesson_id', 'decision_hash', 'act_hash', 'act_signed', 'decline_reason', 'council_project_hash', 'council_agenda_id', 'council_outcome', 'council_decision_id', 'decided_at', 'created_at', 'updated_at'],
+        columns: ['id', 'coopname', 'teacher_username', 'assignment_id', 'rid_hash', 'rid_type', 'links', 'description', 'amount', 'status', 'statement_hash', 'storage_act_hash', 'storage_act_document', 'statement_document', 'hold_until', 'lesson_id', 'decision_hash', 'act_hash', 'act_signed', 'decline_reason', 'council_project_hash', 'council_agenda_id', 'council_outcome', 'council_decision_id', 'decided_at', 'created_at', 'updated_at'],
         primaryKey: ['id'],
-        json: ['links', 'statement_document', 'act_signed'],
+        json: ['links', 'statement_document', 'storage_act_document', 'act_signed'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

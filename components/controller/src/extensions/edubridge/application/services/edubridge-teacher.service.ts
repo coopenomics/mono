@@ -26,7 +26,7 @@ import {
   type IUserDataPort,
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType, EduContributionDocumentKind } from '../../domain/enums';
 import { guaranteeEndsAt } from '../../domain/economy/guarantee';
 import { EdubridgeFundsService } from './edubridge-funds.service';
 import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
@@ -757,6 +757,7 @@ export class EdubridgeTeacherService {
     } as never);
 
     c.storage_act_hash = document.hash.toLowerCase();
+    c.storage_act_document = document as unknown as Record<string, unknown>;
     c.status = EduContributionStatus.HELD;
     const saved = await this.teachers.saveContribution(c);
     this.logger.info(`[EDU.RID] материалы ${c.rid_hash} приняты на ответственное хранение до ${holdUntil.toISOString()}`);
@@ -1009,6 +1010,29 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveContribution(c);
     this.logger.info(`[EDU.RID] акт ${c.act_hash} подписан преподавателем — ждём подпись председателя`);
     return saved;
+  }
+
+  /**
+   * Документы взноса для просмотра — по шагам его пути: заявление, акт
+   * хранения, акт приёма-передачи. Берутся те, что сохранены в записи; у
+   * взносов, переданных на хранение до появления колонки, акта хранения нет.
+   * `owner` — преподаватель смотрит только свой взнос.
+   */
+  async contributionDocuments(coopname: string, contributionId: string, owner?: string): Promise<{ kind: EduContributionDocumentKind; aggregate: InnerDocumentAggregate }[]> {
+    const c = owner ? await this.ownContribution(coopname, owner, contributionId) : await this.teachers.findContribution(coopname, contributionId);
+    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
+    const stored: [EduContributionDocumentKind, Record<string, unknown> | null][] = [
+      [EduContributionDocumentKind.STATEMENT, c.statement_document],
+      [EduContributionDocumentKind.STORAGE_ACT, c.storage_act_document],
+      [EduContributionDocumentKind.ACT, c.act_signed],
+    ];
+    const result: { kind: EduContributionDocumentKind; aggregate: InnerDocumentAggregate }[] = [];
+    for (const [kind, doc] of stored) {
+      if (!doc) continue;
+      const aggregate = await this.documents.buildAggregate(doc as unknown as ISignedDocument);
+      if (aggregate) result.push({ kind, aggregate });
+    }
+    return result;
   }
 
   /** Агрегат акта для второй подписи: тот же документ, без перегенерации. */

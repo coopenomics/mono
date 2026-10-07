@@ -639,6 +639,7 @@ export const AllTypesProps: Record<string,any> = {
 	},
 	EduConnectorHealth: "enum" as const,
 	EduContractStatus: "enum" as const,
+	EduContributionDocumentKind: "enum" as const,
 	EduContributionStatus: "enum" as const,
 	EduCouncilOutcome: "enum" as const,
 	EduCourseDirection: "enum" as const,
@@ -3164,6 +3165,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCatalogCourse:{
 
 		},
+		edubridgeContributionDocuments:{
+
+		},
 		edubridgeCourse:{
 
 		},
@@ -3184,6 +3188,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		edubridgeMembers:{
+
+		},
+		edubridgeMyContributionDocuments:{
 
 		},
 		edubridgePlatformCourses:{
@@ -5731,6 +5738,10 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduContributionStatus",
 		storage_act_hash:"String",
 		teacher_username:"String"
+	},
+	EduContributionDocument:{
+		document:"DocumentAggregate",
+		kind:"EduContributionDocumentKind"
 	},
 	EduCourse:{
 		carrier:"EduAccessCarrier",
@@ -8580,6 +8591,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",
 		edubridgeCatalogCourse:"EduCatalogCourse",
 		edubridgeConnectors:"EduConnectorBinding",
+		edubridgeContributionDocuments:"EduContributionDocument",
 		edubridgeContributions:"EduContribution",
 		edubridgeCourse:"EduCourse",
 		edubridgeCourseEconomy:"EduCourseEconomy",
@@ -8592,6 +8604,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMyAssignments:"EduAssignment",
 		edubridgeMyContract:"EduTeacherContract",
 		edubridgeMyContractDocument:"DocumentAggregate",
+		edubridgeMyContributionDocuments:"EduContributionDocument",
 		edubridgeMyContributions:"EduContribution",
 		edubridgeMyEnrollments:"EduEnrollment",
 		edubridgeMyGuarantees:"EduGuaranteeState",

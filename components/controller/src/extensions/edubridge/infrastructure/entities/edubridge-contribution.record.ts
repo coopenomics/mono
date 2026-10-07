@@ -28,6 +28,8 @@ export class EdubridgeContributionRecord {
 
   /** Акт передачи материалов на ответственное хранение (3012) — hash в цепи. */
   public storage_act_hash!: string | null;
+  /** Тот же акт целиком с подписью преподавателя — для показа документом; у старых взносов пуст. */
+  public storage_act_document!: Record<string, unknown> | null;
 
   /**
    * Подписанное заявление целиком: преподаватель подписывает его один раз

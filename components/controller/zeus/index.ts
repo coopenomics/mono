@@ -6947,6 +6947,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduContribution']?: Omit<ValueTypes["EduContribution"], "...on EduContribution">
 }>;
+	["EduContributionDocument"]: AliasType<{
+	/** Подписанный документ с исходником */
+	document?:ValueTypes["DocumentAggregate"],
+	/** Какой это документ на пути взноса */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduContributionDocument']?: Omit<ValueTypes["EduContributionDocument"], "...on EduContributionDocument">
+}>;
+	/** Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+["EduContributionDocumentKind"]:EduContributionDocumentKind;
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
 	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
@@ -15310,6 +15320,7 @@ edubridgeCatalog?: [{	filter?: ValueTypes["EduCatalogFilterInput"] | undefined |
 edubridgeCatalogCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCatalogCourse"]],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ValueTypes["EduConnectorBinding"],
+edubridgeContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduContributionDocument"]],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ValueTypes["EduContribution"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -15327,6 +15338,7 @@ edubridgeMembers?: [{	search?: string | undefined | null | Variable<any, string>
 	edubridgeMyContract?:ValueTypes["EduTeacherContract"],
 	/** Мой подписанный договор участия в хозяйственной деятельности */
 	edubridgeMyContractDocument?:ValueTypes["DocumentAggregate"],
+edubridgeMyContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduContributionDocument"]],
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions?:ValueTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -23512,6 +23524,15 @@ export type ResolverInputTypes = {
 	teacher_username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduContributionDocument"]: AliasType<{
+	/** Подписанный документ с исходником */
+	document?:ResolverInputTypes["DocumentAggregate"],
+	/** Какой это документ на пути взноса */
+	kind?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+["EduContributionDocumentKind"]:EduContributionDocumentKind;
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]:EduContributionStatus;
 	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
@@ -31614,6 +31635,7 @@ edubridgeCatalog?: [{	filter?: ResolverInputTypes["EduCatalogFilterInput"] | und
 edubridgeCatalogCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCatalogCourse"]],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors?:ResolverInputTypes["EduConnectorBinding"],
+edubridgeContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduContributionDocument"]],
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ResolverInputTypes["EduContribution"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
@@ -31631,6 +31653,7 @@ edubridgeMembers?: [{	search?: string | undefined | null},ResolverInputTypes["Ed
 	edubridgeMyContract?:ResolverInputTypes["EduTeacherContract"],
 	/** Мой подписанный договор участия в хозяйственной деятельности */
 	edubridgeMyContractDocument?:ResolverInputTypes["DocumentAggregate"],
+edubridgeMyContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduContributionDocument"]],
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions?:ResolverInputTypes["EduContribution"],
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -39575,6 +39598,13 @@ export type ModelTypes = {
 	/** Преподаватель */
 	teacher_username: string
 };
+	["EduContributionDocument"]: {
+		/** Подписанный документ с исходником */
+	document: ModelTypes["DocumentAggregate"],
+	/** Какой это документ на пути взноса */
+	kind: ModelTypes["EduContributionDocumentKind"]
+};
+	["EduContributionDocumentKind"]:EduContributionDocumentKind;
 	["EduContributionStatus"]:EduContributionStatus;
 	["EduCouncilOutcome"]:EduCouncilOutcome;
 	["EduCourse"]: {
@@ -47774,6 +47804,8 @@ export type ModelTypes = {
 	edubridgeCatalogCourse: ModelTypes["EduCatalogCourse"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<ModelTypes["EduConnectorBinding"]>,
+	/** Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+	edubridgeContributionDocuments: Array<ModelTypes["EduContributionDocument"]>,
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions: Array<ModelTypes["EduContribution"]>,
 	/** Курс со служебными полями */
@@ -47798,6 +47830,8 @@ export type ModelTypes = {
 	edubridgeMyContract?: ModelTypes["EduTeacherContract"] | undefined | null,
 	/** Мой подписанный договор участия в хозяйственной деятельности */
 	edubridgeMyContractDocument?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Документы моего взноса результатом работы */
+	edubridgeMyContributionDocuments: Array<ModelTypes["EduContributionDocument"]>,
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions: Array<ModelTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -56103,6 +56137,16 @@ export type GraphQLTypes = {
 	teacher_username: string,
 	['...on EduContribution']: Omit<GraphQLTypes["EduContribution"], "...on EduContribution">
 };
+	["EduContributionDocument"]: {
+	__typename: "EduContributionDocument",
+	/** Подписанный документ с исходником */
+	document: GraphQLTypes["DocumentAggregate"],
+	/** Какой это документ на пути взноса */
+	kind: GraphQLTypes["EduContributionDocumentKind"],
+	['...on EduContributionDocument']: Omit<GraphQLTypes["EduContributionDocument"], "...on EduContributionDocument">
+};
+	/** Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+["EduContributionDocumentKind"]: EduContributionDocumentKind;
 	/** Состояние взноса результатами работы */
 ["EduContributionStatus"]: EduContributionStatus;
 	/** Исход рассмотрения заявления советом, когда решение о приёме не принято */
@@ -64926,6 +64970,8 @@ export type GraphQLTypes = {
 	edubridgeCatalogCourse: GraphQLTypes["EduCatalogCourse"],
 	/** Площадки и их состояние (ключи не выдаются) */
 	edubridgeConnectors: Array<GraphQLTypes["EduConnectorBinding"]>,
+	/** Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+	edubridgeContributionDocuments: Array<GraphQLTypes["EduContributionDocument"]>,
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Курс со служебными полями */
@@ -64950,6 +64996,8 @@ export type GraphQLTypes = {
 	edubridgeMyContract?: GraphQLTypes["EduTeacherContract"] | undefined | null,
 	/** Мой подписанный договор участия в хозяйственной деятельности */
 	edubridgeMyContractDocument?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Документы моего взноса результатом работы */
+	edubridgeMyContributionDocuments: Array<GraphQLTypes["EduContributionDocument"]>,
 	/** Мои взносы результатами работы */
 	edubridgeMyContributions: Array<GraphQLTypes["EduContribution"]>,
 	/** Подписки моих обучающихся: курс, доступ, срок */
@@ -67801,6 +67849,12 @@ export enum EduContractStatus {
 	PENDING_APPROVAL = "PENDING_APPROVAL",
 	TERMINATED = "TERMINATED"
 }
+/** Документ взноса результатом работы: заявление, акт хранения, акт приёма-передачи */
+export enum EduContributionDocumentKind {
+	ACT = "ACT",
+	STATEMENT = "STATEMENT",
+	STORAGE_ACT = "STORAGE_ACT"
+}
 /** Состояние взноса результатами работы */
 export enum EduContributionStatus {
 	ACCEPTED = "ACCEPTED",
@@ -68818,6 +68872,7 @@ type ZEUS_VARIABLES = {
 	["EduConnectorCredentialInput"]: ValueTypes["EduConnectorCredentialInput"];
 	["EduConnectorHealth"]: ValueTypes["EduConnectorHealth"];
 	["EduContractStatus"]: ValueTypes["EduContractStatus"];
+	["EduContributionDocumentKind"]: ValueTypes["EduContributionDocumentKind"];
 	["EduContributionStatus"]: ValueTypes["EduContributionStatus"];
 	["EduCouncilOutcome"]: ValueTypes["EduCouncilOutcome"];
 	["EduCourseDirection"]: ValueTypes["EduCourseDirection"];

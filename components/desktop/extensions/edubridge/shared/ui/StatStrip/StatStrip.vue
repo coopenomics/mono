@@ -4,9 +4,9 @@
 //- карточке (`framed`), внутри чужой карточки — сам по себе.
 BaseCard.edu-stats(v-if="framed" variant="default")
   .edu-stats__grid
-    StatTile(v-for="it in items" :key="it.key" v-bind="it" :loading="loading" @edit="emit('edit', it.key)")
+    StatTile(v-for="it in items" :key="it.key" v-bind="tileProps(it)" :loading="loading" @edit="emit('edit', it.key)")
 .edu-stats__grid(v-else)
-  StatTile(v-for="it in items" :key="it.key" v-bind="it" :loading="loading" @edit="emit('edit', it.key)")
+  StatTile(v-for="it in items" :key="it.key" v-bind="tileProps(it)" :loading="loading" @edit="emit('edit', it.key)")
 </template>
 
 <script setup lang="ts">
@@ -16,6 +16,9 @@ import type { StatStripItem } from './StatStrip.types';
 
 withDefaults(defineProps<{ items: StatStripItem[]; loading?: boolean; framed?: boolean }>(), { loading: false, framed: true });
 const emit = defineEmits<{ edit: [key: string] }>();
+
+/** Плитке — всё, кроме ключа: ключ строки списка плитка не принимает. */
+const tileProps = (it: StatStripItem) => ({ caption: it.caption, value: it.value, symbol: it.symbol, sub: it.sub, hint: it.hint, icon: it.icon, editLabel: it.editLabel });
 </script>
 
 <style scoped>

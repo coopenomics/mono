@@ -44,12 +44,16 @@ export * as MyAssignments from './myAssignments'
 export * as MyLessons from './myLessons'
 /** Мои взносы результатами работы */
 export * as MyContributions from './myContributions'
+/** Документы моего взноса результатом работы */
+export * as MyContributionDocuments from './myContributionDocuments'
 /** Мой расчёт */
 export * as MySettlement from './mySettlement'
 /** Назначения преподавателей кооператива */
 export * as Assignments from './assignments'
 /** Взносы РИД всех преподавателей */
 export * as Contributions from './contributions'
+/** Документы взноса: заявление, акт хранения, акт приёма-передачи */
+export * as ContributionDocuments from './contributionDocuments'
 /** Реестр пайщиков приложения */
 export * as Members from './members'
 /** Сводная карточка пайщика */

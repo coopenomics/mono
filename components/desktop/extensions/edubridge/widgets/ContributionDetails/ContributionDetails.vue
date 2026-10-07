@@ -28,29 +28,41 @@
         span {{ link }}
     .t-muted.t-sm(v-else) ______
 
-  //- След взноса в цепи: каждый документ — по своему шагу.
-  .edu-contrib-details__section(v-if="documents.length")
+  //- Документы взноса — как договор у преподавателя: строка с названием,
+  //- текст раскрывается по нажатию. Хэши человеку не нужны.
+  .edu-contrib-details__section(v-if="documentsLoading || documents.length")
     .t-eyebrow.q-mb-sm {{ $t('edubridge.contributionDetails.documents') }}
-    DataRow(v-for="d in documents" :key="d.label" :label="d.label" :value="d.hash" mono copyable)
+    CardListSkeleton(v-if="documentsLoading" :count="1")
+    .edu-contrib-details__docs(v-else)
+      ComplexDocument(v-for="d in documents" :key="d.kind" :document="d.document" collapsible)
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { asDateInput } from 'src/shared/lib/utils';
-import { BaseBadge } from 'src/shared/ui/base';
+import { computed, ref, watch } from 'vue';
+import { asDateInput, asText } from 'src/shared/lib/utils';
+import { BaseBadge, CardListSkeleton } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
-import { CONTRIBUTION_STATUS_LABELS, RID_TYPE_LABELS, type IContribution } from '../../entities/Teacher';
+import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
+import {
+  CONTRIBUTION_STATUS_LABELS,
+  RID_TYPE_LABELS,
+  fetchContributionDocuments,
+  fetchMyContributionDocuments,
+  type IContribution,
+  type IContributionDocument,
+} from '../../entities/Teacher';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
-import { t } from '../../i18n';
 
 /**
  * Одна карточка взноса на оба стола: администратор видит её с преподавателем,
- * преподаватель — без него. Действия над взносом карточке не принадлежат:
- * их ставит владелец в подвал панели.
+ * преподаватель — без него. Документы карточка читает сама: администратор —
+ * по любому взносу, преподаватель — по своему (`scope`). Действия над взносом
+ * карточке не принадлежат: их ставит владелец в подвал панели.
  */
-const props = withDefaults(defineProps<{ contribution: IContribution; teacherName?: string | null; showTeacher?: boolean }>(), {
+const props = withDefaults(defineProps<{ contribution: IContribution; teacherName?: string | null; showTeacher?: boolean; scope?: 'admin' | 'own' }>(), {
   teacherName: null,
   showTeacher: false,
+  scope: 'admin',
 });
 
 const status = computed(() => CONTRIBUTION_STATUS_LABELS[props.contribution.status] ?? { label: props.contribution.status, variant: 'neutral' as const });
@@ -59,15 +71,23 @@ const formatDate = (v: unknown) => {
   const input = asDateInput(v);
   return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
 };
-/** Документы по шагам взноса; без хэша шаг ещё не пройден и строки нет. */
-const documents = computed(() =>
-  [
-    { label: t('edubridge.contributionDetails.doc.statement'), hash: props.contribution.statement_hash },
-    { label: t('edubridge.contributionDetails.doc.storageAct'), hash: props.contribution.storage_act_hash },
-    { label: t('edubridge.contributionDetails.doc.decision'), hash: props.contribution.decision_hash },
-    { label: t('edubridge.contributionDetails.doc.act'), hash: props.contribution.act_hash },
-  ].filter((d): d is { label: string; hash: string } => Boolean(d.hash)),
-);
+/** Документы взноса — с сервера, по шагам его пути; ошибка чтения карточку не ломает. */
+const documents = ref<IContributionDocument[]>([]);
+const documentsLoading = ref(true);
+async function loadDocuments(): Promise<void> {
+  documentsLoading.value = true;
+  const id = asText(props.contribution.id);
+  try {
+    documents.value = props.scope === 'own' ? await fetchMyContributionDocuments(id) : await fetchContributionDocuments(id);
+  } catch {
+    documents.value = [];
+  } finally {
+    documentsLoading.value = false;
+  }
+}
+// Новый документ появляется, когда взнос проходит шаг: перечитываем по смене состояния.
+// realtime: карточка живёт внутри панели — ленту слушает страница и обновляет сам взнос.
+watch(() => [asText(props.contribution.id), props.contribution.status], loadDocuments, { immediate: true });
 </script>
 
 <style scoped>
@@ -91,7 +111,8 @@ const documents = computed(() =>
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
 }
-.edu-contrib-details__files {
+.edu-contrib-details__files,
+.edu-contrib-details__docs {
   display: flex;
   flex-direction: column;
   gap: var(--p-2);

@@ -17,6 +17,8 @@ export type IAssignment = Queries.Edubridge.MyAssignments.IOutput['edubridgeMyAs
 export type IContribution = Queries.Edubridge.MyContributions.IOutput['edubridgeMyContributions'][number];
 export type ISettlement = Queries.Edubridge.MySettlement.IOutput['edubridgeMySettlement'];
 export type ILesson = Queries.Edubridge.MyLessons.IOutput['edubridgeMyLessons'][number];
+/** Документ взноса на одном из шагов его пути: заявление, акт хранения, акт приёма-передачи. */
+export type IContributionDocument = Queries.Edubridge.ContributionDocuments.IOutput['edubridgeContributionDocuments'][number];
 export type ILessonReportInput = Mutations.Edubridge.ReportLesson.IInput['data'];
 export type IAssignmentInput = Mutations.Edubridge.CreateAssignment.IInput['data'];
 
@@ -101,6 +103,11 @@ export const fetchTeachers = () => q<ITeacher[]>(Queries.Edubridge.Teachers.quer
 export const fetchTeacherApprovals = (username: string) =>
   q<ITeacherApproval[]>(Queries.Edubridge.TeacherApprovals.query, Queries.Edubridge.TeacherApprovals.name, { username });
 export const fetchContributions = () => q<IContribution[]>(Queries.Edubridge.Contributions.query, Queries.Edubridge.Contributions.name);
+/** Документы взноса — администратору по любому взносу, преподавателю по своему. */
+export const fetchContributionDocuments = (contribution_id: string) =>
+  q<IContributionDocument[]>(Queries.Edubridge.ContributionDocuments.query, Queries.Edubridge.ContributionDocuments.name, { contribution_id });
+export const fetchMyContributionDocuments = (contribution_id: string) =>
+  q<IContributionDocument[]>(Queries.Edubridge.MyContributionDocuments.query, Queries.Edubridge.MyContributionDocuments.name, { contribution_id });
 export const createAssignment = (data: IAssignmentInput) => m<IAssignment>(Mutations.Edubridge.CreateAssignment.mutation, Mutations.Edubridge.CreateAssignment.name, { data });
 /** Ставка часа преподавателя на курсе: в пределах плановой ставки курса. */
 export const setAssignmentRate = (assignment_id: string, hourly_rate: string) =>

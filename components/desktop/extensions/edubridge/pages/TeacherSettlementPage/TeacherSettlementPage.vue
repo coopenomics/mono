@@ -58,7 +58,7 @@
       q-icon(name="workspace_premium" size="32px")
 
   DetailsDrawer(v-model="detailsOpen" :title="details?.description || $t('edubridge.teacherSettlementPage.acceptedTitle')" :width="560")
-    ContributionDetails(v-if="details" :contribution="details")
+    ContributionDetails(v-if="details" :contribution="details" scope="own")
 </template>
 
 <script setup lang="ts">

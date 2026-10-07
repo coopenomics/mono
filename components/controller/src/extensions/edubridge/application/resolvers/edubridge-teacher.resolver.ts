@@ -17,6 +17,7 @@ import {
   EduAssignmentInputDTO,
   EduSetAssignmentRateInputDTO,
   EduContributionDTO,
+  EduContributionDocumentDTO,
   EduDeclineContributionInputDTO,
   EduSignActInputDTO,
   EduSignContractInputDTO,
@@ -280,6 +281,20 @@ export class EdubridgeTeacherResolver {
   @RequireRight('EduContribution', 'read:all')
   async edubridgeContributions(): Promise<EduContributionDTO[]> {
     return (await this.teachers.listContributions(coop())).map((c) => new EduContributionDTO(c));
+  }
+
+  @Query(() => [EduContributionDocumentDTO], { name: 'edubridgeContributionDocuments', description: 'Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduContribution', 'decide')
+  async edubridgeContributionDocuments(@Args('contribution_id', { type: () => ID }) id: string): Promise<EduContributionDocumentDTO[]> {
+    return (await this.teachers.contributionDocuments(coop(), id)).map(({ kind, aggregate }) => new EduContributionDocumentDTO(kind, aggregate));
+  }
+
+  @Query(() => [EduContributionDocumentDTO], { name: 'edubridgeMyContributionDocuments', description: 'Документы моего взноса результатом работы' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduContribution', 'read:own', SELF)
+  async edubridgeMyContributionDocuments(@CurrentEduMember() m: IEdubridgeMembership, @Args('contribution_id', { type: () => ID }) id: string): Promise<EduContributionDocumentDTO[]> {
+    return (await this.teachers.contributionDocuments(coop(), id, m.username as string)).map(({ kind, aggregate }) => new EduContributionDocumentDTO(kind, aggregate));
   }
 
   @Query(() => DocumentAggregateDTO, { name: 'edubridgeActSignablePayload', description: 'Акт с подписью преподавателя для второй подписи председателя (тот же документ)' })
