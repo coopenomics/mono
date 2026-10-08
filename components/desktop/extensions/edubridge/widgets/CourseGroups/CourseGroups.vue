@@ -19,7 +19,6 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
   )
     template(#cell-title="{ row }")
       .text-weight-medium {{ row.title }}
-      .t-muted.t-sm(v-if="asText(row.id) === selectedId") {{ $t('edubridge.courseGroups.shownInEconomy') }}
     template(#cell-starts_at="{ row }") {{ formatDate(row.starts_at) }}
     template(#cell-learners_active="{ row }")
       span.t-num {{ row.learners_active }}
@@ -91,7 +90,7 @@ import { t } from '../../i18n';
  * день открытия, поэтому здесь правятся только название, дата начала, набор и
  * привязка к группе площадки.
  */
-const props = defineProps<{ course: ICourse; selectedId?: string | null }>();
+const props = defineProps<{ course: ICourse }>();
 const emit = defineEmits<{ select: [groupId: string]; changed: [] }>();
 
 const { confirm } = useConfirm();

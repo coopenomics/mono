@@ -3045,7 +3045,6 @@ export type MessageKey =
   | 'edubridge.courseGroups.saved'
   | 'edubridge.courseGroups.settled'
   | 'edubridge.courseGroups.showEconomy'
-  | 'edubridge.courseGroups.shownInEconomy'
   | 'edubridge.courseGroups.startLockedHint'
   | 'edubridge.courseGroups.startsAtLabel'
   | 'edubridge.courseGroups.state.cancelled'

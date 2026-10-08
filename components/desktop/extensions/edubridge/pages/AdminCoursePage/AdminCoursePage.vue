@@ -41,7 +41,7 @@
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
-    CourseGroups.q-mb-md(:course="course" :selected-id="economy?.group_id ?? null" @select="selectGroup" @changed="reloadEconomy")
+    CourseGroups.q-mb-md(:course="course" @select="selectGroup" @changed="reloadEconomy")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
