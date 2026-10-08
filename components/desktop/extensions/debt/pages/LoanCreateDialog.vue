@@ -17,6 +17,17 @@ BaseDialog(
       template(#icon)
         q-icon(name='account_balance_wallet', size='40px')
 
+    //- Заём перечисляют по реквизитам пайщика: без них форму заполнять рано.
+    EmptyState(
+      v-else-if='!hasMethods',
+      :title='$t("debt.createDialog.noMethodsTitle")',
+      :body='$t("debt.createDialog.noMethodsBody")'
+    )
+      template(#icon)
+        q-icon(name='account_balance', size='40px')
+      template(#action)
+        BaseButton(variant='primary', @click='goToMethods') {{ $t('debt.createDialog.noMethodsAction') }}
+
     template(v-else)
       BaseSelect(
         v-model='form.collateral',
@@ -52,6 +63,7 @@ BaseDialog(
     .loan-form__footer
       BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
       BaseButton(
+        v-if='formReady',
         variant='primary',
         :loading='submitting',
         :disabled='!canSubmit',
@@ -61,11 +73,13 @@ BaseDialog(
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Ledger2Contract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
+import { api as walletApi } from 'src/entities/Wallet';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
@@ -87,6 +101,8 @@ const emit = defineEmits<{
 const system = useSystemStore();
 const session = useSessionStore();
 const { submitLoan } = useLoanActions();
+const router = useRouter();
+const route = useRoute();
 
 const symbol = computed(() => system.governSymbol);
 const precision = computed(() => system.governPrecision);
@@ -94,6 +110,7 @@ const precision = computed(() => system.governPrecision);
 const loading = ref(true);
 const submitting = ref(false);
 const options = ref<ICollateralOption[]>([]);
+const hasMethods = ref(false);
 
 const form = reactive({
   collateral: null as string | null,
@@ -115,6 +132,8 @@ const collateralOptions = computed<BaseSelectOption[]>(() =>
   })),
 );
 
+const formReady = computed(() => !loading.value && available.value.length > 0 && hasMethods.value);
+
 const selected = computed(() => available.value.find((o) => o.key === form.collateral) ?? null);
 const maxAmount = computed(() => (selected.value ? balanceOf(selected.value) : 0));
 
@@ -135,7 +154,12 @@ const canSubmit = computed(
 async function load(silent = false): Promise<void> {
   try {
     if (!silent) loading.value = true;
-    options.value = await getCollateralOptions(system.info.coopname);
+    const [collaterals, methods] = await Promise.all([
+      getCollateralOptions(system.info.coopname),
+      walletApi.loadMethods({ username: session.username }),
+    ]);
+    options.value = collaterals;
+    hasMethods.value = methods.length > 0;
     if (!form.collateral && available.value.length === 1) form.collateral = available.value[0].key;
   } catch (e) {
     if (!silent) FailAlert(e);
@@ -159,6 +183,11 @@ watch(
 
 function close(): void {
   emit('update:modelValue', false);
+}
+
+function goToMethods(): void {
+  close();
+  void router.push({ name: 'payment-methods', params: { coopname: route.params.coopname } });
 }
 
 async function submit(): Promise<void> {
