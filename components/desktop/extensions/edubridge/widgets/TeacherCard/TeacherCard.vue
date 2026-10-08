@@ -123,7 +123,7 @@
 
   BaseDialog(v-model="rateOpen" :title="rateTarget ? $t('edubridge.adminTeachersPage.rate.courseDialogTitle', { courseTitle: rateTarget.course_title }) : $t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
     BaseForm(:loading="savingRate" @submit="onSaveRate")
-      BaseInput(v-model="rate" :label="$t('edubridge.adminTeachersPage.rate.label')" type="number" :suffix="symbol" autofocus required)
+      BaseInput(v-model="rate" :label="$t('edubridge.adminTeachersPage.rate.label')" type="number" :suffix="symbol" :hint="rateHint" autofocus required)
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="savingRate" @click="rateOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
@@ -382,6 +382,14 @@ const savingRate = ref(false);
 
 /** Чью ставку правит диалог: допуска к курсу либо, без него, ставку договора. */
 const rateTarget = ref<IAssignment | null>(null);
+
+/** За что ставка на курсе и её предел — по способу расчёта курса. */
+const rateHint = computed(() => {
+  const course = rateTarget.value ? courses.value.find((c) => asText(c.id) === asText(rateTarget.value?.course_id)) : null;
+  if (!course) return '';
+  const key = course.pay_per_learner ? 'edubridge.adminTeachersPage.rate.hintPerLearner' : 'edubridge.adminTeachersPage.rate.hintFixed';
+  return i18nT(key, { plannedRate: formatAsset2Digits(course.planned_hourly_rate) });
+});
 
 function openRate(): void {
   rateTarget.value = null;

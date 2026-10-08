@@ -77,7 +77,7 @@
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.costMonth')")
             DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
               template(#label-append)
-                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.actualCostMonth')")
+                FieldHelp(:text="course.pay_per_learner ? $t('edubridge.adminCoursePage.economyHelp.actualCostMonthPerLearner') : $t('edubridge.adminCoursePage.economyHelp.actualCostMonth')")
             DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup')")

@@ -22,6 +22,8 @@
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
     template(#cell-amount="{ row }")
       span.t-num {{ row.contribution ? formatAsset2Digits(row.contribution.amount) : '______' }}
+      //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
+      .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
     template(#cell-status="{ row }")
       BaseBadge(v-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
       template(v-else) ______
