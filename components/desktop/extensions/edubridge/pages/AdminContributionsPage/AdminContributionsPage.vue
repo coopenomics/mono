@@ -51,7 +51,7 @@ import { computed, onMounted, ref } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
 import { useFirstLoad } from 'src/shared/lib/composables';
-import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { FailAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
