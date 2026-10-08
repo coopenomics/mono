@@ -880,6 +880,17 @@ export class EdubridgeTeacherService {
     return saved;
   }
 
+  /**
+   * Номер допуска преподавателя в цепи — тот же, с которым открыт расчёт
+   * занятия и приняты материалы на хранение: заявление сверяется с ним.
+   */
+  private async ridAssignmentRef(coopname: string, c: EdubridgeContributionRecord): Promise<number> {
+    const { course } = await this.holdContext(coopname, c);
+    const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);
+    if (!assignment) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
+    return chainAssignmentRef(assignment, course);
+  }
+
   /** Занятие и курс, по которым оформлены материалы. */
   private async holdContext(coopname: string, c: EdubridgeContributionRecord) {
     if (!c.lesson_id) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_WITHOUT_LESSON');
@@ -900,7 +911,7 @@ export class EdubridgeTeacherService {
       username: teacher,
       lang: 'ru',
       rid_hash: c.rid_hash,
-      assignment_id: chainAssignmentId(c),
+      assignment_id: await this.ridAssignmentRef(coopname, c),
       amount: c.amount,
       rid_type: c.rid_type,
       links: c.links,
@@ -953,7 +964,7 @@ export class EdubridgeTeacherService {
           coopname,
           username: teacher,
           rid_hash: c.rid_hash,
-          assignment_id: chainAssignmentId(c),
+          assignment_id: await this.ridAssignmentRef(coopname, c),
           amount: c.amount,
           rid_type: c.rid_type,
           statement: document,
@@ -1381,14 +1392,6 @@ export class EdubridgeTeacherService {
     const meta = doc.meta as Record<string, any>;
     return { version: meta?.version || '1.0', hash: doc.hash, doc_hash: meta?.doc_hash || doc.hash, meta_hash: meta?.meta_hash || doc.hash, meta: doc.meta as ISignedDocument['meta'], signatures: [] };
   }
-}
-
-/**
- * Номер задания в цепи. Приём на хранение, заявление и его текст обязаны
- * называть одно и то же число: `submitrid` сверяет его с принятым на хранение.
- */
-function chainAssignmentId(c: EdubridgeContributionRecord): number {
-  return Number(new Date(c.created_at).getTime() % 1_000_000);
 }
 
 /** Числовое значение ставки часа («1000.0000 RUB» → 1000). */

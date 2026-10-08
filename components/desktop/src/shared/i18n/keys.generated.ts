@@ -3076,7 +3076,6 @@ export type MessageKey =
   | 'edubridge.eduOfferGate.contractDeclinedNoticeWithReason'
   | 'edubridge.eduOfferGate.contractSignedSuccess'
   | 'edubridge.eduOfferGate.contractTerminatedNotice'
-  | 'edubridge.eduOfferGate.editProfileButton'
   | 'edubridge.eduOfferGate.notConfiguredNotice'
   | 'edubridge.eduOfferGate.offerAgreeLabel'
   | 'edubridge.eduOfferGate.offerSignedSuccess'

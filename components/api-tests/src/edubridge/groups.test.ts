@@ -148,7 +148,8 @@ describe('Образование: группы курса и расчёт зан
       expect(kept).toMatchObject({ fee_month: course.fee_month, planned_hourly_rate: input.planned_hourly_rate })
       // Продление в прежней группе — по её взносу.
       const extension = (await gql<any>(token, QUOTE, quoteInput(self.id, course.id, first.id))).edubridgeQuote
-      expect(extension).toMatchObject({ is_extension: true, group_id: first.id })
+      expect(extension.group_id, 'продление — в группе подписки').toBe(first.id)
+      expect(extension.is_extension, 'это продление действующей подписки').toBe(true)
       expect(amount(extension.amount)).toBeCloseTo(amount(course.fee_month), 4)
 
       second = (await gql<any>(chairman, CREATE_GROUP, { d: { course_id: course.id, starts_at: dayFromNow(45) } })).edubridgeCreateGroup
