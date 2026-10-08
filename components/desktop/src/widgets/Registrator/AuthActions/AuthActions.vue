@@ -1,8 +1,8 @@
 <template lang="pug">
 //- Встречный путь на экранах входа и вступления: со входа и восстановления —
 //- «Регистрация», со вступления — «Вход». Логика та же, что была в общей шапке.
-BaseButton(v-if='showRegister && !isSignup', variant='primary', size='sm', @click='signup') {{ $t('registrator.authActions.register') }}
-BaseButton(v-else-if='showRegister && isSignup', variant='primary', size='sm', @click='login') {{ $t('registrator.authActions.login') }}
+BaseButton(v-if='showRegister && !isSignup', variant='primary', size='md', @click='signup') {{ $t('registrator.authActions.register') }}
+BaseButton(v-else-if='showRegister && isSignup', variant='primary', size='md', @click='login') {{ $t('registrator.authActions.login') }}
 </template>
 
 <script setup lang="ts">

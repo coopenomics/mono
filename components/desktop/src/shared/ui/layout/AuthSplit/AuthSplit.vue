@@ -273,7 +273,8 @@ function stepClass(key: string): Record<string, boolean> {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: var(--p-9, 56px) var(--p-10, 72px);
+  /* Низ прижат: реквизиты кооператива стоят у самого края окна, а не посреди поля. */
+  padding: var(--p-9, 56px) var(--p-10, 72px) var(--p-4, 16px);
 }
 .auth-split__actions {
   position: absolute;
