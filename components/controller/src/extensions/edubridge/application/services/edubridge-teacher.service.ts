@@ -691,13 +691,18 @@ export class EdubridgeTeacherService {
     const byAssignment = new Map<string, EdubridgeLessonRecord[]>();
     for (const lesson of pending) byAssignment.set(lesson.assignment_id, [...(byAssignment.get(lesson.assignment_id) ?? []), lesson]);
     let opened = 0;
-    for (const [assignmentId, lessons] of byAssignment) {
+    for (const [assignmentId, lessons] of byAssignment) opened += await this.openPack(coopname, course, assignmentId, lessons);
+    return opened;
+  }
+
+  /** Один взнос преподавателя на его занятия гарантийного срока в группе; сумма — из допуска в цепи. */
+  private async openPack(coopname: string, course: EdubridgeCourseRecord, assignmentId: string, lessons: EdubridgeLessonRecord[]): Promise<number> {
       const assignment = await this.teachers.findAssignment(coopname, assignmentId);
-      if (!assignment) continue;
+      if (!assignment) return 0;
       const onChain = await this.chain.readAssignment(coopname, chainAssignmentRef(assignment, course));
       if (!onChain || !(rateValue(onChain.deferred) > 0)) {
         this.logger.info(`[EDU.LESSON] группа ${course.chain_ref}, допуск ${assignment.id}: за гарантийный срок взнос преподавателя не начислен — ${onChain ? onChain.deferred : 'допуска в цепи нет'}`);
-        continue;
+        return 0;
       }
       lessons.sort((x, y) => x.lesson_number - y.lesson_number);
       const teacher = assignment.teacher_username;
@@ -725,9 +730,7 @@ export class EdubridgeTeacherService {
         await this.lessons.save(lesson);
       }
       this.logger.info(`[EDU.LESSON] ${teacher}: взнос за занятия гарантийного срока курса ${course.id} — ${lessons.length} занятий, ${onChain.deferred}`);
-      opened += 1;
-    }
-    return opened;
+      return 1;
   }
 
   /** Отчёт о занятии в цепь — один раз: открытое занятие заново не открывается. */
