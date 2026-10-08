@@ -541,6 +541,7 @@
       "reasonNotSpecifiedText": "причина не указана",
       "recipientLabel": "Получатель",
       "rejectedReasonLabel": "Платёж отклонён. Причина:",
+      "sbpBankLabel": "Банк получателя (СБП)",
       "sbpPhoneLabel": "Телефон (СБП)"
     },
     "paymentMethodSelect": {

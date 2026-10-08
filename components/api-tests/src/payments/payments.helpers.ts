@@ -32,7 +32,7 @@ export async function paymentByHash(token: string, hash: string, filters: { user
 
 // ── Реквизиты ──────────────────────────────────────────────────────────────
 
-export const METHOD_FIELDS = 'method_id username method_type is_default data{ __typename ... on SbpAccount{ phone } ... on BankAccount{ bank_name account_number currency details{ bik corr } } }'
+export const METHOD_FIELDS = 'method_id username method_type is_default data{ __typename ... on SbpAccount{ phone bank_name } ... on BankAccount{ bank_name account_number currency details{ bik corr } } }'
 
 export const ADD_METHOD = `mutation($d:AddPaymentMethodInput!){ addPaymentMethod(data:$d){ ${METHOD_FIELDS} } }`
 export const UPDATE_BANK = `mutation($d:UpdateBankAccountInput!){ updateBankAccount(data:$d){ ${METHOD_FIELDS} } }`
@@ -58,8 +58,8 @@ export function bankAccount(overrides: Record<string, unknown> = {}): Record<str
   }
 }
 
-export async function addSbpMethod(token: string, username: string, phone = randomPhone()): Promise<any> {
-  const d = await gql<any>(token, ADD_METHOD, { d: { username, is_default: true, sbp_data: { phone } } })
+export async function addSbpMethod(token: string, username: string, phone = randomPhone(), bank_name = 'Т-Банк'): Promise<any> {
+  const d = await gql<any>(token, ADD_METHOD, { d: { username, is_default: true, sbp_data: { phone, bank_name } } })
   return d.addPaymentMethod
 }
 

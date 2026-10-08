@@ -15298,12 +15298,16 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	year: number | Variable<any, string>
 };
 	["SbpAccount"]: AliasType<{
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	bank_name?:boolean | `@${string}`,
 	/** Мобильный телефон получателя */
 	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on SbpAccount']?: Omit<ValueTypes["SbpAccount"], "...on SbpAccount">
 }>;
 	["SbpDataInput"]: {
+	/** Банк получателя */
+	bank_name: string | Variable<any, string>,
 	/** Мобильный телефон получателя */
 	phone: string | Variable<any, string>
 };
@@ -30444,11 +30448,15 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	year: number
 };
 	["SbpAccount"]: AliasType<{
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	bank_name?:boolean | `@${string}`,
 	/** Мобильный телефон получателя */
 	phone?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["SbpDataInput"]: {
+	/** Банк получателя */
+	bank_name: string,
 	/** Мобильный телефон получателя */
 	phone: string
 };
@@ -45586,10 +45594,14 @@ export type ModelTypes = {
 	year: number
 };
 	["SbpAccount"]: {
-		/** Мобильный телефон получателя */
+		/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	bank_name?: string | undefined | null,
+	/** Мобильный телефон получателя */
 	phone: string
 };
 	["SbpDataInput"]: {
+	/** Банк получателя */
+	bank_name: string,
 	/** Мобильный телефон получателя */
 	phone: string
 };
@@ -61598,12 +61610,16 @@ export type GraphQLTypes = {
 };
 	["SbpAccount"]: {
 	__typename: "SbpAccount",
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	bank_name?: string | undefined | null,
 	/** Мобильный телефон получателя */
 	phone: string,
 	['...on SbpAccount']: Omit<GraphQLTypes["SbpAccount"], "...on SbpAccount">
 };
 	["SbpDataInput"]: {
-		/** Мобильный телефон получателя */
+		/** Банк получателя */
+	bank_name: string,
+	/** Мобильный телефон получателя */
 	phone: string
 };
 	["SearchDocumentsInput"]: {

@@ -11,6 +11,8 @@ export interface IBankAccount {
 
 export interface ISbpDetails {
   phone: string
+  /** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует. */
+  bank_name?: string
 }
 
 export type MethodTypes = 'sbp' | 'bank_transfer'

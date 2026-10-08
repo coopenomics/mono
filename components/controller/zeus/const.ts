@@ -8333,6 +8333,7 @@ export const ReturnTypes: Record<string,any> = {
 		permission_name:"String"
 	},
 	SbpAccount:{
+		bank_name:"String",
 		phone:"String"
 	},
 	SearchResult:{

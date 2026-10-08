@@ -2602,6 +2602,7 @@ export type MessageKey =
   | 'paymentMethod.paymentMethodDto.typeRequired'
   | 'paymentMethod.paymentMethodDto.usernameRequired'
   | 'paymentMethod.sbpAccount.phoneRequired'
+  | 'paymentMethod.sbpAccountInput.bankNameRequired'
   | 'paymentMethod.sbpAccountInput.phoneRequired'
   | 'paymentMethod.updateBankAccountInput.detailsRequired'
   | 'paymentMethod.updateBankAccountInput.idRequired'

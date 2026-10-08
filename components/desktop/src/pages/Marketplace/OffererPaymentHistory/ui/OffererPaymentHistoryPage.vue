@@ -45,8 +45,10 @@ const savingMethod = ref(false);
 
 function methodLabel(method: { method_type: string; data: unknown }): string {
   if (method.method_type === 'sbp') {
-    const phone = (method.data as ISBPData).phone ?? '';
-    return phone ? t('marketplace.offererPaymentHistoryPage.sbpLabel', { phone }) : t('marketplace.offererPaymentHistoryPage.sbpMethodLabel');
+    const sbp = method.data as ISBPData;
+    const label = sbp.phone ? t('marketplace.offererPaymentHistoryPage.sbpLabel', { phone: sbp.phone }) : t('marketplace.offererPaymentHistoryPage.sbpMethodLabel');
+    const sbpBank = sbp.bank_name?.trim();
+    return sbpBank ? `${sbpBank}, ${label}` : label;
   }
   const bank = method.data as IBankTransferData;
   const tail = (bank.account_number ?? '').slice(-4);

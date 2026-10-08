@@ -16,6 +16,7 @@ export const paymentMethodSchema: JSONSchemaType<IPaymentData> = {
           type: 'object',
           properties: {
             phone: { type: 'string' },
+            bank_name: { type: 'string', nullable: true },
           },
           required: ['phone'],
         },

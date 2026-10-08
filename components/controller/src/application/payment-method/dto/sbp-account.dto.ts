@@ -11,6 +11,12 @@ export class SBPDataDTO {
   @IsString()
   phone!: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description: 'Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует',
+  })
+  bank_name?: string;
+
   /**
    * Конструктор для SBPDataDTO
    *
@@ -18,5 +24,6 @@ export class SBPDataDTO {
    */
   constructor(domainData: SBPDataDomainInterface) {
     this.phone = domainData.phone;
+    this.bank_name = domainData.bank_name;
   }
 }

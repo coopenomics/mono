@@ -150,7 +150,7 @@ function getMethodLabel(method: IPaymentMethodData): string {
     } else if (phone.length > 2) {
       formatted = `${phone.slice(0, 2)}***${phone.slice(-2)}`;
     }
-    return t('wallet.withdrawButton.sbpMethodLabel', { phone: formatted });
+    return withSbpBank(t('wallet.withdrawButton.sbpMethodLabel', { phone: formatted }), method.data);
   } else if (
     method.method_type === 'bank_transfer' &&
     isBankTransferData(method.data)
@@ -166,7 +166,7 @@ function getMethodLabel(method: IPaymentMethodData): string {
 // Функция для получения описания метода
 function getMethodDescription(method: IPaymentMethodData): string {
   if (method.method_type === 'sbp' && isSBPData(method.data)) {
-    return t('wallet.withdrawButton.sbpFullMethodLabel', { phone: method.data.phone });
+    return withSbpBank(t('wallet.withdrawButton.sbpFullMethodLabel', { phone: method.data.phone }), method.data);
   } else if (
     method.method_type === 'bank_transfer' &&
     isBankTransferData(method.data)
@@ -177,6 +177,12 @@ function getMethodDescription(method: IPaymentMethodData): string {
 }
 
 // Функции для проверки типов данных
+// Банк есть у реквизитов СБП, сохранённых после появления поля.
+function withSbpBank(label: string, data: ISBPData): string {
+  const bank = data.bank_name?.trim();
+  return bank ? `${bank}, ${label}` : label;
+}
+
 function isSBPData(data: ISBPData | IBankTransferData): data is ISBPData {
   return (data as ISBPData).phone !== undefined;
 }

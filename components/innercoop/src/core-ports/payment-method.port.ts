@@ -18,6 +18,8 @@ export type InnerPaymentMethodType = 'sbp' | 'bank_transfer';
 /** Перевод по номеру телефона. */
 export interface InnerSbpData {
   phone: string;
+  /** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует. */
+  bank_name?: string;
 }
 
 /** Перевод на банковский счёт. */

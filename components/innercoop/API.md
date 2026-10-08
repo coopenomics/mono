@@ -1961,6 +1961,7 @@
 `interface` · core-ports
 
 - `phone: string`
+- `bank_name?: string`
 
 ## InnerSetPaymentStatusInput
 

@@ -9,4 +9,9 @@ export class SBPDataInputDTO {
   @IsNotEmpty({ message: validationMessage('paymentMethod.sbpAccountInput.phoneRequired') })
   @IsString()
   phone!: string;
+
+  @Field(() => String, { description: 'Банк получателя' })
+  @IsNotEmpty({ message: validationMessage('paymentMethod.sbpAccountInput.bankNameRequired') })
+  @IsString()
+  bank_name!: string;
 }

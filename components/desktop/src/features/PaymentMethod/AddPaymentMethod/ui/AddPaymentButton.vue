@@ -47,6 +47,16 @@ BaseDialog(
         :rules='[(val) => notEmpty(val)]',
         autocomplete='off'
       )
+      //- Перевод по телефону уходит в конкретный банк: кассиру он нужен вместе с номером.
+      BaseInput(
+        v-model='sbp.bank_name',
+        :label='$t("paymentMethod.addPaymentButton.sbpBankLabel")',
+        :hint='$t("paymentMethod.addPaymentButton.sbpBankHint")',
+        :error='sbpBankError',
+        required,
+        autocomplete='off',
+        @update:model-value='sbpBankError = ""'
+      )
 
     div(v-if='methodType == "bank_transfer"')
       q-select(
@@ -100,6 +110,7 @@ import { computed, ref } from 'vue';
 import { useAddPaymentMethod } from '../model';
 import { FailAlert } from 'src/shared/api';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { Form } from 'src/shared/ui/Form';
 import { t } from 'src/shared/i18n';
 
@@ -134,7 +145,8 @@ const notEmpty = (val: any) => {
 
 const showDialog = ref(false);
 const isSubmitting = ref(false);
-const sbp = ref({ phone: '' });
+const sbp = ref({ phone: '', bank_name: '' });
+const sbpBankError = ref('');
 
 const bank_transfer = ref({
   account_number: '',
@@ -148,7 +160,8 @@ const bank_transfer = ref({
 
 const clear = (): void => {
   showDialog.value = false;
-  sbp.value = { phone: '' };
+  sbp.value = { phone: '', bank_name: '' };
+  sbpBankError.value = '';
   bank_transfer.value = {
     account_number: '',
     bank_name: '',
@@ -163,6 +176,10 @@ const clear = (): void => {
 const { addPaymentMethod } = useAddPaymentMethod();
 
 const handlerSubmit = async (): Promise<void> => {
+  if (methodType.value === 'sbp' && !sbp.value.bank_name.trim()) {
+    sbpBankError.value = t('paymentMethod.addPaymentButton.requiredFieldError');
+    return;
+  }
   isSubmitting.value = true;
   try {
     const paymentData: any = {
@@ -171,7 +188,7 @@ const handlerSubmit = async (): Promise<void> => {
     };
 
     if (methodType.value === 'sbp') {
-      paymentData.sbp_data = sbp.value;
+      paymentData.sbp_data = { phone: sbp.value.phone, bank_name: sbp.value.bank_name.trim() };
     } else if (methodType.value === 'bank_transfer') {
       paymentData.bank_transfer_data = bank_transfer.value;
     }

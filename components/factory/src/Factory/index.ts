@@ -814,7 +814,9 @@ export abstract class DocFactory<T extends IGenerate> {
       }
       case 'sbp': {
         const sbpData = paymentMethod.data as any // ISbpDetails из cooptypes
-        return `СБП\nТелефон получателя: ${sbpData.phone}`
+        // Банк есть у реквизитов, сохранённых после появления поля.
+        const sbpBank = sbpData.bank_name ? `\nБанк получателя: ${sbpData.bank_name}` : ''
+        return `СБП\nТелефон получателя: ${sbpData.phone}${sbpBank}`
       }
       default:
         return JSON.stringify(paymentMethod.data)

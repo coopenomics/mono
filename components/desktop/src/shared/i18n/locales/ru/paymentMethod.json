@@ -3,6 +3,8 @@
     "addPaymentButton": {
       "accountNumberLabel": "Номер счета",
       "bankNameLabel": "Наименование банка",
+      "sbpBankHint": "Банк, в котором к номеру подключена Система Быстрых Платежей",
+      "sbpBankLabel": "Банк получателя",
       "bikLabel": "БИК",
       "buttonLabel": "Добавить реквизиты",
       "cancel": "Отменить",
