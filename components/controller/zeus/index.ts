@@ -3538,6 +3538,12 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalDebt']?: Omit<ValueTypes["CapitalDebt"], "...on CapitalDebt">
 }>;
+	["CapitalDebtRefInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>
+};
 	/** Расход в системе CAPITAL */
 ["CapitalExpense"]: AliasType<{
 	/** Дата создания записи */
@@ -3885,6 +3891,48 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on CapitalIssuePermissions']?: Omit<ValueTypes["CapitalIssuePermissions"], "...on CapitalIssuePermissions">
 }>;
+	["CapitalLoanContractGenerateInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["CapitalLoanDecisionGenerateInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Номер решения совета */
+	decision_id: number | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Номер приложения об ответственном хранении из заявления; пусто — берётся из сведений пайщика */
+	storage_appendix_number?: string | undefined | null | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["CapitalLoanStatementGenerateInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
 	/** Запись лога событий в системе капитала */
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
@@ -5871,6 +5919,8 @@ export type ValueTypes = {
 	["CreateDebtInput"]: {
 	/** Сумма долга */
 	amount: string | Variable<any, string>,
+	/** Договор займа под обеспечение имуществом с подписью пайщика */
+	contract: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
 	/** Имя аккаунта кооператива */
 	coopname: string | Variable<any, string>,
 	/** Хэш долга */
@@ -12262,8 +12312,9 @@ capitalGenerateGenerationMoneyInvestStatement?: [{	data: ValueTypes["GenerationM
 capitalGenerateGenerationPropertyInvestAct?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateGetLoanDecision?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
-capitalGenerateGetLoanStatement?: [{	data: ValueTypes["GenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateGetLoanDecision?: [{	data: ValueTypes["CapitalLoanDecisionGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateGetLoanStatement?: [{	data: ValueTypes["CapitalLoanStatementGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+capitalGenerateLoanContract?: [{	data: ValueTypes["CapitalLoanContractGenerateInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ValueTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ValueTypes["ProjectGenerationContractGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ValueTypes["GenerateCapitalRegistrationDocumentsInputDTO"] | Variable<any, string>},ValueTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
@@ -12283,6 +12334,7 @@ capitalRegisterContributor?: [{	data: ValueTypes["RegisterContributorInput"] | V
 capitalRemoveFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
 capitalRestoreContentRevision?: [{	data: ValueTypes["CapitalRestoreContentRevisionInput"] | Variable<any, string>},ValueTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ValueTypes["CapitalResumeTimerInput"] | Variable<any, string>},ValueTypes["CapitalTimerSession"]],
+capitalRetryDebtPayment?: [{	data: ValueTypes["CapitalDebtRefInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetConfig?: [{	data: ValueTypes["SetConfigInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ValueTypes["SetIssueMetricBindingsInput"] | Variable<any, string>},ValueTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ValueTypes["SetMasterInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -18977,6 +19029,12 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalDebtRefInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
 	/** Расход в системе CAPITAL */
 ["CapitalExpense"]: AliasType<{
 	/** Дата создания записи */
@@ -19315,6 +19373,48 @@ export type ResolverInputTypes = {
 	is_guest?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["CapitalLoanContractGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanDecisionGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Номер приложения об ответственном хранении из заявления; пусто — берётся из сведений пайщика */
+	storage_appendix_number?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanStatementGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
 	/** Запись лога событий в системе капитала */
 ["CapitalLog"]: AliasType<{
 	/** Внутренний идентификатор */
@@ -21245,6 +21345,8 @@ export type ResolverInputTypes = {
 	["CreateDebtInput"]: {
 	/** Сумма долга */
 	amount: string,
+	/** Договор займа под обеспечение имуществом с подписью пайщика */
+	contract: ResolverInputTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш долга */
@@ -27464,8 +27566,9 @@ capitalGenerateGenerationMoneyInvestStatement?: [{	data: ResolverInputTypes["Gen
 capitalGenerateGenerationPropertyInvestAct?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateGenerationPropertyInvestStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateGetLoanDecision?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
-capitalGenerateGetLoanStatement?: [{	data: ResolverInputTypes["GenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateGetLoanDecision?: [{	data: ResolverInputTypes["CapitalLoanDecisionGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateGetLoanStatement?: [{	data: ResolverInputTypes["CapitalLoanStatementGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+capitalGenerateLoanContract?: [{	data: ResolverInputTypes["CapitalLoanContractGenerateInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProgramMoneyInvestStatement?: [{	data: ResolverInputTypes["ProgramCapitalizationMoneyInvestStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateProjectGenerationContract?: [{	data: ResolverInputTypes["ProjectGenerationContractGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 capitalGenerateRegistrationDocuments?: [{	data: ResolverInputTypes["GenerateCapitalRegistrationDocumentsInputDTO"]},ResolverInputTypes["GenerateCapitalRegistrationDocumentsOutputDTO"]],
@@ -27485,6 +27588,7 @@ capitalRegisterContributor?: [{	data: ResolverInputTypes["RegisterContributorInp
 capitalRemoveFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
 capitalRestoreContentRevision?: [{	data: ResolverInputTypes["CapitalRestoreContentRevisionInput"]},ResolverInputTypes["CapitalContentRevisionSummary"]],
 capitalResumeTimer?: [{	data: ResolverInputTypes["CapitalResumeTimerInput"]},ResolverInputTypes["CapitalTimerSession"]],
+capitalRetryDebtPayment?: [{	data: ResolverInputTypes["CapitalDebtRefInput"]},ResolverInputTypes["Transaction"]],
 capitalSetConfig?: [{	data: ResolverInputTypes["SetConfigInput"]},ResolverInputTypes["Transaction"]],
 capitalSetIssueMetricBindings?: [{	data: ResolverInputTypes["SetIssueMetricBindingsInput"]},ResolverInputTypes["CapitalIssueMetricBinding"]],
 capitalSetMaster?: [{	data: ResolverInputTypes["SetMasterInput"]},ResolverInputTypes["Transaction"]],
@@ -33978,6 +34082,12 @@ export type ModelTypes = {
 	/** Имя пользователя */
 	username?: string | undefined | null
 };
+	["CapitalDebtRefInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
 	/** Расход в системе CAPITAL */
 ["CapitalExpense"]: {
 		/** Дата создания записи */
@@ -34305,6 +34415,48 @@ export type ModelTypes = {
 	has_clearance: boolean,
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest: boolean
+};
+	["CapitalLoanContractGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanDecisionGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Номер приложения об ответственном хранении из заявления; пусто — берётся из сведений пайщика */
+	storage_appendix_number?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanStatementGenerateInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
 };
 	/** Запись лога событий в системе капитала */
 ["CapitalLog"]: {
@@ -36173,6 +36325,8 @@ export type ModelTypes = {
 	["CreateDebtInput"]: {
 	/** Сумма долга */
 	amount: string,
+	/** Договор займа под обеспечение имуществом с подписью пайщика */
+	contract: ModelTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш долга */
@@ -42221,6 +42375,8 @@ export type ModelTypes = {
 	capitalGenerateGetLoanDecision: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о получении займа */
 	capitalGenerateGetLoanStatement: ModelTypes["GeneratedDocument"],
+	/** Сгенерировать договор займа под обеспечение имуществом на ответственном хранении */
+	capitalGenerateLoanContract: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту) */
 	capitalGenerateProgramMoneyInvestStatement: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ приложения к договору участия для проекта */
@@ -42259,6 +42415,8 @@ export type ModelTypes = {
 	capitalRestoreContentRevision: ModelTypes["CapitalContentRevisionSummary"],
 	/** Продолжить таймер после паузы на той же задаче */
 	capitalResumeTimer: ModelTypes["CapitalTimerSession"],
+	/** Повторно передать заём кассиру после отказа платежа по реквизитам */
+	capitalRetryDebtPayment: ModelTypes["Transaction"],
 	/** Установка конфигурации CAPITAL контракта */
 	capitalSetConfig: ModelTypes["Transaction"],
 	/** Установка привязок задачи к метрикам компонента */
@@ -49133,6 +49291,12 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on CapitalDebt']: Omit<GraphQLTypes["CapitalDebt"], "...on CapitalDebt">
 };
+	["CapitalDebtRefInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
 	/** Расход в системе CAPITAL */
 ["CapitalExpense"]: {
 	__typename: "CapitalExpense",
@@ -49479,6 +49643,48 @@ export type GraphQLTypes = {
 	/** Является ли пользователь гостем (неавторизованным) */
 	is_guest: boolean,
 	['...on CapitalIssuePermissions']: Omit<GraphQLTypes["CapitalIssuePermissions"], "...on CapitalIssuePermissions">
+};
+	["CapitalLoanContractGenerateInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanDecisionGenerateInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Номер приложения об ответственном хранении из заявления; пусто — берётся из сведений пайщика */
+	storage_appendix_number?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["CapitalLoanStatementGenerateInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
 };
 	/** Запись лога событий в системе капитала */
 ["CapitalLog"]: {
@@ -51466,6 +51672,8 @@ export type GraphQLTypes = {
 	["CreateDebtInput"]: {
 		/** Сумма долга */
 	amount: string,
+	/** Договор займа под обеспечение имуществом с подписью пайщика */
+	contract: GraphQLTypes["SignedDigitalDocumentInput"],
 	/** Имя аккаунта кооператива */
 	coopname: string,
 	/** Хэш долга */
@@ -57926,6 +58134,8 @@ export type GraphQLTypes = {
 	capitalGenerateGetLoanDecision: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление о получении займа */
 	capitalGenerateGetLoanStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сгенерировать договор займа под обеспечение имуществом на ответственном хранении */
+	capitalGenerateLoanContract: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать заявление об инвестировании в программу благороста (без привязки к проекту) */
 	capitalGenerateProgramMoneyInvestStatement: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ приложения к договору участия для проекта */
@@ -57964,6 +58174,8 @@ export type GraphQLTypes = {
 	capitalRestoreContentRevision: GraphQLTypes["CapitalContentRevisionSummary"],
 	/** Продолжить таймер после паузы на той же задаче */
 	capitalResumeTimer: GraphQLTypes["CapitalTimerSession"],
+	/** Повторно передать заём кассиру после отказа платежа по реквизитам */
+	capitalRetryDebtPayment: GraphQLTypes["Transaction"],
 	/** Установка конфигурации CAPITAL контракта */
 	capitalSetConfig: GraphQLTypes["Transaction"],
 	/** Установка привязок задачи к метрикам компонента */
@@ -63746,6 +63958,7 @@ type ZEUS_VARIABLES = {
 	["CapitalCycleFilter"]: ValueTypes["CapitalCycleFilter"];
 	["CapitalDeallocateFundsInput"]: ValueTypes["CapitalDeallocateFundsInput"];
 	["CapitalDeallocationLimitInput"]: ValueTypes["CapitalDeallocationLimitInput"];
+	["CapitalDebtRefInput"]: ValueTypes["CapitalDebtRefInput"];
 	["CapitalExpenseItemInput"]: ValueTypes["CapitalExpenseItemInput"];
 	["CapitalFavoriteInput"]: ValueTypes["CapitalFavoriteInput"];
 	["CapitalFavoriteTargetType"]: ValueTypes["CapitalFavoriteTargetType"];
@@ -63755,6 +63968,9 @@ type ZEUS_VARIABLES = {
 	["CapitalGetOpenTimerInput"]: ValueTypes["CapitalGetOpenTimerInput"];
 	["CapitalInvestFilter"]: ValueTypes["CapitalInvestFilter"];
 	["CapitalIssueFilter"]: ValueTypes["CapitalIssueFilter"];
+	["CapitalLoanContractGenerateInput"]: ValueTypes["CapitalLoanContractGenerateInput"];
+	["CapitalLoanDecisionGenerateInput"]: ValueTypes["CapitalLoanDecisionGenerateInput"];
+	["CapitalLoanStatementGenerateInput"]: ValueTypes["CapitalLoanStatementGenerateInput"];
 	["CapitalLogFilterInput"]: ValueTypes["CapitalLogFilterInput"];
 	["CapitalOnboardingStep"]: ValueTypes["CapitalOnboardingStep"];
 	["CapitalOnboardingStepInput"]: ValueTypes["CapitalOnboardingStepInput"];

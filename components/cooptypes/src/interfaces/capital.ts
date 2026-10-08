@@ -56,13 +56,6 @@ export interface IApprovecmmt {
   commit_hash: IChecksum256
 }
 
-export interface IApprovedebt {
-  coopname: IName
-  username: IName
-  debt_hash: IChecksum256
-  approved_statement: IDocument2
-}
-
 export interface IApproveexpns {
   coopname: IName
   approver: IName
@@ -362,12 +355,21 @@ export interface IDebt {
   approved_statement: IDocument2
   authorization: IDocument2
   memo: string
+  contract: IDocument2
+  signed_contract: IDocument2
 }
 
 export interface IDebtauthcnfr {
   coopname: IName
   debt_hash: IChecksum256
   decision: IDocument2
+}
+
+export interface IDebtcontract {
+  coopname: IName
+  username: IName
+  debt_hash: IChecksum256
+  contract: IDocument2
 }
 
 export interface IDebtpaycnfrm {
@@ -379,6 +381,25 @@ export interface IDebtpaydcln {
   coopname: IName
   debt_hash: IChecksum256
   reason: string
+}
+
+export interface IDebtrepaid {
+  coopname: IName
+  username: IName
+  debt_hash: IChecksum256
+  amount: IAsset
+}
+
+export interface IDebtretry {
+  coopname: IName
+  debt_hash: IChecksum256
+}
+
+export interface IDebtsigned {
+  coopname: IName
+  username: IName
+  debt_hash: IChecksum256
+  signed_contract: IDocument2
 }
 
 export interface IDeclinecmmt {

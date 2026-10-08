@@ -116,7 +116,12 @@ export interface CapitalBlockchainPort {
   /**
    * Создание долга в CAPITAL контракте
    */
-  createDebt(data: CapitalContract.Actions.CreateDebt.ICreateDebt): Promise<InnerTransactResult>;
+  /** Заявление и договор займа одной транзакцией: createdebt + debtcontract. */
+  createDebt(
+    data: CapitalContract.Actions.CreateDebt.ICreateDebt,
+    contract: CapitalContract.Actions.DebtContract.IDebtContract
+  ): Promise<InnerTransactResult>;
+  retryDebtPayment(data: CapitalContract.Actions.DebtRetry.IDebtRetry): Promise<InnerTransactResult>;
 
   /**
    * Создание проектного имущественного взноса в CAPITAL контракте

@@ -3,9 +3,20 @@ import { DebtManagementInteractor } from '../use-cases/debt-management.interacto
 import type { CreateDebtInputDTO } from '../dto/debt_management/create-debt-input.dto';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
-import { PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO, GenerateDocumentInputDTO } from '@coopenomics/extension-kit';
+import { DomainError, PaginationInputDTO, PaginationResult, GenerateDocumentOptionsInputDTO, GeneratedDocumentDTO } from '@coopenomics/extension-kit';
+import httpStatus from 'http-status';
+import type {
+  CapitalDebtRefInputDTO,
+  CapitalLoanContractGenerateInputDTO,
+  CapitalLoanDecisionGenerateInputDTO,
+  CapitalLoanStatementGenerateInputDTO,
+} from '../dto/debt_management/loan-document-input.dto';
 import { Cooperative } from 'cooptypes';
-import { DOCUMENT_PORT, type IDocumentPort,
+import {
+  DOCUMENT_PORT,
+  USER_DATA_PORT,
+  type IDocumentPort,
+  type IUserDataPort,
   type InnerTransactResult,
 } from '@coopenomics/innercoop';
 
@@ -17,7 +28,8 @@ import { DOCUMENT_PORT, type IDocumentPort,
 export class DebtManagementService {
   constructor(
     private readonly debtManagementInteractor: DebtManagementInteractor,
-    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort
+    @Inject(DOCUMENT_PORT) private readonly documentPort: IDocumentPort,
+    @Inject(USER_DATA_PORT) private readonly userData: IUserDataPort
   ) {}
 
   /**
@@ -56,18 +68,37 @@ export class DebtManagementService {
     return debt as DebtOutputDTO | null;
   }
 
+  /** Повтор платежа по займу после отказа кассира. */
+  async retryDebtPayment(data: CapitalDebtRefInputDTO): Promise<InnerTransactResult> {
+    return await this.debtManagementInteractor.retryDebtPayment(data.coopname, data.debt_hash);
+  }
+
   // ============ МЕТОДЫ ГЕНЕРАЦИИ ДОКУМЕНТОВ ============
 
   /**
-   * Генерация заявления о получении займа
+   * Заём под коммиты оформляется на основании договора об участии, обеспечение —
+   * имущество на ответственном хранении по приложению к этому договору. Номер
+   * приложения берётся из сведений пайщика, записанных при регистрации в программе.
    */
+  private async loanBasis(coopname: string, username: string, known?: string): Promise<Record<string, string>> {
+    const number =
+      known ||
+      (await this.userData.get(coopname, username, Cooperative.Model.UdataKey.BLAGOROST_STORAGE_AGREEMENT_NUMBER))?.value;
+    if (!number) {
+      throw new DomainError('CAPITAL_LOAN_STORAGE_APPENDIX_NOT_FOUND', { username }, httpStatus.CONFLICT);
+    }
+    return { basis_type: 'uhd', storage_appendix_number: String(number) };
+  }
+
+  /** Заявление о получении займа под коммиты. */
   async generateGetLoanStatement(
-    data: GenerateDocumentInputDTO,
+    data: CapitalLoanStatementGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.documentPort.generate({
       data: {
         ...data,
+        ...(await this.loanBasis(data.coopname, data.username)),
         registry_id: Cooperative.Registry.GetLoanStatement.registry_id,
       },
       options,
@@ -75,16 +106,32 @@ export class DebtManagementService {
     return document as GeneratedDocumentDTO;
   }
 
-  /**
-   * Генерация решения о получении займа
-   */
-  async generateGetLoanDecision(
-    data: GenerateDocumentInputDTO,
+  /** Договор займа под обеспечение имуществом на ответственном хранении. */
+  async generateLoanContract(
+    data: CapitalLoanContractGenerateInputDTO,
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     const document = await this.documentPort.generate({
       data: {
         ...data,
+        ...(await this.loanBasis(data.coopname, data.username)),
+        registry_id: Cooperative.Registry.LoanContractProperty.registry_id,
+      },
+      options,
+    });
+    return document as GeneratedDocumentDTO;
+  }
+
+  /** Протокол решения совета о предоставлении займа под коммиты. */
+  async generateGetLoanDecision(
+    data: CapitalLoanDecisionGenerateInputDTO,
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    const { storage_appendix_number, ...rest } = data;
+    const document = await this.documentPort.generate({
+      data: {
+        ...rest,
+        ...(await this.loanBasis(data.coopname, data.username, storage_appendix_number)),
         registry_id: Cooperative.Registry.GetLoanDecision.registry_id,
       },
       options,

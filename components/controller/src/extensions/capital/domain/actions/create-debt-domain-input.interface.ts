@@ -23,4 +23,7 @@ export interface CreateDebtDomainInput {
 
   /** Заявление */
   statement: ISignedDocument;
+
+  /** Договор займа под обеспечение имуществом с подписью пайщика */
+  contract: ISignedDocument;
 }

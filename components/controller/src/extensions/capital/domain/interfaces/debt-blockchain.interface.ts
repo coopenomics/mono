@@ -6,7 +6,8 @@ import type { ISignedDocument } from '@coopenomics/innercoop';
  */
 export type IDebtBlockchainData = Omit<
   CapitalContract.Tables.Debts.IDebt,
-  'statement' | 'approved_statement' | 'authorization'
+  // Договор займа зеркало проекта не хранит: он живёт в общем реестре займов (приложение «Беспроцентные займы»).
+  'statement' | 'approved_statement' | 'authorization' | 'contract' | 'signed_contract'
 > & {
   statement: ISignedDocument;
   approved_statement: ISignedDocument;

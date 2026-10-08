@@ -475,7 +475,17 @@
       "label": "Создать цикл"
     },
     "createDebtButton": {
-      "label": "Создать долг"
+      "label": "Получить заём"
+    },
+    "createDebtDialog": {
+      "amountHint": "В пределах суммы, обеспеченной вашей долей в проекте",
+      "amountLabel": "Сумма займа",
+      "dueLabel": "Срок возврата",
+      "methodLabel": "Реквизиты для получения займа",
+      "submitLabel": "Подписать заявление и договор",
+      "submittedMessage": "Заявление передано на рассмотрение совета",
+      "terms": "Обеспечение займа — имущество на ответственном хранении по приложению к договору об участии. Совет рассматривает заявление, председатель подписывает договор, кассир перечисляет заём по указанным реквизитам. Заём закрывается при сдаче результата.",
+      "title": "Заявление на беспроцентный заём"
     },
     "createExpenseButton": {
       "label": "Создать расход"
@@ -721,8 +731,10 @@
       "csvMissingColumns": "Отсутствуют обязательные столбцы: {columns}",
       "csvReadError": "Ошибка чтения файла",
       "expenseFileUrlUnavailable": "Не удалось получить ссылку на файл",
+      "invalidCreatedebtMeta": "Данные заявления на заём неполные",
       "invalidCreateexpMeta": "Некорректные метаданные заявления для решения createexp",
       "investGenerateFailed": "Не удалось сгенерировать заявление",
+      "missingCreatedebtMeta": "В заявлении на заём нет данных для протокола решения",
       "missingCreateexpMeta": "Отсутствуют метаданные заявления для решения createexp",
       "missingCreateresultMeta": "Отсутствуют метаданные заявления для решения createresult",
       "onboardingDocumentNotGenerated": "Документ не был сгенерирован",
@@ -1588,8 +1600,9 @@
       "coauthorRole": "Соавтор",
       "compassResultLabel": "Результат голосования по системе «Компас»",
       "coordinatorRole": "Координатор",
-      "loanReceivedLabel": "Займ получен",
-      "loanRepaidLabel": "Займ возвращён",
+      "loanAvailableLabel": "Доступно под заём",
+      "loanReceivedLabel": "Заём получен",
+      "loanRepaidLabel": "Заём возвращён",
       "loansTitle": "Займы",
       "performerRole": "Исполнитель",
       "professionalCostLabel": "Стоимость профессионального времени",

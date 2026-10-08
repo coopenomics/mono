@@ -56,6 +56,8 @@ export * as GenerateGenerationPropertyInvestStatement from './generateGeneration
 export * as GenerateGenerationConvertStatement from './generateGenerationConvertStatement'
 export * as GenerateGetLoanDecision from './generateGetLoanDecision'
 export * as GenerateGetLoanStatement from './generateGetLoanStatement'
+export * as GenerateLoanContract from './generateLoanContract'
+export * as RetryDebtPayment from './retryDebtPayment'
 export * as GenerateProgramMoneyInvestStatement from './generateProgramMoneyInvestStatement'
 export * as GenerateProjectGenerationContract from './generateProjectGenerationContract'
 export * as GenerateResultContributionAct from './generateResultContributionAct'

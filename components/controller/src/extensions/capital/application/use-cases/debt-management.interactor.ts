@@ -27,13 +27,20 @@ export class DebtManagementInteractor {
    */
   async createDebt(data: CreateDebtDomainInput): Promise<InnerTransactResult> {
     // Преобразовываем доменный документ в формат блокчейна
+    // Договор уходит отдельным действием той же транзакции (debtcontract).
+    const { contract: _contract, ...statementData } = data;
     const blockchainData = {
-      ...data,
+      ...statementData,
       statement: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.statement),
     };
 
     // Вызываем блокчейн порт
-    return await this.capitalBlockchainPort.createDebt(blockchainData);
+    return await this.capitalBlockchainPort.createDebt(blockchainData, {
+      coopname: data.coopname,
+      username: data.username,
+      debt_hash: data.debt_hash,
+      contract: this.domainToBlockchainUtils.convertSignedDocumentToBlockchainFormat(data.contract),
+    });
   }
 
   // ============ МЕТОДЫ ЧТЕНИЯ ДАННЫХ ============
@@ -41,6 +48,11 @@ export class DebtManagementInteractor {
   /**
    * Получение всех долгов с фильтрацией и пагинацией
    */
+  /** Повтор платежа по займу после отказа кассира. */
+  async retryDebtPayment(coopname: string, debt_hash: string): Promise<InnerTransactResult> {
+    return await this.capitalBlockchainPort.retryDebtPayment({ coopname, debt_hash });
+  }
+
   async getDebts(
     filter?: DebtFilterInputDTO,
     options?: PaginationInputDTO

@@ -5,6 +5,8 @@ import { useSessionStore } from 'src/entities/Session';
 import { generateExpenseProposalDecisionDocument } from 'app/extensions/expenses/api';
 import { useGenerateResultContributionDecision } from '../features/Result/GenerateResultContributionDecision/model';
 import { CreateResultDecisionInfoWidget } from '../widgets/CreateResultDecisionInfoWidget';
+import { client } from 'src/shared/api/client';
+import { Mutations } from '@coopenomics/sdk';
 import { t } from '../i18n';
 
 /**
@@ -77,6 +79,57 @@ export function registerCapitalDecisionHandlers() {
       } as any);
 
       return (generated as any).generateExpenseProposalDecisionDocument;
+    },
+  });
+
+  registerDebtDecisionHandler();
+}
+
+/**
+ * Обработчик для createdebt (решение совета о беспроцентном займе). Заём под
+ * коммиты несёт в заявлении номер приложения об ответственном хранении; заём
+ * под паевой взнос — ключ обеспечения, его протокол формирует обработчик
+ * приложения «Беспроцентные займы», если оно зарегистрировалось раньше.
+ */
+function registerDebtDecisionHandler(): void {
+  const previousDebtHandler = decisionFactory.getHandler('createdebt');
+  decisionFactory.registerHandler('createdebt', {
+    generateHandler: async (args) => {
+      const { decision_id, row } = args;
+      if (!row.table?.statement?.meta) {
+        throw new Error(t('capital.error.missingCreatedebtMeta'));
+      }
+
+      const meta = JSON.parse(row.table.statement.meta) as Cooperative.Registry.GetLoanStatement.Action;
+      if (meta.collateral && previousDebtHandler) {
+        return previousDebtHandler.generateHandler(args);
+      }
+      if (!meta.debt_hash || !meta.amount || !meta.due_at) {
+        throw new Error(t('capital.error.invalidCreatedebtMeta'));
+      }
+
+      const { info } = useSystemStore();
+      const session = useSessionStore();
+
+      // Протокол подписывает председатель — документ формируется на его имя.
+      const { [Mutations.Capital.GenerateGetLoanDecision.name]: generated } = await client.Mutation(
+        Mutations.Capital.GenerateGetLoanDecision.mutation,
+        {
+          variables: {
+            data: {
+              coopname: info.coopname,
+              username: session.username,
+              debt_hash: meta.debt_hash,
+              amount: meta.amount,
+              due_at: meta.due_at,
+              storage_appendix_number: meta.storage_appendix_number,
+              decision_id,
+            },
+            options: { lang: 'ru' },
+          },
+        },
+      );
+      return generated;
     },
   });
 }

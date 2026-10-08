@@ -10,13 +10,20 @@ import { t } from '../i18n';
  * (`createdebt`): протокол формируется из данных заявления пайщика.
  */
 export function registerDebtDecisionHandlers(): void {
+  // Заём под коммиты (без ключа обеспечения) оформляет «Благорост»: его
+  // обработчик, если он зарегистрировался раньше, получает такое заявление.
+  const previous = decisionFactory.getHandler('createdebt');
   decisionFactory.registerHandler('createdebt', {
-    generateHandler: async ({ decision_id, row }) => {
+    generateHandler: async (args) => {
+      const { decision_id, row } = args;
       if (!row.table?.statement?.meta) {
         throw new Error(t('debt.error.missingCreatedebtMeta'));
       }
 
       const meta = JSON.parse(row.table.statement.meta) as Cooperative.Registry.GetLoanStatement.Action;
+      if (!meta.collateral && previous) {
+        return previous.generateHandler(args);
+      }
       if (!meta.debt_hash || !meta.amount || !meta.due_at || !meta.collateral) {
         throw new Error(t('debt.error.invalidCreatedebtMeta'));
       }

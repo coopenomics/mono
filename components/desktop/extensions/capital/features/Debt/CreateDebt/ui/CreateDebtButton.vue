@@ -1,28 +1,21 @@
 <template lang="pug">
-q-btn(
-  color='primary',
-  @click='handleCreateDebt',
-  :loading='loading',
-  :label='$t("capital.createDebtButton.label")'
-)
+//- Заём под коммиты: кнопка на карточке доли и окно заявления.
+BaseButton(variant='secondary', size='sm', @click='open = true') {{ $t('capital.createDebtButton.label') }}
+CreateDebtDialog(v-model='open', :project-hash='projectHash', :available='available', @created='$emit("created")')
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useCreateDebt } from '../model';
-import { FailAlert } from 'src/shared/api/alerts';
+import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import CreateDebtDialog from './CreateDebtDialog.vue';
 
-const { createDebt, createDebtInput } = useCreateDebt();
-const loading = ref(false);
+defineProps<{
+  /** Проект, под долю в котором берётся заём. */
+  projectHash: string;
+  /** Доступно под заём. */
+  available: number;
+}>();
+defineEmits<{ (e: 'created'): void }>();
 
-const handleCreateDebt = async () => {
-  loading.value = true;
-  try {
-    await createDebt(createDebtInput.value);
-  } catch (error) {
-    FailAlert(error);
-  } finally {
-    loading.value = false;
-  }
-};
+const open = ref(false);
 </script>

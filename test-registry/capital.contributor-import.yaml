@@ -242,3 +242,8 @@ cases:
       создаётся
     test: components/boot/src/tests/capital.test.ts
     status: written
+
+# 2026-10-08 (компонент 73, эпик 367-5): в адаптере цепи Благороста заявление
+# на заём уходит одной транзакцией с договором (createdebt + debtcontract) и
+# добавлен повтор платежа по займу. Импорт участников и его проверки не
+# менялись; путь займа — test-registry/debt.loan.yaml.

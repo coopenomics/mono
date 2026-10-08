@@ -19,8 +19,8 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
   eosio::check(contributor.has_value(), "Контрибьютор не найден");
 
   // Проверяем что долг в статусе 'authorized' (готов к выплате)
-  eosio::check(exist_debt.status == Capital::Debts::Status::AUTHORIZED,
-               "Долг должен быть в статусе 'authorized' для подтверждения оплаты");
+  eosio::check(exist_debt.status == Capital::Debts::Status::PAYING,
+               "Подтверждается платёж займа, переданного на выплату");
 
   // Обновляем статус долга на PAID
   Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::PAID, _gateway);
@@ -34,5 +34,10 @@ void capital::debtpaycnfrm(name coopname, checksum256 debt_hash) {
 
   // Увеличиваем долг contributor (теперь долг активен и должен быть погашен через внесение результата)
   Capital::Contributors::increase_debt_amount(coopname, contributor->id, exist_debt.amount);
+
+  // Заём встаёт в общий реестр беспроцентных займов: источник — capital,
+  // ссылка — проект, срок — из заявления пайщика.
+  Debt::register_loan(_capital, coopname, exist_debt.username, debt_hash, exist_debt.project_hash, exist_debt.amount,
+                      exist_debt.repaid_at, exist_debt.statement, exist_debt.signed_contract);
   
 };  

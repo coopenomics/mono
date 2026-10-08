@@ -64,6 +64,13 @@ export async function processDebt(
           authorization: [{ actor: coopname, permission: 'active' }],
           data: createDebtData,
         },
+        // Договор займа уходит той же транзакцией: с ним заявление становится повесткой совета.
+        {
+          account: CapitalContract.contractName.production,
+          name: CapitalContract.Actions.DebtContract.actionName,
+          authorization: [{ actor: coopname, permission: 'active' }],
+          data: { coopname, username, debt_hash: debtHash, contract: fakeDocument },
+        },
       ],
     },
     {
@@ -90,16 +97,17 @@ export async function processDebt(
   const createdDebt = debts[0]
   console.log('🔍 Долг в блокчейне:', createdDebt)
   expect(createdDebt).toBeDefined()
-  expect(createdDebt.status).toBe('created')
+  expect(createdDebt.status).toBe('pending')
 
-  // 2. Одобряем долг через processApprove (soviet контракт)
-  console.log(`\n✅ Подтверждение долга ${debtHash} через soviet`)
-  await processApprove(blockchain, coopname, debtHash)
-  console.log('✅ Долг одобрен председателем (создана agenda)')
-
-  // 3. Процессим решение совета (agenda для авторизации долга)
+  // 2. Решение совета: заём разрешён, договор уходит председателю на подпись
   await processLastDecision(blockchain, coopname)
-  console.log('✅ Решение совета принято (долг авторизован, outcome создан)')
+  console.log('✅ Решение совета принято (договор ждёт подписи председателя)')
+
+  // 3. Председатель подписывает договор — заём передан кассиру
+  fakeDocument.signatures[0].signer = username
+  await processApprove(blockchain, coopname, debtHash)
+  fakeDocument.signatures[0].signer = username
+  console.log('✅ Договор подписан председателем (outcome создан)')
 
   // 4. Подтверждаем завершение вывода (gateway сам вызовет callback на capital)
   const confirmOutcomeData: GatewayContract.Actions.CompleteOutcome.ICompleteOutcome = {
@@ -157,6 +165,16 @@ export async function processDebt(
   ))
   const debtAfter = debtsAfter[0]
 
+  // Выданный заём встал в общий реестр беспроцентных займов: источник — capital, ссылка — проект.
+  const registry = (await blockchain.getTableRows('debt', coopname, 'debts', 1, debtHash, debtHash, 3, 'sha256'))
+  const registered = registry[0]
+  expect(registered, 'заём Генерации зарегистрирован в общем реестре').toBeDefined()
+  expect(registered.source).toBe(CapitalContract.contractName.production)
+  expect(registered.status).toBe('issued')
+  expect(registered.amount).toBe(debtAmount)
+  expect(registered.remaining).toBe(debtAmount)
+  expect(String(registered.source_ref).toLowerCase()).toBe(projectHash.toLowerCase())
+
   console.log('\n📊 Результаты после обработки долга:')
   console.log('▶ Сегмент до:', segmentBefore)
   console.log('▶ Сегмент после:', segmentAfter)
@@ -170,6 +188,7 @@ export async function processDebt(
     debtHash,
     debt: createdDebt,
     debtAfter,
+    registered,
     segmentBefore,
     segmentAfter,
     contributorBefore,

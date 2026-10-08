@@ -694,3 +694,8 @@ cases:
     test: components/controller/tests/unit/capital/capital-rights.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+# 2026-10-08 (компонент 73, эпик 367-5): при сдаче результата заём под коммиты
+# закрывается и в общем реестре беспроцентных займов (debt::settleloan из
+# pushrslt). Порядок сдачи результата и его проверки не менялись; путь займа —
+# test-registry/debt.loan.yaml (dbt.loan.gen.*, dbt.loan.side.09).

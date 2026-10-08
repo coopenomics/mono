@@ -94,7 +94,7 @@ export const capitalRightsTable: RightsTable<CapitalRole, never> = {
         Commit: ['approve', 'decline', 'read'],
         Contributor: ['read', 'generate'],
         Cycle: ['read'],
-        Debt: ['read', 'generate'],
+        Debt: ['read', 'generate', 'retry-pay'],
         Favorite: ['manage'],
         Invest: ['generate', 'read'],
         Issue: ['update', 'read', 'create', 'delete'],

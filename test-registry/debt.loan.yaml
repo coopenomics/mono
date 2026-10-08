@@ -22,7 +22,8 @@ sources:
     - components/contracts/cpp/lib/core/debt/**
     - components/contracts/cpp/lib/domain/table_debt_debts.hpp
     - components/contracts/cpp/lib/domain/table_debt_summaries.hpp
-    - components/contracts/cpp/capital/app/debt_managment/pledge/pledgesync.cpp
+    - components/contracts/cpp/capital/app/debt_managment/**
+    - components/contracts/cpp/capital/domain/entities/debts.hpp
     - components/contracts/cpp/lib/core/ledger2/operations.hpp
     - components/contracts/cpp/lib/core/ledger2/wallets.hpp
     - components/contracts/cpp/lib/core/registrator/exit.hpp
@@ -31,6 +32,9 @@ sources:
     - components/cooptypes/scripts/gen-from-cpp.ts
   backend:
     - components/controller/src/extensions/debt/**
+    - components/controller/src/extensions/capital/application/services/debt-management.service.ts
+    - components/controller/src/extensions/capital/application/services/debt-payments.listener.ts
+    - components/controller/src/extensions/capital/application/services/debt-notifications.listener.ts
     - components/api-tests/src/debt/**
     - components/controller/src/application/gateway/interactors/gateway.interactor.ts
     - components/notifications/src/workflows/loan-*/**
@@ -155,9 +159,12 @@ cases:
       запись выдана с источником-приложением, сводка растёт; погашение
       уменьшает остаток и сводку; закрытие удаляет запись; возврат деньгами
       через контракт займов по такому займу отклоняется (Р37)
-    test: null
-    status: missing
-    note: вызов возможен только из контракта белого списка — покрывается в эпике 367-5 вместе с Генерацией
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+    note: >
+      регистрацию и закрытие проходит заём Генерации (processDebt и сдача
+      результата); частичное погашение приложением и отказ возврата деньгами
+      отдельным шагом не проверяются
 
   - id: dbt.loan.break.01
     level: contract
@@ -172,6 +179,42 @@ cases:
     kind: break
     scenario: Заявление или договор подписаны не ключом пайщика; подписан не тот договор председателем.
     expect: отклонено проверкой подписи; отклонено сверкой хэша договора
+    test: null
+    status: missing
+
+  - id: dbt.loan.gen.01
+    level: contract
+    kind: happy
+    scenario: >
+      Исполнитель проекта подаёт заявление на заём под коммиты вместе с
+      договором одной транзакцией; совет разрешает, председатель подписывает
+      договор, кассир подтверждает выплату.
+    expect: >
+      с договором заявление уходит совету; после решения совета договор ждёт
+      председателя; после его подписи создан исходящий платёж; после кассира
+      заём выплачен, долг пайщика и доли вырос, запись встала в общий реестр
+      займов с источником capital, ссылкой на проект и остатком в сумму займа
+    test: components/boot/src/tests/capital.test.ts
+    status: written
+
+  - id: dbt.loan.gen.02
+    level: contract
+    kind: side
+    scenario: Кассир отклоняет платёж по займу под коммиты; кооператив повторяет платёж.
+    expect: >
+      заём ждёт повтора с сохранённой причиной, решение совета и договор на
+      месте; повтор снова передаёт заём кассиру
+    test: null
+    status: missing
+
+  - id: dbt.loan.gen.03
+    level: backend
+    kind: happy
+    scenario: Председатель подписал договор займа под коммиты.
+    expect: >
+      кассиру заведён исходящий платёж типа «заём» с хэшем займа и назначением
+      «заём по договору № …»; пайщик получил уведомления о решении совета,
+      подписи договора и выдаче
     test: null
     status: missing
 

@@ -9,7 +9,6 @@ import {
   GeneratedDocumentDTO,
   GenerateDocumentOptionsInputDTO,
   TransactionDTO,
-  GenerateDocumentInputDTO,
   RequireRight,
   RightsGuard,
 } from '@coopenomics/extension-kit';
@@ -18,6 +17,12 @@ import { Throttle } from '@nestjs/throttler';
 import { DebtOutputDTO } from '../dto/debt_management/debt.dto';
 import { DebtFilterInputDTO } from '../dto/debt_management/debt-filter.input';
 import { GetDebtInputDTO } from '../dto/debt_management/get-debt-input.dto';
+import {
+  CapitalDebtRefInputDTO,
+  CapitalLoanContractGenerateInputDTO,
+  CapitalLoanDecisionGenerateInputDTO,
+  CapitalLoanStatementGenerateInputDTO,
+} from '../dto/debt_management/loan-document-input.dto';
 // Пагинированные результаты
 const paginatedDebtsResult = createPaginationResult(DebtOutputDTO, 'PaginatedCapitalDebts');
 
@@ -89,8 +94,8 @@ export class DebtManagementResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGetLoanStatement(
-    @Args('data', { type: () => GenerateDocumentInputDTO })
-    data: GenerateDocumentInputDTO,
+    @Args('data', { type: () => CapitalLoanStatementGenerateInputDTO })
+    data: CapitalLoanStatementGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
@@ -106,13 +111,47 @@ export class DebtManagementResolver {
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
+  @RequireRight('Debt', 'generate')
   async generateGetLoanDecision(
-    @Args('data', { type: () => GenerateDocumentInputDTO })
-    data: GenerateDocumentInputDTO,
+    @Args('data', { type: () => CapitalLoanDecisionGenerateInputDTO })
+    data: CapitalLoanDecisionGenerateInputDTO,
     @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
     options: GenerateDocumentOptionsInputDTO
   ): Promise<GeneratedDocumentDTO> {
     return this.debtManagementService.generateGetLoanDecision(data, options);
+  }
+
+  /**
+   * Мутация для генерации договора займа под обеспечение имуществом
+   */
+  @Mutation(() => GeneratedDocumentDTO, {
+    name: 'capitalGenerateLoanContract',
+    description: 'Сгенерировать договор займа под обеспечение имуществом на ответственном хранении',
+  })
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
+  async generateLoanContract(
+    @Args('data', { type: () => CapitalLoanContractGenerateInputDTO })
+    data: CapitalLoanContractGenerateInputDTO,
+    @Args('options', { type: () => GenerateDocumentOptionsInputDTO, nullable: true })
+    options: GenerateDocumentOptionsInputDTO
+  ): Promise<GeneratedDocumentDTO> {
+    return this.debtManagementService.generateLoanContract(data, options);
+  }
+
+  /**
+   * Мутация повтора платежа по займу после отказа кассира
+   */
+  @Mutation(() => TransactionDTO, {
+    name: 'capitalRetryDebtPayment',
+    description: 'Повторно передать заём кассиру после отказа платежа по реквизитам',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('Debt', 'retry-pay')
+  async retryDebtPayment(
+    @Args('data', { type: () => CapitalDebtRefInputDTO }) data: CapitalDebtRefInputDTO
+  ): Promise<TransactionDTO> {
+    return this.debtManagementService.retryDebtPayment(data);
   }
 }

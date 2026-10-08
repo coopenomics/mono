@@ -375,7 +375,37 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
   /**
    * Создание долга в CAPITAL контракте
    */
-  async createDebt(data: CapitalContract.Actions.CreateDebt.ICreateDebt): Promise<InnerTransactResult> {
+  async createDebt(
+    data: CapitalContract.Actions.CreateDebt.ICreateDebt,
+    contract: CapitalContract.Actions.DebtContract.IDebtContract
+  ): Promise<InnerTransactResult> {
+    const wif = await this.vaultDomainService.getWif(data.coopname);
+    if (!wif) throw new DomainError('CAPITAL_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
+
+    this.blockchainService.initialize(data.coopname, wif);
+
+    // Заявление и договор — одна транзакция: без договора повестка совета не создаётся.
+    const authorization = [{ actor: data.coopname, permission: 'active' }];
+    return await this.blockchainService.transact([
+      {
+        account: CapitalContract.contractName.production,
+        name: CapitalContract.Actions.CreateDebt.actionName,
+        authorization,
+        data,
+      },
+      {
+        account: CapitalContract.contractName.production,
+        name: CapitalContract.Actions.DebtContract.actionName,
+        authorization,
+        data: contract,
+      },
+    ]);
+  }
+
+  /**
+   * Повтор платежа по займу после отказа кассира
+   */
+  async retryDebtPayment(data: CapitalContract.Actions.DebtRetry.IDebtRetry): Promise<InnerTransactResult> {
     const wif = await this.vaultDomainService.getWif(data.coopname);
     if (!wif) throw new DomainError('CAPITAL_PRIVATE_KEY_NOT_FOUND', {}, httpStatus.BAD_GATEWAY);
 
@@ -383,7 +413,7 @@ export class CapitalBlockchainAdapter implements CapitalBlockchainPort {
 
     return await this.blockchainService.transact({
       account: CapitalContract.contractName.production,
-      name: CapitalContract.Actions.CreateDebt.actionName,
+      name: CapitalContract.Actions.DebtRetry.actionName,
       authorization: [{ actor: data.coopname, permission: 'active' }],
       data,
     });

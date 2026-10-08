@@ -34,7 +34,9 @@ export class DebtDeltaMapper extends AbstractBlockchainDeltaMapper<IDebtBlockcha
       const authorization = DomainToBlockchainUtils.convertChainDocumentToDomainFormat(value.authorization);
 
       // Парсим документы
-      return { ...value, statement, approved_statement, authorization };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { contract: _contract, signed_contract: _signedContract, ...row } = value;
+      return { ...row, statement, approved_statement, authorization };
     } catch (error: any) {
       this.logger.error(`Error mapping delta to blockchain data: ${error.message}`, error.stack);
       return null;

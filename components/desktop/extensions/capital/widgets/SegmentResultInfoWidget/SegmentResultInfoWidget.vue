@@ -55,7 +55,7 @@
           mono
         )
 
-    .result-detail__role(v-if='hasLoansData(segment)')
+    .result-detail__role(v-if='hasLoansData(segment) || canBorrow')
       .result-detail__role-head
         q-icon(name='account_balance', size='18px')
         span {{ $t('capital.segmentResultInfoWidget.loansTitle') }}
@@ -70,6 +70,15 @@
           :value='formatAmount(segment.debt_settled)',
           mono
         )
+        //- Заём под коммиты берёт сам участник в пределах обеспеченной суммы доли.
+        template(v-if='canBorrow')
+          DataRow(
+            :label='$t("capital.segmentResultInfoWidget.loanAvailableLabel")',
+            :value='formatAmount(loanAvailable)',
+            mono
+          )
+          .result-detail__action
+            CreateDebtButton(:project-hash='segment.project_hash', :available='loanAvailable')
 
   .result-detail__preview(v-if='canViewResult')
     ResultPreviewCard(
@@ -83,6 +92,8 @@ import { computed } from 'vue';
 import { useSystemStore } from 'src/entities/System/model';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { DataRow } from 'src/shared/ui/domain/DataRow';
+import { useSessionStore } from 'src/entities/Session';
+import { CreateDebtButton } from '../../features/Debt/CreateDebt/ui';
 import { ResultPreviewCard } from '../../features/Result/PreviewResult/ui';
 
 interface Props {
@@ -94,6 +105,14 @@ const props = defineProps<Props>();
 const { info } = useSystemStore();
 
 const canViewResult = computed(() => true);
+
+const session = useSessionStore();
+
+// Доступно под заём: обеспеченная сумма доли за вычетом уже взятого.
+const loanAvailable = computed(() =>
+  Math.max(0, parseFloat(props.segment.provisional_amount || '0') - parseFloat(props.segment.debt_amount || '0')),
+);
+const canBorrow = computed(() => props.segment.username === session.username && loanAvailable.value > 0);
 
 const formatAmount = (amount: string | number) => {
   const value = parseFloat(amount?.toString() || '0');
@@ -113,6 +132,12 @@ const hasVotingData = (segment: any) => {
 </script>
 
 <style lang="scss" scoped>
+.result-detail__action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--p-2);
+}
+
 .result-detail {
   display: flex;
   flex-direction: column;

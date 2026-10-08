@@ -60,7 +60,8 @@ void capital::createdebt(name coopname, name username, checksum256 project_hash,
   Capital::Debts::create_debt(coopname, username, project_hash, debt_hash, amount, repaid_at, statement);
   
   // Создаем аппрув для долга
-  Capital::Debts::create_debt_approval(coopname, username, debt_hash, statement);
+  // Повестка совета создаётся, когда к заявлению приложен договор (debtcontract
+  // в той же транзакции): совет рассматривает оба документа.
 
   // Учитываем использование инвестиций для компенсации
   Capital::Projects::add_used_for_compensation(coopname, project.id, amount);

@@ -59,6 +59,9 @@ namespace Names {
     constexpr eosio::name AUTHORIZE_DEBT = "debtauthcnfr"_n;
     constexpr eosio::name CONFIRM_DEBT_PAYMENT = "debtpaycnfrm"_n;
     constexpr eosio::name DECLINE_DEBT = "declinedebt"_n;
+    constexpr eosio::name ON_DEBT_SIGNED = "debtsigned"_n;       // председатель подписал договор займа
+    constexpr eosio::name DECLINE_DEBT_PAYMENT = "debtpaydcln"_n; // кассир отклонил платёж по реквизитам
+    constexpr eosio::name SIGN_DEBT_CONTRACT = "signdebt"_n;     // тип запроса одобрения: подпись договора займа
     
     // Коллбэки для результатов
     constexpr eosio::name AUTHORIZE_RESULT = "authrslt"_n;

@@ -6,6 +6,23 @@ import type { IBlockchainSynchronizable } from '@coopenomics/extension-kit/sync'
 import { BaseDomainEntity } from '@coopenomics/extension-kit/sync';
 
 /**
+ * Состояние цепи (debts.hpp) → доменное состояние зеркала. Договор подписан
+ * председателем («signed», «paying»): заём у кассира либо ждёт повтора платежа.
+ */
+const CHAIN_STATUS_TO_DOMAIN: Record<string, DebtStatus> = {
+  created: DebtStatus.PENDING,
+  pending: DebtStatus.PENDING,
+  authorized: DebtStatus.APPROVED,
+  signed: DebtStatus.APPROVED,
+  paying: DebtStatus.APPROVED,
+  approved: DebtStatus.APPROVED,
+  paid: DebtStatus.ACTIVE,
+  active: DebtStatus.ACTIVE,
+  settled: DebtStatus.SETTLED,
+  cancelled: DebtStatus.CANCELLED,
+};
+
+/**
  * Доменная сущность долга
  *
  * Полностью агрегирует данные из двух источников:
@@ -133,28 +150,6 @@ export class DebtDomainEntity
    * Синхронизировано с константами из debts.hpp
    */
   private mapStatusToDomain(blockchainStatus?: string): DebtStatus {
-    switch (blockchainStatus) {
-      // Статусы контракта (debts.hpp): создан, одобрен председателем, утверждён советом, выплачен.
-      case 'created':
-        return DebtStatus.PENDING;
-      case 'authorized':
-        return DebtStatus.APPROVED;
-      case 'paid':
-        return DebtStatus.ACTIVE;
-      case 'pending':
-        return DebtStatus.PENDING;
-      case 'approved':
-        return DebtStatus.APPROVED;
-      case 'active':
-        return DebtStatus.ACTIVE;
-      case 'settled':
-        return DebtStatus.SETTLED;
-      case 'cancelled':
-        return DebtStatus.CANCELLED;
-      default:
-        // По умолчанию считаем статус неопределенным
-
-        return DebtStatus.UNDEFINED;
-    }
+    return CHAIN_STATUS_TO_DOMAIN[blockchainStatus ?? ''] ?? DebtStatus.UNDEFINED;
   }
 }

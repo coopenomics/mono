@@ -111,6 +111,9 @@ void capital::pushrslt(name coopname, name username, checksum256 project_hash, c
 
       total_debt_to_settle += debt.amount;
       debt_ids.push_back(debt.id);
+
+      // Заём закрывается и в общем реестре беспроцентных займов.
+      Debt::settle_loan(_capital, coopname, debt_hash, debt.amount);
     }
     
     // Удаляем долги после погашения

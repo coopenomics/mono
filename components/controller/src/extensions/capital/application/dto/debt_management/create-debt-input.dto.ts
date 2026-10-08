@@ -42,4 +42,8 @@ export class CreateDebtInputDTO implements CreateDebtDomainInput {
   @Field(() => SignedDigitalDocumentInputDTO, { description: 'Заявление на получение ссуды' })
   @Type(() => SignedDigitalDocumentInputDTO)
   statement!: SignedDigitalDocumentInputDTO;
+
+  @Field(() => SignedDigitalDocumentInputDTO, { description: 'Договор займа под обеспечение имуществом с подписью пайщика' })
+  @Type(() => SignedDigitalDocumentInputDTO)
+  contract!: SignedDigitalDocumentInputDTO;
 }

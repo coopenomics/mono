@@ -263,6 +263,9 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalDeallocationLimitInput:{
 
 	},
+	CapitalDebtRefInput:{
+
+	},
 	CapitalExpenseItemInput:{
 		mechanics:"ExpenseMechanics",
 		recipient_type:"ExpenseRecipientType"
@@ -289,6 +292,15 @@ export const AllTypesProps: Record<string,any> = {
 	CapitalIssueFilter:{
 		priorities:"IssuePriority",
 		statuses:"IssueStatus"
+	},
+	CapitalLoanContractGenerateInput:{
+
+	},
+	CapitalLoanDecisionGenerateInput:{
+
+	},
+	CapitalLoanStatementGenerateInput:{
+
 	},
 	CapitalLogFilterInput:{
 		date_from:"DateTime",
@@ -453,6 +465,7 @@ export const AllTypesProps: Record<string,any> = {
 		status:"CycleStatus"
 	},
 	CreateDebtInput:{
+		contract:"SignedDigitalDocumentInput",
 		statement:"SignedDigitalDocumentInput"
 	},
 	CreateDepositPaymentInput:{
@@ -1660,11 +1673,15 @@ export const AllTypesProps: Record<string,any> = {
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateGetLoanDecision:{
-			data:"GenerateDocumentInput",
+			data:"CapitalLoanDecisionGenerateInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateGetLoanStatement:{
-			data:"GenerateDocumentInput",
+			data:"CapitalLoanStatementGenerateInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		capitalGenerateLoanContract:{
+			data:"CapitalLoanContractGenerateInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		capitalGenerateProgramMoneyInvestStatement:{
@@ -1728,6 +1745,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		capitalResumeTimer:{
 			data:"CapitalResumeTimerInput"
+		},
+		capitalRetryDebtPayment:{
+			data:"CapitalDebtRefInput"
 		},
 		capitalSetConfig:{
 			data:"SetConfigInput"
@@ -6935,6 +6955,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalGenerateGenerationPropertyInvestStatement:"GeneratedDocument",
 		capitalGenerateGetLoanDecision:"GeneratedDocument",
 		capitalGenerateGetLoanStatement:"GeneratedDocument",
+		capitalGenerateLoanContract:"GeneratedDocument",
 		capitalGenerateProgramMoneyInvestStatement:"GeneratedDocument",
 		capitalGenerateProjectGenerationContract:"GeneratedDocument",
 		capitalGenerateRegistrationDocuments:"GenerateCapitalRegistrationDocumentsOutputDTO",
@@ -6954,6 +6975,7 @@ export const ReturnTypes: Record<string,any> = {
 		capitalRemoveFavorite:"CapitalFavorite",
 		capitalRestoreContentRevision:"CapitalContentRevisionSummary",
 		capitalResumeTimer:"CapitalTimerSession",
+		capitalRetryDebtPayment:"Transaction",
 		capitalSetConfig:"Transaction",
 		capitalSetIssueMetricBindings:"CapitalIssueMetricBinding",
 		capitalSetMaster:"Transaction",

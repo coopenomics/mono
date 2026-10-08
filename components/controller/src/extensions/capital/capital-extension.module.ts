@@ -412,6 +412,8 @@ import { IssueAccessPolicyService } from './domain/services/access-policy.servic
 import { PermissionsService } from './application/services/permissions.service';
 import { InvestsManagementService } from './application/services/invests-management.service';
 import { DebtManagementService } from './application/services/debt-management.service';
+import { CapitalDebtPaymentsListener } from './application/services/debt-payments.listener';
+import { CapitalDebtNotificationsListener } from './application/services/debt-notifications.listener';
 import { PropertyManagementService } from './application/services/property-management.service';
 import { VotingService } from './application/services/voting.service';
 import { ResultSubmissionService } from './application/services/result-submission.service';
@@ -881,6 +883,8 @@ IssueIdGenerationService,
     PermissionsService,
     InvestsManagementService,
     DebtManagementService,
+    CapitalDebtPaymentsListener,
+    CapitalDebtNotificationsListener,
     PropertyManagementService,
     VotingService,
     ResultSubmissionService,

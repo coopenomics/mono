@@ -312,7 +312,16 @@ public:
     void createdebt(name coopname, name username, checksum256 project_hash, checksum256 debt_hash, asset amount, time_point_sec repaid_at, document2 statement);
     
     [[eosio::action]]
-    void approvedebt(eosio::name coopname, eosio::name username, checksum256 debt_hash, document2 approved_statement);
+    void debtcontract(name coopname, name username, checksum256 debt_hash, document2 contract);
+
+    [[eosio::action]]
+    void debtsigned(name coopname, name username, checksum256 debt_hash, document2 signed_contract);
+
+    [[eosio::action]]
+    void debtretry(name coopname, checksum256 debt_hash);
+
+    [[eosio::action]]
+    void debtrepaid(name coopname, name username, checksum256 debt_hash, asset amount);
 
     [[eosio::action]]
     void debtauthcnfr(eosio::name coopname, checksum256 debt_hash, document2 decision);

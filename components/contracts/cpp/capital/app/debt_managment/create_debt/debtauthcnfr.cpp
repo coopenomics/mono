@@ -1,38 +1,23 @@
 /**
- * @brief Авторизует долг в проекте советом
- * Авторизует долг в проекте советом и создает исходящий платеж:
- * - Получает долг
- * - Обновляет статус долга на authorized
- * - Создает объект исходящего платежа в gateway с коллбэком
+ * @brief Решение совета о предоставлении займа
+ * Совет разрешил выдачу: решение сохраняется, договор уходит председателю на
+ * подпись через запросы одобрений. Платёж кассиру создаётся после подписи
+ * (debtsigned).
  * @param coopname Наименование кооператива
- * @param debt_hash Хеш долга для авторизации
- * @param decision Документ решения совета
+ * @param debt_hash Хэш займа
+ * @param decision Решение совета
  * @ingroup public_actions
  * @ingroup public_capital_actions
-
  * @note Авторизация требуется от аккаунта: @p _soviet
  */
-//действие вызывается советом как коллбэк при положительном решении по вопросу выдачи ссуд
-//вызывает контракт шлюза для регистрации исходящего платежа
 void capital::debtauthcnfr(eosio::name coopname, checksum256 debt_hash, document2 decision) {
     require_auth(_soviet);
 
-    // Получаем долг
     auto exist_debt = Capital::Debts::get_debt_or_fail(coopname, debt_hash);
-    
-    // Обновляем статус долга
-    Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::AUTHORIZED, 
+    eosio::check(exist_debt.status == Capital::Debts::Status::PENDING, "Решение совета принимается по заявлению с договором");
+
+    Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::AUTHORIZED,
                                        _capital, decision);
-      
-    // создаём объект исходящего платежа в gateway с коллбэком после обработки
-    ::Gateway::create_outcome(
-      _capital,
-      coopname, 
-      exist_debt.username, 
-      exist_debt.debt_hash, 
-      exist_debt.amount, 
-      _capital, 
-      Names::Capital::CONFIRM_DEBT_PAYMENT, 
-      Names::Capital::DECLINE_DEBT
-    );
+
+    Capital::Debts::create_contract_approval(coopname, exist_debt.username, debt_hash, exist_debt.contract);
 };

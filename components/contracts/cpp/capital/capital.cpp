@@ -89,7 +89,10 @@
 #include "app/property_management/contribute_property_in_program/declinepgprp.cpp"
 
 // Управление долгами
-#include "app/debt_managment/create_debt/approvedebt.cpp"
+#include "app/debt_managment/create_debt/debtcontract.cpp"
+#include "app/debt_managment/create_debt/debtsigned.cpp"
+#include "app/debt_managment/create_debt/debtretry.cpp"
+#include "app/debt_managment/settle_debt/debtrepaid.cpp"
 #include "app/debt_managment/create_debt/createdebt.cpp"
 #include "app/debt_managment/create_debt/debtauthcnfr.cpp"
 #include "app/debt_managment/create_debt/debtpaycnfrm.cpp"
