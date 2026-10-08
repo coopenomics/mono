@@ -27,7 +27,7 @@ import { EduLive } from '../../../shared/lib/live';
 import { t as i18nT } from '../../../i18n';
 
 /** Разделы формы курса: на полной странице каждый — отдельный шаг. */
-export type CourseFormSection = 'course' | 'cover' | 'price' | 'access' | 'teachers';
+export type CourseFormSection = 'course' | 'cover' | 'lessons' | 'price' | 'access' | 'teachers';
 
 type CourseSource = () => ICourse | null | undefined;
 type CourseFormFields = ICreateCourseInput & { teacher_usernames: string[] };

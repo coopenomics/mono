@@ -71,6 +71,7 @@ const state = provideCourseForm(() => course.value);
 const steps: Array<StepperStep & { key: CourseFormSection }> = [
   { key: 'course', label: t('edubridge.adminCourseEditPage.step.course.label'), description: t('edubridge.adminCourseEditPage.step.course.description') },
   { key: 'cover', label: t('edubridge.adminCourseEditPage.step.cover.label'), description: t('edubridge.adminCourseEditPage.step.cover.description'), optional: true },
+  { key: 'lessons', label: t('edubridge.adminCourseEditPage.step.lessons.label'), description: t('edubridge.adminCourseEditPage.step.lessons.description') },
   { key: 'price', label: t('edubridge.adminCourseEditPage.step.price.label'), description: t('edubridge.adminCourseEditPage.step.price.description') },
   { key: 'access', label: t('edubridge.adminCourseEditPage.step.access.label'), description: t('edubridge.adminCourseEditPage.step.access.description') },
   { key: 'teachers', label: t('edubridge.adminCourseEditPage.step.teachers.label'), description: t('edubridge.adminCourseEditPage.step.teachers.description'), optional: true },
