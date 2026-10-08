@@ -52,7 +52,7 @@ import { t } from '../../../i18n';
 const props = defineProps<{
   kind: EduOfferKind;
   hint: string;
-  offerDescription: string;
+  offerDescription?: string;
   offerTitle: string;
   contractDescription?: string;
   /** Куда уйти после подписи. */

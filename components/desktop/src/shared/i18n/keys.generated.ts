@@ -3173,7 +3173,6 @@ export type MessageKey =
   | 'edubridge.memberLearnersPage.selfChip'
   | 'edubridge.memberLearnersPage.subscriptionsCount'
   | 'edubridge.memberOnboardingPage.hint'
-  | 'edubridge.memberOnboardingPage.offerDescription'
   | 'edubridge.memberOnboardingPage.offerTitle'
   | 'edubridge.memberSubscriptionsPage.cancel'
   | 'edubridge.memberSubscriptionsPage.cancelDialog.lessonsUsedLabel'
