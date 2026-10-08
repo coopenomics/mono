@@ -39,6 +39,10 @@
       StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
       StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 
+    //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
+    //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
+    CourseGroups.q-mb-md(:course="course" :selected-id="economy?.group_id ?? null" @select="selectGroup" @changed="reloadEconomy")
+
     .row.q-col-gutter-md
       .col-12.col-md-8
         BaseCard.edu-course__about(variant="default")
@@ -64,9 +68,6 @@
                 //- Ставка на этом курсе — у допуска; правится в карточке преподавателя.
                 .t-meta.t-muted(v-if="teacherRate(username)") {{ $t('edubridge.adminCoursePage.teacherRateLine', { rate: formatAsset2Digits(teacherRate(username)) }) }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
-
-          //- Группы курса: набор идёт в группу, деньги и занятия считаются внутри неё.
-          CourseGroups(v-if="course" :course="course" :selected-id="economy?.group_id ?? null" @select="selectGroup" @changed="reloadEconomy")
 
           //- План против факта: плановая ставка часа, сумма часов месяца по ней и
           //- та же сумма по ставкам из договоров преподавателей; затем взнос кооператива.
