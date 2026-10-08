@@ -187,16 +187,19 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
  *
  * Половина остаточной стоимости подписки (Положение ЦПП «Образование»).
  * Остаточная стоимость — доля всего внесённого взноса, вместе с целевым
- * членским взносом, приходящаяся на занятия, по которым расчёт ещё не прошёл.
- * Проведённые занятия считает контракт по каждой подписке (`chargelesson`),
- * поэтому сумма возврата в любой момент точная.
+ * членским взносом, приходящаяся на ещё не проведённое время занятий: какая
+ * часть оплаты занятий осталась в резерве подписки, такая часть взноса и
+ * считается неиспользованной. Проведённое время списывает из резерва
+ * `chargelesson` — по длительности занятия, поэтому сдвоенное занятие
+ * расходует вдвое больше.
  */
-inline eosio::asset refusal_refund(const edu_subscription& sub) {
+inline eosio::asset refusal_refund(const edu_terms& terms, const edu_subscription& sub) {
   const auto& plan = sub.plan.value();
   const eosio::asset charged = sub.charged_or_zero();
-  if (plan.lessons_paid == 0 || plan.lessons_done >= plan.lessons_paid) return eosio::asset(0, charged.symbol);
-  const int64_t residual = static_cast<int64_t>(
-      static_cast<__int128>(charged.amount) * (plan.lessons_paid - plan.lessons_done) / plan.lessons_paid);
+  const int64_t paid = terms.lesson_unit().amount * static_cast<int64_t>(plan.lessons_paid);
+  if (paid <= 0 || plan.reserve.amount <= 0) return eosio::asset(0, charged.symbol);
+  const int64_t left = plan.reserve.amount < paid ? plan.reserve.amount : paid;
+  const int64_t residual = static_cast<int64_t>(static_cast<__int128>(charged.amount) * left / paid);
   return eosio::asset(residual / 2, charged.symbol);
 }
 
@@ -209,8 +212,8 @@ inline eosio::asset refusal_refund(const edu_subscription& sub) {
  * только то, чего в резерве не хватает. С каждым проведённым занятием возврат
  * уменьшается, и удержание освобождается.
  */
-inline eosio::asset required_lock(const edu_subscription& sub) {
-  const eosio::asset refund = refusal_refund(sub);
+inline eosio::asset required_lock(const edu_terms& terms, const edu_subscription& sub) {
+  const eosio::asset refund = refusal_refund(terms, sub);
   const eosio::asset reserve = sub.plan.value().reserve;
   return refund > reserve ? refund - reserve : eosio::asset(0, refund.symbol);
 }
@@ -231,9 +234,9 @@ inline void check_course_covered(const edu_course& c) {
  * лишнее возвращается на кошелёк программы (`o.edu.unlock`); меньше — после
  * нового взноса — недостающее удерживается (`o.edu.lock`).
  */
-inline void rebalance_lock(eosio::name coopname, edu_subscription& s) {
+inline void rebalance_lock(eosio::name coopname, const edu_terms& terms, edu_subscription& s) {
   const eosio::asset locked = s.locked_or_zero();
-  const eosio::asset required = required_lock(s);
+  const eosio::asset required = required_lock(terms, s);
   if (locked > required) {
     Ledger2::apply(_edubridge, coopname,
                    operations::edubridge::UNLOCK_FEE,
@@ -268,7 +271,7 @@ inline bool close_guarantee(eosio::name coopname, const edu_terms& terms, edu_su
   if (plan.released || is_guarantee_running(terms, s, now)) return false;
 
   const eosio::asset locked = s.locked_or_zero();
-  const eosio::asset required = required_lock(s);
+  const eosio::asset required = required_lock(terms, s);
   // Сначала освобождается удержанное сверх возможного возврата: из него выделяется резерв.
   if (locked > required) {
     Ledger2::apply(_edubridge, coopname,

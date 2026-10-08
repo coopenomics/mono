@@ -251,7 +251,7 @@ cases:
     level: backend
     kind: side
     scenario: "Оплата после истечения срока, пока подписка ещё числится действующей."
-    expect: "extendsub от сегодняшнего дня вместо opensub; счёт оплаченного начинается заново."
+    expect: "Взнос принимается по той же подписке; оплаченный срок считается от сегодняшнего дня."
     test: components/controller/tests/unit/edubridge/enrollment.service.test.ts
     external: unreachable
     external_reason: "перемотка времени: оплаченный срок должен истечь, а подписка — остаться действующей до прохода очереди; время на стенде не перематывается"
@@ -300,7 +300,7 @@ cases:
     level: backend
     kind: happy
     scenario: "Состав транзакций оплаты и отмены в цепи."
-    expect: "convert|regstatement → opensub|extendsub → chargefee → lockfee; освобождение — unlockfee → allotfee; отмена — одно действие, резерв добирается и возвращается отдельными; нулевое удержание в цепь не идёт."
+    expect: "convert|regstatement → opensub (для новой подписки) → chargefee с ожидаемой суммой из заявления; освобождение удержанного — unlockfee по одной подписке; отмена — cancelsub одним действием, суммы считает контракт."
     test: components/controller/tests/unit/edubridge/chain.adapter.test.ts
     external: unreachable
     external_reason: "состав действий одной транзакции оплаты и отмены клиенту не виден; исход транзакций (списание, удержание, возврат) проверен наборами подписок"
@@ -363,10 +363,9 @@ cases:
     level: backend
     kind: side
     scenario: "Предварительная сумма возврата по строке подписки из цепи: до начала занятий, недобор, отказ в ходе подписки, все занятия проведены."
-    expect: "До начала занятий и при недоборе — весь взнос; при отказе — половина остаточной стоимости от полного взноса по занятиям, по которым расчёт не прошёл; деление нацело, как в контракте."
+    expect: "До начала занятий и при недоборе — весь взнос; при отказе — половина доли полного взноса за ещё не проведённое время, сдвоенное занятие расходует вдвое больше; деление нацело, как в контракте."
     test: components/controller/tests/unit/edubridge/refund.test.ts
-    external: unreachable
-    external_reason: "расчёт по строке подписки из цепи — чистая функция; проведённые занятия по подписке снаружи за один прогон не собрать"
+    api: components/api-tests/src/edubridge/groups.test.ts
     status: passing
   - id: edu.enroll.side.18
     level: backend
@@ -474,8 +473,7 @@ cases:
     scenario: "Новая группа курса: условия снимком с курса, свой номер в цепи, привязка к группе площадки."
     expect: "Группа берёт взнос, ставку, расписание, скидку и гарантийный срок курса на день открытия и уходит в цепь под своим номером; первая группа наследует дату начала и привязку курса."
     test: components/controller/tests/unit/edubridge/group.service.test.ts
-    external: unreachable
-    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    api: components/api-tests/src/edubridge/groups.test.ts
     status: written
   - id: edu.enroll.side.25
     level: backend
@@ -483,8 +481,7 @@ cases:
     scenario: "Запись в группу: единственная группа с открытым набором, несколько открытых групп, закрытый набор."
     expect: "Участник записывается в единственную открытую группу; при нескольких группу выбирают; закрытый набор отклоняется."
     test: components/controller/tests/unit/edubridge/group.service.test.ts
-    external: unreachable
-    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    api: components/api-tests/src/edubridge/groups.test.ts
     status: written
   - id: edu.enroll.side.26
     level: backend
@@ -492,8 +489,7 @@ cases:
     scenario: "Условия курса изменены при действующих группах; дата начала группы после первого занятия; завершение группы с подписками."
     expect: "Группа без взносов и занятий берёт новые условия, группа с участниками остаётся на прежних; дата начала после первого занятия не меняется; группа с действующими подписками не завершается."
     test: components/controller/tests/unit/edubridge/group.service.test.ts
-    external: unreachable
-    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    api: components/api-tests/src/edubridge/groups.test.ts
     status: written
   - id: edu.enroll.ui.06
     level: ui

@@ -127,8 +127,8 @@ cases:
   - id: edu.teach.happy.wth-01
     level: backend
     kind: happy
-    scenario: Преподаватель называет сумму и подписывает заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) — на часть остатка и на весь остаток.
-    expect: Заявление формируется на сумму в виде цепи; wthshare уходит на сумму заявления; в ответе обновлённый расчёт.
+    scenario: "Преподаватель называет сумму и подписывает разом заявление о трансляции паевого взноса в Цифровой Кошелёк (3015) и заявление о возврате деньгами (900)."
+    expect: "Трансляция уходит на сумму заявления, заявка на возврат создана; в ответе обновлённый расчёт."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -143,7 +143,7 @@ cases:
   - id: edu.teach.break.wth-02
     level: backend
     kind: break
-    scenario: Подписанное заявление о трансляции названо на другую сумму, чем уходит в перевод.
+    scenario: "Заявление о трансляции либо заявление о возврате подписано на другую сумму, чем названа в заявке."
     expect: Отказ «сформируйте заявление заново»; в цепь ничего не уходит.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
@@ -205,8 +205,8 @@ cases:
   - id: edu.teach.side.01
     level: backend
     kind: side
-    scenario: Акт двухподписный — преподаватель подписал (ACT_SIGNED), председатель подписывает тот же документ (агрегат по хэшу, signatureId=2) → acceptrid.
-    expect: Перегенерации акта нет; без обеих подписей или с другим хэшем приём отклоняется; acceptrid требует подпись teacher и chairman совета.
+    scenario: "Акт двухподписный — преподаватель подписал (ACT_SIGNED), председатель ставит вторую подпись на том же документе в запросах одобрений."
+    expect: "Перегенерации акта нет; после второй подписи результат принят, запрос одобрения закрыт."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -268,7 +268,7 @@ cases:
     level: backend
     kind: happy
     scenario: Преподаватель отчитывается о проведённом занятии материалами.
-    expect: Взнос равен часам занятия по ставке преподавателя; заявление держится гарантийный срок курса.
+    expect: "Взнос считает контракт: ставка преподавателя за проведённое время по каждой подписке с оплаченным доступом; заявление держится гарантийный срок курса."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -315,15 +315,15 @@ cases:
   - id: edu.teach.side.09
     level: backend
     kind: side
-    scenario: Рекламация по материалам, которые на ответственное хранение не передавались.
-    expect: Взнос закрывается без проводок — снимать с хранения нечего.
+    scenario: "Рекламация по занятию, материалы которого на ответственное хранение не переданы."
+    expect: "Пока расчёт занятия с обучающимися открыт в цепи, взнос не закрывается: расчёт завершается приёмом материалов на хранение, после этого материалы снимаются; без записи занятия в цепи взнос закрывается без проводок."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
   - id: edu.teach.side.10
     level: backend
     kind: side
-    scenario: Отчёт о занятии задним числом и курс с нулевой гарантией — срок хранения в прошлом.
+    scenario: "Курс с нулевым гарантийным сроком — срок хранения в прошлом."
     expect: Материалы принимаются на ответственное хранение, заявление уходит в совет сразу.
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
@@ -388,8 +388,8 @@ cases:
   - id: edu.teach.side.13
     level: backend
     kind: side
-    scenario: "Отчёт о занятии задним числом при гарантийном сроке курса."
-    expect: "Срок хранения идёт от приёма материалов (акт 3012), а не от даты занятия; акт и цепь называют одну дату; устаревший акт не подписывается."
+    scenario: "Начало занятий курса перенесено после проведённых занятий группы."
+    expect: "Дата начала в карточке курса — условие новых групп; у группы с занятиями срок хранения материалов прежний, акт и цепь называют одну дату."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -597,9 +597,16 @@ cases:
   - id: edu.teach.side.24
     level: backend
     kind: side
-    scenario: "Отчёт о занятии: по курсу оплачено учениками меньше стоимости занятия; оплаченных часов нет вовсе."
-    expect: "Сумма взноса урезается до остатка оплаченного по курсу; без оплаченных часов отчёт не принимается — средства других курсов не затрагиваются."
+    scenario: "Отчёт о занятии: в резерве подписки осталось меньше оплаты занятия; оплаченного доступа нет вовсе."
+    expect: "Из резерва подписки уходит остаток, взнос преподавателя — в той же доле; без оплаченного доступа отчёт не принимается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
-
+  - id: edu.teach.side.25
+    level: backend
+    kind: side
+    scenario: "Курс с фиксированным взносом преподавателя за занятие, в группе несколько обучающихся."
+    expect: "Сумма занятия одна при любом числе обучающихся; оплаченное время расходуется у каждого одинаково, остаток оплаты занятия поступает программе."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written

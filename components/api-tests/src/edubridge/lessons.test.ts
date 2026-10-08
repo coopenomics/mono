@@ -2,25 +2,25 @@
  * Занятия и взносы преподавателя результатами снаружи
  * (test-registry/edubridge.teacher.yaml).
  *
- * Преподаватель отчитывается о занятии материалами; взнос равен часам занятия
- * по его ставке. Материалы принимаются на ответственное хранение на
- * гарантийный срок курса, по его истечении заявление уходит совету. Совет
- * принял решение — преподаватель и председатель подписывают один акт, и
- * результат зачисляется паевым взносом по программе.
+ * Преподаватель отчитывается о занятии материалами. Взнос считает контракт:
+ * ставка преподавателя за проведённое время по каждой подписке с оплаченным
+ * доступом на дату занятия. Занятия группы идут по порядку: следующее
+ * отчитывается после передачи материалов предыдущего на ответственное
+ * хранение. Материалы хранятся гарантийный срок курса, по его истечении
+ * заявление уходит совету. Совет принял решение — преподаватель подписывает
+ * акт, председатель ставит вторую подпись в запросах одобрений, и результат
+ * зачисляется паевым взносом по программе.
  *
  * Два курса идут третий день: у первого гарантийного срока нет — заявление
- * уходит совету сразу; у второго срок идёт — заявление держится. Приём
- * результата оплачивается из резерва выплат преподавателям, который очередь
- * расширения наполняет раз в десять минут, поэтому приём повторяется, пока
- * резерв не появится.
+ * уходит совету сразу; у второго срок идёт — заявление держится.
  */
+import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, COUNCIL, amount, caseName, expectCode, freshMember, gql, gqlError, login, signDocument, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, COUNCIL, amount, caseName, expectCode, freshMember, gql, gqlError, login, signDocument, tokenOf, waitFor } from '../core'
 import { exitReturnPreview } from '../membership/exit-documents.helpers'
+import { addSbpMethod } from '../payments/payments.helpers'
 import {
-  ACCEPT_CONTRIBUTION,
-  ACT_PAYLOAD,
   ALL_CONTRIBUTIONS,
   CLOSE_ASSIGNMENT,
   CREATE_ASSIGNMENT,
@@ -40,7 +40,7 @@ import {
   UPDATE_COURSE,
   addLearner,
   agendaWith,
-  chairmanSignedAct,
+  approveAct,
   contributionOf,
   councilDeclines,
   councilGrants,
@@ -52,6 +52,7 @@ import {
   fundShare,
   holdMaterials,
   onboardTeacher,
+  pendingActApproval,
   reportLesson,
   signOffer,
   signTransferAct,
@@ -60,10 +61,12 @@ import {
 } from './edubridge.helpers'
 
 const WITHDRAW_STATEMENT = 'mutation($d:EduShareWithdrawStatementInput!){ edubridgeShareWithdrawStatement(data:$d){ full_title html hash meta binary } }'
-const WITHDRAW = 'mutation($d:EduWithdrawShareInput!){ edubridgeWithdrawShare(data:$d){ accepted_total program_share available last_accepted_at } }'
+const REQUEST_RETURN = 'mutation($d:EduRequestShareReturnInput!){ edubridgeRequestShareReturn(data:$d){ accepted_total program_share available last_accepted_at } }'
+const RETURN_STATEMENT = 'mutation($d:ReturnByMoneyGenerateDocumentInput!){ generateReturnByMoneyStatementDocument(data:$d){ full_title html hash meta binary } }'
 
-/** Ставка преподавателя: час занятия стоит столько. */
+/** Ставка преподавателя: час занятия одного обучающегося стоит столько. */
 const RATE = '900.0000 RUB'
+/** Взнос преподавателя за часовое занятие: в группе один обучающийся. */
 const LESSON_COST = 900
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -103,7 +106,8 @@ describe('Образование: занятия и взносы препода�
     nowAssignment = await admit(now.id)
     heldAssignment = await admit(held.id)
 
-    // Занятия оплачены учеником: без подписки отчёт по курсу не принимается.
+    // Занятия оплачены учеником до отчётов: расчёт занятия контракт ведёт по
+    // подпискам, оплаченным на дату занятия. Месяц — восемь часовых занятий.
     const learner = freshMember({ prefix: 'edun' })
     const learnerToken = await login(learner)
     await signOffer(learner, learnerToken, 'PARENT')
@@ -121,26 +125,23 @@ describe('Образование: занятия и взносы препода�
     let first: any
     let second: any
 
-    it(caseName('edu.teach.happy.07', 'отчёт о занятии: взнос равен часам занятия по ставке преподавателя'), async () => {
+    it(caseName('edu.teach.happy.07', 'отчёт о занятии: взнос равен часам занятия по ставке преподавателя за каждого обучающегося'), async () => {
       const r = await reportLesson(token, nowAssignment.id, 1)
       expect(r.lesson).toMatchObject({ course_id: now.id, course_title: now.title, lesson_number: 1, duration_minutes: 60, topic: 'Тема занятия 1', materials: ['https://example.org/lesson-1'] })
       first = r.contribution
       expect(first).toMatchObject({ teacher_username: teacher.account, assignment_id: nowAssignment.id, status: 'DRAFT', rid_type: 'LESSON_RECORDING', links: ['https://example.org/lesson-1'] })
+      // Сумму посчитал контракт: ставка преподавателя за час на одного обучающегося с оплаченным доступом.
       expect(amount(first.amount)).toBe(LESSON_COST)
       expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).map(l => l.id)).toContain(r.lesson.id)
-
-      // Сдвоенное занятие стоит вдвое дороже.
-      const double = await reportLesson(token, nowAssignment.id, 2, { duration_minutes: 120, held_at: new Date(Date.now() - 2 * DAY_MS).toISOString() })
-      second = double.contribution
-      expect(double.lesson.duration_minutes).toBe(120)
-      expect(amount(second.amount)).toBe(LESSON_COST * 2)
     })
 
     it(caseName('edu.teach.break.04', 'занятие вне программы курса и повторный отчёт по тому же занятию отклоняются'), async () => {
       const report = (n: number) => gqlError(token, REPORT_LESSON, { d: { assignment_id: nowAssignment.id, lesson_number: n, materials: ['https://example.org/x'] } })
       expectCode(await report(now.lessons_total + 1), 'EDUBRIDGE_LESSON_OUT_OF_PLAN')
       expectCode(await report(1), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
-      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id)).toHaveLength(2)
+      // Занятия отчитываются по порядку: следующее — после передачи материалов предыдущего на хранение.
+      expectCode(await report(2), 'EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED')
+      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === now.id)).toHaveLength(1)
     })
 
     it(caseName('edu.teach.break.07', 'дата занятия в будущем либо раньше периода допуска и длительность больше сдвоенного занятия отклоняются'), async () => {
@@ -180,6 +181,12 @@ describe('Образование: занятия и взносы препода�
       expect(kept.storage_act_hash, 'акт хранения сохранён').toMatch(/^[0-9a-f]{64}$/)
       expect(kept.hold_until, 'срок хранения назван').toBeTruthy()
       expect(kept.statement_hash).toBeNull()
+
+      // Расчёт первого занятия завершён — открывается следующее. Сдвоенное занятие стоит вдвое дороже.
+      const double = await reportLesson(token, nowAssignment.id, 2, { duration_minutes: 120 })
+      second = double.contribution
+      expect(double.lesson.duration_minutes).toBe(120)
+      expect(amount(second.amount)).toBe(LESSON_COST * 2)
     })
 
     it(caseName('edu.teach.happy.01', 'подача взноса: заявление уходит совету, вопрос появляется в повестке'), async () => {
@@ -194,7 +201,7 @@ describe('Образование: занятия и взносы препода�
       expectCode(await gqlError(token, SUBMIT_CONTRIBUTION, { d: { contribution_id: first.id, document } }), 'EDUBRIDGE_CONTRIBUTION_ALREADY_SUBMITTED')
     })
 
-    it(caseName('edu.teach.side.10', 'отчёт задним числом на курсе без гарантийного срока: заявление уходит совету сразу'), async () => {
+    it(caseName('edu.teach.side.10', 'курс без гарантийного срока: срок хранения уже истёк, заявление уходит совету сразу'), async () => {
       const kept = await holdMaterials(teacher, token, second.id)
       expect(Date.parse(kept.hold_until), 'срок хранения уже в прошлом').toBeLessThan(Date.now())
       const submitted = await submitStatement(teacher, token, second.id)
@@ -204,7 +211,7 @@ describe('Образование: занятия и взносы препода�
 
     it(caseName('edu.teach.happy.02', 'совет принял решение — преподаватель подписывает акт; до решения акт недоступен'), async () => {
       expectCode(await gqlError(token, RID_ACT, { id: second.id }), 'EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION')
-      expectCode(await gqlError(chairman, ACT_PAYLOAD, { id: first.id }), 'EDUBRIDGE_ACT_NOT_YET_SIGNED_BY_TEACHER')
+      expect(await pendingActApproval(teacher.account), 'до подписи преподавателя председателю одобрять нечего').toBeUndefined()
 
       await councilGrants(await agendaWith(first.rid_hash))
       const approved = await waitFor(async () => {
@@ -221,37 +228,22 @@ describe('Образование: занятия и взносы препода�
       expect(signed.act_hash).toMatch(/^[0-9a-f]{64}$/)
     }, 480_000)
 
-    it(caseName('edu.teach.side.01', 'акт двухподписный: председатель подписывает тот же документ, без обеих подписей приём отклоняется'), async () => {
-      const aggregate = (await gql<any>(chairman, ACT_PAYLOAD, { id: first.id })).edubridgeActSignablePayload
+    it(caseName('edu.teach.side.01', 'акт двухподписный: председатель ставит вторую подпись на том же документе в запросах одобрений — результат принят'), async () => {
       const signedByTeacher = await mine(first.id)
-      expect(String(aggregate.hash).toLowerCase(), 'тот же акт, что подписал преподаватель').toBe(signedByTeacher.act_hash)
-      expect(aggregate.document.signatures.map((s: any) => s.signer)).toEqual([teacher.account])
+      const approval = await waitFor(() => pendingActApproval(teacher.account),
+        { timeoutMs: 120_000, intervalMs: 1_500, label: 'акт преподавателя появился в запросах одобрений председателя' })
+      expect(String(approval.document.document.hash).toLowerCase(), 'тот же акт, что подписал преподаватель').toBe(signedByTeacher.act_hash)
+      expect(approval.document.document.signatures.map((s: any) => s.signer)).toEqual([teacher.account])
 
-      const act = await chairmanSignedAct(first.id)
-      expect(act.signatures.map((x: any) => x.signer)).toEqual([teacher.account, CHAIRMAN.account])
-      // Акт с одной подписью преподавателя председатель не проводит.
-      const teacherOnly = { ...act, signatures: act.signatures.filter((x: any) => x.signer === teacher.account) }
-      expectCode(await gqlError(chairman, ACCEPT_CONTRIBUTION, { d: { contribution_id: first.id, document: teacherOnly } }), 'EDUBRIDGE_ACT_SIGNATURES_REQUIRED')
-      // Принимает председатель, не сам преподаватель.
-      expectCode(await gqlError(token, ACCEPT_CONTRIBUTION, { d: { contribution_id: first.id, document: act } }), NO_RIGHTS)
-
-      // Резерв выплат по курсу очередь наполняет раз в десять минут — приём повторяется до резерва.
-      const deadline = Date.now() + 13 * 60_000
-      for (;;) {
-        const e = await gqlError(chairman, ACCEPT_CONTRIBUTION, { d: { contribution_id: first.id, document: act } })
-        if (!e)
-          break
-        expect(e.message, `приём отклонён не из-за резерва: [${e.code}] ${e.message}`).toMatch(/резерв/i)
-        expect(Date.now(), 'резерв выплат преподавателям по курсу так и не наполнен очередью').toBeLessThan(deadline)
-        // timing: backoff — очередь расширения освобождает удержанный взнос раз в десять минут
-        await new Promise(r => setTimeout(r, 20_000))
-      }
-
-      const accepted = await mine(first.id)
-      expect(accepted.status).toBe('ACCEPTED')
+      await approveAct(approval)
+      const accepted = await waitFor(async () => {
+        const c = await mine(first.id)
+        return c?.status === 'ACCEPTED' ? c : null
+      }, { timeoutMs: 120_000, intervalMs: 1_500, label: 'результат принят после второй подписи председателя' })
       expect(accepted.decision_hash, 'протокол совета опубликован').toMatch(/^[0-9a-f]{64}$/)
       expect(accepted.act_hash).toBe(signedByTeacher.act_hash)
-    }, 900_000)
+      expect(await pendingActApproval(teacher.account), 'запрос одобрения закрыт').toBeUndefined()
+    }, 480_000)
 
     it(caseName('edu.teach.happy.04', 'расчёт преподавателя: принятый результат стал паевым взносом по программе'), async () => {
       const s = (await gql<any>(token, SETTLEMENT)).edubridgeMySettlement
@@ -277,29 +269,45 @@ describe('Образование: занятия и взносы препода�
       expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST)
     })
 
-    it(caseName('edu.teach.break.wth-02', 'заявление о трансляции, подписанное на другую сумму, не принимается'), async () => {
-      const statement = (await gql<any>(token, WITHDRAW_STATEMENT, { d: { amount: '100.0000 RUB' } })).edubridgeShareWithdrawStatement
-      const document = await signDocument(teacher.wif, statement, teacher.account, 1)
-      expectCode(await gqlError(token, WITHDRAW, { d: { amount: '200.0000 RUB', document } }), 'EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE')
+    /** Возврат паевого взноса: заявление о трансляции (3015) и заявление о возврате деньгами (900) подписаны на сумму и поданы разом. */
+    const returnRequest = async (transferAmount: string, returnAmount: string, methodId: string) => {
+      const payment_hash = crypto.randomBytes(32).toString('hex')
+      const transfer = (await gql<any>(token, WITHDRAW_STATEMENT, { d: { amount: transferAmount } })).edubridgeShareWithdrawStatement
+      const [quantity, currency] = returnAmount.split(' ')
+      const ret = (await gql<any>(token, RETURN_STATEMENT, {
+        d: { coopname: COOP, username: teacher.account, method_id: methodId, quantity, currency, payment_hash },
+      })).generateReturnByMoneyStatementDocument
+      return {
+        transfer,
+        payment_hash,
+        method_id: methodId,
+        transfer_statement: await signDocument(teacher.wif, transfer, teacher.account, 1),
+        return_statement: await signDocument(teacher.wif, ret, teacher.account, 1),
+      }
+    }
+    let methodId = ''
+
+    it(caseName('edu.teach.break.wth-02', 'заявления о трансляции и о возврате, подписанные на другую сумму, не принимаются'), async () => {
+      methodId = String((await addSbpMethod(token, teacher.account)).method_id)
+      const send = async (amountAsked: string, transferAmount: string, returnAmount: string) => {
+        const { transfer: _transfer, ...d } = await returnRequest(transferAmount, returnAmount, methodId)
+        return gqlError(token, REQUEST_RETURN, { d: { amount: amountAsked, ...d } })
+      }
+      expectCode(await send('200.0000 RUB', '100.0000 RUB', '200.0000 RUB'), 'EDUBRIDGE_SHARE_WITHDRAW_STATEMENT_STALE')
+      expectCode(await send('200.0000 RUB', '200.0000 RUB', '100.0000 RUB'), 'EDUBRIDGE_SHARE_RETURN_STATEMENT_STALE')
       expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST)
     })
 
-    it(caseName('edu.teach.happy.wth-01', 'преподаватель транслирует паевой взнос в Цифровой Кошелёк — частью и остаток целиком'), async () => {
-      const withdraw = async (a: string) => {
-        const statement = (await gql<any>(token, WITHDRAW_STATEMENT, { d: { amount: a } })).edubridgeShareWithdrawStatement
-        expect(statement.html).not.toMatch(/undefined|\[object Object\]/)
-        expect(statement.html, 'в заявлении названа сумма').toContain(String(Number.parseFloat(a)))
-        const document = await signDocument(teacher.wif, statement, teacher.account, 1)
-        return (await gql<any>(token, WITHDRAW, { d: { amount: a, document } })).edubridgeWithdrawShare
-      }
-      const before = (await gql<any>(token, SETTLEMENT)).edubridgeMySettlement
-      const part = await withdraw('400.0000 RUB')
-      expect(amount(part.program_share)).toBe(LESSON_COST - 400)
-      expect(amount(part.available)).toBeCloseTo(amount(before.available) + 400, 4)
-      const rest = await withdraw('500 RUB')
-      expect(amount(rest.program_share)).toBe(0)
-      expect(amount(rest.available)).toBeCloseTo(amount(before.available) + LESSON_COST, 4)
-      expect(amount(rest.accepted_total), 'принятое остаётся в истории расчёта').toBe(LESSON_COST)
+    it(caseName('edu.teach.happy.wth-01', 'преподаватель возвращает часть паевого взноса: трансляция в Цифровой Кошелёк и заявка на возврат поданы разом'), async () => {
+      const { transfer, ...d } = await returnRequest('400.0000 RUB', '400.0000 RUB', methodId)
+      expect(transfer.html).not.toMatch(/undefined|\[object Object\]/)
+      expect(transfer.html, 'в заявлении названа сумма').toContain('400')
+      const after = (await gql<any>(token, REQUEST_RETURN, { d: { amount: '400.0000 RUB', ...d } })).edubridgeRequestShareReturn
+      expect(amount(after.program_share), 'паевой взнос по программе уменьшился на сумму трансляции').toBe(LESSON_COST - 400)
+      expect(amount(after.accepted_total), 'принятое остаётся в истории расчёта').toBe(LESSON_COST)
+      // Та же пара заявлений второй раз не проходит: трансляция уже состоялась.
+      expect(await gqlError(token, REQUEST_RETURN, { d: { amount: '400.0000 RUB', ...d } })).not.toBeNull()
+      expect(amount((await gql<any>(token, SETTLEMENT)).edubridgeMySettlement.program_share)).toBe(LESSON_COST - 400)
     })
 
     it(caseName('edu.teach.side.11', 'совет решения не принял — председатель отказывает в приёме, материалы сняты с хранения'), async () => {
@@ -318,7 +326,10 @@ describe('Образование: занятия и взносы препода�
       expect(again.contribution.id).not.toBe(second.id)
       expect(again.contribution.rid_hash).not.toBe(second.rid_hash)
       expect(again.contribution.status).toBe('DRAFT')
+      expect(amount(again.contribution.amount), 'расчёт занятия проведён заново — по часу').toBe(LESSON_COST)
       expect((await mine(second.id)).status, 'прежний взнос остался отклонённым').toBe('DECLINED')
+      // Материалы повторного занятия переданы на хранение — журнал курса открыт для следующего занятия.
+      expect((await holdMaterials(teacher, token, again.contribution.id)).status).toBe('HELD')
     })
 
     it(caseName('edu.teach.side.12', 'решение совета есть, приём не состоялся — председатель закрывает заявление протоколом'), async () => {
@@ -361,16 +372,18 @@ describe('Образование: занятия и взносы препода�
     let keptOne: any
 
     it(caseName('edu.teach.side.21', 'гарантийный срок — один на курс, от даты начала занятий, и не зависит от дня занятия'), async () => {
-      const early = await reportLesson(token, heldAssignment.id, 1, { held_at: new Date(Date.now() - 2 * DAY_MS).toISOString() })
-      const today = await reportLesson(token, heldAssignment.id, 2)
       const end = Date.parse(`${dayFromNow(-3)}T00:00:00.000Z`) + 14 * DAY_MS
-      for (const c of [early.contribution, today.contribution])
-        expect(Math.abs(Date.parse(c.hold_until) - end), 'срок хранения — начало занятий плюс срок курса').toBeLessThan(DAY_MS)
+      const early = await reportLesson(token, heldAssignment.id, 1)
+      expect(Math.abs(Date.parse(early.contribution.hold_until) - end), 'срок хранения — начало занятий плюс срок курса').toBeLessThan(DAY_MS)
 
       keptOne = await holdMaterials(teacher, token, early.contribution.id)
       expect(keptOne.status).toBe('HELD')
       expect(Math.abs(Date.parse(keptOne.hold_until) - end)).toBeLessThan(DAY_MS)
       expect(Date.parse(keptOne.hold_until)).toBeGreaterThan(Date.now())
+
+      // Второе занятие — тот же срок: он идёт от начала занятий курса.
+      const next = await reportLesson(token, heldAssignment.id, 2)
+      expect(Math.abs(Date.parse(next.contribution.hold_until) - end)).toBeLessThan(DAY_MS)
     })
 
     it(caseName('edu.teach.side.17', 'материалы на хранении без подписанного заявления держат выход преподавателя'), async () => {
@@ -399,27 +412,31 @@ describe('Образование: занятия и взносы препода�
       expectCode(await gqlError(chairman, REVOKE_CONTRIBUTION, { d: { contribution_id: keptOne.id, reason: 'повторно' } }), 'EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL')
     })
 
-    it(caseName('edu.teach.side.09', 'рекламация по материалам, не переданным на хранение, закрывает взнос без снятия с хранения'), async () => {
+    it(caseName('edu.teach.side.09', 'рекламация по занятию с проведённым расчётом принимается после передачи материалов на хранение'), async () => {
       const draft = ((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).find(l => l.course_id === held.id && l.lesson_number === 2)
       const before = await mine(draft.contribution_id)
       expect(before).toMatchObject({ status: 'DRAFT', storage_act_hash: null })
+      // Расчёт занятия с обучающимися открыт в цепи: он завершается приёмом материалов на хранение.
+      expectCode(await gqlError(chairman, REVOKE_CONTRIBUTION, { d: { contribution_id: before.id, reason: 'Занятие не состоялось' } }), 'EDUBRIDGE_CONTRIBUTION_NOT_HELD')
+      expect((await mine(before.id)).status, 'взнос остался черновиком').toBe('DRAFT')
+
+      await holdMaterials(teacher, token, before.id)
       const revoked = (await gql<any>(chairman, REVOKE_CONTRIBUTION, { d: { contribution_id: before.id, reason: 'Занятие не состоялось' } })).edubridgeRevokeContribution
-      expect(revoked).toMatchObject({ status: 'DECLINED', decline_reason: 'Занятие не состоялось', storage_act_hash: null })
+      expect(revoked).toMatchObject({ status: 'DECLINED', decline_reason: 'Занятие не состоялось' })
     })
 
-    it(caseName('edu.teach.side.13', 'срок хранения идёт от приёма материалов: акт, устаревший после переноса начала занятий, не подписывается'), async () => {
+    it(caseName('edu.teach.side.13', 'перенос начала занятий курса идущую группу не затрагивает: срок хранения её материалов прежний'), async () => {
       const c = (await reportLesson(token, heldAssignment.id, 3)).contribution
       const act = (await gql<any>(token, RID_STORAGE_ACT, { id: c.id })).edubridgeRidStorageAct
-      const stale = await signDocument(teacher.wif, act, teacher.account, 1)
+      const document = await signDocument(teacher.wif, act, teacher.account, 1)
 
-      // Начало занятий перенесено на три дня вперёд — срок хранения сдвинулся.
+      // Дата начала в карточке курса — условие новых групп; у группы с проведёнными занятиями она закреплена.
       await gql(chairman, UPDATE_COURSE, { d: { ...heldInput, id: held.id, starts_at: dayFromNow(0), teacher_usernames: [teacher.account] } })
-      expectCode(await gqlError(token, HOLD_CONTRIBUTION, { d: { contribution_id: c.id, document: stale } }), 'EDUBRIDGE_TRANSFER_ACT_STALE')
 
-      const kept = await holdMaterials(teacher, token, c.id)
-      const end = Date.parse(`${dayFromNow(0)}T00:00:00.000Z`) + 14 * DAY_MS
+      const kept = (await gql<any>(token, HOLD_CONTRIBUTION, { d: { contribution_id: c.id, document } })).edubridgeHoldContribution
+      const end = Date.parse(`${dayFromNow(-3)}T00:00:00.000Z`) + 14 * DAY_MS
       expect(kept.status).toBe('HELD')
-      expect(Math.abs(Date.parse(kept.hold_until) - end), 'акт и хранение называют новую дату').toBeLessThan(DAY_MS)
+      expect(Math.abs(Date.parse(kept.hold_until) - end), 'акт и хранение называют прежнюю дату').toBeLessThan(DAY_MS)
     })
   })
 

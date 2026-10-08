@@ -1016,6 +1016,12 @@ export class EdubridgeTeacherService {
       throw DomainError.badRequest('EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL');
     }
 
+    // Расчёт занятия с обучающимися открыт в цепи: он завершается приёмом
+    // материалов на хранение, после этого материалы снимаются по рекламации.
+    if (c.status === EduContributionStatus.DRAFT && (await this.chain.readLesson(coopname, c.rid_hash))) {
+      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_NOT_HELD');
+    }
+
     // Материалы на ответственном хранении снимаются проводкой (Дт 76 / Кт 08):
     // обязательство перед преподавателем и принятое имущество закрываются
     // встречно, паевой фонд не затрагивается.

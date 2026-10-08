@@ -2,8 +2,8 @@
 import { calculateRefund, RefundReason } from '~/extensions/edubridge/domain/economy/refund.calculator';
 
 const START = new Date('2026-10-01T00:00:00Z');
-/** Взнос 3000 за 8 занятий. */
-const chain = (done: number) => ({ charged: '3000.0000 RUB', lessons_paid: 8, lessons_done: done });
+/** Взнос 3000 за 8 занятий; оплата занятий по плановой ставке — 2400, по 300 за занятие. */
+const chain = (done: number) => ({ charged: '3000.0000 RUB', reserve: `${(2400 - 300 * done).toFixed(4)} RUB`, reserve_paid: '2400.0000 RUB', lessons_paid: 8, lessons_done: done });
 
 describe('calculateRefund — возврат взноса при отмене подписки', () => {
   it('до начала занятий возвращается весь взнос на кошелёк членских взносов', () => {
@@ -23,7 +23,7 @@ describe('calculateRefund — возврат взноса при отмене п
   });
 
   it('отказ в ходе подписки: половина остаточной стоимости от полного взноса', () => {
-    // Проведено 3 занятия из 8: остаточная стоимость 3000 × 5 / 8 = 1875, возврат — половина.
+    // Проведено 3 занятия из 8: в резерве 1500 из 2400, остаточная стоимость 3000 × 1500 / 2400 = 1875, возврат — половина.
     const r = calculateRefund({ chain: chain(3), starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
     expect(r).toMatchObject({ reason: RefundReason.REFUSAL, refund: '937.5000 RUB', withheld: '2062.5000 RUB', lessons_paid: 8, lessons_used: 3, to_share: false });
   });
@@ -39,8 +39,14 @@ describe('calculateRefund — возврат взноса при отмене п
     expect(r.withheld).toBe('3000.0000 RUB');
   });
 
+  it('сдвоенное занятие расходует вдвое больше: остаток резерва меньше — и возврат меньше', () => {
+    // Одно сдвоенное занятие: из резерва ушло 600, осталось 1800 из 2400 — остаточная стоимость 2250.
+    const r = calculateRefund({ chain: { ...chain(1), reserve: '1800.0000 RUB' }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
+    expect(r.refund).toBe('1125.0000 RUB');
+  });
+
   it('подписки в цепи нет — сумма нулевая', () => {
-    const r = calculateRefund({ chain: { charged: '0.0000 RUB', lessons_paid: 0, lessons_done: 0 }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
+    const r = calculateRefund({ chain: { charged: '0.0000 RUB', reserve: '0.0000 RUB', reserve_paid: '0.0000 RUB', lessons_paid: 0, lessons_done: 0 }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
     expect(r.refund).toBe('0.0000 RUB');
   });
 });

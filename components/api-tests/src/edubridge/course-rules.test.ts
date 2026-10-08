@@ -11,7 +11,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
 import { CHAIRMAN, amount, caseName, expectCode, freshMember, gql, gqlError, login, tokenOf } from '../core'
 import {
-  CANCEL_ENROLLMENT,
   COURSE,
   CREATE_ASSIGNMENT,
   CREATE_COURSE,
@@ -27,17 +26,17 @@ import {
   educationOff,
   educationOn,
   fundShare,
+  holdMaterials,
   onboardTeacher,
+  quoteOf,
   reportLesson,
   signOffer,
   subscribe,
 } from './edubridge.helpers'
 
 const DELETE_COURSE = 'mutation($id:ID!){ edubridgeDeleteCourse(id:$id) }'
-const LOCKED = 'EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS'
-const DAY_MS = 24 * 60 * 60 * 1000
 
-describe('Образование: правила курса — удаление, взнос при подписках, оплаченные часы', () => {
+describe('Образование: правила курса — удаление, условия при подписках, оплата занятий', () => {
   let chairman = ''
   let section = ''
   let learner: Who
@@ -92,26 +91,24 @@ describe('Образование: правила курса — удаление
     expect((await gql<any>(chairman, COURSE, { id: taken.id })).edubridgeCourse.status, 'курс остался как был').toBe('PUBLISHED')
   })
 
-  it(caseName('edu.admin.break.02', 'при действующих подписках плановая ставка и расписание занятий не меняются; правка без взноса проходит'), async () => {
+  it(caseName('edu.admin.break.02', 'при действующих подписках условия курса правятся для новых групп; взнос идущей группы прежний'), async () => {
     const { input, course } = await create({ starts_at: dayFromNow(30) })
-    const paid = await subscribe(learner, token, self.id, course.id)
+    await subscribe(learner, token, self.id, course.id)
     const update = (over: Record<string, unknown>) => gqlError(chairman, UPDATE_COURSE, { d: { ...input, id: course.id, ...over } })
 
-    expectCode(await update({ planned_hourly_rate: '1200.0000 RUB' }), LOCKED)
-    expectCode(await update({ lessons_per_month: 6 }), LOCKED)
-    expectCode(await update({ lesson_minutes: 90 }), LOCKED)
-    expect((await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.fee_month, 'взнос прежний').toBe(course.fee_month)
-    // Правка, не затрагивающая взнос, проходит.
-    expect(await update({ description: 'Описание уточнено', schedule: 'Вт и Чт, 18:00' })).toBeNull()
-
-    // Подписок больше нет — ставка меняется, взнос пересчитывается.
-    await gql(token, CANCEL_ENROLLMENT, { id: paid.id })
+    // Плановая ставка курса меняется: взнос курса пересчитан.
     expect(await update({ planned_hourly_rate: '1200.0000 RUB' })).toBeNull()
     const repriced = (await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse
-    expect(amount(repriced.fee_month)).toBeCloseTo(amount(course.fee_month) * 1.2, 4)
+    expect(amount(repriced.fee_month)).toBeGreaterThan(amount(course.fee_month))
+    // Обучающийся идущей группы продлевает подписку по прежнему взносу: её условия закреплены.
+    const extension = await quoteOf(token, self.id, course.id)
+    expect(extension.is_extension).toBe(true)
+    expect(amount(extension.amount)).toBeCloseTo(amount(course.fee_month), 4)
+    // Правка описания и расписания проходит как прежде.
+    expect(await update({ planned_hourly_rate: '1200.0000 RUB', description: 'Описание уточнено', schedule: 'Вт и Чт, 18:00' })).toBeNull()
   })
 
-  it(caseName('edu.teach.side.24', 'взнос за занятие — в пределах оплаченного учениками по курсу; без оплаченных часов отчёт не принимается'), async () => {
+  it(caseName('edu.teach.side.24', 'взнос за занятие — в пределах оплаты занятий в резерве подписки; без оплаченного доступа отчёт не принимается'), async () => {
     // Курс идёт третий день, учеников ещё нет.
     const { course } = await create({ starts_at: dayFromNow(-3), guarantee_days: 0 })
     const assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, {
@@ -121,23 +118,20 @@ describe('Образование: правила курса — удаление
       gqlError(teacherToken, REPORT_LESSON, { d: { assignment_id: assignment.id, lesson_number: n, materials: ['https://example.org/x'], duration_minutes: 120 } })
     expectCode(await report(1), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
 
-    // Ученик оплатил месяц: восемь часов по плановой ставке 1000 — чуть больше восьми тысяч.
+    // Ученик оплатил месяц: восемь часовых занятий по плановой ставке 1000 — в резерве подписки 8000.
     await subscribe(learner, token, self.id, course.id)
-    const amounts: number[] = []
-    for (let n = 1; n <= 4; n++) {
-      const r = await reportLesson(teacherToken, assignment.id, n, { duration_minutes: 120, held_at: new Date(Date.now() - DAY_MS).toISOString() })
-      amounts.push(amount(r.contribution.amount))
+    /** Занятие отчитано и материалы переданы на хранение: журнал открыт для следующего. */
+    const held = async (n: number, minutes: number): Promise<number> => {
+      const r = await reportLesson(teacherToken, assignment.id, n, { duration_minutes: minutes })
+      await holdMaterials(teacher, teacherToken, r.contribution.id)
+      return amount(r.contribution.amount)
     }
-    expect(amounts, 'сдвоенное занятие по ставке 900').toEqual([1800, 1800, 1800, 1800])
+    // Три сдвоенных занятия и одно полуторное расходуют 7500 из резерва; взнос — по ставке 900 за час.
+    expect([await held(1, 120), await held(2, 120), await held(3, 120), await held(4, 90)], 'ставка 900 за проведённое время').toEqual([1800, 1800, 1800, 1350])
 
-    // Пятое сдвоенное занятие целиком в оплаченное не помещается — взнос урезан до остатка.
-    const fifth = amount((await reportLesson(teacherToken, assignment.id, 5, { duration_minutes: 120 })).contribution.amount)
-    expect(fifth).toBeGreaterThan(0)
-    expect(fifth).toBeLessThan(1800)
-    const total = amounts.reduce((a, b) => a + b, 0) + fifth
-    expect(total, 'не больше стоимости оплаченных часов по плановой ставке').toBeLessThanOrEqual(8000 * 31 / 30 + 1)
-    expect(total).toBeGreaterThanOrEqual(8000 * 28 / 30 - 1)
-    // Оплаченное исчерпано: следующий отчёт не принимается.
+    // На пятое сдвоенное занятие в резерве осталось 500 из 2000 — взнос преподавателя в той же доле.
+    expect(await held(5, 120), 'четверть сдвоенного занятия').toBeCloseTo(450, 4)
+    // Оплата занятий исчерпана: следующий отчёт не принимается.
     expectCode(await report(6), 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS')
   })
 })

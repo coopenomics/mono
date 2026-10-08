@@ -371,7 +371,7 @@ const APPROVALS = `query($f:ApprovalFilter,$o:PaginationInput){ chairmanApproval
 } } }`
 const CONFIRM_APPROVAL = 'mutation($d:ConfirmApproveInput!){ chairmanConfirmApprove(data:$d){ _id status } }'
 
-/** Одобрение председателя по договору преподавателя, которое ждёт решения. */
+/** Одобрение председателя по документу преподавателя (договор, акт приёма-передачи), которое ждёт решения. */
 export async function pendingContractApproval(username: string): Promise<any | undefined> {
   const d = await gql<any>(await tokenOf(CHAIRMAN), APPROVALS, {
     f: { coopname: COOP, username, statuses: ['PENDING'] },
@@ -380,7 +380,7 @@ export async function pendingContractApproval(username: string): Promise<any | u
   return (d.chairmanApprovals.items as any[]).find(a => a.callback_contract === EXTENSION)
 }
 
-/** Председатель ставит вторую подпись на договоре преподавателя со стола одобрений. */
+/** Председатель ставит вторую подпись на документе преподавателя со стола одобрений. */
 export async function approveContract(approval: any): Promise<void> {
   const approved_document = await signDocument(CHAIRMAN.wif, approval.document.rawDocument, CHAIRMAN.account, 2, [approval.document.document])
   await gql(await tokenOf(CHAIRMAN), CONFIRM_APPROVAL, {
@@ -466,8 +466,6 @@ export const RID_STATEMENT = `mutation($id:ID!){ edubridgeRidStatement(contribut
 export const SUBMIT_CONTRIBUTION = `mutation($d:EduSubmitContributionInput!){ edubridgeSubmitContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const RID_ACT = `mutation($id:ID!){ edubridgeRidAct(contribution_id:$id){ ${DOC} } }`
 export const SIGN_ACT = `mutation($d:EduSignActInput!){ edubridgeSignAct(data:$d){ ${CONTRIBUTION_FIELDS} } }`
-export const ACT_PAYLOAD = `query($id:ID!){ edubridgeActSignablePayload(contribution_id:$id){ hash rawDocument{ ${DOC} } document{ ${SIGNED} } } }`
-export const ACCEPT_CONTRIBUTION = `mutation($d:EduAcceptContributionInput!){ edubridgeAcceptContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const DECLINE_CONTRIBUTION = `mutation($d:EduDeclineContributionInput!){ edubridgeDeclineContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const REVOKE_CONTRIBUTION = `mutation($d:EduRevokeContributionInput!){ edubridgeRevokeContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const SETTLEMENT = 'query{ edubridgeMySettlement{ accepted_total program_share available last_accepted_at } }'
@@ -505,8 +503,9 @@ export async function signTransferAct(who: Who, token: string, contributionId: s
   return (await gql<any>(token, SIGN_ACT, { d: { contribution_id: contributionId, document } })).edubridgeSignAct
 }
 
-/** Акт с подписью преподавателя и второй подписью председателя — тот же документ. */
-export async function chairmanSignedAct(contributionId: string): Promise<any> {
-  const aggregate = (await gql<any>(await tokenOf(CHAIRMAN), ACT_PAYLOAD, { id: contributionId })).edubridgeActSignablePayload
-  return signDocument(CHAIRMAN.wif, aggregate.rawDocument, CHAIRMAN.account, 2, [aggregate.document])
-}
+/**
+ * Акт приёма-передачи преподавателя в запросах одобрений председателя: первая
+ * подпись стоит, вторую ставит председатель тем же путём, что и на договоре.
+ */
+export const pendingActApproval = pendingContractApproval
+export const approveAct = approveContract
