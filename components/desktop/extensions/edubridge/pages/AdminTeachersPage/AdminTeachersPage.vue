@@ -23,7 +23,8 @@
       BaseBadge(:variant="contractStatusOf(row.contract_status).variant") {{ contractStatusOf(row.contract_status).label }}
     template(#cell-hourly_rate="{ row }")
       span(v-if="parseFloat(row.hourly_rate) > 0") {{ formatAsset2Digits(row.hourly_rate) }}
-      span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
+      //- Ставка не назначена — дело администратора: без неё преподаватель в курс не ставится.
+      BaseBadge(v-else variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
     template(#cell-assignments="{ row }")
       span(v-if="row.assignments_active") {{ row.assignments_active }}
       span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.noCourses') }}

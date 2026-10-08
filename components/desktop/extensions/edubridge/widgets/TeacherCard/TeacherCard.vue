@@ -38,7 +38,7 @@
         template(#value-override)
           .row.items-center.no-wrap.q-gutter-xs
             span.t-num(v-if="rateAssigned") {{ formatAsset2Digits(teacher.hourly_rate) }}
-            span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
+            BaseBadge(v-else variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
             BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
               template(#icon-left)
                 q-icon(name="edit" size="16px")
