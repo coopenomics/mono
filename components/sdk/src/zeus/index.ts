@@ -15298,7 +15298,7 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	year: number | Variable<any, string>
 };
 	["SbpAccount"]: AliasType<{
-	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, пустая строка */
 	bank_name?:boolean | `@${string}`,
 	/** Мобильный телефон получателя */
 	phone?:boolean | `@${string}`,
@@ -30448,7 +30448,7 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	year: number
 };
 	["SbpAccount"]: AliasType<{
-	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, пустая строка */
 	bank_name?:boolean | `@${string}`,
 	/** Мобильный телефон получателя */
 	phone?:boolean | `@${string}`,
@@ -45594,8 +45594,8 @@ export type ModelTypes = {
 	year: number
 };
 	["SbpAccount"]: {
-		/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
-	bank_name?: string | undefined | null,
+		/** Банк получателя. У реквизитов, сохранённых до появления поля, пустая строка */
+	bank_name: string,
 	/** Мобильный телефон получателя */
 	phone: string
 };
@@ -61610,8 +61610,8 @@ export type GraphQLTypes = {
 };
 	["SbpAccount"]: {
 	__typename: "SbpAccount",
-	/** Банк получателя. У реквизитов, сохранённых до появления поля, отсутствует */
-	bank_name?: string | undefined | null,
+	/** Банк получателя. У реквизитов, сохранённых до появления поля, пустая строка */
+	bank_name: string,
 	/** Мобильный телефон получателя */
 	phone: string,
 	['...on SbpAccount']: Omit<GraphQLTypes["SbpAccount"], "...on SbpAccount">
