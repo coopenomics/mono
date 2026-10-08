@@ -3277,6 +3277,8 @@ export type MessageKey =
   | 'edubridge.teacherLessonsPage.lessonTitle'
   | 'edubridge.teacherLessonsPage.materialsHint'
   | 'edubridge.teacherLessonsPage.materialsLabel'
+  | 'edubridge.teacherLessonsPage.pendingTransfer'
+  | 'edubridge.teacherLessonsPage.reportBlocked'
   | 'edubridge.teacherLessonsPage.reportButton'
   | 'edubridge.teacherLessonsPage.reportSuccess'
   | 'edubridge.teacherLessonsPage.signAct'

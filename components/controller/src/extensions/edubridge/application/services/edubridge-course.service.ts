@@ -158,6 +158,7 @@ export class EdubridgeCourseService {
         throw DomainError.badRequest('EDUBRIDGE_COURSE_START_ONLY_FORWARD');
       }
     }
+    await this.assertStartUnchangedAfterLessons(coopname, course, input);
     const fee = await this.economy.feeForCourse(economyParams(input));
     await this.assertFeeUnchangedWhileSubscribed(coopname, course, input, fee);
     const previous = course.image;
@@ -231,6 +232,14 @@ export class EdubridgeCourseService {
     const course = await this.get(coopname, id);
     course.status = status;
     return this.courses.save(course);
+  }
+
+  /** После первого занятия дата начала не меняется: от неё идут гарантийный срок и расчёт занятий в цепи. */
+  private async assertStartUnchangedAfterLessons(coopname: string, course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): Promise<void> {
+    const before = course.starts_at ? new Date(course.starts_at).getTime() : 0;
+    const after = input.starts_at ? new Date(input.starts_at).getTime() : 0;
+    if (before === after) return;
+    if ((await this.lessons.findByCourse(coopname, course.id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS');
   }
 
   /**
@@ -319,12 +328,31 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
   };
 }
 
-/** Изменились ли условия, по которым участники уже внесли взнос: ставка, способ расчёта с преподавателем, расписание. */
+/**
+ * Изменились ли условия, по которым участники уже внесли взнос. Перечень тот
+ * же, что держит контракт (`edubridge::setcourse`): ставка, способ расчёта с
+ * преподавателем, расписание, программа, скидка за взнос разом, гарантийный срок.
+ */
 function termsChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
   const payMode = input.pay_per_learner !== undefined && Boolean(input.pay_per_learner) !== Boolean(course.pay_per_learner);
-  const schedule =
-    Number(input.lessons_per_month) !== Number(course.lessons_per_month) || Number(input.lesson_minutes) !== Number(course.lesson_minutes);
-  return payMode || schedule || input.planned_hourly_rate !== course.planned_hourly_rate;
+  return payMode || scheduleChanged(course, input) || conditionsChanged(course, input);
+}
+
+function scheduleChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
+  return (
+    Number(input.lessons_per_month) !== Number(course.lessons_per_month) ||
+    Number(input.lesson_minutes) !== Number(course.lesson_minutes) ||
+    Number(input.lessons_total) !== Number(course.lessons_total)
+  );
+}
+
+function conditionsChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
+  const discountBp = input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0;
+  return (
+    input.planned_hourly_rate !== course.planned_hourly_rate ||
+    discountBp !== Number(course.course_discount_bp ?? 0) ||
+    Number(input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS) !== Number(course.guarantee_days)
+  );
 }
 
 /** Способ расчёта с преподавателем при правке курса: не назван — остаётся прежним. */

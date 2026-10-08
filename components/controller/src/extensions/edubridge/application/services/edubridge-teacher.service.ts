@@ -707,7 +707,30 @@ export class EdubridgeTeacherService {
     }
     this.assertLessonReport(input, course, assignment);
 
-    return { contract, assignment, course, previous: await this.previousReport(coopname, course.id, input.lesson_number) };
+    const previous = await this.previousReport(coopname, course.id, input.lesson_number);
+    await this.assertLessonsInOrder(coopname, course.id, input);
+    return { contract, assignment, course, previous };
+  }
+
+  /**
+   * Занятия курса отчитываются по порядку — так их ведёт контракт: расчёт по
+   * следующему занятию открывается, когда по предыдущему материалы переданы на
+   * хранение, а дата занятия не раньше предыдущего. Проверка здесь даёт
+   * преподавателю понятный ответ до обращения в цепь.
+   */
+  private async assertLessonsInOrder(coopname: string, courseId: string, input: EduLessonReportInputDTO): Promise<void> {
+    const heldAt = input.held_at ? new Date(input.held_at) : new Date();
+    for (const lesson of await this.lessons.findByCourse(coopname, courseId)) {
+      if (lesson.lesson_number === input.lesson_number || !lesson.contribution_id) continue;
+      const contribution = await this.teachers.findContribution(coopname, lesson.contribution_id);
+      if (!contribution || contribution.status === EduContributionStatus.DECLINED) continue;
+      if (contribution.status === EduContributionStatus.DRAFT) {
+        throw DomainError.badRequest('EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED', { lessonNumber: lesson.lesson_number });
+      }
+      if (new Date(lesson.held_at) > heldAt) {
+        throw DomainError.badRequest('EDUBRIDGE_LESSON_DATE_BEFORE_PREVIOUS', { lessonNumber: lesson.lesson_number, heldAt: formatDate(lesson.held_at) });
+      }
+    }
   }
 
   /**

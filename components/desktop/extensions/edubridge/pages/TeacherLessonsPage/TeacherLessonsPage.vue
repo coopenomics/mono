@@ -3,6 +3,15 @@
   PageHint.q-mb-md(storage-key="edu:teacher-lessons:banner-dismissed")
     | {{ $t('edubridge.teacherLessonsPage.hintMaterials') }}
 
+  //- Занятия курса отчитываются по порядку: пока материалы занятия не переданы
+  //- на хранение, следующий отчёт по этому курсу не принимается.
+  BaseBanner.q-mb-md(v-for="p in pendingTransfers" :key="asText(p.id)" variant="warn")
+    template(#icon)
+      q-icon(name="schedule")
+    | {{ $t('edubridge.teacherLessonsPage.pendingTransfer', { lessonNumber: p.lesson_number, courseTitle: p.course_title }) }}
+    template(#action)
+      BaseButton(variant="primary" size="sm" :loading="rowBusy === asText(p.id)" @click="onTransfer(p)") {{ $t('edubridge.teacherLessonsPage.transferMaterials') }}
+
   //- Журнал занятий — реестр: базовая таблица, строка открывает правую панель
   //- с занятием. В таблице только то, по чему занятие находят и оценивают;
   //- материалы, длительность и срок хранения — в панели.
@@ -65,6 +74,10 @@
   BaseDialog(:model-value="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md" @update:model-value="onReportDialog")
     BaseForm(:loading="busy" @submit="onReport")
       BaseSelect(v-model="form.assignment_id" :label="$t('edubridge.teacherLessonsPage.courseLabel')" :options="assignmentOptions" required)
+      BaseBanner.q-mb-sm(v-if="reportBlockedBy" variant="warn")
+        template(#icon)
+          q-icon(name="schedule")
+        | {{ $t('edubridge.teacherLessonsPage.reportBlocked', { lessonNumber: reportBlockedBy.lesson_number }) }}
       .row.q-col-gutter-md
         .col-6
           BaseInput(v-model="lessonNumber" :label="$t('edubridge.teacherLessonsPage.lessonNumberLabel')" type="number" required)
@@ -75,7 +88,7 @@
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="reportOpen = false") {{ $t('edubridge.teacherLessonsPage.cancel') }}
-          BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.teacherLessonsPage.submit') }}
+          BaseButton(variant="primary" type="submit" :loading="busy" :disabled="Boolean(reportBlockedBy)") {{ $t('edubridge.teacherLessonsPage.submit') }}
 </template>
 
 <script setup lang="ts">
@@ -87,7 +100,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
+import { BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, EmptyState, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, PageHint } from 'src/shared/ui/domain';
 import {
   CONTRIBUTION_STATUS_LABELS,
@@ -171,6 +184,15 @@ function replaceContribution(c: IContribution): void {
   if (i >= 0) contributions.value[i] = c;
   else contributions.value.unshift(c);
 }
+
+/** Занятия, по которым материалы ещё не переданы на хранение: они держат следующий отчёт по своему курсу. */
+const pendingTransfers = computed(() => rows.value.filter((r) => actionOf(r) === 'transfer'));
+/** Занятие, из-за которого отчёт по выбранному курсу сейчас не принимается. */
+const reportBlockedBy = computed(() => {
+  const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
+  if (!assignment) return null;
+  return pendingTransfers.value.find((r) => asText(r.course_id) === asText(assignment.course_id)) ?? null;
+});
 
 const assignmentOptions = computed(() =>
   assignments.value

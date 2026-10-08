@@ -69,6 +69,7 @@ function make(
   const lessons = {
     findByNumber: jest.fn(async (_c: string, _course: string, n: number) => lessonStore.get(n) ?? null),
     findByTeacher: jest.fn(async () => [...lessonStore.values()]),
+    findByCourse: jest.fn(async () => [...lessonStore.values()]),
     findById: jest.fn(async (_c: string, id: string) => [...lessonStore.values()].find((l) => l.id === id) ?? null),
     create: jest.fn((d: any) => ({ id: `LS${d.lesson_number}`, ...d })),
     save: jest.fn(async (l: any) => { lessonStore.set(l.lesson_number, l); return l; }),
@@ -209,6 +210,16 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     const above = make({ plannedRate: '900.0000 RUB' });
     await expect(above.service.createAssignment('voskhod', { ...input, hourly_rate: '950.0000 RUB' })).rejects.toThrow(/выше плановой ставки курса/);
     expect(above.teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('занятия курса отчитываются по порядку: без передачи материалов по предыдущему и с датой раньше него отчёт не принимается', async () => {
+    const { service, store } = make();
+    const first = { assignment_id: 'A1', lesson_number: 1, materials: ['https://video/1'], topic: 'Тема', held_at: '2026-03-10T10:00:00Z' } as any;
+    const lesson = await service.reportLesson('voskhod', 'teach', first);
+    // Материалы первого занятия не переданы — расчёт по нему в цепи не закрыт.
+    await expect(service.reportLesson('voskhod', 'teach', { ...first, lesson_number: 2 })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED' });
+    [...store.values()].find((c) => c.lesson_id === lesson.id).status = EduContributionStatus.HELD;
+    await expect(service.reportLesson('voskhod', 'teach', { ...first, lesson_number: 2, held_at: '2026-03-01T10:00:00Z' })).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_DATE_BEFORE_PREVIOUS' });
   });
 
   it('взнос за занятие считает контракт: расчёт по каждой подписке, сумма и число участников — из цепи', async () => {

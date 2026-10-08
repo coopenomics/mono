@@ -804,7 +804,7 @@
     "memberSubscriptionsPage": {
       "cancel": "Отмена",
       "cancelDialog": {
-        "lessonsUsedLabel": "Занятий прошло",
+        "lessonsUsedLabel": "Проведено занятий",
         "lessonsUsedValue": "{lessonsUsed} из {lessonsPaid}",
         "paidLabel": "Уплачено",
         "refundLabel": "Вернётся",
@@ -904,6 +904,8 @@
     },
     "teacherLessonsPage": {
       "cancel": "Отмена",
+      "pendingTransfer": "По занятию № {lessonNumber} курса «{courseTitle}» материалы не переданы на ответственное хранение. Следующий отчёт по курсу принимается после передачи материалов.",
+      "reportBlocked": "Отчёт по этому курсу принимается после передачи материалов занятия № {lessonNumber}.",
       "learnersLine": "участников: {count}",
       "column": {
         "amount": "Взнос",
