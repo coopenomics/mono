@@ -69,25 +69,29 @@
                 .t-meta.t-muted(v-if="teacherRate(username)") {{ $t('edubridge.adminCoursePage.teacherRateLine', { rate: formatAsset2Digits(teacherRate(username)) }) }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
 
-          //- План против факта: плановая ставка часа, сумма часов месяца по ней и
-          //- та же сумма по ставкам из договоров преподавателей; затем взнос кооператива.
+          //- Экономика двумя равными частями с одинаковыми подзаголовками: что заложено
+          //- во взнос одного участника и что получается по группе за месяц. Подписи —
+          //- в одну строку, пояснения — под значком вопроса.
           BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
+            .t-eyebrow.q-mb-xs {{ $t('edubridge.adminCoursePage.perLearnerTitle') }}
             DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.plannedHourlyRate')")
-            DataRow(:label="$t('edubridge.adminCoursePage.payModeLabel')" :value="course.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
             DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.costMonth')")
             DataRow(:label="$t('edubridge.adminCoursePage.actualCostMonthLabel')" :value="formatAsset2Digits(economy.actual_cost_month)" align="spread")
               template(#label-append)
-                FieldHelp(:text="course.pay_per_learner ? $t('edubridge.adminCoursePage.economyHelp.actualCostMonthPerLearner') : $t('edubridge.adminCoursePage.economyHelp.actualCostMonth')")
-            DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
+                FieldHelp(:text="economy.pay_per_learner ? $t('edubridge.adminCoursePage.economyHelp.actualCostMonthPerLearner') : $t('edubridge.adminCoursePage.economyHelp.actualCostMonth')")
+            DataRow(:label="$t('edubridge.adminCoursePage.markupLabel')" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
               template(#label-append)
-                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup')")
-            //- Месяц курса при нынешнем числе участников: что вносят участники, что получают
-            //- преподаватели по способу расчёта курса и что остаётся программе.
-            .t-eyebrow.q-mt-md.q-mb-xs {{ $t('edubridge.adminCoursePage.groupTitle', { count: economy.learners_active }) }}
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup', { percent: economy.plan.markup_percent })")
+
+            .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.adminCoursePage.groupTitle') }}
+            DataRow(:label="$t('edubridge.adminCoursePage.payModeLabel')" :value="economy.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.groupLearnersLabel')" :value="String(economy.learners_active)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.groupLearners')")
             DataRow(:label="$t('edubridge.adminCoursePage.groupFeeLabel')" :value="formatAsset2Digits(economy.group_fee_month)" align="spread")
             DataRow(:label="$t('edubridge.adminCoursePage.groupTeachersLabel')" :value="formatAsset2Digits(economy.group_teachers_month)" align="spread")
               template(#label-append)
