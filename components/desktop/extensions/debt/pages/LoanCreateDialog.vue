@@ -7,16 +7,16 @@ BaseDialog(
   @update:model-value='$emit("update:modelValue", $event)'
 )
   //- Второй шаг: заявление и договор на прочтение перед подписью.
-  //- Образец — документы вступления в «Благорост»: каждый документ в своей
-  //- карточке, читается и листается отдельно.
-  .loan-review(v-if='prepared')
+  //- Документы читают по одному на всю высоту окна: сначала договор, затем
+  //- заявление; подписываются оба на последнем.
+  .loan-review(v-if='prepared && reviewDoc')
     BaseCard(
-      v-for='doc in reviewDocs',
-      :key='doc.key',
-      :title='doc.title'
+      :key='reviewDoc.key',
+      :title='reviewDoc.title',
+      :subtitle='$t("debt.createDialog.reviewStepText", { current: reviewIndex + 1, total: reviewDocs.length })'
     )
       .loan-review__preview
-        DocumentHtmlReader(:html='doc.html')
+        DocumentHtmlReader(:html='reviewDoc.html')
 
   .loan-form(v-else)
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
@@ -79,8 +79,9 @@ BaseDialog(
   template(#footer)
     .loan-form__footer
       template(v-if='prepared')
-        BaseButton(variant='ghost', :disabled='submitting', @click='prepared = null') {{ $t('debt.createDialog.backLabel') }}
-        BaseButton(variant='primary', :loading='submitting', @click='submit') {{ $t('debt.createDialog.signLabel') }}
+        BaseButton(variant='ghost', :disabled='submitting', @click='reviewBack') {{ $t('debt.createDialog.backLabel') }}
+        BaseButton(v-if='!isLastReviewDoc', variant='primary', @click='reviewIndex += 1') {{ $t('debt.createDialog.submitLabel') }}
+        BaseButton(v-else, variant='primary', :loading='submitting', @click='submit') {{ $t('debt.createDialog.signLabel') }}
       template(v-else)
         BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
         BaseButton(
@@ -161,11 +162,21 @@ const collateralOptions = computed<BaseSelectOption[]>(() =>
 const reviewDocs = computed(() =>
   prepared.value
     ? [
-        { key: 'statement', title: t('debt.createDialog.statementTitle'), html: prepared.value.statementDoc.html },
         { key: 'contract', title: t('debt.createDialog.contractTitle'), html: prepared.value.contractDoc.html },
+        { key: 'statement', title: t('debt.createDialog.statementTitle'), html: prepared.value.statementDoc.html },
       ]
     : [],
 );
+// Какой из документов сейчас на экране.
+const reviewIndex = ref(0);
+const reviewDoc = computed(() => reviewDocs.value[reviewIndex.value] ?? null);
+const isLastReviewDoc = computed(() => reviewIndex.value >= reviewDocs.value.length - 1);
+
+// «Назад» с первого документа возвращает к форме, со следующих — к предыдущему документу.
+function reviewBack(): void {
+  if (reviewIndex.value > 0) reviewIndex.value -= 1;
+  else prepared.value = null;
+}
 
 const formReady = computed(() => !loading.value && available.value.length > 0 && hasMethods.value);
 
@@ -231,6 +242,7 @@ async function prepare(): Promise<void> {
   if (!selected.value || form.amount === null || !form.method_id) return;
   try {
     submitting.value = true;
+    reviewIndex.value = 0;
     prepared.value = await prepareLoan({
       collateral: selected.value.key,
       amount: form.amount,
@@ -288,9 +300,9 @@ async function submit(): Promise<void> {
   margin: 0 auto;
 }
 
-/* Высота делит экран на двоих: оба документа видны сразу, каждый листается сам. */
+/* Документ занимает всю высоту окна между шапкой и кнопками и листается внутри. */
 .loan-review__preview {
-  max-height: max(240px, calc((100vh - 340px) / 2));
+  height: max(320px, calc(100vh - 290px));
   overflow: auto;
   padding: var(--p-4);
   border: 1px solid var(--p-line);

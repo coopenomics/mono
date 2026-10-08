@@ -2498,6 +2498,7 @@ export type MessageKey =
   | 'debt.createDialog.noMethodsAction'
   | 'debt.createDialog.noMethodsBody'
   | 'debt.createDialog.noMethodsTitle'
+  | 'debt.createDialog.reviewStepText'
   | 'debt.createDialog.signLabel'
   | 'debt.createDialog.statementTitle'
   | 'debt.createDialog.submitLabel'
