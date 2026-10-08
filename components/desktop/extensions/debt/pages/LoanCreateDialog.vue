@@ -35,7 +35,11 @@ BaseDialog(
         :label='$t("debt.createDialog.collateralLabel")',
         required
       )
-      LoanFacts(:items='facts')
+      BaseInput(
+        :model-value='formatAmount(selected?.available)',
+        :label='$t("debt.createDialog.availableLabel")',
+        readonly
+      )
       AmountInput(
         v-model='form.amount',
         :symbol='symbol',
@@ -90,7 +94,6 @@ import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
 import { getCollateralOptions, type ICollateralOption } from '../api';
 import { collateralLabel, defaultDueDate, formatAmount, useLoanActions } from '../model';
-import LoanFacts from '../widgets/LoanFacts.vue';
 import { t } from '../i18n';
 
 const props = defineProps<{ modelValue: boolean }>();
@@ -137,9 +140,6 @@ const formReady = computed(() => !loading.value && available.value.length > 0 &&
 
 const selected = computed(() => available.value.find((o) => o.key === form.collateral) ?? null);
 const maxAmount = computed(() => (selected.value ? balanceOf(selected.value) : 0));
-const facts = computed(() => [
-  { label: t('debt.createDialog.availableLabel'), value: formatAmount(selected.value?.available) },
-]);
 
 const today = new Date().toISOString().slice(0, 10);
 

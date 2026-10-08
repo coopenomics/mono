@@ -17,7 +17,16 @@ BaseDialog(
         q-icon(name='account_balance_wallet', size='40px')
 
     template(v-else)
-      LoanFacts(:items='facts')
+      BaseInput(
+        :model-value='formatAmount(loan.remaining)',
+        :label='$t("debt.repayDialog.remainingLabel")',
+        readonly
+      )
+      BaseInput(
+        :model-value='formatAmount(walletAsset)',
+        :label='$t("debt.repayDialog.walletLabel")',
+        readonly
+      )
       AmountInput(
         v-model='amount',
         :symbol='symbol',
@@ -43,11 +52,11 @@ import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
+import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { getRepayAvailable, type ILoan } from '../api';
 import { amountOf, formatAmount, useLoanActions } from '../model';
-import LoanFacts from '../widgets/LoanFacts.vue';
 import { t } from '../i18n';
 
 const props = defineProps<{ modelValue: boolean; loan: ILoan | null }>();
@@ -70,10 +79,6 @@ const amount = ref<number | null>(null);
 
 // Вернуть можно в пределах остатка займа и свободного на главном кошельке.
 const maxAmount = computed(() => Math.min(amountOf(props.loan?.remaining), walletAvailable.value));
-const facts = computed(() => [
-  { label: t('debt.repayDialog.remainingLabel'), value: formatAmount(props.loan?.remaining) },
-  { label: t('debt.repayDialog.walletLabel'), value: formatAmount(walletAsset.value) },
-]);
 const canSubmit = computed(
   () => amount.value !== null && amount.value > 0 && amount.value <= maxAmount.value && !submitting.value,
 );
