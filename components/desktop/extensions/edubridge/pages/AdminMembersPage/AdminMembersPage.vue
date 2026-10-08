@@ -44,7 +44,7 @@
         .edu-member__head
           .text-subtitle2 {{ $t('edubridge.adminMembersPage.card.enrollmentsTitle') }}
         .t-sm.t-muted(v-if="!card.enrollments.length") {{ $t('edubridge.adminMembersPage.card.enrollmentsEmpty') }}
-        BaseTable(v-else :columns="enrollmentColumns" :rows="card.enrollments" row-key="id" min-width="740px")
+        BaseTable(v-else :columns="enrollmentColumns" :rows="card.enrollments" row-key="id" min-width="635px")
           template(#cell-paid_until="{ row }") {{ row.paid_until ? formatDate(row.paid_until) : '______' }}
           template(#cell-access_state="{ row }")
             BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
@@ -113,9 +113,9 @@ const columns: BaseTableColumn<IMemberRow>[] = [
 ];
 const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] = [
   { key: 'course_title', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.courseTitle') },
-  { key: 'paid_until', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.paidUntil'), width: '130px' },
-  { key: 'access_state', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.accessState'), width: '160px' },
-  { key: 'actions', label: '', align: 'right', width: '240px' },
+  { key: 'paid_until', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.paidUntil'), width: '135px', nowrap: true },
+  { key: 'access_state', label: i18nT('edubridge.adminMembersPage.enrollmentColumn.accessState'), width: '150px' },
+  { key: 'actions', label: '', align: 'right', width: '150px' },
 ];
 const taskColumns: BaseTableColumn<IMemberCard['tasks'][number]>[] = [
   { key: 'kind', label: i18nT('edubridge.adminMembersPage.taskColumn.kind'), width: '100px' },

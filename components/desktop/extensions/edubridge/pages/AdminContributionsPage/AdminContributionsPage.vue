@@ -4,7 +4,7 @@
     | {{ $t('edubridge.adminContributionsPage.hint') }}
 
   //- Строка открывает взнос в правой панели; действия доступны и в строке, и в панели.
-  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" :clickable-rows="true" min-width="1080px" @row-click="openDetails")
+  BaseTable(v-if="firstLoad || contributions.length" :columns="columns" :rows="contributions" row-key="id" :loading="firstLoad" :clickable-rows="true" min-width="980px" @row-click="openDetails")
     template(#cell-teacher_username="{ row }")
       IdentityCell(:account-name="row.teacher_username" :full-name="teacherName(row.teacher_username)")
     //- Взнос опознаётся названием результата, вид взноса — приглушённой строкой под ним.
@@ -110,11 +110,11 @@ function openDetails(row: IContribution): void {
 }
 
 const columns: BaseTableColumn<IContribution>[] = [
-  { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '240px' },
+  { key: 'teacher_username', label: i18nT('edubridge.adminContributionsPage.columnTeacher'), width: '210px' },
   { key: 'description', label: i18nT('edubridge.adminContributionsPage.columnDescription') },
-  { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '130px', nowrap: true },
+  { key: 'amount', label: i18nT('edubridge.adminContributionsPage.columnAmount'), numeric: true, width: '120px', nowrap: true },
   { key: 'status', label: i18nT('edubridge.adminContributionsPage.columnStatus'), width: '250px', nowrap: true },
-  { key: 'actions', label: '', align: 'right', width: '260px', nowrap: true },
+  { key: 'actions', label: '', align: 'right', width: '190px', nowrap: true },
 ];
 
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
