@@ -15,7 +15,13 @@ const PAGE_SIZE = 20;
  * выплата приходят по ленте изменений — показанные страницы перечитываются
  * тихо, без индикатора.
  */
-export function useLoanList(filter: Ref<{ status?: string }>) {
+export interface LoanListFilter {
+  status?: string;
+  outstanding?: boolean;
+  due_within_days?: number;
+}
+
+export function useLiveLoanList(filter: Ref<LoanListFilter>) {
   const system = useSystemStore();
   const items = ref<ILoan[]>([]) as Ref<ILoan[]>;
   const totalPages = ref(0);

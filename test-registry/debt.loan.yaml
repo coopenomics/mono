@@ -29,6 +29,13 @@ sources:
     - components/cooptypes/src/contracts/debt/**
     - components/cooptypes/src/debt/**
     - components/cooptypes/scripts/gen-from-cpp.ts
+  backend:
+    - components/controller/src/extensions/debt/**
+    - components/api-tests/src/debt/**
+    - components/controller/src/application/gateway/interactors/gateway.interactor.ts
+    - components/notifications/src/workflows/loan-*/**
+  ui:
+    - components/desktop/extensions/debt/**
 
 standard: components/contracts/cpp/debt/p.dbt.loan.standard.yaml
 
@@ -165,5 +172,242 @@ cases:
     kind: break
     scenario: Заявление или договор подписаны не ключом пайщика; подписан не тот договор председателем.
     expect: отклонено проверкой подписи; отклонено сверкой хэша договора
+    test: null
+    status: missing
+
+  # ── Уровень контроллера (эпики 367-3, 367-4) ─────────────────────────────
+
+  - id: dbt.loan.backend.collateral.01
+    level: backend
+    kind: happy
+    scenario: Пайщик с действующим договором об участии и взносом в программе запрашивает виды обеспечения.
+    expect: >
+      обеспечение «Благороста» отдано с признаком подписанного основания,
+      кошельками источника и обеспечения и остатком пайщика в программе
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.create.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подаёт заявление и договор со своей подписью.
+    expect: >
+      зеркало отдаёт заём «на рассмотрении совета» с заявлением и договором;
+      сумма обеспечения ушла с кошелька программы, главный кошелёк не тронут
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.create.02
+    level: backend
+    kind: side
+    scenario: В документах указан ключ обеспечения, которого нет в реестре.
+    expect: отказ DEBT_COLLATERAL_UNKNOWN до цепи
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.create.03
+    level: backend
+    kind: side
+    scenario: Сумма займа больше остатка пайщика в программе.
+    expect: заявление отклонено, обеспечение не тронуто
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.rights.01
+    level: backend
+    kind: break
+    scenario: Посторонний пайщик читает чужой заём и список займов с чужим именем в отборе; совет читает реестр.
+    expect: >
+      чужой заём закрыт отказом охвата «своё»; список пайщика содержит только
+      его займы при любом отборе; совет видит заём в реестре
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.rights.02
+    level: backend
+    kind: break
+    scenario: Пайщик подаёт заявление, оформленное на другого пайщика.
+    expect: отказ охвата «своё»
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.pay.01
+    level: backend
+    kind: happy
+    scenario: Председатель подписал договор, зеркало получило заём «передан на выплату».
+    expect: >
+      заведён один исходящий платёж типа «заём» с хэшем займа, суммой займа,
+      реквизитами из заявления и назначением «заём по договору № …»
+    test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.pay.02
+    level: backend
+    kind: side
+    scenario: Совет разрешил выдачу, председатель договор ещё не подписал.
+    expect: заём ждёт подписи председателя, платёж кассиру не заведён
+    test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.pay.03
+    level: backend
+    kind: side
+    scenario: Кассир отклонил платёж, председатель повторил выплату; пайщик пробует повторить сам.
+    expect: >
+      прежний платёж возвращён в ожидание, второй не заведён; пайщику повтор
+      закрыт правами
+    test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.decline.01
+    level: backend
+    kind: side
+    scenario: Кассир отменяет платёж по займу с причиной.
+    expect: >
+      отказ доведён до шлюза в цепи раньше смены статуса платежа; заём ждёт
+      повтора платежа с сохранённой причиной, решение совета и обеспечение на
+      месте
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.issue.01
+    level: backend
+    kind: happy
+    scenario: Кассир отмечает платёж по займу оплаченным.
+    expect: >
+      платёж завершён, заём выдан с остатком в сумму займа и попадает в отбор
+      непогашенных; отмена выданного займа отклонена
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.repay.01
+    level: backend
+    kind: happy
+    scenario: Пайщик возвращает часть займа с главного кошелька по подписанному заявлению.
+    expect: >
+      предел возврата равен свободному на главном кошельке; остаток и
+      обеспечение уменьшились на сумму возврата, главный кошелёк списан,
+      обеспечение на ту же сумму вернулось в программу
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.repay.02
+    level: backend
+    kind: side
+    scenario: Возврат больше остатка; возврат чужого займа посторонним пайщиком.
+    expect: оба отклонены, остаток не изменился
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.extend.01
+    level: backend
+    kind: happy
+    scenario: Пайщик подаёт заявление о продлении срока, председатель ставит на нём подпись.
+    expect: >
+      до решения действует прежний срок и виден запрошенный; после подписи
+      председателя действует новый срок, заявление сохранено в займе
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.status.01
+    level: backend
+    kind: happy
+    scenario: Пайщик возвращает остаток займа.
+    expect: >
+      заём в зеркале закрыт и хранит документы, обеспечение целиком в
+      программе, из отбора непогашенных заём ушёл
+    test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.cancel.01
+    level: backend
+    kind: side
+    scenario: Пайщик отменяет своё заявление до решения совета; посторонний пробует отменить чужое.
+    expect: >
+      постороннему отказ охвата «своё»; после отмены заём в зеркале отклонён,
+      обеспечение вернулось в программу, платёж не заведён
+    test: components/api-tests/src/debt/loans.test.ts
+    api: components/api-tests/src/debt/loans.test.ts
+    status: written
+
+  - id: dbt.loan.backend.term.01
+    level: backend
+    kind: happy
+    scenario: Суточная сверка находит заём с истёкшим сроком.
+    expect: сверка цепи вызвана один раз с пределом 25
+    test: components/controller/src/extensions/debt/application/services/loan-term-scheduler.service.spec.ts
+    external: unreachable
+    external_reason: срок займа истекает по времени цепи, а сверка идёт раз в сутки — стенд время не двигает
+    status: written
+
+  - id: dbt.loan.backend.term.02
+    level: backend
+    kind: side
+    scenario: Заём в просрочке меньше пяти дней; заём в просрочке пять дней; просроченный заём другого приложения.
+    expect: >
+      до пяти дней цепь не зовётся; на пятый день зовётся для обращения
+      обеспечения; заём другого приложения остаётся в просрочке
+    test: components/controller/src/extensions/debt/application/services/loan-term-scheduler.service.spec.ts
+    external: unreachable
+    external_reason: пять дней просрочки отсчитываются по времени цепи — стенд время не двигает
+    status: written
+
+  - id: dbt.loan.backend.term.03
+    level: backend
+    kind: side
+    scenario: Займов с истёкшим сроком больше одной пачки.
+    expect: вызовов цепи — по числу пачек по 25, не больше двадцати
+    test: components/controller/src/extensions/debt/application/services/loan-term-scheduler.service.spec.ts
+    external: unreachable
+    external_reason: нужны десятки займов с истёкшим сроком — стенд время не двигает
+    status: written
+
+  - id: dbt.loan.backend.term.04
+    level: backend
+    kind: happy
+    scenario: До срока возврата осталось 14 дней и меньше.
+    expect: >
+      пайщику уходит напоминание; содержимое день ото дня не меняется, повтор
+      гасит центр уведомлений; раньше 14 дней и после срока напоминания нет;
+      сбой одного уведомления не останавливает остальные
+    test: components/controller/src/extensions/debt/application/services/loan-term-scheduler.service.spec.ts
+    external: unreachable
+    external_reason: напоминание шлёт суточная сверка, снаружи её не вызвать и время не сдвинуть
+    status: written
+
+  # ── Уровень стола ────────────────────────────────────────────────────────
+
+  - id: dbt.loan.ui.create.01
+    level: ui
+    kind: happy
+    scenario: >
+      Пайщик на столе «Беспроцентные займы» выбирает обеспечение, сумму в
+      пределах остатка, срок и реквизиты, подписывает заявление и договор.
+    expect: заём появился в «Моих займах» в состоянии «На рассмотрении совета»
+    test: null
+    status: missing
+
+  - id: dbt.loan.ui.repay.01
+    level: ui
+    kind: happy
+    scenario: Пайщик возвращает выданный заём частью, затем остаток; подаёт заявление о продлении срока.
+    expect: >
+      остаток уменьшается, после полного возврата заём закрыт; заявление о
+      продлении видно председателю в запросах одобрений
     test: null
     status: missing

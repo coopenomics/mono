@@ -2898,6 +2898,9 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"DebtLoanFilterInput",
 			options:"PaginationInput"
 		},
+		debtRepayAvailable:{
+
+		},
 		documentApprovalsSeedPlan:{
 
 		},
@@ -7860,6 +7863,7 @@ export const ReturnTypes: Record<string,any> = {
 		debtCollateralOptions:"DebtCollateralOption",
 		debtLoan:"DebtLoan",
 		debtLoans:"PaginatedDebtLoansPaginationResult",
+		debtRepayAvailable:"String",
 		documentApprovalsSeedPlan:"DocumentApprovalSeedItem",
 		documentTemplateBlank:"DocumentTemplateBlank",
 		documentTemplates:"DocumentTemplate",

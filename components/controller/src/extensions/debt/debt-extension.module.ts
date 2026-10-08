@@ -28,6 +28,7 @@ import { LoanMutationsService } from './application/services/loan-mutations.serv
 import { LoanPaymentsListener } from './application/services/loan-payments.listener';
 import { LoanNotificationsListener } from './application/services/loan-notifications.listener';
 import { DebtLiveFeedService } from './application/services/debt-live-feed.service';
+import { LoanTermSchedulerService } from './application/services/loan-term-scheduler.service';
 import { LoanQueriesResolver } from './application/resolvers/loan-queries.resolver';
 import { LoanMutationsResolver } from './application/resolvers/loan-mutations.resolver';
 import { DebtRights } from './application/access/debt-rights';
@@ -86,6 +87,7 @@ export class DebtExtension extends BaseExtensionModule {
     LoanPaymentsListener,
     LoanNotificationsListener,
     DebtLiveFeedService,
+    LoanTermSchedulerService,
     LoanQueriesResolver,
     LoanMutationsResolver,
   ],

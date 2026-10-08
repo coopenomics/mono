@@ -15,7 +15,7 @@ const VARIANTS: Record<string, BaseBadgeVariant> = {
 };
 
 export function loanStatusLabel(status: string): string {
-  return t(`debt.status.${status in VARIANTS ? status : 'UNDEFINED'}`);
+  return t(`debt.status.${status in VARIANTS ? status : 'UNDEFINED'}` as never);
 }
 
 export function loanStatusVariant(status: string): BaseBadgeVariant {

@@ -2468,6 +2468,7 @@
 - `EXPENSE_OVERSPEND = 'expense_overspend',`
 - `AID = 'aid',`
 - `TAX = 'tax',`
+- `LOAN = 'loan',`
 
 ## PROGRAM_AGREEMENT_PORT
 

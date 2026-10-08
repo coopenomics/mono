@@ -275,6 +275,30 @@
     },
     "name": "Решение совета по беспроцентному займу"
   },
+  "loanDueSoon": {
+    "description": "Напоминание пайщику о приближении срока возврата займа",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Срок возврата беспроцентного займа по договору № {{payload.contractNumber}} наступает {{payload.dueAt}}. Остаток к возврату — {{payload.amount}}. Заём возвращается с главного кошелька, целиком или частями; срок продлевается по заявлению.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Срок возврата займа № {{payload.contractNumber}} подходит — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Вернуть до {{payload.dueAt}}, остаток — {{payload.amount}}.",
+      "subject": "Срок возврата займа № {{payload.contractNumber}} подходит"
+    },
+    "name": "Срок возврата займа подходит"
+  },
+  "loanExtensionDecided": {
+    "description": "Председатель рассмотрел заявление о продлении срока возврата займа",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Заявление о продлении срока возврата займа по договору № {{payload.contractNumber}} рассмотрено.<br><br>{% if payload.decision == 'approved' %}Срок продлён.{% else %}В продлении отказано.{% if payload.reason %} Причина: {{payload.reason}}.{% endif %} Срок возврата остаётся прежним.{% endif %}<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Продление срока займа № {{payload.contractNumber}} — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "{% if payload.decision == 'approved' %}Срок возврата продлён.{% else %}В продлении отказано, срок возврата остаётся прежним.{% endif %}",
+      "subject": "Продление срока займа № {{payload.contractNumber}}"
+    },
+    "name": "Решение о продлении срока займа"
+  },
   "loanIssued": {
     "description": "Кассир подтвердил выплату займа пайщику",
     "email": {
@@ -286,6 +310,18 @@
       "subject": "Заём № {{payload.contractNumber}} выдан"
     },
     "name": "Беспроцентный заём выдан"
+  },
+  "loanOverdue": {
+    "description": "Срок возврата займа прошёл, заём в просрочке",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Срок возврата беспроцентного займа по договору № {{payload.contractNumber}} истёк {{payload.dueAt}}. Остаток к возврату — {{payload.amount}}. Через пять дней после истечения срока обеспечение обращается в пользу кооператива в порядке, установленном договором. До этого заём возвращается с главного кошелька, срок продлевается по заявлению.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Срок возврата займа № {{payload.contractNumber}} прошёл — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Остаток — {{payload.amount}}. Через пять дней обеспечение обращается в пользу кооператива.",
+      "subject": "Срок возврата займа № {{payload.contractNumber}} прошёл"
+    },
+    "name": "Срок возврата займа прошёл"
   },
   "loanPaymentDeclined": {
     "description": "Кассир отклонил платёж по займу по реквизитам",
@@ -299,6 +335,18 @@
     },
     "name": "Платёж по займу отклонён"
   },
+  "loanRepaid": {
+    "description": "Возврат займа с главного кошелька принят",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Возврат по договору беспроцентного займа № {{payload.contractNumber}} принят{% if payload.repaid %} на сумму {{payload.repaid}}{% endif %}. Обеспечение на сумму возврата вернулось на кошелёк программы.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Возврат по займу № {{payload.contractNumber}} принят — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "{% if payload.repaid %}Сумма возврата — {{payload.repaid}}. {% endif %}Обеспечение на сумму возврата вернулось в программу.",
+      "subject": "Возврат по займу № {{payload.contractNumber}} принят"
+    },
+    "name": "Возврат займа принят"
+  },
   "loanSigned": {
     "description": "Председатель подписал договор займа, платёж передан кассиру",
     "email": {
@@ -310,6 +358,18 @@
       "subject": "Договор займа № {{payload.contractNumber}} подписан"
     },
     "name": "Договор займа подписан"
+  },
+  "loanWrittenOff": {
+    "description": "Обеспечение займа обращено в пользу кооператива, заём закрыт",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Заём по договору № {{payload.contractNumber}} в установленный срок возвращён не был. Обеспечение{% if payload.seized %} на сумму {{payload.seized}}{% endif %} обращено в пользу кооператива в порядке, установленном договором. Обязательство по займу прекращено.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Обеспечение по займу № {{payload.contractNumber}} обращено в пользу кооператива — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Обеспечение обращено в пользу кооператива, обязательство по займу прекращено.",
+      "subject": "Заём № {{payload.contractNumber}} закрыт обращением обеспечения"
+    },
+    "name": "Обеспечение займа обращено в пользу кооператива"
   },
   "loginEmailCode": {
     "description": "Одноразовый код на почту для подтверждения входа (двухфакторная аутентификация)",

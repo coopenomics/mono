@@ -270,3 +270,10 @@ cases:
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts
     status: passing
+
+# 2026-10-08 (компонент 73, эпик 367-3): добавлен тип платежа «беспроцентный
+# заём» (LOAN) — исходящая выплата по договору займа. Отмена такого платежа
+# кассиром доводится до шлюза в цепи раньше смены статуса; случаи записаны в
+# реестре займов (test-registry/debt.loan.yaml: dbt.loan.backend.pay.*,
+# dbt.loan.backend.decline.01, dbt.loan.backend.issue.01). Сценарии остальных
+# типов платежей не менялись.

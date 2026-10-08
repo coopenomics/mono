@@ -8,12 +8,17 @@ export interface LoanListFilter {
   username?: string;
   status?: LoanStatus;
   source?: string;
+  /** Только выданные и не закрытые: в срок и в просрочке. */
+  outstanding?: boolean;
+  /** Выданные займы, срок которых наступает в ближайшие столько дней. */
+  due_within_days?: number;
 }
 
 /** Репозиторий зеркала займов. Чтение — только из Postgres. */
 export interface LoanRepository extends IBlockchainSyncRepository<LoanDomainEntity> {
   findByDebtHash(debtHash: string): Promise<LoanDomainEntity | null>;
   findByUsername(coopname: string, username: string): Promise<LoanDomainEntity[]>;
+  findByStatus(coopname: string, status: LoanStatus): Promise<LoanDomainEntity[]>;
   findPaginated(
     filter: LoanListFilter,
     options?: PaginationInputDTO

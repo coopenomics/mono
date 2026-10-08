@@ -6525,6 +6525,10 @@ export type ValueTypes = {
 	["DebtLoanFilterInput"]: {
 	/** Кооператив */
 	coopname: string | Variable<any, string>,
+	/** Выданные займы, срок которых наступает в ближайшие столько дней */
+	due_within_days?: number | undefined | null | Variable<any, string>,
+	/** Только выданные и не закрытые займы: в срок и в просрочке */
+	outstanding?: boolean | undefined | null | Variable<any, string>,
 	/** Контракт-источник записи */
 	source?: string | undefined | null | Variable<any, string>,
 	/** Состояние займа */
@@ -14137,6 +14141,7 @@ cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["C
 debtCollateralOptions?: [{	coopname: string | Variable<any, string>},ValueTypes["DebtCollateralOption"]],
 debtLoan?: [{	debt_hash: string | Variable<any, string>},ValueTypes["DebtLoan"]],
 debtLoans?: [{	filter: ValueTypes["DebtLoanFilterInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedDebtLoansPaginationResult"]],
+debtRepayAvailable?: [{	coopname: string | Variable<any, string>},boolean | `@${string}`],
 documentApprovalsSeedPlan?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedItem"]],
 documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
@@ -21887,6 +21892,10 @@ export type ResolverInputTypes = {
 	["DebtLoanFilterInput"]: {
 	/** Кооператив */
 	coopname: string,
+	/** Выданные займы, срок которых наступает в ближайшие столько дней */
+	due_within_days?: number | undefined | null,
+	/** Только выданные и не закрытые займы: в срок и в просрочке */
+	outstanding?: boolean | undefined | null,
 	/** Контракт-источник записи */
 	source?: string | undefined | null,
 	/** Состояние займа */
@@ -29261,6 +29270,7 @@ cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgra
 debtCollateralOptions?: [{	coopname: string},ResolverInputTypes["DebtCollateralOption"]],
 debtLoan?: [{	debt_hash: string},ResolverInputTypes["DebtLoan"]],
 debtLoans?: [{	filter: ResolverInputTypes["DebtLoanFilterInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedDebtLoansPaginationResult"]],
+debtRepayAvailable?: [{	coopname: string},boolean | `@${string}`],
 documentApprovalsSeedPlan?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedItem"]],
 documentTemplateBlank?: [{	coopname: string,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
 	doc_data_hash?: string | undefined | null,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
@@ -36802,6 +36812,10 @@ export type ModelTypes = {
 	["DebtLoanFilterInput"]: {
 	/** Кооператив */
 	coopname: string,
+	/** Выданные займы, срок которых наступает в ближайшие столько дней */
+	due_within_days?: number | undefined | null,
+	/** Только выданные и не закрытые займы: в срок и в просрочке */
+	outstanding?: boolean | undefined | null,
 	/** Контракт-источник записи */
 	source?: string | undefined | null,
 	/** Состояние займа */
@@ -44257,6 +44271,8 @@ export type ModelTypes = {
 	debtLoan: ModelTypes["DebtLoan"],
 	/** Займы кооператива с отбором по пайщику, состоянию и источнику. Пайщик видит только свои. */
 	debtLoans: ModelTypes["PaginatedDebtLoansPaginationResult"],
+	/** Свободный остаток пайщика на главном кошельке — предел суммы возврата займа. */
+	debtRepayAvailable: string,
 	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
 	documentApprovalsSeedPlan: Array<ModelTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
@@ -52104,6 +52120,10 @@ export type GraphQLTypes = {
 	["DebtLoanFilterInput"]: {
 		/** Кооператив */
 	coopname: string,
+	/** Выданные займы, срок которых наступает в ближайшие столько дней */
+	due_within_days?: number | undefined | null,
+	/** Только выданные и не закрытые займы: в срок и в просрочке */
+	outstanding?: boolean | undefined | null,
 	/** Контракт-источник записи */
 	source?: string | undefined | null,
 	/** Состояние займа */
@@ -60133,6 +60153,8 @@ export type GraphQLTypes = {
 	debtLoan: GraphQLTypes["DebtLoan"],
 	/** Займы кооператива с отбором по пайщику, состоянию и источнику. Пайщик видит только свои. */
 	debtLoans: GraphQLTypes["PaginatedDebtLoansPaginationResult"],
+	/** Свободный остаток пайщика на главном кошельке — предел суммы возврата займа. */
+	debtRepayAvailable: string,
 	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
 	documentApprovalsSeedPlan: Array<GraphQLTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */

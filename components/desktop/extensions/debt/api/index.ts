@@ -59,3 +59,38 @@ export async function cancelLoan(data: Mutations.Debt.CancelDebtLoan.IInput['dat
 export async function retryLoanPayment(data: Mutations.Debt.RetryDebtLoanPayment.IInput['data']) {
   return client.Mutation(M.RetryDebtLoanPayment.mutation, { variables: { data } });
 }
+
+export async function getRepayAvailable(coopname: string): Promise<string> {
+  const { [Q.DebtRepayAvailable.name]: result } = await client.Query(Q.DebtRepayAvailable.query, {
+    variables: { coopname },
+  });
+  return result;
+}
+
+export async function generateRepaymentStatement(
+  data: Mutations.Debt.GenerateDebtRepaymentStatementDocument.IInput['data'],
+) {
+  const { [M.GenerateDebtRepaymentStatementDocument.name]: result } = await client.Mutation(
+    M.GenerateDebtRepaymentStatementDocument.mutation,
+    { variables: { data, options: lang } },
+  );
+  return result;
+}
+
+export async function generateExtensionStatement(
+  data: Mutations.Debt.GenerateDebtExtensionStatementDocument.IInput['data'],
+) {
+  const { [M.GenerateDebtExtensionStatementDocument.name]: result } = await client.Mutation(
+    M.GenerateDebtExtensionStatementDocument.mutation,
+    { variables: { data, options: lang } },
+  );
+  return result;
+}
+
+export async function repayLoan(data: Mutations.Debt.RepayDebtLoan.IInput['data']) {
+  return client.Mutation(M.RepayDebtLoan.mutation, { variables: { data } });
+}
+
+export async function extendLoan(data: Mutations.Debt.ExtendDebtLoan.IInput['data']) {
+  return client.Mutation(M.ExtendDebtLoan.mutation, { variables: { data } });
+}

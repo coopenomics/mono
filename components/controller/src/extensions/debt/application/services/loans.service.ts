@@ -21,6 +21,9 @@ interface UserWalletRow {
   available: string;
 }
 
+/** Главный кошелёк пайщика (паевой взнос в «Цифровом Кошельке») — с него возвращается заём. */
+const MAIN_WALLET = 'w.wal.share';
+
 /**
  * Чтение займов и обеспечения. Реестр обеспечения — из cooptypes (копия
  * реестра контракта), остатки — из книги учёта, подписанное основание —
@@ -54,6 +57,15 @@ export class LoansService {
       totalPages: limit > 0 ? Math.ceil(totalCount / limit) : 0,
       currentPage: page,
     };
+  }
+
+  /**
+   * Свободный остаток пайщика на главном кошельке — предел суммы возврата.
+   * Пустая строка — кошелька у пайщика ещё нет.
+   */
+  async repayAvailable(coopname: string, username: string): Promise<string> {
+    const wallets = await this.chain.getAllRows<UserWalletRow>('ledger2', coopname, 'userwallets');
+    return wallets.find((w) => w.username === username && w.wallet_name === MAIN_WALLET)?.available ?? '';
   }
 
   /** Виды обеспечения из реестра с остатком пайщика и признаком подписанного основания. */

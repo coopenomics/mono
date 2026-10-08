@@ -192,7 +192,7 @@ describe('Беспроцентный заём под паевой взнос «�
     await processApprove(blockchain, COOP, debtHash)
     expect((await getDebt(debtHash)).status).toBe(DebtContract.Status.PAYING)
 
-    const decline: GatewayContract.Actions.DeclineOutcome.IDeclineOutcome = { coopname: COOP, outcome_hash: debtHash, reason: 'реквизиты не прошли' }
+    const decline: GatewayContract.Actions.DeclineOutcome.IOutDecline = { coopname: COOP, outcome_hash: debtHash, reason: 'реквизиты не прошли' }
     await tx(GatewayContract.contractName.production, GatewayContract.Actions.DeclineOutcome.actionName, decline)
     const signed = await getDebt(debtHash)
     expect(signed.status).toBe(DebtContract.Status.SIGNED)

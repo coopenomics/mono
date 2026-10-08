@@ -51,17 +51,18 @@ import {
   loanStatusLabel,
   loanStatusVariant,
   sourceLabel,
-  useLoanList,
+  useLiveLoanList,
 } from '../model';
 import { t } from '../i18n';
 import LoanDetailsDrawer from '../widgets/LoanDetailsDrawer.vue';
 
 // Вкладка — одно состояние займа; «Все» отбора не ставит.
-const TABS: Array<{ key: string; label: string; status?: string }> = [
+const TABS: Array<{ key: string; label: string; status?: string; due_within_days?: number }> = [
   { key: 'all', label: t('debt.registryPage.tabAll') },
   { key: 'pending', label: t('debt.registryPage.tabPending'), status: 'CREATED' },
   { key: 'paying', label: t('debt.registryPage.tabPaying'), status: 'PAYING' },
   { key: 'issued', label: t('debt.registryPage.tabIssued'), status: 'ISSUED' },
+  { key: 'due-soon', label: t('debt.registryPage.tabDueSoon'), due_within_days: 14 },
   { key: 'overdue', label: t('debt.registryPage.tabOverdue'), status: 'OVERDUE' },
   { key: 'closed', label: t('debt.registryPage.tabClosed'), status: 'CLOSED' },
 ];
@@ -69,10 +70,11 @@ const tabs: PageTab[] = TABS.map(({ key, label }) => ({ key, label }));
 const activeKey = ref('all');
 
 const filter = computed(() => {
-  const status = TABS.find((tab) => tab.key === activeKey.value)?.status;
-  return status ? { status } : {};
+  const tab = TABS.find((one) => one.key === activeKey.value);
+  if (tab?.due_within_days) return { due_within_days: tab.due_within_days };
+  return tab?.status ? { status: tab.status } : {};
 });
-const { items, loading, firstLoad, hasMore, reload, reset, loadMore } = useLoanList(filter);
+const { items, loading, firstLoad, hasMore, reload, reset, loadMore } = useLiveLoanList(filter);
 
 const columns: BaseTableColumn<ILoan>[] = [
   { key: 'number', label: t('debt.registryPage.columnNumber') },

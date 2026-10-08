@@ -23,6 +23,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_USER_SHARED_PRO
     "wallet_name": "w.cap.blago",
   },
   {
+    "program_label": "Благорост — обеспечение берётся из средств программы",
+    "required_program_id": 4,
+    "wallet_name": "w.cap.pledge",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.dbt.pend",
+  },
+  {
+    "program_label": null,
+    "required_program_id": 0,
+    "wallet_name": "w.dbt.issued",
+  },
+  {
     "program_label": "Генератор",
     "required_program_id": 3,
     "wallet_name": "w.cap.gen",
@@ -106,6 +121,21 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "ЦПП «Благорост» — единый кошелёк программы у пайщика",
     "kind": "USER_SHARED",
     "name": "w.cap.blago",
+  },
+  {
+    "human_name": "Обеспечение беспроцентного займа паевым взносом «Благорост»",
+    "kind": "USER_SHARED",
+    "name": "w.cap.pledge",
+  },
+  {
+    "human_name": "Беспроцентные займы к выдаче",
+    "kind": "USER_SHARED",
+    "name": "w.dbt.pend",
+  },
+  {
+    "human_name": "Выданные беспроцентные займы",
+    "kind": "USER_SHARED",
+    "name": "w.dbt.issued",
   },
   {
     "human_name": "Первичный учёт РИД-взносов до перехода на электронный учёт",
@@ -201,11 +231,6 @@ exports[`ledger2 wallets registry (generated from C++) > LEDGER2_WALLET_REGISTRY
     "human_name": "Использованные минимальные паевые взносы",
     "kind": "COOPERATIVE",
     "name": "w.sov.mnused",
-  },
-  {
-    "human_name": "Выданные пайщикам беспроцентные займы",
-    "kind": "COOPERATIVE",
-    "name": "w.cap.loan",
   },
   {
     "human_name": "Выплаты поставщикам",

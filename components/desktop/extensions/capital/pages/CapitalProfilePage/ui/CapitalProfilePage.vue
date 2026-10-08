@@ -8,6 +8,9 @@
 
   CapitalWalletsCardsWidget
 
+  //- Блоки других приложений под кошельками: задолженность по беспроцентным займам.
+  ExtensionSlot(:name='EXTENSION_SLOTS.capitalProfileAfterWallets')
+
   BaseCard(:title='$t("capital.capitalProfilePage.participationParamsTitle")')
     .capital-profile__fields
       EditAboutInput(@about-updated='handleFieldUpdated')
@@ -49,6 +52,8 @@ import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseCard } from 'src/shared/ui/base';
 import { IdentityPanel, type Identity } from 'src/shared/ui/domain/IdentityPanel';
 import { CapitalWalletsCardsWidget } from 'app/extensions/capital/widgets/CapitalWalletsCardsWidget';
+import { ExtensionSlot } from 'src/shared/ui/ExtensionSlot';
+import { EXTENSION_SLOTS } from 'src/shared/lib/extension-slots';
 import { t } from '../../../i18n';
 
 const contributorStore = useContributorStore();

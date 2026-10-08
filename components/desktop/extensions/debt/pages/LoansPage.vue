@@ -35,14 +35,14 @@ import { computed, onMounted, ref } from 'vue';
 import { BaseButton, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import type { ILoan } from '../api';
-import { useLoanList } from '../model';
+import { useLiveLoanList } from '../model';
 import LoanRow from '../widgets/LoanRow.vue';
 import LoanDetailsDrawer from '../widgets/LoanDetailsDrawer.vue';
 import LoanCreateDialog from './LoanCreateDialog.vue';
 
 // Пайщик видит только свои займы — отбор по имени делает сервер.
 const filter = ref({});
-const { items, loading, firstLoad, hasMore, reload, reset, loadMore } = useLoanList(filter);
+const { items, loading, firstLoad, hasMore, reload, reset, loadMore } = useLiveLoanList(filter);
 
 const createOpen = ref(false);
 const drawerOpen = ref(false);

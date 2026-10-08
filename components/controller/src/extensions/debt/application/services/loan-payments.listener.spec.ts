@@ -14,7 +14,7 @@ function loan(chainStatus: string, present = true): LoanDomainEntity {
       id: 1,
       coopname: 'voskhod',
       username: 'ant',
-      status: chainStatus,
+      status: chainStatus as any,
       debt_hash: DEBT_HASH,
       collateral: 'blago',
       source: 'debt',

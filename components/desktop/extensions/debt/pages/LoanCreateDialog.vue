@@ -62,7 +62,9 @@ BaseDialog(
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { Ledger2Contract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
+import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
@@ -131,17 +133,23 @@ const canSubmit = computed(
     !submitting.value,
 );
 
-async function load(): Promise<void> {
+// silent — дочитка по ленте изменений: без каркаса и без сброса введённого.
+async function load(silent = false): Promise<void> {
   try {
-    loading.value = true;
+    if (!silent) loading.value = true;
     options.value = await getCollateralOptions(system.info.coopname);
     if (!form.collateral && available.value.length === 1) form.collateral = available.value[0].key;
   } catch (e) {
-    FailAlert(e);
+    if (!silent) FailAlert(e);
   } finally {
     loading.value = false;
   }
 }
+
+// Остатки кошельков пайщика меняются и при открытом окне — перечитываем по ленте изменений.
+useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)], () => {
+  if (props.modelValue && !submitting.value) void load(true);
+});
 
 watch(
   () => props.modelValue,

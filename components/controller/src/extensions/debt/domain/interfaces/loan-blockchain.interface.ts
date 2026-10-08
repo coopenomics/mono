@@ -1,4 +1,5 @@
 import type { ISignedDocument } from '@coopenomics/innercoop';
+import type { DebtContract } from 'cooptypes';
 
 /**
  * Строка таблицы `debts` контракта `debt` (scope = coopname) в виде зеркала:
@@ -8,7 +9,7 @@ export interface ILoanBlockchainData {
   id: number | string;
   coopname: string;
   username: string;
-  status: string;
+  status: DebtContract.Status;
   debt_hash: string;
   collateral: string;
   source: string;

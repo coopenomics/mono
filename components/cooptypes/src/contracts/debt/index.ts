@@ -13,13 +13,11 @@ export const contractName = contractNames._debt
 /**
  * Состояния займа в таблице `debts`.
  */
-export const Status = {
-  CREATED: 'created',
-  AUTHORIZED: 'authorized',
-  SIGNED: 'signed',
-  PAYING: 'paying',
-  ISSUED: 'issued',
-  OVERDUE: 'overdue',
-} as const
-
-export type Status = (typeof Status)[keyof typeof Status]
+export enum Status {
+  CREATED = 'created',
+  AUTHORIZED = 'authorized',
+  SIGNED = 'signed',
+  PAYING = 'paying',
+  ISSUED = 'issued',
+  OVERDUE = 'overdue',
+}

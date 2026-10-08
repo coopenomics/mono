@@ -9,6 +9,7 @@ import {
   type PaginationResult,
   RequireRight,
   RightsGuard,
+  SELF,
 } from '@coopenomics/extension-kit';
 import type { IMonoAccount } from '@coopenomics/innercoop';
 import { LoansService } from '../services/loans.service';
@@ -45,12 +46,25 @@ export class LoanQueriesResolver {
     return this.loans.getByHashOutput(debtHash);
   }
 
+  @Query(() => String, {
+    name: 'debtRepayAvailable',
+    description: 'Свободный остаток пайщика на главном кошельке — предел суммы возврата займа.',
+  })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('LoanCollateral', 'read:own', SELF)
+  async debtRepayAvailable(
+    @CurrentUser() user: IMonoAccount,
+    @Args('coopname', { type: () => String }) coopname: string
+  ): Promise<string> {
+    return this.loans.repayAvailable(coopname, user.username);
+  }
+
   @Query(() => [CollateralOptionDTO], {
     name: 'debtCollateralOptions',
     description: 'Виды обеспечения из реестра контракта с остатком пайщика и признаком подписанного договора-основания.',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('LoanCollateral', 'read:own')
+  @RequireRight('LoanCollateral', 'read:own', SELF)
   async debtCollateralOptions(
     @CurrentUser() user: IMonoAccount,
     @Args('coopname', { type: () => String }) coopname: string

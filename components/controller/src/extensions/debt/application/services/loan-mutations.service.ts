@@ -16,6 +16,7 @@ import {
 import { DEBT_BLOCKCHAIN_PORT, type DebtBlockchainPort } from '../../domain/interfaces/debt-blockchain.port';
 import { LoanStatus } from '../../domain/enums/loan-status.enum';
 import { LoansService } from './loans.service';
+import { t } from '../../i18n';
 import type { CreateLoanInputDTO } from '../dto/create-loan.input';
 import type { CancelLoanInputDTO, ExtendLoanInputDTO, LoanRefInputDTO, RepayLoanInputDTO } from '../dto/loan-action.inputs';
 import type {
@@ -60,7 +61,7 @@ export class LoanMutationsService {
 
   /** Данные основания для фабрики: тип по реестру обеспечения; программа — у «Благороста». */
   private basisOf(entry: Debt.CollateralMeta) {
-    return { basis_type: entry.basis_type === 'OFFER' ? 'offer' : 'uhd', program_name: 'Благорост' };
+    return { basis_type: entry.basis_type === 'OFFER' ? 'offer' : 'uhd', program_name: t('debt.program.blagorost') };
   }
 
   // ── Документы ──────────────────────────────────────────────────────────

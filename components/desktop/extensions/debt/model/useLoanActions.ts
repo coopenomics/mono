@@ -3,7 +3,17 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { DigitalDocument } from 'src/shared/lib/document';
 import { generateUniqueHash } from 'src/shared/lib/utils/generateUniqueHash';
-import { cancelLoan, createLoan, generateLoanContract, generateLoanStatement, retryLoanPayment } from '../api';
+import {
+  cancelLoan,
+  createLoan,
+  extendLoan,
+  generateExtensionStatement,
+  generateLoanContract,
+  generateLoanStatement,
+  generateRepaymentStatement,
+  repayLoan,
+  retryLoanPayment,
+} from '../api';
 
 export interface ILoanDraft {
   /** Ключ обеспечения из реестра обеспечения. */
@@ -64,5 +74,29 @@ export function useLoanActions() {
     return retryLoanPayment({ coopname: info.coopname, debt_hash });
   }
 
-  return { submitLoan, cancel, retryPayment };
+  /** Возврат с главного кошелька: пайщик подписывает заявление о возврате на сумму. */
+  async function repay(debt_hash: string, value: number, symbol: string, precision: number) {
+    const amount = `${value.toFixed(precision)} ${symbol}`;
+    const base = { coopname: info.coopname, username: session.username, debt_hash, amount };
+    const doc = await generateRepaymentStatement(base);
+    const statement = await new DigitalDocument(doc).sign<Cooperative.Registry.LoanRepaymentStatement.Meta>(
+      session.username,
+      1,
+    );
+    return repayLoan({ ...base, statement });
+  }
+
+  /** Продление срока: заявление пайщика уходит председателю в запросы одобрений. */
+  async function extend(debt_hash: string, due: string) {
+    const new_due_at = `${due}T23:59:59`;
+    const base = { coopname: info.coopname, username: session.username, debt_hash, new_due_at };
+    const doc = await generateExtensionStatement(base);
+    const statement = await new DigitalDocument(doc).sign<Cooperative.Registry.LoanExtensionStatement.Meta>(
+      session.username,
+      1,
+    );
+    return extendLoan({ ...base, statement });
+  }
+
+  return { submitLoan, cancel, retryPayment, repay, extend };
 }

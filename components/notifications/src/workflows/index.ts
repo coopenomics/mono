@@ -65,6 +65,11 @@ import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-reso
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
 import { workflow as loanDecidedWorkflow } from './loan-decided';
 import { workflow as loanSignedWorkflow } from './loan-signed';
+import { workflow as loanDueSoonWorkflow } from './loan-due-soon';
+import { workflow as loanOverdueWorkflow } from './loan-overdue';
+import { workflow as loanRepaidWorkflow } from './loan-repaid';
+import { workflow as loanWrittenOffWorkflow } from './loan-written-off';
+import { workflow as loanExtensionDecidedWorkflow } from './loan-extension-decided';
 import { workflow as loanIssuedWorkflow } from './loan-issued';
 import { workflow as loanPaymentDeclinedWorkflow } from './loan-payment-declined';
 
@@ -130,6 +135,11 @@ export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
 export * as LoanDecided from './loan-decided';
 export * as LoanSigned from './loan-signed';
+export * as LoanDueSoon from './loan-due-soon';
+export * as LoanOverdue from './loan-overdue';
+export * as LoanRepaid from './loan-repaid';
+export * as LoanWrittenOff from './loan-written-off';
+export * as LoanExtensionDecided from './loan-extension-decided';
 export * as LoanIssued from './loan-issued';
 export * as LoanPaymentDeclined from './loan-payment-declined';
 
@@ -202,6 +212,11 @@ export const allWorkflows: WorkflowDefinition[] = [
   loanSignedWorkflow,
   loanIssuedWorkflow,
   loanPaymentDeclinedWorkflow,
+  loanDueSoonWorkflow,
+  loanOverdueWorkflow,
+  loanRepaidWorkflow,
+  loanWrittenOffWorkflow,
+  loanExtensionDecidedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

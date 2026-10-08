@@ -39,7 +39,7 @@ export class LoanDeltaMapper extends AbstractBlockchainDeltaMapper<ILoanBlockcha
         id: value.id,
         coopname: value.coopname,
         username: value.username,
-        status: String(value.status),
+        status: value.status as DebtContract.Status,
         debt_hash: String(value.debt_hash).toLowerCase(),
         collateral: value.collateral,
         source: value.source,

@@ -29,6 +29,8 @@ export const debtPorts = {
     PAYMENT_PORT,
     VAULT_PORT,
   ],
-  // Лента изменений: без неё столы займов живут дочиткой.
-  optional: [CHAIN_CHANGES_PORT],
+  optional: [
+    // Лента изменений: без неё столы займов живут дочиткой.
+    CHAIN_CHANGES_PORT,
+  ],
 };

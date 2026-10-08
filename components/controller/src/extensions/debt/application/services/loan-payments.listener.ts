@@ -62,7 +62,7 @@ export class LoanPaymentsListener {
       type: PaymentType.LOAN,
       direction: PaymentDirection.OUTGOING,
       status: PaymentStatus.PENDING,
-      memo: t('payment.loanMemo', { number: entity.debt_hash.slice(0, 8).toUpperCase() }),
+      memo: t('debt.payment.loanMemo', { number: entity.debt_hash.slice(0, 8).toUpperCase() }),
       secret: generateUniqueHash(),
       payment_method_id: methodId,
       created_at: now,
