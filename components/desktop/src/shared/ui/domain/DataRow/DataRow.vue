@@ -104,14 +104,7 @@ async function onCopy(): Promise<void> {
 .data-row--spread {
   grid-template-columns: minmax(0, 1fr) auto;
 }
-.data-row--spread /* Значок пояснения отстоит от подписи, а не прижат к последней букве. */
-.data-row__label-append {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: var(--p-1, 4px);
-}
-
-.data-row__value {
+.data-row--spread .data-row__value {
   justify-content: flex-end;
   text-align: right;
   white-space: nowrap;
@@ -126,6 +119,13 @@ async function onCopy(): Promise<void> {
   font-size: var(--p-fs-body-sm, 13px);
   line-height: var(--p-lh-body-sm, 1.5);
   padding-right: var(--p-2, 8px);
+}
+
+/* Значок пояснения отстоит от подписи, а не прижат к последней букве. */
+.data-row__label-append {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: var(--p-1, 4px);
 }
 
 .data-row__value {
