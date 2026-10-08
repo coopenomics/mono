@@ -17,15 +17,14 @@ BaseDialog(
         q-icon(name='account_balance_wallet', size='40px')
 
     template(v-else)
+      LoanFacts(:items='facts')
       AmountInput(
         v-model='amount',
         :symbol='symbol',
-        :precision='precision',
+        :precision='2',
         :label='$t("debt.repayDialog.amountLabel")',
-        :hint='$t("debt.repayDialog.amountHint", { remaining: formatAmount(loan.remaining) })',
-        :balance='walletAvailable',
+        :balance='maxAmount',
         :max='maxAmount',
-        show-balance,
         show-max
       )
       p.loan-form__terms {{ $t('debt.repayDialog.terms') }}
@@ -48,6 +47,7 @@ import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { getRepayAvailable, type ILoan } from '../api';
 import { amountOf, formatAmount, useLoanActions } from '../model';
+import LoanFacts from '../widgets/LoanFacts.vue';
 import { t } from '../i18n';
 
 const props = defineProps<{ modelValue: boolean; loan: ILoan | null }>();
@@ -65,10 +65,15 @@ const precision = computed(() => system.governPrecision);
 const loading = ref(true);
 const submitting = ref(false);
 const walletAvailable = ref(0);
+const walletAsset = ref('');
 const amount = ref<number | null>(null);
 
 // Вернуть можно в пределах остатка займа и свободного на главном кошельке.
 const maxAmount = computed(() => Math.min(amountOf(props.loan?.remaining), walletAvailable.value));
+const facts = computed(() => [
+  { label: t('debt.repayDialog.remainingLabel'), value: formatAmount(props.loan?.remaining) },
+  { label: t('debt.repayDialog.walletLabel'), value: formatAmount(walletAsset.value) },
+]);
 const canSubmit = computed(
   () => amount.value !== null && amount.value > 0 && amount.value <= maxAmount.value && !submitting.value,
 );
@@ -77,7 +82,8 @@ const canSubmit = computed(
 async function load(silent = false): Promise<void> {
   try {
     if (!silent) loading.value = true;
-    walletAvailable.value = amountOf(await getRepayAvailable(system.info.coopname));
+    walletAsset.value = await getRepayAvailable(system.info.coopname);
+    walletAvailable.value = amountOf(walletAsset.value);
     if (!silent) amount.value = maxAmount.value > 0 ? maxAmount.value : null;
   } catch (e) {
     if (!silent) FailAlert(e);

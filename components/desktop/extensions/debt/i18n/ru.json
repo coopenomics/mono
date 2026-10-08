@@ -4,6 +4,7 @@
       "blago": "Паевой взнос в программе «Благорост»"
     },
     "createDialog": {
+      "availableLabel": "Доступно для обеспечения",
       "amountLabel": "Сумма займа",
       "collateralAvailable": "доступно {amount}",
       "collateralLabel": "Обеспечение",
@@ -114,12 +115,13 @@
       "tabPending": "На рассмотрении"
     },
     "repayDialog": {
-      "amountHint": "Остаток займа — {remaining}",
       "amountLabel": "Сумма возврата",
+      "remainingLabel": "Остаток займа",
       "submitLabel": "Подписать заявление",
       "submittedMessage": "Возврат принят",
       "terms": "Сумма списывается с главного кошелька. Обеспечение на ту же сумму возвращается на кошелёк программы.",
       "title": "Возврат займа",
+      "walletLabel": "На главном кошельке",
       "walletEmptyBody": "Заём возвращается с главного кошелька. Пополните его паевым взносом.",
       "walletEmptyTitle": "На главном кошельке нет средств"
     },

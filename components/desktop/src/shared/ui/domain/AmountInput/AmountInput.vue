@@ -34,7 +34,7 @@
     :class='{ "amount-input__balance--below-hint": !!hint || !!error }'
   )
     span.amount-input__balance-label {{ $t('ui.amountInput.balanceLabel') }}
-    span.amount-input__balance-value {{ formatNumber(toNumber(balance)) }}
+    span.amount-input__balance-value {{ formatBalance(toNumber(balance)) }}
     span.amount-input__balance-symbol(v-if='symbol') {{ symbol }}
 </template>
 
@@ -87,6 +87,14 @@ function formatNumber(n: number | null): string {
   if (n == null) return '';
   const fixed = n.toFixed(props.precision);
   const [intPart, fracPart] = fixed.split('.');
+  const withSep = (intPart ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return fracPart != null ? `${withSep},${fracPart}` : withSep;
+}
+
+/** Остаток показывается в рублях и копейках: точность цепи (четыре знака) человеку не нужна. */
+function formatBalance(n: number | null): string {
+  if (n == null) return '';
+  const [intPart, fracPart] = n.toFixed(Math.min(props.precision, 2)).split('.');
   const withSep = (intPart ?? '0').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   return fracPart != null ? `${withSep},${fracPart}` : withSep;
 }
