@@ -3,9 +3,15 @@ BaseDialog(
   :model-value='modelValue',
   :title='$t("debt.createDialog.title")',
   size='md',
+  :maximized='!!prepared',
   @update:model-value='$emit("update:modelValue", $event)'
 )
-  .loan-form
+  //- Второй шаг: заявление и договор на прочтение перед подписью.
+  .loan-review(v-if='prepared')
+    DocumentHtmlReader(:html='prepared.statementDoc.html')
+    DocumentHtmlReader(:html='prepared.contractDoc.html')
+
+  .loan-form(v-else)
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
     q-skeleton(v-if='loading', type='rect', height='180px')
 
@@ -65,14 +71,18 @@ BaseDialog(
 
   template(#footer)
     .loan-form__footer
-      BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
-      BaseButton(
-        v-if='formReady',
-        variant='primary',
-        :loading='submitting',
-        :disabled='!canSubmit',
-        @click='submit'
-      ) {{ $t('debt.createDialog.submitLabel') }}
+      template(v-if='prepared')
+        BaseButton(variant='ghost', :disabled='submitting', @click='prepared = null') {{ $t('debt.createDialog.backLabel') }}
+        BaseButton(variant='primary', :loading='submitting', @click='submit') {{ $t('debt.createDialog.signLabel') }}
+      template(v-else)
+        BaseButton(variant='ghost', @click='close') {{ $t('common.action.cancel') }}
+        BaseButton(
+          v-if='formReady',
+          variant='primary',
+          :loading='submitting',
+          :disabled='!canSubmit',
+          @click='prepare'
+        ) {{ $t('debt.createDialog.submitLabel') }}
 </template>
 
 <script setup lang="ts">
@@ -92,8 +102,10 @@ import type { BaseSelectOption } from 'src/shared/ui/base/BaseSelect';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
 import { AmountInput } from 'src/shared/ui/domain/AmountInput';
 import { PaymentMethodSelect } from 'src/shared/ui/domain/PaymentMethodSelect';
+import { DocumentHtmlReader } from 'src/shared/ui/DocumentHtmlReader';
 import { getCollateralOptions, type ICollateralOption } from '../api';
 import { collateralLabel, defaultDueDate, formatAmount, useLoanActions } from '../model';
+import type { IPreparedLoan } from '../model/useLoanActions';
 import { t } from '../i18n';
 
 const props = defineProps<{ modelValue: boolean }>();
@@ -104,7 +116,7 @@ const emit = defineEmits<{
 
 const system = useSystemStore();
 const session = useSessionStore();
-const { submitLoan } = useLoanActions();
+const { prepareLoan, signLoan } = useLoanActions();
 const router = useRouter();
 const route = useRoute();
 
@@ -115,6 +127,8 @@ const loading = ref(true);
 const submitting = ref(false);
 const options = ref<ICollateralOption[]>([]);
 const hasMethods = ref(false);
+// Собранные заявление и договор: пока они есть, окно показывает их на прочтение.
+const prepared = ref<IPreparedLoan | null>(null);
 
 const form = reactive({
   collateral: null as string | null,
@@ -180,6 +194,7 @@ useLiveReload([liveTable(Ledger2Contract, Ledger2Contract.Tables.UserWallets)], 
 watch(
   () => props.modelValue,
   (open) => {
+    prepared.value = null;
     if (open) void load();
   },
   { immediate: true },
@@ -194,11 +209,12 @@ function goToMethods(): void {
   void router.push({ name: 'payment-methods', params: { coopname: route.params.coopname } });
 }
 
-async function submit(): Promise<void> {
+// Первый шаг: собрать заявление и договор по введённому и показать их на прочтение.
+async function prepare(): Promise<void> {
   if (!selected.value || form.amount === null || !form.method_id) return;
   try {
     submitting.value = true;
-    await submitLoan({
+    prepared.value = await prepareLoan({
       collateral: selected.value.key,
       amount: form.amount,
       symbol: symbol.value,
@@ -206,6 +222,19 @@ async function submit(): Promise<void> {
       due: form.due,
       method_id: form.method_id,
     });
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    submitting.value = false;
+  }
+}
+
+// Второй шаг: подпись прочитанных документов и подача заявления.
+async function submit(): Promise<void> {
+  if (!prepared.value) return;
+  try {
+    submitting.value = true;
+    await signLoan(prepared.value);
     SuccessAlert(t('debt.createDialog.submittedMessage'));
     form.amount = null;
     emit('created');
@@ -230,6 +259,16 @@ async function submit(): Promise<void> {
   color: var(--p-ink-2);
   font-size: var(--p-fs-body-sm);
   line-height: var(--p-lh-body-sm);
+}
+
+/* Документы читают колонкой привычной ширины по центру развёрнутого окна. */
+.loan-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-6);
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 .loan-form__footer {

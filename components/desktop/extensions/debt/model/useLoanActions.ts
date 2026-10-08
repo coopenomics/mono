@@ -29,15 +29,18 @@ export interface ILoanDraft {
   method_id: string;
 }
 
+/** Заявление и договор, собранные по введённому и ждущие подписи пайщика. */
+export type IPreparedLoan = Awaited<ReturnType<ReturnType<typeof useLoanActions>['prepareLoan']>>;
+
 export function useLoanActions() {
   const { info } = useSystemStore();
   const session = useSessionStore();
 
   /**
-   * Подача заявления: пайщик подписывает заявление и договор, оба документа
-   * уходят в цепь одним действием. Хэш займа — он же номер договора.
+   * Подготовка заявления: заявление и договор собираются по введённому, пайщик
+   * читает их до подписи. Хэш займа — он же номер договора.
    */
-  async function submitLoan(draft: ILoanDraft) {
+  async function prepareLoan(draft: ILoanDraft) {
     const debt_hash = await generateUniqueHash();
     const amount = `${draft.amount.toFixed(draft.precision)} ${draft.symbol}`;
     // Срок — конец выбранного дня по времени цепи.
@@ -53,17 +56,22 @@ export function useLoanActions() {
 
     const statementDoc = await generateLoanStatement({ ...base, method_id: draft.method_id });
     const contractDoc = await generateLoanContract(base);
+    return { base, statementDoc, contractDoc };
+  }
 
-    const statement = await new DigitalDocument(statementDoc).sign<Cooperative.Registry.GetLoanStatement.Meta>(
-      session.username,
-      1,
-    );
-    const contract = await new DigitalDocument(contractDoc).sign<Cooperative.Registry.LoanContractShare.Meta>(
-      session.username,
-      1,
-    );
+  /**
+   * Подача заявления: пайщик подписывает прочитанные заявление и договор, оба
+   * документа уходят в цепь одним действием.
+   */
+  async function signLoan(prepared: IPreparedLoan) {
+    const statement = await new DigitalDocument(
+      prepared.statementDoc,
+    ).sign<Cooperative.Registry.GetLoanStatement.Meta>(session.username, 1);
+    const contract = await new DigitalDocument(
+      prepared.contractDoc,
+    ).sign<Cooperative.Registry.LoanContractShare.Meta>(session.username, 1);
 
-    return createLoan({ ...base, statement, contract });
+    return createLoan({ ...prepared.base, statement, contract });
   }
 
   async function cancel(debt_hash: string) {
@@ -98,5 +106,5 @@ export function useLoanActions() {
     return extendLoan({ ...base, statement });
   }
 
-  return { submitLoan, cancel, retryPayment, repay, extend };
+  return { prepareLoan, signLoan, cancel, retryPayment, repay, extend };
 }
