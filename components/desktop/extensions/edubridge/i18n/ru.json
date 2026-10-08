@@ -986,7 +986,7 @@
       "signedAtLabel": "Подписан вами",
       "teacherTitle": "Преподаватель",
       "hourlyRateLabel": "Ставка за час",
-      "hourlyRatePending": "назначается администратором",
+      "hourlyRatePending": "определяется администратором",
       "aboutTitle": "О себе",
       "aboutEdit": "Изменить",
       "aboutFill": "Рассказать о себе",
@@ -1053,7 +1053,7 @@
       "teacherOption": "{teacherName}, договор № {contractNumber}"
     },
     "eduGateProfileStep": {
-      "description": "Расскажите о себе. Ставку за час назначает администратор кооператива.",
+      "description": "Расскажите о себе. Ставку за час определяет администратор кооператива.",
       "aboutLabel": "О себе",
       "aboutHint": "Предметы, опыт, образование.",
       "aboutPlaceholder": "Например: преподаю математику в 5–9 классах, 12 лет в школе, готовлю к ОГЭ",
