@@ -2485,7 +2485,6 @@ export type MessageKey =
   | 'datetime.weekdayShort.5'
   | 'datetime.weekdayShort.6'
   | 'debt.collateral.blago'
-  | 'debt.createDialog.amountHint'
   | 'debt.createDialog.amountLabel'
   | 'debt.createDialog.collateralAvailable'
   | 'debt.createDialog.collateralLabel'

@@ -29,7 +29,10 @@
         :disabled='disabled || readonly',
         @click='applyMax'
       ) {{ $t('ui.amountInput.maxLabel') }}
-  .amount-input__balance(v-if='showBalance && balance != null')
+  .amount-input__balance(
+    v-if='showBalance && balance != null',
+    :class='{ "amount-input__balance--below-hint": !!hint || !!error }'
+  )
     span.amount-input__balance-label {{ $t('ui.amountInput.balanceLabel') }}
     span.amount-input__balance-value {{ formatNumber(toNumber(balance)) }}
     span.amount-input__balance-symbol(v-if='symbol') {{ symbol }}
@@ -210,6 +213,10 @@ function applyMax(): void {
   line-height: var(--p-lh-body-sm, 1.5);
   color: var(--p-ink-2);
   margin-top: calc(-1 * var(--p-2, 8px));
+}
+/* Под полем стоит подсказка или ошибка: строка баланса идёт следом, а не на её месте. */
+.amount-input__balance--below-hint {
+  margin-top: 0;
 }
 .amount-input__balance-value {
   color: var(--p-ink);

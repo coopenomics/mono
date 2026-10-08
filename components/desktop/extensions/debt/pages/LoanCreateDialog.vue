@@ -29,7 +29,6 @@ BaseDialog(
         :symbol='symbol',
         :precision='precision',
         :label='$t("debt.createDialog.amountLabel")',
-        :hint='$t("debt.createDialog.amountHint")',
         :balance='maxAmount',
         :max='maxAmount',
         show-balance,
@@ -47,7 +46,7 @@ BaseDialog(
         :label='$t("debt.createDialog.methodLabel")',
         required
       )
-      BaseBanner(variant='info') {{ $t('debt.createDialog.terms') }}
+      p.loan-form__terms {{ $t('debt.createDialog.terms') }}
 
   template(#footer)
     .loan-form__footer
@@ -67,7 +66,6 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
-import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
@@ -191,7 +189,14 @@ async function submit(): Promise<void> {
 .loan-form {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
+  gap: var(--p-2);
+}
+
+.loan-form__terms {
+  margin: 0;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .loan-form__footer {

@@ -13,7 +13,7 @@ BaseDialog(
       :hint='$t("debt.extendDialog.dueHint", { date: formatDate(loan.due_at) })',
       required
     )
-    BaseBanner(variant='info') {{ $t('debt.extendDialog.terms') }}
+    p.loan-form__terms {{ $t('debt.extendDialog.terms') }}
 
   template(#footer)
     .extend-form__footer
@@ -24,7 +24,6 @@ BaseDialog(
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
@@ -81,7 +80,14 @@ async function submit(): Promise<void> {
 .extend-form {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
+  gap: var(--p-2);
+}
+
+.loan-form__terms {
+  margin: 0;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .extend-form__footer {

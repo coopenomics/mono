@@ -28,7 +28,7 @@ BaseDialog(
         show-balance,
         show-max
       )
-      BaseBanner(variant='info') {{ $t('debt.repayDialog.terms') }}
+      p.loan-form__terms {{ $t('debt.repayDialog.terms') }}
 
   template(#footer)
     .repay-form__footer
@@ -42,7 +42,6 @@ import { Ledger2Contract } from 'cooptypes';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime';
 import { useSystemStore } from 'src/entities/System/model';
-import { BaseBanner } from 'src/shared/ui/base/BaseBanner';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { EmptyState } from 'src/shared/ui/base/EmptyState';
@@ -124,7 +123,14 @@ async function submit(): Promise<void> {
 .repay-form {
   display: flex;
   flex-direction: column;
-  gap: var(--p-4);
+  gap: var(--p-2);
+}
+
+.loan-form__terms {
+  margin: 0;
+  color: var(--p-ink-2);
+  font-size: var(--p-fs-body-sm);
+  line-height: var(--p-lh-body-sm);
 }
 
 .repay-form__footer {
