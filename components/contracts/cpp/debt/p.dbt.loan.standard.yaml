@@ -331,6 +331,7 @@ documents:
     registry_id: 1053
     signed_by: [ Пайщик ]
     stored_in: debts.contract
+    note: Уходит в совет в одном пакете с заявлением, совет видит оба документа.
   - action: debt::loanauth
     title: Решение совета о предоставлении займа
     registry_id: 1051

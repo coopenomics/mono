@@ -4,7 +4,8 @@
  *
  * Пайщик подписывает заявление и договор одной операцией. Сумма обеспечения,
  * равная займу, переводится с кошелька программы на кошелёк обеспечения и в
- * программе больше не участвует. Заявление уходит повесткой в совет.
+ * программе больше не участвует. Заявление уходит повесткой в совет, договор
+ * привязывается к нему в тот же пакет документов.
  *
  * @param coopname Наименование кооператива
  * @param username Пайщик-заёмщик
@@ -66,6 +67,11 @@ void debt::createloan(eosio::name coopname, eosio::name username, eosio::name co
   Soviet::create_agenda(_debt, coopname, username, get_valid_soviet_action(Names::SovietActions::CREATE_DEBT),
                         debt_hash, _debt, Names::Debt::ON_AUTHORIZED, Names::Debt::ON_DECLINED, statement,
                         std::string(""));
+
+  // Договор подписан вместе с заявлением и идёт в совет в одном пакете с ним:
+  // без привязки совет видел бы одно заявление.
+  Action::send<newlink_interface>(_soviet, "newlink"_n, _debt, coopname, username,
+                                  get_valid_soviet_action(Names::SovietActions::CREATE_DEBT), debt_hash, contract);
 
   require_recipient(username);
   require_recipient(coopname);

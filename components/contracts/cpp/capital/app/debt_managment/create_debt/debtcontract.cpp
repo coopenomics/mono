@@ -24,4 +24,8 @@ void capital::debtcontract(name coopname, name username, checksum256 debt_hash, 
 
   Capital::Debts::update_debt_status(coopname, exist_debt.id, Capital::Debts::Status::PENDING, coopname, contract);
   Capital::Debts::create_debt_agenda(coopname, username, debt_hash, exist_debt.statement);
+
+  // Договор идёт в совет в одном пакете с заявлением: без привязки совет видел бы одно заявление.
+  Action::send<newlink_interface>(_soviet, "newlink"_n, _capital, coopname, username,
+                                  Names::SovietActions::CREATE_DEBT, debt_hash, contract);
 }
