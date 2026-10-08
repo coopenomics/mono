@@ -7472,8 +7472,6 @@ export type ValueTypes = {
 	["EduLessonReportInput"]: {
 	/** Назначение, по которому проведено занятие */
 	assignment_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Длительность занятия, минут; без значения — из расписания курса */
-	duration_minutes?: number | undefined | null | Variable<any, string>,
 	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
 	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Когда проведено (по умолчанию — сейчас) */
@@ -7691,12 +7689,6 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduReturnBalance']?: Omit<ValueTypes["EduReturnBalance"], "...on EduReturnBalance">
 }>;
-	["EduRevokeContributionInput"]: {
-	/** Взнос, заявление по которому держится */
-	contribution_id: ValueTypes["ID"] | Variable<any, string>,
-	/** Подтверждённая рекламация — основание снятия */
-	reason: string | Variable<any, string>
-};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -13504,7 +13496,6 @@ edubridgeReportLesson?: [{	data: ValueTypes["EduLessonReportInput"] | Variable<a
 edubridgeRequestShareReturn?: [{	data: ValueTypes["EduRequestShareReturnInput"] | Variable<any, string>},ValueTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ValueTypes["EduRetryEnrollmentCloseInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ValueTypes["EduRetryTaskInput"] | Variable<any, string>},ValueTypes["EduAccessTask"]],
-edubridgeRevokeContribution?: [{	data: ValueTypes["EduRevokeContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -24174,8 +24165,6 @@ export type ResolverInputTypes = {
 	["EduLessonReportInput"]: {
 	/** Назначение, по которому проведено занятие */
 	assignment_id: ResolverInputTypes["ID"],
-	/** Длительность занятия, минут; без значения — из расписания курса */
-	duration_minutes?: number | undefined | null,
 	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
 	group_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
@@ -24381,12 +24370,6 @@ export type ResolverInputTypes = {
 	total?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
-	["EduRevokeContributionInput"]: {
-	/** Взнос, заявление по которому держится */
-	contribution_id: ResolverInputTypes["ID"],
-	/** Подтверждённая рекламация — основание снятия */
-	reason: string
-};
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -30031,7 +30014,6 @@ edubridgeReportLesson?: [{	data: ResolverInputTypes["EduLessonReportInput"]},Res
 edubridgeRequestShareReturn?: [{	data: ResolverInputTypes["EduRequestShareReturnInput"]},ResolverInputTypes["EduTeacherSettlement"]],
 edubridgeRetryEnrollmentClose?: [{	data: ResolverInputTypes["EduRetryEnrollmentCloseInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeRetryTask?: [{	data: ResolverInputTypes["EduRetryTaskInput"]},ResolverInputTypes["EduAccessTask"]],
-edubridgeRevokeContribution?: [{	data: ResolverInputTypes["EduRevokeContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeRidAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStatement?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeRidStorageAct?: [{	contribution_id: ResolverInputTypes["ID"]},ResolverInputTypes["GeneratedDocument"]],
@@ -40361,8 +40343,6 @@ export type ModelTypes = {
 	["EduLessonReportInput"]: {
 	/** Назначение, по которому проведено занятие */
 	assignment_id: ModelTypes["ID"],
-	/** Длительность занятия, минут; без значения — из расписания курса */
-	duration_minutes?: number | undefined | null,
 	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
 	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
@@ -40552,12 +40532,6 @@ export type ModelTypes = {
 	subscriptions: number,
 	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string
-};
-	["EduRevokeContributionInput"]: {
-	/** Взнос, заявление по которому держится */
-	contribution_id: ModelTypes["ID"],
-	/** Подтверждённая рекламация — основание снятия */
-	reason: string
 };
 	["EduRidType"]:EduRidType;
 	["EduSaveLevelInput"]: {
@@ -46148,8 +46122,6 @@ export type ModelTypes = {
 	edubridgeRetryEnrollmentClose: ModelTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: ModelTypes["EduAccessTask"],
-	/** Снять удерживаемое заявление по подтверждённой рекламации */
-	edubridgeRevokeContribution: ModelTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: ModelTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -57073,8 +57045,6 @@ export type GraphQLTypes = {
 	["EduLessonReportInput"]: {
 		/** Назначение, по которому проведено занятие */
 	assignment_id: GraphQLTypes["ID"],
-	/** Длительность занятия, минут; без значения — из расписания курса */
-	duration_minutes?: number | undefined | null,
 	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
 	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
@@ -57291,12 +57261,6 @@ export type GraphQLTypes = {
 	/** Сколько уйдёт в паевой взнос при выходе из кооператива сегодня */
 	total: string,
 	['...on EduReturnBalance']: Omit<GraphQLTypes["EduReturnBalance"], "...on EduReturnBalance">
-};
-	["EduRevokeContributionInput"]: {
-		/** Взнос, заявление по которому держится */
-	contribution_id: GraphQLTypes["ID"],
-	/** Подтверждённая рекламация — основание снятия */
-	reason: string
 };
 	/** Тип результата интеллектуальной деятельности */
 ["EduRidType"]: EduRidType;
@@ -63277,8 +63241,6 @@ export type GraphQLTypes = {
 	edubridgeRetryEnrollmentClose: GraphQLTypes["EduEnrollment"],
 	/** Повторить задачу выдачи/отзыва доступа */
 	edubridgeRetryTask: GraphQLTypes["EduAccessTask"],
-	/** Снять удерживаемое заявление по подтверждённой рекламации */
-	edubridgeRevokeContribution: GraphQLTypes["EduContribution"],
 	/** Сформировать акт приёма-передачи для подписи (после решения совета) */
 	edubridgeRidAct: GraphQLTypes["GeneratedDocument"],
 	/** Сформировать заявление о паевом взносе РИД для подписи */
@@ -69480,7 +69442,6 @@ type ZEUS_VARIABLES = {
 	["EduRequestShareReturnInput"]: ValueTypes["EduRequestShareReturnInput"];
 	["EduRetryEnrollmentCloseInput"]: ValueTypes["EduRetryEnrollmentCloseInput"];
 	["EduRetryTaskInput"]: ValueTypes["EduRetryTaskInput"];
-	["EduRevokeContributionInput"]: ValueTypes["EduRevokeContributionInput"];
 	["EduRidType"]: ValueTypes["EduRidType"];
 	["EduSaveLevelInput"]: ValueTypes["EduSaveLevelInput"];
 	["EduSaveSectionInput"]: ValueTypes["EduSaveSectionInput"];

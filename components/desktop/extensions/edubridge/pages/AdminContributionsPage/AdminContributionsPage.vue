@@ -21,7 +21,6 @@
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .edu-row-actions
-        BaseButton(v-if="row.status === Zeus.EduContributionStatus.HELD" variant="secondary" size="sm" @click.stop="openRevoke(row)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
         BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click.stop="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
   EmptyState(v-if="!firstLoad && !contributions.length" :title="$t('edubridge.adminContributionsPage.emptyTitle')" :body="$t('edubridge.adminContributionsPage.emptyBody')")
@@ -34,20 +33,9 @@
       ContributionDetails(:contribution="details" :teacher-name="teacherName(details.teacher_username)" show-teacher)
       .t-sm.text-negative.q-mt-md(v-if="councilOutcome(details)") {{ councilOutcome(details) }}
     //- Вторая подпись на акте — у председателя в «Запросах одобрений», здесь её нет.
-    template(v-if="details && (details.status === Zeus.EduContributionStatus.HELD || canDecline(details))" #footer)
+    template(v-if="details && canDecline(details)" #footer)
       .edu-row-actions
-        BaseButton(v-if="details.status === Zeus.EduContributionStatus.HELD" variant="secondary" @click="openRevoke(details)") {{ $t('edubridge.adminContributionsPage.revokeButton') }}
         BaseButton(v-if="canDecline(details)" variant="secondary" @click="openDecline(details)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
-
-  //- Подтверждённая рекламация в гарантийный срок: заявление снимается до
-  //- совета, материал остаётся за преподавателем.
-  BaseDialog(v-model="revokeOpen" :title="$t('edubridge.adminContributionsPage.revokeDialogTitle')" size="sm")
-    BaseForm(:loading="busy" @submit="onRevoke")
-      BaseInput(v-model="revokeReason" :label="$t('edubridge.adminContributionsPage.revokeReasonLabel')" type="textarea" :rows="3" required)
-      template(#footer)
-        .row.justify-end.q-gutter-sm
-          BaseButton(variant="ghost" type="button" @click="revokeOpen = false") {{ $t('edubridge.adminContributionsPage.cancel') }}
-          BaseButton(variant="danger" type="submit" :loading="busy") {{ $t('edubridge.adminContributionsPage.revokeSubmit') }}
 
   BaseDialog(v-model="declineOpen" :title="$t('edubridge.adminContributionsPage.declineDialogTitle')" size="sm")
     BaseForm(:loading="busy" @submit="onDecline")
@@ -73,7 +61,6 @@ import {
   RID_TYPE_LABELS,
   declineContribution,
   fetchContributions,
-  revokeContribution,
   fetchTeachers,
   type IContribution,
   type ITeacher,
@@ -86,7 +73,7 @@ import { t as i18nT } from '../../i18n';
  * Взносы результатами работы — отдельной страницей: председатель разбирает их
  * сам по себе, а не попутно с назначениями. Решение по взносу принимает совет
  * в повестке, вторую подпись на акте председатель ставит в «Запросах
- * одобрений»; здесь — снятие по рекламации и отказ с причиной.
+ * одобрений»; здесь — отказ в приёме по решению совета.
  */
 const contributions = ref<IContribution[]>([]);
 const teachers = ref<ITeacher[]>([]);
@@ -97,9 +84,6 @@ const busy = ref(false);
 const declineOpen = ref(false);
 const declineTarget = ref<IContribution | null>(null);
 const declineReason = ref('');
-const revokeOpen = ref(false);
-const revokeTarget = ref<IContribution | null>(null);
-const revokeReason = ref('');
 /** Взнос в правой панели — по идентификатору: после действия панель показывает свежее состояние. */
 const detailsOpen = ref(false);
 const detailsId = ref<string | null>(null);
@@ -118,7 +102,8 @@ const columns: BaseTableColumn<IContribution>[] = [
 ];
 
 const DECLINABLE = new Set<string>([Zeus.EduContributionStatus.SUBMITTED, Zeus.EduContributionStatus.COUNCIL_APPROVED, Zeus.EduContributionStatus.ACT_SIGNED]);
-const canDecline = (c: IContribution) => DECLINABLE.has(c.status);
+/** Отказ в приёме оформляется только по решению совета: вопрос рассмотрен — принят либо отклонён. */
+const canDecline = (c: IContribution) => DECLINABLE.has(c.status) && Boolean(c.council_decision_id || c.council_outcome === Zeus.EduCouncilOutcome.DECLINED);
 const statusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const ridType = (t: string) => RID_TYPE_LABELS[t] ?? t;
 // ФИО известны по договору преподавателя; без него остаётся учётное имя.
@@ -134,27 +119,6 @@ async function load(): Promise<void> {
     FailAlert(e);
   } finally {
     loading.value = false;
-  }
-}
-
-function openRevoke(c: IContribution): void {
-  revokeTarget.value = c;
-  revokeReason.value = '';
-  revokeOpen.value = true;
-}
-
-async function onRevoke(): Promise<void> {
-  if (!revokeTarget.value) return;
-  busy.value = true;
-  try {
-    const updated = await revokeContribution({ contribution_id: asText(revokeTarget.value.id), reason: revokeReason.value.trim() });
-    contributions.value = contributions.value.map((x) => (x.id === updated.id ? updated : x));
-    revokeOpen.value = false;
-    SuccessAlert(i18nT('edubridge.adminContributionsPage.revokeSuccess'));
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    busy.value = false;
   }
 }
 

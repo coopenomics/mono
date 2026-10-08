@@ -274,13 +274,6 @@ export class EduLessonReportInputDTO {
   @IsOptional()
   @IsDateString()
   held_at?: string;
-
-  @Field(() => Int, { nullable: true, description: 'Длительность занятия, минут; без значения — из расписания курса' })
-  @IsOptional()
-  @IsInt()
-  @Min(5)
-  @Max(480)
-  duration_minutes?: number;
 }
 
 /** Проведённое занятие в журнале курса. */
@@ -311,18 +304,6 @@ export class EduLessonDTO {
     this.materials = e.materials ?? [];
     this.contribution_id = e.contribution_id;
   }
-}
-
-@InputType('EduRevokeContributionInput')
-export class EduRevokeContributionInputDTO {
-  @Field(() => ID, { description: 'Взнос, заявление по которому держится' })
-  @IsUUID()
-  contribution_id!: string;
-
-  @Field(() => String, { description: 'Подтверждённая рекламация — основание снятия' })
-  @IsString()
-  @Length(1, 2000)
-  reason!: string;
 }
 
 /** Возврат паевого взноса со стола расчёта: оба заявления подписаны разом. */

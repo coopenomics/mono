@@ -99,7 +99,7 @@ describe('EdubridgeChainAdapter — состав транзакций подпи
 
   it('расчёт занятия: отчёт, расчёт по одной подписке и приём материалов без суммы', async () => {
     const { adapter, chain } = make();
-    await adapter.openLesson({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', assignment_id: 3, held_at: '2026-10-01T10:00:00', minutes: 60 });
+    await adapter.openLesson({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', assignment_id: 3, held_at: '2026-10-01T10:00:00' });
     await adapter.chargeLesson({ coopname: 'voskhod', rid_hash: 'R', sub_hash: 'S' });
     await adapter.holdRid({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', rid_type: 'lesson', act: doc({ c: 3 }) } as any);
     const sent = chain.transact.mock.calls.map((c: any) => c[0]);

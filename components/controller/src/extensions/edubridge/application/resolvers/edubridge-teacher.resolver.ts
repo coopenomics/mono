@@ -28,7 +28,6 @@ import {
   EduTeacherProfileInputDTO,
   EduLessonDTO,
   EduLessonReportInputDTO,
-  EduRevokeContributionInputDTO,
   EduShareWithdrawStatementInputDTO,
   EduTeacherSettlementDTO,
   EduRequestShareReturnInputDTO,
@@ -122,13 +121,6 @@ export class EdubridgeTeacherResolver {
     const lesson = await this.teachers.reportLesson(coop(), m.username as string, data);
     const titles = await this.teachers.courseTitles(coop(), [lesson.course_id]);
     return new EduLessonDTO(lesson, titles.get(lesson.course_id) ?? '');
-  }
-
-  @Mutation(() => EduContributionDTO, { name: 'edubridgeRevokeContribution', description: 'Снять удерживаемое заявление по подтверждённой рекламации' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduContribution', 'decide')
-  async edubridgeRevokeContribution(@Args('data') data: EduRevokeContributionInputDTO): Promise<EduContributionDTO> {
-    return new EduContributionDTO(await this.teachers.revokeHeldContribution(coop(), data.contribution_id, data.reason));
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeRidStorageAct', description: 'Сформировать акт передачи материалов занятия на ответственное хранение для подписи' })

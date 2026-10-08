@@ -243,7 +243,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     const lesson = await group.service.reportLesson('voskhod', 'teach', report);
     // Допуск со ставкой — в цепь перед занятием, затем отчёт и расчёт по подписке.
     expect(group.chainTerms.pushAssignment).toHaveBeenCalled();
-    expect(group.chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', minutes: 60 }));
+    expect(group.chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach' }));
     expect(group.chain.openLesson.mock.calls[0][0].amount).toBeUndefined();
     expect(group.chain.chargeLesson).toHaveBeenCalledWith(expect.objectContaining({ sub_hash: 'sub1' }));
     expect([...group.store.values()].find((c) => c.lesson_id === lesson.id).amount).toBe('900.0000 RUB');
@@ -444,11 +444,17 @@ describe('EdubridgeTeacherService', () => {
     expect(c.council_outcome).toBe(EduCouncilOutcome.DECLINED);
   });
 
-  it('отказ без решения совета: протокола нет, материалы снимаются с хранения с основанием', async () => {
+  it('отказ без решения совета не оформляется; совет отклонил вопрос — материалы снимаются с хранения с основанием', async () => {
     const { service, chain, documents, store } = make();
     const c = await contributionOfLesson(service, store);
     await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach'));
     documents.generate.mockClear();
+    // Совет заявление ещё не рассмотрел: в одиночку администратор преподавателю не отказывает.
+    await expect(service.decline('voskhod', c.id, 'Материал не соответствует программе')).rejects.toMatchObject({ code: 'EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL' });
+    expect(chain.recallRid).not.toHaveBeenCalled();
+    expect(c.status).toBe(EduContributionStatus.SUBMITTED);
+
+    c.council_outcome = EduCouncilOutcome.DECLINED;
     const declined = await service.decline('voskhod', c.id, 'Материал не соответствует программе');
     // Отрицательного протокола у совета не бывает: собирать его не из чего.
     expect(documents.generate).not.toHaveBeenCalled();
@@ -687,24 +693,24 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     await expect(service.reportLesson('voskhod', 'teach', { ...report, held_at: '2025-01-01T10:00:00Z' } as any)).rejects.toThrow(/раньше начала периода/);
   });
 
-  it('занятие в отчёте не длиннее сдвоенного занятия курса', async () => {
+  it('занятие всегда длиной по курсу: длительность в отчёте не называется и в цепь не уходит', async () => {
     const { service, store, chain } = make();
-    await expect(service.reportLesson('voskhod', 'teach', { ...report, duration_minutes: 121 } as any)).rejects.toThrow(/не больше 120 мин/);
-    await service.reportLesson('voskhod', 'teach', { ...report, duration_minutes: 120 } as any);
-    // Длительность уходит в цепь: взнос за занятие контракт считает по ней.
-    expect(chain.openLesson).toHaveBeenCalledWith(expect.objectContaining({ minutes: 120 }));
+    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
+    expect(lesson.duration_minutes).toBe(60);
+    expect(chain.openLesson.mock.calls[0][0]).not.toHaveProperty('minutes');
     expect(store.size).toBe(1);
   });
 
-  it('после снятия материалов с хранения занятие проводится и отчитывается заново — взнос новый', async () => {
+  it('после отказа совета занятие проводится и отчитывается заново — взнос новый', async () => {
     const { service, teachers, store } = make();
     let n = 0;
     teachers.createContribution.mockImplementation((d: any) => ({ ...d, id: `K${++n}`, created_at: new Date('2026-02-01') }));
     const first = await service.reportLesson('voskhod', 'teach', report as any);
     const firstContribution = store.get('K1');
-    // Материалы переданы на хранение — расчёт занятия завершён, рекламация их снимает.
-    firstContribution.status = EduContributionStatus.HELD;
-    await service.revokeHeldContribution('voskhod', 'K1', 'Занятие не состоялось');
+    // Совет отклонил вопрос о приёме — председатель оформил отказ, материалы сняты с хранения.
+    firstContribution.status = EduContributionStatus.SUBMITTED;
+    firstContribution.council_outcome = EduCouncilOutcome.DECLINED;
+    await service.decline('voskhod', 'K1', 'Совет отклонил вопрос');
     const again = await service.reportLesson('voskhod', 'teach', { ...report, topic: 'Дроби, повтор' } as any);
     expect(again.id).toBe(first.id);
     expect(again.topic).toBe('Дроби, повтор');
@@ -766,32 +772,7 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(chain.submitRid).toHaveBeenCalled();
   });
 
-  it('подтверждённая рекламация снимает материалы с хранения и закрывает заявление', async () => {
-    const { service, chain, store } = make();
-    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
-    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
-    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
-    const revoked = await service.revokeHeldContribution('voskhod', contribution.id, 'Запись занятия не открывается');
-    expect(chain.recallRid).toHaveBeenCalledWith(
-      expect.objectContaining({ rid_hash: contribution.rid_hash, reason: 'Запись занятия не открывается' })
-    );
-    expect(revoked.status).toBe(EduContributionStatus.DECLINED);
-    expect(revoked.decline_reason).toBe('Запись занятия не открывается');
-  });
 
-  it('рекламация по занятию с открытым расчётом ждёт передачи материалов на хранение; без расчёта в цепи взнос закрывается без проводок', async () => {
-    const { service, chain, store } = make();
-    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
-    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
-    await expect(service.revokeHeldContribution('voskhod', contribution.id, 'Занятие не состоялось')).rejects.toMatchObject({ code: 'EDUBRIDGE_CONTRIBUTION_NOT_HELD' });
-    expect(contribution.status).toBe(EduContributionStatus.DRAFT);
-
-    // Записи занятия в цепи нет — снимать с хранения и завершать нечего.
-    chain.readLesson.mockResolvedValue(null);
-    const revoked = await service.revokeHeldContribution('voskhod', contribution.id, 'Занятие не состоялось');
-    expect(chain.recallRid).not.toHaveBeenCalled();
-    expect(revoked.status).toBe(EduContributionStatus.DECLINED);
-  });
 });
 
 describe('EdubridgeTeacherService — договор следует за таблицей цепи (ответ после дельты)', () => {

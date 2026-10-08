@@ -72,8 +72,6 @@ export const fetchMyAssignments = () => q<IAssignment[]>(Queries.Edubridge.MyAss
 export const fetchMyContributions = () => q<IContribution[]>(Queries.Edubridge.MyContributions.query, Queries.Edubridge.MyContributions.name);
 export const fetchMyLessons = () => q<ILesson[]>(Queries.Edubridge.MyLessons.query, Queries.Edubridge.MyLessons.name);
 export const reportLesson = (data: ILessonReportInput) => m<ILesson>(Mutations.Edubridge.ReportLesson.mutation, Mutations.Edubridge.ReportLesson.name, { data });
-export const revokeContribution = (data: { contribution_id: string; reason: string }) =>
-  m<IContribution>(Mutations.Edubridge.RevokeContribution.mutation, Mutations.Edubridge.RevokeContribution.name, { data });
 export const fetchMySettlement = () => q<ISettlement>(Queries.Edubridge.MySettlement.query, Queries.Edubridge.MySettlement.name);
 /** Строка моей выписки: зачисление по принятому результату или возврат с его состоянием. */
 export type ISettlementEntry = Queries.Edubridge.MySettlementJournal.IOutput['edubridgeMySettlementJournal'][number];

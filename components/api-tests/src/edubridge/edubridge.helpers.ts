@@ -469,7 +469,6 @@ export const SUBMIT_CONTRIBUTION = `mutation($d:EduSubmitContributionInput!){ ed
 export const RID_ACT = `mutation($id:ID!){ edubridgeRidAct(contribution_id:$id){ ${DOC} } }`
 export const SIGN_ACT = `mutation($d:EduSignActInput!){ edubridgeSignAct(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const DECLINE_CONTRIBUTION = `mutation($d:EduDeclineContributionInput!){ edubridgeDeclineContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
-export const REVOKE_CONTRIBUTION = `mutation($d:EduRevokeContributionInput!){ edubridgeRevokeContribution(data:$d){ ${CONTRIBUTION_FIELDS} } }`
 export const SETTLEMENT = 'query{ edubridgeMySettlement{ accepted_total program_share available last_accepted_at } }'
 
 export async function contributionOf(token: string, id: string): Promise<any | undefined> {

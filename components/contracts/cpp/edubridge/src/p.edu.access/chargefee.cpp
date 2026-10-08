@@ -102,7 +102,7 @@ void edubridge::chargefee(eosio::name coopname,
     } else {
       s.set_amounts(s.charged_or_zero() + quote.amount, s.reserved_or_zero() + quote.teach, s.locked_or_zero());
       // Новый взнос увеличил сумму возможного возврата — удержание приводится к ней.
-      Edubridge::rebalance_lock(coopname, terms, s);
+      Edubridge::rebalance_lock(coopname, s);
     }
   });
 }

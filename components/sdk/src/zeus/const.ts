@@ -707,9 +707,6 @@ export const AllTypesProps: Record<string,any> = {
 	EduRetryTaskInput:{
 
 	},
-	EduRevokeContributionInput:{
-
-	},
 	EduRidType: "enum" as const,
 	EduSaveLevelInput:{
 
@@ -2117,9 +2114,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeRetryTask:{
 			data:"EduRetryTaskInput"
-		},
-		edubridgeRevokeContribution:{
-			data:"EduRevokeContributionInput"
 		},
 		edubridgeRidAct:{
 
@@ -7776,7 +7770,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeRequestShareReturn:"EduTeacherSettlement",
 		edubridgeRetryEnrollmentClose:"EduEnrollment",
 		edubridgeRetryTask:"EduAccessTask",
-		edubridgeRevokeContribution:"EduContribution",
 		edubridgeRidAct:"GeneratedDocument",
 		edubridgeRidStatement:"GeneratedDocument",
 		edubridgeRidStorageAct:"GeneratedDocument",

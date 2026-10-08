@@ -51,23 +51,17 @@ void edubridge::chargelesson(eosio::name coopname,
                "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
-  eosio::check(plan.reserve.amount > 0,
+  const eosio::asset unit = terms.lesson_unit();
+  eosio::check(plan.lessons_done < plan.lessons_paid && plan.reserve >= unit,
                "EDUBRIDGE_SUBSCRIPTION_RESERVE_EMPTY: В резерве подписки нет оплаты занятия");
-  // Из резерва подписки уходит оплата занятия по плановой ставке за проведённое
-  // время; остатка меньше — уходит остаток, взнос преподавателя — в той же доле.
-  const eosio::asset unit = plan.reserve < lesson->unit ? plan.reserve : lesson->unit;
-  eosio::asset share = lesson->charge;
-  if (unit < lesson->unit) {
-    share = eosio::asset(static_cast<int64_t>(static_cast<__int128>(lesson->charge.amount) * unit.amount / lesson->unit.amount), unit.symbol);
-  }
 
   // За каждого участника — взнос по ставке преподавателя с каждой подписки.
   // Фиксированный — сумма занятия одна: её покрывают подписки по очереди
   // расчёта, оплата занятия остальных участников поступает на кошелёк программы.
-  eosio::asset charge = share;
+  eosio::asset charge = lesson->charge;
   if (!terms.per_learner) {
     const eosio::asset left = lesson->charge - lesson->amount;
-    charge = left < share ? left : share;
+    charge = left < unit ? left : unit;
   }
   const eosio::asset rest = unit - charge;
   // Гарантийный срок не закрыт — взнос удержан целиком, в резерв преподавателям он ещё не выделен.
@@ -83,7 +77,7 @@ void edubridge::chargelesson(eosio::name coopname,
     } else {
       s.set_amounts(s.charged_or_zero(), s.reserved_or_zero() - unit, s.locked_or_zero());
       // Занятие проведено — возможный возврат уменьшился, удержание освобождается.
-      Edubridge::rebalance_lock(coopname, terms, s);
+      Edubridge::rebalance_lock(coopname, s);
     }
   });
 

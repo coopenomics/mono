@@ -273,7 +273,7 @@ cases:
     level: backend
     kind: happy
     scenario: Преподаватель отчитывается о проведённом занятии материалами.
-    expect: "Взнос считает контракт: ставка преподавателя за проведённое время по каждой подписке с оплаченным доступом; заявление держится гарантийный срок курса."
+    expect: "Взнос считает контракт: ставка преподавателя за занятие по каждой подписке с оплаченным доступом; заявление держится гарантийный срок курса."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -293,14 +293,6 @@ cases:
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
-  - id: edu.teach.side.08
-    level: backend
-    kind: side
-    scenario: Подтверждённая рекламация в гарантийный срок.
-    expect: Материалы снимаются с ответственного хранения проводкой Дт 76 / Кт 08, заявление закрывается с причиной, взнос не оформляется.
-    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
   - id: edu.teach.happy.08
     level: backend
     kind: happy
@@ -314,14 +306,6 @@ cases:
     kind: break
     scenario: Повторная передача тех же материалов; заявление по материалам, не принятым на хранение.
     expect: Отказ в обоих случаях — хранение открывается один раз и предшествует заявлению.
-    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
-  - id: edu.teach.side.09
-    level: backend
-    kind: side
-    scenario: "Рекламация по занятию, материалы которого на ответственное хранение не переданы."
-    expect: "Пока расчёт занятия с обучающимися открыт в цепи, взнос не закрывается: расчёт завершается приёмом материалов на хранение, после этого материалы снимаются; без записи занятия в цепи взнос закрывается без проводок."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -359,8 +343,8 @@ cases:
   - id: edu.teach.side.11
     level: backend
     kind: side
-    scenario: "Совет решения по заявлению не принял, председатель отказывает в приёме."
-    expect: "Протокол не собирается; материалы снимаются с хранения recallrid с основанием, взнос отклонён."
+    scenario: "Председатель оформляет отказ в приёме взноса: до рассмотрения советом и после отклонения вопроса советом."
+    expect: "Без решения совета отказ не оформляется; совет отклонил вопрос — материалы сняты с хранения с основанием, протокола нет."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
     status: passing
@@ -401,7 +385,7 @@ cases:
   - id: edu.teach.break.07
     level: backend
     kind: break
-    scenario: "Дата занятия в будущем либо раньше периода назначения; длительность больше сдвоенного занятия курса."
+    scenario: "Дата занятия в будущем либо раньше периода назначения."
     expect: "Отчёт отклоняется до записи в журнал."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
@@ -409,7 +393,7 @@ cases:
   - id: edu.teach.side.14
     level: backend
     kind: side
-    scenario: "Материалы занятия сняты с хранения — занятие проводится и отчитывается заново."
+    scenario: "Совет отказал в приёме, материалы сняты с хранения; преподаватель отчитывается по тому же занятию заново."
     expect: "Строка журнала та же, взнос новый с другим ключом."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
@@ -602,8 +586,8 @@ cases:
   - id: edu.teach.side.24
     level: backend
     kind: side
-    scenario: "Отчёт о занятии: в резерве подписки осталось меньше оплаты занятия; оплаченного доступа нет вовсе."
-    expect: "Из резерва подписки уходит остаток, взнос преподавателя — в той же доле; без оплаченного доступа отчёт не принимается."
+    scenario: "Отчёт о занятии сверх оплаченных занятий подписки; оплаченного доступа нет вовсе."
+    expect: "Каждое оплаченное занятие даёт взнос по ставке преподавателя; сверх оплаченных и без оплаченного доступа отчёт не принимается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
@@ -611,7 +595,7 @@ cases:
     level: backend
     kind: side
     scenario: "Курс с фиксированным взносом преподавателя за занятие, в группе несколько обучающихся."
-    expect: "Сумма занятия одна при любом числе обучающихся; оплаченное время расходуется у каждого одинаково, остаток оплаты занятия поступает программе."
+    expect: "Сумма занятия одна при любом числе обучающихся; оплаченные занятия расходуются у каждого одинаково, остаток оплаты занятия поступает программе."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written

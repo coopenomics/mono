@@ -5,7 +5,7 @@
  * гарантийный срок), свои обучающиеся и свой порядок занятий. Условия курса —
  * образец для новых групп. Суммы считает контракт: взнос преподавателя за
  * занятие — по подпискам с оплаченным доступом на дату занятия, возврат при
- * отказе — половина доли взноса за ещё не проведённое время. Набор проверяет,
+ * отказе — половина доли взноса за ещё не проведённые занятия. Набор проверяет,
  * что эти суммы доходят до клиента.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -78,8 +78,8 @@ describe('Образование: группы курса и расчёт зан
     return { course, assignment }
   }
   /** Занятие отчитано и материалы переданы на хранение: журнал группы открыт для следующего. */
-  const heldLesson = async (assignmentId: string, n: number, minutes = 60): Promise<number> => {
-    const r = await reportLesson(teacherToken, assignmentId, n, { duration_minutes: minutes })
+  const heldLesson = async (assignmentId: string, n: number): Promise<number> => {
+    const r = await reportLesson(teacherToken, assignmentId, n)
     await holdMaterials(teacher, teacherToken, r.contribution.id)
     return amount(r.contribution.amount)
   }
@@ -193,7 +193,7 @@ describe('Образование: группы курса и расчёт зан
   })
 
   describe('расчёт занятия и возврат по подпискам группы', () => {
-    it(caseName('edu.enroll.side.17', 'отказ в ходе занятий: возвращается половина доли взноса за ещё не проведённое время, сдвоенное занятие расходует вдвое больше'), async () => {
+    it(caseName('edu.enroll.side.17', 'отказ в ходе занятий: возвращается половина доли взноса за ещё не проведённые занятия'), async () => {
       const { course, assignment } = await runningCourse()
       const fee = amount(course.fee_month)
       const mine = await subscribe(learner, token, self.id, course.id)
@@ -203,19 +203,18 @@ describe('Образование: группы курса и расчёт зан
       expect(await preview(mine.id)).toMatchObject({ reason: 'refusal', lessons_paid: 8, lessons_used: 0 })
       expect(amount((await preview(mine.id)).refund)).toBeCloseTo(fee / 2, 2)
 
-      // Часовое занятие: расчёт прошёл по обеим подпискам, взнос преподавателя — за каждого обучающегося.
+      // Занятие проведено: расчёт прошёл по обеим подпискам, взнос преподавателя — за каждого обучающегося.
       expect(await heldLesson(assignment.id, 1), 'ставка 900 за двоих').toBe(1800)
       const afterFirst = await preview(mine.id)
       expect(afterFirst).toMatchObject({ reason: 'refusal', lessons_paid: 8, lessons_used: 1 })
-      // Из восьми оплаченных часов проведён один: остаточная стоимость — семь восьмых взноса.
+      // Из восьми оплаченных занятий проведено одно: остаточная стоимость — семь восьмых взноса.
       expect(amount(afterFirst.refund)).toBeCloseTo(fee * 7 / 8 / 2, 2)
       expect(amount(afterFirst.withheld)).toBeCloseTo(fee - amount(afterFirst.refund), 4)
 
-      // Сдвоенное занятие расходует два оплаченных часа.
-      expect(await heldLesson(assignment.id, 2, 120)).toBe(3600)
+      expect(await heldLesson(assignment.id, 2)).toBe(1800)
       const afterSecond = await preview(mine.id)
       expect(afterSecond.lessons_used).toBe(2)
-      expect(amount(afterSecond.refund)).toBeCloseTo(fee * 5 / 8 / 2, 2)
+      expect(amount(afterSecond.refund)).toBeCloseTo(fee * 6 / 8 / 2, 2)
 
       // Отказ возвращает ровно названное на кошелёк программы.
       const own = await walletOf(token, learner.account, PROGRAM_WALLET)
@@ -230,7 +229,7 @@ describe('Образование: группы курса и расчёт зан
       expect(group).toMatchObject({ learners_active: 1, lessons_held: 3 })
       // Занятия проведены — дата начала группы закреплена.
       expectCode(await gqlError(chairman, UPDATE_GROUP, { d: { id: group.id, starts_at: dayFromNow(-1) } }), 'EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS')
-      expect(amount((await preview(theirs.id)).refund), 'у оставшейся подписки проведено четыре часа из восьми').toBeCloseTo(fee * 4 / 8 / 2, 2)
+      expect(amount((await preview(theirs.id)).refund), 'у оставшейся подписки проведено три занятия из восьми').toBeCloseTo(fee * 5 / 8 / 2, 2)
     })
 
     it(caseName('edu.teach.side.25', 'фиксированный взнос преподавателя за занятие: сумма одна при любом числе обучающихся'), async () => {
@@ -239,12 +238,12 @@ describe('Образование: группы курса и расчёт зан
       const mine = await subscribe(learner, token, self.id, course.id)
       await subscribe(learner, token, child.id, course.id)
 
-      // Двое обучающихся — взнос преподавателя за часовое занятие тот же, что за одного.
+      // Двое обучающихся — взнос преподавателя за занятие тот же, что за одного.
       expect(await heldLesson(assignment.id, 1)).toBe(900)
-      expect(await heldLesson(assignment.id, 2, 120)).toBe(1800)
-      // Оплаченное время расходуется у каждого обучающегося одинаково, кто бы ни покрыл взнос преподавателя.
+      expect(await heldLesson(assignment.id, 2)).toBe(900)
+      // Оплаченные занятия расходуются у каждого обучающегося одинаково, кто бы ни покрыл взнос преподавателя.
       const fee = amount(course.fee_month)
-      expect(amount((await preview(mine.id)).refund)).toBeCloseTo(fee * 5 / 8 / 2, 2)
+      expect(amount((await preview(mine.id)).refund)).toBeCloseTo(fee * 6 / 8 / 2, 2)
     })
   })
 })

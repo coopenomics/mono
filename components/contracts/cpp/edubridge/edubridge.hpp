@@ -255,15 +255,14 @@ public:
 
   /**
    * @brief Преподаватель отчитался о занятии — открыть расчёт с участниками.
-   * Фиксирует дату, длительность и ставку преподавателя на курсе.
+   * Фиксирует дату и ставку преподавателя на курсе; длительность — по условиям курса.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void openlesson(eosio::name coopname,
                                     eosio::name username,
                                     checksum256 rid_hash,
                                     uint64_t assignment_id,
-                                    eosio::time_point_sec held_at,
-                                    uint32_t minutes);
+                                    eosio::time_point_sec held_at);
 
   /**
    * @brief Отозвать отчёт о занятии до расчёта с участниками.

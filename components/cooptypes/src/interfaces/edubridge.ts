@@ -183,7 +183,6 @@ export interface IOpenlesson {
   rid_hash: IChecksum256
   assignment_id: IUint64
   held_at: ITimePointSec
-  minutes: IUint32
 }
 
 export interface IDroplesson {
@@ -386,8 +385,6 @@ export interface IEduLesson {
   rate: IAsset
   /** Ставка преподавателя за проведённое время: за одного участника либо за всё занятие. */
   charge: IAsset
-  /** Оплата занятия по плановой ставке за проведённое время — уходит из резерва каждой подписки. */
-  unit: IAsset
   learners: IUint32
   amount: IAsset
   created_at: ITimePointSec

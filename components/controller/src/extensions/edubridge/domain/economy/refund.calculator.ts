@@ -10,9 +10,8 @@
  * Три основания. До начала занятий участник получает взнос целиком. Кооператив,
  * не набравший группу, отменяет курс — тоже целиком, и сразу в паевой взнос:
  * это отмена его собственного решения. Отказ в ходе подписки возвращает
- * половину остаточной стоимости: доля всего взноса за ещё не проведённое время
- * занятий делится пополам. Проведённое время списывает из резерва подписки
- * контракт — по длительности занятия.
+ * половину остаточной стоимости: доля всего взноса за занятия, по которым
+ * расчёт ещё не прошёл, делится пополам.
  */
 
 const PRECISION = 4;
@@ -34,10 +33,6 @@ export enum RefundReason {
 export interface RefundChainState {
   /** Собрано по подписке («9600.0000 RUB»). */
   charged: string;
-  /** Остаток оплаты занятий в резерве подписки — за ещё не проведённое время. */
-  reserve: string;
-  /** Оплата всех оплаченных занятий по плановой ставке: с ней сравнивается остаток резерва. */
-  reserve_paid: string;
   /** Занятий оплачено. */
   lessons_paid: number;
   /** Занятий, по которым прошёл расчёт. */
@@ -83,11 +78,9 @@ export function calculateRefund(params: RefundParams): RefundCalculation {
   if (params.underfilled) return whole(RefundReason.UNDERFILLED, true);
   if (!params.starts_at || params.now < params.starts_at) return whole(RefundReason.BEFORE_START, false);
 
-  // Половина остаточной стоимости: какая доля оплаты занятий осталась в резерве
-  // подписки, такая доля взноса не использована. Деление нацело — как в контракте.
-  const paid = parseAmount(params.chain.reserve_paid).amount;
-  const left = Math.min(parseAmount(params.chain.reserve).amount, paid);
-  const residual = paid > 0 && left > 0 ? Number((BigInt(charged) * BigInt(left)) / BigInt(paid)) : 0;
+  // Половина остаточной стоимости — то же деление нацело, что в контракте.
+  const { lessons_paid: paid, lessons_done: done } = params.chain;
+  const residual = paid > 0 && done < paid ? Math.floor((charged * (paid - done)) / paid) : 0;
   const refund = Math.floor(residual / 2);
   return {
     reason: RefundReason.REFUSAL,

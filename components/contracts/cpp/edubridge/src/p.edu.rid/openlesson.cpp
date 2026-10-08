@@ -1,8 +1,10 @@
 /**
  * @brief Преподаватель отчитался о проведённом занятии — открывается расчёт.
  *
- * Запись занятия фиксирует дату, длительность, ставку преподавателя на курсе
- * и оплату занятия по плановой ставке за проведённое время. После этого
+ * Занятие всегда длиной по условиям курса: отчёт называет дату, длительность
+ * контракт берёт из условий. Запись занятия фиксирует дату и ставку
+ * преподавателя на курсе. Взнос преподавателя за одного участника — его
+ * ставка за занятие, но не больше оплаты занятия по плановой ставке курса. После этого
  * приложение по одной подписке вызывает `chargelesson`, затем `holdrid`.
  *
  * Занятия курса идут по порядку: следующее открывается, когда расчёт по
@@ -21,11 +23,9 @@ void edubridge::openlesson(eosio::name coopname,
                            eosio::name username,
                            checksum256 rid_hash,
                            uint64_t assignment_id,
-                           eosio::time_point_sec held_at,
-                           uint32_t minutes) {
+                           eosio::time_point_sec held_at) {
   require_auth(coopname);
 
-  eosio::check(minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия должна быть больше нуля");
   get_participant_or_fail(coopname, username);
   Edubridge::get_active_contract_or_fail(coopname, username);
 
@@ -51,14 +51,13 @@ void edubridge::openlesson(eosio::name coopname,
   eosio::check(rids_by_hash.find(rid_hash) == rids_by_hash.end(),
                "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
 
-  // Оплата занятия по плановой ставке за проведённое время — столько уходит из
-  // резерва каждой подписки; сдвоенное занятие расходует вдвое больше. Взнос
-  // преподавателя — по его ставке за то же время: на курсе с расчётом за
-  // каждого участника это взнос за одного, с фиксированным — за всё занятие.
-  eosio::check(minutes <= terms.lesson_minutes * 2, "EDUBRIDGE_LESSON_TOO_LONG: Занятие не длиннее сдвоенного занятия курса");
-  const eosio::asset unit(terms.planned_rate.amount * static_cast<int64_t>(minutes) / 60, terms.planned_rate.symbol);
+  // Ставка преподавателя за занятие курса, не больше оплаты занятия,
+  // заложенной во взнос участника: на курсе с расчётом за каждого участника
+  // это взнос за одного, на курсе с фиксированным расчётом — за всё занятие.
+  const eosio::asset unit = terms.lesson_unit();
   const eosio::asset rate = assign->rate <= terms.planned_rate ? assign->rate : terms.planned_rate;
-  const eosio::asset charge(rate.amount * static_cast<int64_t>(minutes) / 60, rate.symbol);
+  eosio::asset charge(rate.amount * static_cast<int64_t>(terms.lesson_minutes) / 60, rate.symbol);
+  if (charge > unit) charge = unit;
 
   uint64_t lesson_id = 0;
   lessons.emplace(RamPayer::of(lessons, coopname), [&](auto& l) {
@@ -69,10 +68,9 @@ void edubridge::openlesson(eosio::name coopname,
     l.username      = username;
     l.number        = terms.lessons_opened + 1;
     l.held_at       = held_at;
-    l.minutes       = minutes;
+    l.minutes       = terms.lesson_minutes;
     l.rate          = rate;
     l.charge        = charge;
-    l.unit          = unit;
     l.learners      = 0;
     l.amount        = eosio::asset(0, _root_govern_symbol);
     l.created_at    = now;

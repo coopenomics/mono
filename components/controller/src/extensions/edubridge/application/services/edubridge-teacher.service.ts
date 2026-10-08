@@ -74,8 +74,6 @@ const OPEN_CONTRIBUTIONS = [
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Допуск на расхождение часов клиента и сервера при проверке даты занятия. */
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
-/** Во сколько раз занятие в отчёте может быть длиннее занятия по курсу (сдвоенный урок). */
-const MAX_LESSON_STRETCH = 2;
 /** Ответ цепи на повторную подачу заявления по тем же материалам. */
 /** Код отказа контракта: заявление по этим материалам уже подано. */
 const ALREADY_SUBMITTED = 'EDUBRIDGE_RID_STATEMENT_ALREADY_SUBMITTED';
@@ -574,7 +572,6 @@ export class EdubridgeTeacherService {
    */
   async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonRecord> {
     const { assignment: a, course, group, previous } = await this.lessonContext(coopname, teacher, input);
-    const duration = input.duration_minutes ?? course.lesson_minutes;
     const symbol = course.planned_hourly_rate.split(' ')[1] ?? '';
 
     // Занятие, материалы которого сняты с хранения, проводится заново: строка
@@ -584,7 +581,8 @@ export class EdubridgeTeacherService {
       teacher_username: teacher,
       assignment_id: a.id,
       held_at: input.held_at ? new Date(input.held_at) : new Date(),
-      duration_minutes: duration,
+      // Занятие всегда длиной по условиям курса: отчёт подаётся по одному занятию.
+      duration_minutes: course.lesson_minutes,
       materials: input.materials.map((m) => m.trim()).filter(Boolean),
       topic: input.topic ?? '',
       learners_count: null,
@@ -639,7 +637,6 @@ export class EdubridgeTeacherService {
         rid_hash: c.rid_hash,
         assignment_id: chainAssignmentRef(assignment, course),
         held_at: toChainTime(new Date(lesson.held_at)),
-        minutes: lesson.duration_minutes,
       });
     }
   }
@@ -715,7 +712,7 @@ export class EdubridgeTeacherService {
     if (input.lesson_number < 1 || input.lesson_number > course.lessons_total) {
       throw DomainError.badRequest('EDUBRIDGE_LESSON_OUT_OF_PLAN', { lessonsTotal: course.lessons_total });
     }
-    this.assertLessonReport(input, course, assignment);
+    this.assertLessonReport(input, assignment);
 
     const previous = await this.previousReport(coopname, group.id, input.lesson_number);
     await this.assertLessonsInOrder(coopname, group.id, input);
@@ -770,12 +767,8 @@ export class EdubridgeTeacherService {
     return { lesson, contribution };
   }
 
-  /** Длительность и дата занятия в отчёте — в границах курса и назначения. */
-  private assertLessonReport(input: EduLessonReportInputDTO, course: EdubridgeCourseRecord, assignment: EdubridgeTeacherAssignmentRecord): void {
-    const maxMinutes = course.lesson_minutes * MAX_LESSON_STRETCH;
-    if (input.duration_minutes && input.duration_minutes > maxMinutes) {
-      throw DomainError.badRequest('EDUBRIDGE_LESSON_DURATION_TOO_LONG', { lessonMinutes: course.lesson_minutes, maxMinutes });
-    }
+  /** Дата занятия в отчёте — в границах назначения. */
+  private assertLessonReport(input: EduLessonReportInputDTO, assignment: EdubridgeTeacherAssignmentRecord): void {
     if (input.held_at) {
       const heldAt = new Date(input.held_at);
       if (heldAt.getTime() > Date.now() + CLOCK_SKEW_MS) throw DomainError.badRequest('EDUBRIDGE_LESSON_REPORT_TOO_EARLY');
@@ -989,38 +982,6 @@ export class EdubridgeTeacherService {
     const saved = await this.teachers.saveContribution(c);
     this.events.emit(EDUBRIDGE_CONTRIBUTION_SUBMITTED_EVENT, { coopname, contribution_id: saved.id, teacher_username: teacher });
     this.logger.info(`[EDU.RID] взнос ${c.rid_hash} подан, вопрос в повестке совета ${c.council_agenda_id ?? 'ещё не найден'}`);
-    return saved;
-  }
-
-  /**
-   * Подтверждённая рекламация в гарантийный срок: заявление снимается, взнос
-   * не оформляется, материал остаётся за преподавателем. После отправки в
-   * совет снимать уже нечего — там решение принимает совет.
-   */
-  async revokeHeldContribution(coopname: string, contributionId: string, reason: string): Promise<EdubridgeContributionRecord> {
-    const c = await this.teachers.findContribution(coopname, contributionId);
-    if (!c) throw DomainError.notFound('EDUBRIDGE_CONTRIBUTION_NOT_FOUND');
-    if (c.status !== EduContributionStatus.HELD && c.status !== EduContributionStatus.DRAFT) {
-      throw DomainError.badRequest('EDUBRIDGE_STATEMENT_ALREADY_IN_COUNCIL');
-    }
-
-    // Расчёт занятия с обучающимися открыт в цепи: он завершается приёмом
-    // материалов на хранение, после этого материалы снимаются по рекламации.
-    if (c.status === EduContributionStatus.DRAFT && (await this.chain.readLesson(coopname, c.rid_hash))) {
-      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_NOT_HELD');
-    }
-
-    // Материалы на ответственном хранении снимаются проводкой (Дт 76 / Кт 08):
-    // обязательство перед преподавателем и принятое имущество закрываются
-    // встречно, паевой фонд не затрагивается.
-    if (c.status === EduContributionStatus.HELD) {
-      await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason } as never);
-    }
-
-    c.status = EduContributionStatus.DECLINED;
-    c.decline_reason = reason;
-    const saved = await this.teachers.saveContribution(c);
-    this.logger.info(`[EDU.RID] заявление ${c.rid_hash} снято по рекламации: ${reason}`);
     return saved;
   }
 
@@ -1252,13 +1213,17 @@ export class EdubridgeTeacherService {
       throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_NOT_SUBMITTED');
     }
     if (!reason?.trim()) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REASON_REQUIRED');
+    // Отказ преподавателю — только по решению совета: принятому либо отклонённому вопросу повестки.
+    if (!c.council_decision_id && c.council_outcome !== EduCouncilOutcome.DECLINED) {
+      throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_DECLINE_REQUIRES_COUNCIL');
+    }
     if (c.council_decision_id) {
       // Решение совета есть, приём не состоялся: заявление закрывается его протоколом.
       const decision = await this.councilProtocol(coopname, c);
       await this.chain.declineRid({ coopname, rid_hash: c.rid_hash, decision } as never);
       c.decision_hash = decision.hash.toLowerCase();
     } else {
-      // Совет решения не принял — отрицательного протокола у него не бывает.
+      // Совет отклонил вопрос о приёме — отрицательного протокола у него не бывает.
       // Материалы снимаются с хранения с основанием (Дт 76 / Кт 08).
       await this.chain.recallRid({ coopname, rid_hash: c.rid_hash, reason: t('edubridge.teacher.ridRecallReason', { reason: reason.trim() }) } as never);
     }

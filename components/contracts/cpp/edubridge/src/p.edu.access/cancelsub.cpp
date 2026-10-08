@@ -45,7 +45,7 @@ void edubridge::cancelsub(eosio::name coopname,
   } else if (!terms.is_started() || now < terms.starts_at) {
     refund = sub->charged_or_zero();
   } else {
-    refund = Edubridge::refusal_refund(terms, *sub);
+    refund = Edubridge::refusal_refund(*sub);
   }
 
   Edubridge::settle_closing(coopname, *sub, refund, to_share);
