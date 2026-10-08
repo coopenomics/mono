@@ -18,7 +18,7 @@ import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
-import { DebtExtensionModule, DebtExtension, Schema as DebtSchema, defaultConfig as debtDefaultConfig } from './debt/debt-extension.module';
+import { DebtExtensionModule, DebtExtension, Schema as DebtSchema } from './debt/debt-extension.module';
 
 import { capitalDatabaseMigrations } from './capital/capital.database-migrations';
 import { cardcoopDatabaseMigrations } from './cardcoop/cardcoop.database-migrations';
@@ -431,7 +431,6 @@ export const AppRegistry: INamedExtension = {
     databaseMigrations: debtDatabaseMigrations,
     ports: debtPorts,
     schema: DebtSchema,
-    defaults: { enabled: false, config: debtDefaultConfig },
     tags: [t('app.extensionsRegistry.debt.tagLoans'), t('app.extensionsRegistry.debt.tagFinance')],
     readme: getReadmeContent('./debt'),
     instructions: getInstructionsContent('./debt'),
