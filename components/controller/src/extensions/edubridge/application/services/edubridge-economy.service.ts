@@ -295,7 +295,8 @@ export class EdubridgeEconomyService {
       actual_cost_month: formatMinor(actualMinor, symbol),
       actual_hours_per_month: teachers.length ? hours : 0,
       over_fee: actualMinor > toMinor(plan.fee_month),
-      ...(await this.groupEconomy(coopname, course, groupId, actualMinor, symbol)),
+      // По группам взнос преподавателей показывается по плановой ставке курса — она и есть предел ставки преподавателя.
+      ...(await this.groupEconomy(coopname, course, groupId, toMinor(plan.cost_month), symbol)),
     };
   }
 
@@ -424,10 +425,6 @@ function toMinor(asset: string): number {
 
 function formatMinor(minor: number, symbol: string): string {
   return `${(minor / 10_000).toFixed(4)} ${symbol}`;
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 /** Подписка действует, и доступ по ней оплачен на этот момент. */
