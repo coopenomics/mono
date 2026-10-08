@@ -111,7 +111,7 @@ export class DebtManagementResolver {
   })
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Debt', 'generate')
+  @RequireRight('Debt', ['generate:own', 'generate'], { owner: 'data.username' })
   async generateGetLoanDecision(
     @Args('data', { type: () => CapitalLoanDecisionGenerateInputDTO })
     data: CapitalLoanDecisionGenerateInputDTO,
