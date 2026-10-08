@@ -41,7 +41,7 @@
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
-    CourseGroups.q-mb-md(:course="course" @select="selectGroup" @changed="reloadEconomy")
+    CourseGroups.q-mb-md(:course="course" @changed="reloadEconomy")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -87,8 +87,10 @@
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup', { percent: economy.plan.markup_percent })")
 
+            DataRow(:label="$t('edubridge.adminCoursePage.payModeLabel')" :value="course.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
+
+            //- Сумма по всем идущим группам курса; экономика одной группы — в её правой панели.
             .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.adminCoursePage.groupTitle') }}
-            DataRow(:label="$t('edubridge.adminCoursePage.payModeLabel')" :value="economy.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
             DataRow(:label="$t('edubridge.adminCoursePage.groupLearnersLabel')" :value="String(economy.learners_active)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.groupLearners')")
@@ -189,19 +191,14 @@ async function unpublish(): Promise<void> {
   if (agreed) await setStatus(Zeus.EduCourseStatus.DRAFT);
 }
 
-/** Группа, по которой показан месяц в экономике; не выбрана — первая идущая. */
-const economyGroupId = ref<string | null>(null);
+/** Экономика курса — сумма по всем идущим группам; перечитывается, когда группы меняются. */
 async function reloadEconomy(): Promise<void> {
   if (!course.value) return;
   try {
-    economy.value = await fetchCourseEconomy(asText(course.value.id), economyGroupId.value);
+    economy.value = await fetchCourseEconomy(asText(course.value.id));
   } catch (e) {
     FailAlert(e);
   }
-}
-function selectGroup(groupId: string): void {
-  economyGroupId.value = groupId;
-  void reloadEconomy();
 }
 
 /** Страницу покинули: ответы запросов, начатых на ней, больше ничего не меняют. */
@@ -218,7 +215,7 @@ async function load(): Promise<void> {
     // Ответ пришёл после ухода со страницы: заголовок шапки уже сброшен, возвращать его нельзя.
     if (pageLeft) return;
     if (course.value) desktopStore.setPageTitleOverride(t('edubridge.adminCoursePage.pageTitle'));
-    economy.value = await fetchCourseEconomy(id, economyGroupId.value);
+    economy.value = await fetchCourseEconomy(id);
   } catch (e) {
     FailAlert(e);
   } finally {

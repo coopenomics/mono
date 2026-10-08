@@ -32,14 +32,20 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
   DetailsDrawer(v-model="detailsOpen" :title="details?.title || $t('edubridge.courseGroups.title')" :width="520")
     template(v-if="details")
       BaseBadge.q-mb-md(:variant="stateOf(details).variant") {{ stateOf(details).label }}
-      DataRow(:label="$t('edubridge.courseGroups.feeMonth')" :value="formatAsset2Digits(details.fee_month)")
-      DataRow(:label="$t('edubridge.courseGroups.plannedRate')" :value="formatAsset2Digits(details.planned_hourly_rate)")
-      DataRow(:label="$t('edubridge.courseGroups.payMode')" :value="details.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')")
-      DataRow(:label="$t('edubridge.courseGroups.guarantee')" :value="`${details.guarantee_days} ${pluralizeDays(Number(details.guarantee_days))}`")
-      DataRow(:label="$t('edubridge.courseGroups.learners')" :value="String(details.learners_active)")
-      DataRow(:label="$t('edubridge.courseGroups.lessons')" :value="$t('edubridge.courseGroups.lessonsOf', { held: details.lessons_held, total: details.lessons_total })")
-      DataRow(v-if="details.teacher_reserve_balance" :label="$t('edubridge.courseGroups.reserve')" :value="formatAsset2Digits(details.teacher_reserve_balance)")
-      DataRow(v-if="details.teacher_settled_total" :label="$t('edubridge.courseGroups.settled')" :value="formatAsset2Digits(details.teacher_settled_total)")
+      DataRow(:label="$t('edubridge.courseGroups.feeMonth')" :value="formatAsset2Digits(details.fee_month)" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.plannedRate')" :value="formatAsset2Digits(details.planned_hourly_rate)" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.payMode')" :value="details.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.guarantee')" :value="`${details.guarantee_days} ${pluralizeDays(Number(details.guarantee_days))}`" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.learners')" :value="String(details.learners_active)" align="spread")
+      DataRow(:label="$t('edubridge.courseGroups.lessons')" :value="$t('edubridge.courseGroups.lessonsOf', { held: details.lessons_held, total: details.lessons_total })" align="spread")
+      DataRow(v-if="details.teacher_reserve_balance" :label="$t('edubridge.courseGroups.reserve')" :value="formatAsset2Digits(details.teacher_reserve_balance)" align="spread")
+      DataRow(v-if="details.teacher_settled_total" :label="$t('edubridge.courseGroups.settled')" :value="formatAsset2Digits(details.teacher_settled_total)" align="spread")
+      //- Месяц этой группы при нынешнем числе обучающихся.
+      template(v-if="groupEconomy")
+        .t-eyebrow.q-mt-lg.q-mb-xs {{ $t('edubridge.courseGroups.monthTitle') }}
+        DataRow(:label="$t('edubridge.adminCoursePage.groupFeeLabel')" :value="formatAsset2Digits(groupEconomy.group_fee_month)" align="spread")
+        DataRow(:label="$t('edubridge.adminCoursePage.groupTeachersLabel')" :value="formatAsset2Digits(groupEconomy.group_teachers_month)" align="spread")
+        DataRow(:label="$t('edubridge.adminCoursePage.groupProgramLabel')" :value="formatAsset2Digits(groupEconomy.group_program_month)" align="spread")
       .t-sm.t-muted.q-mt-sm.q-mb-md {{ $t('edubridge.courseGroups.termsNote') }}
 
       BaseForm(v-if="details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
@@ -53,7 +59,6 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
             BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('common.action.save') }}
     template(v-if="details && details.status === Zeus.EduGroupStatus.ACTIVE" #footer)
       .edu-row-actions
-        BaseButton(variant="secondary" @click="emit('select', asText(details.id))") {{ $t('edubridge.courseGroups.showEconomy') }}
         BaseButton(variant="secondary" :disabled="details.learners_active > 0" :loading="closing" @click="onClose") {{ $t('edubridge.courseGroups.close') }}
 
   //- Новая группа: условия берутся с курса на день открытия.
@@ -81,6 +86,7 @@ import { EduLive } from '../../shared/lib/live';
 import { BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
+import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
 import { closeGroup, createGroup, fetchCourseGroups, updateGroup, type IGroup } from '../../entities/Group';
 import { t } from '../../i18n';
 
@@ -91,7 +97,7 @@ import { t } from '../../i18n';
  * привязка к группе площадки.
  */
 const props = defineProps<{ course: ICourse }>();
-const emit = defineEmits<{ select: [groupId: string]; changed: [] }>();
+const emit = defineEmits<{ changed: [] }>();
 
 const { confirm } = useConfirm();
 const groups = ref<IGroup[]>([]);
@@ -154,8 +160,20 @@ const detailsId = ref<string | null>(null);
 const details = computed(() => groups.value.find((g) => asText(g.id) === detailsId.value) ?? null);
 const form = reactive({ title: '', starts_at: '', platform_group: '', enrollment_open: true });
 
+/** Экономика открытой группы; пока не прочитана — блок не показывается. */
+const groupEconomy = ref<ICourseEconomy | null>(null);
+async function loadGroupEconomy(groupId: string): Promise<void> {
+  groupEconomy.value = null;
+  try {
+    groupEconomy.value = await fetchCourseEconomy(asText(props.course.id), groupId);
+  } catch {
+    groupEconomy.value = null;
+  }
+}
+
 function openDetails(row: IGroup): void {
   detailsId.value = asText(row.id);
+  void loadGroupEconomy(asText(row.id));
   Object.assign(form, { title: row.title, starts_at: row.starts_at ?? '', platform_group: platformGroupOf(row.external_ref), enrollment_open: row.enrollment_open });
   detailsOpen.value = true;
 }

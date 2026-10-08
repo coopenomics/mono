@@ -295,32 +295,38 @@ export class EdubridgeEconomyService {
   }
 
   /**
-   * Месяц группы при нынешнем числе участников — для показа администратору.
-   * Группа названа либо берётся первая идущая. Взносы участников — месячный
-   * взнос группы на каждого. Взнос преподавателей — по способу расчёта группы:
-   * за каждого участника либо один на занятие. Суммы занятий считает контракт;
-   * здесь план месяца по тем же условиям.
+   * Месяц при нынешнем числе обучающихся — для показа администратору. Группа
+   * названа — считается она; не названа — сумма по всем идущим группам курса.
+   * Взносы — месячный взнос группы за каждого обучающегося с оплаченным
+   * доступом. Взнос преподавателей — по способу расчёта группы: за каждого
+   * обучающегося либо один на занятие. Суммы занятий считает контракт; здесь
+   * план месяца по тем же условиям.
    */
   private async groupEconomy(coopname: string, course: EdubridgeCourseRecord, groupId: string | null | undefined, teachersMinor: number, symbol: string) {
-    const groups = await this.groups.list(coopname, course.id);
-    const group = groups.find((g) => g.id === groupId) ?? groups.find((g) => g.status === EduGroupStatus.ACTIVE) ?? groups[0] ?? null;
-    const terms = group ? this.groups.viewOf(course, group) : course;
+    const all = await this.groups.list(coopname, course.id);
+    const named = groupId ? all.find((g) => g.id === groupId) ?? null : null;
+    const scope = named ? [named] : all.filter((g) => g.status === EduGroupStatus.ACTIVE);
     const now = new Date();
-    const enrollments = group ? await this.enrollments.findByGroup(coopname, group.id) : [];
-    const active = enrollments.filter((e) => e.status === EduEnrollmentStatus.ACTIVE);
-    const learners = active.filter((e) => e.paid_until && new Date(e.paid_until) > now).length;
-    const perLearner = Boolean(terms.pay_per_learner);
-    const fees = toMinor(terms.fee_month) * learners;
-    const teachersTotal = learners === 0 ? 0 : perLearner ? teachersMinor * learners : teachersMinor;
+    const total = { learners: 0, fees: 0, teachers: 0, locked: false, started: false };
+    for (const group of scope) {
+      const terms = this.groups.viewOf(course, group);
+      const enrollments = await this.enrollments.findByGroup(coopname, group.id);
+      const learners = enrollments.filter((e) => hasPaidAccess(e, now)).length;
+      total.learners += learners;
+      total.fees += toMinor(terms.fee_month) * learners;
+      total.teachers += teachersOfMonth(Boolean(terms.pay_per_learner), learners, teachersMinor);
+      total.locked = total.locked || enrollments.length > 0;
+      total.started = total.started || (await this.lessons.findByGroup(coopname, group.id)).length > 0;
+    }
     return {
-      group_id: group?.id ?? null,
-      pay_per_learner: perLearner,
-      learners_active: learners,
-      group_fee_month: formatMinor(fees, symbol),
-      group_teachers_month: formatMinor(teachersTotal, symbol),
-      group_program_month: formatMinor(Math.max(0, fees - teachersTotal), symbol),
-      terms_locked: enrollments.length > 0,
-      start_locked: group ? (await this.lessons.findByGroup(coopname, group.id)).length > 0 : false,
+      group_id: named?.id ?? null,
+      pay_per_learner: Boolean(named ? named.pay_per_learner : course.pay_per_learner),
+      learners_active: total.learners,
+      group_fee_month: formatMinor(total.fees, symbol),
+      group_teachers_month: formatMinor(total.teachers, symbol),
+      group_program_month: formatMinor(Math.max(0, total.fees - total.teachers), symbol),
+      terms_locked: total.locked,
+      start_locked: total.started,
     };
   }
 
@@ -417,4 +423,15 @@ function formatMinor(minor: number, symbol: string): string {
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+/** Подписка действует, и доступ по ней оплачен на этот момент. */
+function hasPaidAccess(e: { status: EduEnrollmentStatus; paid_until: Date | null }, now: Date): boolean {
+  return e.status === EduEnrollmentStatus.ACTIVE && Boolean(e.paid_until) && new Date(e.paid_until as Date) > now;
+}
+
+/** Взнос преподавателей группы за месяц: за каждого обучающегося либо один на занятие; без обучающихся занятий нет. */
+function teachersOfMonth(perLearner: boolean, learners: number, teachersMinor: number): number {
+  if (learners === 0) return 0;
+  return perLearner ? teachersMinor * learners : teachersMinor;
 }
