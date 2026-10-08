@@ -1,22 +1,17 @@
 <template lang="pug">
 BaseDialog(
   :model-value='modelValue',
-  :title='$t("debt.createDialog.title")',
+  :title='dialogTitle',
   size='md',
   :maximized='!!prepared',
   @update:model-value='$emit("update:modelValue", $event)'
 )
   //- Второй шаг: заявление и договор на прочтение перед подписью.
   //- Документы читают по одному на всю высоту окна: сначала договор, затем
-  //- заявление; подписываются оба на последнем.
+  //- заявление; подписываются оба на последнем. Документ называет шапка окна.
   .loan-review(v-if='prepared && reviewDoc')
-    BaseCard(
-      :key='reviewDoc.key',
-      :title='reviewDoc.title',
-      :subtitle='$t("debt.createDialog.reviewStepText", { current: reviewIndex + 1, total: reviewDocs.length })'
-    )
-      .loan-review__preview
-        DocumentHtmlReader(:html='reviewDoc.html')
+    .loan-review__preview(:key='reviewDoc.key')
+      DocumentHtmlReader(:html='reviewDoc.html')
 
   .loan-form(v-else)
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
@@ -74,7 +69,6 @@ BaseDialog(
         :label='$t("debt.createDialog.methodLabel")',
         required
       )
-      p.loan-form__terms {{ $t('debt.createDialog.terms') }}
 
   template(#footer)
     .loan-form__footer
@@ -103,7 +97,6 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { api as walletApi } from 'src/entities/Wallet';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
-import { BaseCard } from 'src/shared/ui/base/BaseCard';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseSelect } from 'src/shared/ui/base/BaseSelect';
@@ -171,6 +164,17 @@ const reviewDocs = computed(() =>
 const reviewIndex = ref(0);
 const reviewDoc = computed(() => reviewDocs.value[reviewIndex.value] ?? null);
 const isLastReviewDoc = computed(() => reviewIndex.value >= reviewDocs.value.length - 1);
+
+// Шапка окна: на форме — название действия, на чтении — документ и его номер по порядку.
+const dialogTitle = computed(() =>
+  prepared.value && reviewDoc.value
+    ? t('debt.createDialog.reviewTitle', {
+        title: reviewDoc.value.title,
+        current: reviewIndex.value + 1,
+        total: reviewDocs.value.length,
+      })
+    : t('debt.createDialog.title'),
+);
 
 // «Назад» с первого документа возвращает к форме, со следующих — к предыдущему документу.
 function reviewBack(): void {
@@ -283,12 +287,6 @@ async function submit(): Promise<void> {
   gap: var(--p-2);
 }
 
-.loan-form__terms {
-  margin: 0;
-  color: var(--p-ink-2);
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-}
 
 /* Документы читают колонкой привычной ширины по центру развёрнутого окна. */
 .loan-review {
@@ -302,7 +300,7 @@ async function submit(): Promise<void> {
 
 /* Документ занимает всю высоту окна между шапкой и кнопками и листается внутри. */
 .loan-review__preview {
-  height: max(320px, calc(100vh - 290px));
+  height: max(320px, calc(100vh - 200px));
   overflow: auto;
   padding: var(--p-4);
   border: 1px solid var(--p-line);
