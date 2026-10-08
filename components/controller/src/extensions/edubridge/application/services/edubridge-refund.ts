@@ -1,5 +1,5 @@
 import type { EdubridgeContract } from 'cooptypes';
-import { calculateRefund, type RefundCalculation } from '../../domain/economy/refund.calculator';
+import { calculateRefund, type RefundCalculation, type RefundChainState } from '../../domain/economy/refund.calculator';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
 
 type ChainSubscription = EdubridgeContract.Tables.EduSubs.IEduSubscription;
@@ -20,16 +20,17 @@ export function refundOf(
   now = new Date()
 ): RefundCalculation {
   const symbol = String(enrollment.paid_amount ?? '').trim().split(' ')[1] ?? '';
-  const zero = `0.0000 ${symbol}`.trim();
-  const tracked = chain?.plan && Number(chain.plan.version) === 1;
   return calculateRefund({
-    chain: {
-      charged: tracked ? chain?.charged ?? zero : zero,
-      lessons_paid: tracked ? Number(chain?.plan?.lessons_paid ?? 0) : 0,
-      lessons_done: tracked ? Number(chain?.plan?.lessons_done ?? 0) : 0,
-    },
+    chain: chainState(chain, `0.0000 ${symbol}`.trim()),
     starts_at: course.starts_at ? new Date(course.starts_at) : null,
     now,
     underfilled,
   });
+}
+
+/** Что контракт ведёт по подписке; без учёта занятий — нули. */
+function chainState(chain: ChainSubscription | null, zero: string): RefundChainState {
+  const plan = chain?.plan;
+  if (!chain || !plan || Number(plan.version) !== 1) return { charged: zero, lessons_paid: 0, lessons_done: 0 };
+  return { charged: chain.charged ?? zero, lessons_paid: Number(plan.lessons_paid), lessons_done: Number(plan.lessons_done) };
 }

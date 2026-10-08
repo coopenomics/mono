@@ -164,7 +164,7 @@ export class EdubridgeCourseService {
     // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
     const previousRef = course.external_ref;
     const image = await this.resolveImage(coopname, actor, input.image, previous);
-    Object.assign(course, this.fields(input, fee), { image });
+    Object.assign(course, this.fields(input, fee), { image, pay_per_learner: keptPayMode(course, input) });
     // Подгруженные связи перебили бы новые section_id/level_id при сохранении.
     course.section = undefined;
     course.level = undefined;
@@ -246,12 +246,7 @@ export class EdubridgeCourseService {
     input: EduUpdateCourseInputDTO,
     fee: { fee_month: string }
   ): Promise<void> {
-    const changed =
-      fee.fee_month !== course.fee_month ||
-      input.planned_hourly_rate !== course.planned_hourly_rate ||
-      Boolean(input.pay_per_learner ?? true) !== Boolean(course.pay_per_learner) ||
-      Number(input.lessons_per_month) !== Number(course.lessons_per_month) ||
-      Number(input.lesson_minutes) !== Number(course.lesson_minutes);
+    const changed = fee.fee_month !== course.fee_month || termsChanged(course, input);
     if (!changed) return;
     const subscribed = (await this.enrollments.findByCourse(coopname, course.id)).some(
       (e) => e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING
@@ -322,4 +317,17 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
     course_discount_bp: input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0,
     fee_month: fee.fee_month,
   };
+}
+
+/** Изменились ли условия, по которым участники уже внесли взнос: ставка, способ расчёта с преподавателем, расписание. */
+function termsChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
+  const payMode = input.pay_per_learner !== undefined && Boolean(input.pay_per_learner) !== Boolean(course.pay_per_learner);
+  const schedule =
+    Number(input.lessons_per_month) !== Number(course.lessons_per_month) || Number(input.lesson_minutes) !== Number(course.lesson_minutes);
+  return payMode || schedule || input.planned_hourly_rate !== course.planned_hourly_rate;
+}
+
+/** Способ расчёта с преподавателем при правке курса: не назван — остаётся прежним. */
+function keptPayMode(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
+  return input.pay_per_learner ?? Boolean(course.pay_per_learner);
 }

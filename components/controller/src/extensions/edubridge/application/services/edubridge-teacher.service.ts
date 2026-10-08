@@ -422,10 +422,10 @@ export class EdubridgeTeacherService {
       hourly_rate: hourlyRate,
       status: EduAssignmentStatus.ACTIVE,
     });
-    const stored = await this.teachers.saveAssignment(entity);
-    // Запись перечитывается: номер допуска для цепи выдаёт база при вставке.
-    const saved = (await this.teachers.findAssignment(coopname, stored.id)) ?? stored;
-    await this.chainTerms.tryPushAssignment(saved, course);
+    const saved = await this.teachers.saveAssignment(entity);
+    // Номер допуска для цепи выдаёт база при вставке — он дочитывается.
+    const chainRef = saved.chain_ref ?? (await this.teachers.findAssignment(coopname, saved.id))?.chain_ref;
+    await this.chainTerms.tryPushAssignment({ ...saved, chain_ref: chainRef as string }, course);
     // Список «Курс ведут» и допуски — одно и то же: допущенный стоит в курсе.
     if (!(course.teacher_usernames ?? []).includes(saved.teacher_username)) {
       course.teacher_usernames = [...(course.teacher_usernames ?? []), saved.teacher_username];
@@ -617,6 +617,42 @@ export class EdubridgeTeacherService {
     return settled;
   }
 
+  /** Отчёт о занятии в цепь — один раз: открытое занятие заново не открывается. */
+  private async openLessonOnce(
+    coopname: string,
+    c: EdubridgeContributionRecord,
+    lesson: EdubridgeLessonRecord,
+    assignment: EdubridgeTeacherAssignmentRecord,
+    course: EdubridgeCourseRecord
+  ): Promise<void> {
+    if (!(await this.chain.readLesson(coopname, c.rid_hash))) {
+      // Допуск и ставка в цепи — перед каждым занятием: по ней контракт считает взнос.
+      await this.chainTerms.pushAssignment(assignment, course);
+      await this.chain.openLesson({
+        coopname,
+        username: c.teacher_username,
+        rid_hash: c.rid_hash,
+        assignment_id: Number(assignment.chain_ref),
+        held_at: toChainTime(new Date(lesson.held_at)),
+        minutes: lesson.duration_minutes,
+      });
+    }
+  }
+
+  /** Расчёт занятия по подпискам курса — по одной за действие; считает каждую контракт. */
+  private async chargeLessonBySubscriptions(coopname: string, c: EdubridgeContributionRecord, lesson: EdubridgeLessonRecord, course: EdubridgeCourseRecord): Promise<void> {
+    const heldAt = new Date(lesson.held_at);
+    for (const enrollment of await this.enrollments.findByCourse(coopname, course.id)) {
+      // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
+      if (enrollment.status !== EduEnrollmentStatus.ACTIVE || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
+      try {
+        await this.chain.chargeLesson({ coopname, rid_hash: c.rid_hash, sub_hash: enrollment.sub_hash });
+      } catch (e) {
+        this.logger.info(`[EDU.LESSON] подписка ${enrollment.sub_hash} в расчёт занятия ${c.rid_hash} не вошла: ${(e as Error)?.message ?? e}`);
+      }
+    }
+  }
+
   /**
    * Расчёт занятия в цепи. Контракт фиксирует ставку преподавателя, затем
    * приложение по одной подписке вызывает расчёт — считает каждую контракт.
@@ -631,29 +667,8 @@ export class EdubridgeTeacherService {
     assignment: EdubridgeTeacherAssignmentRecord,
     course: EdubridgeCourseRecord
   ): Promise<EdubridgeLessonRecord> {
-    if (!(await this.chain.readLesson(coopname, c.rid_hash))) {
-      // Допуск и ставка в цепи — перед каждым занятием: по ней контракт считает взнос.
-      await this.chainTerms.pushAssignment(assignment, course);
-      await this.chain.openLesson({
-        coopname,
-        username: c.teacher_username,
-        rid_hash: c.rid_hash,
-        assignment_id: Number(assignment.chain_ref),
-        held_at: toChainTime(new Date(lesson.held_at)),
-        minutes: lesson.duration_minutes,
-      });
-    }
-
-    const heldAt = new Date(lesson.held_at);
-    for (const enrollment of await this.enrollments.findByCourse(coopname, course.id)) {
-      // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
-      if (enrollment.status !== EduEnrollmentStatus.ACTIVE || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
-      try {
-        await this.chain.chargeLesson({ coopname, rid_hash: c.rid_hash, sub_hash: enrollment.sub_hash });
-      } catch (e) {
-        this.logger.info(`[EDU.LESSON] подписка ${enrollment.sub_hash} в расчёт занятия ${c.rid_hash} не вошла: ${(e as Error)?.message ?? e}`);
-      }
-    }
+    await this.openLessonOnce(coopname, c, lesson, assignment, course);
+    await this.chargeLessonBySubscriptions(coopname, c, lesson, course);
 
     const onChain = await this.chain.readLesson(coopname, c.rid_hash);
     const learners = Number(onChain?.learners ?? 0);

@@ -37,6 +37,7 @@ function make(rows: any[], chainFails: string | null) {
   const courses = { findById: jest.fn(async () => ({ ...course })) } as any;
   const funds = { afterClosed: jest.fn(async () => undefined) } as any;
   const chain = {
+    readSubscription: jest.fn(async () => null),
     cancelSubscription: jest.fn(async () => {
       if (chainFails) throw new Error(chainFails);
       return { transaction_id: 'TRX' };

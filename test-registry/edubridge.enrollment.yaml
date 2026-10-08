@@ -23,7 +23,8 @@ sources:
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-guarantee.resolver.ts
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-guarantee-claim.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-exit-blockers.service.ts
-    - components/controller/src/extensions/edubridge/domain/economy/teacher-reserve.calculator.ts
+    - components/controller/src/extensions/edubridge/domain/economy/refund.calculator.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-chain-terms.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
   ui:
@@ -341,28 +342,28 @@ cases:
   - id: edu.enroll.happy.18
     level: backend
     kind: happy
-    scenario: "Удержано не меньше того, что участник может потребовать назад."
-    expect: "Взнос удерживается целиком при оплате; пока идёт гарантийный срок ученика (и у неактивированного курса), очередь его не трогает; после срока удержанным остаётся сумма возврата по Положению на этот день, лишнее уходит в фонд; когда оплаченные занятия прошли, удержание снимается полностью."
+    scenario: "Удержание по гарантии считает контракт; приложение вызывает его по одной подписке."
+    expect: "Пока идёт гарантийный срок участника (и у неактивированного курса), контракт не вызывается; срок вышел — уходит unlockfee без суммы, удержанное в записи берётся из цепи; подписка с закрытым сроком и подписка без учёта занятий повторно не вызываются."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
     api: components/api-tests/src/edubridge/subscriptions.test.ts
     status: passing
   - id: edu.enroll.happy.19
     level: backend
     kind: happy
-    scenario: "Резерв преподавателям наполняется до обязательства по курсу."
-    expect: "Из освобождённого резерв добирается до стоимости часов за оплаченное время; на групповом курсе бюджет закрывает первый взнос, остальные свободны; принятый результат уменьшает обязательство и резерв."
+    scenario: "Учёт курса в записи приложения берётся из цепи."
+    expect: "Резерв преподавателям и выплаченное по курсу читаются из учёта курса в цепи; сбой по одной подписке остальные не держит."
     test: components/controller/tests/unit/edubridge/funds.service.test.ts
     external: unreachable
-    external_reason: "тик расписания и перемотка времени: резерв преподавателям добирается из взноса, освобождённого очередью после конца гарантийного срока"
+    external_reason: "тик расписания и перемотка времени: гарантийный срок участника закрывает очередь после его окончания"
     status: passing
   - id: edu.enroll.side.17
     level: backend
     kind: side
-    scenario: "Оплаченное время курса: несколько учеников, разные сроки, конечная программа, оплата до начала занятий, выплаченное преподавателям."
-    expect: "Обязательство считается по времени, а не по числу учеников, не больше стоимости программы и за вычетом выплаченного."
-    test: components/controller/tests/unit/edubridge/teacher-reserve.test.ts
+    scenario: "Предварительная сумма возврата по строке подписки из цепи: до начала занятий, недобор, отказ в ходе подписки, все занятия проведены."
+    expect: "До начала занятий и при недоборе — весь взнос; при отказе — половина остаточной стоимости от полного взноса по занятиям, по которым расчёт не прошёл; деление нацело, как в контракте."
+    test: components/controller/tests/unit/edubridge/refund.test.ts
     external: unreachable
-    external_reason: "расчёт обязательства по оплаченному времени — чистая функция; её входы (сроки нескольких учеников, выплаченное) снаружи за один прогон не собрать"
+    external_reason: "расчёт по строке подписки из цепи — чистая функция; проведённые занятия по подписке снаружи за один прогон не собрать"
     status: passing
   - id: edu.enroll.side.18
     level: backend
