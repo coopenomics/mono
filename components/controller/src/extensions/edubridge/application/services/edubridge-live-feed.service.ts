@@ -14,6 +14,8 @@ import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositorie
  */
 export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_courses' },
+  // Группы курса — как каталог: набор и дата начала видны всем.
+  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_groups' },
   // Справочник разделов и уровней — как каталог, открыт всем.
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_sections' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_levels' },

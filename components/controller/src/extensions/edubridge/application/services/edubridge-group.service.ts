@@ -8,6 +8,7 @@ import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/reposi
 import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositories/edubridge-group.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
+import { t } from '../../i18n';
 
 /** Условия, которые группа берёт у курса в день открытия и дальше держит сама. */
 const TERM_FIELDS = [
@@ -132,7 +133,7 @@ export class EdubridgeGroupService {
     const entity = this.groups.create({
       coopname,
       course_id: course.id,
-      title: input.title?.trim() || `Группа ${existing.length + 1}`,
+      title: input.title?.trim() || t('edubridge.group.defaultTitle', { number: existing.length + 1 }),
       status: EduGroupStatus.ACTIVE,
       enrollment_open: true,
       external_ref: (input.external_ref ?? course.external_ref ?? '').trim(),

@@ -77,6 +77,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText, pluralizeDays } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
+import { useLiveReload } from 'src/shared/lib/realtime';
+import { EduLive } from '../../shared/lib/live';
 import { BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
@@ -240,6 +242,8 @@ onMounted(() => {
   void load();
   void loadPlatformGroups();
 });
+// Группы меняются набором, занятиями и взносами участников — блок обновляется сам.
+useLiveReload([EduLive.groups, EduLive.enrollments, EduLive.lessons], load);
 defineExpose({ reload: load });
 </script>
 

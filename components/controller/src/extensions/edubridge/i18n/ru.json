@@ -211,6 +211,9 @@
       "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
       "ridRecallReason": "совет не принял решение о приёме: {reason}",
       "actDeclinedReason": "председатель отказал в подписи акта приёма-передачи"
+    },
+    "group": {
+      "defaultTitle": "Группа {number}"
     }
   },
   "errors": {
