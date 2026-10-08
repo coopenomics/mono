@@ -93,6 +93,13 @@ export const useDesktopStore = defineStore(namespace, () => {
         if (oldWs && (oldWs as any).routes) {
           (newWs as any).routes = (oldWs as any).routes;
         }
+        // Стартовую страницу стола называет расширение при установке (setRoutes).
+        // Без переноса перезагруженный стол её терял: вход на стол считался
+        // «без допуска» и вёл на шлюз подключения, хотя стартовая страница
+        // открыта (каталог курсов на столе ученика). Значение с сервера главнее.
+        if (oldWs && (oldWs as any).defaultRoute && !(newWs as any).defaultRoute) {
+          (newWs as any).defaultRoute = (oldWs as any).defaultRoute;
+        }
       });
     }
 
