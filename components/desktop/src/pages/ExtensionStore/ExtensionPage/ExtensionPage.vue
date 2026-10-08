@@ -1,10 +1,11 @@
 <template lang="pug">
 .extension-page(v-if='extension')
-  button.extension-page__back(type='button', @click='goBack')
-    q-icon(name='fa-solid fa-chevron-left' size='13px')
-    span {{ $t('common.action.back') }}
-
   .extension-page__panel
+    //- «Назад» — первой строкой карточки: страница не рвётся на кнопку и панель.
+    button.extension-page__back(type='button', @click='goBack')
+      q-icon(name='chevron_left' size='18px')
+      span {{ $t('common.action.back') }}
+
     .extension-page__grid
       aside.extension-page__side
         AutoAvatar.extension-page__logo(
@@ -57,7 +58,7 @@ const data = ref({});
 const myFormRef = ref();
 
 
-// Кнопка «Назад» живёт на самой странице (под шапкой), а не в топбаре.
+// Кнопка «Назад» живёт в карточке приложения, первой строкой, а не в топбаре.
 const goBack = () => {
   if (route.name === 'one-extension') {
     // На главной странице расширения - возвращаемся к списку расширений
