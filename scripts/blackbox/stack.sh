@@ -113,6 +113,9 @@ EOF
   # (scripts/blackbox/http-stub.mjs): геокодер адресов участков и сервер чата.
   # Адрес чата в примере окружения боевой — без подмены стенд стучался бы
   # входом администратора на настоящий сервер.
+  # Короткие сутки гарантийного срока «Образования»: сценарии «срок вышел»
+  # проходят за минуты. То же значение читают наборы (api_tests_env).
+  set_env "$ctl_env" EDUBRIDGE_GUARANTEE_DAY_SECONDS "$GUARANTEE_DAY_SECONDS"
   set_env "$ctl_env" GEOCODER_PROVIDER yandex
   set_env "$ctl_env" GEOCODER_API_KEY blackbox-geocoder-key
   set_env "$ctl_env" GEOCODER_BASE_URL "http://stub:8090/geocoder"
@@ -217,6 +220,9 @@ cmd_tests() {
 # Каркас внешнего слоя components/api-tests: те же адреса, свой отчёт JUnit.
 # Матрица прав (src/rights) идёт отдельной фазой после всех сценариев — она
 # зовёт мутации от лица каждой роли с чужими аргументами.
+# Длина суток гарантийного срока «Образования» на стенде, секунд (в работе — 86400).
+GUARANTEE_DAY_SECONDS=300
+
 api_tests_env() {
   load_stack
   CHAIN_ID="$(chain_id)"
@@ -225,6 +231,7 @@ api_tests_env() {
   export CHAIN_URL="http://127.0.0.1:${CHAIN_PORT}"
   export BLACKBOX_CARDCOOP_CLIENT_ID="$CARDCOOP_CLIENT_ID"
   export BLACKBOX_CARDCOOP_OIDC_ISSUER="$CARDCOOP_OIDC_ISSUER"
+  export BLACKBOX_GUARANTEE_DAY_SECONDS="$GUARANTEE_DAY_SECONDS"
 }
 
 # Контроллер с включённой автоматикой: пересоздаётся, только если стенд

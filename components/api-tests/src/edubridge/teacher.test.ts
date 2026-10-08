@@ -152,7 +152,8 @@ describe('Образование: преподаватель — профиль,
     expect(await pendingContractApproval(teacher.account), 'одобрение закрыто').toBeUndefined()
 
     // Ставку за час назначает администратор при приёме: без неё преподаватель к курсу не допускается.
-    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(teacher.account)), 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED')
+    const withoutRate = { d: { teacher_username: teacher.account, course_id: course.id, period_from: dayFromNow(0), period_to: dayFromNow(90) } }
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, withoutRate), 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED')
     expectCode(await gqlError(token, SET_TEACHER_RATE, { d: { username: teacher.account, hourly_rate: RATE } }), NO_RIGHTS)
     expect((await gql<any>(chairman, SET_TEACHER_RATE, { d: { username: teacher.account, hourly_rate: RATE } })).edubridgeSetTeacherRate).toBe(RATE)
     expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract.hourly_rate).toBe(RATE)

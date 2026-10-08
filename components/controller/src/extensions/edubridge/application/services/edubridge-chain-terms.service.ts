@@ -1,3 +1,4 @@
+import { guaranteeSeconds } from '../../domain/economy/guarantee';
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
@@ -37,7 +38,7 @@ export class EdubridgeChainTermsService {
       lesson_minutes: Number(course.lesson_minutes),
       course_payment: Boolean(course.course_payment_enabled),
       discount_bp: Number(course.course_discount_bp ?? 0),
-      guarantee_days: Number(course.guarantee_days ?? 0),
+      guarantee_secs: guaranteeSeconds(course),
       starts_at: course.starts_at ? toChainTime(new Date(course.starts_at)) : CHAIN_EPOCH,
     });
   }

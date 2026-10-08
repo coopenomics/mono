@@ -27,6 +27,7 @@ import {
   CREATE_COURSE,
   DECLINE_CONTRIBUTION,
   HOLD_CONTRIBUTION,
+  MY_CONTRIBUTIONS,
   MY_LESSONS,
   NO_RIGHTS,
   REPORT_LESSON,
@@ -45,6 +46,7 @@ import {
   courseInput,
   createSection,
   dayFromNow,
+  guaranteeFor,
   educationOff,
   educationOn,
   fundShare,
@@ -92,7 +94,9 @@ describe('Образование: занятия и взносы препода�
     chairman = await tokenOf(CHAIRMAN)
     section = await createSection(chairman)
 
-    heldInput = courseInput(section, { starts_at: dayFromNow(-3), guarantee_days: 14 })
+    // Гарантийный срок идёт весь прогон: число дней подобрано под длину суток стенда.
+    const running = guaranteeFor(3 * 3600)
+    heldInput = courseInput(section, { starts_at: running.starts_at, guarantee_days: running.guarantee_days })
     const created = (await gql<any>(chairman, CREATE_COURSE, { d: heldInput })).edubridgeCreateCourse
     held = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
     const nowCreated = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: dayFromNow(-3), guarantee_days: 0 }) })).edubridgeCreateCourse

@@ -30,6 +30,7 @@ import {
   enrollmentOf,
   fundShare,
   guaranteeAgenda,
+  guaranteeFor,
   guaranteeOf,
   publishCourse,
   signOffer,
@@ -62,8 +63,10 @@ describe('Образование: аннулирование подписки п
     await educationOn()
     const chairman = await tokenOf(CHAIRMAN)
     const section = await createSection(chairman)
-    const courseA = await publishCourse(chairman, section, -3)
-    const courseB = await publishCourse(chairman, section, -3)
+    // Гарантийный срок идёт весь прогон: число дней подобрано под длину суток стенда.
+    const running = { guarantee_days: guaranteeFor(3 * 3600).guarantee_days }
+    const courseA = await publishCourse(chairman, section, 0, running)
+    const courseB = await publishCourse(chairman, section, 0, running)
     const courseBare = await publishCourse(chairman, section, -3, { guarantee_days: 0 })
     fee = amount(courseA.fee_month)
 

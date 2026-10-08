@@ -291,8 +291,7 @@ cases:
     scenario: "Гарантийный срок группы вышел, все подписки его закрыли: преподавателю заводится взнос за занятия периода."
     expect: "Один взнос на все занятия гарантийного срока по допуску; сумму называет контракт; материалы принимаются одним актом с перечнем занятий; повторный проход очереди второй взнос не заводит."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    external: unreachable
-    external_reason: "перемотка времени: гарантийный срок группы должен истечь, а подписки — закрыть его проходом очереди"
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
     status: written
   - id: edu.teach.happy.08
     level: backend
@@ -382,7 +381,7 @@ cases:
     expect: "Взнос за занятия периода не заводится: сумма ещё не окончательна."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     external: unreachable
-    external_reason: "перемотка времени: гарантийный срок группы должен истечь, а подписки — закрыть его проходом очереди"
+    external_reason: "отдельным случаем снаружи не выделяется: проверяется набором guarantee-term в составе случая edu.enroll.side.27"
     status: written
   - id: edu.teach.break.07
     level: backend
@@ -608,4 +607,28 @@ cases:
     expect: "Отказ с именем преподавателя: сначала назначается ставка в карточке преподавателя; курс и допуск не сохраняются."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written
+  - id: edu.teach.side.26
+    level: backend
+    kind: side
+    scenario: "Группа с коротким гарантийным сроком: трое обучающихся, два занятия отчитаны до конца срока."
+    expect: "Отчёты сохранены без взноса и документов; занятия отмечены проведёнными по каждой подписке."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
+    status: written
+  - id: edu.teach.side.27
+    level: backend
+    kind: side
+    scenario: "Взнос за занятия гарантийного срока: акт хранения и заявление после срока."
+    expect: "Материалы всех занятий периода приняты одним актом на сумму взноса; заявление уходит совету сразу."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
+    status: written
+  - id: edu.teach.side.28
+    level: backend
+    kind: side
+    scenario: "Занятие после гарантийного срока в группе, где одному ученику совет отказал по гарантии."
+    expect: "Взнос заводится сразу; ученик с отказом совета продолжает учиться и входит в расчёт."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee-term.test.ts
     status: written

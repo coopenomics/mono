@@ -163,7 +163,8 @@ export interface ISetcourse {
   course_payment: IBool
   /** Скидка за взнос разом, сотые доли процента. */
   discount_bp: IUint32
-  guarantee_days: IUint32
+  /** Гарантийный срок, секунд: дни курса × длина суток. */
+  guarantee_secs: IUint32
   /** Начало занятий; нулевое время — курс не активирован. */
   starts_at: ITimePointSec
 }
@@ -369,7 +370,8 @@ export interface IEduTerms {
   lesson_minutes: IUint32
   course_payment: IBool
   discount_bp: IUint32
-  guarantee_days: IUint32
+  /** Гарантийный срок, секунд: дни курса × длина суток. */
+  guarantee_secs: IUint32
   starts_at: ITimePointSec
   subs_active: IUint32
   lessons_opened: IUint32

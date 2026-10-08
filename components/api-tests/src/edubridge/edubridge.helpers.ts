@@ -251,6 +251,21 @@ export const CATALOG_COURSE = 'query($id:ID!){ edubridgeCatalogCourse(id:$id){ i
 /** Плановая ставка часа курсов набора. */
 export const PLANNED_RATE = '1000.0000 RUB'
 
+/** Длина суток гарантийного срока на стенде, секунд: полигон ставит короткие сутки, в работе — 86 400. */
+export const GUARANTEE_DAY_SECONDS = Number(process.env.BLACKBOX_GUARANTEE_DAY_SECONDS) || 86_400
+
+/**
+ * Условия курса, начавшегося сегодня, у которого гарантийный срок идёт ещё не
+ * меньше `seconds`: число дней подобрано под длину суток стенда. `ends_at` —
+ * когда срок кончится.
+ */
+export function guaranteeFor(seconds: number): { starts_at: string, guarantee_days: number, ends_at: number } {
+  const midnight = Math.floor(Date.now() / 86_400_000) * 86_400_000
+  const sinceMidnight = Math.floor((Date.now() - midnight) / 1000)
+  const guarantee_days = Math.max(1, Math.ceil((sinceMidnight + seconds) / GUARANTEE_DAY_SECONDS))
+  return { starts_at: dayFromNow(0), guarantee_days, ends_at: midnight + guarantee_days * GUARANTEE_DAY_SECONDS * 1000 }
+}
+
 /** День от сегодняшнего со сдвигом, YYYY-MM-DD. */
 export function dayFromNow(days: number): string {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)

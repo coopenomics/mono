@@ -30,7 +30,7 @@ void edubridge::setcourse(eosio::name coopname,
                           uint32_t lesson_minutes,
                           bool course_payment,
                           uint32_t discount_bp,
-                          uint32_t guarantee_days,
+                          uint32_t guarantee_secs,
                           eosio::time_point_sec starts_at) {
   require_auth(coopname);
 
@@ -54,7 +54,7 @@ void edubridge::setcourse(eosio::name coopname,
     t.lesson_minutes    = lesson_minutes;
     t.course_payment    = course_payment;
     t.discount_bp       = discount_bp;
-    t.guarantee_days    = guarantee_days;
+    t.guarantee_secs    = guarantee_secs;
     t.starts_at         = starts_at;
   };
 
@@ -72,7 +72,7 @@ void edubridge::setcourse(eosio::name coopname,
       eosio::check(it->planned_rate == planned_rate && it->per_learner == per_learner && it->target_fee_month == target_fee_month &&
                      it->lessons_per_month == lessons_per_month && it->lessons_total == lessons_total &&
                      it->lesson_minutes == lesson_minutes && it->discount_bp == discount_bp &&
-                     it->guarantee_days == guarantee_days,
+                     it->guarantee_secs == guarantee_secs,
                    "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
     }
     eosio::check(it->lessons_opened == 0 || it->starts_at == starts_at,

@@ -655,7 +655,9 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
     contribution.hold_until = new Date('2026-01-01');
     await service.storageAct('voskhod', 'teach', contribution.id);
-    expect(Math.abs(contribution.hold_until.getTime() - (Date.now() + 14 * 86400_000))).toBeLessThan(60_000);
+    // Акт называет конец гарантийного срока группы: начало занятий плюс срок курса.
+    const course = await (make().courses as any).findById();
+    expect(Math.abs(contribution.hold_until.getTime() - (new Date(course.starts_at).getTime() + 14 * 86400_000))).toBeLessThan(60_000);
     expect(documents.generate).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ registry_id: R.EducationRidStorageAct.registry_id }) }));
     await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
     expect(chain.holdRid).toHaveBeenCalledTimes(1);

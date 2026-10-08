@@ -45,7 +45,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint32_t lesson_minutes;             ///< длительность занятия, минут
   bool course_payment;                 ///< взнос разом за весь курс разрешён
   uint32_t discount_bp;                ///< скидка за взнос разом, сотые доли процента
-  uint32_t guarantee_days;             ///< гарантийный срок, дней; 0 — гарантия не объявлена
+  uint32_t guarantee_secs;             ///< гарантийный срок, секунд (приложение передаёт дни × длину суток); 0 — гарантия не объявлена
   eosio::time_point_sec starts_at;     ///< начало занятий; нулевое время — курс не активирован
   uint32_t subs_active;                ///< действующих подписок — при них денежные условия не меняются
   uint32_t lessons_opened;             ///< номер последнего открытого занятия

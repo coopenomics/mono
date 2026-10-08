@@ -103,15 +103,15 @@ inline void update_terms(eosio::name coopname, uint64_t course_id, Fn&& change) 
  * с объявленной гарантией срок ещё впереди.
  */
 inline bool is_guarantee_running(const edu_terms& terms, eosio::time_point_sec now) {
-  if (terms.guarantee_days == 0) return false;
+  if (terms.guarantee_secs == 0) return false;
   if (!terms.is_started()) return true;
-  return now.sec_since_epoch() < terms.starts_at.sec_since_epoch() + terms.guarantee_days * SECONDS_IN_DAY;
+  return now.sec_since_epoch() < terms.starts_at.sec_since_epoch() + terms.guarantee_secs;
 }
 
 /// До какой даты материалы занятия лежат на ответственном хранении — гарантийный срок курса от начала занятий.
 inline eosio::time_point_sec lesson_hold_until(const edu_terms& terms, eosio::time_point_sec held_at) {
-  if (terms.guarantee_days == 0 || !terms.is_started()) return held_at;
-  return eosio::time_point_sec(terms.starts_at.sec_since_epoch() + terms.guarantee_days * SECONDS_IN_DAY);
+  if (terms.guarantee_secs == 0 || !terms.is_started()) return held_at;
+  return eosio::time_point_sec(terms.starts_at.sec_since_epoch() + terms.guarantee_secs);
 }
 
 // ── Взнос участника ──────────────────────────────────────────────────────

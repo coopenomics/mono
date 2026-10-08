@@ -25,7 +25,7 @@ import {
 import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduGroupStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
 import type { EdubridgeGroupRecord } from '../../infrastructure/entities';
 import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
-import { guaranteeEndsAt, isGuaranteeRunning } from '../../domain/economy/guarantee';
+import { guaranteeEndsAt, guaranteeSeconds, isGuaranteeRunning } from '../../domain/economy/guarantee';
 import { EdubridgeFundsService } from './edubridge-funds.service';
 import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
@@ -661,6 +661,8 @@ export class EdubridgeTeacherService {
    * проход раз в десять минут; повтор ничего не меняет.
    */
   async openGuaranteePacks(coopname: string): Promise<number> {
+    // Сначала подписки закрывают гарантийный срок — иначе сумма по ним в допуск ещё не перешла.
+    await this.funds.unlockDue(coopname).catch(() => undefined);
     let opened = 0;
     for (const program of await this.courses.listAll(coopname)) {
       for (const group of await this.groups.list(coopname, program.id)) {
@@ -888,7 +890,7 @@ export class EdubridgeTeacherService {
    * пересчитает его при подписи.
    */
   private guaranteeEnd(course: EdubridgeCourseRecord): Date {
-    return guaranteeEndsAt(course) ?? new Date(Date.now() + course.guarantee_days * DAY_MS);
+    return guaranteeEndsAt(course) ?? new Date(Date.now() + guaranteeSeconds(course) * 1000);
   }
 
   /** Названия курсов по идентификаторам — журнал занятий показывает их, а не ключи. */

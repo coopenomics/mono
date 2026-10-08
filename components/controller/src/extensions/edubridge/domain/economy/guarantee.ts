@@ -11,7 +11,23 @@
  * ученикам, преподаватель подписывает акт и заявление на неё.
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const SECONDS_IN_DAY = 24 * 60 * 60;
+
+/**
+ * Длина суток гарантийного срока, секунд. В работе — сутки. Стенд внешних
+ * тестов задаёт короткие сутки переменной `EDUBRIDGE_GUARANTEE_DAY_SECONDS`,
+ * чтобы сценарии «гарантийный срок вышел» проходили за минуты: то же значение
+ * уходит в контракт, срок на сервере и в цепи совпадает.
+ */
+export function guaranteeDaySeconds(): number {
+  const custom = Number(process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS);
+  return Number.isFinite(custom) && custom > 0 ? Math.floor(custom) : SECONDS_IN_DAY;
+}
+
+/** Гарантийный срок курса в секундах — так его хранит контракт. */
+export function guaranteeSeconds(course: Pick<GuaranteeTerms, 'guarantee_days'>): number {
+  return Math.max(0, Number(course.guarantee_days ?? 0)) * guaranteeDaySeconds();
+}
 
 export interface GuaranteeTerms {
   /** Дата начала занятий; `null` — курс ещё не активирован. */
@@ -30,7 +46,7 @@ export interface GuaranteeEntry {
 /** Когда кончается гарантийный срок курса; `null` — курс не активирован, дата ещё не известна. */
 export function guaranteeEndsAt(course: GuaranteeTerms): Date | null {
   if (!course.starts_at) return null;
-  return new Date(new Date(course.starts_at).getTime() + Math.max(0, course.guarantee_days) * DAY_MS);
+  return new Date(new Date(course.starts_at).getTime() + guaranteeSeconds(course) * 1000);
 }
 
 /**

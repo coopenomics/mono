@@ -108,7 +108,7 @@ public:
                                    uint32_t lesson_minutes,
                                    bool course_payment,
                                    uint32_t discount_bp,
-                                   uint32_t guarantee_days,
+                                   uint32_t guarantee_secs,
                                    eosio::time_point_sec starts_at);
 
   /**
