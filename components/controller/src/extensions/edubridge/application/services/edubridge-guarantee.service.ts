@@ -29,6 +29,7 @@ import type { EdubridgeGuaranteeClaimRecord } from '../../infrastructure/entitie
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeGuaranteeClaimKyselyRepository } from '../../infrastructure/repositories/edubridge-guarantee-claim.kysely-repository';
+import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentService, isCancellable } from './edubridge-enrollment.service';
 import { t } from '../../i18n';
 
@@ -71,7 +72,8 @@ export class EdubridgeGuaranteeService {
     @Inject(FREE_DECISION_PORT) private readonly freeDecisions: IFreeDecisionPort,
     @Inject(DECISION_TRACKING_PORT) private readonly tracking: IDecisionTrackingPort,
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
-    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
+    @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
+    private readonly groups: EdubridgeGroupService
   ) {
     this.logger.setContext(EdubridgeGuaranteeService.name);
   }
@@ -83,7 +85,7 @@ export class EdubridgeGuaranteeService {
     const byEnrollment = new Map(claims.map((c) => [c.enrollment_id, c]));
     const states: GuaranteeState[] = [];
     for (const enrollment of own) {
-      const course = await this.courses.findById(coopname, enrollment.course_id);
+      const course = await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id);
       if (course) states.push(this.stateOf(enrollment, course, byEnrollment.get(enrollment.id) ?? null));
     }
     return states;
@@ -277,7 +279,7 @@ export class EdubridgeGuaranteeService {
   private async claimable(coopname: string, member: string, enrollmentId: string): Promise<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord }> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
     if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
-    const course = await this.courses.findById(coopname, enrollment.course_id);
+    const course = await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     const claim = await this.claims.findByEnrollment(coopname, enrollment.id);
     if (claim) throw DomainError.badRequest('EDUBRIDGE_GUARANTEE_ALREADY_CLAIMED');

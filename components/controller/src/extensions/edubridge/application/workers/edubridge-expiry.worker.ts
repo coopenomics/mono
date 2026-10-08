@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { platformSettings } from '@coopenomics/extension-kit';
+import { chainErrorCode, platformSettings } from '@coopenomics/extension-kit';
 import { LOGGER_PORT, NOTIFICATION_PORT, type ILoggerPort, type INotificationPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import { EduAccessTaskKind, EduEnrollmentStatus } from '../../domain/enums';
@@ -19,7 +19,8 @@ import { EdubridgeGuaranteeService } from '../services/edubridge-guarantee.servi
  * `expiresub` ключом кооператива и отзыв доступа. Ручных операций ноль.
  */
 /** Ответ цепи, когда записи подписки уже нет. */
-const SUBSCRIPTION_GONE = /Подписка с указанным hash не найдена/i;
+/** Код отказа контракта: подписки с таким hash в цепи нет. */
+const SUBSCRIPTION_GONE = 'EDUBRIDGE_SUBSCRIPTION_NOT_FOUND';
 
 @Injectable()
 export class EdubridgeExpiryWorker {
@@ -91,7 +92,7 @@ export class EdubridgeExpiryWorker {
       const result = await this.chain.expireSubscription({ coopname, sub_hash: subHash });
       return String((result as { transaction_id?: string })?.transaction_id ?? fallback);
     } catch (e) {
-      if (!SUBSCRIPTION_GONE.test((e as Error)?.message ?? '')) throw e;
+      if (chainErrorCode(e) !== SUBSCRIPTION_GONE) throw e;
       this.logger.warn(`[EDU.EXPIRY] подписки ${subHash} в цепи уже нет — закрываем запись и отзываем доступ`);
       return fallback;
     }

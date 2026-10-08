@@ -81,7 +81,7 @@ inline eosio::time_point_sec add_months(eosio::time_point_sec from, uint32_t mon
 inline edu_terms get_terms_or_fail(eosio::name coopname, uint64_t course_id) {
   edu_terms_index terms(_edubridge, coopname.value);
   auto it = terms.find(course_id);
-  eosio::check(it != terms.end(), "Условия курса не заданы");
+  eosio::check(it != terms.end(), "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
   return *it;
 }
 
@@ -89,7 +89,7 @@ template <typename Fn>
 inline void update_terms(eosio::name coopname, uint64_t course_id, Fn&& change) {
   edu_terms_index terms(_edubridge, coopname.value);
   auto it = terms.find(course_id);
-  eosio::check(it != terms.end(), "Условия курса не заданы");
+  eosio::check(it != terms.end(), "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
   terms.modify(it, RamPayer::of(terms, coopname), [&](auto& t) { change(t); });
 }
 
@@ -136,7 +136,7 @@ struct FeeQuote {
  */
 inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, eosio::name period, eosio::time_point_sec now) {
   eosio::check(terms.lessons_per_month > 0 && terms.lesson_minutes > 0 && terms.planned_rate.amount > 0,
-               "Условия курса не заданы");
+               "EDUBRIDGE_COURSE_TERMS_NOT_SET: Условия курса не заданы");
   const bool paid = sub.has_plan() && sub.plan.value().lessons_paid > 0;
   const eosio::time_point_sec from = paid && sub.paid_until > now ? sub.paid_until : now;
 
@@ -147,13 +147,13 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
     q.paid_from = from;
     q.paid_until = add_months(from, 1);
   } else {
-    eosio::check(period == SubscriptionPeriod::COURSE, "Недопустимый период оплаты: ожидается month либо course");
+    eosio::check(period == SubscriptionPeriod::COURSE, "EDUBRIDGE_PERIOD_INVALID: Недопустимый период оплаты: ожидается month либо course");
     const uint32_t total = terms.months_total();
-    eosio::check(terms.course_payment && total > 0, "Взнос за весь курс по этому курсу не принимается");
+    eosio::check(terms.course_payment && total > 0, "EDUBRIDGE_COURSE_PAYMENT_DISABLED: Взнос за весь курс по этому курсу не принимается");
     const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
     const eosio::time_point_sec end = add_months(start, total);
     const eosio::time_point_sec base = from > start ? from : start;
-    eosio::check(base < end, "Курс оплачен до конца программы");
+    eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
     uint32_t months = 1;
     while (months < total && add_months(base, months) < end) months += 1;
     q.months = months;
@@ -167,7 +167,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   if (terms.lessons_total > 0) {
     const uint32_t already = sub.has_plan() ? sub.plan.value().lessons_paid : 0;
     const uint32_t left = terms.lessons_total > already ? terms.lessons_total - already : 0;
-    eosio::check(left > 0, "Курс оплачен до конца программы");
+    eosio::check(left > 0, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
     if (lessons > left) lessons = left;
   }
   q.lessons = lessons;
@@ -176,7 +176,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   const eosio::asset discount(base_amount.amount * discount_bp / BP_IN_WHOLE, base_amount.symbol);
   q.amount = base_amount - discount;
   q.teach = terms.lesson_unit() * static_cast<int64_t>(lessons);
-  eosio::check(q.teach <= q.amount, "Скидка курса больше целевого членского взноса");
+  eosio::check(q.teach <= q.amount, "EDUBRIDGE_DISCOUNT_ABOVE_TARGET_FEE: Скидка курса больше целевого членского взноса");
   return q;
 }
 
@@ -220,7 +220,7 @@ inline eosio::asset required_lock(const edu_subscription& sub) {
 /// Проверка учёта курса: резерв и выплаты преподавателям не превышают собранного по курсу.
 inline void check_course_covered(const edu_course& c) {
   eosio::check(c.reserve + c.settled <= c.collected,
-               std::string{"Средств курса недостаточно: собрано "} + c.collected.to_string() +
+               std::string{"EDUBRIDGE_COURSE_FUNDS_INSUFFICIENT: Средств курса недостаточно: собрано "} + c.collected.to_string() +
                  ", в резерве преподавателям " + c.reserve.to_string() + ", выплачено " + c.settled.to_string());
 }
 
@@ -312,9 +312,26 @@ inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eo
   const eosio::asset zero(0, _root_govern_symbol);
   const eosio::asset locked = sub.locked_or_zero();
   const eosio::asset allotted = sub.reserved_or_zero();
-  const eosio::asset due = sub.has_plan() ? sub.plan.value().due : zero;
+  eosio::asset due = sub.has_plan() ? sub.plan.value().due : zero;
 
-  eosio::check(refund.amount >= 0 && refund <= sub.charged_or_zero(), "Возврат больше собранного по подписке");
+  // Возврат участнику обеспечен всегда: его взнос удержан либо лежит в резерве
+  // подписки. Взнос преподавателей за уже проведённые занятия выделяется из
+  // того, что по курсу остаётся после возврата. При полном возврате по
+  // гарантии этого может не хватить — тогда выделяется сколько есть, возврат
+  // не задерживается, а результат преподавателя ждёт средств курса при приёме
+  // (`acceptrid` проверяет резерв курса).
+  if (due.amount > 0) {
+    edu_courses_index courses(_edubridge, coopname.value);
+    auto course = courses.find(sub.course_id);
+    eosio::asset free_after = zero;
+    if (course != courses.end()) {
+      free_after = course->collected - refund - (course->reserve - allotted) - course->settled;
+    }
+    if (free_after.amount < 0) free_after = zero;
+    if (due > free_after) due = free_after;
+  }
+
+  eosio::check(refund.amount >= 0 && refund <= sub.charged_or_zero(), "EDUBRIDGE_REFUND_ABOVE_CHARGED: Возврат больше собранного по подписке");
 
   if (locked.amount > 0) {
     Ledger2::apply(_edubridge, coopname,
@@ -354,10 +371,10 @@ inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eo
 
   if (allotted.amount > 0 || due.amount > 0 || refund.amount > 0) {
     update_course(coopname, sub.course_id, [&](auto& c) {
-      eosio::check(allotted <= c.reserve, "Резерв преподавателям по курсу меньше резерва подписки");
+      eosio::check(allotted <= c.reserve, "EDUBRIDGE_COURSE_RESERVE_INSUFFICIENT: Резерв преподавателям по курсу меньше резерва подписки");
       c.reserve -= allotted;
       c.reserve += due;
-      eosio::check(refund <= c.collected, "Возврат больше собранного по курсу");
+      eosio::check(refund <= c.collected, "EDUBRIDGE_REFUND_ABOVE_COLLECTED: Возврат больше собранного по курсу");
       c.collected -= refund;
       check_course_covered(c);
     });
@@ -384,7 +401,7 @@ inline void check_no_pending_lesson(eosio::name coopname, const edu_terms& terms
   const auto& plan = sub.plan.value();
   const bool covered = plan.paid_from <= lesson->held_at && lesson->held_at < sub.paid_until;
   eosio::check(!covered || plan.last_lesson >= lesson->number,
-               "По подписке не завершён расчёт за проведённое занятие");
+               "EDUBRIDGE_SUBSCRIPTION_LESSON_PENDING: По подписке не завершён расчёт за проведённое занятие");
 }
 
 } // namespace Edubridge

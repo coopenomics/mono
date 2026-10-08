@@ -177,8 +177,10 @@ export class EduContributionDTO {
   @Field(() => EduCouncilOutcome, { nullable: true, description: 'Совет решения о приёме не принял: отклонил вопрос либо не уложился в срок' }) council_outcome!: EduCouncilOutcome | null;
   @Field(() => Date, { nullable: true, description: 'Дата решения' }) decided_at!: Date | null;
   @Field(() => Date) created_at!: Date;
+  @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
 
-  constructor(e: EdubridgeContributionRecord) {
+  constructor(e: EdubridgeContributionRecord, learnersCount: number | null = null) {
+    this.learners_count = learnersCount;
     Object.assign(this, {
       id: e.id, teacher_username: e.teacher_username, assignment_id: e.assignment_id, rid_hash: e.rid_hash, rid_type: e.rid_type,
       links: e.links ?? [], description: e.description, amount: e.amount, status: e.status, statement_hash: e.statement_hash,
@@ -247,6 +249,11 @@ export class EduLessonReportInputDTO {
   @IsUUID()
   assignment_id!: string;
 
+  @Field(() => ID, { nullable: true, description: 'Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса' })
+  @IsOptional()
+  @IsUUID()
+  group_id?: string | null;
+
   @Field(() => Int, { description: 'Номер занятия в программе курса' })
   @IsInt()
   @Min(1)
@@ -283,6 +290,7 @@ export class EduLessonDTO {
   @Field(() => ID, { description: 'Курс' }) course_id!: string;
   @Field(() => String, { description: 'Название курса' }) course_title!: string;
   @Field(() => Int, { description: 'Номер занятия в программе' }) lesson_number!: number;
+  @Field(() => ID, { nullable: true, description: 'Группа курса' }) group_id!: string | null;
   @Field(() => String, { description: 'Тема занятия' }) topic!: string;
   @Field(() => Date, { description: 'Когда проведено' }) held_at!: Date;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
@@ -295,6 +303,7 @@ export class EduLessonDTO {
     this.course_id = e.course_id;
     this.course_title = courseTitle;
     this.lesson_number = e.lesson_number;
+    this.group_id = e.group_id ?? null;
     this.topic = e.topic;
     this.held_at = e.held_at;
     this.duration_minutes = e.duration_minutes;

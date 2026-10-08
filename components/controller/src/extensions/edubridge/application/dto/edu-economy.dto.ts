@@ -147,6 +147,30 @@ export class EduCourseEconomyDTO {
 
   @Field(() => Boolean, { description: 'Обязательства перед преподавателями превысили собранный взнос' })
   over_fee!: boolean;
+
+  @Field(() => String, { nullable: true, description: 'Группа курса, по которой посчитан месяц' })
+  group_id!: string | null;
+
+  @Field(() => Boolean, { description: 'Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие' })
+  pay_per_learner!: boolean;
+
+  @Field(() => Int, { description: 'Участников группы с оплаченным доступом на сегодня' })
+  learners_active!: number;
+
+  @Field(() => String, { description: 'Взносы участников за месяц при нынешнем числе участников' })
+  group_fee_month!: string;
+
+  @Field(() => String, { description: 'Взнос преподавателей за месяц при нынешнем числе участников' })
+  group_teachers_month!: string;
+
+  @Field(() => String, { description: 'Остаётся программе за месяц при нынешнем числе участников' })
+  group_program_month!: string;
+
+  @Field(() => Boolean, { description: 'В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп' })
+  terms_locked!: boolean;
+
+  @Field(() => Boolean, { description: 'В группе проведены занятия: дата начала занятий группы не изменяется' })
+  start_locked!: boolean;
 }
 
 @InputType('EduSetAssignmentLoadInput')

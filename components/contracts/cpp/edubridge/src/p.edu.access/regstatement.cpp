@@ -18,7 +18,7 @@ void edubridge::regstatement(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление о членском взносе по программе");
+               "EDUBRIDGE_FEE_STATEMENT_REQUIRED: Отсутствует заявление о членском взносе по программе");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 

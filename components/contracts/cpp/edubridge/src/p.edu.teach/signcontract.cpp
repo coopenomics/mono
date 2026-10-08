@@ -21,8 +21,8 @@ void edubridge::signcontract(eosio::name coopname,
                              document2 contract) {
   require_auth(coopname);
 
-  eosio::check(!is_empty_document(contract), "Отсутствует договор участия в хозяйственной деятельности");
-  eosio::check(contract.hash == contract_hash, "Hash договора не совпадает с переданным документом");
+  eosio::check(!is_empty_document(contract), "EDUBRIDGE_CONTRACT_DOCUMENT_REQUIRED: Отсутствует договор участия в хозяйственной деятельности");
+  eosio::check(contract.hash == contract_hash, "EDUBRIDGE_CONTRACT_HASH_MISMATCH: Hash договора не совпадает с переданным документом");
   verify_document_or_fail(contract, { username });
   verify_signer_keys_or_fail(contract, username);
 
@@ -31,12 +31,12 @@ void edubridge::signcontract(eosio::name coopname,
   auto existing = Edubridge::get_contract(coopname, username);
   eosio::check(!existing.has_value(),
                existing.has_value() && existing->status == Edubridge::ContractStatus::PENDING
-                 ? "Договор уже ожидает подписи председателя совета"
+                 ? "EDUBRIDGE_CONTRACT_PENDING: Договор уже ожидает подписи председателя совета"
                  : "Преподаватель уже подписал договор участия в хозяйственной деятельности");
 
   edu_contracts_index contracts(_edubridge, coopname.value);
   auto by_hash = contracts.get_index<"byhash"_n>();
-  eosio::check(by_hash.find(contract_hash) == by_hash.end(), "Договор с указанным hash уже существует");
+  eosio::check(by_hash.find(contract_hash) == by_hash.end(), "EDUBRIDGE_CONTRACT_ALREADY_EXISTS: Договор с указанным hash уже существует");
 
   contracts.emplace(RamPayer::of(contracts, coopname), [&](auto& c) {
     c.id            = get_global_id_in_scope(_edubridge, coopname, "educontracts"_n);

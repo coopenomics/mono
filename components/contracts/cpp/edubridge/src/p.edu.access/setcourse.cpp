@@ -37,10 +37,10 @@ void edubridge::setcourse(eosio::name coopname,
   Edubridge::check_money(planned_rate, "Плановая ставка");
   eosio::check(target_fee_month.is_valid() && target_fee_month.amount >= 0 &&
                  target_fee_month.symbol == _root_govern_symbol,
-               "Некорректный целевой членский взнос");
-  eosio::check(lessons_per_month > 0, "Число занятий в месяц должно быть больше нуля");
-  eosio::check(lesson_minutes > 0, "Длительность занятия должна быть больше нуля");
-  eosio::check(discount_bp <= Edubridge::BP_IN_WHOLE, "Скидка не может быть больше ста процентов");
+               "EDUBRIDGE_TARGET_FEE_INVALID: Некорректный целевой членский взнос");
+  eosio::check(lessons_per_month > 0, "EDUBRIDGE_LESSONS_PER_MONTH_INVALID: Число занятий в месяц должно быть больше нуля");
+  eosio::check(lesson_minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия должна быть больше нуля");
+  eosio::check(discount_bp <= Edubridge::BP_IN_WHOLE, "EDUBRIDGE_DISCOUNT_INVALID: Скидка не может быть больше ста процентов");
 
   edu_terms_index terms(_edubridge, coopname.value);
   auto it = terms.find(course_id);
@@ -72,10 +72,10 @@ void edubridge::setcourse(eosio::name coopname,
                      it->lessons_per_month == lessons_per_month && it->lessons_total == lessons_total &&
                      it->lesson_minutes == lesson_minutes && it->discount_bp == discount_bp &&
                      it->guarantee_days == guarantee_days,
-                   "По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
+                   "EDUBRIDGE_COURSE_TERMS_LOCKED: По курсу есть действующие подписки: ставка, способ расчёта с преподавателем, взнос, расписание, скидка и гарантийный срок не меняются");
     }
     eosio::check(it->lessons_opened == 0 || it->starts_at == starts_at,
-                 "Занятия уже идут: дата начала не меняется");
+                 "EDUBRIDGE_COURSE_START_LOCKED: Занятия уже идут: дата начала не меняется");
     terms.modify(it, RamPayer::of(terms, coopname), fill);
   }
 
@@ -84,5 +84,5 @@ void edubridge::setcourse(eosio::name coopname,
   const edu_terms saved = Edubridge::get_terms_or_fail(coopname, course_id);
   eosio::check(saved.fee_month().amount * static_cast<int64_t>(discount_bp) <=
                  target_fee_month.amount * static_cast<int64_t>(Edubridge::BP_IN_WHOLE),
-               "Скидка за взнос разом больше целевого членского взноса");
+               "EDUBRIDGE_DISCOUNT_ABOVE_TARGET_FEE: Скидка за взнос разом больше целевого членского взноса");
 }

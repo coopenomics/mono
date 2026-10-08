@@ -25,6 +25,16 @@ export class EdubridgeEnrollmentKyselyRepository {
     return this.repo.find({ coopname, course_id: courseId }, { order: { created_at: 'ASC' } });
   }
 
+  /** Подписки группы: расчёт занятия и возвраты идут внутри неё. */
+  findByGroup(coopname: string, groupId: string): Promise<EdubridgeEnrollmentRecord[]> {
+    return this.repo.find({ coopname, group_id: groupId }, { order: { created_at: 'ASC' } });
+  }
+
+  /** Подписка обучающегося в группе; в разных группах одного курса подписки разные. */
+  findByLearnerAndGroup(coopname: string, learnerId: string, groupId: string): Promise<EdubridgeEnrollmentRecord | null> {
+    return this.repo.findOne({ coopname, learner_id: learnerId, group_id: groupId });
+  }
+
   findByPair(coopname: string, learnerId: string, courseId: string): Promise<EdubridgeEnrollmentRecord | null> {
     return this.repo.findOne({ coopname, learner_id: learnerId, course_id: courseId });
   }

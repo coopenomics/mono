@@ -6,10 +6,10 @@
  * паевой взнос участника. Протокол (шаблон 3014) публикуется в реестре
  * документов и привязывается к заявлению.
  *
- * Сумму возврата берёт контракт — всё собранное по подписке. Преподаватель
- * получает за уже проведённые занятия: его взнос выделяется в резерв курса
- * из средств этого же курса. Если их не хватает, действие отклоняется —
- * средства других курсов не используются.
+ * Сумму возврата берёт контракт — всё собранное по подписке. Возврат
+ * обеспечен всегда: взнос участника удержан. Взнос преподавателей за уже
+ * проведённые занятия выделяется в резерв курса из средств этого же курса,
+ * сколько их есть; средства других курсов не используются.
  *
  * Guards:
  *  - протокол не пустой и целостный;
@@ -26,7 +26,7 @@ void edubridge::warrgrant(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(decision),
-               "Отсутствует протокол решения совета по заявлению об аннулировании подписки");
+               "EDUBRIDGE_GUARANTEE_DECISION_REQUIRED: Отсутствует протокол решения совета по заявлению об аннулировании подписки");
   verify_document_or_fail(decision);
 
   get_participant_or_fail(coopname, username);
@@ -34,8 +34,8 @@ void edubridge::warrgrant(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
-               "Подписка принадлежит другому пайщику");
-  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её действием expiresub");
+               "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Подписка принадлежит другому пайщику");
+  eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её действием expiresub");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
   Edubridge::check_no_pending_lesson(coopname, terms, *sub);

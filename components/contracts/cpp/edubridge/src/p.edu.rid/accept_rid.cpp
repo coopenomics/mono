@@ -31,7 +31,7 @@ inline void accept(eosio::name coopname,
                    const document2& decision,
                    const document2& act) {
   eosio::check(!is_empty_document(act),
-               "Отсутствует акт приёма-передачи паевого взноса РИД");
+               "EDUBRIDGE_RID_ACT_REQUIRED: Отсутствует акт приёма-передачи паевого взноса РИД");
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);
@@ -51,7 +51,7 @@ inline void accept(eosio::name coopname,
   const uint64_t course_id   = rid->course_id;
 
   eosio::check(rid->statement_hash != checksum256(),
-               "Заявление о паевом взносе по этим материалам ещё не подано");
+               "EDUBRIDGE_RID_STATEMENT_NOT_SUBMITTED: Заявление о паевом взносе по этим материалам ещё не подано");
 
   // ── o.edu.rid: Дт 04 / Кт 08 — результат принят в состав НМА ──────────
   Ledger2::apply(_edubridge, coopname,
@@ -72,7 +72,7 @@ inline void accept(eosio::name coopname,
   // курсов и свободный фонд программы на него не идут.
   const eosio::asset reserve = Edubridge::get_course_reserve(coopname, course_id);
   eosio::check(reserve >= amount,
-               std::string{"Резерва выплат преподавателям по курсу недостаточно для приёма результата: в резерве "} +
+               std::string{"EDUBRIDGE_COURSE_RESERVE_INSUFFICIENT: Резерва выплат преподавателям по курсу недостаточно для приёма результата: в резерве "} +
                  reserve.to_string() + ", требуется " + amount.to_string());
 
   Edubridge::update_course(coopname, course_id, [&](auto& c) {

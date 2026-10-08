@@ -74,6 +74,8 @@
   BaseDialog(:model-value="reportOpen" :title="$t('edubridge.teacherLessonsPage.dialogTitle')" size="md" @update:model-value="onReportDialog")
     BaseForm(:loading="busy" @submit="onReport")
       BaseSelect(v-model="form.assignment_id" :label="$t('edubridge.teacherLessonsPage.courseLabel')" :options="assignmentOptions" required)
+      //- Занятие отчитывается для группы: у курса с несколькими идущими группами её выбирают.
+      BaseSelect(v-if="groupOptions.length > 1" v-model="form.group_id" :label="$t('edubridge.teacherLessonsPage.groupLabel')" :options="groupOptions" required)
       BaseBanner.q-mb-sm(v-if="reportBlockedBy" variant="warn")
         template(#icon)
           q-icon(name="schedule")
@@ -94,7 +96,7 @@
 <script setup lang="ts">
 import { useHeaderActions } from 'src/shared/hooks';
 import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
@@ -114,6 +116,7 @@ import {
   type IContribution,
   type ILesson,
 } from '../../entities/Teacher';
+import { fetchMyTeachingGroups, type IGroup } from '../../entities/Group';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { lessonActionOf } from '../../shared/lib/lessonAction';
@@ -138,7 +141,7 @@ const reportOpen = ref(false);
 const lessonNumber = ref('1');
 const heldAt = ref('');
 const materialsText = ref('');
-const form = reactive({ assignment_id: '', topic: '' });
+const form = reactive<{ assignment_id: string; group_id: string | null; topic: string }>({ assignment_id: '', group_id: null, topic: '' });
 
 /** Строка журнала: занятие вместе со взносом по нему. */
 type ILessonRow = ILesson & { contribution: IContribution | null };
@@ -185,13 +188,29 @@ function replaceContribution(c: IContribution): void {
   else contributions.value.unshift(c);
 }
 
+/** Идущие группы курса выбранного допуска: расчёт занятия идёт внутри группы. */
+const teachingGroups = ref<IGroup[]>([]);
+const groupOptions = computed(() => {
+  const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
+  if (!assignment) return [];
+  return teachingGroups.value.filter((g) => asText(g.course_id) === asText(assignment.course_id)).map((g) => ({ value: asText(g.id), label: g.title }));
+});
+// Группа одна — она и берётся; несколько — преподаватель выбирает.
+watch(groupOptions, (options) => {
+  if (!options.some((o) => o.value === form.group_id)) form.group_id = options.length === 1 ? options[0].value : null;
+});
+
 /** Занятия, по которым материалы ещё не переданы на хранение: они держат следующий отчёт по своему курсу. */
 const pendingTransfers = computed(() => rows.value.filter((r) => actionOf(r) === 'transfer'));
-/** Занятие, из-за которого отчёт по выбранному курсу сейчас не принимается. */
+/** Занятие, из-за которого отчёт по выбранной группе сейчас не принимается: порядок занятий ведётся внутри группы. */
 const reportBlockedBy = computed(() => {
   const assignment = assignments.value.find((a) => asText(a.id) === asText(form.assignment_id));
   if (!assignment) return null;
-  return pendingTransfers.value.find((r) => asText(r.course_id) === asText(assignment.course_id)) ?? null;
+  return (
+    pendingTransfers.value.find(
+      (r) => asText(r.course_id) === asText(assignment.course_id) && (!form.group_id || !r.group_id || asText(r.group_id) === asText(form.group_id)),
+    ) ?? null
+  );
 });
 
 const assignmentOptions = computed(() =>
@@ -205,7 +224,8 @@ const formatDate = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('
 async function load(): Promise<void> {
   loading.value = true;
   try {
-    const [l, a, c] = await Promise.all([fetchMyLessons(), fetchMyAssignments(), fetchMyContributions()]);
+    const [l, a, c, g] = await Promise.all([fetchMyLessons(), fetchMyAssignments(), fetchMyContributions(), fetchMyTeachingGroups()]);
+    teachingGroups.value = g;
     lessons.value = l;
     assignments.value = a;
     contributions.value = c;
@@ -242,6 +262,7 @@ async function onReport(): Promise<void> {
   try {
     created = await reportLesson({
       assignment_id: form.assignment_id,
+      group_id: form.group_id,
       lesson_number: Number(lessonNumber.value),
       topic: form.topic,
       held_at: heldAt.value ? new Date(heldAt.value).toISOString() : undefined,

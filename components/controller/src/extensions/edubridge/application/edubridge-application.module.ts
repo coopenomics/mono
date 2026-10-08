@@ -18,10 +18,12 @@ import { EdubridgeEnrollmentKyselyRepository } from '../infrastructure/repositor
 import { EdubridgeLearnerKyselyRepository } from '../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../infrastructure/repositories/edubridge-lesson.kysely-repository';
+import { EdubridgeGroupKyselyRepository } from '../infrastructure/repositories/edubridge-group.kysely-repository';
 import { EdubridgeAdminKyselyRepository } from '../infrastructure/repositories/edubridge-admin.kysely-repository';
 import { EdubridgeReturnService } from './services/edubridge-return.service';
 import { EdubridgeFundsService } from './services/edubridge-funds.service';
 import { EdubridgeChainTermsService } from './services/edubridge-chain-terms.service';
+import { EdubridgeGroupService } from './services/edubridge-group.service';
 import { EdubridgeReturnResolver } from './resolvers/edubridge-return.resolver';
 import { EdubridgeGuaranteeResolver } from './resolvers/edubridge-guarantee.resolver';
 import { EdubridgeGuaranteeService } from './services/edubridge-guarantee.service';
@@ -37,6 +39,7 @@ import { EdubridgeUdataParametersAdapter } from './registration/edubridge-udata-
 import { EdubridgeCapitalNarrowingPolicy } from './policies/edubridge-capital-narrowing.policy';
 import { EdubridgeCatalogResolver } from './resolvers/edubridge-catalog.resolver';
 import { EdubridgeCourseAdminResolver } from './resolvers/edubridge-course-admin.resolver';
+import { EdubridgeGroupResolver } from './resolvers/edubridge-group.resolver';
 import { EdubridgeSectionsResolver } from './resolvers/edubridge-sections.resolver';
 import { EdubridgeSectionsService } from './services/edubridge-sections.service';
 import { EdubridgeSectionKyselyRepository } from '../infrastructure/repositories/edubridge-section.kysely-repository';
@@ -94,6 +97,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeAccessTaskKyselyRepository,
     EdubridgeTeacherKyselyRepository,
     EdubridgeLessonKyselyRepository,
+    EdubridgeGroupKyselyRepository,
     EdubridgeAdminKyselyRepository,
     EdubridgeConnectorBindingKyselyRepository,
     { provide: EDUBRIDGE_CHAIN_PORT, useClass: EdubridgeChainAdapter },
@@ -121,6 +125,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeLearnerService,
     EdubridgeFundsService,
     EdubridgeChainTermsService,
+    EdubridgeGroupService,
     EdubridgeEnrollmentService,
     EdubridgeReturnService,
     EdubridgeGuaranteeService,
@@ -144,6 +149,7 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeCatalogCourseFieldsResolver,
     EdubridgeCourseFieldsResolver,
     EdubridgeCourseAdminResolver,
+    EdubridgeGroupResolver,
     EdubridgeSectionsResolver,
     EdubridgeSectionsService,
     EdubridgeSectionKyselyRepository,
@@ -155,6 +161,6 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     EdubridgeTeacherResolver,
     EdubridgeAdminResolver,
   ],
-  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService, EdubridgeSectionsService],
+  exports: [EDUBRIDGE_ROLE_FACTS_PORT, EdubridgeConfigHolder, EdubridgeMembershipService, EdubridgeExitBlockersService, EdubridgeLiveFeedService, EdubridgeTeacherService, EdubridgeSectionsService, EdubridgeGroupService],
 })
 export class EdubridgeApplicationModule {}

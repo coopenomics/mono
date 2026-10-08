@@ -11,10 +11,13 @@ import {
   type InnerLedger2Operation,
 } from '@coopenomics/innercoop';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { EduAssignmentStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
+import { EduAssignmentStatus, EduEnrollmentStatus, EduGroupStatus, EduSettlementEntryKind, EduSettlementEntryStatus } from '../../domain/enums';
 import type { EduSettlementEntryDTO } from '../dto/edu-teacher.dto';
 import { calculateCourseFee, costOfHours, maxCourseDiscountPercent, type CourseFeeCalculation } from '../../domain/economy/course-fee.calculator';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
+import { EdubridgeGroupService } from './edubridge-group.service';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
@@ -63,7 +66,10 @@ export class EdubridgeEconomyService {
     @Inject(EXTENSION_REPOSITORY) private readonly extensions: ExtensionDomainRepository<IConfig>,
     @Inject(LEDGER2_HISTORY_PORT) private readonly ledger: ILedger2HistoryPort,
     @Inject(USER_WALLET_PORT) private readonly userWallets: IUserWalletPort,
-    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort
+    @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
+    private readonly lessons: EdubridgeLessonKyselyRepository,
+    private readonly groups: EdubridgeGroupService
   ) {}
 
   /**
@@ -248,7 +254,7 @@ export class EdubridgeEconomyService {
    * План и факт курса: плановый расчёт против ставок назначенных преподавателей.
    * Пока обязательства укладываются во взнос, курс считается обеспеченным.
    */
-  async courseEconomy(coopname: string, courseId: string): Promise<EduCourseEconomyDTO> {
+  async courseEconomy(coopname: string, courseId: string, groupId?: string | null): Promise<EduCourseEconomyDTO> {
     const course = await this.courses.findById(coopname, courseId);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
 
@@ -284,6 +290,37 @@ export class EdubridgeEconomyService {
       actual_cost_month: formatMinor(actualMinor, symbol),
       actual_hours_per_month: round2(teachers.reduce((sum, t) => sum + t.hours_per_month, 0)),
       over_fee: actualMinor > toMinor(plan.fee_month),
+      ...(await this.groupEconomy(coopname, course, groupId, actualMinor, symbol)),
+    };
+  }
+
+  /**
+   * Месяц группы при нынешнем числе участников — для показа администратору.
+   * Группа названа либо берётся первая идущая. Взносы участников — месячный
+   * взнос группы на каждого. Взнос преподавателей — по способу расчёта группы:
+   * за каждого участника либо один на занятие. Суммы занятий считает контракт;
+   * здесь план месяца по тем же условиям.
+   */
+  private async groupEconomy(coopname: string, course: EdubridgeCourseRecord, groupId: string | null | undefined, teachersMinor: number, symbol: string) {
+    const groups = await this.groups.list(coopname, course.id);
+    const group = groups.find((g) => g.id === groupId) ?? groups.find((g) => g.status === EduGroupStatus.ACTIVE) ?? groups[0] ?? null;
+    const terms = group ? this.groups.viewOf(course, group) : course;
+    const now = new Date();
+    const enrollments = group ? await this.enrollments.findByGroup(coopname, group.id) : [];
+    const active = enrollments.filter((e) => e.status === EduEnrollmentStatus.ACTIVE);
+    const learners = active.filter((e) => e.paid_until && new Date(e.paid_until) > now).length;
+    const perLearner = Boolean(terms.pay_per_learner);
+    const fees = toMinor(terms.fee_month) * learners;
+    const teachersTotal = learners === 0 ? 0 : perLearner ? teachersMinor * learners : teachersMinor;
+    return {
+      group_id: group?.id ?? null,
+      pay_per_learner: perLearner,
+      learners_active: learners,
+      group_fee_month: formatMinor(fees, symbol),
+      group_teachers_month: formatMinor(teachersTotal, symbol),
+      group_program_month: formatMinor(Math.max(0, fees - teachersTotal), symbol),
+      terms_locked: enrollments.length > 0,
+      start_locked: group ? (await this.lessons.findByGroup(coopname, group.id)).length > 0 : false,
     };
   }
 

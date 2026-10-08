@@ -24,7 +24,7 @@ void edubridge::recallrid(eosio::name coopname,
                           std::string reason) {
   require_auth(coopname);
 
-  eosio::check(!reason.empty(), "Не указано основание снятия материалов с хранения");
+  eosio::check(!reason.empty(), "EDUBRIDGE_RECALL_REASON_REQUIRED: Не указано основание снятия материалов с хранения");
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);

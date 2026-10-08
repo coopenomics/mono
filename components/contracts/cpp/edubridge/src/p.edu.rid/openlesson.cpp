@@ -26,31 +26,31 @@ void edubridge::openlesson(eosio::name coopname,
                            uint32_t minutes) {
   require_auth(coopname);
 
-  eosio::check(minutes > 0, "Длительность занятия должна быть больше нуля");
+  eosio::check(minutes > 0, "EDUBRIDGE_LESSON_MINUTES_INVALID: Длительность занятия должна быть больше нуля");
   get_participant_or_fail(coopname, username);
   Edubridge::get_active_contract_or_fail(coopname, username);
 
   edu_assignments_index assigns(_edubridge, coopname.value);
   auto assign = assigns.find(assignment_id);
   eosio::check(assign != assigns.end() && assign->username == username,
-               "Преподаватель не допущен к этому курсу");
+               "EDUBRIDGE_TEACHER_NOT_ASSIGNED: Преподаватель не допущен к этому курсу");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, assign->course_id);
-  eosio::check(terms.open_lesson_id == 0, "Расчёт по предыдущему занятию курса не завершён");
-  eosio::check(terms.is_started() && held_at >= terms.starts_at, "Занятие не может быть раньше начала занятий курса");
-  eosio::check(held_at <= now, "Дата занятия не может быть в будущем");
-  eosio::check(held_at >= terms.last_held_at, "Занятия курса отчитываются по порядку дат");
+  eosio::check(terms.open_lesson_id == 0, "EDUBRIDGE_LESSON_PREVIOUS_OPEN: Расчёт по предыдущему занятию курса не завершён");
+  eosio::check(terms.is_started() && held_at >= terms.starts_at, "EDUBRIDGE_LESSON_BEFORE_COURSE_START: Занятие не может быть раньше начала занятий курса");
+  eosio::check(held_at <= now, "EDUBRIDGE_LESSON_IN_FUTURE: Дата занятия не может быть в будущем");
+  eosio::check(held_at >= terms.last_held_at, "EDUBRIDGE_LESSON_DATE_ORDER: Занятия курса отчитываются по порядку дат");
   eosio::check(terms.lessons_total == 0 || terms.lessons_opened < terms.lessons_total,
-               "Все занятия программы курса уже проведены");
+               "EDUBRIDGE_LESSONS_PROGRAM_COMPLETED: Все занятия программы курса уже проведены");
 
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto by_hash = lessons.get_index<"byhash"_n>();
-  eosio::check(by_hash.find(rid_hash) == by_hash.end(), "Занятие с указанным hash уже открыто");
+  eosio::check(by_hash.find(rid_hash) == by_hash.end(), "EDUBRIDGE_LESSON_ALREADY_OPEN: Занятие с указанным hash уже открыто");
   edu_rids_index rids(_edubridge, coopname.value);
   auto rids_by_hash = rids.get_index<"byhash"_n>();
   eosio::check(rids_by_hash.find(rid_hash) == rids_by_hash.end(),
-               "Материалы с указанным hash уже приняты на ответственное хранение");
+               "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
 
   // Ставка преподавателя за проведённое время, не больше оплаты занятия,
   // заложенной во взнос участника: на курсе с расчётом за каждого участника
@@ -100,8 +100,8 @@ void edubridge::droplesson(eosio::name coopname,
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto by_hash = lessons.get_index<"byhash"_n>();
   auto found = by_hash.find(rid_hash);
-  eosio::check(found != by_hash.end(), "Занятие с указанным hash не найдено");
-  eosio::check(found->learners == 0, "По занятию уже прошёл расчёт с участниками");
+  eosio::check(found != by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
+  eosio::check(found->learners == 0, "EDUBRIDGE_LESSON_ALREADY_CHARGED: По занятию уже прошёл расчёт с участниками");
 
   Edubridge::update_terms(coopname, found->course_id, [&](auto& t) {
     t.lessons_opened -= 1;

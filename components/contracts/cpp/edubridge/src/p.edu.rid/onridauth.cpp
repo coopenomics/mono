@@ -20,10 +20,10 @@ void edubridge::onridauth(eosio::name coopname,
                           document2 authorization) {
   require_auth(_soviet);
   eosio::check(!is_empty_document(authorization),
-               "Отсутствует протокол совета о приёме паевого взноса РИД");
+               "EDUBRIDGE_RID_DECISION_REQUIRED: Отсутствует протокол совета о приёме паевого взноса РИД");
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto rid = Edubridge::get_rid_or_fail(rids, hash);
   eosio::check(rid->statement_hash != checksum256(),
-               "Заявление о паевом взносе по этим материалам не подано");
+               "EDUBRIDGE_RID_STATEMENT_NOT_SUBMITTED: Заявление о паевом взносе по этим материалам не подано");
 }

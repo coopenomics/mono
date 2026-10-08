@@ -31,7 +31,7 @@ void edubridge::createexp(eosio::name coopname,
 
   verify_document_or_fail(statement, { creator });
   verify_signer_keys_or_fail(statement, creator);
-  eosio::check(!items.empty(), "Расход должен содержать хотя бы одну позицию");
+  eosio::check(!items.empty(), "EDUBRIDGE_EXPENSE_EMPTY: Расход должен содержать хотя бы одну позицию");
 
   eosio::asset amount = items.front().planned_amount;
   amount.amount = 0;
@@ -43,7 +43,7 @@ void edubridge::createexp(eosio::name coopname,
   edu_expenses_index expenses(_edubridge, coopname.value);
   auto byhash = expenses.get_index<"byhash"_n>();
   eosio::check(byhash.find(expense_hash) == byhash.end(),
-               "Расход с таким идентификатором уже подан");
+               "EDUBRIDGE_EXPENSE_ALREADY_EXISTS: Расход с таким идентификатором уже подан");
 
   expenses.emplace(RamPayer::of(expenses, coopname), [&](auto& e) {
     e.id      = get_global_id_in_scope(_edubridge, coopname, "expenses"_n);

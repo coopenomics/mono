@@ -2,9 +2,9 @@ import { computed, inject, onBeforeUnmount, onMounted, provide, reactive, ref, w
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
-import { fileToBase64, formatToAsset } from 'src/shared/lib/utils';
+import { asText, fileToBase64, formatToAsset } from 'src/shared/lib/utils';
 import { courseMonthsLabel as courseMonthsText } from '../../../shared/lib/courseMonths';
-import { fetchCourseFeePreview, fetchEconomySettings, type ICourseFee } from '../../../entities/Economy';
+import { fetchCourseEconomy, fetchCourseFeePreview, fetchEconomySettings, type ICourseFee } from '../../../entities/Economy';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
@@ -159,6 +159,28 @@ function useEconomyFields(symbol: ComputedRef<string>) {
   }
 
   return { lessonsPerMonth, lessonsTotal, lessonMinutes, plannedRate, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+}
+
+/**
+ * Есть ли у курса группа с участниками. Условия такой группы закреплены на
+ * день её открытия, и правка условий курса действует для новых групп — форма
+ * говорит об этом заранее, поля при этом открыты.
+ */
+function useTermsLocks() {
+  const termsLocked = ref(false);
+  const startLocked = ref(false);
+  async function loadLocks(courseId: string): Promise<void> {
+    try {
+      const economy = await fetchCourseEconomy(courseId);
+      termsLocked.value = Boolean(economy.terms_locked);
+      startLocked.value = Boolean(economy.start_locked);
+    } catch {
+      // Признаки не прочитаны — поля остаются открытыми, правило проверит сервер при сохранении.
+      termsLocked.value = false;
+      startLocked.value = false;
+    }
+  }
+  return { termsLocked, startLocked, loadLocks };
 }
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
@@ -451,6 +473,7 @@ export function createCourseFormState(course: CourseSource) {
   const teachers = useTeachers(form);
   const taxonomy = useTaxonomy(form);
   const membershipFee = useMembershipFee();
+  const locks = useTermsLocks();
 
   watch(
     () => course(),
@@ -458,6 +481,7 @@ export function createCourseFormState(course: CourseSource) {
       if (!c) return;
       fillForm(form, c);
       economy.fillEconomy(c);
+      void locks.loadLocks(asText(c.id));
       cover.resetImage();
       access.fillAccess(c);
     },
@@ -488,7 +512,7 @@ export function createCourseFormState(course: CourseSource) {
     }
   }
 
-  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...membershipFee, submit };
+  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...membershipFee, ...locks, submit };
 }
 
 export type CourseFormState = ReturnType<typeof createCourseFormState>;

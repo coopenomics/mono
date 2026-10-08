@@ -24,6 +24,9 @@ sources:
     - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-guarantee-claim.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-exit-blockers.service.ts
     - components/controller/src/extensions/edubridge/domain/economy/refund.calculator.ts
+    - components/controller/src/extensions/edubridge/application/services/edubridge-group.service.ts
+    - components/controller/src/extensions/edubridge/application/resolvers/edubridge-group.resolver.ts
+    - components/controller/src/extensions/edubridge/infrastructure/repositories/edubridge-group.kysely-repository.ts
     - components/controller/src/extensions/edubridge/application/services/edubridge-chain-terms.service.ts
     - components/controller/src/extensions/edubridge/application/resolvers/edubridge-return.resolver.ts
     - components/controller/src/extensions/edubridge/application/dto/edu-return.dto.ts
@@ -465,6 +468,33 @@ cases:
     test: components/api-tests/src/edubridge/guarantee.test.ts
     api: components/api-tests/src/edubridge/guarantee.test.ts
     status: passing
+  - id: edu.enroll.happy.21
+    level: backend
+    kind: happy
+    scenario: "Новая группа курса: условия снимком с курса, свой номер в цепи, привязка к группе площадки."
+    expect: "Группа берёт взнос, ставку, расписание, скидку и гарантийный срок курса на день открытия и уходит в цепь под своим номером; первая группа наследует дату начала и привязку курса."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    external: unreachable
+    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    status: written
+  - id: edu.enroll.side.25
+    level: backend
+    kind: side
+    scenario: "Запись в группу: единственная группа с открытым набором, несколько открытых групп, закрытый набор."
+    expect: "Участник записывается в единственную открытую группу; при нескольких группу выбирают; закрытый набор отклоняется."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    external: unreachable
+    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    status: written
+  - id: edu.enroll.side.26
+    level: backend
+    kind: side
+    scenario: "Условия курса изменены при действующих группах; дата начала группы после первого занятия; завершение группы с подписками."
+    expect: "Группа без взносов и занятий берёт новые условия, группа с участниками остаётся на прежних; дата начала после первого занятия не меняется; группа с действующими подписками не завершается."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    external: unreachable
+    external_reason: "внешние тесты образования написаны под расчёт по курсу; сценарии групп в них ещё не заведены"
+    status: written
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

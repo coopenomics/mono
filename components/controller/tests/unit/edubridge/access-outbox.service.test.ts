@@ -26,7 +26,7 @@ function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?:
   };
   const connectors = { get: jest.fn(() => connector) } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, logger, events);
+  const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, logger, events, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
   return { service, task, enrollment, tasks, connector, events, bindings };
 }
 

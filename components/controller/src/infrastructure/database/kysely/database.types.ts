@@ -1213,6 +1213,7 @@ export interface EdubridgeEnrollments {
   course_id: string;
   created_at: Generated<Timestamp>;
   expiry_notified_at: Timestamp | null;
+  group_id: string | null;
   id: Generated<string>;
   joined_at: Timestamp | null;
   learner_id: string;
@@ -1227,6 +1228,31 @@ export interface EdubridgeEnrollments {
   statement_hash: string | null;
   status: Generated<EdubridgeEnrollmentsStatusEnum>;
   sub_hash: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface EdubridgeGroups {
+  chain_ref: Generated<Int8>;
+  coopname: string;
+  course_discount_bp: Generated<number>;
+  course_id: string;
+  course_payment_enabled: Generated<boolean>;
+  created_at: Generated<Timestamp>;
+  enrollment_open: Generated<boolean>;
+  external_ref: Generated<string>;
+  fee_month: string;
+  guarantee_days: Generated<number>;
+  id: Generated<string>;
+  lesson_minutes: Generated<number>;
+  lessons_per_month: Generated<number>;
+  lessons_total: Generated<number>;
+  pay_per_learner: Generated<boolean>;
+  planned_hourly_rate: Generated<string>;
+  starts_at: Timestamp | null;
+  status: Generated<string>;
+  teacher_reserve_balance: string | null;
+  teacher_settled_total: string | null;
+  title: string;
   updated_at: Generated<Timestamp>;
 }
 
@@ -1271,6 +1297,7 @@ export interface EdubridgeLessons {
   course_id: string;
   created_at: Generated<Timestamp>;
   duration_minutes: number;
+  group_id: string | null;
   held_at: Timestamp;
   id: Generated<string>;
   learners_count: number | null;
@@ -2619,6 +2646,7 @@ export interface DB {
   edubridge_contributions: EdubridgeContributions;
   edubridge_courses: EdubridgeCourses;
   edubridge_enrollments: EdubridgeEnrollments;
+  edubridge_groups: EdubridgeGroups;
   edubridge_guarantee_claims: EdubridgeGuaranteeClaims;
   edubridge_learners: EdubridgeLearners;
   edubridge_lessons: EdubridgeLessons;

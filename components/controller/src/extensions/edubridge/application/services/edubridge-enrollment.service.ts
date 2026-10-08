@@ -30,6 +30,7 @@ import {
   type IEduEnrollmentEventPayload,
 } from '../events/edubridge.events';
 import { EdubridgeFundsService } from './edubridge-funds.service';
+import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeLearnerService } from './edubridge-learner.service';
 import { refundOf } from './edubridge-refund';
 import { DomainError } from '@coopenomics/extension-kit';
@@ -69,6 +70,8 @@ interface PlanFunding {
 export interface EnrollmentPlan {
   learner: EdubridgeLearnerRecord;
   course: EdubridgeCourseRecord;
+  /** Группа курса, в которую идёт взнос. */
+  groupId: string;
   existing: EdubridgeEnrollmentRecord | null;
   period: EduEnrollmentPeriod;
   amount: string;
@@ -99,7 +102,8 @@ export class EdubridgeEnrollmentService {
     @Inject(DOCUMENT_PORT) private readonly documents: IDocumentPort,
     @Inject(USER_WALLET_PORT) private readonly wallets: IUserWalletPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    private readonly events: EventEmitter2
+    private readonly events: EventEmitter2,
+    private readonly groups: EdubridgeGroupService
   ) {
     this.logger.setContext(EdubridgeEnrollmentService.name);
   }
@@ -108,13 +112,13 @@ export class EdubridgeEnrollmentService {
     const rows = await this.enrollments.findByMember(coopname, member);
     const result: Array<{ enrollment: EdubridgeEnrollmentRecord; course: EdubridgeCourseRecord | null }> = [];
     for (const enrollment of rows) {
-      result.push({ enrollment, course: await this.courses.findById(coopname, enrollment.course_id) });
+      result.push({ enrollment, course: await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id) });
     }
     return result;
   }
 
   courseOf(enrollment: EdubridgeEnrollmentRecord): Promise<EdubridgeCourseRecord | null> {
-    return this.courses.findById(enrollment.coopname, enrollment.course_id);
+    return this.groups.courseOf(enrollment.coopname, enrollment.course_id, enrollment.group_id);
   }
 
   /** Ключ подписки в цепи: детерминирован парой «обучающийся + курс». */
@@ -122,19 +126,27 @@ export class EdubridgeEnrollmentService {
     return createHash('sha256').update(`${coopname}|${learnerRef}|${courseRef}`).digest('hex');
   }
 
-  async plan(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<EnrollmentPlan> {
+  async plan(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod, groupId?: string | null): Promise<EnrollmentPlan> {
     const learner = await this.learnerService.getOwned(coopname, member, learnerId);
-    const course = await this.courses.findById(coopname, courseId);
-    const existing = await this.enrollments.findByPair(coopname, learnerId, courseId);
+    const program = await this.courses.findById(coopname, courseId);
+    if (!program) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED');
     // Действующая подписка живёт в цепи до закрытия, даже когда оплаченный срок
     // уже истёк, а очередь закрытия до неё ещё не дошла: новый взнос её
     // продлевает, а не открывает заново — иначе цепь ответит «уже существует».
-    const isExtension = existing?.status === EduEnrollmentStatus.ACTIVE && Boolean(existing.paid_until);
+    const running = (await this.enrollments.findByLearner(coopname, learnerId)).find(
+      (e) => e.course_id === courseId && e.status === EduEnrollmentStatus.ACTIVE && Boolean(e.paid_until)
+    );
+    const isExtension = Boolean(running);
     // Снятый с публикации курс новых участников не принимает, но действующие
     // подписки на нём продлеваются.
-    if (!course || (course.status !== EduCourseStatus.PUBLISHED && !isExtension)) {
+    if (program.status !== EduCourseStatus.PUBLISHED && !isExtension) {
       throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED');
     }
+    // Продление идёт в группе подписки; новый участник записывается в группу с открытым набором.
+    const group = running?.group_id ? await this.groups.get(coopname, running.group_id) : await this.groups.openFor(coopname, program, groupId);
+    const existing = running ?? (await this.enrollments.findByLearnerAndGroup(coopname, learnerId, group.id));
+    // Условия, дата начала и номер для цепи — группы: взнос и срок считаются по ним.
+    const course = this.groups.viewOf(program, group);
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
     const now = new Date();
@@ -144,6 +156,7 @@ export class EdubridgeEnrollmentService {
     return {
       learner,
       course,
+      groupId: group.id,
       existing,
       period,
       amount: terms.amount,
@@ -179,8 +192,8 @@ export class EdubridgeEnrollmentService {
     return { months: rest.months, paidUntil: rest.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
   }
 
-  async quote(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<EduQuoteDTO> {
-    const plan = await this.plan(coopname, member, learnerId, courseId, period);
+  async quote(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod, groupId?: string | null): Promise<EduQuoteDTO> {
+    const plan = await this.plan(coopname, member, learnerId, courseId, period, groupId);
     const funding = await this.planFunding(coopname, member, plan);
     return {
       amount: plan.amount,
@@ -195,6 +208,7 @@ export class EdubridgeEnrollmentService {
       is_extension: plan.isExtension,
       paid_until: plan.paidUntil,
       sub_hash: plan.subHash,
+      group_id: plan.groupId,
     };
   }
 
@@ -203,8 +217,8 @@ export class EdubridgeEnrollmentService {
    * фронте. В заявлении названы обе части: что засчитывается с кошелька
    * программы и что конвертируется с паевого.
    */
-  async statement(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod): Promise<InnerGeneratedDocument> {
-    const plan = await this.plan(coopname, member, learnerId, courseId, period);
+  async statement(coopname: string, member: string, learnerId: string, courseId: string, period: EduEnrollmentPeriod, groupId?: string | null): Promise<InnerGeneratedDocument> {
+    const plan = await this.plan(coopname, member, learnerId, courseId, period, groupId);
     const funding = await this.planFunding(coopname, member, plan);
     const action: Cooperative.Registry.EducationConvertStatement.Action = {
       registry_id: Cooperative.Registry.EducationConvertStatement.registry_id,
@@ -228,9 +242,10 @@ export class EdubridgeEnrollmentService {
     learnerId: string,
     courseId: string,
     period: EduEnrollmentPeriod,
-    document: ISignedDocument
+    document: ISignedDocument,
+    groupId?: string | null
   ): Promise<EdubridgeEnrollmentRecord> {
-    const plan = await this.plan(coopname, member, learnerId, courseId, period);
+    const plan = await this.plan(coopname, member, learnerId, courseId, period, groupId);
     const funding = await this.planFunding(coopname, member, plan);
     this.assertStatementMatches(document, plan, funding);
     if (!funding.enough) {
@@ -252,8 +267,10 @@ export class EdubridgeEnrollmentService {
         member_username: member,
         learner_id: learnerId,
         course_id: courseId,
+        group_id: plan.groupId,
         sub_hash: plan.subHash,
       });
+    entity.group_id = entity.group_id ?? plan.groupId;
     entity.period = period;
     // Сумму, срок и удержание посчитал контракт — в запись идёт прочитанное из цепи.
     Object.assign(entity, await this.chainState(coopname, plan));
@@ -347,7 +364,9 @@ export class EdubridgeEnrollmentService {
   async cancelCourse(coopname: string, courseId: string): Promise<EdubridgeEnrollmentRecord[]> {
     const course = await this.courses.findById(coopname, courseId);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
-    if (course.starts_at && new Date(course.starts_at) <= new Date()) {
+    // Отмена по недобору — пока занятия не начались ни в одной группе курса.
+    const now = new Date();
+    if ((await this.groups.list(coopname, courseId)).some((g) => g.starts_at && new Date(g.starts_at) <= now)) {
       throw DomainError.badRequest('EDUBRIDGE_UNDERFILL_CANCEL_COURSE_STARTED');
     }
     // Курс снимается с публикации первым: пока идут возвраты, на отменённый
@@ -457,7 +476,7 @@ export class EdubridgeEnrollmentService {
   /** Общая часть отмены: расчёт по Положению, движение в цепи, закрытие записи. */
   private async cancelOne(coopname: string, enrollment: EdubridgeEnrollmentRecord, underfilled: boolean): Promise<EdubridgeEnrollmentRecord> {
     if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
-    const course = await this.courses.findById(coopname, enrollment.course_id);
+    const course = await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
 
     // Основание и сумму возврата определяет контракт. Здесь то же правило
@@ -499,7 +518,7 @@ export class EdubridgeEnrollmentService {
   async refundPreview(coopname: string, member: string, enrollmentId: string): Promise<RefundCalculation> {
     const enrollment = await this.enrollments.findById(coopname, enrollmentId);
     if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
-    const course = await this.courses.findById(coopname, enrollment.course_id);
+    const course = await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     return this.refundFor(coopname, enrollment, course, false);
   }
@@ -509,7 +528,7 @@ export class EdubridgeEnrollmentService {
     const active = (await this.enrollments.findByMember(coopname, member)).filter((e) => isCancellable(e));
     let refunds = 0;
     for (const enrollment of active) {
-      const course = await this.courses.findById(coopname, enrollment.course_id);
+      const course = await this.groups.courseOf(coopname, enrollment.course_id, enrollment.group_id);
       if (course) refunds += Number.parseFloat((await this.refundFor(coopname, enrollment, course, false)).refund) || 0;
     }
     return { subscriptions: active.length, refunds };

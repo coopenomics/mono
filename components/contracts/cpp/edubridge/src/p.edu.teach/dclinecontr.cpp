@@ -19,7 +19,7 @@ void edubridge::dclinecontr(eosio::name coopname,
   auto by_hash = contracts.get_index<"byhash"_n>();
   auto it = by_hash.find(contract_hash);
   if (it == by_hash.end()) return;
-  eosio::check(it->status == Edubridge::ContractStatus::PENDING, "Действующий договор отклонить нельзя");
+  eosio::check(it->status == Edubridge::ContractStatus::PENDING, "EDUBRIDGE_CONTRACT_ACTIVE: Действующий договор отклонить нельзя");
 
   contracts.erase(contracts.find(it->id));
 }

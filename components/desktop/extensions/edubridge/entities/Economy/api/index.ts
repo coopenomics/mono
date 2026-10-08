@@ -51,9 +51,10 @@ export async function fetchCourseFeePreview(data: ICourseEconomyInput) {
   return result;
 }
 
-export async function fetchCourseEconomy(course_id: string) {
+/** Экономика курса по группе; группа не названа — первая идущая. */
+export async function fetchCourseEconomy(course_id: string, group_id: string | null = null) {
   const { [Queries.Edubridge.CourseEconomy.name]: result } = await client.Query(Queries.Edubridge.CourseEconomy.query, {
-    variables: { course_id },
+    variables: { course_id, group_id },
   });
   return result;
 }

@@ -22,6 +22,7 @@ const rawEnrollmentSelector = {
   status: true,
   access_state: true,
   sub_hash: true,
+  group_id: true,
   paid_amount: true,
   refunded_amount: true,
   refund_reason: true,
@@ -45,6 +46,7 @@ const rawQuoteSelector = {
   is_extension: true,
   paid_until: true,
   sub_hash: true,
+  group_id: true,
 }
 const _validateQuote: MakeAllFieldsRequired<ValueTypes['EduQuote']> = rawQuoteSelector
 export const eduQuoteSelector = Selector('EduQuote')(rawQuoteSelector)

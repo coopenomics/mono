@@ -37,6 +37,16 @@ export enum EduCourseStatus {
   ARCHIVED = 'archived',
 }
 
+/** Состояние группы (набора) курса. */
+export enum EduGroupStatus {
+  /** Группа идёт либо набирается. */
+  ACTIVE = 'active',
+  /** Группа завершена: занятия проведены, подписки закрыты. */
+  CLOSED = 'closed',
+  /** Группа отменена кооперативом по недобору. */
+  CANCELLED = 'cancelled',
+}
+
 /** Как доставляется пропуск обучающемуся. */
 export enum EduRecipientType {
   EMAIL = 'email',

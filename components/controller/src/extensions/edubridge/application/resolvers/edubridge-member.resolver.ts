@@ -66,14 +66,14 @@ export class EdubridgeMemberResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduEnrollment', 'create:own', SELF)
   edubridgeQuote(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduQuoteInputDTO): Promise<EduQuoteDTO> {
-    return this.enrollments.quote(coop(), m.username as string, data.learner_id, data.course_id, data.period);
+    return this.enrollments.quote(coop(), m.username as string, data.learner_id, data.course_id, data.period, data.group_id);
   }
 
   @Mutation(() => GeneratedDocumentDTO, { name: 'edubridgeConvertStatement', description: 'Сформировать заявление о конвертации паевого взноса в членский' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduEnrollment', 'create:own', SELF)
   async edubridgeConvertStatement(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduQuoteInputDTO): Promise<GeneratedDocumentDTO> {
-    return new GeneratedDocumentDTO(await this.enrollments.statement(coop(), m.username as string, data.learner_id, data.course_id, data.period));
+    return new GeneratedDocumentDTO(await this.enrollments.statement(coop(), m.username as string, data.learner_id, data.course_id, data.period, data.group_id));
   }
 
   @Query(() => EduRefundPreviewDTO, { name: 'edubridgeRefundPreview', description: 'Что вернут при отмене подписки' })
@@ -101,7 +101,7 @@ export class EdubridgeMemberResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduEnrollment', 'create:own', SELF)
   async edubridgeSubscribe(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSubscribeInputDTO): Promise<EduEnrollmentDTO> {
-    const saved = await this.enrollments.subscribe(coop(), m.username as string, data.learner_id, data.course_id, data.period, data.document);
+    const saved = await this.enrollments.subscribe(coop(), m.username as string, data.learner_id, data.course_id, data.period, data.document, data.group_id);
     return new EduEnrollmentDTO(saved, await this.enrollments.courseOf(saved));
   }
 }

@@ -19,6 +19,10 @@ export * as ProgramFund from './programFund'
 export * as CourseFeePreview from './courseFeePreview'
 /** Экономика курса: план и факт по преподавателям */
 export * as CourseEconomy from './courseEconomy'
+/** Группы курса и группы с открытым набором */
+export * as CourseGroups from './courseGroups'
+export * as OpenGroups from './openGroups'
+export * as MyTeachingGroups from './myTeachingGroups'
 /** Преподаватели, которых можно назначить на курс (с договором УХД) */
 export * as TeacherOptions from './teacherOptions'
 export * as Teachers from './teachers'

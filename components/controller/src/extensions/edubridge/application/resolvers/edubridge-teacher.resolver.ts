@@ -101,7 +101,9 @@ export class EdubridgeTeacherResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduContribution', 'read:own', SELF)
   async edubridgeMyContributions(@CurrentEduMember() m: IEdubridgeMembership): Promise<EduContributionDTO[]> {
-    return (await this.teachers.listContributions(coop(), m.username as string)).map((c) => new EduContributionDTO(c));
+    const own = await this.teachers.listContributions(coop(), m.username as string);
+    const ownLearners = await this.teachers.learnersByContribution(coop(), own);
+    return own.map((c) => new EduContributionDTO(c, ownLearners.get(c.id) ?? null));
   }
 
   @Query(() => [EduLessonDTO], { name: 'edubridgeMyLessons', description: 'Мои проведённые занятия' })
@@ -287,7 +289,9 @@ export class EdubridgeTeacherResolver {
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduContribution', 'read:all')
   async edubridgeContributions(): Promise<EduContributionDTO[]> {
-    return (await this.teachers.listContributions(coop())).map((c) => new EduContributionDTO(c));
+    const contributions = await this.teachers.listContributions(coop());
+    const learners = await this.teachers.learnersByContribution(coop(), contributions);
+    return contributions.map((c) => new EduContributionDTO(c, learners.get(c.id) ?? null));
   }
 
   @Query(() => [EduContributionDocumentDTO], { name: 'edubridgeContributionDocuments', description: 'Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи' })

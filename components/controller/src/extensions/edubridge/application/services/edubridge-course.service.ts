@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PaginationInputDTO, type PaginationResult, DomainError } from '@coopenomics/extension-kit';
-import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, EduEnrollmentStatus, PLATFORM_CARRIERS } from '../../domain/enums';
+import { CARRIERS_BY_DIRECTION, EduAccessCarrier, EduCourseStatus, PLATFORM_CARRIERS } from '../../domain/enums';
 import type { EdubridgeCourseRecord } from '../../infrastructure/entities';
 import type { EduCourseImage } from '../../infrastructure/entities/edubridge-course.record';
 import { EdubridgeCourseKyselyRepository, type EduCourseFilter } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -19,7 +19,7 @@ import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeTeacherService, grantsTeaching, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
-import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
+import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 
@@ -68,7 +68,7 @@ export class EdubridgeCourseService {
     private readonly sections: EdubridgeSectionsService,
     private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
     private readonly lessons: EdubridgeLessonKyselyRepository,
-    private readonly chainTerms: EdubridgeChainTermsService
+    private readonly groups: EdubridgeGroupService
   ) {}
 
   /**
@@ -138,9 +138,9 @@ export class EdubridgeCourseService {
       if (image) await this.images.deleteImage(image.bucket_key);
       throw e;
     }
-    // Условия курса уходят в цепь: по ним контракт считает взносы, резерв и возвраты.
-    // Запись перечитывается: номер курса для цепи выдаёт база при вставке.
-    await this.chainTerms.pushCourse((await this.courses.findById(coopname, saved.id)) ?? saved);
+    // Курс открывается с первой группой: её условия уходят в цепь, по ним
+    // контракт считает взносы, резерв и возвраты.
+    await this.groups.create(coopname, { course_id: saved.id });
     // Преподаватели курса сразу получают допуск к нему.
     await this.teacherService.syncCourseAssignments(coopname, saved);
     // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.
@@ -158,9 +158,7 @@ export class EdubridgeCourseService {
         throw DomainError.badRequest('EDUBRIDGE_COURSE_START_ONLY_FORWARD');
       }
     }
-    await this.assertStartUnchangedAfterLessons(coopname, course, input);
     const fee = await this.economy.feeForCourse(economyParams(input));
-    await this.assertFeeUnchangedWhileSubscribed(coopname, course, input, fee);
     const previous = course.image;
     // Прежнюю привязку запоминаем до присваивания: после него сравнивать уже не с чем.
     const previousRef = course.external_ref;
@@ -175,10 +173,10 @@ export class EdubridgeCourseService {
       course.external_title_seen = null;
       course.external_checked_at = null;
     }
-    // Сначала условия в цепь: при действующих подписках контракт не даёт менять
-    // ставку, взнос и расписание — тогда и запись приложения остаётся прежней.
-    await this.chainTerms.pushCourse(course);
     const saved = await this.courses.save(course);
+    // Условия курса — для новых групп. Группы, по которым взносов и занятий ещё
+    // не было, берут их сразу; у групп с участниками условия прежние.
+    await this.groups.applyCourseTerms(coopname, saved);
     // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
     if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
     // Добавленные преподаватели получают допуск к курсу, у убранных он снимается.
@@ -232,35 +230,6 @@ export class EdubridgeCourseService {
     const course = await this.get(coopname, id);
     course.status = status;
     return this.courses.save(course);
-  }
-
-  /** После первого занятия дата начала не меняется: от неё идут гарантийный срок и расчёт занятий в цепи. */
-  private async assertStartUnchangedAfterLessons(coopname: string, course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): Promise<void> {
-    const before = course.starts_at ? new Date(course.starts_at).getTime() : 0;
-    const after = input.starts_at ? new Date(input.starts_at).getTime() : 0;
-    if (before === after) return;
-    if ((await this.lessons.findByCourse(coopname, course.id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS');
-  }
-
-  /**
-   * Пока по курсу есть действующие подписки, плановая ставка, нагрузка и взнос
-   * не меняются: ученики оплатили время по прежнему взносу, и резерв выплат
-   * преподавателям под это время собран по прежней ставке. Новая ставка
-   * пересчитала бы обязательство за уже оплаченное время, а покрыть разницу
-   * было бы нечем, кроме средств других курсов.
-   */
-  private async assertFeeUnchangedWhileSubscribed(
-    coopname: string,
-    course: EdubridgeCourseRecord,
-    input: EduUpdateCourseInputDTO,
-    fee: { fee_month: string }
-  ): Promise<void> {
-    const changed = fee.fee_month !== course.fee_month || termsChanged(course, input);
-    if (!changed) return;
-    const subscribed = (await this.enrollments.findByCourse(coopname, course.id)).some(
-      (e) => e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING
-    );
-    if (subscribed) throw DomainError.badRequest('EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS');
   }
 
   /**
@@ -326,33 +295,6 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
     course_discount_bp: input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0,
     fee_month: fee.fee_month,
   };
-}
-
-/**
- * Изменились ли условия, по которым участники уже внесли взнос. Перечень тот
- * же, что держит контракт (`edubridge::setcourse`): ставка, способ расчёта с
- * преподавателем, расписание, программа, скидка за взнос разом, гарантийный срок.
- */
-function termsChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
-  const payMode = input.pay_per_learner !== undefined && Boolean(input.pay_per_learner) !== Boolean(course.pay_per_learner);
-  return payMode || scheduleChanged(course, input) || conditionsChanged(course, input);
-}
-
-function scheduleChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
-  return (
-    Number(input.lessons_per_month) !== Number(course.lessons_per_month) ||
-    Number(input.lesson_minutes) !== Number(course.lesson_minutes) ||
-    Number(input.lessons_total) !== Number(course.lessons_total)
-  );
-}
-
-function conditionsChanged(course: EdubridgeCourseRecord, input: EduUpdateCourseInputDTO): boolean {
-  const discountBp = input.course_payment_enabled ? Math.round((input.course_discount_percent ?? 0) * 100) : 0;
-  return (
-    input.planned_hourly_rate !== course.planned_hourly_rate ||
-    discountBp !== Number(course.course_discount_bp ?? 0) ||
-    Number(input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS) !== Number(course.guarantee_days)
-  );
 }
 
 /** Способ расчёта с преподавателем при правке курса: не назван — остаётся прежним. */

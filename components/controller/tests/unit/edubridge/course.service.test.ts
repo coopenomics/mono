@@ -42,9 +42,9 @@ function make(contracts: string[] = ['teach']) {
   const enrollments = { findByCourse: jest.fn(async () => enrollmentsOfCourse.list) } as any;
   const lessonsOfCourse: { list: any[] } = { list: [] };
   const lessons = { findByCourse: jest.fn(async () => lessonsOfCourse.list) } as any;
-  // Условия курса уходят в цепь: по ним контракт считает суммы.
-  const chainTerms = { pushCourse: jest.fn(async () => undefined) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, chainTerms), chainTerms, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
+  // Курс открывается с первой группой; её условия уходят в цепь.
+  const groups = { create: jest.fn(async () => ({ id: 'G1' })), applyCourseTerms: jest.fn(async () => undefined) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, groups), groups, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
 }
 
 const base = {
@@ -260,16 +260,13 @@ describe('EdubridgeCourseService — обложка курса', () => {
     });
   });
 
-  it('при действующих подписках плановая ставка и взнос курса не меняются; без подписок — меняются', async () => {
-    const { service, courses, enrollmentsOfCourse } = make();
+  it('условия курса правятся всегда: они действуют для новых групп, а группам без участников передаются сразу', async () => {
+    const { service, courses, groups, enrollmentsOfCourse } = make();
     const current = { id: 'C1', external_ref: '', status: EduCourseStatus.PUBLISHED, fee_month: '9600.0000 RUB', planned_hourly_rate: '1000.0000 RUB', lessons_per_month: base.lessons_per_month, lesson_minutes: base.lesson_minutes };
     courses.findById.mockImplementation(async () => ({ ...current }));
     enrollmentsOfCourse.list = [{ status: 'active' }];
-    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', planned_hourly_rate: '2000.0000 RUB' })).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_FEE_LOCKED_BY_SUBSCRIPTIONS' });
-    // Правка, не затрагивающая взнос, проходит и при подписках.
-    await expect(service.update('voskhod', 'ant', { ...base, id: 'C1' })).resolves.toBeDefined();
-    enrollmentsOfCourse.list = [{ status: 'cancelled' }];
     await expect(service.update('voskhod', 'ant', { ...base, id: 'C1', planned_hourly_rate: '2000.0000 RUB' })).resolves.toBeDefined();
+    expect(groups.applyCourseTerms).toHaveBeenCalledWith('voskhod', expect.objectContaining({ planned_hourly_rate: '2000.0000 RUB' }));
   });
 
   it('удаляется только курс без подписок и занятий — вместе с допусками и обложкой', async () => {

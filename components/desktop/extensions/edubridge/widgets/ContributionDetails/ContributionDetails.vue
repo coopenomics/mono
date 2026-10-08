@@ -15,6 +15,7 @@
       IdentityCell(:account-name="contribution.teacher_username" :full-name="teacherName" copyable)
   DataRow(:label="$t('edubridge.contributionDetails.kind')" :value="ridType")
   DataRow(:label="$t('edubridge.contributionDetails.description')" :value="contribution.description || '______'")
+  DataRow(v-if="contribution.learners_count" :label="$t('edubridge.contributionDetails.learners')" :value="String(contribution.learners_count)")
   DataRow(:label="$t('edubridge.contributionDetails.createdAt')" :value="formatDate(contribution.created_at)")
   DataRow(v-if="contribution.hold_until" :label="$t('edubridge.contributionDetails.holdUntil')" :value="formatDate(contribution.hold_until)")
   DataRow(v-if="contribution.decided_at" :label="$t('edubridge.contributionDetails.decidedAt')" :value="formatDate(contribution.decided_at)")

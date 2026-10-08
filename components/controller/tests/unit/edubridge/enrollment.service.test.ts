@@ -27,6 +27,9 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
   const saved: any[] = [];
   const enrollments = {
     findByPair: jest.fn(async () => opts.existing ?? null),
+    // Подписки обучающегося и его подписка в группе: запись идёт в группу курса.
+    findByLearner: jest.fn(async () => (opts.existing ? [{ course_id: 'C1', ...opts.existing }] : [])),
+    findByLearnerAndGroup: jest.fn(async () => opts.existing ?? null),
     findById: jest.fn(async () => opts.existing ?? null),
     findByCourse: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
     create: jest.fn((d: any) => ({ ...d })),
@@ -51,7 +54,7 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     })),
   } as any;
   const events = { emit: jest.fn() } as any;
-  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, documents, wallets, logger, events);
+  const service = new EdubridgeEnrollmentService(enrollments, courses, learnerService, funds, { findByEnrollment: jest.fn(async () => null) } as any, chain, documents, wallets, logger, events, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
   return { service, enrollments, courses, chain, events, documents, saved, funds };
 }
 

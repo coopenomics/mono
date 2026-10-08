@@ -25,7 +25,7 @@ void edubridge::declinerid(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(decision),
-               "Отсутствует протокол совета об отказе в приёме паевого взноса РИД");
+               "EDUBRIDGE_RID_DECLINE_DECISION_REQUIRED: Отсутствует протокол совета об отказе в приёме паевого взноса РИД");
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);
@@ -33,7 +33,7 @@ void edubridge::declinerid(eosio::name coopname,
   verify_document_or_fail(decision);
 
   eosio::check(rid->statement_hash != checksum256(),
-               "Заявление о паевом взносе по этим материалам ещё не подано — материалы снимаются с хранения без протокола");
+               "EDUBRIDGE_RID_STATEMENT_NOT_SUBMITTED: Заявление о паевом взносе по этим материалам ещё не подано — материалы снимаются с хранения без протокола");
 
   const eosio::name username = rid->username;
   const eosio::asset amount  = rid->amount;

@@ -37,23 +37,23 @@ void edubridge::chargelesson(eosio::name coopname,
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto lessons_by_hash = lessons.get_index<"byhash"_n>();
   auto found = lessons_by_hash.find(rid_hash);
-  eosio::check(found != lessons_by_hash.end(), "Занятие с указанным hash не найдено либо расчёт по нему завершён");
+  eosio::check(found != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_OPEN: Занятие с указанным hash не найдено либо расчёт по нему завершён");
   auto lesson = lessons.find(found->id);
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её и откройте заново");
-  eosio::check(sub->course_id == lesson->course_id, "Подписка открыта на другой курс");
+  eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её и откройте заново");
+  eosio::check(sub->course_id == lesson->course_id, "EDUBRIDGE_SUBSCRIPTION_OTHER_COURSE: Подписка открыта на другой курс");
 
   const auto& plan = sub->plan.value();
-  eosio::check(plan.last_lesson < lesson->number, "Расчёт за это занятие по подписке уже прошёл");
+  eosio::check(plan.last_lesson < lesson->number, "EDUBRIDGE_LESSON_ALREADY_CHARGED: Расчёт за это занятие по подписке уже прошёл");
   eosio::check(plan.paid_from <= lesson->held_at && lesson->held_at < sub->paid_until,
-               "На дату занятия доступ по подписке не оплачен");
+               "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
   const eosio::asset unit = terms.lesson_unit();
   eosio::check(plan.lessons_done < plan.lessons_paid && plan.reserve >= unit,
-               "В резерве подписки нет оплаты занятия");
+               "EDUBRIDGE_SUBSCRIPTION_RESERVE_EMPTY: В резерве подписки нет оплаты занятия");
 
   // За каждого участника — взнос по ставке преподавателя с каждой подписки.
   // Фиксированный — сумма занятия одна: её покрывают подписки по очереди
@@ -88,7 +88,7 @@ void edubridge::chargelesson(eosio::name coopname,
                    rest, coopname, sub_hash,
                    Edubridge::Memo::get_rate_gap_memo());
     Edubridge::update_course(coopname, lesson->course_id, [&](auto& c) {
-      eosio::check(rest <= c.reserve, "Резерв преподавателям по курсу меньше оплаты занятия");
+      eosio::check(rest <= c.reserve, "EDUBRIDGE_COURSE_RESERVE_INSUFFICIENT: Резерв преподавателям по курсу меньше оплаты занятия");
       c.reserve -= rest;
     });
   }

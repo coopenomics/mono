@@ -63,7 +63,7 @@ inline edu_subscriptions_index::const_iterator
 get_subscription_or_fail(edu_subscriptions_index& subs, const checksum256& sub_hash) {
   auto idx = subs.get_index<"byhash"_n>();
   auto it = idx.find(sub_hash);
-  eosio::check(it != idx.end(), "Подписка с указанным hash не найдена");
+  eosio::check(it != idx.end(), "EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена");
   return subs.find(it->id);
 }
 
@@ -72,7 +72,7 @@ inline edu_rids_index::const_iterator
 get_rid_or_fail(edu_rids_index& rids, const checksum256& rid_hash) {
   auto idx = rids.get_index<"byhash"_n>();
   auto it = idx.find(rid_hash);
-  eosio::check(it != idx.end(), "Заявление о паевом взносе РИД с указанным hash не найдено");
+  eosio::check(it != idx.end(), "EDUBRIDGE_RID_NOT_FOUND: Заявление о паевом взносе РИД с указанным hash не найдено");
   return rids.find(it->id);
 }
 
@@ -88,9 +88,9 @@ inline std::optional<edu_contract> get_contract(eosio::name coopname, eosio::nam
 /// Действующий (подписанный обеими сторонами) договор УХД; бросает, если его нет.
 inline edu_contract get_active_contract_or_fail(eosio::name coopname, eosio::name username) {
   auto contract = get_contract(coopname, username);
-  eosio::check(contract.has_value(), "Преподаватель не подписал договор участия в хозяйственной деятельности");
+  eosio::check(contract.has_value(), "EDUBRIDGE_CONTRACT_NOT_SIGNED: Преподаватель не подписал договор участия в хозяйственной деятельности");
   eosio::check(contract->status == ContractStatus::ACTIVE,
-               "Договор участия в хозяйственной деятельности ещё не подписан председателем совета");
+               "EDUBRIDGE_CONTRACT_NOT_APPROVED: Договор участия в хозяйственной деятельности ещё не подписан председателем совета");
   return *contract;
 }
 
@@ -133,9 +133,9 @@ inline eosio::asset get_coop_wallet_available(eosio::name coopname, eosio::name 
 /// Валидация денежной суммы контракта: корректный asset, > 0, символ кооператива.
 inline void check_money(const eosio::asset& amount, const char* what) {
   eosio::check(amount.is_valid() && amount.amount > 0,
-               std::string{what} + " должна быть больше нуля");
+               std::string{"EDUBRIDGE_AMOUNT_NOT_POSITIVE: "} + what + " должна быть больше нуля");
   eosio::check(amount.symbol == _root_govern_symbol,
-               std::string{"Некорректный символ валюты: "} + what);
+               std::string{"EDUBRIDGE_SYMBOL_INVALID: Некорректный символ валюты: "} + what);
 }
 
 /**

@@ -28,7 +28,7 @@ void edubridge::opensub(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto by_hash = subs.get_index<"byhash"_n>();
   eosio::check(by_hash.find(sub_hash) == by_hash.end(),
-               "Подписка с указанным hash уже существует");
+               "EDUBRIDGE_SUBSCRIPTION_ALREADY_EXISTS: Подписка с указанным hash уже существует");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const eosio::asset zero(0, _root_govern_symbol);

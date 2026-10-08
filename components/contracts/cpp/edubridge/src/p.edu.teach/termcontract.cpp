@@ -21,18 +21,18 @@ void edubridge::termcontract(eosio::name coopname,
                              std::string reason) {
   require_auth(coopname);
 
-  eosio::check(!reason.empty(), "Не указано основание прекращения договора");
+  eosio::check(!reason.empty(), "EDUBRIDGE_TERMINATION_REASON_REQUIRED: Не указано основание прекращения договора");
 
   edu_contracts_index contracts(_edubridge, coopname.value);
   auto by_hash = contracts.get_index<"byhash"_n>();
   auto it = by_hash.find(contract_hash);
-  eosio::check(it != by_hash.end(), "Договор с указанным hash не найден");
-  eosio::check(it->username == username, "Договор принадлежит другому преподавателю");
+  eosio::check(it != by_hash.end(), "EDUBRIDGE_CONTRACT_NOT_FOUND: Договор с указанным hash не найден");
+  eosio::check(it->username == username, "EDUBRIDGE_CONTRACT_NOT_OWNER: Договор принадлежит другому преподавателю");
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto rids_by_user = rids.get_index<"byusername"_n>();
   eosio::check(rids_by_user.find(username.value) == rids_by_user.end(),
-               "По материалам занятий преподавателя не закрыт расчёт — договор прекращается после него");
+               "EDUBRIDGE_CONTRACT_HAS_OPEN_RIDS: По материалам занятий преподавателя не закрыт расчёт — договор прекращается после него");
 
   contracts.erase(contracts.find(it->id));
 }

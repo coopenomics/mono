@@ -35,7 +35,7 @@ void edubridge::holdrid(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(act),
-               "Отсутствует акт передачи материалов на ответственное хранение");
+               "EDUBRIDGE_STORAGE_ACT_REQUIRED: Отсутствует акт передачи материалов на ответственное хранение");
   verify_document_or_fail(act, { username });
   verify_signer_keys_or_fail(act, username);
 
@@ -47,10 +47,10 @@ void edubridge::holdrid(eosio::name coopname,
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto lessons_by_hash = lessons.get_index<"byhash"_n>();
   auto lesson = lessons_by_hash.find(rid_hash);
-  eosio::check(lesson != lessons_by_hash.end(), "Занятие с указанным hash не найдено");
-  eosio::check(lesson->username == username, "Занятие открыто другим преподавателем");
+  eosio::check(lesson != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
+  eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
   eosio::check(lesson->amount.amount > 0,
-               "На дату занятия нет участников с оплаченным доступом: взнос преподавателя не начислен");
+               "EDUBRIDGE_LESSON_WITHOUT_LEARNERS: На дату занятия нет участников с оплаченным доступом: взнос преподавателя не начислен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
   const eosio::asset amount          = lesson->amount;
@@ -65,7 +65,7 @@ void edubridge::holdrid(eosio::name coopname,
   edu_rids_index rids(_edubridge, coopname.value);
   auto by_hash = rids.get_index<"byhash"_n>();
   eosio::check(by_hash.find(rid_hash) == by_hash.end(),
-               "Материалы с указанным hash уже приняты на ответственное хранение");
+               "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
 

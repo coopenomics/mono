@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { EdubridgeGroupService } from './edubridge-group.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
 import {
@@ -79,7 +80,8 @@ export class EdubridgeAccessOutboxService {
     private readonly bindings: EdubridgeConnectorBindingKyselyRepository,
     private readonly connectors: AccessCarrierRegistry,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    private readonly events: EventEmitter2
+    private readonly events: EventEmitter2,
+    private readonly groups: EdubridgeGroupService
   ) {
     this.logger.setContext(EdubridgeAccessOutboxService.name);
   }
@@ -145,7 +147,8 @@ export class EdubridgeAccessOutboxService {
     }
     const [learner, course] = await Promise.all([
       this.learners.findById(task.coopname, enrollment.learner_id),
-      this.courses.findById(task.coopname, enrollment.course_id),
+      // Доступ выдаётся в группу площадки, привязанную к группе подписки.
+      this.groups.courseOf(task.coopname, enrollment.course_id, enrollment.group_id),
     ]);
     if (!learner || !course) {
       await this.attention(task, t('edubridge.accessOutbox.reason.learnerOrCourseNotFound'));

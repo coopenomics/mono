@@ -6925,6 +6925,8 @@ export type ValueTypes = {
 	/** До какой даты заявление держится гарантийным сроком */
 	hold_until?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
 	/** Ссылки на внешние хранилища */
 	links?:boolean | `@${string}`,
 	/** Ключ взноса в цепи */
@@ -7031,12 +7033,28 @@ export type ValueTypes = {
 	actual_cost_month?:boolean | `@${string}`,
 	/** Часов в месяц, распределённых между преподавателями */
 	actual_hours_per_month?:boolean | `@${string}`,
+	/** Взносы участников за месяц при нынешнем числе участников */
+	group_fee_month?:boolean | `@${string}`,
+	/** Группа курса, по которой посчитан месяц */
+	group_id?:boolean | `@${string}`,
+	/** Остаётся программе за месяц при нынешнем числе участников */
+	group_program_month?:boolean | `@${string}`,
+	/** Взнос преподавателей за месяц при нынешнем числе участников */
+	group_teachers_month?:boolean | `@${string}`,
+	/** Участников группы с оплаченным доступом на сегодня */
+	learners_active?:boolean | `@${string}`,
 	/** Обязательства перед преподавателями превысили собранный взнос */
 	over_fee?:boolean | `@${string}`,
+	/** Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
 	/** Плановый расчёт взноса */
 	plan?:ValueTypes["EduCourseFee"],
+	/** В группе проведены занятия: дата начала занятий группы не изменяется */
+	start_locked?:boolean | `@${string}`,
 	/** Нагрузка назначенных преподавателей */
 	teachers?:ValueTypes["EduCourseTeacherLoad"],
+	/** В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп */
+	terms_locked?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on EduCourseEconomy']?: Omit<ValueTypes["EduCourseEconomy"], "...on EduCourseEconomy">
 }>;
@@ -7165,6 +7183,16 @@ export type ValueTypes = {
 	/** Подписанная служебная записка на расход */
 	statement: ValueTypes["ExpenseProposalStatementSignedDocumentInput"] | Variable<any, string>
 };
+	["EduCreateGroupInput"]: {
+	/** Курс */
+	course_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Привязка к площадке: курс и, если есть, группа площадки; пусто — как у курса */
+	external_ref?: string | undefined | null | Variable<any, string>,
+	/** Дата начала занятий (YYYY-MM-DD); пусто — ещё не назначена */
+	starts_at?: string | undefined | null | Variable<any, string>,
+	/** Название группы; не названа — «Группа N» */
+	title?: string | undefined | null | Variable<any, string>
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ValueTypes["ID"] | Variable<any, string>,
@@ -7192,6 +7220,8 @@ export type ValueTypes = {
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
+	/** Группа курса, в которую записан участник */
+	group_id?:boolean | `@${string}`,
 	/** Идентификатор подписки */
 	id?:boolean | `@${string}`,
 	/** Обучающийся */
@@ -7300,6 +7330,44 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduFundMovement']?: Omit<ValueTypes["EduFundMovement"], "...on EduFundMovement">
 }>;
+	["EduGroup"]: AliasType<{
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Набор в группу открыт */
+	enrollment_open?:boolean | `@${string}`,
+	/** Привязка к площадке: курс и, если есть, группа площадки */
+	external_ref?:boolean | `@${string}`,
+	/** Членский взнос за месяц в группе */
+	fee_month?:boolean | `@${string}`,
+	/** Гарантийный срок, дней */
+	guarantee_days?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Участников с действующей подпиской */
+	learners_active?:boolean | `@${string}`,
+	/** Проведено занятий */
+	lessons_held?:boolean | `@${string}`,
+	/** Занятий в программе группы */
+	lessons_total?:boolean | `@${string}`,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
+	/** Плановая ставка часа в группе */
+	planned_hourly_rate?:boolean | `@${string}`,
+	/** Дата начала занятий группы */
+	starts_at?:boolean | `@${string}`,
+	/** Состояние группы */
+	status?:boolean | `@${string}`,
+	/** Остаток резерва преподавателям по группе */
+	teacher_reserve_balance?:boolean | `@${string}`,
+	/** Выплачено преподавателям по группе */
+	teacher_settled_total?:boolean | `@${string}`,
+	/** Название группы */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduGroup']?: Omit<ValueTypes["EduGroup"], "...on EduGroup">
+}>;
+	/** Состояние группы курса */
+["EduGroupStatus"]:EduGroupStatus;
 	["EduGuaranteeClaim"]: AliasType<{
 	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
 	amount?:boolean | `@${string}`,
@@ -7385,6 +7453,8 @@ export type ValueTypes = {
 	course_title?:boolean | `@${string}`,
 	/** Длительность, минут */
 	duration_minutes?:boolean | `@${string}`,
+	/** Группа курса */
+	group_id?:boolean | `@${string}`,
 	/** Когда проведено */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -7404,6 +7474,8 @@ export type ValueTypes = {
 	assignment_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Длительность занятия, минут; без значения — из расписания курса */
 	duration_minutes?: number | undefined | null | Variable<any, string>,
+	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Когда проведено (по умолчанию — сейчас) */
 	held_at?: string | undefined | null | Variable<any, string>,
 	/** Номер занятия в программе курса */
@@ -7537,6 +7609,8 @@ export type ValueTypes = {
 	enough?:boolean | `@${string}`,
 	/** Сколько зачтётся с кошелька членских взносов программы */
 	from_program?:boolean | `@${string}`,
+	/** Группа курса, в которую идёт взнос */
+	group_id?:boolean | `@${string}`,
 	/** Это продление действующей подписки */
 	is_extension?:boolean | `@${string}`,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -7555,6 +7629,8 @@ export type ValueTypes = {
 	["EduQuoteInput"]: {
 	/** Курс */
 	course_id: ValueTypes["ID"] | Variable<any, string>,
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Обучающийся */
 	learner_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Период */
@@ -7767,6 +7843,8 @@ export type ValueTypes = {
 	course_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Подписанное заявление о конвертации паевого взноса в членский */
 	document: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Обучающийся */
 	learner_id: ValueTypes["ID"] | Variable<any, string>,
 	/** Период */
@@ -7901,6 +7979,16 @@ export type ValueTypes = {
 	teacher_usernames?: Array<string> | undefined | null | Variable<any, string>,
 	/** Название курса */
 	title: string | Variable<any, string>
+};
+	["EduUpdateGroupInput"]: {
+	/** Набор в группу открыт */
+	enrollment_open?: boolean | undefined | null | Variable<any, string>,
+	/** Привязка к площадке */
+	external_ref?: string | undefined | null | Variable<any, string>,
+	id: ValueTypes["ID"] | Variable<any, string>,
+	/** Дата начала занятий (YYYY-MM-DD) */
+	starts_at?: string | undefined | null | Variable<any, string>,
+	title?: string | undefined | null | Variable<any, string>
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -13398,10 +13486,12 @@ edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any
 edubridgeCancelEnrollment?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
+edubridgeCloseGroup?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable<any, string>},boolean | `@${string}`],
+edubridgeCreateGroup?: [{	data: ValueTypes["EduCreateGroupInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
@@ -13436,6 +13526,7 @@ edubridgeSubmitGuaranteeClaim?: [{	data: ValueTypes["EduSubmitGuaranteeClaimInpu
 edubridgeSubscribe?: [{	data: ValueTypes["EduSubscribeInput"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeTerminateContract?: [{	reason: string | Variable<any, string>,	username: string | Variable<any, string>},ValueTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ValueTypes["EduUpdateCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
+edubridgeUpdateGroup?: [{	data: ValueTypes["EduUpdateGroupInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeUpdateLearner?: [{	data: ValueTypes["EduUpdateLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ValueTypes["TwoFactorEnrollment"],
@@ -15366,8 +15457,9 @@ edubridgeContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variable
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ValueTypes["EduContribution"],
 edubridgeCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourse"]],
-edubridgeCourseEconomy?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduCourseEconomy"]],
+edubridgeCourseEconomy?: [{	course_id: ValueTypes["ID"] | Variable<any, string>,	group_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>},ValueTypes["EduCourseEconomy"]],
 edubridgeCourseFeePreview?: [{	data: ValueTypes["EduCourseEconomyInput"] | Variable<any, string>},ValueTypes["EduCourseFee"]],
+edubridgeCourseGroups?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeCourses?: [{	filter?: ValueTypes["EduCoursesFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedEduCoursesPaginationResult"]],
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
 	edubridgeEconomySettings?:ValueTypes["EduEconomySettings"],
@@ -15398,8 +15490,11 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ValueTypes["ID"] | Variab
 edubridgeMyShareReturnDocuments?: [{	return_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduShareReturnDocument"]],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ValueTypes["EduTeacherProfile"],
+	/** Идущие группы курсов, к которым допущен преподаватель */
+	edubridgeMyTeachingGroups?:ValueTypes["EduGroup"],
 	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState?:ValueTypes["EduOnboardingState"],
+edubridgeOpenGroups?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgePlatformCourses?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduPlatformCourse"]],
 	/** Деньги программы: кошельки и движение средств */
 	edubridgeProgramFund?:ValueTypes["EduProgramFund"],
@@ -23548,6 +23643,8 @@ export type ResolverInputTypes = {
 	/** До какой даты заявление держится гарантийным сроком */
 	hold_until?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
 	/** Ссылки на внешние хранилища */
 	links?:boolean | `@${string}`,
 	/** Ключ взноса в цепи */
@@ -23651,12 +23748,28 @@ export type ResolverInputTypes = {
 	actual_cost_month?:boolean | `@${string}`,
 	/** Часов в месяц, распределённых между преподавателями */
 	actual_hours_per_month?:boolean | `@${string}`,
+	/** Взносы участников за месяц при нынешнем числе участников */
+	group_fee_month?:boolean | `@${string}`,
+	/** Группа курса, по которой посчитан месяц */
+	group_id?:boolean | `@${string}`,
+	/** Остаётся программе за месяц при нынешнем числе участников */
+	group_program_month?:boolean | `@${string}`,
+	/** Взнос преподавателей за месяц при нынешнем числе участников */
+	group_teachers_month?:boolean | `@${string}`,
+	/** Участников группы с оплаченным доступом на сегодня */
+	learners_active?:boolean | `@${string}`,
 	/** Обязательства перед преподавателями превысили собранный взнос */
 	over_fee?:boolean | `@${string}`,
+	/** Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
 	/** Плановый расчёт взноса */
 	plan?:ResolverInputTypes["EduCourseFee"],
+	/** В группе проведены занятия: дата начала занятий группы не изменяется */
+	start_locked?:boolean | `@${string}`,
 	/** Нагрузка назначенных преподавателей */
 	teachers?:ResolverInputTypes["EduCourseTeacherLoad"],
+	/** В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп */
+	terms_locked?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
 	["EduCourseEconomyInput"]: {
@@ -23782,6 +23895,16 @@ export type ResolverInputTypes = {
 	/** Подписанная служебная записка на расход */
 	statement: ResolverInputTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
+	["EduCreateGroupInput"]: {
+	/** Курс */
+	course_id: ResolverInputTypes["ID"],
+	/** Привязка к площадке: курс и, если есть, группа площадки; пусто — как у курса */
+	external_ref?: string | undefined | null,
+	/** Дата начала занятий (YYYY-MM-DD); пусто — ещё не назначена */
+	starts_at?: string | undefined | null,
+	/** Название группы; не названа — «Группа N» */
+	title?: string | undefined | null
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ResolverInputTypes["ID"],
@@ -23808,6 +23931,8 @@ export type ResolverInputTypes = {
 	course_id?:boolean | `@${string}`,
 	/** Название курса */
 	course_title?:boolean | `@${string}`,
+	/** Группа курса, в которую записан участник */
+	group_id?:boolean | `@${string}`,
 	/** Идентификатор подписки */
 	id?:boolean | `@${string}`,
 	/** Обучающийся */
@@ -23912,6 +24037,43 @@ export type ResolverInputTypes = {
 	username?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduGroup"]: AliasType<{
+	/** Курс */
+	course_id?:boolean | `@${string}`,
+	created_at?:boolean | `@${string}`,
+	/** Набор в группу открыт */
+	enrollment_open?:boolean | `@${string}`,
+	/** Привязка к площадке: курс и, если есть, группа площадки */
+	external_ref?:boolean | `@${string}`,
+	/** Членский взнос за месяц в группе */
+	fee_month?:boolean | `@${string}`,
+	/** Гарантийный срок, дней */
+	guarantee_days?:boolean | `@${string}`,
+	id?:boolean | `@${string}`,
+	/** Участников с действующей подпиской */
+	learners_active?:boolean | `@${string}`,
+	/** Проведено занятий */
+	lessons_held?:boolean | `@${string}`,
+	/** Занятий в программе группы */
+	lessons_total?:boolean | `@${string}`,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
+	/** Плановая ставка часа в группе */
+	planned_hourly_rate?:boolean | `@${string}`,
+	/** Дата начала занятий группы */
+	starts_at?:boolean | `@${string}`,
+	/** Состояние группы */
+	status?:boolean | `@${string}`,
+	/** Остаток резерва преподавателям по группе */
+	teacher_reserve_balance?:boolean | `@${string}`,
+	/** Выплачено преподавателям по группе */
+	teacher_settled_total?:boolean | `@${string}`,
+	/** Название группы */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние группы курса */
+["EduGroupStatus"]:EduGroupStatus;
 	["EduGuaranteeClaim"]: AliasType<{
 	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
 	amount?:boolean | `@${string}`,
@@ -23994,6 +24156,8 @@ export type ResolverInputTypes = {
 	course_title?:boolean | `@${string}`,
 	/** Длительность, минут */
 	duration_minutes?:boolean | `@${string}`,
+	/** Группа курса */
+	group_id?:boolean | `@${string}`,
 	/** Когда проведено */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
@@ -24012,6 +24176,8 @@ export type ResolverInputTypes = {
 	assignment_id: ResolverInputTypes["ID"],
 	/** Длительность занятия, минут; без значения — из расписания курса */
 	duration_minutes?: number | undefined | null,
+	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	group_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
 	held_at?: string | undefined | null,
 	/** Номер занятия в программе курса */
@@ -24136,6 +24302,8 @@ export type ResolverInputTypes = {
 	enough?:boolean | `@${string}`,
 	/** Сколько зачтётся с кошелька членских взносов программы */
 	from_program?:boolean | `@${string}`,
+	/** Группа курса, в которую идёт взнос */
+	group_id?:boolean | `@${string}`,
 	/** Это продление действующей подписки */
 	is_extension?:boolean | `@${string}`,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -24153,6 +24321,8 @@ export type ResolverInputTypes = {
 	["EduQuoteInput"]: {
 	/** Курс */
 	course_id: ResolverInputTypes["ID"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: ResolverInputTypes["ID"],
 	/** Период */
@@ -24360,6 +24530,8 @@ export type ResolverInputTypes = {
 	course_id: ResolverInputTypes["ID"],
 	/** Подписанное заявление о конвертации паевого взноса в членский */
 	document: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: ResolverInputTypes["ID"],
 	/** Период */
@@ -24489,6 +24661,16 @@ export type ResolverInputTypes = {
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateGroupInput"]: {
+	/** Набор в группу открыт */
+	enrollment_open?: boolean | undefined | null,
+	/** Привязка к площадке */
+	external_ref?: string | undefined | null,
+	id: ResolverInputTypes["ID"],
+	/** Дата начала занятий (YYYY-MM-DD) */
+	starts_at?: string | undefined | null,
+	title?: string | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -29831,10 +30013,12 @@ edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boole
 edubridgeCancelEnrollment?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
+edubridgeCloseGroup?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
 edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},boolean | `@${string}`],
+edubridgeCreateGroup?: [{	data: ResolverInputTypes["EduCreateGroupInput"]},ResolverInputTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
@@ -29869,6 +30053,7 @@ edubridgeSubmitGuaranteeClaim?: [{	data: ResolverInputTypes["EduSubmitGuaranteeC
 edubridgeSubscribe?: [{	data: ResolverInputTypes["EduSubscribeInput"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeTerminateContract?: [{	reason: string,	username: string},ResolverInputTypes["EduTeacherContract"]],
 edubridgeUpdateCourse?: [{	data: ResolverInputTypes["EduUpdateCourseInput"]},ResolverInputTypes["EduCourse"]],
+edubridgeUpdateGroup?: [{	data: ResolverInputTypes["EduUpdateGroupInput"]},ResolverInputTypes["EduGroup"]],
 edubridgeUpdateLearner?: [{	data: ResolverInputTypes["EduUpdateLearnerInput"]},ResolverInputTypes["EduLearner"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ResolverInputTypes["TwoFactorEnrollment"],
@@ -31724,8 +31909,9 @@ edubridgeContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]},R
 	/** Взносы РИД всех преподавателей */
 	edubridgeContributions?:ResolverInputTypes["EduContribution"],
 edubridgeCourse?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourse"]],
-edubridgeCourseEconomy?: [{	course_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduCourseEconomy"]],
+edubridgeCourseEconomy?: [{	course_id: ResolverInputTypes["ID"],	group_id?: ResolverInputTypes["ID"] | undefined | null},ResolverInputTypes["EduCourseEconomy"]],
 edubridgeCourseFeePreview?: [{	data: ResolverInputTypes["EduCourseEconomyInput"]},ResolverInputTypes["EduCourseFee"]],
+edubridgeCourseGroups?: [{	course_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgeCourses?: [{	filter?: ResolverInputTypes["EduCoursesFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedEduCoursesPaginationResult"]],
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
 	edubridgeEconomySettings?:ResolverInputTypes["EduEconomySettings"],
@@ -31756,8 +31942,11 @@ edubridgeMyContributionDocuments?: [{	contribution_id: ResolverInputTypes["ID"]}
 edubridgeMyShareReturnDocuments?: [{	return_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduShareReturnDocument"]],
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile?:ResolverInputTypes["EduTeacherProfile"],
+	/** Идущие группы курсов, к которым допущен преподаватель */
+	edubridgeMyTeachingGroups?:ResolverInputTypes["EduGroup"],
 	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState?:ResolverInputTypes["EduOnboardingState"],
+edubridgeOpenGroups?: [{	course_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgePlatformCourses?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduPlatformCourse"]],
 	/** Деньги программы: кошельки и движение средств */
 	edubridgeProgramFund?:ResolverInputTypes["EduProgramFund"],
@@ -39666,6 +39855,8 @@ export type ModelTypes = {
 	/** До какой даты заявление держится гарантийным сроком */
 	hold_until?: ModelTypes["DateTime"] | undefined | null,
 	id: ModelTypes["ID"],
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
 	/** Ссылки на внешние хранилища */
 	links: Array<string>,
 	/** Ключ взноса в цепи */
@@ -39762,12 +39953,28 @@ export type ModelTypes = {
 	actual_cost_month: string,
 	/** Часов в месяц, распределённых между преподавателями */
 	actual_hours_per_month: number,
+	/** Взносы участников за месяц при нынешнем числе участников */
+	group_fee_month: string,
+	/** Группа курса, по которой посчитан месяц */
+	group_id?: string | undefined | null,
+	/** Остаётся программе за месяц при нынешнем числе участников */
+	group_program_month: string,
+	/** Взнос преподавателей за месяц при нынешнем числе участников */
+	group_teachers_month: string,
+	/** Участников группы с оплаченным доступом на сегодня */
+	learners_active: number,
 	/** Обязательства перед преподавателями превысили собранный взнос */
 	over_fee: boolean,
+	/** Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
 	/** Плановый расчёт взноса */
 	plan: ModelTypes["EduCourseFee"],
+	/** В группе проведены занятия: дата начала занятий группы не изменяется */
+	start_locked: boolean,
 	/** Нагрузка назначенных преподавателей */
-	teachers: Array<ModelTypes["EduCourseTeacherLoad"]>
+	teachers: Array<ModelTypes["EduCourseTeacherLoad"]>,
+	/** В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп */
+	terms_locked: boolean
 };
 	["EduCourseEconomyInput"]: {
 	/** Скидка за взнос разом за весь курс, проценты */
@@ -39889,6 +40096,16 @@ export type ModelTypes = {
 	/** Подписанная служебная записка на расход */
 	statement: ModelTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
+	["EduCreateGroupInput"]: {
+	/** Курс */
+	course_id: ModelTypes["ID"],
+	/** Привязка к площадке: курс и, если есть, группа площадки; пусто — как у курса */
+	external_ref?: string | undefined | null,
+	/** Дата начала занятий (YYYY-MM-DD); пусто — ещё не назначена */
+	starts_at?: string | undefined | null,
+	/** Название группы; не названа — «Группа N» */
+	title?: string | undefined | null
+};
 	["EduDeclineContributionInput"]: {
 	/** Взнос */
 	contribution_id: ModelTypes["ID"],
@@ -39914,6 +40131,8 @@ export type ModelTypes = {
 	course_id: ModelTypes["ID"],
 	/** Название курса */
 	course_title: string,
+	/** Группа курса, в которую записан участник */
+	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Идентификатор подписки */
 	id: ModelTypes["ID"],
 	/** Обучающийся */
@@ -40012,6 +40231,41 @@ export type ModelTypes = {
 	/** Пайщик, к которому относится движение */
 	username?: string | undefined | null
 };
+	["EduGroup"]: {
+		/** Курс */
+	course_id: ModelTypes["ID"],
+	created_at: ModelTypes["DateTime"],
+	/** Набор в группу открыт */
+	enrollment_open: boolean,
+	/** Привязка к площадке: курс и, если есть, группа площадки */
+	external_ref: string,
+	/** Членский взнос за месяц в группе */
+	fee_month: string,
+	/** Гарантийный срок, дней */
+	guarantee_days: number,
+	id: ModelTypes["ID"],
+	/** Участников с действующей подпиской */
+	learners_active: number,
+	/** Проведено занятий */
+	lessons_held: number,
+	/** Занятий в программе группы */
+	lessons_total: number,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
+	/** Плановая ставка часа в группе */
+	planned_hourly_rate: string,
+	/** Дата начала занятий группы */
+	starts_at?: string | undefined | null,
+	/** Состояние группы */
+	status: ModelTypes["EduGroupStatus"],
+	/** Остаток резерва преподавателям по группе */
+	teacher_reserve_balance?: string | undefined | null,
+	/** Выплачено преподавателям по группе */
+	teacher_settled_total?: string | undefined | null,
+	/** Название группы */
+	title: string
+};
+	["EduGroupStatus"]:EduGroupStatus;
 	["EduGuaranteeClaim"]: {
 		/** Стоимость подписки, которая возвращается при удовлетворении заявления */
 	amount: string,
@@ -40090,6 +40344,8 @@ export type ModelTypes = {
 	course_title: string,
 	/** Длительность, минут */
 	duration_minutes: number,
+	/** Группа курса */
+	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Когда проведено */
 	held_at: ModelTypes["DateTime"],
 	id: ModelTypes["ID"],
@@ -40107,6 +40363,8 @@ export type ModelTypes = {
 	assignment_id: ModelTypes["ID"],
 	/** Длительность занятия, минут; без значения — из расписания курса */
 	duration_minutes?: number | undefined | null,
+	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
 	held_at?: string | undefined | null,
 	/** Номер занятия в программе курса */
@@ -40220,6 +40478,8 @@ export type ModelTypes = {
 	enough: boolean,
 	/** Сколько зачтётся с кошелька членских взносов программы */
 	from_program: string,
+	/** Группа курса, в которую идёт взнос */
+	group_id: ModelTypes["ID"],
 	/** Это продление действующей подписки */
 	is_extension: boolean,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -40236,6 +40496,8 @@ export type ModelTypes = {
 	["EduQuoteInput"]: {
 	/** Курс */
 	course_id: ModelTypes["ID"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: ModelTypes["ID"],
 	/** Период */
@@ -40433,6 +40695,8 @@ export type ModelTypes = {
 	course_id: ModelTypes["ID"],
 	/** Подписанное заявление о конвертации паевого взноса в членский */
 	document: ModelTypes["SignedDigitalDocumentInput"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: ModelTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: ModelTypes["ID"],
 	/** Период */
@@ -40557,6 +40821,16 @@ export type ModelTypes = {
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateGroupInput"]: {
+	/** Набор в группу открыт */
+	enrollment_open?: boolean | undefined | null,
+	/** Привязка к площадке */
+	external_ref?: string | undefined | null,
+	id: ModelTypes["ID"],
+	/** Дата начала занятий (YYYY-MM-DD) */
+	starts_at?: string | undefined | null,
+	title?: string | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 	/** Имя обучающегося */
@@ -45838,6 +46112,8 @@ export type ModelTypes = {
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
+	/** Завершить группу: набор закрыт, подписок и занятий по ней больше нет */
+	edubridgeCloseGroup: ModelTypes["EduGroup"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
@@ -45846,6 +46122,8 @@ export type ModelTypes = {
 	edubridgeCreateCourse: ModelTypes["EduCourse"],
 	/** Подать расход программы: средства фонда выделяются под расход */
 	edubridgeCreateExpense: string,
+	/** Открыть новую группу курса */
+	edubridgeCreateGroup: ModelTypes["EduGroup"],
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
@@ -45914,6 +46192,8 @@ export type ModelTypes = {
 	edubridgeTerminateContract?: ModelTypes["EduTeacherContract"] | undefined | null,
 	/** Изменить курс */
 	edubridgeUpdateCourse: ModelTypes["EduCourse"],
+	/** Изменить группу: название, дату начала, набор, привязку к площадке */
+	edubridgeUpdateGroup: ModelTypes["EduGroup"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
 	edubridgeUpdateLearner: ModelTypes["EduLearner"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
@@ -47935,6 +48215,8 @@ export type ModelTypes = {
 	edubridgeCourseEconomy: ModelTypes["EduCourseEconomy"],
 	/** Расчёт взноса по параметрам курса — до сохранения */
 	edubridgeCourseFeePreview: ModelTypes["EduCourseFee"],
+	/** Группы курса */
+	edubridgeCourseGroups: Array<ModelTypes["EduGroup"]>,
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: ModelTypes["PaginatedEduCoursesPaginationResult"],
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
@@ -47971,8 +48253,12 @@ export type ModelTypes = {
 	edubridgeMyShareReturnDocuments: Array<ModelTypes["EduShareReturnDocument"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: ModelTypes["EduTeacherProfile"],
+	/** Идущие группы курсов, к которым допущен преподаватель */
+	edubridgeMyTeachingGroups: Array<ModelTypes["EduGroup"]>,
 	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState: ModelTypes["EduOnboardingState"],
+	/** Группы курса с открытым набором */
+	edubridgeOpenGroups: Array<ModelTypes["EduGroup"]>,
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<ModelTypes["EduPlatformCourse"]>,
 	/** Деньги программы: кошельки и движение средств */
@@ -56241,6 +56527,8 @@ export type GraphQLTypes = {
 	/** До какой даты заявление держится гарантийным сроком */
 	hold_until?: GraphQLTypes["DateTime"] | undefined | null,
 	id: GraphQLTypes["ID"],
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
 	/** Ссылки на внешние хранилища */
 	links: Array<string>,
 	/** Ключ взноса в цепи */
@@ -56347,12 +56635,28 @@ export type GraphQLTypes = {
 	actual_cost_month: string,
 	/** Часов в месяц, распределённых между преподавателями */
 	actual_hours_per_month: number,
+	/** Взносы участников за месяц при нынешнем числе участников */
+	group_fee_month: string,
+	/** Группа курса, по которой посчитан месяц */
+	group_id?: string | undefined | null,
+	/** Остаётся программе за месяц при нынешнем числе участников */
+	group_program_month: string,
+	/** Взнос преподавателей за месяц при нынешнем числе участников */
+	group_teachers_month: string,
+	/** Участников группы с оплаченным доступом на сегодня */
+	learners_active: number,
 	/** Обязательства перед преподавателями превысили собранный взнос */
 	over_fee: boolean,
+	/** Взнос преподавателя за занятие в группе считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
 	/** Плановый расчёт взноса */
 	plan: GraphQLTypes["EduCourseFee"],
+	/** В группе проведены занятия: дата начала занятий группы не изменяется */
+	start_locked: boolean,
 	/** Нагрузка назначенных преподавателей */
 	teachers: Array<GraphQLTypes["EduCourseTeacherLoad"]>,
+	/** В группу вносили взнос: её условия закреплены, правка условий курса действует для новых групп */
+	terms_locked: boolean,
 	['...on EduCourseEconomy']: Omit<GraphQLTypes["EduCourseEconomy"], "...on EduCourseEconomy">
 };
 	["EduCourseEconomyInput"]: {
@@ -56480,6 +56784,16 @@ export type GraphQLTypes = {
 	/** Подписанная служебная записка на расход */
 	statement: GraphQLTypes["ExpenseProposalStatementSignedDocumentInput"]
 };
+	["EduCreateGroupInput"]: {
+		/** Курс */
+	course_id: GraphQLTypes["ID"],
+	/** Привязка к площадке: курс и, если есть, группа площадки; пусто — как у курса */
+	external_ref?: string | undefined | null,
+	/** Дата начала занятий (YYYY-MM-DD); пусто — ещё не назначена */
+	starts_at?: string | undefined | null,
+	/** Название группы; не названа — «Группа N» */
+	title?: string | undefined | null
+};
 	["EduDeclineContributionInput"]: {
 		/** Взнос */
 	contribution_id: GraphQLTypes["ID"],
@@ -56508,6 +56822,8 @@ export type GraphQLTypes = {
 	course_id: GraphQLTypes["ID"],
 	/** Название курса */
 	course_title: string,
+	/** Группа курса, в которую записан участник */
+	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Идентификатор подписки */
 	id: GraphQLTypes["ID"],
 	/** Обучающийся */
@@ -56615,6 +56931,44 @@ export type GraphQLTypes = {
 	username?: string | undefined | null,
 	['...on EduFundMovement']: Omit<GraphQLTypes["EduFundMovement"], "...on EduFundMovement">
 };
+	["EduGroup"]: {
+	__typename: "EduGroup",
+	/** Курс */
+	course_id: GraphQLTypes["ID"],
+	created_at: GraphQLTypes["DateTime"],
+	/** Набор в группу открыт */
+	enrollment_open: boolean,
+	/** Привязка к площадке: курс и, если есть, группа площадки */
+	external_ref: string,
+	/** Членский взнос за месяц в группе */
+	fee_month: string,
+	/** Гарантийный срок, дней */
+	guarantee_days: number,
+	id: GraphQLTypes["ID"],
+	/** Участников с действующей подпиской */
+	learners_active: number,
+	/** Проведено занятий */
+	lessons_held: number,
+	/** Занятий в программе группы */
+	lessons_total: number,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
+	/** Плановая ставка часа в группе */
+	planned_hourly_rate: string,
+	/** Дата начала занятий группы */
+	starts_at?: string | undefined | null,
+	/** Состояние группы */
+	status: GraphQLTypes["EduGroupStatus"],
+	/** Остаток резерва преподавателям по группе */
+	teacher_reserve_balance?: string | undefined | null,
+	/** Выплачено преподавателям по группе */
+	teacher_settled_total?: string | undefined | null,
+	/** Название группы */
+	title: string,
+	['...on EduGroup']: Omit<GraphQLTypes["EduGroup"], "...on EduGroup">
+};
+	/** Состояние группы курса */
+["EduGroupStatus"]: EduGroupStatus;
 	["EduGuaranteeClaim"]: {
 	__typename: "EduGuaranteeClaim",
 	/** Стоимость подписки, которая возвращается при удовлетворении заявления */
@@ -56701,6 +57055,8 @@ export type GraphQLTypes = {
 	course_title: string,
 	/** Длительность, минут */
 	duration_minutes: number,
+	/** Группа курса */
+	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Когда проведено */
 	held_at: GraphQLTypes["DateTime"],
 	id: GraphQLTypes["ID"],
@@ -56719,6 +57075,8 @@ export type GraphQLTypes = {
 	assignment_id: GraphQLTypes["ID"],
 	/** Длительность занятия, минут; без значения — из расписания курса */
 	duration_minutes?: number | undefined | null,
+	/** Группа курса, для которой проведено занятие; не названа — единственная идущая группа курса */
+	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Когда проведено (по умолчанию — сейчас) */
 	held_at?: string | undefined | null,
 	/** Номер занятия в программе курса */
@@ -56853,6 +57211,8 @@ export type GraphQLTypes = {
 	enough: boolean,
 	/** Сколько зачтётся с кошелька членских взносов программы */
 	from_program: string,
+	/** Группа курса, в которую идёт взнос */
+	group_id: GraphQLTypes["ID"],
 	/** Это продление действующей подписки */
 	is_extension: boolean,
 	/** Сколько месяцев оплачивает взнос: один при помесячном, месяцы до конца курса при взносе разом */
@@ -56870,6 +57230,8 @@ export type GraphQLTypes = {
 	["EduQuoteInput"]: {
 		/** Курс */
 	course_id: GraphQLTypes["ID"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: GraphQLTypes["ID"],
 	/** Период */
@@ -57082,6 +57444,8 @@ export type GraphQLTypes = {
 	course_id: GraphQLTypes["ID"],
 	/** Подписанное заявление о конвертации паевого взноса в членский */
 	document: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Группа курса; не названа — единственная группа с открытым набором */
+	group_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Обучающийся */
 	learner_id: GraphQLTypes["ID"],
 	/** Период */
@@ -57216,6 +57580,16 @@ export type GraphQLTypes = {
 	teacher_usernames?: Array<string> | undefined | null,
 	/** Название курса */
 	title: string
+};
+	["EduUpdateGroupInput"]: {
+		/** Набор в группу открыт */
+	enrollment_open?: boolean | undefined | null,
+	/** Привязка к площадке */
+	external_ref?: string | undefined | null,
+	id: GraphQLTypes["ID"],
+	/** Дата начала занятий (YYYY-MM-DD) */
+	starts_at?: string | undefined | null,
+	title?: string | undefined | null
 };
 	["EduUpdateLearnerInput"]: {
 		/** Имя обучающегося */
@@ -62867,6 +63241,8 @@ export type GraphQLTypes = {
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
+	/** Завершить группу: набор закрыт, подписок и занятий по ней больше нет */
+	edubridgeCloseGroup: GraphQLTypes["EduGroup"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
@@ -62875,6 +63251,8 @@ export type GraphQLTypes = {
 	edubridgeCreateCourse: GraphQLTypes["EduCourse"],
 	/** Подать расход программы: средства фонда выделяются под расход */
 	edubridgeCreateExpense: string,
+	/** Открыть новую группу курса */
+	edubridgeCreateGroup: GraphQLTypes["EduGroup"],
 	/** Отклонить взнос РИД с причиной */
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
@@ -62943,6 +63321,8 @@ export type GraphQLTypes = {
 	edubridgeTerminateContract?: GraphQLTypes["EduTeacherContract"] | undefined | null,
 	/** Изменить курс */
 	edubridgeUpdateCourse: GraphQLTypes["EduCourse"],
+	/** Изменить группу: название, дату начала, набор, привязку к площадке */
+	edubridgeUpdateGroup: GraphQLTypes["EduGroup"],
 	/** Исправить имя или контакт обучающегося (без повторной оплаты) */
 	edubridgeUpdateLearner: GraphQLTypes["EduLearner"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
@@ -65145,6 +65525,8 @@ export type GraphQLTypes = {
 	edubridgeCourseEconomy: GraphQLTypes["EduCourseEconomy"],
 	/** Расчёт взноса по параметрам курса — до сохранения */
 	edubridgeCourseFeePreview: GraphQLTypes["EduCourseFee"],
+	/** Группы курса */
+	edubridgeCourseGroups: Array<GraphQLTypes["EduGroup"]>,
 	/** Курсы кооператива во всех состояниях */
 	edubridgeCourses: GraphQLTypes["PaginatedEduCoursesPaginationResult"],
 	/** Целевой членский взнос кооператива и предельная скидка за взнос разом за весь курс */
@@ -65181,8 +65563,12 @@ export type GraphQLTypes = {
 	edubridgeMyShareReturnDocuments: Array<GraphQLTypes["EduShareReturnDocument"]>,
 	/** Мой профиль преподавателя: рассказ о себе и ставка часа */
 	edubridgeMyTeacherProfile: GraphQLTypes["EduTeacherProfile"],
+	/** Идущие группы курсов, к которым допущен преподаватель */
+	edubridgeMyTeachingGroups: Array<GraphQLTypes["EduGroup"]>,
 	/** Подписаны ли оферты ученика и преподавателя */
 	edubridgeOnboardingState: GraphQLTypes["EduOnboardingState"],
+	/** Группы курса с открытым набором */
+	edubridgeOpenGroups: Array<GraphQLTypes["EduGroup"]>,
 	/** Курсы и группы на площадке кооператива — для привязки курса каталога */
 	edubridgePlatformCourses: Array<GraphQLTypes["EduPlatformCourse"]>,
 	/** Деньги программы: кошельки и движение средств */
@@ -68065,6 +68451,12 @@ export enum EduEnrollmentStatus {
 	PENDING = "PENDING",
 	REVOKED = "REVOKED"
 }
+/** Состояние группы курса */
+export enum EduGroupStatus {
+	ACTIVE = "ACTIVE",
+	CANCELLED = "CANCELLED",
+	CLOSED = "CLOSED"
+}
 /** Ход заявления об аннулировании подписки по гарантийным условиям */
 export enum EduGuaranteeClaimStatus {
 	APPROVED = "APPROVED",
@@ -69068,10 +69460,12 @@ type ZEUS_VARIABLES = {
 	["EduCourseStatus"]: ValueTypes["EduCourseStatus"];
 	["EduCoursesFilterInput"]: ValueTypes["EduCoursesFilterInput"];
 	["EduCreateExpenseInput"]: ValueTypes["EduCreateExpenseInput"];
+	["EduCreateGroupInput"]: ValueTypes["EduCreateGroupInput"];
 	["EduDeclineContributionInput"]: ValueTypes["EduDeclineContributionInput"];
 	["EduEnrollmentPeriod"]: ValueTypes["EduEnrollmentPeriod"];
 	["EduEnrollmentStatus"]: ValueTypes["EduEnrollmentStatus"];
 	["EduExpenseItemInput"]: ValueTypes["EduExpenseItemInput"];
+	["EduGroupStatus"]: ValueTypes["EduGroupStatus"];
 	["EduGuaranteeClaimStatus"]: ValueTypes["EduGuaranteeClaimStatus"];
 	["EduGuaranteeStatementInput"]: ValueTypes["EduGuaranteeStatementInput"];
 	["EduHoldContributionInput"]: ValueTypes["EduHoldContributionInput"];
@@ -69109,6 +69503,7 @@ type ZEUS_VARIABLES = {
 	["EduSubscribeInput"]: ValueTypes["EduSubscribeInput"];
 	["EduTeacherProfileInput"]: ValueTypes["EduTeacherProfileInput"];
 	["EduUpdateCourseInput"]: ValueTypes["EduUpdateCourseInput"];
+	["EduUpdateGroupInput"]: ValueTypes["EduUpdateGroupInput"];
 	["EduUpdateLearnerInput"]: ValueTypes["EduUpdateLearnerInput"];
 	["EntrepreneurDetailsInput"]: ValueTypes["EntrepreneurDetailsInput"];
 	["ExecKuDecisionInput"]: ValueTypes["ExecKuDecisionInput"];

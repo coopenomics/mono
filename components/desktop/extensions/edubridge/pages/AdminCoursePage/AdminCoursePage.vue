@@ -65,6 +65,9 @@
                 .t-meta.t-muted(v-if="teacherRate(username)") {{ $t('edubridge.adminCoursePage.teacherRateLine', { rate: formatAsset2Digits(teacherRate(username)) }) }}
             .t-muted.t-sm(v-else) {{ $t('edubridge.adminCoursePage.teachersEmpty') }}
 
+          //- Группы курса: набор идёт в группу, деньги и занятия считаются внутри неё.
+          CourseGroups(v-if="course" :course="course" :selected-id="economy?.group_id ?? null" @select="selectGroup" @changed="reloadEconomy")
+
           //- План против факта: плановая ставка часа, сумма часов месяца по ней и
           //- та же сумма по ставкам из договоров преподавателей; затем взнос кооператива.
           BaseCard(v-if="economy" variant="default" :title="$t('edubridge.adminCoursePage.economyTitle')")
@@ -81,6 +84,14 @@
             DataRow(:label="$t(`edubridge.adminCoursePage.markupLabel`, { percent: economy.plan.markup_percent })" :value="formatAsset2Digits(economy.plan.markup_month)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.markup')")
+            //- Месяц курса при нынешнем числе участников: что вносят участники, что получают
+            //- преподаватели по способу расчёта курса и что остаётся программе.
+            .t-eyebrow.q-mt-md.q-mb-xs {{ $t('edubridge.adminCoursePage.groupTitle', { count: economy.learners_active }) }}
+            DataRow(:label="$t('edubridge.adminCoursePage.groupFeeLabel')" :value="formatAsset2Digits(economy.group_fee_month)" align="spread")
+            DataRow(:label="$t('edubridge.adminCoursePage.groupTeachersLabel')" :value="formatAsset2Digits(economy.group_teachers_month)" align="spread")
+              template(#label-append)
+                FieldHelp(:text="economy.pay_per_learner ? $t('edubridge.adminCoursePage.economyHelp.groupTeachersPerLearner') : $t('edubridge.adminCoursePage.economyHelp.groupTeachersFixed')")
+            DataRow(:label="$t('edubridge.adminCoursePage.groupProgramLabel')" :value="formatAsset2Digits(economy.group_program_month)" align="spread")
             BaseBanner.q-mt-sm(v-if="economy.over_fee" variant="warn")
               template(#icon)
                 q-icon(name="warning_amber")
@@ -116,6 +127,7 @@ import {
   type ICourse,
 } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
+import { CourseGroups } from '../../widgets/CourseGroups';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
 import { StatTile } from '../../shared/ui/StatStrip';
@@ -172,6 +184,21 @@ async function unpublish(): Promise<void> {
   if (agreed) await setStatus(Zeus.EduCourseStatus.DRAFT);
 }
 
+/** Группа, по которой показан месяц в экономике; не выбрана — первая идущая. */
+const economyGroupId = ref<string | null>(null);
+async function reloadEconomy(): Promise<void> {
+  if (!course.value) return;
+  try {
+    economy.value = await fetchCourseEconomy(asText(course.value.id), economyGroupId.value);
+  } catch (e) {
+    FailAlert(e);
+  }
+}
+function selectGroup(groupId: string): void {
+  economyGroupId.value = groupId;
+  void reloadEconomy();
+}
+
 /** Страницу покинули: ответы запросов, начатых на ней, больше ничего не меняют. */
 let pageLeft = false;
 
@@ -186,7 +213,7 @@ async function load(): Promise<void> {
     // Ответ пришёл после ухода со страницы: заголовок шапки уже сброшен, возвращать его нельзя.
     if (pageLeft) return;
     if (course.value) desktopStore.setPageTitleOverride(t('edubridge.adminCoursePage.pageTitle'));
-    economy.value = await fetchCourseEconomy(id);
+    economy.value = await fetchCourseEconomy(id, economyGroupId.value);
   } catch (e) {
     FailAlert(e);
   } finally {

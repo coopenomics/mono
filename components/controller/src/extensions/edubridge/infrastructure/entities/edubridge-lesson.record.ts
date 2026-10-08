@@ -15,6 +15,9 @@ export class EdubridgeLessonRecord {
 
   public course_id!: string;
 
+  /** Группа курса, для которой проведено занятие. */
+  public group_id!: string | null;
+
   public assignment_id!: string;
 
   /** Номер занятия в программе курса — от единицы до числа занятий курса. */

@@ -26,7 +26,7 @@ void edubridge::acceptrid(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(decision),
-               "Отсутствует протокол совета о приёме паевого взноса РИД");
+               "EDUBRIDGE_RID_DECISION_REQUIRED: Отсутствует протокол совета о приёме паевого взноса РИД");
   verify_document_or_fail(decision);
 
   EdubridgeRid::accept(coopname, rid_hash, decision, act);

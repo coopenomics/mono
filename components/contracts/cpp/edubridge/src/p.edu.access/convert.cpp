@@ -27,7 +27,7 @@ void edubridge::convert(eosio::name coopname,
   // ── Валидация параметров и подписи Заявления ────────────────────────
   Edubridge::check_money(amount, "Сумма конвертации");
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление о конвертации паевого взноса");
+               "EDUBRIDGE_CONVERT_STATEMENT_REQUIRED: Отсутствует заявление о конвертации паевого взноса");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 
@@ -38,7 +38,7 @@ void edubridge::convert(eosio::name coopname,
   auto bal_share = Edubridge::get_user_wallet_balance(
       coopname, ledger2_wallets::SHARE_FUND_PAY, username);
   eosio::check(bal_share.available >= amount,
-               std::string{"Недостаточно паевых средств для конвертации: требуется "} +
+               std::string{"EDUBRIDGE_SHARE_FUNDS_INSUFFICIENT: Недостаточно паевых средств для конвертации: требуется "} +
                  amount.to_string() + ", доступно " + bal_share.available.to_string());
 
   // ── o.edu.conv: TRANSFER w.wal.share → w.edu.member (Дт 80 / Кт 86) ──

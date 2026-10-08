@@ -54,7 +54,7 @@ function make(
   const userWallets = { findByWallet: jest.fn(async () => options.memberShares ?? []) } as any;
   const payments = { findByHash: jest.fn(async (h: string) => options.payments?.[h] ?? null) } as any;
   return {
-    service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets, payments),
+    service: new EdubridgeEconomyService(config, courses, teachers, names, extensions, ledger, userWallets, payments, { findByCourse: jest.fn(async () => []), findByGroup: jest.fn(async () => []) } as any, { findByCourse: jest.fn(async () => []), findByGroup: jest.fn(async () => []) } as any, { list: jest.fn(async () => []), viewOf: (c: any) => c } as any),
     teachers,
     extensions,
     config,

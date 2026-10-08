@@ -39,6 +39,14 @@ const rawCourseEconomySelector = {
   actual_cost_month: true,
   actual_hours_per_month: true,
   over_fee: true,
+  group_id: true,
+  pay_per_learner: true,
+  learners_active: true,
+  group_fee_month: true,
+  group_teachers_month: true,
+  group_program_month: true,
+  terms_locked: true,
+  start_locked: true,
 }
 const _validateEconomy: MakeAllFieldsRequired<ValueTypes['EduCourseEconomy']> = rawCourseEconomySelector
 export const eduCourseEconomySelector = Selector('EduCourseEconomy')(rawCourseEconomySelector)

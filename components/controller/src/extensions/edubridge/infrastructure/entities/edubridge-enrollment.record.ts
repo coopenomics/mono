@@ -16,6 +16,9 @@ export class EdubridgeEnrollmentRecord {
 
   public course_id!: string;
 
+  /** Группа курса, в которую записан участник: деньги и занятия считаются внутри неё. */
+  public group_id!: string | null;
+
   public sub_hash!: string;
 
   public period!: EduEnrollmentPeriod;

@@ -659,6 +659,9 @@ export const AllTypesProps: Record<string,any> = {
 		items:"EduExpenseItemInput",
 		statement:"ExpenseProposalStatementSignedDocumentInput"
 	},
+	EduCreateGroupInput:{
+
+	},
 	EduDeclineContributionInput:{
 
 	},
@@ -668,6 +671,7 @@ export const AllTypesProps: Record<string,any> = {
 		mechanics:"ExpenseMechanics",
 		recipient_type:"ExpenseRecipientType"
 	},
+	EduGroupStatus: "enum" as const,
 	EduGuaranteeClaimStatus: "enum" as const,
 	EduGuaranteeStatementInput:{
 
@@ -768,6 +772,9 @@ export const AllTypesProps: Record<string,any> = {
 		carrier:"EduAccessCarrier",
 		direction:"EduCourseDirection",
 		image:"EduCourseImageUploadInput"
+	},
+	EduUpdateGroupInput:{
+
 	},
 	EduUpdateLearnerInput:{
 		recipient_type:"EduRecipientType"
@@ -2057,6 +2064,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCloseAssignment:{
 
 		},
+		edubridgeCloseGroup:{
+
+		},
 		edubridgeConvertStatement:{
 			data:"EduQuoteInput"
 		},
@@ -2068,6 +2078,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeCreateExpense:{
 			data:"EduCreateExpenseInput"
+		},
+		edubridgeCreateGroup:{
+			data:"EduCreateGroupInput"
 		},
 		edubridgeDeclineContribution:{
 			data:"EduDeclineContributionInput"
@@ -2170,6 +2183,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeUpdateCourse:{
 			data:"EduUpdateCourseInput"
+		},
+		edubridgeUpdateGroup:{
+			data:"EduUpdateGroupInput"
 		},
 		edubridgeUpdateLearner:{
 			data:"EduUpdateLearnerInput"
@@ -3172,6 +3188,9 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCourseFeePreview:{
 			data:"EduCourseEconomyInput"
 		},
+		edubridgeCourseGroups:{
+
+		},
 		edubridgeCourses:{
 			filter:"EduCoursesFilterInput",
 			options:"PaginationInput"
@@ -3189,6 +3208,9 @@ export const AllTypesProps: Record<string,any> = {
 
 		},
 		edubridgeMyShareReturnDocuments:{
+
+		},
+		edubridgeOpenGroups:{
 
 		},
 		edubridgePlatformCourses:{
@@ -5729,6 +5751,7 @@ export const ReturnTypes: Record<string,any> = {
 		description:"String",
 		hold_until:"DateTime",
 		id:"ID",
+		learners_count:"Int",
 		links:"String",
 		rid_hash:"String",
 		rid_type:"EduRidType",
@@ -5779,9 +5802,17 @@ export const ReturnTypes: Record<string,any> = {
 	EduCourseEconomy:{
 		actual_cost_month:"String",
 		actual_hours_per_month:"Float",
+		group_fee_month:"String",
+		group_id:"String",
+		group_program_month:"String",
+		group_teachers_month:"String",
+		learners_active:"Int",
 		over_fee:"Boolean",
+		pay_per_learner:"Boolean",
 		plan:"EduCourseFee",
-		teachers:"EduCourseTeacherLoad"
+		start_locked:"Boolean",
+		teachers:"EduCourseTeacherLoad",
+		terms_locked:"Boolean"
 	},
 	EduCourseFee:{
 		cost_course:"String",
@@ -5814,6 +5845,7 @@ export const ReturnTypes: Record<string,any> = {
 		close_pending:"Boolean",
 		course_id:"ID",
 		course_title:"String",
+		group_id:"ID",
 		id:"ID",
 		learner_id:"ID",
 		paid_amount:"String",
@@ -5855,6 +5887,25 @@ export const ReturnTypes: Record<string,any> = {
 		title:"String",
 		username:"String"
 	},
+	EduGroup:{
+		course_id:"ID",
+		created_at:"DateTime",
+		enrollment_open:"Boolean",
+		external_ref:"String",
+		fee_month:"String",
+		guarantee_days:"Int",
+		id:"ID",
+		learners_active:"Int",
+		lessons_held:"Int",
+		lessons_total:"Int",
+		pay_per_learner:"Boolean",
+		planned_hourly_rate:"String",
+		starts_at:"String",
+		status:"EduGroupStatus",
+		teacher_reserve_balance:"String",
+		teacher_settled_total:"String",
+		title:"String"
+	},
 	EduGuaranteeClaim:{
 		amount:"String",
 		created_at:"DateTime",
@@ -5885,6 +5936,7 @@ export const ReturnTypes: Record<string,any> = {
 		course_id:"ID",
 		course_title:"String",
 		duration_minutes:"Int",
+		group_id:"ID",
 		held_at:"DateTime",
 		id:"ID",
 		learners_count:"Int",
@@ -5953,6 +6005,7 @@ export const ReturnTypes: Record<string,any> = {
 		discount_amount:"String",
 		enough:"Boolean",
 		from_program:"String",
+		group_id:"ID",
 		is_extension:"Boolean",
 		months:"Int",
 		paid_until:"DateTime",
@@ -7705,10 +7758,12 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCancelEnrollment:"EduEnrollment",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
+		edubridgeCloseGroup:"EduGroup",
 		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",
 		edubridgeCreateExpense:"String",
+		edubridgeCreateGroup:"EduGroup",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDeleteCourse:"Boolean",
 		edubridgeDismissAdmin:"Boolean",
@@ -7743,6 +7798,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeSubscribe:"EduEnrollment",
 		edubridgeTerminateContract:"EduTeacherContract",
 		edubridgeUpdateCourse:"EduCourse",
+		edubridgeUpdateGroup:"EduGroup",
 		edubridgeUpdateLearner:"EduLearner",
 		enrollTwoFactor:"TwoFactorEnrollment",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
@@ -8609,6 +8665,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCourse:"EduCourse",
 		edubridgeCourseEconomy:"EduCourseEconomy",
 		edubridgeCourseFeePreview:"EduCourseFee",
+		edubridgeCourseGroups:"EduGroup",
 		edubridgeCourses:"PaginatedEduCoursesPaginationResult",
 		edubridgeEconomySettings:"EduEconomySettings",
 		edubridgeExpenses:"PaginatedEduExpensesPaginationResult",
@@ -8627,7 +8684,9 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeMySettlementJournal:"EduSettlementEntry",
 		edubridgeMyShareReturnDocuments:"EduShareReturnDocument",
 		edubridgeMyTeacherProfile:"EduTeacherProfile",
+		edubridgeMyTeachingGroups:"EduGroup",
 		edubridgeOnboardingState:"EduOnboardingState",
+		edubridgeOpenGroups:"EduGroup",
 		edubridgePlatformCourses:"EduPlatformCourse",
 		edubridgeProgramFund:"EduProgramFund",
 		edubridgeQueue:"EduAccessTask",

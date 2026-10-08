@@ -12,6 +12,15 @@ export class EdubridgeLessonKyselyRepository {
     return this.repo.find({ coopname, course_id: courseId }, { order: { lesson_number: 'ASC' } });
   }
 
+  /** Занятия группы: порядок отчётов и номера занятий ведутся внутри неё. */
+  findByGroup(coopname: string, groupId: string): Promise<EdubridgeLessonRecord[]> {
+    return this.repo.find({ coopname, group_id: groupId }, { order: { lesson_number: 'ASC' } });
+  }
+
+  findByGroupNumber(coopname: string, groupId: string, lessonNumber: number): Promise<EdubridgeLessonRecord | null> {
+    return this.repo.findOne({ coopname, group_id: groupId, lesson_number: lessonNumber });
+  }
+
   findByTeacher(coopname: string, teacher: string): Promise<EdubridgeLessonRecord[]> {
     return this.repo.find({ coopname, teacher_username: teacher }, { order: { held_at: 'DESC' } });
   }

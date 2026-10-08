@@ -70,6 +70,9 @@ function make(
     findByNumber: jest.fn(async (_c: string, _course: string, n: number) => lessonStore.get(n) ?? null),
     findByTeacher: jest.fn(async () => [...lessonStore.values()]),
     findByCourse: jest.fn(async () => [...lessonStore.values()]),
+    // Порядок и номера занятий ведутся внутри группы.
+    findByGroup: jest.fn(async () => [...lessonStore.values()]),
+    findByGroupNumber: jest.fn(async (_c: string, _g: string, n: number) => lessonStore.get(n) ?? null),
     findById: jest.fn(async (_c: string, id: string) => [...lessonStore.values()].find((l) => l.id === id) ?? null),
     create: jest.fn((d: any) => ({ id: `LS${d.lesson_number}`, ...d })),
     save: jest.fn(async (l: any) => { lessonStore.set(l.lesson_number, l); return l; }),
@@ -88,7 +91,8 @@ function make(
   } as any;
   const chainTerms = { pushAssignment: jest.fn(async () => undefined), tryPushAssignment: jest.fn(async () => undefined), dropAssignment: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
   // Одна действующая подписка курса, оплаченная на год вперёд.
-  const enrollments = { findByCourse: jest.fn(async () => [{ id: 'E1', sub_hash: 'sub1', status: 'active', paid_until: new Date(Date.now() + 365 * 86400_000) }]) } as any;
+  const subscriptions = [{ id: 'E1', sub_hash: 'sub1', status: 'active', paid_until: new Date(Date.now() + 365 * 86400_000) }];
+  const enrollments = { findByCourse: jest.fn(async () => subscriptions), findByGroup: jest.fn(async () => subscriptions) } as any;
   const documents = {
     generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })),
     buildAggregate: jest.fn(async (d: any) => ({ hash: d.hash, document: d, rawDocument: { hash: d.hash, html: '', meta: {} } })),
@@ -107,7 +111,7 @@ function make(
   // Данные пайщика: сюда пишутся номер и дата договора для документов преподавателя.
   const udata = { save: jest.fn(async () => undefined), get: jest.fn(async () => null) } as any;
   const walletWithdraw = { createWithdraw: jest.fn(async () => ({ withdraw_hash: 'WH' })) } as any;
-  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments);
+  const service = new EdubridgeTeacherService(teachers, courses, lessons, chain, documents, council, wallets, avatars, names, funds, udata, logger, events, walletWithdraw, chainTerms, enrollments, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
   return { chainTerms, enrollments, udata, service, teachers, courses, chain, documents, council, funds, store, assignment, avatars, names, lessons, wallets, balances, walletWithdraw, returns };
 }
 
@@ -516,7 +520,7 @@ describe('EdubridgeTeacherService', () => {
   it('цепь отвечает «уже подано» — подача продолжается с поиска вопроса в повестке', async () => {
     const { service, chain, store } = make();
     const c = await contributionOfLesson(service, store);
-    chain.submitRid.mockRejectedValueOnce(new Error('assertion failure with message: Заявление о паевом взносе по этим материалам уже подано'));
+    chain.submitRid.mockRejectedValueOnce(new Error('assertion failure with message: EDUBRIDGE_RID_STATEMENT_ALREADY_SUBMITTED: Заявление о паевом взносе по этим материалам уже подано'));
     const submitted = await service.submitContribution('voskhod', 'teach', c.id, signedBy('teach', 'STMT'));
     expect(submitted.status).toBe(EduContributionStatus.SUBMITTED);
     expect(submitted.council_agenda_id).toBe('77');

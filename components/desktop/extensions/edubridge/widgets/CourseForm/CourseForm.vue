@@ -48,6 +48,11 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
   //- обязательства перед теми, кто курс ведёт.
   section.edu-course-form__section(v-if="show('price')")
     .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.price') }}
+    //- Условия курса — для новых групп: у групп с участниками они закреплены на день открытия.
+    BaseBanner.q-mb-md(v-if="termsLocked" variant="info")
+      template(#icon)
+        q-icon(name="lock")
+      | {{ $t('edubridge.courseForm.termsLockedBanner') }}
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.lessons') }}
       .edu-course-form__pair
@@ -95,6 +100,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
             FieldHelp(:text="COURSE_FORM_HELP.startsAt")
         BaseInput(
           v-model="guaranteeDays"
+         
           :label="$t('edubridge.courseForm.guaranteeDaysLabel')"
           type="number"
         )
@@ -214,7 +220,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
+import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { IdentityCell } from 'src/shared/ui/domain';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
@@ -250,6 +256,7 @@ const {
   lessonMinutes,
   plannedRate,
   payPerLearner,
+  termsLocked,
   guaranteeDays,
   coursePayment,
   courseDiscount,

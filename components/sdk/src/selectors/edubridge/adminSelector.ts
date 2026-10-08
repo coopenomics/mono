@@ -33,6 +33,7 @@ const rawEnrollmentSelector = {
   status: true,
   access_state: true,
   sub_hash: true,
+  group_id: true,
   close_pending: true,
   close_error: true,
   paid_amount: true,

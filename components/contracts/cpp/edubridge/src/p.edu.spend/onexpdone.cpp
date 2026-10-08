@@ -34,19 +34,19 @@ void edubridge::onexpdone(eosio::name coopname,
   auto byhash = expenses.get_index<"byhash"_n>();
   auto it = byhash.find(expense_hash);
   eosio::check(it != byhash.end(),
-               "Расход программы не найден по идентификатору служебной записки");
+               "EDUBRIDGE_EXPENSE_NOT_FOUND: Расход программы не найден по идентификатору служебной записки");
 
   eosio::check(total_actual.symbol == it->amount.symbol,
-               "Некорректный символ валюты в сумме фактического расхода");
+               "EDUBRIDGE_EXPENSE_SYMBOL_INVALID: Некорректный символ валюты в сумме фактического расхода");
   eosio::check(total_actual.amount >= 0,
-               "Фактический расход не может быть отрицательным");
+               "EDUBRIDGE_EXPENSE_AMOUNT_NEGATIVE: Фактический расход не может быть отрицательным");
 
   const bool closed   = status == static_cast<uint8_t>(ExpenseDomain::ProposalStatus::CLOSED);
   const bool declined = status == static_cast<uint8_t>(ExpenseDomain::ProposalStatus::DECLINED);
   eosio::check(closed || declined,
-               "Завершение расхода программы принимается только закрытым либо отклонённым");
+               "EDUBRIDGE_EXPENSE_STATUS_INVALID: Завершение расхода программы принимается только закрытым либо отклонённым");
   eosio::check(!declined || total_actual.amount == 0,
-               "Отклонённый расход не может иметь фактических оплат");
+               "EDUBRIDGE_EXPENSE_DECLINED_WITH_PAYMENTS: Отклонённый расход не может иметь фактических оплат");
 
   if (total_actual <= it->amount) {
     const eosio::asset unspent = it->amount - total_actual;

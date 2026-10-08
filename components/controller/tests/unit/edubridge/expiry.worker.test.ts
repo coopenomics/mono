@@ -33,7 +33,7 @@ describe('EdubridgeExpiryWorker', () => {
   it('подписки в цепи уже нет: запись всё равно закрывается и доступ отзывается — очередь о неё не спотыкается', async () => {
     const e = sub('2');
     const { worker, outbox, chain } = make([e]);
-    chain.expireSubscription.mockRejectedValue(new Error('assertion failure with message: Подписка с указанным hash не найдена'));
+    chain.expireSubscription.mockRejectedValue(new Error('assertion failure with message: EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена'));
     await worker.expire('voskhod');
     expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
     expect(outbox.enqueue).toHaveBeenCalledWith(expect.objectContaining({ kind: EduAccessTaskKind.REVOKE }));
@@ -61,7 +61,7 @@ describe('EdubridgeExpiryWorker', () => {
   it('досрочный отзыв при выходе пайщика переживает отсутствие записи в цепи', async () => {
     const e = sub('5');
     const { worker, chain, outbox } = make([e]);
-    chain.expireSubscription.mockRejectedValue(new Error('Подписка с указанным hash не найдена'));
+    chain.expireSubscription.mockRejectedValue(new Error("assertion failure with message: EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена"));
     await worker.revokeAllForMember('voskhod', 'ant', 'exit');
     expect(e.status).toBe(EduEnrollmentStatus.REVOKED);
     expect(outbox.enqueue).toHaveBeenCalled();

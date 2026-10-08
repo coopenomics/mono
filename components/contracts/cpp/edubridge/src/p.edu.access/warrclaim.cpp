@@ -26,7 +26,7 @@ void edubridge::warrclaim(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление об аннулировании подписки по гарантийным условиям");
+               "EDUBRIDGE_GUARANTEE_STATEMENT_REQUIRED: Отсутствует заявление об аннулировании подписки по гарантийным условиям");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 
@@ -35,7 +35,7 @@ void edubridge::warrclaim(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
-               "Заявление подаёт тот пайщик, которому принадлежит подписка");
+               "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Заявление подаёт тот пайщик, которому принадлежит подписка");
 
   Soviet::make_complete_document(_edubridge, coopname, username,
                                  "warrclaim"_n,

@@ -5,6 +5,7 @@ import { EdubridgeAccessTaskRecord } from '../entities/edubridge-access-task.rec
 import { EdubridgeAdminRecord } from '../entities/edubridge-admin.record';
 import { EdubridgeConnectorBindingRecord } from '../entities/edubridge-connector-binding.record';
 import { EdubridgeContributionRecord } from '../entities/edubridge-contribution.record';
+import { EdubridgeGroupRecord } from '../entities/edubridge-group.record';
 import { EdubridgeCourseRecord } from '../entities/edubridge-course.record';
 import { EdubridgeEnrollmentRecord } from '../entities/edubridge-enrollment.record';
 import { EdubridgeGuaranteeClaimRecord } from '../entities/edubridge-guarantee-claim.record';
@@ -30,6 +31,7 @@ export const EDUBRIDGE_ENROLLMENT_STORE = Symbol('Edubridge.EDUBRIDGE_ENROLLMENT
 export const EDUBRIDGE_GUARANTEE_CLAIM_STORE = Symbol('Edubridge.EDUBRIDGE_GUARANTEE_CLAIM_STORE');
 export const EDUBRIDGE_LEARNER_STORE = Symbol('Edubridge.EDUBRIDGE_LEARNER_STORE');
 export const EDUBRIDGE_LESSON_STORE = Symbol('Edubridge.EDUBRIDGE_LESSON_STORE');
+export const EDUBRIDGE_GROUP_STORE = Symbol('Edubridge.EDUBRIDGE_GROUP_STORE');
 export const EDUBRIDGE_LEVEL_STORE = Symbol('Edubridge.EDUBRIDGE_LEVEL_STORE');
 export const EDUBRIDGE_SECTION_STORE = Symbol('Edubridge.EDUBRIDGE_SECTION_STORE');
 export const EDUBRIDGE_SHARE_RETURN_STORE = Symbol('Edubridge.EDUBRIDGE_SHARE_RETURN_STORE');
@@ -113,7 +115,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeEnrollmentRecord>(db, {
         table: 'edubridge_enrollments',
-        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'sub_hash', 'period', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at', 'close_pending_since', 'close_error'],
+        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'group_id', 'sub_hash', 'period', 'group_id', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at', 'close_pending_since', 'close_error'],
         primaryKey: ['id'],
         updatedAt: 'updated_at',
         sameNames: true,
@@ -133,13 +135,27 @@ export const edubridgeStoreProviders: Provider[] = [
       }),
   },
   {
+    provide: EDUBRIDGE_GROUP_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<EdubridgeGroupRecord>(db, {
+        table: 'edubridge_groups',
+        columns: ['id', 'coopname', 'chain_ref', 'course_id', 'title', 'status', 'enrollment_open', 'external_ref', 'starts_at', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'planned_hourly_rate', 'pay_per_learner', 'guarantee_days', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'teacher_reserve_balance', 'teacher_settled_total', 'created_at', 'updated_at'],
+        primaryKey: ['id'],
+        dates: ['starts_at'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
     provide: EDUBRIDGE_LESSON_STORE,
     inject: [KYSELY],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeLessonRecord>(db, {
         table: 'edubridge_lessons',
-        columns: ['id', 'coopname', 'teacher_username', 'course_id', 'assignment_id', 'lesson_number', 'held_at', 'duration_minutes', 'materials', 'topic', 'contribution_id', 'learners_count', 'created_at'],
+        columns: ['id', 'coopname', 'teacher_username', 'course_id', 'group_id', 'assignment_id', 'lesson_number', 'held_at', 'duration_minutes', 'materials', 'topic', 'contribution_id', 'learners_count', 'created_at'],
         primaryKey: ['id'],
         json: ['materials'],
         sameNames: true,

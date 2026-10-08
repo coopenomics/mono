@@ -29,9 +29,9 @@ void edubridge::wthshare(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(amount.is_valid() && amount.amount > 0 && amount.symbol == _root_govern_symbol,
-               "Сумма трансляции паевого взноса указывается в символе кооператива и больше нуля");
+               "EDUBRIDGE_SHARE_AMOUNT_INVALID: Сумма трансляции паевого взноса указывается в символе кооператива и больше нуля");
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление о трансляции паевого взноса");
+               "EDUBRIDGE_SHARE_STATEMENT_REQUIRED: Отсутствует заявление о трансляции паевого взноса");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 
@@ -40,7 +40,7 @@ void edubridge::wthshare(eosio::name coopname,
   auto bal_share = Edubridge::get_user_wallet_balance(
       coopname, ledger2_wallets::EDU_SHARE_FUND, username);
   eosio::check(bal_share.available >= amount,
-               std::string{"Паевого взноса по программе недостаточно: на кошельке "} +
+               std::string{"EDUBRIDGE_SHARE_INSUFFICIENT: Паевого взноса по программе недостаточно: на кошельке "} +
                  bal_share.available.to_string() + ", указано " + amount.to_string());
 
   Ledger2::apply(_edubridge, coopname,

@@ -95,7 +95,10 @@ export class EdubridgeEconomyResolver {
   @Query(() => EduCourseEconomyDTO, { name: 'edubridgeCourseEconomy', description: 'Экономика курса: план и факт по назначенным преподавателям' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
   @RequireRight('EduCourse', 'manage')
-  edubridgeCourseEconomy(@Args('course_id', { type: () => ID }) courseId: string): Promise<EduCourseEconomyDTO> {
-    return this.economy.courseEconomy(coop(), courseId);
+  edubridgeCourseEconomy(
+    @Args('course_id', { type: () => ID }) courseId: string,
+    @Args('group_id', { type: () => ID, nullable: true }) groupId?: string
+  ): Promise<EduCourseEconomyDTO> {
+    return this.economy.courseEconomy(coop(), courseId, groupId);
   }
 }

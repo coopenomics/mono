@@ -28,13 +28,13 @@ void edubridge::unlockfee(eosio::name coopname,
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её и откройте заново");
-  eosio::check(!sub->plan.value().released, "Гарантийный срок по подписке уже закрыт");
+  eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её и откройте заново");
+  eosio::check(!sub->plan.value().released, "EDUBRIDGE_GUARANTEE_ALREADY_CLOSED: Гарантийный срок по подписке уже закрыт");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
   eosio::check(!Edubridge::is_guarantee_running(terms, *sub, now),
-               "Гарантийный срок участника ещё идёт: взнос остаётся удержанным");
+               "EDUBRIDGE_GUARANTEE_RUNNING: Гарантийный срок участника ещё идёт: взнос остаётся удержанным");
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     Edubridge::close_guarantee(coopname, terms, s, now);

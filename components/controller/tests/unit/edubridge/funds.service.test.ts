@@ -42,7 +42,7 @@ function make(course: any, rows: any[], subs: any[]) {
     readSubscription,
     readCourseFunds: jest.fn(async () => ({ reserve: '700.0000 RUB', settled: '0.0000 RUB' })),
   } as any;
-  return { service: new EdubridgeFundsService(enrollments, courses, chain, logger), chain, courses, enrollments };
+  return { service: new EdubridgeFundsService(enrollments, courses, chain, logger, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any), chain, courses, enrollments };
 }
 
 describe('EdubridgeFundsService — гарантийный срок и удержание', () => {

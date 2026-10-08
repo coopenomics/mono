@@ -36,21 +36,21 @@ void edubridge::chargefee(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
-               "Членский взнос списывается у владельца подписки");
-  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её и откройте заново");
+               "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Членский взнос списывается у владельца подписки");
+  eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её и откройте заново");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
   const Edubridge::FeeQuote quote = Edubridge::quote_fee(terms, *sub, period, now);
 
   eosio::check(expected == quote.amount,
-               std::string{"Сумма взноса в заявлении расходится с расчётом: в заявлении "} +
+               std::string{"EDUBRIDGE_FEE_MISMATCH: Сумма взноса в заявлении расходится с расчётом: в заявлении "} +
                  expected.to_string() + ", по условиям курса " + quote.amount.to_string());
 
   auto bal_member = Edubridge::get_user_wallet_balance(
       coopname, ledger2_wallets::EDU_MEMBER_FEE, username);
   eosio::check(bal_member.available >= quote.amount,
-               std::string{"Недостаточно членских средств программы: требуется "} +
+               std::string{"EDUBRIDGE_MEMBER_FUNDS_INSUFFICIENT: Недостаточно членских средств программы: требуется "} +
                  quote.amount.to_string() + ", доступно " + bal_member.available.to_string());
 
   Ledger2::apply(_edubridge, coopname,

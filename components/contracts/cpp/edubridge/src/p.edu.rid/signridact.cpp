@@ -22,9 +22,9 @@ void edubridge::signridact(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(!is_empty_document(decision),
-               "Отсутствует протокол совета о приёме паевого взноса РИД");
+               "EDUBRIDGE_RID_DECISION_REQUIRED: Отсутствует протокол совета о приёме паевого взноса РИД");
   eosio::check(!is_empty_document(act),
-               "Отсутствует акт приёма-передачи паевого взноса РИД");
+               "EDUBRIDGE_RID_ACT_REQUIRED: Отсутствует акт приёма-передачи паевого взноса РИД");
   verify_document_or_fail(decision);
   verify_document_or_fail(act, { username });
   verify_signer_keys_or_fail(act, username);
@@ -32,9 +32,9 @@ void edubridge::signridact(eosio::name coopname,
   edu_rids_index rids(_edubridge, coopname.value);
   auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);
   eosio::check(rid->username == username,
-               "Материалы на ответственном хранении приняты от другого пайщика");
+               "EDUBRIDGE_RID_NOT_OWNER: Материалы на ответственном хранении приняты от другого пайщика");
   eosio::check(rid->statement_hash != checksum256(),
-               "Заявление о паевом взносе по этим материалам не подано");
+               "EDUBRIDGE_RID_STATEMENT_NOT_SUBMITTED: Заявление о паевом взносе по этим материалам не подано");
 
   // Протокол — в реестр документов пакетом процесса (package = rid_hash).
   Soviet::make_complete_document(_edubridge, coopname, username,

@@ -29,8 +29,8 @@ void edubridge::cancelsub(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
-               "Подписку отменяет тот пайщик, которому она принадлежит");
-  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её действием expiresub");
+               "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Подписку отменяет тот пайщик, которому она принадлежит");
+  eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её действием expiresub");
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
@@ -39,7 +39,7 @@ void edubridge::cancelsub(eosio::name coopname,
   eosio::asset refund;
   bool to_share = false;
   if (underfilled) {
-    eosio::check(sub->plan.value().lessons_done == 0, "Отмена по недобору возможна только до первого занятия");
+    eosio::check(sub->plan.value().lessons_done == 0, "EDUBRIDGE_UNDERFILL_AFTER_LESSONS: Отмена по недобору возможна только до первого занятия");
     refund = sub->charged_or_zero();
     to_share = true;
   } else if (!terms.is_started() || now < terms.starts_at) {

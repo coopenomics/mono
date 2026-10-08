@@ -33,7 +33,7 @@ void edubridge::submitrid(eosio::name coopname,
 
   Edubridge::check_money(amount, "Сумма паевого взноса РИД");
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление о паевом взносе результатом интеллектуальной деятельности");
+               "EDUBRIDGE_RID_STATEMENT_REQUIRED: Отсутствует заявление о паевом взносе результатом интеллектуальной деятельности");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 
@@ -46,20 +46,20 @@ void edubridge::submitrid(eosio::name coopname,
   auto rid = Edubridge::get_rid_or_fail(rids, rid_hash);
 
   eosio::check(rid->username == username,
-               "Материалы на ответственном хранении приняты от другого пайщика");
+               "EDUBRIDGE_RID_NOT_OWNER: Материалы на ответственном хранении приняты от другого пайщика");
   eosio::check(rid->statement_hash == checksum256(),
-               "Заявление о паевом взносе по этим материалам уже подано");
+               "EDUBRIDGE_RID_STATEMENT_ALREADY_SUBMITTED: Заявление о паевом взносе по этим материалам уже подано");
   eosio::check(rid->amount == amount,
-               "Сумма заявления расходится с оценкой материалов на ответственном хранении");
+               "EDUBRIDGE_RID_AMOUNT_MISMATCH: Сумма заявления расходится с оценкой материалов на ответственном хранении");
   eosio::check(rid->rid_type == rid_type,
-               "Вид результата расходится с принятым на ответственное хранение");
+               "EDUBRIDGE_RID_TYPE_MISMATCH: Вид результата расходится с принятым на ответственное хранение");
   eosio::check(rid->assignment_id == assignment_id,
-               "Задание расходится с принятым на ответственное хранение");
+               "EDUBRIDGE_RID_ASSIGNMENT_MISMATCH: Задание расходится с принятым на ответственное хранение");
 
   // Пока идёт гарантийный срок курса, материалы остаются на ответственном
   // хранении и в совет не уходят (решение владельца 20.09.2026).
   eosio::check(eosio::time_point_sec(eosio::current_time_point()) >= rid->hold_until,
-               "Гарантийный срок по материалам занятия ещё идёт");
+               "EDUBRIDGE_RID_GUARANTEE_RUNNING: Гарантийный срок по материалам занятия ещё идёт");
 
   rids.modify(rid, RamPayer::of(rids, coopname), [&](auto& r) {
     r.statement_hash = statement.hash;

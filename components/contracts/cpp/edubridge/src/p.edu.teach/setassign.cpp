@@ -27,7 +27,7 @@ void edubridge::setassign(eosio::name coopname,
   Edubridge::get_active_contract_or_fail(coopname, username);
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, course_id);
   eosio::check(rate <= terms.planned_rate,
-               std::string{"Ставка преподавателя выше плановой ставки курса: плановая "} +
+               std::string{"EDUBRIDGE_RATE_ABOVE_PLANNED: Ставка преподавателя выше плановой ставки курса: плановая "} +
                  terms.planned_rate.to_string());
 
   edu_assignments_index assigns(_edubridge, coopname.value);
@@ -41,7 +41,7 @@ void edubridge::setassign(eosio::name coopname,
     });
   } else {
     eosio::check(it->username == username && it->course_id == course_id,
-                 "Допуск с этим номером выдан другому преподавателю либо на другой курс");
+                 "EDUBRIDGE_ASSIGNMENT_MISMATCH: Допуск с этим номером выдан другому преподавателю либо на другой курс");
     assigns.modify(it, RamPayer::of(assigns, coopname), [&](auto& a) { a.rate = rate; });
   }
 }
@@ -61,6 +61,6 @@ void edubridge::delassign(eosio::name coopname,
 
   edu_assignments_index assigns(_edubridge, coopname.value);
   auto it = assigns.find(assignment_id);
-  eosio::check(it != assigns.end(), "Допуск с указанным номером не найден");
+  eosio::check(it != assigns.end(), "EDUBRIDGE_ASSIGNMENT_NOT_FOUND: Допуск с указанным номером не найден");
   assigns.erase(it);
 }

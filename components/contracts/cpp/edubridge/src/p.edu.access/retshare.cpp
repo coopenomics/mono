@@ -33,9 +33,9 @@ void edubridge::retshare(eosio::name coopname,
   require_auth(coopname);
 
   eosio::check(amount.is_valid() && amount.amount >= 0 && amount.symbol == _root_govern_symbol,
-               "Сумма перевода в паевой указывается в символе кооператива и не отрицательна");
+               "EDUBRIDGE_RETURN_AMOUNT_INVALID: Сумма перевода в паевой указывается в символе кооператива и не отрицательна");
   eosio::check(!is_empty_document(statement),
-               "Отсутствует заявление об аннулировании соглашения об участии в программе");
+               "EDUBRIDGE_EXIT_STATEMENT_REQUIRED: Отсутствует заявление об аннулировании соглашения об участии в программе");
   verify_document_or_fail(statement, { username });
   verify_signer_keys_or_fail(statement, username);
 
@@ -44,12 +44,12 @@ void edubridge::retshare(eosio::name coopname,
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto by_user = subs.get_index<"byusername"_n>();
   eosio::check(by_user.find(username.value) == by_user.end(),
-               "У пайщика есть действующие подписки: сначала они закрываются с возвратом по Положению");
+               "EDUBRIDGE_EXIT_HAS_SUBSCRIPTIONS: У пайщика есть действующие подписки: сначала они закрываются с возвратом по Положению");
 
   auto bal_member = Edubridge::get_user_wallet_balance(
       coopname, ledger2_wallets::EDU_MEMBER_FEE, username);
   eosio::check(bal_member.available == amount,
-               std::string{"В паевой переводится весь остаток кошелька программы: на кошельке "} +
+               std::string{"EDUBRIDGE_RETURN_NOT_WHOLE_BALANCE: В паевой переводится весь остаток кошелька программы: на кошельке "} +
                  bal_member.available.to_string() + ", указано " + amount.to_string());
 
   if (amount.amount > 0) {

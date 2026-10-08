@@ -1,5 +1,5 @@
 import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
-import { IsEnum, IsUUID, ValidateNested } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SignedDigitalDocumentInputDTO } from '@coopenomics/extension-kit';
 import { EduAccessState, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
@@ -14,6 +14,9 @@ export class EduEnrollmentDTO {
 
   @Field(() => ID, { description: 'Обучающийся' })
   learner_id!: string;
+
+  @Field(() => ID, { nullable: true, description: 'Группа курса, в которую записан участник' })
+  group_id!: string | null;
 
   @Field(() => ID, { description: 'Курс' })
   course_id!: string;
@@ -55,6 +58,7 @@ export class EduEnrollmentDTO {
   close_error!: string | null;
 
   constructor(e: EdubridgeEnrollmentRecord, course?: EdubridgeCourseRecord | null) {
+    this.group_id = e.group_id ?? null;
     this.id = e.id;
     this.learner_id = e.learner_id;
     this.course_id = e.course_id;
@@ -86,11 +90,19 @@ export class EduQuoteInputDTO {
   @Field(() => EduEnrollmentPeriod, { description: 'Период' })
   @IsEnum(EduEnrollmentPeriod)
   period!: EduEnrollmentPeriod;
+
+  @Field(() => ID, { nullable: true, description: 'Группа курса; не названа — единственная группа с открытым набором' })
+  @IsOptional()
+  @IsUUID()
+  group_id?: string | null;
 }
 
 /** Что нужно, чтобы получить доступ: сумма взноса и хватает ли паевого. */
 @ObjectType('EduQuote')
 export class EduQuoteDTO {
+  @Field(() => ID, { description: 'Группа курса, в которую идёт взнос' })
+  group_id!: string;
+
   @Field(() => String, { description: 'Сумма членского взноса за период' })
   amount!: string;
 

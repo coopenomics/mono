@@ -21,8 +21,8 @@ void edubridge::apprvcontr(eosio::name coopname,
   edu_contracts_index contracts(_edubridge, coopname.value);
   auto by_hash = contracts.get_index<"byhash"_n>();
   auto it = by_hash.find(contract_hash);
-  eosio::check(it != by_hash.end(), "Договор с указанным hash не найден");
-  eosio::check(it->status == Edubridge::ContractStatus::PENDING, "Договор уже подписан председателем");
+  eosio::check(it != by_hash.end(), "EDUBRIDGE_CONTRACT_NOT_FOUND: Договор с указанным hash не найден");
+  eosio::check(it->status == Edubridge::ContractStatus::PENDING, "EDUBRIDGE_CONTRACT_ALREADY_APPROVED: Договор уже подписан председателем");
   const eosio::name teacher = it->username;
 
   auto record = contracts.find(it->id);

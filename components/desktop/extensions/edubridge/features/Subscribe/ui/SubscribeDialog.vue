@@ -7,6 +7,8 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
           template(#icon-left)
             q-icon(name="add" size="18px")
     BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
+    //- Набор идёт в группу: у курса с несколькими открытыми группами участник выбирает свою.
+    BaseSelect(v-if="groupOptions.length > 1" v-model="groupId" :label="$t('edubridge.subscribeDialog.groupLabel')" :options="groupOptions" required)
 
     //- Два способа внести взнос — рядом, с полными суммами: скидка за взнос
     //- разом видна как разница в рублях. Второй способ есть не у каждого курса.
@@ -46,6 +48,7 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
 </template>
 
 <script setup lang="ts">
+import { fetchOpenGroups, type IGroup } from '../../../entities/Group';
 import { computed, ref, watch } from 'vue';
 import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
@@ -109,7 +112,31 @@ function formatDate(value: unknown): string {
   return input ? new Date(input).toLocaleDateString('ru-RU') : '______';
 }
 
-watch([learnerId, courseId], async () => {
+/** Группы курса с открытым набором; одна — берётся сама, несколько — участник выбирает. */
+const openGroups = ref<IGroup[]>([]);
+const groupId = ref<string | null>(null);
+const groupOptions = computed(() =>
+  openGroups.value.map((g) => ({
+    value: asText(g.id),
+    label: g.starts_at ? t('edubridge.subscribeDialog.groupOption', { title: g.title, startsAt: formatDate(g.starts_at) }) : g.title,
+  })),
+);
+
+async function loadGroups(): Promise<void> {
+  openGroups.value = [];
+  groupId.value = null;
+  if (!courseId.value) return;
+  try {
+    openGroups.value = await fetchOpenGroups(courseId.value);
+  } catch {
+    // Группы не прочитаны — сервер запишет в единственную группу с открытым набором.
+    openGroups.value = [];
+  }
+  if (openGroups.value.length > 1) groupId.value = asText(openGroups.value[0].id);
+}
+
+watch(courseId, loadGroups, { immediate: true });
+watch([learnerId, courseId, groupId], async () => {
   period.value = Zeus.EduEnrollmentPeriod.MONTH;
   await reloadQuotes();
 });
@@ -120,7 +147,7 @@ async function reloadQuotes(): Promise<void> {
   courseQuote.value = null;
   statement.value = null;
   if (!learnerId.value || !courseId.value) return;
-  const pair = { learner_id: learnerId.value, course_id: courseId.value };
+  const pair = { learner_id: learnerId.value, course_id: courseId.value, group_id: groupId.value };
   try {
     monthQuote.value = await fetchQuote({ ...pair, period: Zeus.EduEnrollmentPeriod.MONTH });
   } catch (e) {
@@ -197,7 +224,7 @@ async function submit(): Promise<void> {
   busy.value = true;
   try {
     const doc = await ensureStatement();
-    const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value }, doc);
+    const enrollment = await subscribe({ learner_id: learnerId.value, course_id: courseId.value, period: period.value, group_id: groupId.value }, doc);
     SuccessAlert(t('edubridge.subscribeDialog.success'));
     emit('subscribed', enrollment);
     emit('update:modelValue', false);

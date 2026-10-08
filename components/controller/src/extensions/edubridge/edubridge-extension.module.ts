@@ -19,6 +19,7 @@ import {
 import { EdubridgeApplicationModule } from './application/edubridge-application.module';
 import { EdubridgeExitBlockersService } from './application/services/edubridge-exit-blockers.service';
 import { EdubridgeLiveFeedService } from './application/services/edubridge-live-feed.service';
+import { EdubridgeGroupService } from './application/services/edubridge-group.service';
 import { EdubridgeTeacherService } from './application/services/edubridge-teacher.service';
 import { EdubridgeSectionsService } from './application/services/edubridge-sections.service';
 import { EdubridgeConfigHolder } from './application/config/edubridge-config.holder';
@@ -56,7 +57,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     private readonly exitBlockers: EdubridgeExitBlockersService,
     private readonly liveFeed: EdubridgeLiveFeedService,
     private readonly teacherService: EdubridgeTeacherService,
-    private readonly sections: EdubridgeSectionsService
+    private readonly sections: EdubridgeSectionsService,
+    private readonly groupService: EdubridgeGroupService
   ) {
     super();
     this.logger.setContext(EdubridgeExtension.name);
@@ -88,6 +90,8 @@ export class EdubridgeExtension extends BaseExtensionModule {
     if (migrated) this.logger.info(`[EDU.SECTIONS] курсов перенесено в справочник разделов и уровней: ${migrated}`);
     // Список «Курс ведут» и допуски — одно и то же: сводим их при запуске,
     // чтобы у каждого преподавателя курса был действующий допуск.
+    // Условия групп — в цепь: по ним контракт считает взносы, занятия и возвраты.
+    await this.groupService.pushAll(platformSettings().coopname).catch((e) => this.logger.warn(`[EDU.GROUPS] условия групп в цепь не записаны: ${(e as Error)?.message ?? e}`));
     await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);
     await this.teacherService.ensureContractRefs(platformSettings().coopname);
     this.logger.info('edubridge-extension готов');

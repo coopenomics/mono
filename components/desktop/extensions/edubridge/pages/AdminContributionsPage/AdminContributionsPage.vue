@@ -11,7 +11,10 @@
     template(#cell-description="{ row }")
       .edu-contrib__title {{ row.description || '______' }}
       .t-muted.t-sm {{ ridType(row.rid_type) }}
-    template(#cell-amount="{ row }") {{ formatAsset2Digits(row.amount) }}
+    template(#cell-amount="{ row }")
+      span.t-num {{ formatAsset2Digits(row.amount) }}
+      //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
+      .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
     template(#cell-status="{ row }")
       BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
       //- Совет решения о приёме не принял: протокола не будет, материалы снимает председатель.

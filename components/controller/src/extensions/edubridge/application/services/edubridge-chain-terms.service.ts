@@ -57,7 +57,7 @@ export class EdubridgeChainTermsService {
   async pushAssignment(assignment: EdubridgeTeacherAssignmentRecord, course: EdubridgeCourseRecord): Promise<void> {
     await this.chain.setAssignment({
       coopname: assignment.coopname,
-      assignment_id: Number(assignment.chain_ref),
+      assignment_id: chainAssignmentRef(assignment, course),
       username: assignment.teacher_username,
       course_id: Number(course.chain_ref),
       rate: assignment.hourly_rate,
@@ -76,14 +76,26 @@ export class EdubridgeChainTermsService {
     }
   }
 
-  /** Допуск снят: запись в цепи стирается; её может и не быть. */
-  async dropAssignment(assignment: EdubridgeTeacherAssignmentRecord): Promise<void> {
+  /** Допуск снят: запись в цепи по этой группе стирается; её может и не быть. */
+  async dropAssignment(assignment: EdubridgeTeacherAssignmentRecord, course: EdubridgeCourseRecord): Promise<void> {
     try {
-      await this.chain.removeAssignment({ coopname: assignment.coopname, assignment_id: Number(assignment.chain_ref) });
+      await this.chain.removeAssignment({ coopname: assignment.coopname, assignment_id: chainAssignmentRef(assignment, course) });
     } catch (e) {
       this.logger.warn(`Допуск ${assignment.teacher_username} в цепи не снят: ${(e as Error)?.message ?? e}`);
     }
   }
+}
+
+/** Разряд, которым номер группы отделён от номера допуска в номере для цепи. */
+const ASSIGNMENT_REF_BASE = 1_000_000;
+
+/**
+ * Номер допуска в цепи. Допуск преподавателя выдаётся на курс, а расчёт
+ * занятий идёт по группам, поэтому в цепи у допуска своя запись на каждую
+ * группу: номер группы и номер допуска вместе. `course` — курс глазами группы.
+ */
+export function chainAssignmentRef(assignment: Pick<EdubridgeTeacherAssignmentRecord, 'chain_ref'>, course: Pick<EdubridgeCourseRecord, 'chain_ref'>): number {
+  return Number(course.chain_ref) * ASSIGNMENT_REF_BASE + Number(assignment.chain_ref);
 }
 
 /**
