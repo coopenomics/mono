@@ -268,27 +268,32 @@ export class EdubridgeEconomyService {
     const rates = new Map(contracts.map((c) => [c.teacher_username, c.hourly_rate]));
     const displayNames = await this.names.displayNames(assignments.map((a) => a.teacher_username));
 
+    // Занятие оплачивается один раз, кто бы из преподавателей его ни провёл, и
+    // заранее неизвестно, кто какое проведёт. Прогноз на месяц — занятия курса
+    // по наибольшей ставке среди его преподавателей: верхняя граница, нагрузку
+    // между ними распределять не нужно. В строке преподавателя — занятия курса
+    // по его ставке.
+    const hours = plan.hours_per_month;
     const teachers: EduCourseTeacherLoadDTO[] = assignments.map((a) => {
-      // Факт считается по ставке преподавателя на этом курсе; у прежних допусков без неё — по договору.
+      // Ставка преподавателя на этом курсе; у прежних допусков без неё — по договору.
       const rate = toMinor(a.hourly_rate ?? '') > 0 ? a.hourly_rate : rates.get(a.teacher_username) ?? '0.0000 RUB';
-      const hours = a.minutes_per_month / MINUTES_IN_HOUR;
       return {
         username: a.teacher_username,
         display_name: displayNames.get(a.teacher_username) ?? '',
         hourly_rate: rate,
-        hours_per_month: round2(hours),
+        hours_per_month: hours,
         cost_month: costOfHours(rate, hours),
       };
     });
 
-    const actualMinor = teachers.reduce((sum, t) => sum + toMinor(t.cost_month), 0);
+    const actualMinor = teachers.reduce((max, t) => Math.max(max, toMinor(t.cost_month)), 0);
     const symbol = symbolOf(plan.fee_month);
 
     return {
       plan: this.toFeeDTO(plan, markup),
       teachers,
       actual_cost_month: formatMinor(actualMinor, symbol),
-      actual_hours_per_month: round2(teachers.reduce((sum, t) => sum + t.hours_per_month, 0)),
+      actual_hours_per_month: teachers.length ? hours : 0,
       over_fee: actualMinor > toMinor(plan.fee_month),
       ...(await this.groupEconomy(coopname, course, groupId, actualMinor, symbol)),
     };

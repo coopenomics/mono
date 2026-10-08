@@ -202,6 +202,24 @@ describe('EdubridgeEconomyService', () => {
     expect(economy.over_fee).toBe(true);
   });
 
+  it('несколько преподавателей на курсе: прогноз — занятия курса один раз, по наибольшей ставке; нагрузка не распределяется', async () => {
+    const contracts = [
+      { teacher_username: 'teach', hourly_rate: '900.0000 RUB', status: EduContractStatus.ACTIVE },
+      { teacher_username: 'other', hourly_rate: '700.0000 RUB', status: EduContractStatus.ACTIVE },
+    ];
+    // Нагрузка в допусках в расчёт не идёт: занятие оплачивается один раз, кто бы его ни провёл.
+    const assignments = [
+      { teacher_username: 'teach', course_id: COURSE_ID, minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE },
+      { teacher_username: 'other', course_id: COURSE_ID, minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE },
+    ];
+    const { service } = make({ markup: 20, contracts, assignments });
+    const economy = await service.courseEconomy('voskhod', COURSE_ID);
+    expect(economy.teachers.map((t) => t.cost_month)).toEqual(['7200.0000 RUB', '5600.0000 RUB']);
+    expect(economy.actual_cost_month).toBe('7200.0000 RUB');
+    expect(economy.actual_hours_per_month).toBe(8);
+    expect(economy.over_fee).toBe(false);
+  });
+
   it('план и факт сходятся, когда ставка преподавателя равна плановой', async () => {
     const contracts = [{ teacher_username: 'teach', hourly_rate: '1000.0000 RUB', status: EduContractStatus.ACTIVE }];
     const assignments = [{ teacher_username: 'teach', course_id: COURSE_ID, minutes_per_month: 480, status: EduAssignmentStatus.ACTIVE }];
