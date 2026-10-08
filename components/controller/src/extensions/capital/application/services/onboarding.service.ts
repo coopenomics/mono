@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import voskhodProgramDocData from '../../domain/constants/voskhod-program-doc-data.json';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { v4 as uuid } from 'uuid';
@@ -24,6 +26,23 @@ type OnboardingHashKey =
 type CapitalOnboardingConfig = IConfig &
   Partial<Record<OnboardingFlagKey, boolean>> &
   Partial<Record<OnboardingHashKey | 'onboarding_init_at' | 'onboarding_expire_at' | 'capital_program_doc_data_hash', string>>;
+
+const VOSKHOD_COOPNAME = 'voskhod';
+
+/** Запись объекта с ключами по алфавиту — так же считает хэш хранилище параметров документов. */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+    .join(',')}}`;
+}
+
+function hashOfDocData(value: unknown): string {
+  return createHash('sha256').update(Buffer.from(stableStringify(value), 'utf8')).digest('hex').toUpperCase();
+}
 
 @Injectable()
 export class CapitalOnboardingService {
@@ -200,6 +219,31 @@ export class CapitalOnboardingService {
       this.eventEmitter.emit(ONBOARDING_COMPLETED_EVENT, { extension_name: 'capital' });
     }
     return updated.config;
+  }
+
+  /**
+   * Параметры документов программ ВОСХОДа: хэш дописывается, если он пуст.
+   *
+   * Сами параметры кладёт в хранилище разовая миграция V2.3.2 — она же
+   * вписывает хэш в настройку приложения, но только если приложение к тому
+   * моменту установлено. На свежем узле «Благорост» ставят из каталога позже:
+   * строки ещё нет, миграция отмечена выполненной, хэш остаётся пустым. Шаги
+   * подключения при этом уже утверждены в цепи, мастер с параметрами не
+   * показывается, и документы регистрации участника не формируются. Хэш
+   * однозначно следует из параметров, поэтому приложение вписывает его само
+   * при каждом запуске и установке. Другим кооперативам параметры ВОСХОДа не
+   * подставляются: они заполняют свои в карточке подключения.
+   */
+  public async ensureProgramDocDataHash(): Promise<void> {
+    if (platformSettings().coopname !== VOSKHOD_COOPNAME) return;
+    const extension = await this.loadExtension();
+    if (String(extension.config.capital_program_doc_data_hash ?? '').trim()) return;
+
+    const hash = hashOfDocData(voskhodProgramDocData);
+    await this.extensionRepository.patchConfig('capital', {
+      capital_program_doc_data_hash: hash,
+    } as Partial<CapitalOnboardingConfig>);
+    this.logger.warn(`[CAPITAL.ONBOARDING] хэш параметров документов программ дописан при запуске: ${hash}`);
   }
 
   public async getState(): Promise<CapitalOnboardingStateDTO> {

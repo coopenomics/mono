@@ -590,6 +590,14 @@ export class CapitalExtension extends BaseExtensionModule {
     // Открыть программы ЦПП в цепи, если кооператив их ещё не открыл.
     await this.ensureCppPrograms();
 
+    // Параметры документов программ: хэш дописывается до чтения конфигурации,
+    // чтобы свежая установка сразу формировала документы регистрации участника.
+    try {
+      await this.onboardingService.ensureProgramDocDataHash();
+    } catch (error: any) {
+      this.logger.error(`Хэш параметров документов программ не дописан: ${error.message}`);
+    }
+
     // Загружаем конфигурацию расширения
     const extensionData = await this.extensionRepository.findByName(this.name);
     if (!extensionData) {
