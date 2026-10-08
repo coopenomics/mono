@@ -3,7 +3,8 @@
   .data-row__label
     | {{ label }}
     //- Значок пояснения рядом с подписью (FieldHelp) — когда смысл строки неочевиден.
-    slot(name='label-append')
+    span.data-row__label-append(v-if='$slots["label-append"]')
+      slot(name='label-append')
   .data-row__value
     template(v-if='$slots["value-override"]')
       slot(name='value-override')
@@ -103,7 +104,14 @@ async function onCopy(): Promise<void> {
 .data-row--spread {
   grid-template-columns: minmax(0, 1fr) auto;
 }
-.data-row--spread .data-row__value {
+.data-row--spread /* Значок пояснения отстоит от подписи, а не прижат к последней букве. */
+.data-row__label-append {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: var(--p-1, 4px);
+}
+
+.data-row__value {
   justify-content: flex-end;
   text-align: right;
   white-space: nowrap;

@@ -48,7 +48,8 @@ const emit = defineEmits<{ edit: [] }>();
   padding: var(--p-4);
   border: 1px solid var(--p-line);
   border-radius: var(--p-r-md);
-  background: var(--p-surface-2);
+  /* Чистая карточка: фон поверхности и тонкая рамка, без серой заливки. */
+  background: var(--p-surface);
 }
 .edu-tile__top {
   display: flex;
