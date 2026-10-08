@@ -530,3 +530,7 @@ cases:
     test: components/controller/tests/unit/soviet-robot/robot-rights.test.ts
     api: components/api-tests/src/soviet/robot-rights.test.ts
     status: written
+
+# 2026-10-08 (C28-42): описание и инструкция приложения в каталоге переписаны для
+# председателя, без технических сведений; прежний текст сохранён рядом в
+# DEVELOPMENT.md. Код приложения, сценарии и их проверки не менялись.

@@ -1,13 +1,13 @@
 <template lang="pug">
 .extension-page(v-if='extension')
   .extension-page__panel
-    //- «Назад» — первой строкой карточки: страница не рвётся на кнопку и панель.
-    button.extension-page__back(type='button', @click='goBack')
-      q-icon(name='chevron_left' size='18px')
-      span {{ $t('common.action.back') }}
-
     .extension-page__grid
       aside.extension-page__side
+        //- «Назад» — в левой колонке карточки: название приложения справа
+        //- начинается у самого верха, на одной линии с кнопкой.
+        button.extension-page__back(type='button', @click='goBack')
+          q-icon(name='chevron_left' size='18px')
+          span {{ $t('common.action.back') }}
         AutoAvatar.extension-page__logo(
           :username='extension.name || extension.title || ""',
           :size='96',
@@ -112,7 +112,7 @@ const ringPalette = ['5b9aa0', '6f8fae', '74a08c', '9a8fb0', '8aa0a8', 'a8967e']
   display: inline-flex;
   align-items: center;
   gap: var(--p-1, 4px);
-  margin-bottom: var(--p-5, 20px);
+  align-self: flex-start;
   padding: 0;
   border: 0;
   background: transparent;
