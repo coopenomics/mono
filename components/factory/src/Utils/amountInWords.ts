@@ -73,8 +73,11 @@ export function integerToWordsRu(value: number): string {
 export function amountInWordsRu(amount: string | number): string {
   const numeric = typeof amount === 'number' ? amount : Number.parseFloat(String(amount).replace(',', '.'))
   if (!Number.isFinite(numeric)) throw new Error(`amountInWordsRu: не удалось разобрать сумму «${amount}»`)
-  const rubles = Math.floor(numeric + 1e-9)
-  const kopecks = Math.round((numeric - rubles) * 100)
+  // Считаем в целых копейках: при округлении дробной части отдельно сумма
+  // 1,999 давала «один рубль 100 копеек».
+  const total = Math.round(numeric * 100)
+  const rubles = Math.floor(total / 100)
+  const kopecks = total % 100
   const rubWord = pluralRu(rubles, 'рубль', 'рубля', 'рублей')
   const kopWord = pluralRu(kopecks, 'копейка', 'копейки', 'копеек')
   return `${integerToWordsRu(rubles)} ${rubWord} ${String(kopecks).padStart(2, '0')} ${kopWord}`
