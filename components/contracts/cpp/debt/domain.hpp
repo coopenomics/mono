@@ -15,13 +15,38 @@
  */
 namespace Debt::Core {
 
+  /// Календарные сутки в секундах.
+  constexpr uint32_t CALENDAR_DAY_SECONDS = 24 * 60 * 60;
+  /// Сутки срока займа. В тестовой сборке сутки идут за минуту: путь до просрочки
+  /// и обращения обеспечения проходится на стенде за минуты, а не за недели.
+#ifdef IS_TESTNET
+  constexpr uint32_t LOAN_DAY_SECONDS = 60;
+#else
+  constexpr uint32_t LOAN_DAY_SECONDS = CALENDAR_DAY_SECONDS;
+#endif
   /// Срок на расчёт после просрочки до обращения обеспечения — пять дней по договору.
-  constexpr uint32_t GRACE_SECONDS = 5 * 24 * 60 * 60;
+  constexpr uint32_t GRACE_SECONDS = 5 * LOAN_DAY_SECONDS;
   /// Не больше стольких займов обрабатывает один вызов сверки сроков.
   constexpr uint32_t SWEEP_MAX = 25;
 
   inline eosio::time_point_sec now() {
     return eosio::time_point_sec(eosio::current_time_point().sec_since_epoch());
+  }
+
+  /**
+   * Момент, с которого заём считается просроченным. В боевой сборке это срок
+   * возврата как он записан. В тестовой срок сжимается от момента выдачи:
+   * каждые сутки до срока идут за LOAN_DAY_SECONDS.
+   */
+  inline uint32_t due_sec(const debt& d) {
+    const uint32_t due = d.due_at.sec_since_epoch();
+#ifdef IS_TESTNET
+    const uint32_t issued = d.issued_at.sec_since_epoch();
+    if (issued == 0 || due <= issued) return due;
+    return issued + static_cast<uint32_t>(static_cast<uint64_t>(due - issued) * LOAN_DAY_SECONDS / CALENDAR_DAY_SECONDS);
+#else
+    return due;
+#endif
   }
 
   inline debt get_debt_or_fail(eosio::name coopname, const eosio::checksum256& debt_hash) {

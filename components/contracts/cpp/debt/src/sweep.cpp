@@ -30,7 +30,14 @@ void debt::sweep(eosio::name coopname, uint32_t limit) {
     auto by_due = debts.get_index<"bydue"_n>();
     uint32_t taken = 0;
     for (auto it = by_due.begin(); it != by_due.end() && taken < budget; ++it) {
-      if (it->due_at.sec_since_epoch() > now_sec) break;
+      if (Debt::Core::due_sec(*it) > now_sec) {
+#ifdef IS_TESTNET
+        // Сжатый срок считается от выдачи и порядку индекса не следует — смотрим все записи.
+        continue;
+#else
+        break;
+#endif
+      }
       if (it->status == Debt::Status::ISSUED) {
         to_overdue.push_back(it->id);
         ++taken;

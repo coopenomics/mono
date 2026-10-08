@@ -7,17 +7,15 @@ import { LOAN_REPOSITORY, type LoanRepository } from '../../domain/repositories/
 import { DEBT_BLOCKCHAIN_PORT, type DebtBlockchainPort } from '../../domain/interfaces/debt-blockchain.port';
 import { LoanStatus } from '../../domain/enums/loan-status.enum';
 import type { LoanDomainEntity } from '../../domain/entities/loan.entity';
+import { chainTime, DEFAULT_TICK_MS, effectiveDue, GRACE_MS } from '../../domain/utils/loan-term-clock';
 
 // Как часто сверяются сроки возврата. Раз в сутки достаточно: срок займа
-// считается месяцами, точность до часа здесь ничего не решает.
-const TICK_MS = Number(process.env.DEBT_TERM_INTERVAL_MS) || 24 * 60 * 60 * 1000;
+// считается месяцами, точность до часа здесь ничего не решает. На стенде со
+// сжатыми сутками займа период сжимается вместе с ними.
+const TICK_MS = Number(process.env.DEBT_TERM_INTERVAL_MS) || DEFAULT_TICK_MS;
 
 // За сколько дней до срока пайщику уходит напоминание.
 const REMIND_BEFORE_DAYS = Number(process.env.DEBT_REMIND_BEFORE_DAYS) || 14;
-
-// Срок после перехода в просрочку, по истечении которого обеспечение
-// обращается в пользу кооператива (в контракте — GRACE_SECONDS).
-const GRACE_DAYS = 5;
 
 // Цепь за один вызов обрабатывает ограниченное число займов (SWEEP_MAX),
 // поэтому вызов повторяется. Предел раундов защищает от бесконечного цикла.
@@ -25,12 +23,6 @@ const CHAIN_BATCH_SIZE = 25;
 const MAX_SWEEP_ROUNDS = 20;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Время цепи без зоны — это UTC. */
-function chainTime(value?: string): number {
-  if (!value || value.startsWith('1970')) return 0;
-  return new Date(value.endsWith('Z') ? value : `${value}Z`).getTime();
-}
 
 /**
  * Сверка сроков возврата займов.
@@ -83,7 +75,7 @@ export class LoanTermSchedulerService implements OnModuleInit {
     const expired = issued.filter((loan) => this.isExpired(loan, now));
     // Обеспечение есть только у займов контракта займов; чужие остаются в просрочке.
     const toSeize = overdue.filter(
-      (loan) => loan.isOwn && chainTime(loan.overdue_at) > 0 && chainTime(loan.overdue_at) + GRACE_DAYS * DAY_MS <= now
+      (loan) => loan.isOwn && chainTime(loan.overdue_at) > 0 && chainTime(loan.overdue_at) + GRACE_MS <= now
     );
 
     const pending = expired.length + toSeize.length;
@@ -128,7 +120,7 @@ export class LoanTermSchedulerService implements OnModuleInit {
   }
 
   private isExpired(loan: LoanDomainEntity, now: number): boolean {
-    const due = chainTime(loan.due_at);
+    const due = effectiveDue(loan);
     return due > 0 && due < now;
   }
 }
