@@ -14,7 +14,7 @@
 import crypto from 'node:crypto'
 import { Cooperative } from 'cooptypes'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, amount, authorizeDecisionOnChain, declineDecisionOnChain, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, amount, declineDecisionOnChain, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
 import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
 import { agendaAll, agendaByHash, authorizeFreeDecision, blank, declineDecision, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
 
@@ -473,9 +473,18 @@ export async function councilDeclines(agenda: AgendaRow): Promise<void> {
  * голосует, председатель утверждает решение в цепи — расширение узнаёт исход
  * обратным вызовом и само выпускает протокол.
  */
-export async function councilGrantsRid(agenda: AgendaRow): Promise<void> {
+export async function councilGrantsRid(agenda: AgendaRow, contribution: { rid_hash: string, amount: string, teacher_username: string }): Promise<void> {
+  const chairman = await tokenOf(CHAIRMAN)
   await vote(agenda, 'for')
-  await authorizeDecisionOnChain(agenda.id)
+  // Протокол совета (3009) несёт номер решения: расширение берёт его из
+  // подписанного председателем документа, как при утверждении со стола совета.
+  const protocol = await waitFor(() => gql<any>(chairman, GENERATE, {
+    i: { data: { registry_id: R.EducationRidDecision.registry_id, coopname: COOP, username: contribution.teacher_username, decision_id: agenda.id, rid_hash: contribution.rid_hash, amount: contribution.amount } },
+  }), { timeoutMs: 90_000, intervalMs: 2_000, label: `протокол решения ${agenda.id} о приёме взноса преподавателя` })
+  const signed = await signDocument(CHAIRMAN.wif, protocol.generateDocument, CHAIRMAN.account, 1)
+  await gql(chairman, 'mutation($d:AuthorizeDecisionInput!){ authorizeDecision(data:$d){ __typename } }', {
+    d: { coopname: COOP, chairman: CHAIRMAN.account, decision_id: agenda.id, document: signed },
+  })
 }
 
 /** Совет отклонил вопрос о приёме взноса преподавателя. */

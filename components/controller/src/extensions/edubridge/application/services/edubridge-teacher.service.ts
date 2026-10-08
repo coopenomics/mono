@@ -684,7 +684,10 @@ export class EdubridgeTeacherService {
     const terms = await this.chain.readTerms(coopname, course.chain_ref);
     // Хотя бы одна подписка группы срок не закрыла (в том числе заявление по
     // гарантийным условиям на рассмотрении совета) — сумма ещё не окончательна.
-    if (!terms || Number(terms.subs_locked) > 0) return 0;
+    if (!terms || Number(terms.subs_locked) > 0) {
+      this.logger.info(`[EDU.LESSON] группа ${course.chain_ref}: взнос за гарантийный срок ждёт подписок с незакрытым сроком — ${terms ? terms.subs_locked : 'условий группы в цепи нет'}`);
+      return 0;
+    }
     const byAssignment = new Map<string, EdubridgeLessonRecord[]>();
     for (const lesson of pending) byAssignment.set(lesson.assignment_id, [...(byAssignment.get(lesson.assignment_id) ?? []), lesson]);
     let opened = 0;
@@ -692,7 +695,10 @@ export class EdubridgeTeacherService {
       const assignment = await this.teachers.findAssignment(coopname, assignmentId);
       if (!assignment) continue;
       const onChain = await this.chain.readAssignment(coopname, chainAssignmentRef(assignment, course));
-      if (!onChain || !(rateValue(onChain.deferred) > 0)) continue;
+      if (!onChain || !(rateValue(onChain.deferred) > 0)) {
+        this.logger.info(`[EDU.LESSON] группа ${course.chain_ref}, допуск ${assignment.id}: за гарантийный срок взнос преподавателя не начислен — ${onChain ? onChain.deferred : 'допуска в цепи нет'}`);
+        continue;
+      }
       lessons.sort((x, y) => x.lesson_number - y.lesson_number);
       const teacher = assignment.teacher_username;
       const contribution = await this.teachers.saveContribution(

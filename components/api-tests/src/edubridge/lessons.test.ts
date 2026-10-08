@@ -214,7 +214,7 @@ describe('Образование: занятия и взносы препода�
       expectCode(await gqlError(token, RID_ACT, { id: second.id }), 'EDUBRIDGE_ACT_BEFORE_COUNCIL_DECISION')
       expect(await pendingActApproval(teacher.account), 'до подписи преподавателя председателю одобрять нечего').toBeUndefined()
 
-      await councilGrantsRid(await agendaWith(first.rid_hash))
+      await councilGrantsRid(await agendaWith(first.rid_hash), first)
       const approved = await waitFor(async () => {
         const c = await mine(first.id)
         return c?.status === 'COUNCIL_APPROVED' ? c : null
@@ -344,7 +344,7 @@ describe('Образование: занятия и взносы препода�
       const third = (await reportLesson(token, nowAssignment.id, 3)).contribution
       await holdMaterials(teacher, token, third.id)
       await submitStatement(teacher, token, third.id)
-      await councilGrantsRid(await agendaWith(third.rid_hash))
+      await councilGrantsRid(await agendaWith(third.rid_hash), third)
       await waitFor(async () => ((await mine(third.id))?.status === 'COUNCIL_APPROVED' ? true : null),
         { timeoutMs: 120_000, intervalMs: 1_500, label: 'решение совета по третьему взносу' })
 
