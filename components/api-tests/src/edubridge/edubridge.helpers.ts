@@ -14,7 +14,7 @@
 import crypto from 'node:crypto'
 import { Cooperative } from 'cooptypes'
 import type { Who } from '../core'
-import { CHAIRMAN, COOP, amount, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, COOP, amount, authorizeDecisionOnChain, declineDecisionOnChain, deposit, gql, signDocument, tokenOf, waitFor } from '../core'
 import type { AgendaRow, TemplateRow } from '../documents/docs-reports.helpers'
 import { agendaAll, agendaByHash, authorizeFreeDecision, blank, declineDecision, propose, templates, vote, waitTemplate } from '../documents/docs-reports.helpers'
 
@@ -311,7 +311,7 @@ export const MY_LEARNERS = `query{ edubridgeMyLearners{ ${LEARNER_FIELDS} } }`
 export const ENROLLMENT_FIELDS = 'id learner_id course_id course_title period paid_until status access_state sub_hash paid_amount refunded_amount refund_reason cancelled_at close_pending'
 export const MY_ENROLLMENTS = `query{ edubridgeMyEnrollments{ ${ENROLLMENT_FIELDS} } }`
 export const QUOTE = `query($d:EduQuoteInput!){ edubridgeQuote(data:$d){
-  amount months base_amount discount_amount from_program to_convert available enough shortfall is_extension paid_until sub_hash
+  amount months base_amount discount_amount from_program to_convert available enough shortfall is_extension paid_until sub_hash group_id
 } }`
 export const CONVERT_STATEMENT = 'mutation($d:EduQuoteInput!){ edubridgeConvertStatement(data:$d){ full_title html hash meta binary } }'
 export const SUBSCRIBE = `mutation($d:EduSubscribeInput!){ edubridgeSubscribe(data:$d){ ${ENROLLMENT_FIELDS} } }`
@@ -447,7 +447,8 @@ export async function submitGuaranteeClaim(who: Who, token: string, enrollmentId
 export async function agendaWith(marker: string): Promise<AgendaRow> {
   const chairman = await tokenOf(CHAIRMAN)
   return waitFor(async () => {
-    const row = (await agendaAll(chairman)).find(a => a.meta.includes(marker))
+    // Вопрос свободного решения несёт метку в описании; вопрос, поставленный контрактом, — в хэше повестки.
+    const row = (await agendaAll(chairman)).find(a => a.meta.includes(marker) || a.hash.toLowerCase() === marker.toLowerCase())
     return row ? agendaByHash(chairman, row.hash) : null
   }, { timeoutMs: 90_000, intervalMs: 1_500, label: `вопрос совету с меткой ${marker.slice(0, 12)}` })
 }
@@ -465,6 +466,22 @@ export async function councilGrants(agenda: AgendaRow): Promise<void> {
 export async function councilDeclines(agenda: AgendaRow): Promise<void> {
   await vote(agenda, 'against')
   await declineDecision(agenda.id)
+}
+
+/**
+ * Вопрос о приёме взноса преподавателя ставит в повестку контракт: совет
+ * голосует, председатель утверждает решение в цепи — расширение узнаёт исход
+ * обратным вызовом и само выпускает протокол.
+ */
+export async function councilGrantsRid(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'for')
+  await authorizeDecisionOnChain(agenda.id)
+}
+
+/** Совет отклонил вопрос о приёме взноса преподавателя. */
+export async function councilDeclinesRid(agenda: AgendaRow): Promise<void> {
+  await vote(agenda, 'against')
+  await declineDecisionOnChain(agenda.id)
 }
 
 // ── Занятия и взносы результатами ──────────────────────────────────────────
