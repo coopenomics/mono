@@ -1,7 +1,9 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
-    | {{ $t('edubridge.adminEconomyPage.hint.line1') }}
+    //- Сначала что на экране, затем путь взноса по кошелькам — в том же порядке, что плитки.
+    div {{ $t('edubridge.adminEconomyPage.hint.line1') }}
+    .q-mt-xs {{ $t('edubridge.adminEconomyPage.hint.line2') }}
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
     //- Действие вкладки живёт в её полосе, а не плавает над списком.

@@ -2712,6 +2712,7 @@ export type MessageKey =
   | 'edubridge.adminEconomyPage.expensesEmptyBody'
   | 'edubridge.adminEconomyPage.expensesEmptyTitle'
   | 'edubridge.adminEconomyPage.hint.line1'
+  | 'edubridge.adminEconomyPage.hint.line2'
   | 'edubridge.adminEconomyPage.markupAbout.maxDiscountLabel'
   | 'edubridge.adminEconomyPage.markupAbout.purpose'
   | 'edubridge.adminEconomyPage.markupAbout.scopeLabel'
