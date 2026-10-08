@@ -119,6 +119,22 @@ export class GatewayInteractor implements GatewayInteractorPort {
         throw DomainError.conflict('GATEWAY_PAYMENT_STATUS_CHANGE_FORBIDDEN', { status: payment.status });
       }
 
+      // Отказ кассира по выплате займа доводится до цепи раньше смены статуса:
+      // шлюз снимает исходящий объект и сообщает контракту займов, заём
+      // возвращается к повтору платежа по тому же решению совета. Сбой цепи
+      // оставляет платёж как был — кассир видит причину и повторяет отказ.
+      if (
+        statusEnum === PaymentStatusEnum.CANCELLED &&
+        payment.type === PaymentTypeEnum.LOAN &&
+        payment.direction === PaymentDirectionEnum.OUTGOING
+      ) {
+        await this.gatewayBlockchainPort.declineOutcome({
+          coopname: payment.coopname,
+          outcome_hash: payment.hash,
+          reason: data.message ?? '',
+        });
+      }
+
       const result = await this.paymentRepository.setPaymentStatus(data.id, statusEnum);
 
       if (!result) {

@@ -57,7 +57,7 @@ export type PaymentsDirectionEnum = "incoming" | "outgoing";
 
 export type PaymentsStatusEnum = "awaiting_authorization" | "cancelled" | "completed" | "expired" | "failed" | "paid" | "pending" | "processing" | "refunded";
 
-export type PaymentsTypeEnum = "aid" | "deposit" | "expense" | "expense_overspend" | "expense_return" | "membership_exit" | "payment" | "registration" | "registration_refund" | "tax" | "withdrawal";
+export type PaymentsTypeEnum = "aid" | "deposit" | "expense" | "expense_overspend" | "expense_return" | "loan" | "membership_exit" | "payment" | "registration" | "registration_refund" | "tax" | "withdrawal";
 
 export type SystemStatusStatusEnum = "active" | "initialized" | "install" | "maintenance";
 

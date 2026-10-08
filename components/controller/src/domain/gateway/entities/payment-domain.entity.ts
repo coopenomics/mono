@@ -121,6 +121,7 @@ export class PaymentDomainEntity implements PaymentDomainInterface {
       [PaymentTypeEnum.EXPENSE_OVERSPEND]: t('gateway.payment.type.advanceOverspendSurcharge'),
       [PaymentTypeEnum.AID]: t('gateway.payment.type.financialAid'),
       [PaymentTypeEnum.TAX]: t('gateway.payment.type.ndflTransfer'),
+      [PaymentTypeEnum.LOAN]: t('gateway.payment.type.interestFreeLoan'),
     };
     return typeLabels[this.type] || this.type;
   }

@@ -15,6 +15,7 @@ import { ExpensesExtensionModule } from './expenses/expenses-extension.module';
 import { KuExtensionModule } from './ku/ku-extension.module';
 import { CardcoopExtensionModule } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule } from './soviet-robot/soviet-robot-extension.module';
+import { DebtExtensionModule } from './debt/debt-extension.module';
 
 @Module({})
 export class ExtensionsModule {
@@ -40,6 +41,7 @@ export class ExtensionsModule {
         KuExtensionModule,
         CardcoopExtensionModule,
         SovietRobotExtensionModule,
+        DebtExtensionModule,
       ],
       providers: [],
       // Экспортируем все модули расширений, чтобы их провайдеры были доступны
@@ -61,6 +63,7 @@ export class ExtensionsModule {
         KuExtensionModule,
         CardcoopExtensionModule,
         SovietRobotExtensionModule,
+        DebtExtensionModule,
       ],
     };
   }

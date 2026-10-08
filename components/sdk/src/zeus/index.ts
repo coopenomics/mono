@@ -6326,6 +6326,65 @@ export type ValueTypes = {
 	/** ID подписки для деактивации */
 	subscriptionId: string | Variable<any, string>
 };
+	["DebtCancelLoanInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>,
+	/** Причина отмены */
+	reason?: string | undefined | null | Variable<any, string>
+};
+	/** Обеспечение, под которое пайщик может взять заём */
+["DebtCollateralOption"]: AliasType<{
+	/** Доступный остаток пайщика на кошельке-источнике */
+	available?:boolean | `@${string}`,
+	/** Договор-основание пайщиком подписан */
+	basis_signed?:boolean | `@${string}`,
+	/** Тип основания договора: договор об участии или оферта */
+	basis_type?:boolean | `@${string}`,
+	/** Наименование обеспечения для документов */
+	human_name?:boolean | `@${string}`,
+	/** Ключ обеспечения для заявления */
+	key?:boolean | `@${string}`,
+	/** Контракт программы-владельца обеспечения */
+	owner_contract?:boolean | `@${string}`,
+	/** Кошелёк обеспечения на время займа */
+	pledge_wallet?:boolean | `@${string}`,
+	/** Кошелёк пайщика, с которого берётся обеспечение */
+	source_wallet?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DebtCollateralOption']?: Omit<ValueTypes["DebtCollateralOption"], "...on DebtCollateralOption">
+}>;
+	["DebtCreateLoanInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string | Variable<any, string>,
+	/** Договор о беспроцентном займе с подписью пайщика */
+	contract: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Заявление на получение займа с подписью пайщика */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["DebtExtendLoanInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>,
+	/** Новый срок возврата */
+	new_due_at: string | Variable<any, string>,
+	/** Заявление о продлении срока с подписью пайщика */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
 	["DebtFilter"]: {
 	/** Фильтр по хешу проекта */
 	projectHash?: string | undefined | null | Variable<any, string>,
@@ -6333,6 +6392,165 @@ export type ValueTypes = {
 	status?: string | undefined | null | Variable<any, string>,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null | Variable<any, string>
+};
+	["DebtGenerateExtensionStatementInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>,
+	/** Новый срок возврата */
+	new_due_at: string | Variable<any, string>,
+	/** Остаток долга на дату заявления; пусто — берётся из реестра */
+	remaining?: string | undefined | null | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["DebtGenerateLoanContractInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["DebtGenerateLoanDecisionInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Номер решения совета */
+	decision_id: number | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["DebtGenerateLoanStatementInput"]: {
+	/** Сумма займа */
+	amount: string | Variable<any, string>,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string | Variable<any, string>,
+	/** Срок возврата */
+	due_at: string | Variable<any, string>,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	["DebtGenerateRepaymentStatementInput"]: {
+	/** Сумма возврата */
+	amount: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
+};
+	/** Беспроцентный заём пайщика */
+["DebtLoan"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Сумма займа */
+	amount?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
+	collateral?:boolean | `@${string}`,
+	/** Договор с подписью пайщика */
+	contract?:ValueTypes["DocumentAggregate"],
+	/** Номер договора займа */
+	contract_number?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Подача заявления */
+	created_at?:boolean | `@${string}`,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash?:boolean | `@${string}`,
+	/** Решение совета */
+	decision?:ValueTypes["DocumentAggregate"],
+	/** Срок возврата */
+	due_at?:boolean | `@${string}`,
+	/** Заявление о продлении срока */
+	extension_statement?:ValueTypes["DocumentAggregate"],
+	/** Номер записи в цепи */
+	id?:boolean | `@${string}`,
+	/** Дата выдачи */
+	issued_at?:boolean | `@${string}`,
+	/** Причина последнего отказа платежа */
+	last_pay_error?:boolean | `@${string}`,
+	/** Переход в просрочку */
+	overdue_at?:boolean | `@${string}`,
+	/** Сумма на кошельке обеспечения */
+	pledged?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Остаток к возврату */
+	remaining?:boolean | `@${string}`,
+	/** Запрошенный срок при продлении */
+	requested_due_at?:boolean | `@${string}`,
+	/** Договор с подписью председателя */
+	signed_contract?:ValueTypes["DocumentAggregate"],
+	/** Контракт-источник записи: debt или приложение, выдавшее заём */
+	source?:boolean | `@${string}`,
+	/** Ссылка источника (у Генерации — хэш проекта) */
+	source_ref?:boolean | `@${string}`,
+	/** Заявление на получение займа */
+	statement?:ValueTypes["DocumentAggregate"],
+	/** Состояние займа */
+	status?:boolean | `@${string}`,
+	/** Пайщик-заёмщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on DebtLoan']?: Omit<ValueTypes["DebtLoan"], "...on DebtLoan">
+}>;
+	["DebtLoanFilterInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Контракт-источник записи */
+	source?: string | undefined | null | Variable<any, string>,
+	/** Состояние займа */
+	status?: ValueTypes["DebtLoanStatus"] | undefined | null | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null | Variable<any, string>
+};
+	["DebtLoanRefInput"]: {
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>
+};
+	/** Состояние беспроцентного займа */
+["DebtLoanStatus"]:DebtLoanStatus;
+	["DebtRepayLoanInput"]: {
+	/** Сумма возврата */
+	amount: string | Variable<any, string>,
+	/** Кооператив */
+	coopname: string | Variable<any, string>,
+	/** Хэш займа */
+	debt_hash: string | Variable<any, string>,
+	/** Заявление о возврате займа с подписью пайщика */
+	statement: ValueTypes["SignedDigitalDocumentInput"] | Variable<any, string>,
+	/** Пайщик-заёмщик */
+	username: string | Variable<any, string>
 };
 	/** Статус долга в системе CAPITAL */
 ["DebtStatus"]:DebtStatus;
@@ -11986,6 +12204,7 @@ approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
+cancelDebtLoan?: [{	data: ValueTypes["DebtCancelLoanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ValueTypes["AddAuthorInput"] | Variable<any, string>},ValueTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ValueTypes["CapitalFavoriteInput"] | Variable<any, string>},ValueTypes["CapitalFavorite"]],
@@ -12103,6 +12322,7 @@ confirmEmailVerification?: [{	data: ValueTypes["ConfirmEmailVerificationInputDTO
 confirmMembershipExit?: [{	token: string | Variable<any, string>},ValueTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ValueTypes["CreateAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
 createBranch?: [{	data: ValueTypes["CreateBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
+createDebtLoan?: [{	data: ValueTypes["DebtCreateLoanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 createDepositPayment?: [{	data: ValueTypes["CreateDepositPaymentInput"] | Variable<any, string>},ValueTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ValueTypes["CreateExpensePlanInput"] | Variable<any, string>},ValueTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ValueTypes["CreateExpenseProposalInput"] | Variable<any, string>},ValueTypes["Transaction"]],
@@ -12125,11 +12345,17 @@ disableTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, str
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ValueTypes["TwoFactorEnrollment"],
+extendDebtLoan?: [{	data: ValueTypes["DebtExtendLoanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ValueTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ValueTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ValueTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ValueTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ValueTypes["ConvertToAxonStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateDebtExtensionStatementDocument?: [{	data: ValueTypes["DebtGenerateExtensionStatementInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateDebtLoanContractDocument?: [{	data: ValueTypes["DebtGenerateLoanContractInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateDebtLoanDecisionDocument?: [{	data: ValueTypes["DebtGenerateLoanDecisionInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateDebtLoanStatementDocument?: [{	data: ValueTypes["DebtGenerateLoanStatementInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+generateDebtRepaymentStatementDocument?: [{	data: ValueTypes["DebtGenerateRepaymentStatementInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ValueTypes["GenerateAnyDocumentInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ValueTypes["ExpenseProposalDecisionGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ValueTypes["ExpenseProposalStatementGenerateDocumentInput"] | Variable<any, string>,	options?: ValueTypes["GenerateDocumentOptionsInput"] | undefined | null | Variable<any, string>},ValueTypes["GeneratedDocument"]],
@@ -12276,6 +12502,7 @@ refresh?: [{	data: ValueTypes["RefreshInput"] | Variable<any, string>},ValueType
 registerAccount?: [{	data: ValueTypes["RegisterAccountInput"] | Variable<any, string>},ValueTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ValueTypes["RegisterParticipantInput"] | Variable<any, string>},ValueTypes["Account"]],
 rejectVerification?: [{	data: ValueTypes["RejectVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
+repayDebtLoan?: [{	data: ValueTypes["DebtRepayLoanInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 reportExpenseItem?: [{	data: ValueTypes["ReportExpenseItemInput"] | Variable<any, string>},ValueTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ValueTypes["ReportNotMeInput"] | Variable<any, string>},ValueTypes["RevokedSessionsResult"]],
 requestEmailVerification?: [{	data: ValueTypes["RequestEmailVerificationInputDTO"] | Variable<any, string>},ValueTypes["EmailVerificationRequestDTO"]],
@@ -12286,6 +12513,7 @@ resetParticipantTwoFactor?: [{	data: ValueTypes["ResetParticipantTwoFactorInput"
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ValueTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ValueTypes["RestartAnnualGeneralMeetInput"] | Variable<any, string>},ValueTypes["MeetAggregate"]],
+retryDebtLoanPayment?: [{	data: ValueTypes["DebtLoanRefInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
@@ -12848,6 +13076,18 @@ walmoveWallets?: [{	input: ValueTypes["WalmoveInput"] | Variable<any, string>},V
 	totalPages?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
 	['...on PaginatedCurrentTableStatesPaginationResult']?: Omit<ValueTypes["PaginatedCurrentTableStatesPaginationResult"], "...on PaginatedCurrentTableStatesPaginationResult">
+}>;
+	["PaginatedDebtLoansPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["DebtLoan"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on PaginatedDebtLoansPaginationResult']?: Omit<ValueTypes["PaginatedDebtLoansPaginationResult"], "...on PaginatedDebtLoansPaginationResult">
 }>;
 	["PaginatedDeltasPaginationResult"]: AliasType<{
 	/** Текущая страница */
@@ -13894,6 +14134,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ValueTypes["ListUtcDatesWithN
 checkReportReadiness?: [{	reportType: ValueTypes["ReportType"] | Variable<any, string>},ValueTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string | Variable<any, string>},ValueTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string | Variable<any, string>},ValueTypes["CooperativeProgram"]],
+debtCollateralOptions?: [{	coopname: string | Variable<any, string>},ValueTypes["DebtCollateralOption"]],
+debtLoan?: [{	debt_hash: string | Variable<any, string>},ValueTypes["DebtLoan"]],
+debtLoans?: [{	filter: ValueTypes["DebtLoanFilterInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedDebtLoansPaginationResult"]],
 documentApprovalsSeedPlan?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedItem"]],
 documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
 	doc_data_hash?: string | undefined | null | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
@@ -21447,6 +21690,64 @@ export type ResolverInputTypes = {
 	/** ID подписки для деактивации */
 	subscriptionId: string
 };
+	["DebtCancelLoanInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Причина отмены */
+	reason?: string | undefined | null
+};
+	/** Обеспечение, под которое пайщик может взять заём */
+["DebtCollateralOption"]: AliasType<{
+	/** Доступный остаток пайщика на кошельке-источнике */
+	available?:boolean | `@${string}`,
+	/** Договор-основание пайщиком подписан */
+	basis_signed?:boolean | `@${string}`,
+	/** Тип основания договора: договор об участии или оферта */
+	basis_type?:boolean | `@${string}`,
+	/** Наименование обеспечения для документов */
+	human_name?:boolean | `@${string}`,
+	/** Ключ обеспечения для заявления */
+	key?:boolean | `@${string}`,
+	/** Контракт программы-владельца обеспечения */
+	owner_contract?:boolean | `@${string}`,
+	/** Кошелёк обеспечения на время займа */
+	pledge_wallet?:boolean | `@${string}`,
+	/** Кошелёк пайщика, с которого берётся обеспечение */
+	source_wallet?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DebtCreateLoanInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Договор о беспроцентном займе с подписью пайщика */
+	contract: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Заявление на получение займа с подписью пайщика */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtExtendLoanInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Заявление о продлении срока с подписью пайщика */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
 	["DebtFilter"]: {
 	/** Фильтр по хешу проекта */
 	projectHash?: string | undefined | null,
@@ -21454,6 +21755,164 @@ export type ResolverInputTypes = {
 	status?: string | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	["DebtGenerateExtensionStatementInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Остаток долга на дату заявления; пусто — берётся из реестра */
+	remaining?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanContractInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanDecisionInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanStatementInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateRepaymentStatementInput"]: {
+	/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	/** Беспроцентный заём пайщика */
+["DebtLoan"]: AliasType<{
+	/** Дата создания записи */
+	_created_at?:boolean | `@${string}`,
+	/** Внутренний ID базы данных */
+	_id?:boolean | `@${string}`,
+	/** Дата последнего обновления записи */
+	_updated_at?:boolean | `@${string}`,
+	/** Сумма займа */
+	amount?:boolean | `@${string}`,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?:boolean | `@${string}`,
+	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
+	collateral?:boolean | `@${string}`,
+	/** Договор с подписью пайщика */
+	contract?:ResolverInputTypes["DocumentAggregate"],
+	/** Номер договора займа */
+	contract_number?:boolean | `@${string}`,
+	/** Кооператив */
+	coopname?:boolean | `@${string}`,
+	/** Подача заявления */
+	created_at?:boolean | `@${string}`,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash?:boolean | `@${string}`,
+	/** Решение совета */
+	decision?:ResolverInputTypes["DocumentAggregate"],
+	/** Срок возврата */
+	due_at?:boolean | `@${string}`,
+	/** Заявление о продлении срока */
+	extension_statement?:ResolverInputTypes["DocumentAggregate"],
+	/** Номер записи в цепи */
+	id?:boolean | `@${string}`,
+	/** Дата выдачи */
+	issued_at?:boolean | `@${string}`,
+	/** Причина последнего отказа платежа */
+	last_pay_error?:boolean | `@${string}`,
+	/** Переход в просрочку */
+	overdue_at?:boolean | `@${string}`,
+	/** Сумма на кошельке обеспечения */
+	pledged?:boolean | `@${string}`,
+	/** Флаг присутствия записи в блокчейне */
+	present?:boolean | `@${string}`,
+	/** Остаток к возврату */
+	remaining?:boolean | `@${string}`,
+	/** Запрошенный срок при продлении */
+	requested_due_at?:boolean | `@${string}`,
+	/** Договор с подписью председателя */
+	signed_contract?:ResolverInputTypes["DocumentAggregate"],
+	/** Контракт-источник записи: debt или приложение, выдавшее заём */
+	source?:boolean | `@${string}`,
+	/** Ссылка источника (у Генерации — хэш проекта) */
+	source_ref?:boolean | `@${string}`,
+	/** Заявление на получение займа */
+	statement?:ResolverInputTypes["DocumentAggregate"],
+	/** Состояние займа */
+	status?:boolean | `@${string}`,
+	/** Пайщик-заёмщик */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["DebtLoanFilterInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Контракт-источник записи */
+	source?: string | undefined | null,
+	/** Состояние займа */
+	status?: ResolverInputTypes["DebtLoanStatus"] | undefined | null,
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null
+};
+	["DebtLoanRefInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
+	/** Состояние беспроцентного займа */
+["DebtLoanStatus"]:DebtLoanStatus;
+	["DebtRepayLoanInput"]: {
+	/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Заявление о возврате займа с подписью пайщика */
+	statement: ResolverInputTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
 };
 	/** Статус долга в системе CAPITAL */
 ["DebtStatus"]:DebtStatus;
@@ -26942,6 +27401,7 @@ approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},R
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
+cancelDebtLoan?: [{	data: ResolverInputTypes["DebtCancelLoanInput"]},ResolverInputTypes["Transaction"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
 capitalAddAuthor?: [{	data: ResolverInputTypes["AddAuthorInput"]},ResolverInputTypes["CapitalProject"]],
 capitalAddFavorite?: [{	data: ResolverInputTypes["CapitalFavoriteInput"]},ResolverInputTypes["CapitalFavorite"]],
@@ -27059,6 +27519,7 @@ confirmEmailVerification?: [{	data: ResolverInputTypes["ConfirmEmailVerification
 confirmMembershipExit?: [{	token: string},ResolverInputTypes["MembershipExitResult"]],
 createAnnualGeneralMeet?: [{	data: ResolverInputTypes["CreateAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
 createBranch?: [{	data: ResolverInputTypes["CreateBranchInput"]},ResolverInputTypes["Branch"]],
+createDebtLoan?: [{	data: ResolverInputTypes["DebtCreateLoanInput"]},ResolverInputTypes["Transaction"]],
 createDepositPayment?: [{	data: ResolverInputTypes["CreateDepositPaymentInput"]},ResolverInputTypes["GatewayPayment"]],
 createExpensePlan?: [{	data: ResolverInputTypes["CreateExpensePlanInput"]},ResolverInputTypes["ExpensePlan"]],
 createExpenseProposal?: [{	data: ResolverInputTypes["CreateExpenseProposalInput"]},ResolverInputTypes["Transaction"]],
@@ -27081,11 +27542,17 @@ disableTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | 
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor?:ResolverInputTypes["TwoFactorEnrollment"],
+extendDebtLoan?: [{	data: ResolverInputTypes["DebtExtendLoanInput"]},ResolverInputTypes["Transaction"]],
 generateAnnualGeneralMeetAgendaDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingAgendaGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetDecisionDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateAnnualGeneralMeetNotificationDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingNotificationGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateBallotForAnnualGeneralMeetDocument?: [{	data: ResolverInputTypes["AnnualGeneralMeetingVotingBallotGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateConvertToAxonStatement?: [{	data: ResolverInputTypes["ConvertToAxonStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateDebtExtensionStatementDocument?: [{	data: ResolverInputTypes["DebtGenerateExtensionStatementInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateDebtLoanContractDocument?: [{	data: ResolverInputTypes["DebtGenerateLoanContractInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateDebtLoanDecisionDocument?: [{	data: ResolverInputTypes["DebtGenerateLoanDecisionInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateDebtLoanStatementDocument?: [{	data: ResolverInputTypes["DebtGenerateLoanStatementInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
+generateDebtRepaymentStatementDocument?: [{	data: ResolverInputTypes["DebtGenerateRepaymentStatementInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateDocument?: [{	input: ResolverInputTypes["GenerateAnyDocumentInput"]},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalDecisionDocument?: [{	data: ResolverInputTypes["ExpenseProposalDecisionGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
 generateExpenseProposalStatementDocument?: [{	data: ResolverInputTypes["ExpenseProposalStatementGenerateDocumentInput"],	options?: ResolverInputTypes["GenerateDocumentOptionsInput"] | undefined | null},ResolverInputTypes["GeneratedDocument"]],
@@ -27232,6 +27699,7 @@ refresh?: [{	data: ResolverInputTypes["RefreshInput"]},ResolverInputTypes["Regis
 registerAccount?: [{	data: ResolverInputTypes["RegisterAccountInput"]},ResolverInputTypes["RegisteredAccount"]],
 registerParticipant?: [{	data: ResolverInputTypes["RegisterParticipantInput"]},ResolverInputTypes["Account"]],
 rejectVerification?: [{	data: ResolverInputTypes["RejectVerificationInput"]},ResolverInputTypes["VerificationReview"]],
+repayDebtLoan?: [{	data: ResolverInputTypes["DebtRepayLoanInput"]},ResolverInputTypes["Transaction"]],
 reportExpenseItem?: [{	data: ResolverInputTypes["ReportExpenseItemInput"]},ResolverInputTypes["ExpenseReportResult"]],
 reportNotMe?: [{	data: ResolverInputTypes["ReportNotMeInput"]},ResolverInputTypes["RevokedSessionsResult"]],
 requestEmailVerification?: [{	data: ResolverInputTypes["RequestEmailVerificationInputDTO"]},ResolverInputTypes["EmailVerificationRequestDTO"]],
@@ -27242,6 +27710,7 @@ resetParticipantTwoFactor?: [{	data: ResolverInputTypes["ResetParticipantTwoFact
 	/** Откатить собственную незавершённую регистрацию к редактированию данных: снимает заморозку профиля и e-mail, сбрасывает подписанное заявление и непринятую попытку вступительного платежа. Доступно только до отправки регистрации в блокчейн; если взнос уже принят — требуется возврат средств. */
 	resetRegistration?:ResolverInputTypes["Account"],
 restartAnnualGeneralMeet?: [{	data: ResolverInputTypes["RestartAnnualGeneralMeetInput"]},ResolverInputTypes["MeetAggregate"]],
+retryDebtLoanPayment?: [{	data: ResolverInputTypes["DebtLoanRefInput"]},ResolverInputTypes["Transaction"]],
 returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},ResolverInputTypes["Transaction"]],
 	/** Завершить все сессии пайщика, кроме текущей */
 	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
@@ -27766,6 +28235,17 @@ walmoveWallets?: [{	input: ResolverInputTypes["WalmoveInput"]},ResolverInputType
 	currentPage?:boolean | `@${string}`,
 	/** Элементы текущей страницы */
 	items?:ResolverInputTypes["CurrentTableState"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["PaginatedDebtLoansPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["DebtLoan"],
 	/** Общее количество элементов */
 	totalCount?:boolean | `@${string}`,
 	/** Общее количество страниц */
@@ -28778,6 +29258,9 @@ chatcoopListUtcDatesWithNewRoomMessages?: [{	data: ResolverInputTypes["ListUtcDa
 checkReportReadiness?: [{	reportType: ResolverInputTypes["ReportType"]},ResolverInputTypes["ReportReadinessView"]],
 cooperativeAgreements?: [{	coopname: string},ResolverInputTypes["CoopAgreement"]],
 cooperativePrograms?: [{	coopname: string},ResolverInputTypes["CooperativeProgram"]],
+debtCollateralOptions?: [{	coopname: string},ResolverInputTypes["DebtCollateralOption"]],
+debtLoan?: [{	debt_hash: string},ResolverInputTypes["DebtLoan"]],
+debtLoans?: [{	filter: ResolverInputTypes["DebtLoanFilterInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedDebtLoansPaginationResult"]],
 documentApprovalsSeedPlan?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedItem"]],
 documentTemplateBlank?: [{	coopname: string,	/** Хэш приватных параметров документа, если шаблон их требует (параметры ЦПП) */
 	doc_data_hash?: string | undefined | null,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
@@ -36124,6 +36607,63 @@ export type ModelTypes = {
 	/** ID подписки для деактивации */
 	subscriptionId: string
 };
+	["DebtCancelLoanInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Причина отмены */
+	reason?: string | undefined | null
+};
+	/** Обеспечение, под которое пайщик может взять заём */
+["DebtCollateralOption"]: {
+		/** Доступный остаток пайщика на кошельке-источнике */
+	available: string,
+	/** Договор-основание пайщиком подписан */
+	basis_signed: boolean,
+	/** Тип основания договора: договор об участии или оферта */
+	basis_type: string,
+	/** Наименование обеспечения для документов */
+	human_name: string,
+	/** Ключ обеспечения для заявления */
+	key: string,
+	/** Контракт программы-владельца обеспечения */
+	owner_contract: string,
+	/** Кошелёк обеспечения на время займа */
+	pledge_wallet: string,
+	/** Кошелёк пайщика, с которого берётся обеспечение */
+	source_wallet: string
+};
+	["DebtCreateLoanInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Договор о беспроцентном займе с подписью пайщика */
+	contract: ModelTypes["SignedDigitalDocumentInput"],
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Заявление на получение займа с подписью пайщика */
+	statement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtExtendLoanInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Заявление о продлении срока с подписью пайщика */
+	statement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
 	["DebtFilter"]: {
 	/** Фильтр по хешу проекта */
 	projectHash?: string | undefined | null,
@@ -36131,6 +36671,162 @@ export type ModelTypes = {
 	status?: string | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	["DebtGenerateExtensionStatementInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Остаток долга на дату заявления; пусто — берётся из реестра */
+	remaining?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanContractInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanDecisionInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanStatementInput"]: {
+	/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateRepaymentStatementInput"]: {
+	/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	/** Беспроцентный заём пайщика */
+["DebtLoan"]: {
+		/** Дата создания записи */
+	_created_at: ModelTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: ModelTypes["DateTime"],
+	/** Сумма займа */
+	amount?: string | undefined | null,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
+	collateral?: string | undefined | null,
+	/** Договор с подписью пайщика */
+	contract?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Номер договора займа */
+	contract_number: string,
+	/** Кооператив */
+	coopname: string,
+	/** Подача заявления */
+	created_at?: string | undefined | null,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Решение совета */
+	decision?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Срок возврата */
+	due_at?: string | undefined | null,
+	/** Заявление о продлении срока */
+	extension_statement?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Номер записи в цепи */
+	id?: number | undefined | null,
+	/** Дата выдачи */
+	issued_at?: string | undefined | null,
+	/** Причина последнего отказа платежа */
+	last_pay_error?: string | undefined | null,
+	/** Переход в просрочку */
+	overdue_at?: string | undefined | null,
+	/** Сумма на кошельке обеспечения */
+	pledged?: string | undefined | null,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Остаток к возврату */
+	remaining?: string | undefined | null,
+	/** Запрошенный срок при продлении */
+	requested_due_at?: string | undefined | null,
+	/** Договор с подписью председателя */
+	signed_contract?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Контракт-источник записи: debt или приложение, выдавшее заём */
+	source?: string | undefined | null,
+	/** Ссылка источника (у Генерации — хэш проекта) */
+	source_ref?: string | undefined | null,
+	/** Заявление на получение займа */
+	statement?: ModelTypes["DocumentAggregate"] | undefined | null,
+	/** Состояние займа */
+	status: ModelTypes["DebtLoanStatus"],
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null
+};
+	["DebtLoanFilterInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Контракт-источник записи */
+	source?: string | undefined | null,
+	/** Состояние займа */
+	status?: ModelTypes["DebtLoanStatus"] | undefined | null,
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null
+};
+	["DebtLoanRefInput"]: {
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
+	["DebtLoanStatus"]:DebtLoanStatus;
+	["DebtRepayLoanInput"]: {
+	/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Заявление о возврате займа с подписью пайщика */
+	statement: ModelTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
 };
 	["DebtStatus"]:DebtStatus;
 	/** Комплексный объект решения совета, включающий в себя информацию о голосовавших членах совета, расширенное действие, которое привело к появлению решения, и агрегат документа самого решения. */
@@ -41399,6 +42095,8 @@ export type ModelTypes = {
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: ModelTypes["ForceRecoveryAuthorization"],
+	/** Отменить выдачу займа до выплаты: обеспечение возвращается в программу. */
+	cancelDebtLoan: ModelTypes["Transaction"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте */
@@ -41631,6 +42329,8 @@ export type ModelTypes = {
 	createAnnualGeneralMeet: ModelTypes["MeetAggregate"],
 	/** Создать кооперативный участок */
 	createBranch: ModelTypes["Branch"],
+	/** Подать заявление на беспроцентный заём под обеспечение паевым взносом: заявление и договор с подписью пайщика. */
+	createDebtLoan: ModelTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: ModelTypes["GatewayPayment"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
@@ -41673,6 +42373,8 @@ export type ModelTypes = {
 	editBranch: ModelTypes["Branch"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor: ModelTypes["TwoFactorEnrollment"],
+	/** Подать заявление о продлении срока возврата займа; новый срок подтверждает председатель. */
+	extendDebtLoan: ModelTypes["Transaction"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков */
 	generateAnnualGeneralMeetAgendaDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения общего собрания пайщиков */
@@ -41683,6 +42385,16 @@ export type ModelTypes = {
 	generateBallotForAnnualGeneralMeetDocument: ModelTypes["GeneratedDocument"],
 	/** Генерирует заявление на конвертацию паевого взноса в членский взнос */
 	generateConvertToAxonStatement: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление о продлении срока возврата беспроцентного займа для подписи пайщиком. */
+	generateDebtExtensionStatementDocument: ModelTypes["GeneratedDocument"],
+	/** Сформировать договор о беспроцентном займе под обеспечение паевым взносом для подписи пайщиком. */
+	generateDebtLoanContractDocument: ModelTypes["GeneratedDocument"],
+	/** Сформировать протокол решения совета о предоставлении беспроцентного займа. */
+	generateDebtLoanDecisionDocument: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление на получение беспроцентного займа для подписи пайщиком. */
+	generateDebtLoanStatementDocument: ModelTypes["GeneratedDocument"],
+	/** Сформировать заявление о возврате беспроцентного займа для подписи пайщиком. */
+	generateDebtRepaymentStatementDocument: ModelTypes["GeneratedDocument"],
 	/** Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя. */
 	generateDocument: ModelTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
@@ -41971,6 +42683,8 @@ export type ModelTypes = {
 	registerParticipant: ModelTypes["Account"],
 	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
 	rejectVerification: ModelTypes["VerificationReview"],
+	/** Вернуть заём с главного кошелька по заявлению пайщика, целиком или частью. */
+	repayDebtLoan: ModelTypes["Transaction"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
 	reportExpenseItem: ModelTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
@@ -41989,6 +42703,8 @@ export type ModelTypes = {
 	resetRegistration: ModelTypes["Account"],
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: ModelTypes["MeetAggregate"],
+	/** Повторно отправить платёж по займу кассиру после отказа по реквизитам. */
+	retryDebtLoanPayment: ModelTypes["Transaction"],
 	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток). */
 	returnExpenseItem: ModelTypes["Transaction"],
 	/** Завершить все сессии пайщика, кроме текущей */
@@ -42510,6 +43226,16 @@ export type ModelTypes = {
 	currentPage: number,
 	/** Элементы текущей страницы */
 	items: Array<ModelTypes["CurrentTableState"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["PaginatedDebtLoansPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["DebtLoan"]>,
 	/** Общее количество элементов */
 	totalCount: number,
 	/** Общее количество страниц */
@@ -43525,6 +44251,12 @@ export type ModelTypes = {
 	cooperativeAgreements: Array<ModelTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<ModelTypes["CooperativeProgram"]>,
+	/** Виды обеспечения из реестра контракта с остатком пайщика и признаком подписанного договора-основания. */
+	debtCollateralOptions: Array<ModelTypes["DebtCollateralOption"]>,
+	/** Заём по хэшу. */
+	debtLoan: ModelTypes["DebtLoan"],
+	/** Займы кооператива с отбором по пайщику, состоянию и источнику. Пайщик видит только свои. */
+	debtLoans: ModelTypes["PaginatedDebtLoansPaginationResult"],
 	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
 	documentApprovalsSeedPlan: Array<ModelTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
@@ -51173,6 +51905,65 @@ export type GraphQLTypes = {
 		/** ID подписки для деактивации */
 	subscriptionId: string
 };
+	["DebtCancelLoanInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Причина отмены */
+	reason?: string | undefined | null
+};
+	/** Обеспечение, под которое пайщик может взять заём */
+["DebtCollateralOption"]: {
+	__typename: "DebtCollateralOption",
+	/** Доступный остаток пайщика на кошельке-источнике */
+	available: string,
+	/** Договор-основание пайщиком подписан */
+	basis_signed: boolean,
+	/** Тип основания договора: договор об участии или оферта */
+	basis_type: string,
+	/** Наименование обеспечения для документов */
+	human_name: string,
+	/** Ключ обеспечения для заявления */
+	key: string,
+	/** Контракт программы-владельца обеспечения */
+	owner_contract: string,
+	/** Кошелёк обеспечения на время займа */
+	pledge_wallet: string,
+	/** Кошелёк пайщика, с которого берётся обеспечение */
+	source_wallet: string,
+	['...on DebtCollateralOption']: Omit<GraphQLTypes["DebtCollateralOption"], "...on DebtCollateralOption">
+};
+	["DebtCreateLoanInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Договор о беспроцентном займе с подписью пайщика */
+	contract: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Заявление на получение займа с подписью пайщика */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtExtendLoanInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Заявление о продлении срока с подписью пайщика */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
+};
 	["DebtFilter"]: {
 		/** Фильтр по хешу проекта */
 	projectHash?: string | undefined | null,
@@ -51180,6 +51971,165 @@ export type GraphQLTypes = {
 	status?: string | undefined | null,
 	/** Фильтр по имени пользователя */
 	username?: string | undefined | null
+};
+	["DebtGenerateExtensionStatementInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Новый срок возврата */
+	new_due_at: string,
+	/** Остаток долга на дату заявления; пусто — берётся из реестра */
+	remaining?: string | undefined | null,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanContractInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanDecisionInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Номер решения совета */
+	decision_id: number,
+	/** Срок возврата */
+	due_at: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateLoanStatementInput"]: {
+		/** Сумма займа */
+	amount: string,
+	/** Ключ обеспечения из реестра обеспечения */
+	collateral: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Срок возврата */
+	due_at: string,
+	/** Платёжный метод пайщика для получения займа */
+	method_id: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	["DebtGenerateRepaymentStatementInput"]: {
+		/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Пайщик-заёмщик */
+	username: string
+};
+	/** Беспроцентный заём пайщика */
+["DebtLoan"]: {
+	__typename: "DebtLoan",
+	/** Дата создания записи */
+	_created_at: GraphQLTypes["DateTime"],
+	/** Внутренний ID базы данных */
+	_id: string,
+	/** Дата последнего обновления записи */
+	_updated_at: GraphQLTypes["DateTime"],
+	/** Сумма займа */
+	amount?: string | undefined | null,
+	/** Номер блока крайней синхронизации с блокчейном */
+	block_num?: number | undefined | null,
+	/** Ключ обеспечения из реестра обеспечения; пусто у займов других приложений */
+	collateral?: string | undefined | null,
+	/** Договор с подписью пайщика */
+	contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Номер договора займа */
+	contract_number: string,
+	/** Кооператив */
+	coopname: string,
+	/** Подача заявления */
+	created_at?: string | undefined | null,
+	/** Хэш займа; его короткая форма — номер договора */
+	debt_hash: string,
+	/** Решение совета */
+	decision?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Срок возврата */
+	due_at?: string | undefined | null,
+	/** Заявление о продлении срока */
+	extension_statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Номер записи в цепи */
+	id?: number | undefined | null,
+	/** Дата выдачи */
+	issued_at?: string | undefined | null,
+	/** Причина последнего отказа платежа */
+	last_pay_error?: string | undefined | null,
+	/** Переход в просрочку */
+	overdue_at?: string | undefined | null,
+	/** Сумма на кошельке обеспечения */
+	pledged?: string | undefined | null,
+	/** Флаг присутствия записи в блокчейне */
+	present: boolean,
+	/** Остаток к возврату */
+	remaining?: string | undefined | null,
+	/** Запрошенный срок при продлении */
+	requested_due_at?: string | undefined | null,
+	/** Договор с подписью председателя */
+	signed_contract?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Контракт-источник записи: debt или приложение, выдавшее заём */
+	source?: string | undefined | null,
+	/** Ссылка источника (у Генерации — хэш проекта) */
+	source_ref?: string | undefined | null,
+	/** Заявление на получение займа */
+	statement?: GraphQLTypes["DocumentAggregate"] | undefined | null,
+	/** Состояние займа */
+	status: GraphQLTypes["DebtLoanStatus"],
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null,
+	['...on DebtLoan']: Omit<GraphQLTypes["DebtLoan"], "...on DebtLoan">
+};
+	["DebtLoanFilterInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Контракт-источник записи */
+	source?: string | undefined | null,
+	/** Состояние займа */
+	status?: GraphQLTypes["DebtLoanStatus"] | undefined | null,
+	/** Пайщик-заёмщик */
+	username?: string | undefined | null
+};
+	["DebtLoanRefInput"]: {
+		/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string
+};
+	/** Состояние беспроцентного займа */
+["DebtLoanStatus"]: DebtLoanStatus;
+	["DebtRepayLoanInput"]: {
+		/** Сумма возврата */
+	amount: string,
+	/** Кооператив */
+	coopname: string,
+	/** Хэш займа */
+	debt_hash: string,
+	/** Заявление о возврате займа с подписью пайщика */
+	statement: GraphQLTypes["SignedDigitalDocumentInput"],
+	/** Пайщик-заёмщик */
+	username: string
 };
 	/** Статус долга в системе CAPITAL */
 ["DebtStatus"]: DebtStatus;
@@ -56844,6 +57794,8 @@ export type GraphQLTypes = {
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
 	authorizeForceRecovery: GraphQLTypes["ForceRecoveryAuthorization"],
+	/** Отменить выдачу займа до выплаты: обеспечение возвращается в программу. */
+	cancelDebtLoan: GraphQLTypes["Transaction"],
 	/** Отменить заявление на выход до подтверждения по email. */
 	cancelMembershipExit: boolean,
 	/** Добавление автора проекта в CAPITAL контракте */
@@ -57076,6 +58028,8 @@ export type GraphQLTypes = {
 	createAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
 	/** Создать кооперативный участок */
 	createBranch: GraphQLTypes["Branch"],
+	/** Подать заявление на беспроцентный заём под обеспечение паевым взносом: заявление и договор с подписью пайщика. */
+	createDebtLoan: GraphQLTypes["Transaction"],
 	/** Создание объекта паевого платежа производится мутацией createDepositPayment. Выполнение мутации возвращает идентификатор платежа и данные для его совершения в зависимости от выбранного платежного провайдера. */
 	createDepositPayment: GraphQLTypes["GatewayPayment"],
 	/** Добавить плановый расход: сумма, срок, назначение и реквизиты оплаты. Для регулярной траты указывается периодичность — следующий экземпляр появляется в реестре автоматически. Планы кооперативного участка ведёт его председатель. */
@@ -57118,6 +58072,8 @@ export type GraphQLTypes = {
 	editBranch: GraphQLTypes["Branch"],
 	/** Начать подключение второго фактора: выпустить секрет и otpauth-URI для QR */
 	enrollTwoFactor: GraphQLTypes["TwoFactorEnrollment"],
+	/** Подать заявление о продлении срока возврата займа; новый срок подтверждает председатель. */
+	extendDebtLoan: GraphQLTypes["Transaction"],
 	/** Сгенерировать предложение повестки общего собрания пайщиков */
 	generateAnnualGeneralMeetAgendaDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ решения общего собрания пайщиков */
@@ -57128,6 +58084,16 @@ export type GraphQLTypes = {
 	generateBallotForAnnualGeneralMeetDocument: GraphQLTypes["GeneratedDocument"],
 	/** Генерирует заявление на конвертацию паевого взноса в членский взнос */
 	generateConvertToAxonStatement: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление о продлении срока возврата беспроцентного займа для подписи пайщиком. */
+	generateDebtExtensionStatementDocument: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать договор о беспроцентном займе под обеспечение паевым взносом для подписи пайщиком. */
+	generateDebtLoanContractDocument: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать протокол решения совета о предоставлении беспроцентного займа. */
+	generateDebtLoanDecisionDocument: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление на получение беспроцентного займа для подписи пайщиком. */
+	generateDebtLoanStatementDocument: GraphQLTypes["GeneratedDocument"],
+	/** Сформировать заявление о возврате беспроцентного займа для подписи пайщиком. */
+	generateDebtRepaymentStatementDocument: GraphQLTypes["GeneratedDocument"],
 	/** Собрать документ на себя. Протокол решения совета председатель и члены совета собирают на имя заявителя. */
 	generateDocument: GraphQLTypes["GeneratedDocument"],
 	/** Сгенерировать документ-решение по СЗ (registry 2011) для последующей подписи. */
@@ -57416,6 +58382,8 @@ export type GraphQLTypes = {
 	registerParticipant: GraphQLTypes["Account"],
 	/** Совет отклонил сверку личности; верификация отзывается, и выдача снова закрыта */
 	rejectVerification: GraphQLTypes["VerificationReview"],
+	/** Вернуть заём с главного кошелька по заявлению пайщика, целиком или частью. */
+	repayDebtLoan: GraphQLTypes["Transaction"],
 	/** Отчитаться по строке-авансу: при совпадении факта с авансом — закрыть позицию; при недо-/перерасходе — завести платёжку расчёта разницы. */
 	reportExpenseItem: GraphQLTypes["ExpenseReportResult"],
 	/** Сигнал «Это не я»: немедленно завершить все сессии пайщика */
@@ -57434,6 +58402,8 @@ export type GraphQLTypes = {
 	resetRegistration: GraphQLTypes["Account"],
 	/** Перезапуск общего собрания пайщиков */
 	restartAnnualGeneralMeet: GraphQLTypes["MeetAggregate"],
+	/** Повторно отправить платёж по займу кассиру после отказа по реквизитам. */
+	retryDebtLoanPayment: GraphQLTypes["Transaction"],
 	/** Вернуть неиспользованный аванс по строке расхода (ADVANCE-остаток). */
 	returnExpenseItem: GraphQLTypes["Transaction"],
 	/** Завершить все сессии пайщика, кроме текущей */
@@ -58031,6 +59001,18 @@ export type GraphQLTypes = {
 	/** Общее количество страниц */
 	totalPages: number,
 	['...on PaginatedCurrentTableStatesPaginationResult']: Omit<GraphQLTypes["PaginatedCurrentTableStatesPaginationResult"], "...on PaginatedCurrentTableStatesPaginationResult">
+};
+	["PaginatedDebtLoansPaginationResult"]: {
+	__typename: "PaginatedDebtLoansPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["DebtLoan"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on PaginatedDebtLoansPaginationResult']: Omit<GraphQLTypes["PaginatedDebtLoansPaginationResult"], "...on PaginatedDebtLoansPaginationResult">
 };
 	["PaginatedDeltasPaginationResult"]: {
 	__typename: "PaginatedDeltasPaginationResult",
@@ -59145,6 +60127,12 @@ export type GraphQLTypes = {
 	cooperativeAgreements: Array<GraphQLTypes["CoopAgreement"]>,
 	/** Целевые потребительские программы кооператива (id, тип, активность, draft_id) */
 	cooperativePrograms: Array<GraphQLTypes["CooperativeProgram"]>,
+	/** Виды обеспечения из реестра контракта с остатком пайщика и признаком подписанного договора-основания. */
+	debtCollateralOptions: Array<GraphQLTypes["DebtCollateralOption"]>,
+	/** Заём по хэшу. */
+	debtLoan: GraphQLTypes["DebtLoan"],
+	/** Займы кооператива с отбором по пайщику, состоянию и источнику. Пайщик видит только свои. */
+	debtLoans: GraphQLTypes["PaginatedDebtLoansPaginationResult"],
 	/** Перенос утверждений из прежних настроек кооператива: какие документы получат утверждение текущей редакции и по какому протоколу (без записи в цепь) */
 	documentApprovalsSeedPlan: Array<GraphQLTypes["DocumentApprovalSeedItem"]>,
 	/** Бланк документа без данных субъекта: утверждённая советом редакция или текущая редакция сети */
@@ -61871,6 +62859,18 @@ export enum CycleStatus {
 	COMPLETED = "COMPLETED",
 	FUTURE = "FUTURE"
 }
+/** Состояние беспроцентного займа */
+export enum DebtLoanStatus {
+	AUTHORIZED = "AUTHORIZED",
+	CLOSED = "CLOSED",
+	CREATED = "CREATED",
+	DECLINED = "DECLINED",
+	ISSUED = "ISSUED",
+	OVERDUE = "OVERDUE",
+	PAYING = "PAYING",
+	SIGNED = "SIGNED",
+	UNDEFINED = "UNDEFINED"
+}
 /** Статус долга в системе CAPITAL */
 export enum DebtStatus {
 	ACTIVE = "ACTIVE",
@@ -62451,6 +63451,7 @@ export enum PaymentType {
 	EXPENSE = "EXPENSE",
 	EXPENSE_OVERSPEND = "EXPENSE_OVERSPEND",
 	EXPENSE_RETURN = "EXPENSE_RETURN",
+	LOAN = "LOAN",
 	MEMBERSHIP_EXIT = "MEMBERSHIP_EXIT",
 	PAYMENT = "PAYMENT",
 	REGISTRATION = "REGISTRATION",
@@ -62817,7 +63818,19 @@ type ZEUS_VARIABLES = {
 	["CycleStatus"]: ValueTypes["CycleStatus"];
 	["DateTime"]: ValueTypes["DateTime"];
 	["DeactivateSubscriptionInput"]: ValueTypes["DeactivateSubscriptionInput"];
+	["DebtCancelLoanInput"]: ValueTypes["DebtCancelLoanInput"];
+	["DebtCreateLoanInput"]: ValueTypes["DebtCreateLoanInput"];
+	["DebtExtendLoanInput"]: ValueTypes["DebtExtendLoanInput"];
 	["DebtFilter"]: ValueTypes["DebtFilter"];
+	["DebtGenerateExtensionStatementInput"]: ValueTypes["DebtGenerateExtensionStatementInput"];
+	["DebtGenerateLoanContractInput"]: ValueTypes["DebtGenerateLoanContractInput"];
+	["DebtGenerateLoanDecisionInput"]: ValueTypes["DebtGenerateLoanDecisionInput"];
+	["DebtGenerateLoanStatementInput"]: ValueTypes["DebtGenerateLoanStatementInput"];
+	["DebtGenerateRepaymentStatementInput"]: ValueTypes["DebtGenerateRepaymentStatementInput"];
+	["DebtLoanFilterInput"]: ValueTypes["DebtLoanFilterInput"];
+	["DebtLoanRefInput"]: ValueTypes["DebtLoanRefInput"];
+	["DebtLoanStatus"]: ValueTypes["DebtLoanStatus"];
+	["DebtRepayLoanInput"]: ValueTypes["DebtRepayLoanInput"];
 	["DebtStatus"]: ValueTypes["DebtStatus"];
 	["DeclineAgreementInput"]: ValueTypes["DeclineAgreementInput"];
 	["DeclineApproveInput"]: ValueTypes["DeclineApproveInput"];

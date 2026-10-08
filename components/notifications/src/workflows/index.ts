@@ -63,6 +63,10 @@ import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-remi
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
+import { workflow as loanDecidedWorkflow } from './loan-decided';
+import { workflow as loanSignedWorkflow } from './loan-signed';
+import { workflow as loanIssuedWorkflow } from './loan-issued';
+import { workflow as loanPaymentDeclinedWorkflow } from './loan-payment-declined';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -124,6 +128,10 @@ export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as MarketplaceAidPayoutConfirmed from './marketplace-aid-payout-confirmed';
 export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
+export * as LoanDecided from './loan-decided';
+export * as LoanSigned from './loan-signed';
+export * as LoanIssued from './loan-issued';
+export * as LoanPaymentDeclined from './loan-payment-declined';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -190,6 +198,10 @@ export const allWorkflows: WorkflowDefinition[] = [
   branchTrustedRequestedWorkflow,
   branchTrustedResolvedWorkflow,
   expenseAdvanceReportReminderWorkflow,
+  loanDecidedWorkflow,
+  loanSignedWorkflow,
+  loanIssuedWorkflow,
+  loanPaymentDeclinedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

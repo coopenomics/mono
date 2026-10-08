@@ -263,6 +263,54 @@
     },
     "name": "Приглашение в кооператив"
   },
+  "loanDecided": {
+    "description": "Совет рассмотрел заявление пайщика о беспроцентном займе",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Совет кооператива рассмотрел ваше заявление о беспроцентном займе по договору № {{payload.contractNumber}} на сумму {{payload.amount}}.<br><br>{% if payload.decision == 'authorized' %}Выдача разрешена. Договор передан председателю на подпись, после подписи заём поступит кассиру на выплату.{% else %}В выдаче отказано.{% if payload.reason %} Причина: {{payload.reason}}.{% endif %} Обеспечение возвращено в программу.{% endif %}<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Решение по займу № {{payload.contractNumber}} — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "{% if payload.decision == 'authorized' %}Совет разрешил выдачу займа, договор ожидает подписи председателя.{% else %}Совет отказал в выдаче займа, обеспечение возвращено в программу.{% endif %}",
+      "subject": "Решение по займу № {{payload.contractNumber}}"
+    },
+    "name": "Решение совета по беспроцентному займу"
+  },
+  "loanIssued": {
+    "description": "Кассир подтвердил выплату займа пайщику",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Беспроцентный заём по договору № {{payload.contractNumber}} на сумму {{payload.amount}} выдан. Срок возврата — {{payload.dueAt}}. Вернуть заём можно с главного кошелька целиком или частями.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Заём № {{payload.contractNumber}} выдан — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Срок возврата — {{payload.dueAt}}.",
+      "subject": "Заём № {{payload.contractNumber}} выдан"
+    },
+    "name": "Беспроцентный заём выдан"
+  },
+  "loanPaymentDeclined": {
+    "description": "Кассир отклонил платёж по займу по реквизитам",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Платёж по договору займа № {{payload.contractNumber}} отклонён по реквизитам.{% if payload.reason %} Причина: {{payload.reason}}.{% endif %} Решение совета остаётся в силе: проверьте реквизиты, после чего платёж будет отправлен повторно.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Платёж по займу № {{payload.contractNumber}} отклонён — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Проверьте реквизиты: платёж будет отправлен повторно по тому же решению совета.",
+      "subject": "Платёж по займу № {{payload.contractNumber}} отклонён"
+    },
+    "name": "Платёж по займу отклонён"
+  },
+  "loanSigned": {
+    "description": "Председатель подписал договор займа, платёж передан кассиру",
+    "email": {
+      "body": "Уважаемый пайщик!<br><br>Председатель совета подписал договор о беспроцентном займе № {{payload.contractNumber}} на сумму {{payload.amount}}. Платёж передан кассиру, срок возврата — {{payload.dueAt}}.<br><br><a href=\"{{payload.link}}\">Открыть займы</a>",
+      "subject": "Договор займа № {{payload.contractNumber}} подписан — {{payload.coopName}}"
+    },
+    "inApp": {
+      "body": "Платёж по займу передан кассиру.",
+      "subject": "Договор займа № {{payload.contractNumber}} подписан"
+    },
+    "name": "Договор займа подписан"
+  },
   "loginEmailCode": {
     "description": "Одноразовый код на почту для подтверждения входа (двухфакторная аутентификация)",
     "email": {

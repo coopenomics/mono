@@ -4,6 +4,7 @@ import type { IWorkspaceConfig } from 'src/shared/lib/types/workspace';
 import capitalInstall from '../../../extensions/capital/install';
 import chairmanInstall from '../../../extensions/chairman/install';
 import chatcoopInstall from '../../../extensions/chatcoop/install';
+import debtInstall from '../../../extensions/debt/install';
 import expensesInstall from '../../../extensions/expenses/install';
 import participantInstall from '../../../extensions/participant/install';
 import powerupInstall from '../../../extensions/powerup/install';
@@ -21,6 +22,7 @@ export const extensionsRegistry: Record<string, () => Promise<IWorkspaceConfig[]
   capital: capitalInstall,
   chairman: chairmanInstall,
   chatcoop: chatcoopInstall,
+  debt: debtInstall,
   expenses: expensesInstall,
   participant: participantInstall,
   powerup: powerupInstall,

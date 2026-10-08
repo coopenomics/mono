@@ -553,8 +553,43 @@ export const AllTypesProps: Record<string,any> = {
 	DeactivateSubscriptionInput:{
 
 	},
+	DebtCancelLoanInput:{
+
+	},
+	DebtCreateLoanInput:{
+		contract:"SignedDigitalDocumentInput",
+		statement:"SignedDigitalDocumentInput"
+	},
+	DebtExtendLoanInput:{
+		statement:"SignedDigitalDocumentInput"
+	},
 	DebtFilter:{
 
+	},
+	DebtGenerateExtensionStatementInput:{
+
+	},
+	DebtGenerateLoanContractInput:{
+
+	},
+	DebtGenerateLoanDecisionInput:{
+
+	},
+	DebtGenerateLoanStatementInput:{
+
+	},
+	DebtGenerateRepaymentStatementInput:{
+
+	},
+	DebtLoanFilterInput:{
+		status:"DebtLoanStatus"
+	},
+	DebtLoanRefInput:{
+
+	},
+	DebtLoanStatus: "enum" as const,
+	DebtRepayLoanInput:{
+		statement:"SignedDigitalDocumentInput"
 	},
 	DebtStatus: "enum" as const,
 	DeclineAgreementInput:{
@@ -1447,6 +1482,9 @@ export const AllTypesProps: Record<string,any> = {
 		authorizeForceRecovery:{
 			data:"AuthorizeForceRecoveryInput"
 		},
+		cancelDebtLoan:{
+			data:"DebtCancelLoanInput"
+		},
 		cancelMembershipExit:{
 
 		},
@@ -1814,6 +1852,9 @@ export const AllTypesProps: Record<string,any> = {
 		createBranch:{
 			data:"CreateBranchInput"
 		},
+		createDebtLoan:{
+			data:"DebtCreateLoanInput"
+		},
 		createDepositPayment:{
 			data:"CreateDepositPaymentInput"
 		},
@@ -1874,6 +1915,9 @@ export const AllTypesProps: Record<string,any> = {
 		editBranch:{
 			data:"EditBranchInput"
 		},
+		extendDebtLoan:{
+			data:"DebtExtendLoanInput"
+		},
 		generateAnnualGeneralMeetAgendaDocument:{
 			data:"AnnualGeneralMeetingAgendaGenerateDocumentInput",
 			options:"GenerateDocumentOptionsInput"
@@ -1892,6 +1936,26 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		generateConvertToAxonStatement:{
 			data:"ConvertToAxonStatementGenerateDocumentInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtExtensionStatementDocument:{
+			data:"DebtGenerateExtensionStatementInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtLoanContractDocument:{
+			data:"DebtGenerateLoanContractInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtLoanDecisionDocument:{
+			data:"DebtGenerateLoanDecisionInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtLoanStatementDocument:{
+			data:"DebtGenerateLoanStatementInput",
+			options:"GenerateDocumentOptionsInput"
+		},
+		generateDebtRepaymentStatementDocument:{
+			data:"DebtGenerateRepaymentStatementInput",
 			options:"GenerateDocumentOptionsInput"
 		},
 		generateDocument:{
@@ -2346,6 +2410,9 @@ export const AllTypesProps: Record<string,any> = {
 		rejectVerification:{
 			data:"RejectVerificationInput"
 		},
+		repayDebtLoan:{
+			data:"DebtRepayLoanInput"
+		},
 		reportExpenseItem:{
 			data:"ReportExpenseItemInput"
 		},
@@ -2369,6 +2436,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		restartAnnualGeneralMeet:{
 			data:"RestartAnnualGeneralMeetInput"
+		},
+		retryDebtLoanPayment:{
+			data:"DebtLoanRefInput"
 		},
 		returnExpenseItem:{
 			data:"ReturnExpenseItemInput"
@@ -2817,6 +2887,16 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		cooperativePrograms:{
 
+		},
+		debtCollateralOptions:{
+
+		},
+		debtLoan:{
+
+		},
+		debtLoans:{
+			filter:"DebtLoanFilterInput",
+			options:"PaginationInput"
 		},
 		documentApprovalsSeedPlan:{
 
@@ -5154,6 +5234,46 @@ export const ReturnTypes: Record<string,any> = {
 		value:"JSON"
 	},
 	DateTime: `scalar.DateTime` as const,
+	DebtCollateralOption:{
+		available:"String",
+		basis_signed:"Boolean",
+		basis_type:"String",
+		human_name:"String",
+		key:"String",
+		owner_contract:"String",
+		pledge_wallet:"String",
+		source_wallet:"String"
+	},
+	DebtLoan:{
+		_created_at:"DateTime",
+		_id:"String",
+		_updated_at:"DateTime",
+		amount:"String",
+		block_num:"Float",
+		collateral:"String",
+		contract:"DocumentAggregate",
+		contract_number:"String",
+		coopname:"String",
+		created_at:"String",
+		debt_hash:"String",
+		decision:"DocumentAggregate",
+		due_at:"String",
+		extension_statement:"DocumentAggregate",
+		id:"Int",
+		issued_at:"String",
+		last_pay_error:"String",
+		overdue_at:"String",
+		pledged:"String",
+		present:"Boolean",
+		remaining:"String",
+		requested_due_at:"String",
+		signed_contract:"DocumentAggregate",
+		source:"String",
+		source_ref:"String",
+		statement:"DocumentAggregate",
+		status:"DebtLoanStatus",
+		username:"String"
+	},
 	DecisionDetailAggregate:{
 		action:"ExtendedBlockchainAction",
 		documentAggregate:"DocumentAggregate",
@@ -6756,6 +6876,7 @@ export const ReturnTypes: Record<string,any> = {
 		assignCapabilitySet:"Boolean",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
+		cancelDebtLoan:"Transaction",
 		cancelMembershipExit:"Boolean",
 		capitalAddAuthor:"CapitalProject",
 		capitalAddFavorite:"CapitalFavorite",
@@ -6872,6 +6993,7 @@ export const ReturnTypes: Record<string,any> = {
 		confirmMembershipExit:"MembershipExitResult",
 		createAnnualGeneralMeet:"MeetAggregate",
 		createBranch:"Branch",
+		createDebtLoan:"Transaction",
 		createDepositPayment:"GatewayPayment",
 		createExpensePlan:"ExpensePlan",
 		createExpenseProposal:"Transaction",
@@ -6893,11 +7015,17 @@ export const ReturnTypes: Record<string,any> = {
 		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
 		enrollTwoFactor:"TwoFactorEnrollment",
+		extendDebtLoan:"Transaction",
 		generateAnnualGeneralMeetAgendaDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetDecisionDocument:"GeneratedDocument",
 		generateAnnualGeneralMeetNotificationDocument:"GeneratedDocument",
 		generateBallotForAnnualGeneralMeetDocument:"GeneratedDocument",
 		generateConvertToAxonStatement:"GeneratedDocument",
+		generateDebtExtensionStatementDocument:"GeneratedDocument",
+		generateDebtLoanContractDocument:"GeneratedDocument",
+		generateDebtLoanDecisionDocument:"GeneratedDocument",
+		generateDebtLoanStatementDocument:"GeneratedDocument",
+		generateDebtRepaymentStatementDocument:"GeneratedDocument",
 		generateDocument:"GeneratedDocument",
 		generateExpenseProposalDecisionDocument:"GeneratedDocument",
 		generateExpenseProposalStatementDocument:"GeneratedDocument",
@@ -7042,6 +7170,7 @@ export const ReturnTypes: Record<string,any> = {
 		registerAccount:"RegisteredAccount",
 		registerParticipant:"Account",
 		rejectVerification:"VerificationReview",
+		repayDebtLoan:"Transaction",
 		reportExpenseItem:"ExpenseReportResult",
 		reportNotMe:"RevokedSessionsResult",
 		requestEmailVerification:"EmailVerificationRequestDTO",
@@ -7051,6 +7180,7 @@ export const ReturnTypes: Record<string,any> = {
 		resetParticipantTwoFactor:"Boolean",
 		resetRegistration:"Account",
 		restartAnnualGeneralMeet:"MeetAggregate",
+		retryDebtLoanPayment:"Transaction",
 		returnExpenseItem:"Transaction",
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
@@ -7318,6 +7448,12 @@ export const ReturnTypes: Record<string,any> = {
 	PaginatedCurrentTableStatesPaginationResult:{
 		currentPage:"Int",
 		items:"CurrentTableState",
+		totalCount:"Int",
+		totalPages:"Int"
+	},
+	PaginatedDebtLoansPaginationResult:{
+		currentPage:"Int",
+		items:"DebtLoan",
 		totalCount:"Int",
 		totalPages:"Int"
 	},
@@ -7721,6 +7857,9 @@ export const ReturnTypes: Record<string,any> = {
 		checkReportReadiness:"ReportReadinessView",
 		cooperativeAgreements:"CoopAgreement",
 		cooperativePrograms:"CooperativeProgram",
+		debtCollateralOptions:"DebtCollateralOption",
+		debtLoan:"DebtLoan",
+		debtLoans:"PaginatedDebtLoansPaginationResult",
 		documentApprovalsSeedPlan:"DocumentApprovalSeedItem",
 		documentTemplateBlank:"DocumentTemplateBlank",
 		documentTemplates:"DocumentTemplate",

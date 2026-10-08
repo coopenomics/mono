@@ -25,6 +25,7 @@ export const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   [PaymentType.EXPENSE_OVERSPEND]: t('gateway.paymentType.type.advanceOverspendSurcharge'),
   [PaymentType.AID]: t('gateway.paymentType.type.financialAid'),
   [PaymentType.TAX]: t('gateway.paymentType.type.ndflTransfer'),
+  [PaymentType.LOAN]: t('gateway.paymentType.type.interestFreeLoan'),
 };
 
 // Оговорка живёт в контракте `@coopenomics/innercoop`: назначение платежа
@@ -63,4 +64,5 @@ export const OUTGOING_PAYMENT_TYPES = [
   PaymentType.EXPENSE_OVERSPEND,
   PaymentType.AID,
   PaymentType.TAX,
+  PaymentType.LOAN,
 ];

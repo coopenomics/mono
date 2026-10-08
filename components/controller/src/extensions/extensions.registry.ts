@@ -18,6 +18,7 @@ import { Schema as MarketplaceSchema } from './marketplace/types';
 import { KuExtensionModule, KuExtension, Schema as KuSchema } from './ku/ku-extension.module';
 import { CardcoopExtensionModule, CardcoopExtension, Schema as CardcoopSchema } from './cardcoop/cardcoop-extension.module';
 import { SovietRobotExtensionModule, SovietRobotExtension, Schema as SovietRobotSchema } from './soviet-robot/soviet-robot-extension.module';
+import { DebtExtensionModule, DebtExtension, Schema as DebtSchema, defaultConfig as debtDefaultConfig } from './debt/debt-extension.module';
 
 import { capitalDatabaseMigrations } from './capital/capital.database-migrations';
 import { cardcoopDatabaseMigrations } from './cardcoop/cardcoop.database-migrations';
@@ -28,6 +29,7 @@ import { kuDatabaseMigrations } from './ku/ku.database-migrations';
 import { marketplaceDatabaseMigrations } from './marketplace/marketplace.database-migrations';
 import { sovietRobotDatabaseMigrations } from './soviet-robot/soviet-robot.database-migrations';
 import { reportsDatabaseMigrations } from './reports/reports.database-migrations';
+import { debtDatabaseMigrations } from './debt/debt.database-migrations';
 
 import { chatcoopMigrations } from './chatcoop/chatcoop.migrations';
 import { marketplaceMigrations } from './marketplace/marketplace.migrations';
@@ -45,6 +47,7 @@ import { participantPorts } from './participant/participant.ports';
 import { powerupPorts } from './powerup/powerup.ports';
 import { qrpayPorts } from './qrpay/qrpay.ports';
 import { reportsPorts } from './reports/reports.ports';
+import { debtPorts } from './debt/debt.ports';
 import { sberpollPorts } from './sberpoll/sberpoll.ports';
 import { yookassaPorts } from './yookassa/yookassa.ports';
 
@@ -406,6 +409,32 @@ export const AppRegistry: INamedExtension = {
     tags: [t('app.extensionsRegistry.reports.tagAccounting'), t('app.extensionsRegistry.reports.tagReporting'), t('app.extensionsRegistry.reports.tagFns')],
     readme: getReadmeContent('./reports'),
     instructions: getInstructionsContent('./reports'),
+    get is_desktop() {
+      return !!this.desktops && this.desktops.length > 0;
+    },
+  },
+  debt: {
+    is_internal: true,
+    availability: ExtensionAvailability.EVERYWHERE,
+    desktops: [
+      {
+        name: 'debt',
+        title: t('app.extensionsRegistry.debt.windowTitle'),
+        icon: 'fa-solid fa-hand-holding-dollar',
+      },
+    ],
+    title: t('app.extensionsRegistry.debt.title'),
+    description: t('app.extensionsRegistry.debt.description'),
+    image: 'https://i.ibb.co/6C5F3kD/Chat-GPT-Image-10-2025-20-42-42.png',
+    class: DebtExtensionModule,
+    extensionClass: DebtExtension,
+    databaseMigrations: debtDatabaseMigrations,
+    ports: debtPorts,
+    schema: DebtSchema,
+    defaults: { enabled: false, config: debtDefaultConfig },
+    tags: [t('app.extensionsRegistry.debt.tagLoans'), t('app.extensionsRegistry.debt.tagFinance')],
+    readme: getReadmeContent('./debt'),
+    instructions: getInstructionsContent('./debt'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },

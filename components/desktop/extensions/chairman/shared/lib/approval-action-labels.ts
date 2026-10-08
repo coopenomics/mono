@@ -4,6 +4,8 @@ const approval_action_labels: Record<string, string> = {
   'capital::approvereg': t('chairman.approvalActionLabels.blagorostUhdContract'),
   'capital::approveinvst': t('chairman.approvalActionLabels.blagorostInvestmentApplication'),
   'capital::approverslt': t('chairman.approvalActionLabels.blagorostRidContribution'),
+  'debt::loansigned': t('chairman.approvalActionLabels.loanContract'),
+  'debt::loanextok': t('chairman.approvalActionLabels.loanExtension'),
   'branch::apprliab': t('chairman.approvalActionLabels.unitChairmanLiabilityContract'),
   'branch::apprauth': t('chairman.approvalActionLabels.unitChairmanPowerOfAttorney'),
 };

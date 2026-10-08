@@ -24,6 +24,8 @@
       "blagorostProjectAccess": "Допуск к проекту по приложению Благороста",
       "blagorostRidContribution": "Внесение РИД по проекту Благороста",
       "blagorostUhdContract": "Договор УХД по приложению Благороста",
+      "loanContract": "Договор беспроцентного займа",
+      "loanExtension": "Продление срока возврата займа",
       "unitChairmanLiabilityContract": "Договор о материальной ответственности председателя участка",
       "unitChairmanPowerOfAttorney": "Доверенность председателю кооперативного участка"
     },

@@ -1,0 +1,104 @@
+{
+  "debt": {
+    "collateral": {
+      "blago": "Паевой взнос в программе «Благорост»"
+    },
+    "createDialog": {
+      "amountHint": "Сумма займа равна сумме обеспечения",
+      "amountLabel": "Сумма займа",
+      "collateralAvailable": "доступно {amount}",
+      "collateralLabel": "Обеспечение",
+      "dueLabel": "Срок возврата",
+      "methodLabel": "Реквизиты для получения займа",
+      "noCollateralBody": "Для займа нужен подписанный договор об участии в хозяйственной деятельности и средства на кошельке программы «Благорост».",
+      "noCollateralTitle": "Обеспечение недоступно",
+      "submitLabel": "Подписать заявление и договор",
+      "submittedMessage": "Заявление передано на рассмотрение совета",
+      "terms": "С подписи заявления сумма обеспечения переходит на кошелёк обеспечения. Совет рассматривает заявление, председатель подписывает договор, кассир перечисляет заём по указанным реквизитам.",
+      "title": "Заявление на беспроцентный заём"
+    },
+    "error": {
+      "invalidCreatedebtMeta": "Данные заявления на заём неполные",
+      "missingCreatedebtMeta": "В заявлении на заём нет данных для протокола решения"
+    },
+    "install": {
+      "extensionName": "Беспроцентные займы",
+      "myLoansNavTitle": "Мои займы",
+      "registryNavTitle": "Реестр займов"
+    },
+    "loanDetails": {
+      "amountLabel": "Сумма займа",
+      "cancelAction": "Отменить заявление",
+      "cancelConfirmLabel": "Отменить заявление",
+      "cancelConfirmMessage": "Сумма обеспечения вернётся на кошелёк программы.",
+      "cancelConfirmTitle": "Отменить заявление на заём?",
+      "cancelledMessage": "Заявление отменено",
+      "collateralLabel": "Обеспечение",
+      "contractTitle": "Договор займа",
+      "createdLabel": "Заявление подано",
+      "decisionTitle": "Решение совета",
+      "documentsTitle": "Документы",
+      "dueLabel": "Срок возврата",
+      "extensionStatementTitle": "Заявление о продлении срока",
+      "issuedLabel": "Дата выдачи",
+      "memberLabel": "Пайщик",
+      "payDeclinedHint": "Кассир отклонил платёж по реквизитам. Решение совета действует, после проверки реквизитов платёж отправляется повторно.",
+      "payErrorLabel": "Причина отказа платежа",
+      "pledgedLabel": "Сумма обеспечения",
+      "remainingLabel": "Остаток к возврату",
+      "retryMessage": "Платёж повторно передан кассиру",
+      "retryPayAction": "Повторить платёж",
+      "signedContractTitle": "Договор займа с подписью председателя",
+      "sourceLabel": "Вид займа",
+      "statementTitle": "Заявление на получение займа",
+      "title": "Заём № {number}"
+    },
+    "loanRow": {
+      "amountCaption": "сумма займа",
+      "closedCaption": "обязательство прекращено",
+      "dueRequested": "срок до {date}",
+      "dueUntil": "вернуть до {date}",
+      "metaDate": "от {date}",
+      "remainingCaption": "остаток к возврату",
+      "title": "Заём № {number}"
+    },
+    "loansPage": {
+      "createAction": "Получить заём",
+      "emptyBody": "Здесь появятся ваши займы и заявления на получение займа.",
+      "emptyTitle": "Займов нет",
+      "hint": "Беспроцентный заём выдаётся под обеспечение паевым взносом в целевой программе. На время займа сумма обеспечения переходит на кошелёк обеспечения. Возврат идёт с главного кошелька, целиком или частями.",
+      "loadMoreAction": "Показать ещё"
+    },
+    "registryPage": {
+      "columnAmount": "Сумма",
+      "columnDue": "Срок возврата",
+      "columnMember": "Пайщик",
+      "columnNumber": "Договор",
+      "columnRemaining": "Остаток",
+      "columnStatus": "Состояние",
+      "emptyBody": "В этом разделе займов нет.",
+      "emptyTitle": "Займов нет",
+      "tabAll": "Все",
+      "tabClosed": "Закрыты",
+      "tabIssued": "Выданы",
+      "tabOverdue": "Просрочены",
+      "tabPaying": "На выплате",
+      "tabPending": "На рассмотрении"
+    },
+    "source": {
+      "capital": "Генерация в «Благоросте»",
+      "debt": "Под обеспечение паевым взносом"
+    },
+    "status": {
+      "AUTHORIZED": "Ожидает подписи председателя",
+      "CLOSED": "Закрыт",
+      "CREATED": "На рассмотрении совета",
+      "DECLINED": "Отклонён",
+      "ISSUED": "Выдан",
+      "OVERDUE": "Просрочен",
+      "PAYING": "Передан на выплату",
+      "SIGNED": "Ожидает повтора платежа",
+      "UNDEFINED": "Не определено"
+    }
+  }
+}
