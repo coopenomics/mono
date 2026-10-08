@@ -12,6 +12,7 @@
 #include "../../domain/table_ledger2_wallet.hpp"
 #include "../../domain/table_edubridge_subscriptions.hpp"
 #include "../../domain/table_edubridge_courses.hpp"
+#include "../../domain/table_edubridge_terms.hpp"
 #include "../../domain/table_edubridge_rids.hpp"
 #include "../../domain/table_edubridge_contracts.hpp"
 #include "../ledger2/ledger2.hpp"
@@ -166,7 +167,11 @@ namespace Memo {
   }
 
   inline std::string get_free_reserve_memo() {
-    return "Высвобождение резерва выплат преподавателям: подписка отменена, занятия не состоятся";
+    return "Высвобождение резерва выплат преподавателям: подписка закрыта, занятия не состоятся";
+  }
+
+  inline std::string get_rate_gap_memo() {
+    return "Разница между плановой ставкой курса и ставкой преподавателя за проведённое занятие — на кошелёк программы";
   }
 
   inline std::string get_settle_reserve_memo(uint64_t rid_id) {

@@ -1188,6 +1188,7 @@ export interface EdubridgeCourses {
   lessons_per_month: Generated<number>;
   lessons_total: Generated<number>;
   level_id: string | null;
+  pay_per_learner: Generated<boolean>;
   planned_hourly_rate: Generated<string>;
   schedule: Generated<string>;
   section_id: string | null;
@@ -1272,6 +1273,7 @@ export interface EdubridgeLessons {
   duration_minutes: number;
   held_at: Timestamp;
   id: Generated<string>;
+  learners_count: number | null;
   lesson_number: number;
   materials: Generated<Json>;
   teacher_username: string;
@@ -1327,6 +1329,7 @@ export interface EdubridgeShareReturns {
 }
 
 export interface EdubridgeTeacherAssignments {
+  chain_ref: Generated<Int8>;
   coopname: string;
   course_id: string;
   created_at: Generated<Timestamp>;

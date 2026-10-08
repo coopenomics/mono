@@ -10,6 +10,9 @@ export class EdubridgeTeacherAssignmentRecord {
 
   public coopname!: string;
 
+  /** Числовой номер допуска для цепи (uint64): таблицы контракта не знают uuid. */
+  public chain_ref!: string;
+
   public teacher_username!: string;
 
   public course_id!: string;

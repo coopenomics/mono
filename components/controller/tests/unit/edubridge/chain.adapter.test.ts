@@ -56,45 +56,55 @@ describe('EdubridgeChainAdapter — документ в цепь', () => {
 });
 
 describe('EdubridgeChainAdapter — состав транзакций подписки', () => {
-  const open = { kind: 'open' as const, data: { coopname: 'voskhod', sub_hash: 'S' } as any };
-  const charge = { coopname: 'voskhod', username: 'ant', sub_hash: 'S', amount: '1000.0000 RUB' } as any;
+  const open = { coopname: 'voskhod', username: 'ant', sub_hash: 'S', learner_id: 1, course_id: 7, statement_hash: 'H' } as any;
+  const charge = { coopname: 'voskhod', username: 'ant', sub_hash: 'S', period: 'month', expected: '1000.0000 RUB', statement_hash: 'H' } as any;
   const names = (chain: any, call = 0) => chain.transact.mock.calls[call][0].map((a: any) => a.name);
 
-  it('оплата с конвертацией: convert → opensub → chargefee → lockfee, заявление едет в convert строкой', async () => {
+  it('оплата с конвертацией: convert → opensub → chargefee, заявление едет в convert строкой', async () => {
     const { adapter, chain } = make();
-    await adapter.convertAndSubscribe({ coopname: 'voskhod', username: 'ant', amount: '1000.0000 RUB', statement: doc({ a: 1 }) } as any, open, charge, { lock: '1000.0000 RUB' });
-    expect(names(chain)).toEqual(['convert', 'opensub', 'chargefee', 'lockfee']);
-    const [convert, , , lock] = chain.transact.mock.calls[0][0];
-    expect(convert.data.statement.meta).toBe('{"a":1}');
-    expect(lock.data).toEqual({ coopname: 'voskhod', sub_hash: 'S', amount: '1000.0000 RUB' });
+    await adapter.convertAndSubscribe({ coopname: 'voskhod', username: 'ant', amount: '1000.0000 RUB', statement: doc({ a: 1 }) } as any, open, charge);
+    expect(names(chain)).toEqual(['convert', 'opensub', 'chargefee']);
+    expect(chain.transact.mock.calls[0][0][0].data.statement.meta).toBe('{"a":1}');
+  });
+
+  it('взнос несёт период и сумму из заявления — суммы, срока и удержания в действии нет', async () => {
+    const { adapter, chain } = make();
+    await adapter.convertAndSubscribe(null, open, charge);
+    const sent = chain.transact.mock.calls[0][0].find((a: any) => a.name === 'chargefee').data;
+    expect(sent).toEqual({ coopname: 'voskhod', username: 'ant', sub_hash: 'S', period: 'month', expected: '1000.0000 RUB', statement_hash: 'H' });
+    expect(names(chain)).not.toContain('lockfee');
   });
 
   it('оплата целиком с кошелька программы: заявление публикует regstatement', async () => {
     const { adapter, chain } = make();
-    await adapter.convertAndSubscribe(null, open, charge, { lock: '1000.0000 RUB', statement: { coopname: 'voskhod', username: 'ant', statement: doc({ b: 2 }) } as any });
-    expect(names(chain)).toEqual(['regstatement', 'opensub', 'chargefee', 'lockfee']);
+    await adapter.convertAndSubscribe(null, open, charge, { statement: { coopname: 'voskhod', username: 'ant', statement: doc({ b: 2 }) } as any });
+    expect(names(chain)).toEqual(['regstatement', 'opensub', 'chargefee']);
     expect(chain.transact.mock.calls[0][0][0].data.statement.meta).toBe('{"b":2}');
   });
 
-  it('нулевое удержание в цепь не идёт', async () => {
+  it('продление: подписка уже открыта, в транзакции только взнос', async () => {
     const { adapter, chain } = make();
-    await adapter.convertAndSubscribe(null, open, charge, { lock: '0.0000 RUB' });
-    expect(names(chain)).toEqual(['opensub', 'chargefee']);
+    await adapter.convertAndSubscribe(null, null, charge);
+    expect(names(chain)).toEqual(['chargefee']);
   });
 
-  it('освобождение удержанного: unlockfee, затем резерв преподавателям той же транзакцией', async () => {
+  it('закрытие гарантийного срока и отмена уходят без сумм — их считает контракт', async () => {
     const { adapter, chain } = make();
-    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '500.0000 RUB', allot: '300.0000 RUB' });
-    expect(names(chain)).toEqual(['unlockfee', 'allotfee']);
-    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '500.0000 RUB' });
-    expect(names(chain, 1)).toEqual(['unlockfee']);
+    await adapter.unlockFee({ coopname: 'voskhod', sub_hash: 'S' });
+    await adapter.cancelSubscription({ coopname: 'voskhod', username: 'ant', sub_hash: 'S', underfilled: false });
+    const [unlock, cancel] = chain.transact.mock.calls.map((c: any) => c[0]);
+    expect(unlock).toMatchObject({ name: 'unlockfee', data: { coopname: 'voskhod', sub_hash: 'S' } });
+    expect(cancel).toMatchObject({ name: 'cancelsub', data: { coopname: 'voskhod', username: 'ant', sub_hash: 'S', underfilled: false } });
   });
 
-  it('отмена — одно действие; резерв добирается и возвращается отдельными действиями', async () => {
+  it('расчёт занятия: отчёт, расчёт по одной подписке и приём материалов без суммы', async () => {
     const { adapter, chain } = make();
-    await adapter.cancelSubscription({ coopname: 'voskhod', username: 'ant', sub_hash: 'S', refund: '250.0000 RUB', to_share: false } as any);
-    await adapter.allotReserve({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '800.0000 RUB' });
-    await adapter.freeReserve({ coopname: 'voskhod', sub_hash: 'S', course_id: 7, amount: '100.0000 RUB' });
-    expect(chain.transact.mock.calls.map((c: any) => c[0].name)).toEqual(['cancelsub', 'allotfee', 'freereserve']);
+    await adapter.openLesson({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', assignment_id: 3, held_at: '2026-10-01T10:00:00', minutes: 60 });
+    await adapter.chargeLesson({ coopname: 'voskhod', rid_hash: 'R', sub_hash: 'S' });
+    await adapter.holdRid({ coopname: 'voskhod', username: 'ant', rid_hash: 'R', rid_type: 'lesson', act: doc({ c: 3 }) } as any);
+    const sent = chain.transact.mock.calls.map((c: any) => c[0]);
+    expect(sent.map((a: any) => a.name)).toEqual(['openlesson', 'chargelesson', 'holdrid']);
+    expect(sent[2].data.amount).toBeUndefined();
+    expect(sent[2].data.act.meta).toBe('{"c":3}');
   });
 });

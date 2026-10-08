@@ -64,6 +64,7 @@ const rawLessonSelector = {
   topic: true,
   held_at: true,
   duration_minutes: true,
+  learners_count: true,
   materials: true,
   contribution_id: true,
 }

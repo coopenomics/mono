@@ -29,11 +29,6 @@ export * as Cancelsub from './cancelsub'
 export * as Retshare from './retshare'
 
 /**
- * Продление подписки.
- */
-export * as Extendsub from './extendsub'
-
-/**
  * Истечение подписки (erase).
  */
 export * as Expiresub from './expiresub'
@@ -102,13 +97,20 @@ export * as Apprvcontr from './apprvcontr'
 /**
  * Председатель отказал в подписи договора — коллбэк совета.
  */
-/** Удержание взноса до конца гарантийного срока курса и его разблокировка. */
-export * as Lockfee from './lockfee'
+/** Освобождение взноса, удержанного по гарантии: сумму считает контракт. */
 export * as Unlockfee from './unlockfee'
 
-/** Резерв выплат преподавателям: выделение из собранного взноса и высвобождение при отмене. */
-export * as Allotfee from './allotfee'
-export * as Freereserve from './freereserve'
+/** Условия курса, по которым контракт считает суммы. */
+export * as Setcourse from './setcourse'
+
+/** Расчёт занятия: отчёт преподавателя, отзыв отчёта, расчёт по одной подписке. */
+export * as Openlesson from './openlesson'
+export * as Droplesson from './droplesson'
+export * as Chargelesson from './chargelesson'
+
+/** Допуск преподавателя к курсу и его ставка. */
+export * as Setassign from './setassign'
+export * as Delassign from './delassign'
 
 /** Публикация заявления о взносе, покрытом кошельком программы целиком. */
 export * as Regstatement from './regstatement'

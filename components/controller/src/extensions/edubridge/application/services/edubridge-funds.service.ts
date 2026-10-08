@@ -1,32 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LOGGER_PORT, type ILoggerPort } from '@coopenomics/innercoop';
-import { EduEnrollmentStatus } from '../../domain/enums';
-import { costOfHours, courseMonths } from '../../domain/economy/course-fee.calculator';
 import { isEntryGuaranteeRunning } from '../../domain/economy/guarantee';
-import { reserveTarget, type ReserveCoverage, type ReserveTarget } from '../../domain/economy/teacher-reserve.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
-import { refundOf } from './edubridge-refund';
-
-const MINUTES_IN_HOUR = 60;
-/** Знаков после запятой в сумме цепи — четыре. */
-const ASSET_SCALE = 10_000;
 
 /**
- * Средства программы между удержанием, резервом преподавателям и фондом. Два
- * правила, на которых держится всё остальное.
+ * Средства программы между удержанием, резервом преподавателям и кошельком
+ * программы. Все суммы считает контракт; служба вызывает его действия по
+ * одной подписке и переносит прочитанное из цепи в записи приложения.
  *
- * Удержано не меньше того, что участник может потребовать назад прямо сейчас.
- * Пока идёт гарантийный срок ученика — это весь взнос; после него — сумма
- * возврата по Положению, которая тает по мере прохождения курса. Поэтому
- * возврат всегда обеспечен деньгами, а фонд можно тратить на расходы без
- * оглядки: в нём лежит только то, что вернуть уже нельзя.
- *
- * Резерв преподавателям наполняется до обязательства перед ними за оплаченное
- * время курса, и не больше. Всё сверх него остаётся в фонде, поэтому на
- * групповом курсе излишка в резерве не возникает.
+ * Пока идёт гарантийный срок участника, взнос удержан целиком. После срока
+ * контракт выделяет оплату занятий в резерв преподавателям и оставляет
+ * удержанной сумму возможного возврата; она уменьшается с каждым проведённым
+ * занятием.
  */
 @Injectable()
 export class EdubridgeFundsService {
@@ -39,13 +27,6 @@ export class EdubridgeFundsService {
     this.logger.setContext(EdubridgeFundsService.name);
   }
 
-  /** Сколько по подписке должно оставаться удержанным на этот момент. */
-  requiredLock(enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, now = new Date()): number {
-    const locked = toNumber(enrollment.locked_amount);
-    if (isEntryGuaranteeRunning(course, enrollment, now)) return locked;
-    return Math.min(locked, toNumber(refundOf(enrollment, course, false, now).refund));
-  }
-
   /** Подписки с удержанным взносом — все либо одного курса. */
   private async lockedEnrollments(coopname: string, onlyCourseId?: string): Promise<EdubridgeEnrollmentRecord[]> {
     const locked = await this.enrollments.findLocked(coopname);
@@ -54,127 +35,76 @@ export class EdubridgeFundsService {
 
   /**
    * Проход очереди — раз в десять минут — и вызов по курсу перед приёмом
-   * результата преподавателя: у действующих подписок освобождается удержанное сверх
-   * возвратной суммы. Освобождённое уходит в фонд, из него резерв преподавателям
-   * добирается до обязательства по курсу. Ошибка по одной подписке остальные не держит.
+   * результата преподавателя. По каждой подписке, у которой гарантийный срок
+   * участника истёк, вызывается `unlockfee`: контракт закрывает срок, выделяет
+   * оплату занятий в резерв и освобождает удержанное сверх возможного
+   * возврата. Удержанное в записи приложения сверяется с цепью. Ошибка по
+   * одной подписке остальные не держит.
    */
   async unlockDue(coopname: string, now = new Date(), onlyCourseId?: string): Promise<number> {
-    let unlocked = 0;
+    let closed = 0;
+    const touched = new Set<string>();
     for (const enrollment of await this.lockedEnrollments(coopname, onlyCourseId)) {
       const course = await this.courses.findById(coopname, enrollment.course_id);
       if (!course) continue;
-      const locked = toNumber(enrollment.locked_amount);
-      const excess = floor4(locked - this.requiredLock(enrollment, course, now));
-      if (!(excess > 0)) continue;
       try {
-        const symbol = symbolOf(enrollment.locked_amount);
-        const allot = Math.min(excess, toNumber((await this.target(coopname, course)).gap));
-        await this.chain.unlockFee({ coopname, sub_hash: enrollment.sub_hash, course_id: Number(course.chain_ref), amount: asset(excess, symbol), allot: allot > 0 ? asset(allot, symbol) : undefined });
-        const rest = floor4(locked - excess);
-        enrollment.locked_amount = rest > 0 ? asset(rest, symbol) : null;
-        await this.enrollments.save(enrollment);
-        await this.moveReserve(course, allot, symbol);
-        unlocked += 1;
+        if (await this.closeGuarantee(coopname, enrollment, course, now)) closed += 1;
+        touched.add(course.id);
       } catch (e) {
-        this.logger.error(`[EDU.FUNDS] разблокировка взноса по подписке ${enrollment.id}: ${(e as Error)?.message ?? e}`);
+        this.logger.error(`[EDU.FUNDS] гарантийный срок по подписке ${enrollment.id}: ${(e as Error)?.message ?? e}`);
       }
     }
-    if (unlocked) this.logger.info(`[EDU.FUNDS] освобождено удержанное по подпискам: ${unlocked}`);
-    return unlocked;
+    for (const courseId of touched) await this.syncCourse(coopname, courseId);
+    if (closed) this.logger.info(`[EDU.FUNDS] закрыт гарантийный срок по подпискам: ${closed}`);
+    return closed;
   }
 
-  /**
-   * Подписка закрыта либо отменена: цепь вернула удержанное в фонд сама. Резерв
-   * преподавателям по курсу выравнивается под новое оплаченное время — добирается
-   * из фонда либо возвращает в него лишнее. Сбой закрытие не отменяет: очередь
-   * выровняет резерв на следующем проходе.
-   */
-  async afterClosed(coopname: string, enrollment: EdubridgeEnrollmentRecord): Promise<void> {
-    const released = toNumber(enrollment.locked_amount);
-    const symbol = symbolOf(enrollment.locked_amount);
-    enrollment.locked_amount = null;
-    const course = await this.courses.findById(coopname, enrollment.course_id);
-    if (!course) return;
-    try {
-      await this.rebalance(coopname, course, enrollment.sub_hash, { allotUpTo: released, symbol });
-    } catch (e) {
-      this.logger.error(`[EDU.FUNDS] резерв преподавателям по курсу ${course.id} не выровнен: ${(e as Error)?.message ?? e}`);
+  /** Один вызов контракта по одной подписке и сверка удержанного с цепью. */
+  private async closeGuarantee(coopname: string, enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, now: Date): Promise<boolean> {
+    let sub = await this.chain.readSubscription(coopname, enrollment.sub_hash);
+    // Строки нет либо она открыта до учёта занятий — освобождать по ней контракту нечего.
+    if (!sub?.plan || Number(sub.plan.version) !== 1) return false;
+    let closed = false;
+    if (!sub.plan.released && !isEntryGuaranteeRunning(course, enrollment, now)) {
+      await this.chain.unlockFee({ coopname, sub_hash: enrollment.sub_hash });
+      sub = await this.chain.readSubscription(coopname, enrollment.sub_hash);
+      closed = true;
     }
+    const locked = Number.parseFloat(sub?.locked ?? '0') > 0 ? (sub?.locked as string) : null;
+    if (locked !== enrollment.locked_amount) {
+      enrollment.locked_amount = locked;
+      await this.enrollments.save(enrollment);
+    }
+    return closed;
   }
 
-  /** Результат преподавателя принят: цепь списала резерв, обязательство по курсу уменьшилось. */
-  async onSettled(coopname: string, courseId: string, amount: string): Promise<void> {
+  /** Подписка закрыта либо отменена: остаток по ней контракт разнёс сам, запись курса сверяется с цепью. */
+  async afterClosed(coopname: string, enrollment: EdubridgeEnrollmentRecord): Promise<void> {
+    enrollment.locked_amount = null;
+    await this.syncCourse(coopname, enrollment.course_id);
+  }
+
+  /** Результат преподавателя принят: контракт списал резерв курса, запись курса сверяется с цепью. */
+  async onSettled(coopname: string, courseId: string): Promise<void> {
+    await this.syncCourse(coopname, courseId);
+  }
+
+  /** Резерв преподавателям и выплаченное по курсу — из учёта курса в цепи. Сбой чтения запись не трогает. */
+  async syncCourse(coopname: string, courseId: string): Promise<void> {
     const course = await this.courses.findById(coopname, courseId);
     if (!course) return;
-    const symbol = symbolOf(amount);
-    course.teacher_settled_total = asset(toNumber(course.teacher_settled_total) + toNumber(amount), symbol);
-    course.teacher_reserve_balance = asset(Math.max(0, toNumber(course.teacher_reserve_balance) - toNumber(amount)), symbol);
-    await this.courses.save(course);
-  }
-
-  /** Обязательство перед преподавателями курса против того, что лежит в резерве. */
-  async target(coopname: string, course: EdubridgeCourseRecord): Promise<ReserveTarget> {
-    const coverage = (await this.enrollments.findByCourse(coopname, course.id)).map(coverageOf).filter((c): c is ReserveCoverage => c !== null);
-    const hoursPerMonth = (course.lessons_per_month * course.lesson_minutes) / MINUTES_IN_HOUR;
-    return reserveTarget(
-      {
-        cost_month: costOfHours(course.planned_hourly_rate, hoursPerMonth),
-        course_months: courseMonths(course.lessons_per_month, course.lessons_total),
-        starts_at: course.starts_at ? new Date(course.starts_at) : null,
-      },
-      coverage,
-      { balance: course.teacher_reserve_balance ?? '', settled: course.teacher_settled_total ?? '' }
-    );
-  }
-
-  private async rebalance(
-    coopname: string,
-    course: EdubridgeCourseRecord,
-    subHash: string,
-    opts: { allotUpTo: number; symbol: string }
-  ): Promise<void> {
-    const target = await this.target(coopname, course);
-    const symbol = opts.symbol || symbolOf(target.obligation);
-    const surplus = toNumber(target.surplus);
-    if (surplus > 0) {
-      await this.chain.freeReserve({ coopname, sub_hash: subHash, course_id: Number(course.chain_ref), amount: asset(surplus, symbol) });
-      await this.moveReserve(course, -surplus, symbol);
-      return;
-    }
-    const allot = Math.min(opts.allotUpTo, toNumber(target.gap));
-    if (allot > 0) {
-      await this.chain.allotReserve({ coopname, sub_hash: subHash, course_id: Number(course.chain_ref), amount: asset(allot, symbol) });
-      await this.moveReserve(course, allot, symbol);
+    try {
+      const funds = await this.chain.readCourseFunds(coopname, course.chain_ref);
+      if (!funds) return;
+      if (course.teacher_reserve_balance === funds.reserve && course.teacher_settled_total === funds.settled) return;
+      course.teacher_reserve_balance = funds.reserve;
+      course.teacher_settled_total = funds.settled;
+      // Подгруженные связи перебили бы section_id/level_id при сохранении.
+      course.section = undefined;
+      course.level = undefined;
+      await this.courses.save(course);
+    } catch (e) {
+      this.logger.warn(`[EDU.FUNDS] учёт курса ${courseId} не прочитан из цепи: ${(e as Error)?.message ?? e}`);
     }
   }
-
-  private async moveReserve(course: EdubridgeCourseRecord, delta: number, symbol: string): Promise<void> {
-    if (!delta) return;
-    course.teacher_reserve_balance = asset(Math.max(0, toNumber(course.teacher_reserve_balance) + delta), symbol);
-    await this.courses.save(course);
-  }
-}
-
-/** Оплаченное учеником время курса; подписка без срока оплаты в расчёт не идёт. */
-function coverageOf(e: EdubridgeEnrollmentRecord): ReserveCoverage | null {
-  if (!e.paid_until) return null;
-  // Отменённая подписка оплатила курс только до дня отмены: дальше занятий для неё нет.
-  const until = e.status === EduEnrollmentStatus.CANCELLED && e.cancelled_at ? new Date(e.cancelled_at) : new Date(e.paid_until);
-  return { from: new Date(e.created_at), until };
-}
-
-function toNumber(value: string | null | undefined): number {
-  return Number.parseFloat(String(value ?? '0')) || 0;
-}
-
-function symbolOf(value: string | null | undefined): string {
-  return String(value ?? '').trim().split(' ')[1] ?? '';
-}
-
-function floor4(value: number): number {
-  return Math.floor(Math.round(value * ASSET_SCALE * 10) / 10) / ASSET_SCALE;
-}
-
-function asset(value: number, symbol: string): string {
-  return `${value.toFixed(4)} ${symbol}`.trim();
 }

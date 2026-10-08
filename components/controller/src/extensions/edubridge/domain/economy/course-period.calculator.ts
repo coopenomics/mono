@@ -1,4 +1,8 @@
 /**
+ * Предварительный срок оплаты — для показа участнику до взноса. Срок считает
+ * и записывает контракт (`edubridge::chargefee`); после взноса приложение
+ * читает его из цепи.
+ *
  * Срок, который оплачивает взнос за весь курс разом. Курс длится столько
  * месяцев, сколько занимает программа, и заканчивается в один день для всех:
  * участник, пришедший в середине, вносит взнос за оставшиеся месяцы, а не за
@@ -13,9 +17,18 @@ export interface CoursePeriod {
   paid_until: Date;
 }
 
+/**
+ * Дата плюс календарные месяцы — так же, как считает контракт
+ * (`Edubridge::add_months`): числа, которого в месяце нет, не бывает,
+ * 31 января плюс месяц — последний день февраля.
+ */
 export function addMonths(date: Date, months: number): Date {
   const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const last = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, last));
   return result;
 }
 

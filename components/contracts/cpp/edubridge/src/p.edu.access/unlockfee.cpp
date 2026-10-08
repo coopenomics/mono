@@ -1,40 +1,42 @@
 /**
- * @brief Разблокировка взноса по истечении гарантийного срока курса.
+ * @brief Гарантийный срок участника истёк — взнос перестаёт удерживаться целиком.
  *
- * Срок вышел — возврата по гарантии уже не будет, и удержанный взнос
- * становится свободными средствами программы: из них кооператив оплачивает
- * расходы и выделяет резерв выплат преподавателям.
+ * Пока идёт гарантийный срок, взнос удержан весь: возврат по гарантии —
+ * полный. После срока остаётся возврат при отказе — половина остаточной
+ * стоимости подписки. Действие выделяет оплату занятий в резерв
+ * преподавателям и оставляет удержанной только сумму возможного возврата
+ * сверх резерва; остальное остаётся на кошельке программы.
  *
- * Одна ledger2-операция:
- *  - `o.edu.unlock` (TRANSFER w.edu.escrow → w.edu.fund, без проводки — оба на
- *    счёте 86).
+ * Дальше удержание уменьшается само, по мере проведения занятий
+ * (`chargelesson`). Суммы считает контракт. Приложение вызывает действие по
+ * одной подписке.
+ *
+ * Движения средств:
+ *  - `o.edu.unlock` (TRANSFER w.edu.escrow → w.edu.fund) — удержанное сверх
+ *    суммы возможного возврата;
+ *  - `o.edu.allot` (TRANSFER w.edu.fund → w.edu.teach) — оплата занятий.
  *
  * Guards:
- *  - amount > 0 в символе кооператива;
- *  - подписка с указанным hash существует;
- *  - разблокируется не больше удержанного по этой подписке.
+ *  - подписка существует и ведёт учёт занятий;
+ *  - гарантийный срок участника истёк и ещё не закрыт.
  *
  * @ingroup public_edubridge_actions
  */
 void edubridge::unlockfee(eosio::name coopname,
-                          checksum256 sub_hash,
-                          eosio::asset amount) {
+                          checksum256 sub_hash) {
   require_auth(coopname);
-
-  Edubridge::check_money(amount, "Сумма разблокировки взноса");
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
-  eosio::check(amount <= sub->locked_or_zero(),
-               "Разблокируется не больше удержанного по подписке");
+  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её и откройте заново");
+  eosio::check(!sub->plan.value().released, "Гарантийный срок по подписке уже закрыт");
 
-  Ledger2::apply(_edubridge, coopname,
-                 operations::edubridge::UNLOCK_FEE,
-                 processes::edubridge::ACCESS,
-                 amount, coopname, sub_hash,
-                 Edubridge::Memo::get_unlock_fee_memo());
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
+  eosio::check(!Edubridge::is_guarantee_running(terms, *sub, now),
+               "Гарантийный срок участника ещё идёт: взнос остаётся удержанным");
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
-    s.set_amounts(s.charged_or_zero(), s.reserved_or_zero(), s.locked_or_zero() - amount);
+    Edubridge::close_guarantee(coopname, terms, s, now);
   });
 }

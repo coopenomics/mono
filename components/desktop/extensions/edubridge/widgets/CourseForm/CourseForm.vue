@@ -66,6 +66,12 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
+      //- Способ расчёта с преподавателем задаётся при создании курса; при
+      //- действующих подписках контракт его менять не даёт.
+      .row.items-center.no-wrap.q-gutter-xs
+        BaseCheckbox(v-model="payPerLearner")
+          | {{ $t('edubridge.courseForm.payPerLearnerCheckbox') }}
+        FieldHelp(:text="COURSE_FORM_HELP.payPerLearner")
 
     //- Целевой членский взнос один на кооператив: здесь он только виден, а
     //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
@@ -243,6 +249,7 @@ const {
   lessonsTotal,
   lessonMinutes,
   plannedRate,
+  payPerLearner,
   guaranteeDays,
   coursePayment,
   courseDiscount,

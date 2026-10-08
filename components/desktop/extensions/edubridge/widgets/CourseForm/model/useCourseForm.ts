@@ -45,6 +45,7 @@ function emptyForm(): CourseFormFields {
     lessons_total: 64,
     lesson_minutes: 60,
     planned_hourly_rate: '',
+    pay_per_learner: true,
     course_payment_enabled: false,
     course_discount_percent: 0,
     starts_at: null,
@@ -131,6 +132,8 @@ function useEconomyFields(symbol: ComputedRef<string>) {
   const lessonsTotal = ref('64');
   const lessonMinutes = ref('60');
   const plannedRate = ref('');
+  /** Способ расчёта с преподавателем: за каждого участника либо фиксированный за занятие. */
+  const payPerLearner = ref(true);
   const guaranteeDays = ref('14');
   const coursePayment = ref(false);
   const courseDiscount = ref('0');
@@ -149,12 +152,13 @@ function useEconomyFields(symbol: ComputedRef<string>) {
     lessonsTotal.value = String(c.lessons_total);
     lessonMinutes.value = String(c.lesson_minutes);
     plannedRate.value = c.planned_hourly_rate ? String(parseFloat(c.planned_hourly_rate)) : '';
+    payPerLearner.value = Boolean(c.pay_per_learner);
     guaranteeDays.value = String(c.guarantee_days);
     coursePayment.value = c.course_payment_enabled;
     courseDiscount.value = String(c.course_discount_percent);
   }
 
-  return { lessonsPerMonth, lessonsTotal, lessonMinutes, plannedRate, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
+  return { lessonsPerMonth, lessonsTotal, lessonMinutes, plannedRate, payPerLearner, guaranteeDays, coursePayment, courseDiscount, economyParams, fillEconomy };
 }
 
 /** Расчёт взноса считает сервер: та же арифметика, что при сохранении курса. */
@@ -470,6 +474,7 @@ export function createCourseFormState(course: CourseSource) {
         external_ref: access.isPlatform.value ? form.external_ref : '',
         guarantee_days: Number(economy.guaranteeDays.value || 0),
         ...economy.economyParams.value,
+        pay_per_learner: economy.payPerLearner.value,
       };
       const current = course();
       const saved = current ? await updateCourse({ ...data, id: current.id }) : await createCourse(data);

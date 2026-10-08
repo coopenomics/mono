@@ -48,20 +48,33 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     };
   }
 
+  private one(name: string, data: object, coopname: string): Promise<InnerTransactResult> {
+    return this.chain.transact(this.action(name, data as Record<string, unknown>, coopname));
+  }
+
+  async setCourse(data: EdubridgeContract.Actions.Setcourse.ISetcourse): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Setcourse.actionName, data, data.coopname);
+  }
+
+  async setAssignment(data: EdubridgeContract.Actions.Setassign.ISetassign): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Setassign.actionName, data, data.coopname);
+  }
+
+  async removeAssignment(data: EdubridgeContract.Actions.Delassign.IDelassign): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Delassign.actionName, data, data.coopname);
+  }
+
   async convertAndSubscribe(
     convert: EdubridgeContract.Actions.Convert.IConvert | null,
-    subscribe:
-      | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
-      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
+    open: EdubridgeContract.Actions.Opensub.IOpensub | null,
     charge: EdubridgeContract.Actions.Chargefee.IChargefee,
     extras: EduSubscribeExtras = {}
   ): Promise<InnerTransactResult> {
     const coopname = charge.coopname;
     await this.prepare(coopname);
-    const second =
-      subscribe.kind === 'open'
-        ? this.action(EdubridgeContract.Actions.Opensub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname)
-        : this.action(EdubridgeContract.Actions.Extendsub.actionName, subscribe.data as unknown as Record<string, unknown>, coopname);
     // Конвертации нет, когда взнос покрыт остатком кошелька программы целиком:
     // заявление тогда публикуется отдельным действием — в реестр документов
     // оно обязано попасть в любом случае.
@@ -70,17 +83,12 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
       : extras.statement
         ? [this.action(EdubridgeContract.Actions.Regstatement.actionName, { ...extras.statement, statement: this.chainDoc(extras.statement.statement) }, coopname)]
         : [];
-    // Удержание — после списания взноса: берётся из уже собранного.
-    const lock = positive(extras.lock)
-      ? [this.action(EdubridgeContract.Actions.Lockfee.actionName, { coopname, sub_hash: charge.sub_hash, amount: extras.lock }, coopname)]
-      : [];
     return this.chain.transact([
       ...first,
-      second,
-      // Списание в фонд идёт последним: подписка к этому моменту существует,
-      // и контракт связывает взнос с ней.
+      ...(open ? [this.action(EdubridgeContract.Actions.Opensub.actionName, open as unknown as Record<string, unknown>, coopname)] : []),
+      // Взнос идёт последним: подписка к этому моменту существует, и контракт
+      // считает по ней сумму, срок и удержание по гарантии.
       this.action(EdubridgeContract.Actions.Chargefee.actionName, charge as unknown as Record<string, unknown>, coopname),
-      ...lock,
     ]);
   }
 
@@ -96,23 +104,14 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.transact(this.action(EdubridgeContract.Actions.Expiresub.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
 
-  async unlockFee(data: { coopname: string; sub_hash: string; course_id: number; amount: string; allot?: string }): Promise<InnerTransactResult> {
+  async unlockFee(data: EdubridgeContract.Actions.Unlockfee.IUnlockfee): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    const { coopname, sub_hash } = data;
-    return this.chain.transact([
-      this.action(EdubridgeContract.Actions.Unlockfee.actionName, { coopname, sub_hash, amount: data.amount }, coopname),
-      ...(positive(data.allot) ? [this.action(EdubridgeContract.Actions.Allotfee.actionName, { coopname, sub_hash, course_id: data.course_id, amount: data.allot }, coopname)] : []),
-    ]);
-  }
-
-  async allotReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult> {
-    await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Allotfee.actionName, data, data.coopname));
+    return this.one(EdubridgeContract.Actions.Unlockfee.actionName, data, data.coopname);
   }
 
   async cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Cancelsub.actionName, data as unknown as Record<string, unknown>, data.coopname));
+    return this.one(EdubridgeContract.Actions.Cancelsub.actionName, data, data.coopname);
   }
 
   async claimGuarantee(data: EdubridgeContract.Actions.Warrclaim.IWarrclaim): Promise<InnerTransactResult> {
@@ -122,21 +121,48 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     );
   }
 
-  async grantGuarantee(
-    cancel: EdubridgeContract.Actions.Cancelsub.ICancelsub,
-    grant: EdubridgeContract.Actions.Warrgrant.IWarrgrant
-  ): Promise<InnerTransactResult> {
-    await this.prepare(cancel.coopname);
-    // Возврат и протокол — одной транзакцией: решение совета без возврата и возврат без основания недопустимы.
-    return this.chain.transact([
-      this.action(EdubridgeContract.Actions.Cancelsub.actionName, cancel as unknown as Record<string, unknown>, cancel.coopname),
-      this.action(EdubridgeContract.Actions.Warrgrant.actionName, { ...grant, decision: this.chainDoc(grant.decision) }, cancel.coopname),
-    ]);
+  async grantGuarantee(data: EdubridgeContract.Actions.Warrgrant.IWarrgrant): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(
+      this.action(EdubridgeContract.Actions.Warrgrant.actionName, { ...data, decision: this.chainDoc(data.decision) }, data.coopname)
+    );
   }
 
-  async freeReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult> {
+  async openLesson(data: EdubridgeContract.Actions.Openlesson.IOpenlesson): Promise<InnerTransactResult> {
     await this.prepare(data.coopname);
-    return this.chain.transact(this.action(EdubridgeContract.Actions.Freereserve.actionName, data, data.coopname));
+    return this.one(EdubridgeContract.Actions.Openlesson.actionName, data, data.coopname);
+  }
+
+  async dropLesson(data: EdubridgeContract.Actions.Droplesson.IDroplesson): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Droplesson.actionName, data, data.coopname);
+  }
+
+  async chargeLesson(data: EdubridgeContract.Actions.Chargelesson.IChargelesson): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.one(EdubridgeContract.Actions.Chargelesson.actionName, data, data.coopname);
+  }
+
+  // ── Чтение расчётов контракта ──────────────────────────────────────────
+
+  private get code(): string {
+    return EdubridgeContract.contractName.production;
+  }
+
+  readSubscription(coopname: string, subHash: string): Promise<EdubridgeContract.Tables.EduSubs.IEduSubscription | null> {
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduSubs.tableName, subHash, 'secondary', 'sha256');
+  }
+
+  readTerms(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduTerms.IEduTerms | null> {
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduTerms.tableName, String(courseRef));
+  }
+
+  readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null> {
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduLessons.tableName, ridHash, 'secondary', 'sha256');
+  }
+
+  readCourseFunds(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduCourses.IEduCourse | null> {
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduCourses.tableName, String(courseRef));
   }
 
   async holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult> {
@@ -197,9 +223,4 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     await this.prepare(data.coopname);
     return this.chain.transact(this.action(EdubridgeContract.Actions.Recallrid.actionName, data as unknown as Record<string, unknown>, data.coopname));
   }
-}
-
-/** Сумма цепи больше нуля: нулевые движения в транзакцию не идут. */
-function positive(asset: string | null | undefined): asset is string {
-  return Boolean(asset) && parseFloat(String(asset)) > 0;
 }

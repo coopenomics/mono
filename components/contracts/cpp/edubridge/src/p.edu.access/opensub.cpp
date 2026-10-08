@@ -1,18 +1,16 @@
 /**
  * @brief Открытие подписки на курс для обучающегося.
  *
- * Вызывается после конвертации членского взноса (`convert`): фиксирует в
- * RAM рабочее состояние доступа — кто, на какой курс, для какого
- * обучающегося и до какой даты оплатил. `statement_hash` связывает подписку
- * с Заявлением о конвертации, по которому оплачен первый период.
+ * Создаёт строку подписки без оплаченного срока. Срок, взнос и резерв
+ * преподавателям считает `chargefee` — приложение вызывает его той же
+ * транзакцией.
  *
- * Движений средств нет. Анкер процесса p.edu.access — `sub_hash`.
+ * Движений средств нет.
  *
  * Guards:
- *  - period ∈ {month, course, year};
- *  - sub_hash ещё не занят;
- *  - paid_until в будущем;
- *  - пайщик — активный член кооператива.
+ *  - условия курса заданы;
+ *  - пайщик — действующий член кооператива;
+ *  - подписки с таким hash ещё нет.
  *
  * @ingroup public_edubridge_actions
  */
@@ -21,24 +19,19 @@ void edubridge::opensub(eosio::name coopname,
                         checksum256 sub_hash,
                         uint64_t learner_id,
                         uint64_t course_id,
-                        eosio::name period,
-                        eosio::time_point_sec paid_until,
                         checksum256 statement_hash) {
   require_auth(coopname);
 
-  eosio::check(Edubridge::SubscriptionPeriod::is_valid(period),
-               "Недопустимый период подписки: ожидается month, course или year");
-
-  const auto now = eosio::current_time_point();
-  eosio::check(paid_until > eosio::time_point_sec(now),
-               "Срок оплаты подписки должен быть в будущем");
-
   get_participant_or_fail(coopname, username);
+  Edubridge::get_terms_or_fail(coopname, course_id);
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto by_hash = subs.get_index<"byhash"_n>();
   eosio::check(by_hash.find(sub_hash) == by_hash.end(),
                "Подписка с указанным hash уже существует");
+
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const eosio::asset zero(0, _root_govern_symbol);
 
   subs.emplace(RamPayer::of(subs, coopname), [&](auto& s) {
     s.id             = get_global_id_in_scope(_edubridge, coopname, "edusubs"_n);
@@ -46,12 +39,19 @@ void edubridge::opensub(eosio::name coopname,
     s.username       = username;
     s.learner_id     = learner_id;
     s.course_id      = course_id;
-    s.period         = period;
-    s.paid_until     = paid_until;
+    s.period         = Edubridge::SubscriptionPeriod::MONTH;
+    s.paid_until     = now;
     s.statement_hash = statement_hash;
-    s.created_at     = eosio::time_point_sec(now);
-    s.updated_at     = eosio::time_point_sec(now);
-    const eosio::asset zero(0, _root_govern_symbol);
+    s.created_at     = now;
+    s.updated_at     = now;
     s.set_amounts(zero, zero, zero);
+    Edubridge::edu_sub_plan plan;
+    plan.version   = 1;
+    plan.paid_from = now;
+    plan.reserve   = zero;
+    plan.due       = zero;
+    s.plan.emplace(plan);
   });
+
+  Edubridge::update_terms(coopname, course_id, [&](auto& t) { t.subs_active += 1; });
 }

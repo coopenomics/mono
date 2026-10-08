@@ -71,6 +71,7 @@
             DataRow(:label="$t('edubridge.adminCoursePage.plannedHourlyRateLabel')" :value="formatAsset2Digits(course.planned_hourly_rate)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.plannedHourlyRate')")
+            DataRow(:label="$t('edubridge.adminCoursePage.payModeLabel')" :value="course.pay_per_learner ? $t('edubridge.adminCoursePage.payModePerLearner') : $t('edubridge.adminCoursePage.payModeFixed')" align="spread")
             DataRow(:label="$t('edubridge.adminCoursePage.costMonthLabel')" :value="formatAsset2Digits(economy.plan.cost_month)" align="spread")
               template(#label-append)
                 FieldHelp(:text="$t('edubridge.adminCoursePage.economyHelp.costMonth')")

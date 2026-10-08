@@ -12,6 +12,7 @@
 
 #include "../lib/index.hpp"
 #include "../lib/core/edubridge/edubridge.hpp"
+#include "../lib/core/edubridge/economy.hpp"
 #include "../lib/core/ledger2/ledger2.hpp"
 #include "../expense/expense.hpp"   // ExpenseDomain::item / callback_handler — для inline-action в шасси расходов
 
@@ -25,20 +26,24 @@ using namespace Edubridge;
  * «Образовательный мост»).
  *
  * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (14 actions): convert, regstatement, warrclaim, warrgrant, opensub,
- *    chargefee, lockfee, unlockfee, allotfee, extendsub, freereserve,
- *    cancelsub, retshare, expiresub — членский взнос за доступ к курсу
- *    вносится конвертацией паевого взноса (w.wal.share → w.edu.member,
- *    o.edu.conv) по Заявлению о конвертации и списывается в фонд программы
- *    (o.edu.fee); отмена возвращает взнос по Положению (o.edu.refund,
- *    o.edu.retshr); подписка на курс — рабочее состояние в RAM, стирается по
- *    истечении либо отмене.
+ *  - **p.edu.access** (11 actions): setcourse, convert, regstatement,
+ *    warrclaim, warrgrant, opensub, chargefee, unlockfee, cancelsub, retshare,
+ *    expiresub — членский взнос за доступ к курсу вносится конвертацией
+ *    паевого взноса (w.wal.share → w.edu.member, o.edu.conv) по Заявлению о
+ *    конвертации и списывается в фонд программы (o.edu.fee). Все суммы
+ *    считает контракт по условиям курса (таблица `eduterms`): взнос и
+ *    оплаченный срок, удержание по гарантии, резерв преподавателям по
+ *    подписке, возврат при отмене (o.edu.refund, o.edu.retshr). Подписка на
+ *    курс — рабочее состояние в RAM, стирается по истечении либо отмене.
  *  - **p.edu.spend** (2 actions): createexp, onexpdone — расход программы из
  *    фонда через общее шасси расходов.
- *  - **p.edu.rid** (11 actions): holdrid, submitrid, onridauth, onriddecl,
- *    signridact, apprvridact, dclridact, acceptrid, declinerid, recallrid,
- *    wthshare — преподаватель отчитывается по занятию и передаёт
- *    материалы на ответственное хранение (o.edu.hold, Дт 08 / Кт 76); по
+ *  - **p.edu.rid** (14 actions): openlesson, chargelesson, droplesson,
+ *    holdrid, submitrid, onridauth, onriddecl, signridact, apprvridact,
+ *    dclridact, acceptrid, declinerid, recallrid,
+ *    wthshare — преподаватель отчитывается по занятию, контракт по одной
+ *    подписке за действие считает его взнос (оплата занятия уходит из
+ *    резерва подписки), и преподаватель передаёт материалы на
+ *    ответственное хранение на эту сумму (o.edu.hold, Дт 08 / Кт 76); по
  *    истечении гарантийного срока курса заявление уходит в совет, и по
  *    решению с актом результат принимается в паевой фонд (o.edu.rid,
  *    Дт 04 / Кт 08, и o.edu.ridshr, w.edu.hold → w.edu.share, Дт 76 / Кт 80).
@@ -46,13 +51,13 @@ using namespace Edubridge;
  *    (o.edu.retrid, Дт 76 / Кт 08). Паевой взнос с кошелька программы
  *    преподаватель переводит в ЦПП «Цифровой Кошелёк» своим заявлением
  *    (o.edu.wthshr, w.edu.share → w.wal.share).
- *  - **p.edu.teach** (4 actions): signcontract, apprvcontr, dclinecontr,
- *    termcontract — договор УХД преподавателя подписывается двумя сторонами:
+ *  - **p.edu.teach** (6 actions): signcontract, apprvcontr, dclinecontr,
+ *    termcontract, setassign, delassign — договор УХД преподавателя подписывается двумя сторонами:
  *    первая подпись преподавателя, вторая — председателя совета через
  *    одобрение (`Soviet::create_approval` → `soviet::confirmapprv` → коллбэк
- *    сюда), как договор в «Благоросте». Допуск преподавателя к курсу —
- *    назначение, которое ведёт приложение кооператива; отдельного документа
- *    и действия в цепи у него нет. Движений средств нет.
+ *    сюда), как договор в «Благоросте». Допуск преподавателя к курсу и его
+ *    ставка на курсе хранятся в таблице `eduassigns`; отдельного документа
+ *    у допуска нет. Движений средств нет.
  *
  * Все действия авторизуются ключом кооператива (`require_auth(coopname)`):
  * пайщик подписывает документ, отправляет его бэкенд кооператива — как
@@ -87,7 +92,28 @@ public:
                                  document2 statement);
 
   /**
-   * @brief Открыть подписку на курс для обучающегося на оплаченный период.
+   * @brief Задать условия курса: плановую ставку часа, способ расчёта с
+   * преподавателем (за каждого участника либо фиксированный за занятие),
+   * целевой членский взнос за месяц, расписание, скидку за взнос разом,
+   * гарантийный срок и дату начала занятий. По ним контракт считает все суммы.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void setcourse(eosio::name coopname,
+                                   uint64_t course_id,
+                                   eosio::asset planned_rate,
+                                   bool per_learner,
+                                   eosio::asset target_fee_month,
+                                   uint32_t lessons_per_month,
+                                   uint32_t lessons_total,
+                                   uint32_t lesson_minutes,
+                                   bool course_payment,
+                                   uint32_t discount_bp,
+                                   uint32_t guarantee_days,
+                                   eosio::time_point_sec starts_at);
+
+  /**
+   * @brief Открыть подписку на курс для обучающегося. Срок и взнос считает
+   * `chargefee`.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void opensub(eosio::name coopname,
@@ -95,62 +121,32 @@ public:
                                  checksum256 sub_hash,
                                  uint64_t learner_id,
                                  uint64_t course_id,
-                                 eosio::name period,
-                                 eosio::time_point_sec paid_until,
                                  checksum256 statement_hash);
 
   /**
-   * @brief Списать членский взнос ученика в фонд программы. Один шаг ledger2:
-   * o.edu.fee (TRANSFER w.edu.member → w.edu.fund, без проводки — оба на 86).
-   * Вызывается при открытии и продлении подписки: стоимость подписки уходит в
-   * распоряжение кооператива (Положение ЦПП «Образование», п. 4.2.2).
+   * @brief Членский взнос участника за период (`month` либо `course`). Сумму,
+   * оплаченный срок и резерв преподавателям считает контракт; `expected` —
+   * сумма из подписанного заявления, расхождение с расчётом — отказ.
+   * Движения: o.edu.fee и, пока идёт гарантийный срок участника, o.edu.lock;
+   * после срока — o.edu.allot на оплату занятий.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void chargefee(eosio::name coopname,
                                    eosio::name username,
                                    checksum256 sub_hash,
-                                   eosio::asset amount);
+                                   eosio::name period,
+                                   eosio::asset expected,
+                                   checksum256 statement_hash);
 
   /**
-   * @brief Удержать взнос до конца гарантийного срока курса. Один шаг ledger2:
-   * o.edu.lock (TRANSFER w.edu.fund → w.edu.escrow, без проводки — оба на 86).
-   * Пока срок идёт, участник вправе закрыть подписку с возвратом, и на расходы
-   * программы этот взнос не идёт.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void lockfee(eosio::name coopname,
-                                 checksum256 sub_hash,
-                                 eosio::asset amount);
-
-  /**
-   * @brief Разблокировать взнос по истечении гарантийного срока курса. Один шаг
-   * ledger2: o.edu.unlock (TRANSFER w.edu.escrow → w.edu.fund).
+   * @brief Закрыть гарантийный срок участника: взнос перестаёт удерживаться
+   * целиком. Оплата занятий выделяется в резерв преподавателям (o.edu.allot),
+   * удержанной остаётся сумма возможного возврата при отказе, остальное —
+   * на кошельке программы (o.edu.unlock). Суммы считает контракт.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void unlockfee(eosio::name coopname,
-                                   checksum256 sub_hash,
-                                   eosio::asset amount);
-
-  /**
-   * @brief Выделить долю собранного взноса в резерв выплат преподавателям.
-   * Один шаг ledger2: o.edu.allot (TRANSFER w.edu.fund → w.edu.teach, без
-   * проводки — оба на 86). В фонде остаются свободные средства программы.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void allotfee(eosio::name coopname,
-                                  checksum256 sub_hash,
-                                  uint64_t course_id,
-                                  eosio::asset amount);
-
-  /**
-   * @brief Высвободить резерв выплат преподавателям обратно в фонд при отмене
-   * подписки. Один шаг ledger2: o.edu.free (TRANSFER w.edu.teach → w.edu.fund).
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void freereserve(eosio::name coopname,
-                                     checksum256 sub_hash,
-                                     uint64_t course_id,
-                                     eosio::asset amount);
+                                   checksum256 sub_hash);
 
   /**
    * @brief Опубликовать Заявление о взносе (шаблон 3011), целиком покрытом
@@ -174,36 +170,29 @@ public:
                                    document2 statement);
 
   /**
-   * @brief Опубликовать протокол решения совета об удовлетворении заявления
-   * по Гарантийным условиям (шаблон 3014). Возврат стоимости проводит
-   * `cancelsub` в той же транзакции.
+   * @brief Решение совета об удовлетворении заявления по Гарантийным условиям
+   * (шаблон 3014): подписка аннулируется, весь взнос по ней возвращается в
+   * паевой взнос участника. Сумму берёт контракт.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void warrgrant(eosio::name coopname,
                                    eosio::name username,
                                    checksum256 claim_hash,
+                                   checksum256 sub_hash,
                                    document2 decision);
 
   /**
-   * @brief Продлить подписку: новый срок оплаты строго больше прежнего.
-   * @ingroup public_edubridge_actions
-   */
-  [[eosio::action]] void extendsub(eosio::name coopname,
-                                   checksum256 sub_hash,
-                                   eosio::time_point_sec paid_until,
-                                   checksum256 statement_hash);
-
-  /**
-   * @brief Отменить подписку с возвратом членского взноса. Движения ledger2:
-   * o.edu.refund (фонд → кошелёк ЦПП ученика) и, при `to_share`, o.edu.retshr
-   * (кошелёк ЦПП → паевой). Сумму возврата считает кооператив по Положению ЦПП.
+   * @brief Отменить подписку с возвратом членского взноса. Основание и сумму
+   * определяет контракт: недобор и отмена до начала занятий — взнос целиком,
+   * отказ в ходе подписки — половина остаточной стоимости подписки. Движения:
+   * o.edu.refund (кошелёк программы → кошелёк членских взносов участника) и,
+   * при недоборе, o.edu.retshr (→ паевой взнос).
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void cancelsub(eosio::name coopname,
                                    eosio::name username,
                                    checksum256 sub_hash,
-                                   eosio::asset refund,
-                                   bool to_share);
+                                   bool underfilled);
 
   /**
    * @brief Прекратить участие пайщика в ЦПП «Образование» по его заявлению об
@@ -261,12 +250,37 @@ public:
   [[eosio::action]] void holdrid(eosio::name coopname,
                                  eosio::name username,
                                  checksum256 rid_hash,
-                                 uint64_t assignment_id,
-                                 uint64_t course_id,
-                                 eosio::asset amount,
                                  eosio::name rid_type,
-                                 eosio::time_point_sec hold_until,
                                  document2 act);
+
+  /**
+   * @brief Преподаватель отчитался о занятии — открыть расчёт с участниками.
+   * Фиксирует дату, длительность и ставку преподавателя на курсе.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void openlesson(eosio::name coopname,
+                                    eosio::name username,
+                                    checksum256 rid_hash,
+                                    uint64_t assignment_id,
+                                    eosio::time_point_sec held_at,
+                                    uint32_t minutes);
+
+  /**
+   * @brief Отозвать отчёт о занятии до расчёта с участниками.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void droplesson(eosio::name coopname,
+                                    checksum256 rid_hash);
+
+  /**
+   * @brief Расчёт за занятие по одной подписке: оплата занятия уходит из
+   * резерва подписки, взнос преподавателя по его ставке прибавляется к сумме
+   * занятия, разница до плановой ставки поступает на кошелёк программы.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void chargelesson(eosio::name coopname,
+                                      checksum256 rid_hash,
+                                      checksum256 sub_hash);
 
   /**
    * @brief Преподаватель подаёт Заявление о паевом взносе результатом
@@ -416,6 +430,24 @@ public:
                                      eosio::name username,
                                      checksum256 contract_hash,
                                      std::string reason);
+
+  /**
+   * @brief Допуск преподавателя к курсу и его ставка за час на одного
+   * участника; не выше плановой ставки курса. Меняется по ходу курса.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void setassign(eosio::name coopname,
+                                   uint64_t assignment_id,
+                                   eosio::name username,
+                                   uint64_t course_id,
+                                   eosio::asset rate);
+
+  /**
+   * @brief Снять допуск преподавателя к курсу.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void delassign(eosio::name coopname,
+                                   uint64_t assignment_id);
 
   /**
    * @brief Прекратить Договор участия в хозяйственной деятельности — при

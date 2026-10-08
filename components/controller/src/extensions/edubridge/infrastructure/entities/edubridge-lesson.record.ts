@@ -33,5 +33,8 @@ export class EdubridgeLessonRecord {
   /** Взнос, оформленный по этому занятию; null — отчёт без взноса. */
   public contribution_id!: string | null;
 
+  /** Участников с оплаченным доступом, по которым контракт провёл расчёт за занятие; `null` — расчёт не проводился. */
+  public learners_count!: number | null;
+
   public created_at!: Date;
 }

@@ -77,33 +77,16 @@ export interface IChargefee {
   coopname: IName
   username: IName
   sub_hash: IChecksum256
-  amount: IAsset
-}
-
-export interface ILockfee {
-  coopname: IName
-  sub_hash: IChecksum256
-  amount: IAsset
+  /** Период оплаты: month либо course. Сумму и срок считает контракт. */
+  period: IName
+  /** Сумма из подписанного заявления; расхождение с расчётом контракта — отказ. */
+  expected: IAsset
+  statement_hash: IChecksum256
 }
 
 export interface IUnlockfee {
   coopname: IName
   sub_hash: IChecksum256
-  amount: IAsset
-}
-
-export interface IAllotfee {
-  coopname: IName
-  sub_hash: IChecksum256
-  course_id: IUint64
-  amount: IAsset
-}
-
-export interface IFreereserve {
-  coopname: IName
-  sub_hash: IChecksum256
-  course_id: IUint64
-  amount: IAsset
 }
 
 export interface IRegstatement {
@@ -123,6 +106,7 @@ export interface IWarrgrant {
   coopname: IName
   username: IName
   claim_hash: IChecksum256
+  sub_hash: IChecksum256
   decision: IDocument2
 }
 
@@ -130,8 +114,8 @@ export interface ICancelsub {
   coopname: IName
   username: IName
   sub_hash: IChecksum256
-  refund: IAsset
-  to_share: boolean
+  /** Отмена курса кооперативом по недобору: взнос целиком и сразу в паевой взнос. */
+  underfilled: IBool
 }
 
 export interface IRetshare {
@@ -154,16 +138,27 @@ export interface IOpensub {
   sub_hash: IChecksum256
   learner_id: IUint64
   course_id: IUint64
-  period: IName
-  paid_until: ITimePointSec
   statement_hash: IChecksum256
 }
 
-export interface IExtendsub {
+/** Условия курса: по ним контракт считает все суммы процесса. */
+export interface ISetcourse {
   coopname: IName
-  sub_hash: IChecksum256
-  paid_until: ITimePointSec
-  statement_hash: IChecksum256
+  course_id: IUint64
+  /** Плановая ставка часа, заложенная во взнос участника, — предел ставки преподавателя. */
+  planned_rate: IAsset
+  /** Взнос преподавателя за занятие считается за каждого участника; false — фиксированный за занятие. */
+  per_learner: IBool
+  target_fee_month: IAsset
+  lessons_per_month: IUint32
+  lessons_total: IUint32
+  lesson_minutes: IUint32
+  course_payment: IBool
+  /** Скидка за взнос разом, сотые доли процента. */
+  discount_bp: IUint32
+  guarantee_days: IUint32
+  /** Начало занятий; нулевое время — курс не активирован. */
+  starts_at: ITimePointSec
 }
 
 export interface IExpiresub {
@@ -177,13 +172,30 @@ export interface IHoldrid {
   coopname: IName
   username: IName
   rid_hash: IChecksum256
-  assignment_id: IUint64
-  /** Номер курса приложения — тот же, что в подписке; из резерва этого курса результат оплачивается при приёме. */
-  course_id: IUint64
-  amount: IAsset
   rid_type: IName
-  hold_until: ITimePointSec
   act: IDocument2
+}
+
+/** Преподаватель отчитался о занятии — открывается расчёт с участниками. */
+export interface IOpenlesson {
+  coopname: IName
+  username: IName
+  rid_hash: IChecksum256
+  assignment_id: IUint64
+  held_at: ITimePointSec
+  minutes: IUint32
+}
+
+export interface IDroplesson {
+  coopname: IName
+  rid_hash: IChecksum256
+}
+
+/** Расчёт за занятие по одной подписке. */
+export interface IChargelesson {
+  coopname: IName
+  rid_hash: IChecksum256
+  sub_hash: IChecksum256
 }
 
 export interface ISubmitrid {
@@ -279,6 +291,20 @@ export interface ITermcontract {
   reason: string
 }
 
+/** Допуск преподавателя к курсу и его ставка за час на одного участника. */
+export interface ISetassign {
+  coopname: IName
+  assignment_id: IUint64
+  username: IName
+  course_id: IUint64
+  rate: IAsset
+}
+
+export interface IDelassign {
+  coopname: IName
+  assignment_id: IUint64
+}
+
 // ── Таблицы ──────────────────────────────────────────────────────────────
 
 /**
@@ -301,6 +327,68 @@ export interface IEduSubscription {
   reserved?: IAsset
   /** Удержано до конца гарантийного срока курса. */
   locked?: IAsset
+  /** Учёт занятий по подписке; version = 1 — ведётся. */
+  plan?: IEduSubPlan
+}
+
+/** Учёт занятий по подписке: по нему контракт считает расчёт с преподавателем и возврат. */
+export interface IEduSubPlan {
+  version: number
+  paid_from: ITimePointSec
+  lessons_paid: IUint32
+  lessons_done: IUint32
+  last_lesson: IUint32
+  /** Остаток оплаты занятий по плановой ставке — за непроведённые занятия. */
+  reserve: IAsset
+  /** Взнос преподавателей за проведённые занятия, ещё не выделенный в резерв. */
+  due: IAsset
+  /** Гарантийный срок участника закрыт: удерживается только сумма возможного возврата. */
+  released: IBool
+}
+
+/** eduterms (scope = coopname, ключ — course_id) — условия курса, по которым считаются суммы. */
+export interface IEduTerms {
+  course_id: IUint64
+  planned_rate: IAsset
+  per_learner: IBool
+  target_fee_month: IAsset
+  lessons_per_month: IUint32
+  lessons_total: IUint32
+  lesson_minutes: IUint32
+  course_payment: IBool
+  discount_bp: IUint32
+  guarantee_days: IUint32
+  starts_at: ITimePointSec
+  subs_active: IUint32
+  lessons_opened: IUint32
+  open_lesson_id: IUint64
+  last_held_at: ITimePointSec
+}
+
+/** eduassigns (scope = coopname, ключ — assignment_id) — допуск преподавателя к курсу и его ставка. */
+export interface IEduAssignment {
+  assignment_id: IUint64
+  username: IName
+  course_id: IUint64
+  rate: IAsset
+}
+
+/** edulessons (scope = coopname) — занятие, по которому идёт расчёт с участниками. */
+export interface IEduLesson {
+  id: IUint64
+  rid_hash: IChecksum256
+  course_id: IUint64
+  assignment_id: IUint64
+  username: IName
+  number: IUint32
+  held_at: ITimePointSec
+  minutes: IUint32
+  rate: IAsset
+  /** Ставка преподавателя за проведённое время: за одного участника либо за всё занятие. */
+  charge: IAsset
+  learners: IUint32
+  amount: IAsset
+  created_at: ITimePointSec
 }
 
 /**

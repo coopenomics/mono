@@ -38,6 +38,7 @@
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.number')" :value="String(details.lesson_number)")
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.heldAt')" :value="formatDate(details.held_at)")
       DataRow(:label="$t('edubridge.teacherLessonsPage.details.duration')" :value="$t('edubridge.teacherLessonsPage.durationMinutes', { minutes: details.duration_minutes })")
+      DataRow(v-if="details.learners_count" :label="$t('edubridge.teacherLessonsPage.details.learners')" :value="String(details.learners_count)")
       template(v-if="details.contribution")
         DataRow(:label="$t('edubridge.teacherLessonsPage.details.amount')" :value="formatAsset2Digits(details.contribution.amount)")
         DataRow(v-if="details.contribution.hold_until" :label="$t('edubridge.teacherLessonsPage.details.holdUntil')" :value="formatDate(details.contribution.hold_until)")

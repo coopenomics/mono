@@ -15,7 +15,7 @@ import {
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
 import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { addMonths, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
-import { monthsOfPeriod, RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
+import { RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
@@ -254,9 +254,9 @@ export class EdubridgeEnrollmentService {
         course_id: courseId,
         sub_hash: plan.subHash,
       });
-    Object.assign(entity, this.paidBase(plan));
     entity.period = period;
-    entity.paid_until = plan.paidUntil;
+    // Сумму, срок и удержание посчитал контракт — в запись идёт прочитанное из цепи.
+    Object.assign(entity, await this.chainState(coopname, plan));
     entity.status = EduEnrollmentStatus.ACTIVE;
     entity.statement_hash = document.hash.toLowerCase();
     entity.expiry_notified_at = null;
@@ -306,13 +306,19 @@ export class EdubridgeEnrollmentService {
     grant: { claim_hash: string; decision: ISignedDocument }
   ): Promise<EdubridgeEnrollmentRecord> {
     if (!isCancellable(enrollment)) throw DomainError.badRequest('EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED');
-    const refund = enrollment.paid_amount;
-    await this.chain.grantGuarantee(
-      { coopname, username: enrollment.member_username, sub_hash: enrollment.sub_hash, refund, to_share: true } as never,
-      { coopname, username: enrollment.member_username, claim_hash: grant.claim_hash, decision: grant.decision as never }
-    );
+    // Возврат — весь взнос по подписке; сумму берёт контракт, здесь она читается для записи.
+    const chainSub = await this.chain.readSubscription(coopname, enrollment.sub_hash);
+    const refund = chainSub?.charged ?? enrollment.paid_amount;
+    await this.chain.grantGuarantee({
+      coopname,
+      username: enrollment.member_username,
+      claim_hash: grant.claim_hash,
+      sub_hash: enrollment.sub_hash,
+      decision: grant.decision as never,
+    });
     enrollment.status = EduEnrollmentStatus.CANCELLED;
     enrollment.cancelled_at = new Date();
+    // Остаток по подписке контракт разнёс сам; учёт курса в записи сверяется с цепью.
     await this.funds.afterClosed(coopname, enrollment);
     enrollment.refunded_amount = refund;
     enrollment.refund_reason = RefundReason.GUARANTEE;
@@ -454,19 +460,19 @@ export class EdubridgeEnrollmentService {
     const course = await this.courses.findById(coopname, enrollment.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
 
-    const refund = this.refundFor(enrollment, course, underfilled);
+    // Основание и сумму возврата определяет контракт. Здесь то же правило
+    // приложено к строке подписки из цепи — для записи итога.
+    const refund = await this.refundFor(coopname, enrollment, course, underfilled);
     await this.chain.cancelSubscription({
       coopname,
       username: enrollment.member_username,
       sub_hash: enrollment.sub_hash,
-      refund: refund.refund,
-      to_share: refund.to_share,
-    } as never);
+      underfilled,
+    });
 
     enrollment.status = EduEnrollmentStatus.CANCELLED;
     enrollment.cancelled_at = new Date();
-    // Удержанное цепь вернула в фонд сама, вместе с отменой; резерв
-    // преподавателям по курсу выравнивается под оставшихся участников.
+    // Остаток по подписке контракт разнёс сам; учёт курса в записи сверяется с цепью.
     await this.funds.afterClosed(coopname, enrollment);
     enrollment.refunded_amount = refund.refund;
     enrollment.refund_reason = refund.reason;
@@ -495,7 +501,7 @@ export class EdubridgeEnrollmentService {
     if (!enrollment || enrollment.member_username !== member) throw DomainError.notFound('EDUBRIDGE_SUBSCRIPTION_NOT_FOUND');
     const course = await this.courses.findById(coopname, enrollment.course_id);
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
-    return this.refundFor(enrollment, course, false);
+    return this.refundFor(coopname, enrollment, course, false);
   }
 
   /** Сколько действующих подписок у пайщика и сколько вернут по ним сегодня — для прекращения участия в программе. */
@@ -504,40 +510,42 @@ export class EdubridgeEnrollmentService {
     let refunds = 0;
     for (const enrollment of active) {
       const course = await this.courses.findById(coopname, enrollment.course_id);
-      if (course) refunds += Number.parseFloat(this.refundFor(enrollment, course, false).refund) || 0;
+      if (course) refunds += Number.parseFloat((await this.refundFor(coopname, enrollment, course, false)).refund) || 0;
     }
     return { subscriptions: active.length, refunds };
   }
 
-  /** Сумма возврата по Положению ЦПП — её же показывает стол до отмены. */
-  refundFor(enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, underfilled: boolean): RefundCalculation {
-    return refundOf(enrollment, course, underfilled);
+  /** Предварительная сумма возврата по строке подписки из цепи — её же показывает стол до отмены. */
+  async refundFor(coopname: string, enrollment: EdubridgeEnrollmentRecord, course: EdubridgeCourseRecord, underfilled: boolean): Promise<RefundCalculation> {
+    return refundOf(enrollment, course, await this.chain.readSubscription(coopname, enrollment.sub_hash), underfilled);
   }
 
   /**
-   * Пока прежний оплаченный срок не кончился, новый взнос складывается с
-   * прежним: возврат по Положению считается от всего оплаченного, а не от
-   * последнего платежа. Истёкший срок израсходован целиком — счёт с нуля.
+   * Что контракт записал по подписке после взноса: собрано, удержано, оплачено
+   * до. Строка не прочиталась — в запись идёт предварительный расчёт, очередь
+   * сверит его с цепью на следующем проходе.
    */
-  private paidBase(plan: EnrollmentPlan): Partial<EdubridgeEnrollmentRecord> {
-    const zero = zeroOf(plan.symbol);
-    const base = priorBase(plan);
+  private async chainState(coopname: string, plan: EnrollmentPlan): Promise<Partial<EdubridgeEnrollmentRecord>> {
+    const sub = await this.chain.readSubscription(coopname, plan.subHash).catch(() => null);
+    if (!sub?.plan) {
+      return { paid_amount: plan.amount, paid_months: plan.months, paid_until: plan.paidUntil, locked_amount: plan.amount };
+    }
+    const locked = Number.parseFloat(sub.locked ?? '0') > 0 ? (sub.locked as string) : null;
     return {
-      paid_amount: sumAssets(base?.paid_amount ?? zero, plan.amount),
-      paid_months: (base?.paid_months ?? 0) + plan.months,
-      // Удержанное копится до освобождения независимо от того, кончился ли прежний оплаченный срок.
-      locked_amount: sumAssets(plan.existing?.locked_amount ?? zero, plan.amount),
+      paid_amount: sub.charged ?? plan.amount,
+      paid_months: (plan.existing?.paid_months ?? 0) + plan.months,
+      paid_until: new Date(`${sub.paid_until}Z`),
+      locked_amount: locked,
     };
   }
 
   /**
    * Транзакция оплаты. С главного паевого конвертируется только недостающая
    * часть: остаток кошелька программы засчитывается первым (решение владельца
-   * 20.09.2026, тот же порядок, что в «Столе заказов»). Взнос уходит в фонд той
-   * же транзакцией на полную сумму, независимо от того, сколько конвертировано
-   * (Положение ЦПП, п. 4.2.2), и сразу удерживается целиком: пока участник
-   * может потребовать взнос назад, на расходы он не идёт. Что вернуть уже
-   * нельзя, очередь освободит сама.
+   * 20.09.2026, тот же порядок, что в «Столе заказов»). Сумму взноса,
+   * оплаченный срок, резерв преподавателям и удержание по гарантии считает
+   * контракт; приложение называет период и сумму из подписанного заявления —
+   * при расхождении с расчётом контракт взнос не примет.
    */
   private sendPayment(
     coopname: string,
@@ -548,10 +556,25 @@ export class EdubridgeEnrollmentService {
     document: ISignedDocument
   ) {
     const convert = parseFloat(funding.toConvert) > 0 ? { coopname, username: member, amount: funding.toConvert, statement: document } : null;
-    const subscribe = this.subscribeAction(coopname, member, plan, period, document);
-    const charge = { coopname, username: member, sub_hash: plan.subHash, amount: plan.amount };
-    return this.chain.convertAndSubscribe(convert as never, subscribe as never, charge as never, {
-      lock: plan.amount,
+    const open = plan.isExtension
+      ? null
+      : {
+          coopname,
+          username: member,
+          sub_hash: plan.subHash,
+          learner_id: Number(plan.learner.chain_ref),
+          course_id: Number(plan.course.chain_ref),
+          statement_hash: document.hash,
+        };
+    const charge = {
+      coopname,
+      username: member,
+      sub_hash: plan.subHash,
+      period: PERIOD_CHAIN[period],
+      expected: plan.amount,
+      statement_hash: document.hash,
+    };
+    return this.chain.convertAndSubscribe(convert as never, open, charge, {
       statement: convert ? undefined : { coopname, username: member, statement: document as never },
     });
   }
@@ -577,27 +600,6 @@ export class EdubridgeEnrollmentService {
     if (!matches) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_STATEMENT_STALE');
     }
-  }
-
-  /** `extendsub` для действующей связки, `opensub` — для новой; время цепи без миллисекунд и зоны. */
-  private subscribeAction(coopname: string, member: string, plan: EnrollmentPlan, period: EduEnrollmentPeriod, document: ISignedDocument) {
-    const paid_until = new Date(Math.floor(plan.paidUntil.getTime() / 1000) * 1000).toISOString().slice(0, 19);
-    if (plan.isExtension) {
-      return { kind: 'extend' as const, data: { coopname, sub_hash: plan.subHash, paid_until, statement_hash: document.hash } };
-    }
-    return {
-      kind: 'open' as const,
-      data: {
-        coopname,
-        username: member,
-        sub_hash: plan.subHash,
-        learner_id: Number(plan.learner.chain_ref),
-        course_id: Number(plan.course.chain_ref),
-        period: PERIOD_CHAIN[period],
-        paid_until,
-        statement_hash: document.hash,
-      },
-    };
   }
 
   private async availableShare(coopname: string, member: string, symbol: string): Promise<string> {
@@ -637,28 +639,6 @@ export class EdubridgeEnrollmentService {
       shortfall: asset(shortfall),
     };
   }
-}
-
-/** Прежний оплаченный срок, пока он не кончился: к нему прибавляется новый взнос. */
-function priorBase(plan: EnrollmentPlan): { paid_amount: string; paid_months: number } | null {
-  const prior = plan.existing;
-  if (!plan.isExtension || !prior?.paid_until || prior.paid_until <= new Date()) return null;
-  return {
-    paid_amount: prior.paid_amount,
-    paid_months: prior.paid_months ?? monthsOfPeriod(prior.period === EduEnrollmentPeriod.YEAR ? 'year' : 'month'),
-  };
-}
-
-function zeroOf(symbol: string): string {
-  return `0.0000 ${symbol}`;
-}
-
-/** Сумма двух сумм цепи в одном символе («9600.0000 RUB»). */
-function sumAssets(a: string, b: string): string {
-  const [av, symbol] = String(a ?? '').trim().split(' ');
-  const [bv, bSymbol] = String(b ?? '').trim().split(' ');
-  const total = (Number.parseFloat(av) || 0) + (Number.parseFloat(bv) || 0);
-  return `${total.toFixed(4)} ${symbol || bSymbol || ''}`.trim();
 }
 
 /** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */

@@ -19,3 +19,18 @@ export * as EduRids from './edurids'
  * Договоры УХД преподавателей — анкеры процесса p.edu.teach.
  */
 export * as EduContracts from './educontracts'
+
+/**
+ * Условия курса, по которым контракт считает суммы.
+ */
+export * as EduTerms from './eduterms'
+
+/**
+ * Допуски преподавателей к курсам и их ставки.
+ */
+export * as EduAssigns from './eduassigns'
+
+/**
+ * Занятия, по которым идёт расчёт с участниками.
+ */
+export * as EduLessons from './edulessons'

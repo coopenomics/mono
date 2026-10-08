@@ -1,92 +1,53 @@
 /**
  * @brief Отмена подписки на курс с возвратом членского взноса.
  *
- * Положение ЦПП «Образование» знает три основания вернуть взнос ученику:
- * отмена до активации курса (полная стоимость), отмена по недобору, когда
- * кооператив не открыл группу (полная стоимость, сразу на паевой), и отказ в
- * ходе подписки (половина остаточной стоимости за вычетом использованного).
- * Сумму возврата считает кооператив по Положению; контракт проводит её и
- * закрывает подписку.
+ * Основание и сумму возврата определяет контракт:
+ *  - кооператив отменил курс по недобору (`underfilled`) — взнос целиком и
+ *    сразу в паевой взнос: это отмена решения кооператива;
+ *  - занятия ещё не начались — взнос целиком на кошелёк членских взносов;
+ *  - отказ в ходе подписки — половина остаточной стоимости подписки
+ *    (`Edubridge::refusal_refund`): доля всего взноса за занятия, по которым
+ *    расчёт ещё не прошёл.
  *
- * Движения средств:
- *  - `o.edu.unlock` (TRANSFER w.edu.escrow → w.edu.fund) — взнос, удержанный
- *    до конца гарантийного срока курса, возвращается в фонд целиком;
- *  - `o.edu.refund` (TRANSFER w.edu.fund → w.edu.member, без проводки — оба на
- *    86): взнос возвращается из фонда программы на кошелёк ЦПП ученика;
- *  - `o.edu.retshr` (TRANSFER w.edu.member → w.wal.share, Дт 86 / Кт 80) —
- *    только при `to_share`: возврат по недобору идёт на паевой сразу, потому
- *    что отменяет решение кооператива, а не выбор ученика.
- *
- * Возврат уменьшает собранное по курсу подписки (`educourses`). Резерв выплат
- * преподавателям отмена не трогает: излишек резерва кооператив высвобождает
- * отдельным действием (`freereserve`).
- *
- * Нулевой возврат допустим: отказ после последнего занятия возвращает ноль,
- * подписка при этом всё равно закрывается.
+ * Остаток по подписке расходится тем же действием: резерв за непроведённые
+ * занятия возвращается на кошелёк программы, взнос преподавателей за
+ * проведённые занятия остаётся в резерве курса.
  *
  * Guards:
- *  - подписка с указанным hash существует и принадлежит этому пайщику;
- *  - сумма возврата неотрицательна, в символе кооператива и не больше
- *    собранного по этой подписке — чужие взносы из фонда не возвращаются;
- *  - достаточность средств проверяет сам перевод в книге учёта.
+ *  - подписка существует, принадлежит пайщику и ведёт учёт занятий;
+ *  - по подписке завершён расчёт за открытое занятие курса;
+ *  - отмена по недобору — только до первого занятия.
  *
  * @ingroup public_edubridge_actions
  */
 void edubridge::cancelsub(eosio::name coopname,
                           eosio::name username,
                           checksum256 sub_hash,
-                          eosio::asset refund,
-                          bool to_share) {
+                          bool underfilled) {
   require_auth(coopname);
-
-  eosio::check(refund.is_valid() && refund.amount >= 0,
-               "Сумма возврата не может быть отрицательной");
-  eosio::check(refund.symbol == _root_govern_symbol,
-               "Некорректный символ валюты в сумме возврата");
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
                "Подписку отменяет тот пайщик, которому она принадлежит");
+  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её действием expiresub");
 
-  // У подписок, открытых до учёта собранного, потолка нет: сумму считает кооператив.
-  eosio::check(!sub->is_tracked() || refund <= sub->charged_or_zero(),
-               std::string{"Возврат больше собранного по подписке: собрано "} + sub->charged_or_zero().to_string());
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
+  Edubridge::check_no_pending_lesson(coopname, terms, *sub);
 
-  // Удержанное до конца гарантийного срока возвращается в фонд целиком:
-  // возврат участнику идёт уже из фонда, невозвратная часть остаётся свободной.
-  const eosio::asset locked = sub->locked_or_zero();
-  if (locked.amount > 0) {
-    Ledger2::apply(_edubridge, coopname,
-                   operations::edubridge::UNLOCK_FEE,
-                   processes::edubridge::ACCESS,
-                   locked, coopname, sub_hash,
-                   Edubridge::Memo::get_unlock_fee_memo());
+  eosio::asset refund;
+  bool to_share = false;
+  if (underfilled) {
+    eosio::check(sub->plan.value().lessons_done == 0, "Отмена по недобору возможна только до первого занятия");
+    refund = sub->charged_or_zero();
+    to_share = true;
+  } else if (!terms.is_started() || now < terms.starts_at) {
+    refund = sub->charged_or_zero();
+  } else {
+    refund = Edubridge::refusal_refund(*sub);
   }
 
-  if (refund.amount > 0) {
-    Ledger2::apply(_edubridge, coopname,
-                   operations::edubridge::REFUND_FEE,
-                   processes::edubridge::ACCESS,
-                   refund, username, sub_hash,
-                   Edubridge::Memo::get_refund_memo());
-
-    // Учёт курса: собранное по курсу уменьшается на сумму возврата.
-    const uint64_t course_id = sub->course_id;
-    Edubridge::update_course(coopname, course_id, [&](auto& c) {
-      eosio::check(refund <= c.collected,
-                   std::string{"Возврат больше собранного по курсу: собрано "} + c.collected.to_string());
-      c.collected -= refund;
-    });
-
-    if (to_share) {
-      Ledger2::apply(_edubridge, coopname,
-                     operations::edubridge::RETURN_TO_SHARE,
-                     processes::edubridge::ACCESS,
-                     refund, username, sub_hash,
-                     Edubridge::Memo::get_return_to_share_memo());
-    }
-  }
-
+  Edubridge::settle_closing(coopname, *sub, refund, to_share);
   subs.erase(sub);
 }

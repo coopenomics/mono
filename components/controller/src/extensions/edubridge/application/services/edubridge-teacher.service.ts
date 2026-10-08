@@ -22,11 +22,13 @@ import {
   type IUserWalletPort,
   type IWalletWithdrawPort,
 } from '@coopenomics/innercoop';
-import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
+import { EduAssignmentStatus, EduContractStatus, EduContributionStatus, EduCouncilOutcome, EduEnrollmentStatus, EduRidType, EduContributionDocumentKind, EduShareReturnDocumentKind } from '../../domain/enums';
 import type { EdubridgeShareReturnRecord } from '../../infrastructure/entities';
 import { guaranteeEndsAt } from '../../domain/economy/guarantee';
 import { EdubridgeFundsService } from './edubridge-funds.service';
-import { formatDate, formatDateTime, toChainTimePoint } from '../../domain/lib/lesson-dates';
+import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
+import { EdubridgeChainTermsService, toChainTime } from './edubridge-chain-terms.service';
+import { formatDate, formatDateTime } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
   EdubridgeContributionRecord,
@@ -37,7 +39,6 @@ import type {
 } from '../../infrastructure/entities';
 import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositories/edubridge-course.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
-import { costOfHours } from '../../domain/economy/course-fee.calculator';
 import { EdubridgeTeacherKyselyRepository } from '../../infrastructure/repositories/edubridge-teacher.kysely-repository';
 import type {
   EduAssignmentInputDTO,
@@ -133,7 +134,9 @@ export class EdubridgeTeacherService {
     @Inject(USER_DATA_PORT) private readonly udata: IUserDataPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
     private readonly events: EventEmitter2,
-    @Inject(WALLET_WITHDRAW_PORT) private readonly walletWithdraw: IWalletWithdrawPort
+    @Inject(WALLET_WITHDRAW_PORT) private readonly walletWithdraw: IWalletWithdrawPort,
+    private readonly chainTerms: EdubridgeChainTermsService,
+    private readonly enrollments: EdubridgeEnrollmentKyselyRepository
   ) {
     this.logger.setContext(EdubridgeTeacherService.name);
   }
@@ -419,7 +422,10 @@ export class EdubridgeTeacherService {
       hourly_rate: hourlyRate,
       status: EduAssignmentStatus.ACTIVE,
     });
-    const saved = await this.teachers.saveAssignment(entity);
+    const stored = await this.teachers.saveAssignment(entity);
+    // Запись перечитывается: номер допуска для цепи выдаёт база при вставке.
+    const saved = (await this.teachers.findAssignment(coopname, stored.id)) ?? stored;
+    await this.chainTerms.tryPushAssignment(saved, course);
     // Список «Курс ведут» и допуски — одно и то же: допущенный стоит в курсе.
     if (!(course.teacher_usernames ?? []).includes(saved.teacher_username)) {
       course.teacher_usernames = [...(course.teacher_usernames ?? []), saved.teacher_username];
@@ -454,7 +460,10 @@ export class EdubridgeTeacherService {
     const error = rateCoverageError(hourlyRate, course.planned_hourly_rate);
     if (error) throw error;
     a.hourly_rate = hourlyRate;
-    return this.teachers.saveAssignment(a);
+    const saved = await this.teachers.saveAssignment(a);
+    // Ставка в цепи действует на занятия, открытые после правки.
+    await this.chainTerms.tryPushAssignment(saved, course);
+    return saved;
   }
 
   /** Плановая ставка курса снижена — ставки действующих допусков опускаются до неё. */
@@ -462,7 +471,7 @@ export class EdubridgeTeacherService {
     for (const a of assignments) {
       if (a.status !== EduAssignmentStatus.ACTIVE || !rateCoverageError(a.hourly_rate, course.planned_hourly_rate)) continue;
       a.hourly_rate = course.planned_hourly_rate;
-      await this.teachers.saveAssignment(a);
+      await this.chainTerms.tryPushAssignment(await this.teachers.saveAssignment(a), course);
       this.logger.info(`Ставка на курсе опущена до плановой: ${a.teacher_username} → «${course.title}»`);
     }
   }
@@ -492,7 +501,7 @@ export class EdubridgeTeacherService {
     for (const a of forCourse) {
       if (!listed.has(a.teacher_username) && a.status === EduAssignmentStatus.ACTIVE) {
         a.status = EduAssignmentStatus.CLOSED;
-        await this.teachers.saveAssignment(a);
+        await this.chainTerms.dropAssignment(await this.teachers.saveAssignment(a));
         this.logger.info(`Допуск снят: ${a.teacher_username} → «${course.title}»`);
       }
     }
@@ -521,6 +530,8 @@ export class EdubridgeTeacherService {
   async syncAllCourseAssignments(coopname: string): Promise<void> {
     for (const course of await this.courses.listAll(coopname)) {
       try {
+        // Условия курса — в цепь: курсы, заведённые до расчётов на контракте.
+        await this.chainTerms.tryPushCourse(course);
         await this.syncCourseAssignments(coopname, course);
       } catch (e) {
         this.logger.warn(`Назначения курса «${course.title}» не сведены: ${(e as Error)?.message ?? e}`);
@@ -533,6 +544,7 @@ export class EdubridgeTeacherService {
     if (!a) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
     a.status = EduAssignmentStatus.CLOSED;
     const saved = await this.teachers.saveAssignment(a);
+    await this.chainTerms.dropAssignment(saved);
     // Снятый допуск убирает преподавателя и из списка «Курс ведут» — иначе
     // сверка по курсу выдала бы назначение заново.
     const course = await this.courses.findById(coopname, a.course_id);
@@ -549,42 +561,16 @@ export class EdubridgeTeacherService {
   }
 
   /**
-   * Сумма взноса за занятие в пределах курса. Преподаватель получает за часы,
-   * оплаченные учениками этого курса: обязательство курса — стоимость часов по
-   * плановой ставке за оплаченное время за вычетом уже выплаченного. Из него
-   * вычитаются взносы курса, которые ещё не приняты. Остатка нет — занятие
-   * учениками не оплачено, и отчёт по нему не принимается: платить за него
-   * пришлось бы средствами других курсов.
-   */
-  private async amountWithinCourse(coopname: string, course: EdubridgeCourseRecord, amount: string, replacedContributionId?: string): Promise<string> {
-    const symbol = amount.split(' ')[1] ?? '';
-    const obligation = rateValue((await this.funds.target(coopname, course)).obligation);
-    const ofCourse = new Set((await this.teachers.listAssignments(coopname)).filter((x) => x.course_id === course.id).map((x) => x.id));
-    const promised = (await this.teachers.listContributions(coopname, { statuses: PENDING_CONTRIBUTION_STATUSES }))
-      .filter((c) => ofCourse.has(c.assignment_id) && c.id !== replacedContributionId)
-      .reduce((sum, c) => sum + rateValue(c.amount), 0);
-    const available = Math.round((obligation - promised) * 10000) / 10000;
-    if (!(available > 0)) throw DomainError.badRequest('EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS', { courseTitle: course.title });
-    return rateValue(amount) <= available ? amount : `${available.toFixed(4)} ${symbol}`;
-  }
-
-  /**
    * Отчёт преподавателя после занятия. Работа овеществляется материалами:
-   * записью, конспектом, заданиями. Сумма взноса не вводится руками — она
-   * равна часам занятия по ставке преподавателя, поэтому оплата ученика и
-   * начисление преподавателю считаются от одного и того же.
+   * записью, конспектом, заданиями. Сумма взноса не вводится руками и не
+   * считается приложением: контракт открывает расчёт по занятию, и по каждой
+   * подписке с оплаченным доступом на дату занятия переносит оплату занятия во
+   * взнос преподавателя. Сумма и число участников читаются из цепи.
    */
   async reportLesson(coopname: string, teacher: string, input: EduLessonReportInputDTO): Promise<EdubridgeLessonRecord> {
-    const { contract, assignment: a, course, previous } = await this.lessonContext(coopname, teacher, input);
+    const { assignment: a, course, previous } = await this.lessonContext(coopname, teacher, input);
     const duration = input.duration_minutes ?? course.lesson_minutes;
-    // Взнос за занятие считается по ставке преподавателя на этом курсе и не
-    // превышает оплаченного учениками по курсу.
-    const amount = await this.amountWithinCourse(
-      coopname,
-      course,
-      costOfHours(isPositiveRate(a.hourly_rate) ? a.hourly_rate : contract.hourly_rate, duration / 60),
-      previous?.contribution?.id
-    );
+    const symbol = course.planned_hourly_rate.split(' ')[1] ?? '';
 
     // Занятие, материалы которого сняты с хранения, проводится заново: строка
     // журнала та же, взнос по ней — новый.
@@ -596,6 +582,7 @@ export class EdubridgeTeacherService {
       duration_minutes: duration,
       materials: input.materials.map((m) => m.trim()).filter(Boolean),
       topic: input.topic ?? '',
+      learners_count: null,
     });
     const lesson = await this.lessons.save(row);
 
@@ -610,7 +597,8 @@ export class EdubridgeTeacherService {
         rid_type: EduRidType.LESSON_RECORDING,
         links: lesson.materials,
         description: lesson.topic || t('edubridge.teacher.lessonContributionDescription', { lessonNumber: lesson.lesson_number, courseTitle: course.title }),
-        amount,
+        // Сумму поставит контракт по итогу расчёта с участниками.
+        amount: `0.0000 ${symbol}`,
         lesson_id: lesson.id,
         // Гарантийный срок — один на курс, от даты начала занятий: пока он
         // идёт, результаты преподавателя в совет не уходят; срок вышел —
@@ -619,12 +607,68 @@ export class EdubridgeTeacherService {
         status: EduContributionStatus.DRAFT,
       })
     );
-
     lesson.contribution_id = contribution.id;
-    const saved = await this.lessons.save(lesson);
+    await this.lessons.save(lesson);
+
+    const settled = await this.settleLesson(coopname, contribution, lesson, a, course);
     this.logger.info(
-      `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id}, взнос ${amount} держится до ${contribution.hold_until?.toISOString()}`
+      `[EDU.LESSON] ${teacher}: занятие № ${lesson.lesson_number} курса ${course.id}, участников ${settled.learners_count}, взнос ${contribution.amount}`
     );
+    return settled;
+  }
+
+  /**
+   * Расчёт занятия в цепи. Контракт фиксирует ставку преподавателя, затем
+   * приложение по одной подписке вызывает расчёт — считает каждую контракт.
+   * Вызов повторяемый: открытое занятие не открывается заново, подписку,
+   * по которой расчёт прошёл, контракт отклоняет сам. Участников с оплаченным
+   * доступом нет — отчёт отзывается, и занятие можно отчитать заново.
+   */
+  private async settleLesson(
+    coopname: string,
+    c: EdubridgeContributionRecord,
+    lesson: EdubridgeLessonRecord,
+    assignment: EdubridgeTeacherAssignmentRecord,
+    course: EdubridgeCourseRecord
+  ): Promise<EdubridgeLessonRecord> {
+    if (!(await this.chain.readLesson(coopname, c.rid_hash))) {
+      // Допуск и ставка в цепи — перед каждым занятием: по ней контракт считает взнос.
+      await this.chainTerms.pushAssignment(assignment, course);
+      await this.chain.openLesson({
+        coopname,
+        username: c.teacher_username,
+        rid_hash: c.rid_hash,
+        assignment_id: Number(assignment.chain_ref),
+        held_at: toChainTime(new Date(lesson.held_at)),
+        minutes: lesson.duration_minutes,
+      });
+    }
+
+    const heldAt = new Date(lesson.held_at);
+    for (const enrollment of await this.enrollments.findByCourse(coopname, course.id)) {
+      // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
+      if (enrollment.status !== EduEnrollmentStatus.ACTIVE || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
+      try {
+        await this.chain.chargeLesson({ coopname, rid_hash: c.rid_hash, sub_hash: enrollment.sub_hash });
+      } catch (e) {
+        this.logger.info(`[EDU.LESSON] подписка ${enrollment.sub_hash} в расчёт занятия ${c.rid_hash} не вошла: ${(e as Error)?.message ?? e}`);
+      }
+    }
+
+    const onChain = await this.chain.readLesson(coopname, c.rid_hash);
+    const learners = Number(onChain?.learners ?? 0);
+    if (!onChain || learners === 0) {
+      await this.chain.dropLesson({ coopname, rid_hash: c.rid_hash }).catch(() => undefined);
+      c.status = EduContributionStatus.DECLINED;
+      await this.teachers.saveContribution(c);
+      throw DomainError.badRequest('EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS', { courseTitle: course.title });
+    }
+    c.amount = onChain.amount;
+    await this.teachers.saveContribution(c);
+    lesson.learners_count = learners;
+    const saved = await this.lessons.save(lesson);
+    // Расчёт уменьшил возможный возврат по подпискам — удержанное в записях сверяется с цепью.
+    await this.funds.unlockDue(coopname, new Date(), course.id).catch(() => undefined);
     return saved;
   }
 
@@ -712,6 +756,13 @@ export class EdubridgeTeacherService {
     const c = await this.ownContribution(coopname, teacher, contributionId);
     if (c.status !== EduContributionStatus.DRAFT) throw DomainError.badRequest('EDUBRIDGE_CONTRIBUTION_ALREADY_HELD');
     const { lesson, course } = await this.holdContext(coopname, c);
+    // Расчёт с участниками не завершился при отчёте (сбой связи) — доводится
+    // до конца: акт называет сумму из цепи.
+    if (!(rateValue(c.amount) > 0)) {
+      const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);
+      if (!assignment) throw DomainError.notFound('EDUBRIDGE_ASSIGNMENT_NOT_FOUND');
+      await this.settleLesson(coopname, c, lesson, assignment, course);
+    }
     // Акт называет конец гарантийного срока курса — дату, с которой согласился
     // преподаватель; она же уйдёт в цепь.
     c.hold_until = this.guaranteeEnd(course);
@@ -752,17 +803,14 @@ export class EdubridgeTeacherService {
       throw DomainError.badRequest('EDUBRIDGE_TRANSFER_ACT_STALE');
     }
 
+    // Сумму и срок хранения контракт берёт из записи занятия.
     await this.chain.holdRid({
       coopname,
       username: teacher,
       rid_hash: c.rid_hash,
-      assignment_id: chainAssignmentId(c),
-      course_id: Number(course.chain_ref),
-      amount: c.amount,
       rid_type: c.rid_type,
-      hold_until: toChainTimePoint(holdUntil),
-      act: document,
-    } as never);
+      act: document as never,
+    });
 
     c.storage_act_hash = document.hash.toLowerCase();
     c.storage_act_document = document as unknown as Record<string, unknown>;
@@ -1113,7 +1161,7 @@ export class EdubridgeTeacherService {
   private async settleReserve(coopname: string, c: EdubridgeContributionRecord): Promise<void> {
     try {
       const assignment = await this.teachers.findAssignment(coopname, c.assignment_id);
-      if (assignment) await this.funds.onSettled(coopname, assignment.course_id, c.amount);
+      if (assignment) await this.funds.onSettled(coopname, assignment.course_id);
     } catch (e) {
       this.logger.error(`[EDU.RID] резерв по курсу после приёма ${c.rid_hash} не обновлён: ${(e as Error)?.message ?? e}`);
     }
@@ -1317,15 +1365,6 @@ export function coursePeriod(course: Pick<EdubridgeCourseRecord, 'starts_at' | '
   target.setUTCDate(Math.min(start.getUTCDate(), lastDay) - 1);
   return { from, to: target.toISOString().slice(0, 10) };
 }
-
-/** Взносы преподавателя, которые ещё не приняты и не отклонены: их суммы уже обещаны из средств курса. */
-const PENDING_CONTRIBUTION_STATUSES = [
-  EduContributionStatus.DRAFT,
-  EduContributionStatus.HELD,
-  EduContributionStatus.SUBMITTED,
-  EduContributionStatus.COUNCIL_APPROVED,
-  EduContributionStatus.ACT_SIGNED,
-];
 
 /**
  * Ставка преподавателя на курсе при назначении: названная администратором

@@ -4,14 +4,12 @@
 // (p.edu.access.standard.yaml / p.edu.rid.standard.yaml). Имена подпапок 1:1
 // совпадают с process_type — связь от файла → к стандарту прозрачная.
 
-// ── p.edu.access (12 actions) ─── доступ к курсу, p.edu.spend (2) — расходы ──
+// ── p.edu.access (11 actions) ─── доступ к курсу, p.edu.spend (2) — расходы ──
 #include "src/p.edu.access/convert.cpp"
+#include "src/p.edu.access/setcourse.cpp"
 #include "src/p.edu.access/opensub.cpp"
 #include "src/p.edu.access/chargefee.cpp"
-#include "src/p.edu.access/lockfee.cpp"
 #include "src/p.edu.access/unlockfee.cpp"
-#include "src/p.edu.access/allotfee.cpp"
-#include "src/p.edu.access/freereserve.cpp"
 #include "src/p.edu.access/regstatement.cpp"
 #include "src/p.edu.access/warrclaim.cpp"
 #include "src/p.edu.access/warrgrant.cpp"
@@ -19,10 +17,11 @@
 #include "src/p.edu.access/retshare.cpp"
 #include "src/p.edu.spend/createexp.cpp"
 #include "src/p.edu.spend/onexpdone.cpp"
-#include "src/p.edu.access/extendsub.cpp"
 #include "src/p.edu.access/expiresub.cpp"
 
-// ── p.edu.rid (11 actions) ───── паевой взнос РИД преподавателя ────────
+// ── p.edu.rid (14 actions) ───── паевой взнос РИД преподавателя ────────
+#include "src/p.edu.rid/openlesson.cpp"
+#include "src/p.edu.rid/chargelesson.cpp"
 #include "src/p.edu.rid/holdrid.cpp"
 #include "src/p.edu.rid/submitrid.cpp"
 #include "src/p.edu.rid/onridauth.cpp"
@@ -36,11 +35,12 @@
 #include "src/p.edu.rid/recallrid.cpp"
 #include "src/p.edu.rid/wthshare.cpp"
 
-// ── p.edu.teach (4 actions) ──── договор УХД через одобрение ──
+// ── p.edu.teach (6 actions) ──── договор УХД через одобрение, допуски ──
 #include "src/p.edu.teach/signcontract.cpp"
 #include "src/p.edu.teach/apprvcontr.cpp"
 #include "src/p.edu.teach/dclinecontr.cpp"
 #include "src/p.edu.teach/termcontract.cpp"
+#include "src/p.edu.teach/setassign.cpp"
 
 /**
  * @brief Очистка отработавших записей (lib/core/cleanup.hpp).

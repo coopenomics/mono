@@ -42,6 +42,7 @@ const rawCourseSelector = {
   external_ref: true,
   external_title_seen: true,
   planned_hourly_rate: true,
+  pay_per_learner: true,
   course_payment_enabled: true,
   course_discount_percent: true,
   guarantee_days: true,

@@ -1,87 +1,46 @@
-/** Возвраты по Положению ЦПП: до активации — полностью, по недобору — на паевой, отказ — половина остатка. */
-import { calculateRefund, monthsOfPeriod, RefundReason } from '~/extensions/edubridge/domain/economy/refund.calculator';
+/** Предварительная сумма возврата по строке подписки из цепи — то же правило, что в контракте (`Edubridge::refusal_refund`). */
+import { calculateRefund, RefundReason } from '~/extensions/edubridge/domain/economy/refund.calculator';
 
-const BASE = {
-  paid_amount: '9600.0000 RUB',
-  lessons_per_month: 8,
-  lessons_total: 64,
-  months_paid: 1,
-  starts_at: new Date('2026-10-01T00:00:00Z'),
-};
+const START = new Date('2026-10-01T00:00:00Z');
+/** Взнос 3000 за 8 занятий. */
+const chain = (done: number) => ({ charged: '3000.0000 RUB', lessons_paid: 8, lessons_done: done });
 
-describe('Расчёт возврата подписки', () => {
-  it('до активации курса возвращается полная стоимость на кошелёк программы', () => {
-    const r = calculateRefund({ ...BASE, now: new Date('2026-09-20T00:00:00Z') });
+describe('calculateRefund — возврат взноса при отмене подписки', () => {
+  it('до начала занятий возвращается весь взнос на кошелёк членских взносов', () => {
+    const r = calculateRefund({ chain: chain(0), starts_at: START, now: new Date('2026-09-20T00:00:00Z') });
+    expect(r).toMatchObject({ reason: RefundReason.BEFORE_START, refund: '3000.0000 RUB', withheld: '0.0000 RUB', to_share: false });
+  });
+
+  it('курс без даты начала — занятия ещё не начались, возврат полный', () => {
+    const r = calculateRefund({ chain: chain(0), starts_at: null, now: new Date('2026-12-01T00:00:00Z') });
     expect(r.reason).toBe(RefundReason.BEFORE_START);
-    expect(r.refund).toBe('9600.0000 RUB');
-    expect(r.withheld).toBe('0.0000 RUB');
-    expect(r.to_share).toBe(false);
+    expect(r.refund).toBe('3000.0000 RUB');
   });
 
-  it('курс без даты активации считается неактивированным', () => {
-    const r = calculateRefund({ ...BASE, starts_at: null, now: new Date('2026-12-01T00:00:00Z') });
-    expect(r.reason).toBe(RefundReason.BEFORE_START);
-    expect(r.refund).toBe('9600.0000 RUB');
+  it('недобор: взнос целиком и сразу в паевой взнос', () => {
+    const r = calculateRefund({ chain: chain(0), starts_at: START, now: new Date('2026-09-20T00:00:00Z'), underfilled: true });
+    expect(r).toMatchObject({ reason: RefundReason.UNDERFILLED, refund: '3000.0000 RUB', to_share: true });
   });
 
-  it('отмена по недобору возвращает всё и сразу на паевой', () => {
-    const r = calculateRefund({ ...BASE, now: new Date('2026-09-20T00:00:00Z'), underfilled: true });
-    expect(r.reason).toBe(RefundReason.UNDERFILLED);
-    expect(r.refund).toBe('9600.0000 RUB');
-    expect(r.to_share).toBe(true);
+  it('отказ в ходе подписки: половина остаточной стоимости от полного взноса', () => {
+    // Проведено 3 занятия из 8: остаточная стоимость 3000 × 5 / 8 = 1875, возврат — половина.
+    const r = calculateRefund({ chain: chain(3), starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
+    expect(r).toMatchObject({ reason: RefundReason.REFUSAL, refund: '937.5000 RUB', withheld: '2062.5000 RUB', lessons_paid: 8, lessons_used: 3, to_share: false });
   });
 
-  it('отказ в середине месяца: половина остатка по числу проведённых занятий', () => {
-    // 15 дней из 30 при восьми занятиях в месяц — четыре занятия проведено,
-    // остаток половины периода делится пополам.
-    const r = calculateRefund({ ...BASE, now: new Date('2026-10-16T00:00:00Z') });
-    expect(r.reason).toBe(RefundReason.REFUSAL);
-    expect(r.lessons_paid).toBe(8);
-    expect(r.lessons_used).toBe(4);
-    expect(r.refund).toBe('2400.0000 RUB');
-    expect(r.withheld).toBe('7200.0000 RUB');
+  it('занятия ещё не проводились — возвращается половина взноса', () => {
+    const r = calculateRefund({ chain: chain(0), starts_at: START, now: new Date('2026-10-02T00:00:00Z') });
+    expect(r.refund).toBe('1500.0000 RUB');
   });
 
-  it('отказ в первый день после активации: половина полной стоимости', () => {
-    const r = calculateRefund({ ...BASE, now: new Date('2026-10-01T06:00:00Z') });
-    expect(r.lessons_used).toBe(0);
-    expect(r.refund).toBe('4800.0000 RUB');
-  });
-
-  it('отказ после последнего занятия возвращает ноль', () => {
-    const r = calculateRefund({ ...BASE, now: new Date('2026-11-05T00:00:00Z') });
-    expect(r.lessons_used).toBe(8);
+  it('все оплаченные занятия проведены — возвращать нечего', () => {
+    const r = calculateRefund({ chain: chain(8), starts_at: START, now: new Date('2026-11-05T00:00:00Z') });
     expect(r.refund).toBe('0.0000 RUB');
-    expect(r.withheld).toBe('9600.0000 RUB');
+    expect(r.withheld).toBe('3000.0000 RUB');
   });
 
-  it('пришедшему в середине курса занятия до его взноса не засчитываются', () => {
-    // Курс идёт с 1 сентября, взнос за три оставшихся месяца внесён 1 февраля, отказ — через месяц.
-    const r = calculateRefund({
-      ...BASE,
-      paid_amount: '28800.0000 RUB',
-      months_paid: 3,
-      lessons_total: 64,
-      starts_at: new Date('2026-09-01T06:00:00Z'),
-      paid_from: new Date('2027-02-01T06:00:00Z'),
-      now: new Date('2027-03-03T06:00:00Z'),
-    });
-    expect(r.lessons_paid).toBe(24);
-    expect(r.lessons_used).toBe(8);
-    // Остаток 16 занятий из 24 — 19200, возвращается половина.
-    expect(r.refund).toBe('9600.0000 RUB');
-  });
-
-  it('подписка прежнего образца на год оплачивает двенадцать месяцев, но не больше программы курса', () => {
-    const r = calculateRefund({
-      ...BASE,
-      paid_amount: '96000.0000 RUB',
-      months_paid: monthsOfPeriod('year'),
-      lessons_total: 64,
-      now: new Date('2026-10-01T06:00:00Z'),
-    });
-    // Восемь занятий в месяц за год дают 96, но программа курса — 64.
-    expect(r.lessons_paid).toBe(64);
-    expect(r.refund).toBe('48000.0000 RUB');
+  it('подписки в цепи нет — сумма нулевая', () => {
+    const r = calculateRefund({ chain: { charged: '0.0000 RUB', lessons_paid: 0, lessons_done: 0 }, starts_at: START, now: new Date('2026-10-12T00:00:00Z') });
+    expect(r.refund).toBe('0.0000 RUB');
   });
 });

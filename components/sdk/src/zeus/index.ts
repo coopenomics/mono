@@ -6997,7 +6997,9 @@ export type ValueTypes = {
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
-	/** Плановая ставка часа по программе */
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
+	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
@@ -7111,6 +7113,8 @@ export type ValueTypes = {
 	lessons_total: number | Variable<any, string>,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
@@ -7384,6 +7388,8 @@ export type ValueTypes = {
 	/** Когда проведено */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -7877,6 +7883,8 @@ export type ValueTypes = {
 	lessons_total: number | Variable<any, string>,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null | Variable<any, string>,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string | Variable<any, string>,
 	/** Расписание занятий */
@@ -23610,7 +23618,9 @@ export type ResolverInputTypes = {
 	level_id?:boolean | `@${string}`,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title?:boolean | `@${string}`,
-	/** Плановая ставка часа по программе */
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?:boolean | `@${string}`,
+	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate?:boolean | `@${string}`,
 	/** Расписание занятий */
 	schedule?:boolean | `@${string}`,
@@ -23721,6 +23731,8 @@ export type ResolverInputTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
@@ -23985,6 +23997,8 @@ export type ResolverInputTypes = {
 	/** Когда проведено */
 	held_at?:boolean | `@${string}`,
 	id?:boolean | `@${string}`,
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?:boolean | `@${string}`,
 	/** Номер занятия в программе */
 	lesson_number?:boolean | `@${string}`,
 	/** Материалы занятия */
@@ -24457,6 +24471,8 @@ export type ResolverInputTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
@@ -39715,7 +39731,9 @@ export type ModelTypes = {
 	level_id?: ModelTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
-	/** Плановая ставка часа по программе */
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
+	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
@@ -39822,6 +39840,8 @@ export type ModelTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
@@ -40073,6 +40093,8 @@ export type ModelTypes = {
 	/** Когда проведено */
 	held_at: ModelTypes["DateTime"],
 	id: ModelTypes["ID"],
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -40517,6 +40539,8 @@ export type ModelTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
@@ -56289,7 +56313,9 @@ export type GraphQLTypes = {
 	level_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Уровень внутри раздела: «7 класс», «Ступень 1»; пусто — без уровня */
 	level_title: string,
-	/** Плановая ставка часа по программе */
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner: boolean,
+	/** Плановая ставка часа, заложенная во взнос каждого участника */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
 	schedule: string,
@@ -56402,6 +56428,8 @@ export type GraphQLTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */
@@ -56676,6 +56704,8 @@ export type GraphQLTypes = {
 	/** Когда проведено */
 	held_at: GraphQLTypes["DateTime"],
 	id: GraphQLTypes["ID"],
+	/** Участников с оплаченным доступом, по которым проведён расчёт за занятие */
+	learners_count?: number | undefined | null,
 	/** Номер занятия в программе */
 	lesson_number: number,
 	/** Материалы занятия */
@@ -57168,6 +57198,8 @@ export type GraphQLTypes = {
 	lessons_total: number,
 	/** Уровень внутри раздела из справочника; пусто — без уровня */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие */
+	pay_per_learner?: boolean | undefined | null,
 	/** Плановая ставка часа по программе («1000.0000 RUB») */
 	planned_hourly_rate: string,
 	/** Расписание занятий */

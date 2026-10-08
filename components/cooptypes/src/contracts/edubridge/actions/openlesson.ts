@@ -3,14 +3,13 @@ import type * as Edubridge from '../../../interfaces/edubridge'
 import { Actors } from '../../../common'
 
 /**
- * Высвобождение резерва выплат преподавателям обратно в фонд при отмене
- * подписки (процесс p.edu.access).
+ * Отчёт преподавателя о занятии (процесс p.edu.rid): открывает расчёт с участниками.
  */
 export const authorizations = [{ permissions: [Permissions.active], actor: Actors._coopname }] as const
 
-export const actionName = 'freereserve'
+export const actionName = 'openlesson'
 
 /**
  * @interface
  */
-export type IFreereserve = Edubridge.IFreereserve
+export type IOpenlesson = Edubridge.IOpenlesson

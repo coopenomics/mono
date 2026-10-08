@@ -19,6 +19,7 @@ import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeTeacherService, grantsTeaching, withoutContractError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
+import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
 
@@ -66,7 +67,8 @@ export class EdubridgeCourseService {
     private readonly teacherService: EdubridgeTeacherService,
     private readonly sections: EdubridgeSectionsService,
     private readonly enrollments: EdubridgeEnrollmentKyselyRepository,
-    private readonly lessons: EdubridgeLessonKyselyRepository
+    private readonly lessons: EdubridgeLessonKyselyRepository,
+    private readonly chainTerms: EdubridgeChainTermsService
   ) {}
 
   /**
@@ -136,6 +138,9 @@ export class EdubridgeCourseService {
       if (image) await this.images.deleteImage(image.bucket_key);
       throw e;
     }
+    // Условия курса уходят в цепь: по ним контракт считает взносы, резерв и возвраты.
+    // Запись перечитывается: номер курса для цепи выдаёт база при вставке.
+    await this.chainTerms.pushCourse((await this.courses.findById(coopname, saved.id)) ?? saved);
     // Преподаватели курса сразу получают допуск к нему.
     await this.teacherService.syncCourseAssignments(coopname, saved);
     // Перечитываем: save() не подгружает раздел и уровень, а ответ показывает их названия.
@@ -169,6 +174,9 @@ export class EdubridgeCourseService {
       course.external_title_seen = null;
       course.external_checked_at = null;
     }
+    // Сначала условия в цепь: при действующих подписках контракт не даёт менять
+    // ставку, взнос и расписание — тогда и запись приложения остаётся прежней.
+    await this.chainTerms.pushCourse(course);
     const saved = await this.courses.save(course);
     // Старая обложка больше никому не нужна — ключ content-addressed, у другого курса с тем же файлом ключ тот же.
     if (previous && previous.bucket_key !== image?.bucket_key) await this.images.deleteImage(previous.bucket_key);
@@ -241,6 +249,7 @@ export class EdubridgeCourseService {
     const changed =
       fee.fee_month !== course.fee_month ||
       input.planned_hourly_rate !== course.planned_hourly_rate ||
+      Boolean(input.pay_per_learner ?? true) !== Boolean(course.pay_per_learner) ||
       Number(input.lessons_per_month) !== Number(course.lessons_per_month) ||
       Number(input.lesson_minutes) !== Number(course.lesson_minutes);
     if (!changed) return;
@@ -306,6 +315,7 @@ function economyFields(input: EduCourseInputDTO, fee: { fee_month: string }): Pa
     lessons_total: input.lessons_total,
     lesson_minutes: input.lesson_minutes,
     planned_hourly_rate: input.planned_hourly_rate,
+    pay_per_learner: input.pay_per_learner ?? true,
     starts_at: input.starts_at || null,
     guarantee_days: input.guarantee_days ?? DEFAULT_GUARANTEE_DAYS,
     course_payment_enabled: input.course_payment_enabled ?? false,

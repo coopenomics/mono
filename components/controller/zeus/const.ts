@@ -5763,6 +5763,7 @@ export const ReturnTypes: Record<string,any> = {
 		lessons_total:"Int",
 		level_id:"ID",
 		level_title:"String",
+		pay_per_learner:"Boolean",
 		planned_hourly_rate:"String",
 		schedule:"String",
 		section_id:"ID",
@@ -5886,6 +5887,7 @@ export const ReturnTypes: Record<string,any> = {
 		duration_minutes:"Int",
 		held_at:"DateTime",
 		id:"ID",
+		learners_count:"Int",
 		lesson_number:"Int",
 		materials:"String",
 		topic:"String"

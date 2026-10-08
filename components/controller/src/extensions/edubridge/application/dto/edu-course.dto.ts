@@ -128,8 +128,11 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
   @Field(() => String, { nullable: true, description: 'Название курса на площадке при последней сверке' })
   external_title_seen!: string | null;
 
-  @Field(() => String, { description: 'Плановая ставка часа по программе' })
+  @Field(() => String, { description: 'Плановая ставка часа, заложенная во взнос каждого участника' })
   planned_hourly_rate!: string;
+
+  @Field(() => Boolean, { description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' })
+  pay_per_learner!: boolean;
 
   @Field(() => Boolean, { description: 'Принимает ли кооператив взнос за весь курс разом' })
   course_payment_enabled!: boolean;
@@ -159,6 +162,7 @@ export class EduCourseDTO extends EduCatalogCourseDTO {
     this.external_ref = e.external_ref;
     this.external_title_seen = e.external_title_seen;
     this.planned_hourly_rate = e.planned_hourly_rate;
+    this.pay_per_learner = Boolean(e.pay_per_learner);
     this.course_payment_enabled = e.course_payment_enabled;
     this.course_discount_percent = e.course_discount_bp / 100;
     this.guarantee_days = e.guarantee_days;
@@ -283,6 +287,11 @@ export class EduCourseInputDTO {
   @Field(() => String, { description: 'Плановая ставка часа по программе («1000.0000 RUB»)' })
   @Matches(ASSET_PATTERN, { message: validationMessage('edubridge.eduCourseInput.plannedHourlyRate.format') })
   planned_hourly_rate!: string;
+
+  @Field(() => Boolean, { nullable: true, description: 'Взнос преподавателя за занятие считается за каждого участника; иначе фиксированный за занятие' })
+  @IsOptional()
+  @IsBoolean()
+  pay_per_learner?: boolean;
 
   @Field(() => Int, { nullable: true, description: 'Гарантийный срок на материалы занятия, дней' })
   @IsOptional()

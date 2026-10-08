@@ -97,7 +97,8 @@ export interface FeeForMonths {
 export function feeForMonths(feeMonth: string, months: number, discountPercent: number): FeeForMonths {
   const { amount, symbol } = parseAmount(feeMonth);
   const base = amount * Math.max(0, Math.floor(months));
-  const discount = Math.round((base * discountPercent) / 100);
+  // Деление нацело по сотым долям процента — как в контракте (`Edubridge::quote_fee`).
+  const discount = Math.floor((base * Math.round(discountPercent * 100)) / 10000);
   return { base: formatAmount(base, symbol), discount: formatAmount(discount, symbol), amount: formatAmount(base - discount, symbol) };
 }
 

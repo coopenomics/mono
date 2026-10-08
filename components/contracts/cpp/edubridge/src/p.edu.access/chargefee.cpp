@@ -1,62 +1,108 @@
 /**
- * @brief Списание членского взноса ученика в фонд ЦПП «Образование».
+ * @brief Членский взнос участника за период подписки.
  *
- * Положение ЦПП (п. 4.2.2): при подключении подписки её стоимость переходит с
- * паевого на кошелёк программы с конвертацией в членский взнос и списывается
- * в распоряжение Общества. Первая половина — `convert` (o.edu.conv), вторая —
- * это действие: собранный взнос уходит в фонд программы, откуда кооператив
- * ведёт расходы на обучение и возвраты по Положению.
+ * Сумму считает контракт по условиям курса: помесячный взнос — занятия
+ * месяца по плановой ставке и целевой членский взнос; взнос разом — месяцы
+ * до конца программы со скидкой курса. Приложение называет только период и
+ * сумму из подписанного участником заявления: расхождение с расчётом —
+ * отказ, поэтому списывается ровно то, что участник подписал.
  *
- * Одна ledger2-операция:
- *  - `o.edu.fee` (TRANSFER w.edu.member → w.edu.fund, без проводки — оба на
- *    счёте 86). Зеркало `o.mkt.fee` «Стола заказов».
+ * Тем же действием считается оплаченный срок, а оплата занятий по плановой
+ * ставке откладывается в резерв подписки: из него идёт расчёт с
+ * преподавателем за каждое проведённое занятие (`chargelesson`).
+ *
+ * Движения средств:
+ *  - `o.edu.fee` (TRANSFER w.edu.member → w.edu.fund) — взнос;
+ *  - пока идёт гарантийный срок участника — `o.edu.lock` (w.edu.fund →
+ *    w.edu.escrow) на весь взнос;
+ *  - срок истёк — `o.edu.allot` (w.edu.fund → w.edu.teach) на оплату занятий
+ *    и `o.edu.lock` на сумму возможного возврата сверх резерва.
  *
  * Guards:
- *  - amount > 0 в символе кооператива;
- *  - подписка с указанным hash существует;
- *  - взнос списывается у владельца подписки;
- *  - w.edu.member.available пайщика >= amount.
- *
- * Собранное копится в записи подписки: это потолок возврата при отмене.
- * Та же сумма прибавляется к собранному по курсу подписки (`educourses`).
+ *  - подписка существует, принадлежит пайщику и ведёт учёт занятий;
+ *  - ожидаемая сумма равна расчётной;
+ *  - на кошельке членских взносов пайщика достаточно средств.
  *
  * @ingroup public_edubridge_actions
  */
 void edubridge::chargefee(eosio::name coopname,
                           eosio::name username,
                           checksum256 sub_hash,
-                          eosio::asset amount) {
+                          eosio::name period,
+                          eosio::asset expected,
+                          checksum256 statement_hash) {
   require_auth(coopname);
-
-  Edubridge::check_money(amount, "Сумма членского взноса");
 
   edu_subscriptions_index subs(_edubridge, coopname.value);
   auto sub = Edubridge::get_subscription_or_fail(subs, sub_hash);
   eosio::check(sub->username == username,
                "Членский взнос списывается у владельца подписки");
+  eosio::check(sub->has_plan(), "Подписка открыта до учёта занятий: закройте её и откройте заново");
+
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
+  const Edubridge::FeeQuote quote = Edubridge::quote_fee(terms, *sub, period, now);
+
+  eosio::check(expected == quote.amount,
+               std::string{"Сумма взноса в заявлении расходится с расчётом: в заявлении "} +
+                 expected.to_string() + ", по условиям курса " + quote.amount.to_string());
 
   auto bal_member = Edubridge::get_user_wallet_balance(
       coopname, ledger2_wallets::EDU_MEMBER_FEE, username);
-  eosio::check(bal_member.available >= amount,
+  eosio::check(bal_member.available >= quote.amount,
                std::string{"Недостаточно членских средств программы: требуется "} +
-                 amount.to_string() + ", доступно " + bal_member.available.to_string());
+                 quote.amount.to_string() + ", доступно " + bal_member.available.to_string());
 
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::COLLECT_EDU_FEE,
                  processes::edubridge::ACCESS,
-                 amount, username, sub_hash,
+                 quote.amount, username, sub_hash,
                  Edubridge::Memo::get_collect_fee_memo());
 
-  // Учёт курса: собранное по курсу растёт на сумму взноса.
+  const bool first = sub->plan.value().lessons_paid == 0;
+  const bool guarantee = Edubridge::is_guarantee_running(terms, *sub, now);
+
+  if (guarantee) {
+    // Гарантийный срок идёт: взнос удерживается целиком — возврат по гарантии полный.
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::LOCK_FEE,
+                   processes::edubridge::ACCESS,
+                   quote.amount, coopname, sub_hash,
+                   Edubridge::Memo::get_lock_fee_memo());
+  } else if (quote.teach.amount > 0) {
+    Ledger2::apply(_edubridge, coopname,
+                   operations::edubridge::ALLOT_TEACHER_RESERVE,
+                   processes::edubridge::ACCESS,
+                   quote.teach, coopname, sub_hash,
+                   Edubridge::Memo::get_allot_reserve_memo());
+  }
+
   Edubridge::update_course(coopname, sub->course_id, [&](auto& c) {
-    c.collected += amount;
+    c.collected += quote.amount;
+    if (!guarantee) c.reserve += quote.teach;
+    Edubridge::check_course_covered(c);
   });
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
-    // Прежняя подписка остаётся без учёта: счёт с середины дал бы потолок
-    // возврата меньше уже оплаченного.
-    if (s.is_tracked()) {
-      s.set_amounts(s.charged_or_zero() + amount, s.reserved_or_zero(), s.locked_or_zero());
+    // Гарантийный срок истёк, а закрыт ещё не был — закрывается до нового взноса.
+    Edubridge::close_guarantee(coopname, terms, s, now);
+
+    auto& plan = s.plan.value();
+    if (first) plan.paid_from = quote.paid_from;
+    plan.lessons_paid += quote.lessons;
+    plan.reserve      += quote.teach;
+
+    s.period         = period;
+    s.paid_until     = quote.paid_until;
+    s.statement_hash = statement_hash;
+    s.updated_at     = now;
+
+    if (guarantee) {
+      s.set_amounts(s.charged_or_zero() + quote.amount, s.reserved_or_zero(), s.locked_or_zero() + quote.amount);
+    } else {
+      s.set_amounts(s.charged_or_zero() + quote.amount, s.reserved_or_zero() + quote.teach, s.locked_or_zero());
+      // Новый взнос увеличил сумму возможного возврата — удержание приводится к ней.
+      Edubridge::rebalance_lock(coopname, s);
     }
   });
 }

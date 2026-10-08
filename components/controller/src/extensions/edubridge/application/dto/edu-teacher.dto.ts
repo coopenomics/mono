@@ -286,6 +286,7 @@ export class EduLessonDTO {
   @Field(() => String, { description: 'Тема занятия' }) topic!: string;
   @Field(() => Date, { description: 'Когда проведено' }) held_at!: Date;
   @Field(() => Int, { description: 'Длительность, минут' }) duration_minutes!: number;
+  @Field(() => Int, { nullable: true, description: 'Участников с оплаченным доступом, по которым проведён расчёт за занятие' }) learners_count!: number | null;
   @Field(() => [String], { description: 'Материалы занятия' }) materials!: string[];
   @Field(() => ID, { nullable: true, description: 'Взнос, оформленный по занятию' }) contribution_id!: string | null;
 
@@ -297,6 +298,7 @@ export class EduLessonDTO {
     this.topic = e.topic;
     this.held_at = e.held_at;
     this.duration_minutes = e.duration_minutes;
+    this.learners_count = e.learners_count ?? null;
     this.materials = e.materials ?? [];
     this.contribution_id = e.contribution_id;
   }

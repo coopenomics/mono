@@ -4,49 +4,51 @@ import type { InnerTransactResult } from '@coopenomics/innercoop';
 /**
  * Действия контракта `edubridge` от имени кооператива. Пакет из нескольких
  * действий проходит одной транзакцией — либо целиком, либо никак.
+ *
+ * Денежные суммы считает контракт по условиям курса. Приложение сумм не
+ * передаёт: оно задаёт условия (`setCourse`, `setAssignment`), вызывает
+ * действие и читает результат из таблиц цепи.
  */
 /** Что ещё едет в транзакции оплаты подписки. */
 export interface EduSubscribeExtras {
-  /** Взнос удерживается целиком: лишнее очередь освободит, когда его уже нельзя будет потребовать назад. */
-  lock?: string;
   /** Заявление публикуется отдельно, когда конвертации нет и `convert` его не несёт. */
   statement?: EdubridgeContract.Actions.Regstatement.IRegstatement;
 }
 
 export interface EdubridgeChainPort {
+  /** Условия курса в цепи: по ним контракт считает взнос, резерв, расчёт с преподавателем и возврат. */
+  setCourse(data: EdubridgeContract.Actions.Setcourse.ISetcourse): Promise<InnerTransactResult>;
+  /** Допуск преподавателя к курсу и его ставка за час на одного участника. */
+  setAssignment(data: EdubridgeContract.Actions.Setassign.ISetassign): Promise<InnerTransactResult>;
+  removeAssignment(data: EdubridgeContract.Actions.Delassign.IDelassign): Promise<InnerTransactResult>;
   /**
-   * Конвертация паевого в членский, подписка и списание взноса в фонд
-   * программы — одной транзакцией. Взнос уходит в распоряжение кооператива
-   * сразу при подключении подписки (Положение ЦПП, п. 4.2.2), поэтому три
-   * действия проходят вместе либо не проходят вовсе.
-   */
-  /**
-   * Подписка одной транзакцией: конвертация (когда есть недостача), открытие
-   * или продление подписки, списание взноса в фонд. `convert` пуст, если взнос
-   * покрыт остатком кошелька программы целиком.
+   * Оплата подписки одной транзакцией: конвертация (когда есть недостача),
+   * открытие подписки (у новой) и взнос. `convert` пуст, если взнос покрыт
+   * остатком кошелька программы целиком. Сумму, срок и удержание по гарантии
+   * считает контракт; `charge.expected` — сумма из подписанного заявления.
    */
   convertAndSubscribe(
     convert: EdubridgeContract.Actions.Convert.IConvert | null,
-    subscribe:
-      | { kind: 'open'; data: EdubridgeContract.Actions.Opensub.IOpensub }
-      | { kind: 'extend'; data: EdubridgeContract.Actions.Extendsub.IExtendsub },
+    open: EdubridgeContract.Actions.Opensub.IOpensub | null,
     charge: EdubridgeContract.Actions.Chargefee.IChargefee,
     extras?: EduSubscribeExtras
   ): Promise<InnerTransactResult>;
   expireSubscription(data: EdubridgeContract.Actions.Expiresub.IExpiresub): Promise<InnerTransactResult>;
-  /** Отмена подписки с возвратом взноса; `to_share` — возврат сразу в паевой. */
+  /** Отмена подписки с возвратом взноса; основание и сумму определяет контракт. */
   cancelSubscription(data: EdubridgeContract.Actions.Cancelsub.ICancelsub): Promise<InnerTransactResult>;
   /** Заявление об аннулировании подписки по гарантийным условиям публикуется в реестре документов. */
   claimGuarantee(data: EdubridgeContract.Actions.Warrclaim.IWarrclaim): Promise<InnerTransactResult>;
-  /** Совет удовлетворил заявление: подписка закрывается с возвратом всей стоимости, протокол уходит в реестр — одной транзакцией. */
-  grantGuarantee(cancel: EdubridgeContract.Actions.Cancelsub.ICancelsub, grant: EdubridgeContract.Actions.Warrgrant.IWarrgrant): Promise<InnerTransactResult>;
-  /** Резерв выплат преподавателям сверх обязательств по курсу возвращается в фонд. */
-  freeReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult>;
-  /** Гарантийный срок курса истёк: удержанное возвращается в фонд, себестоимость уходит в резерв. */
-  unlockFee(data: { coopname: string; sub_hash: string; course_id: number; amount: string; allot?: string }): Promise<InnerTransactResult>;
-  /** Резерв выплат преподавателям по подписке, запись которой в цепи уже закрыта. */
-  allotReserve(data: { coopname: string; sub_hash: string; course_id: number; amount: string }): Promise<InnerTransactResult>;
-  /** Приём материалов занятия на ответственное хранение на срок гарантии курса. */
+  /** Совет удовлетворил заявление: контракт закрывает подписку с возвратом всего взноса и публикует протокол. */
+  grantGuarantee(data: EdubridgeContract.Actions.Warrgrant.IWarrgrant): Promise<InnerTransactResult>;
+  /** Гарантийный срок участника истёк: контракт освобождает удержанное и выделяет резерв преподавателям. */
+  unlockFee(data: EdubridgeContract.Actions.Unlockfee.IUnlockfee): Promise<InnerTransactResult>;
+  /** Отчёт преподавателя о занятии: открывает расчёт с участниками. */
+  openLesson(data: EdubridgeContract.Actions.Openlesson.IOpenlesson): Promise<InnerTransactResult>;
+  /** Отзыв отчёта о занятии до расчёта с участниками. */
+  dropLesson(data: EdubridgeContract.Actions.Droplesson.IDroplesson): Promise<InnerTransactResult>;
+  /** Расчёт за занятие по одной подписке. */
+  chargeLesson(data: EdubridgeContract.Actions.Chargelesson.IChargelesson): Promise<InnerTransactResult>;
+  /** Приём материалов занятия на ответственное хранение; сумму и срок берёт контракт из записи занятия. */
   holdRid(data: EdubridgeContract.Actions.Holdrid.IHoldrid): Promise<InnerTransactResult>;
   submitRid(data: EdubridgeContract.Actions.Submitrid.ISubmitrid): Promise<InnerTransactResult>;
   acceptRid(data: EdubridgeContract.Actions.Acceptrid.IAcceptrid): Promise<InnerTransactResult>;
@@ -63,6 +65,16 @@ export interface EdubridgeChainPort {
   terminateContract(data: EdubridgeContract.Actions.Termcontract.ITermcontract): Promise<InnerTransactResult>;
   /** Расход программы: средства фонда уходят в пул расходов, записка — в шасси. */
   createExpense(data: EdubridgeContract.Actions.CreateExp.ICreateexp): Promise<InnerTransactResult>;
+
+  // ── Чтение расчётов контракта ──────────────────────────────────────────
+  /** Подписка в цепи: суммы, оплаченный срок и учёт занятий. `null` — подписка закрыта. */
+  readSubscription(coopname: string, subHash: string): Promise<EdubridgeContract.Tables.EduSubs.IEduSubscription | null>;
+  /** Условия курса в цепи. `null` — ещё не заданы. */
+  readTerms(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduTerms.IEduTerms | null>;
+  /** Занятие, по которому идёт расчёт: число участников и сумма. `null` — расчёт завершён. */
+  readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null>;
+  /** Учёт средств курса: собрано, резерв преподавателям, выплачено. */
+  readCourseFunds(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduCourses.IEduCourse | null>;
 }
 
 export const EDUBRIDGE_CHAIN_PORT = Symbol('EDUBRIDGE_CHAIN_PORT');

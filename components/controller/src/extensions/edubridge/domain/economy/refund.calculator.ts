@@ -1,23 +1,21 @@
 /**
- * Расчёт возврата членского взноса при отмене подписки по Положению ЦПП
- * «Образование».
+ * Предварительная сумма возврата членского взноса при отмене подписки — для
+ * показа участнику до отмены и записи итога после неё.
  *
- * Три основания и три суммы. До активации курса ученик получает стоимость
- * целиком: обучение не началось. Кооператив, не набравший группу, отменяет
- * курс — тоже целиком, и сразу на паевой: это отмена его собственного решения.
- * Отказ в ходе подписки возвращает половину остаточной стоимости: использованное
- * остаётся кооперативу полностью, неиспользованное делится пополам.
+ * Сумму возврата считает и проводит контракт (`edubridge::cancelsub`,
+ * `Edubridge::refusal_refund`). Здесь то же правило приложено к строке
+ * подписки, прочитанной из цепи: остаток оплаты непроведённых занятий ведёт
+ * контракт, приложение его не считает.
  *
- * Использованное считается по занятиям: сколько их прошло с активации курса по
- * его расписанию. Журнала проведённых занятий пока нет, поэтому счёт идёт по
- * плану курса — когда журнал появится, здесь встанет факт.
+ * Три основания. До начала занятий участник получает взнос целиком. Кооператив,
+ * не набравший группу, отменяет курс — тоже целиком, и сразу в паевой взнос:
+ * это отмена его собственного решения. Отказ в ходе подписки возвращает
+ * половину остаточной стоимости: доля всего взноса за занятия, по которым
+ * расчёт ещё не прошёл, делится пополам.
  */
 
 const PRECISION = 4;
 const SCALE = 10 ** PRECISION;
-const MONTHS_IN_YEAR = 12;
-/** Дней в учебном месяце — по нему считается, сколько занятий прошло. */
-const DAYS_IN_MONTH = 30;
 
 /** Основание возврата — от него зависит и сумма, и куда она идёт. */
 export enum RefundReason {
@@ -31,19 +29,20 @@ export enum RefundReason {
   GUARANTEE = 'guarantee',
 }
 
+/** Состояние подписки в цепи, от которого считается возврат. */
+export interface RefundChainState {
+  /** Собрано по подписке («9600.0000 RUB»). */
+  charged: string;
+  /** Занятий оплачено. */
+  lessons_paid: number;
+  /** Занятий, по которым прошёл расчёт. */
+  lessons_done: number;
+}
+
 export interface RefundParams {
-  /** Уплаченный взнос за период («9600.0000 RUB»). */
-  paid_amount: string;
-  /** Занятий в месяц по расписанию курса. */
-  lessons_per_month: number;
-  /** Занятий во всей программе курса. */
-  lessons_total: number;
-  /** Сколько месяцев оплачено взносом: один при помесячном, месяцы курса при взносе разом. */
-  months_paid: number;
-  /** С какого дня идёт оплаченный срок. Участник, пришедший в середине курса,
-   *  платил за оставшиеся месяцы — занятия до этого дня ему не засчитываются. */
-  paid_from?: Date | null;
-  /** Дата активации курса; `null` — курс ещё не активирован. */
+  /** Строка подписки из цепи. */
+  chain: RefundChainState;
+  /** Дата начала занятий; `null` — курс ещё не активирован. */
   starts_at: Date | null;
   /** Момент отмены. */
   now: Date;
@@ -55,77 +54,41 @@ export interface RefundCalculation {
   reason: RefundReason;
   /** Сколько возвращается ученику. */
   refund: string;
-  /** Сколько остаётся в фонде программы. */
+  /** Сколько остаётся на кошельке программы. */
   withheld: string;
-  /** Занятий оплачено периодом. */
+  /** Занятий оплачено. */
   lessons_paid: number;
-  /** Занятий прошло к моменту отмены. */
+  /** Занятий проведено к моменту отмены. */
   lessons_used: number;
   /** Возврат идёт сразу на паевой (отмена решения кооператива). */
   to_share: boolean;
 }
 
 export function calculateRefund(params: RefundParams): RefundCalculation {
-  const { amount: paidMinor, symbol } = parseAmount(params.paid_amount);
-  const lessonsPaid = Math.max(
-    0,
-    Math.min(params.lessons_per_month * Math.max(1, params.months_paid), params.lessons_total || Number.MAX_SAFE_INTEGER)
-  );
-  const lessonsUsed = lessonsDone(params, lessonsPaid);
+  const { amount: charged, symbol } = parseAmount(params.chain.charged);
+  const base = { lessons_paid: params.chain.lessons_paid, lessons_used: params.chain.lessons_done };
+  const whole = (reason: RefundReason, toShare: boolean): RefundCalculation => ({
+    reason,
+    refund: formatAmount(charged, symbol),
+    withheld: formatAmount(0, symbol),
+    ...base,
+    to_share: toShare,
+  });
 
-  // Недобор — отмена решения кооператива: занятия не начинались, взнос
-  // возвращается целиком и сразу в паевой, заявления от ученика не требуется.
-  if (params.underfilled) {
-    return {
-      reason: RefundReason.UNDERFILLED,
-      refund: formatAmount(paidMinor, symbol),
-      withheld: formatAmount(0, symbol),
-      lessons_paid: lessonsPaid,
-      lessons_used: lessonsUsed,
-      to_share: true,
-    };
-  }
+  if (params.underfilled) return whole(RefundReason.UNDERFILLED, true);
+  if (!params.starts_at || params.now < params.starts_at) return whole(RefundReason.BEFORE_START, false);
 
-  if (!params.starts_at || params.now < params.starts_at) {
-    return {
-      reason: RefundReason.BEFORE_START,
-      refund: formatAmount(paidMinor, symbol),
-      withheld: formatAmount(0, symbol),
-      lessons_paid: lessonsPaid,
-      lessons_used: 0,
-      to_share: false,
-    };
-  }
-
-  const remainingMinor = lessonsPaid > 0 ? Math.round((paidMinor * (lessonsPaid - lessonsUsed)) / lessonsPaid) : 0;
-  const refundMinor = Math.floor(remainingMinor / 2);
-
+  // Половина остаточной стоимости — то же деление нацело, что в контракте.
+  const { lessons_paid: paid, lessons_done: done } = params.chain;
+  const residual = paid > 0 && done < paid ? Math.floor((charged * (paid - done)) / paid) : 0;
+  const refund = Math.floor(residual / 2);
   return {
     reason: RefundReason.REFUSAL,
-    refund: formatAmount(refundMinor, symbol),
-    withheld: formatAmount(paidMinor - refundMinor, symbol),
-    lessons_paid: lessonsPaid,
-    lessons_used: lessonsUsed,
+    refund: formatAmount(refund, symbol),
+    withheld: formatAmount(charged - refund, symbol),
+    ...base,
     to_share: false,
   };
-}
-
-/** Сколько занятий прошло с активации курса — но не больше оплаченных. */
-function lessonsDone(params: RefundParams, lessonsPaid: number): number {
-  if (!params.starts_at || params.now <= params.starts_at) return 0;
-  const from = params.paid_from && params.paid_from > params.starts_at ? params.paid_from : params.starts_at;
-  if (params.now <= from) return 0;
-  const days = (params.now.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
-  const done = Math.floor((days / DAYS_IN_MONTH) * params.lessons_per_month);
-  return Math.max(0, Math.min(done, lessonsPaid));
-}
-
-/**
- * Сколько месяцев оплачивает период подписки, открытой до появления взноса
- * за весь курс: у таких записей число оплаченных месяцев не сохранено.
- */
-export function monthsOfPeriod(period: 'month' | 'year'): number {
-  return period === 'year' ? MONTHS_IN_YEAR : 1;
 }
 
 function parseAmount(asset: string): { amount: number; symbol: string } {

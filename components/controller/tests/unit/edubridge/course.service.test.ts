@@ -42,7 +42,9 @@ function make(contracts: string[] = ['teach']) {
   const enrollments = { findByCourse: jest.fn(async () => enrollmentsOfCourse.list) } as any;
   const lessonsOfCourse: { list: any[] } = { list: [] };
   const lessons = { findByCourse: jest.fn(async () => lessonsOfCourse.list) } as any;
-  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons), enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
+  // Условия курса уходят в цепь: по ним контракт считает суммы.
+  const chainTerms = { pushCourse: jest.fn(async () => undefined) } as any;
+  return { service: new EdubridgeCourseService(courses, teachers, skillspace, images, names, economy, teacherService, sections, enrollments, lessons, chainTerms), chainTerms, enrollmentsOfCourse, lessonsOfCourse, courses, teachers, images, economy, saved, teacherService, sections };
 }
 
 const base = {
