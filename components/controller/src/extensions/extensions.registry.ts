@@ -138,8 +138,8 @@ export const AppRegistry: INamedExtension = {
     schema: BuiltinSchema,
     ports: builtinPorts,
     tags: [t('app.extensionsRegistry.soviet.tagDesk'), t('app.extensionsRegistry.soviet.tagManagement')],
-    readme: getReadmeContent('./yookassa'),
-    instructions: getInstructionsContent('./yookassa'),
+    readme: getReadmeContent('./builtin/soviet'),
+    instructions: getInstructionsContent('./builtin/soviet'),
     get is_desktop() {
       return !!this.desktops && this.desktops.length > 0;
     },
