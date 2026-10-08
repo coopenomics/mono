@@ -63,12 +63,13 @@ function formatAmount(minor: number, symbol: string): string {
 
 /**
  * Скидка съедает наценку: при доле наценки в взносе `m / (100 + m)` взнос за
- * курс со скидкой ровно в эту долю равен себестоимости. Округление вниз до
- * сотых процента — чтобы предельное значение само проверку проходило.
+ * курс со скидкой ровно в эту долю равен себестоимости. Предел — целое число
+ * процентов, округление вниз: дробный предел («до 23,07%») администратор не
+ * читает, а округлённое вниз значение само проверку проходит.
  */
 export function maxCourseDiscountPercent(markupPercent: number): number {
   if (markupPercent <= 0) return 0;
-  return Math.floor(((markupPercent / (100 + markupPercent)) * 100) * 100) / 100;
+  return Math.floor((markupPercent / (100 + markupPercent)) * 100);
 }
 
 /**

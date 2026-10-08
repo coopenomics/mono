@@ -117,10 +117,12 @@ describe('Расчёт взноса курса', () => {
     expect(rest.amount).toBe('25920.0000 RUB');
   });
 
-  it('предельная скидка равна доле наценки во взносе и ниже себестоимости не опускает', () => {
+  it('предельная скидка — целая часть доли наценки во взносе, ниже себестоимости не опускает', () => {
     expect(maxCourseDiscountPercent(0)).toBe(0);
-    expect(maxCourseDiscountPercent(20)).toBe(16.66);
-    const calc = calculateCourseFee({ ...base, course_discount_percent: 16.66 });
+    expect(maxCourseDiscountPercent(20)).toBe(16);
+    expect(maxCourseDiscountPercent(30)).toBe(23);
+    expect(maxCourseDiscountPercent(50)).toBe(33);
+    const calc = calculateCourseFee({ ...base, course_discount_percent: 16 });
     expect(Number(calc.fee_course.split(' ')[0])).toBeGreaterThanOrEqual(Number(calc.cost_course.split(' ')[0]));
   });
 
@@ -147,12 +149,12 @@ describe('EdubridgeEconomyService', () => {
 
   it('скидка больше наценки — отказ с предельным значением в тексте', async () => {
     const { service } = make({ markup: 20 });
-    await expect(service.feeForCourse({ ...params, course_discount_percent: 30 })).rejects.toThrow(/Предельная скидка — 16.66%/);
+    await expect(service.feeForCourse({ ...params, course_discount_percent: 30 })).rejects.toThrow(/Предельная скидка — 16%/);
   });
 
   it('скидка ровно по пределу принимается', async () => {
     const { service } = make({ markup: 20 });
-    const fee = await service.feeForCourse({ ...params, course_discount_percent: 16.66 });
+    const fee = await service.feeForCourse({ ...params, course_discount_percent: 16 });
     expect(fee.fee_month).toBe('9600.0000 RUB');
   });
 

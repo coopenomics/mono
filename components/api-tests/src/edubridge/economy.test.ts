@@ -86,15 +86,15 @@ describe('Образование: экономика курса — взнос, 
 
   it(caseName('edu.econ.happy.03', 'целевой членский взнос задаётся на весь кооператив, предельная скидка пересчитывается'), async () => {
     const before = (await gql<any>(chairman, SETTINGS)).edubridgeEconomySettings
-    expect(before).toEqual({ markup_percent: MARKUP, max_course_discount_percent: 16.66 })
+    expect(before).toEqual({ markup_percent: MARKUP, max_course_discount_percent: 16 })
     try {
       const set = (await gql<any>(chairman, SET_SETTINGS, { d: { markup_percent: 50 } })).edubridgeSetEconomySettings
-      expect(set).toEqual({ markup_percent: 50, max_course_discount_percent: 33.33 })
+      expect(set).toEqual({ markup_percent: 50, max_course_discount_percent: 33 })
       expect((await gql<any>(chairman, SETTINGS)).edubridgeEconomySettings).toEqual(set)
       // Новое значение действует на расчёт сразу и для совета тоже.
       const fee = (await gql<any>(await tokenOf(COUNCIL), FEE_PREVIEW, { d: BASE })).edubridgeCourseFeePreview
       expect(amount(fee.fee_month)).toBe(12000)
-      expect(fee.max_course_discount_percent).toBe(33.33)
+      expect(fee.max_course_discount_percent).toBe(33)
     }
     finally {
       await gql(chairman, SET_SETTINGS, { d: { markup_percent: MARKUP } })
