@@ -107,6 +107,7 @@ export class LoanNotificationsListener {
         amount: AmountFormatterUtils.formatAmountSafe(String(entity.remaining ?? entity.amount ?? '')),
         dueAt: String(entity.due_at ?? '').slice(0, 10),
         link: `${platformSettings().frontendUrl}/${entity.coopname}/debt/loans`,
+        kind: entity.isOwn ? 'share' : 'generation',
       });
     } catch (error: any) {
       this.logger.warn(`Уведомление о просрочке по займу ${entity.debt_hash} не отправлено: ${error.message}`);

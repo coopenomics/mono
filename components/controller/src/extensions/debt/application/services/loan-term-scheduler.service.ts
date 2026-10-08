@@ -117,6 +117,7 @@ export class LoanTermSchedulerService implements OnModuleInit {
           amount: AmountFormatterUtils.formatAmountSafe(String(loan.remaining ?? loan.amount ?? '')),
           dueAt: String(loan.due_at).slice(0, 10),
           link: `${platformSettings().frontendUrl}/${coopname}/debt/loans`,
+          kind: loan.isOwn ? 'share' : 'generation',
         });
         sent += 1;
       } catch (error: any) {

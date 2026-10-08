@@ -12,6 +12,8 @@ export const loanDueSoonPayloadSchema = z.object({
   amount: z.string(),
   dueAt: z.string(),
   link: z.string(),
+  // Вид займа: под паевой взнос (share) или под коммиты (generation) — от него зависит текст.
+  kind: z.string().optional(),
 });
 export type IPayload = z.infer<typeof loanDueSoonPayloadSchema>;
 export interface IWorkflow extends BaseWorkflowPayload, IPayload {}
