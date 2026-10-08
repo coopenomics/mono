@@ -7,6 +7,12 @@
       AccountBadge(:account-name="teacher.username")
       BaseBadge.q-mt-xs(:variant="contractStatusOf(teacher.contract_status).variant") {{ contractStatusOf(teacher.contract_status).label }}
 
+  //- Ставку за час назначает администратор при приёме преподавателя: без неё в курс он не ставится.
+  BaseBanner.q-mt-md(v-if="!rateAssigned" variant="warn")
+    .row.items-center.justify-between.no-wrap.q-gutter-sm
+      span {{ $t('edubridge.adminTeachersPage.rate.notAssignedNotice') }}
+      BaseButton(variant="secondary" size="sm" @click="openRate") {{ $t('edubridge.adminTeachersPage.rate.assign') }}
+
   //- Документы на подписи у председателя — здесь же, чтобы подписать, не
   //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
   //- его и в «Запросах одобрений».
@@ -31,7 +37,8 @@
       DataRow(:label="$t('edubridge.adminTeachersPage.stats.rate')")
         template(#value-override)
           .row.items-center.no-wrap.q-gutter-xs
-            span.t-num {{ formatAsset2Digits(teacher.hourly_rate) }}
+            span.t-num(v-if="rateAssigned") {{ formatAsset2Digits(teacher.hourly_rate) }}
+            span.t-muted(v-else) {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
             BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
               template(#icon-left)
                 q-icon(name="edit" size="16px")
@@ -138,7 +145,7 @@ import { asDateInput, asText, formatToAsset } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { useConfirm } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
-import { Avatar, BaseBadge, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
+import { Avatar, BaseBadge, BaseBanner, BaseButton, BaseDialog, BaseForm, BaseInput, BaseSelect, CardListSkeleton } from 'src/shared/ui/base';
 import { AccountBadge, DataRow } from 'src/shared/ui/domain';
 import { ComplexDocument } from 'src/shared/ui/ComplexDocument';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
@@ -222,6 +229,8 @@ const ownContributions = computed(() =>
 const contributionStatusOf = (s: string) => CONTRIBUTION_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const ridType = (k: string) => RID_TYPE_LABELS[k] ?? k;
 /** Принято советом: сколько взносов и на какую сумму. Суммы — ассеты одного тикера. */
+/** Администратор назначил преподавателю ставку за час. */
+const rateAssigned = computed(() => parseFloat(props.teacher.hourly_rate ?? '') > 0);
 const acceptedContributions = computed(() => ownContributions.value.filter((c) => c.status === Zeus.EduContributionStatus.ACCEPTED));
 const acceptedTotal = computed(() => {
   const total = acceptedContributions.value.reduce((sum, c) => sum + (Number.parseFloat(c.amount) || 0), 0);

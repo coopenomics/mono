@@ -156,18 +156,14 @@ export class EdubridgeTeacherService {
    * коллбэку совета (`onContractApproved`). Отклонённый договор подписывается
    * заново — старая запись перезаписывается.
    */
-  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string, declaredRate?: string | null) {
+  async signContract(coopname: string, teacher: string, document: ISignedDocument, number: string) {
     const existing = await this.teachers.findContract(coopname, teacher);
     if (existing && !RESIGNABLE_CONTRACT.includes(existing.status)) return existing;
     if (!document.signatures?.some((s) => s.signer === teacher)) throw DomainError.badRequest('EDUBRIDGE_CONTRACT_NOT_SIGNED_BY_TEACHER');
-    const hourlyRate = await this.requireDeclaredRate(coopname, teacher, declaredRate);
-    // Ставку преподаватель называет один раз при подключении. Дальше она
-    // определяет и себестоимость курса, и его собственный взнос за занятие,
-    // поэтому менять её в одиночку он не может — это делает администратор.
-    // Прекращённый договор ставку не держит: новый договор — новые условия.
-    if (existing && existing.status !== EduContractStatus.TERMINATED && isPositiveRate(existing.hourly_rate) && existing.hourly_rate !== hourlyRate) {
-      throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ALREADY_SET');
-    }
+    // Ставку часа преподаватель себе не называет: её назначает администратор
+    // при приёме преподавателя. Отклонённый договор подписывается заново с уже
+    // назначенной ставкой; прекращённый ставку не держит — новый договор, новые условия.
+    const hourlyRate = existing && existing.status !== EduContractStatus.TERMINATED && isPositiveRate(existing.hourly_rate) ? existing.hourly_rate : ZERO_RATE;
 
     await this.chain.signContract({ coopname, username: teacher, contract_hash: document.hash, contract: document as never });
     await this.saveContractRef(coopname, teacher, number, document);
@@ -306,30 +302,17 @@ export class EdubridgeTeacherService {
     return saved;
   }
 
-  /**
-   * Ставка для договора: названа первым шагом подключения и лежит в профиле;
-   * явная ставка в запросе имеет приоритет. Без ставки договор не
-   * подписывается: по ней считается и стоимость курса, и взнос преподавателя
-   * за занятие.
-   */
-  private async requireDeclaredRate(coopname: string, teacher: string, declaredRate?: string | null): Promise<string> {
-    const rate = declaredRate || (await this.teachers.findProfile(coopname, teacher))?.hourly_rate || '';
-    if (!isPositiveRate(rate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
-    return rate;
-  }
-
   // ── Профиль преподавателя ──────────────────────────────────────────────────
   /**
-   * Профиль преподавателя: что он рассказал о себе и его ставка часа. Пока
-   * договора нет, ставка — названная при подключении; с договором — ставка
-   * договора, и преподаватель её уже не меняет (это делает администратор).
+   * Профиль преподавателя: что он рассказал о себе и его ставка часа. Ставку
+   * назначает администратор в договоре; до назначения она нулевая.
    */
   async profile(coopname: string, teacher: string): Promise<EduTeacherProfileDTO> {
     const [profile, contract] = await Promise.all([this.teachers.findProfile(coopname, teacher), this.teachers.findContract(coopname, teacher)]);
     const rate_locked = rateLockedBy(contract);
     return {
       about: profile?.about ?? '',
-      hourly_rate: rate_locked ? (contract as EdubridgeTeacherContractRecord).hourly_rate : profile?.hourly_rate ?? ZERO_RATE,
+      hourly_rate: rate_locked ? (contract as EdubridgeTeacherContractRecord).hourly_rate : ZERO_RATE,
       rate_locked,
     };
   }
@@ -337,23 +320,15 @@ export class EdubridgeTeacherService {
   /**
    * Первый шаг подключения и правка «о себе» со стола. Рассказ о себе
    * обязателен — иначе в карточке преподавателя пусто, и администратору не по
-   * чему судить, кого он допускает к курсу. Ставку преподаватель называет до
-   * договора; после подписи договора она закреплена.
+   * чему судить, кого он допускает к курсу. Ставку преподаватель не называет:
+   * её назначает администратор.
    */
   async saveProfile(coopname: string, teacher: string, input: EduTeacherProfileInputDTO): Promise<EduTeacherProfileDTO> {
     const about = (input.about ?? '').trim();
     if (!about) throw DomainError.badRequest('EDUBRIDGE_TEACHER_ABOUT_REQUIRED');
     const [existing, contract] = await Promise.all([this.teachers.findProfile(coopname, teacher), this.teachers.findContract(coopname, teacher)]);
 
-    let hourly_rate: string;
-    if (rateLockedBy(contract)) {
-      hourly_rate = (contract as EdubridgeTeacherContractRecord).hourly_rate;
-      if (input.hourly_rate && input.hourly_rate !== hourly_rate) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_ALREADY_SET');
-    } else {
-      hourly_rate = input.hourly_rate || existing?.hourly_rate || ZERO_RATE;
-      if (!isPositiveRate(hourly_rate)) throw DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_REQUIRED');
-    }
-
+    const hourly_rate = rateLockedBy(contract) ? (contract as EdubridgeTeacherContractRecord).hourly_rate : ZERO_RATE;
     await this.teachers.saveProfile({ ...(existing ?? {}), coopname, teacher_username: teacher, about, hourly_rate });
     return this.profile(coopname, teacher);
   }
@@ -446,6 +421,8 @@ export class EdubridgeTeacherService {
   private async assertCanTeach(coopname: string, teacher: string): Promise<EdubridgeTeacherContractRecord> {
     const contract = await this.teachers.findContract(coopname, teacher);
     if (!contract || !grantsTeaching(contract)) throw withoutContractError([teacher]);
+    // Допуск к курсу берёт ставку из договора: без назначенной ставки считать взнос преподавателя нечем.
+    if (!hasAssignedRate(contract)) throw withoutRateError([teacher]);
     return contract;
   }
 
@@ -1418,6 +1395,16 @@ function chainAssignmentId(c: EdubridgeContributionRecord): number {
 /** Даёт ли договор право преподавать: отклонённый и прекращённый — нет. */
 export function grantsTeaching(contract: Pick<EdubridgeTeacherContractRecord, 'status'> | null | undefined): boolean {
   return contract?.status === EduContractStatus.ACTIVE || contract?.status === EduContractStatus.PENDING_APPROVAL;
+}
+
+/** Администратор назначил преподавателю ставку часа. */
+export function hasAssignedRate(contract: Pick<EdubridgeTeacherContractRecord, 'hourly_rate'> | null | undefined): boolean {
+  return isPositiveRate(contract?.hourly_rate);
+}
+
+/** Отказ по преподавателям без назначенной ставки — один для формы курса и для прямого допуска к курсу. */
+export function withoutRateError(teachers: string[]): DomainError {
+  return DomainError.badRequest('EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED', { teachers: teachers.join(', ') });
 }
 
 /** Отказ пайщикам без договора — один для формы курса и для прямого допуска к курсу. */

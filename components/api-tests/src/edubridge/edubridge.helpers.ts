@@ -389,14 +389,16 @@ export async function approveContract(approval: any): Promise<void> {
 }
 
 /**
- * Преподаватель подключён целиком: рассказ о себе и ставка, оферта, договор с
- * подписью председателя. Ставка по умолчанию равна плановой ставке курсов набора.
+ * Преподаватель подключён целиком: рассказ о себе, оферта, договор с подписью
+ * председателя. Ставку за час преподаватель себе не называет — её назначает
+ * администратор при приёме; по умолчанию она равна плановой ставке курсов набора.
  */
 export async function onboardTeacher(who: Who, token: string, hourlyRate = PLANNED_RATE, opts: { approve?: boolean } = {}): Promise<void> {
-  await gql(token, SAVE_PROFILE, { d: { about: 'Веду занятия набора внешнего слоя', hourly_rate: hourlyRate } })
+  await gql(token, SAVE_PROFILE, { d: { about: 'Веду занятия набора внешнего слоя' } })
   await signOffer(who, token, 'TEACHER')
   const { document, contract_number } = await signedContract(who, token)
   await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })
+  await gql(await tokenOf(CHAIRMAN), SET_TEACHER_RATE, { d: { username: who.account, hourly_rate: hourlyRate } })
   if (opts.approve === false)
     return
   const approval = await waitFor(() => pendingContractApproval(who.account),

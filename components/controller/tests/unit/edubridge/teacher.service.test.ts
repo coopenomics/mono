@@ -119,15 +119,17 @@ function make(
 describe('EdubridgeTeacherService — договор УХД и приложение через одобрение председателя', () => {
   it('подпись договора преподавателем: signcontract в цепь, статус «ждёт подписи председателя»', async () => {
     const { service, chain } = make({ contract: false });
-    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT'), 'N-1', '1000.0000 RUB');
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT'), 'N-1');
     expect(chain.signContract).toHaveBeenCalledWith(expect.objectContaining({ username: 'teach', contract_hash: 'CONTRACT' }));
     expect(c.status).toBe(EduContractStatus.PENDING_APPROVAL);
     expect(c.contract_hash).toBe('contract');
+    // Ставку преподаватель себе не называет: её назначает администратор.
+    expect(c.hourly_rate).toBe('0.0000 RUB');
   });
 
   it('договор без подписи преподавателя не уходит в цепь', async () => {
     const { service, chain } = make({ contract: false });
-    await expect(service.signContract('voskhod', 'teach', signedBy('someone', 'X'), 'N', '1000.0000 RUB')).rejects.toThrow(/не подписан преподавателем/);
+    await expect(service.signContract('voskhod', 'teach', signedBy('someone', 'X'), 'N')).rejects.toThrow(/не подписан преподавателем/);
     expect(chain.signContract).not.toHaveBeenCalled();
   });
 
@@ -146,21 +148,30 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(declined.status).toBe(EduContractStatus.DECLINED);
     expect(declined.decline_reason).toBe('Нет квалификации');
 
-    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT2'), 'N-2', '1000.0000 RUB');
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT2'), 'N-2');
     expect(chain.signContract).toHaveBeenCalledTimes(1);
     expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
     expect(again.contract_hash).toBe('contract2');
   });
 
-  it('ставка часа названа один раз: переподписание с другой ставкой отклоняется', async () => {
+  it('отклонённый договор подписывается заново с назначенной администратором ставкой', async () => {
     const { service } = make();
     await service.onContractDeclined('voskhod', 'H', 'Нет квалификации');
-    await expect(
-      service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3', '5000.0000 RUB')
-    ).rejects.toThrow(/её меняет администратор/);
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'CONTRACT3'), 'N-3');
+    expect(again.hourly_rate).toBe('1000.0000 RUB');
   });
 
-  it('прекращение договора: termcontract в цепь, статус «прекращён», подписывается заново — уже с новой ставкой', async () => {
+  it('преподаватель без назначенной ставки к курсу не допускается', async () => {
+    const { service, teachers } = make();
+    (await service.contract('voskhod', 'teach'))!.hourly_rate = '0.0000 RUB';
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
+    // Ставка на курсе, названная в допуске, договорную не заменяет.
+    await expect(service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
+    expect(teachers.saveAssignment).not.toHaveBeenCalled();
+  });
+
+  it('прекращение договора: termcontract в цепь, статус «прекращён», подписывается заново — ставку назначают заново', async () => {
     const { service, chain, teachers } = make();
     teachers.listAssignments.mockResolvedValue([]);
     const terminated = await service.terminateContract('voskhod', 'teach', 'выход преподавателя из кооператива');
@@ -168,10 +179,10 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(terminated?.status).toBe(EduContractStatus.TERMINATED);
     await expect(service.reportLesson('voskhod', 'teach', { assignment_id: 'A1', lesson_number: 1, materials: ['x'] } as any)).rejects.toThrow(/прекращён/);
 
-    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N2', '1500.0000 RUB');
+    const again = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N2');
     expect(chain.signContract).toHaveBeenCalled();
     expect(again.status).toBe(EduContractStatus.PENDING_APPROVAL);
-    expect(again.hourly_rate).toBe('1500.0000 RUB');
+    expect(again.hourly_rate).toBe('0.0000 RUB');
   });
 
   it('договор не прекращается, пока преподаватель ведёт курс или по занятиям не закрыт расчёт', async () => {
@@ -266,7 +277,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
 
   it('действующий договор повторно не подписывается — возвращается тот же', async () => {
     const { service, chain } = make();
-    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9', '1000.0000 RUB');
+    const c = await service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9');
     expect(chain.signContract).not.toHaveBeenCalled();
     expect(c.contract_hash).toBe('h');
   });
@@ -810,60 +821,42 @@ describe('EdubridgeTeacherService — договор следует за таб�
   });
 });
 
-describe('Профиль преподавателя — ставка за час и рассказ о себе', () => {
-  it('первый шаг подключения: без договора сохраняются рассказ и названная ставка', async () => {
+describe('Профиль преподавателя — рассказ о себе; ставку назначает администратор', () => {
+  it('первый шаг подключения: без договора сохраняется рассказ, ставка преподавателем не задаётся', async () => {
     const { service, teachers } = make({ contract: false });
     const saved = await service.saveProfile('voskhod', 'teach', { about: '  Преподаю математику, 12 лет в школе  ', hourly_rate: '1200.0000 RUB' });
-    expect(saved).toEqual({ about: 'Преподаю математику, 12 лет в школе', hourly_rate: '1200.0000 RUB', rate_locked: false });
-    expect(teachers.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', teacher_username: 'teach', hourly_rate: '1200.0000 RUB' }));
+    expect(saved).toEqual({ about: 'Преподаю математику, 12 лет в школе', hourly_rate: '0.0000 RUB', rate_locked: false });
+    expect(teachers.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ coopname: 'voskhod', teacher_username: 'teach', hourly_rate: '0.0000 RUB' }));
   });
 
   it('пустой рассказ о себе не принимается — в карточке преподавателя не должно быть пусто', async () => {
     const { service, teachers } = make({ contract: false });
-    await expect(service.saveProfile('voskhod', 'teach', { about: '   ', hourly_rate: '1200.0000 RUB' })).rejects.toThrow(/Расскажите о себе/);
+    await expect(service.saveProfile('voskhod', 'teach', { about: '   ' })).rejects.toThrow(/Расскажите о себе/);
     expect(teachers.saveProfile).not.toHaveBeenCalled();
   });
 
-  it('без ставки и с нулевой ставкой профиль до договора не сохраняется', async () => {
-    const { service, teachers } = make({ contract: false });
-    await expect(service.saveProfile('voskhod', 'teach', { about: 'Учу физике' })).rejects.toThrow(/Назовите ставку/);
-    await expect(service.saveProfile('voskhod', 'teach', { about: 'Учу физике', hourly_rate: '0.0000 RUB' })).rejects.toThrow(/Назовите ставку/);
-    expect(teachers.saveProfile).not.toHaveBeenCalled();
-  });
-
-  it('правка рассказа без ставки оставляет ранее названную ставку', async () => {
-    const { service } = make({ contract: false, profile: { about: 'Старый рассказ', hourly_rate: '900.0000 RUB' } });
-    const saved = await service.saveProfile('voskhod', 'teach', { about: 'Новый рассказ' });
-    expect(saved).toMatchObject({ about: 'Новый рассказ', hourly_rate: '900.0000 RUB', rate_locked: false });
-  });
-
-  it('после подписи договора ставка закреплена: рассказ правится, ставка — нет', async () => {
+  it('с договором профиль показывает ставку договора; названная преподавателем ставка её не меняет', async () => {
     const { service } = make();
-    const saved = await service.saveProfile('voskhod', 'teach', { about: 'Дописал о себе' });
+    const saved = await service.saveProfile('voskhod', 'teach', { about: 'Дописал о себе', hourly_rate: '5000.0000 RUB' });
     expect(saved).toEqual({ about: 'Дописал о себе', hourly_rate: '1000.0000 RUB', rate_locked: true });
-    await expect(service.saveProfile('voskhod', 'teach', { about: 'Дописал о себе', hourly_rate: '5000.0000 RUB' })).rejects.toThrow(/Ставка часа уже задана/);
   });
 
-  it('прекращённый договор ставку не держит — её можно назвать заново', async () => {
+  it('прекращённый договор ставку не держит — её назначают заново', async () => {
     const { service } = make({ contract: EduContractStatus.TERMINATED });
     const saved = await service.saveProfile('voskhod', 'teach', { about: 'Возвращаюсь преподавать', hourly_rate: '1500.0000 RUB' });
-    expect(saved).toMatchObject({ hourly_rate: '1500.0000 RUB', rate_locked: false });
+    expect(saved).toMatchObject({ hourly_rate: '0.0000 RUB', rate_locked: false });
   });
 
-  it('профиль без записи: рассказ пуст, ставка — из договора либо не названа', async () => {
+  it('профиль без записи: рассказ пуст, ставка — из договора либо не назначена', async () => {
     await expect(make().service.profile('voskhod', 'teach')).resolves.toEqual({ about: '', hourly_rate: '1000.0000 RUB', rate_locked: true });
     await expect(make({ contract: false }).service.profile('voskhod', 'teach')).resolves.toEqual({ about: '', hourly_rate: '0.0000 RUB', rate_locked: false });
   });
 
-  it('договор берёт ставку из профиля, когда её не передали; без ставки не подписывается', async () => {
+  it('договор подписывается без ставки: названная когда-то в профиле в договор не переходит', async () => {
     const named = make({ contract: false, profile: { about: 'Учу', hourly_rate: '1300.0000 RUB' } });
     const c = await named.service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9');
-    expect(c.hourly_rate).toBe('1300.0000 RUB');
+    expect(c.hourly_rate).toBe('0.0000 RUB');
     expect(named.chain.signContract).toHaveBeenCalledTimes(1);
-
-    const silent = make({ contract: false });
-    await expect(silent.service.signContract('voskhod', 'teach', signedBy('teach', 'NEW'), 'N-9')).rejects.toThrow(/Назовите ставку/);
-    expect(silent.chain.signContract).not.toHaveBeenCalled();
   });
 
   it('список преподавателей у администратора несёт рассказ о себе', async () => {

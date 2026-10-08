@@ -24,6 +24,7 @@ import {
   NO_RIGHTS,
   SAVE_PROFILE,
   SET_ASSIGNMENT_RATE,
+  SET_TEACHER_RATE,
   SIGN_CONTRACT,
   TEACHERS,
   UPDATE_COURSE,
@@ -43,6 +44,8 @@ import {
 
 /** Ставка преподавателя ниже плановой ставки курсов набора. */
 const RATE = '900.0000 RUB'
+/** Ставка ещё не назначена администратором. */
+const NO_RATE = '0.0000 RUB'
 /** Права стола преподавателя: назначения, взносы результатами, расчёт. */
 const TEACHER_DESK = ['EduAssignment:read:own', 'EduContribution:read:own', 'EduContribution:create:own', 'EduTeacherWallet:read:own']
 
@@ -73,14 +76,14 @@ describe('Образование: преподаватель — профиль,
     await educationOff()
   })
 
-  it(caseName('edu.teach.happy.profile-01', 'первый шаг подключения: пайщик без оферты и договора называет ставку и рассказывает о себе'), async () => {
+  it(caseName('edu.teach.happy.profile-01', 'первый шаг подключения: пайщик без оферты и договора рассказывает о себе'), async () => {
+    // Ставку за час преподаватель себе не задаёт: названная им ставка не сохраняется.
     const saved = (await gql<any>(token, SAVE_PROFILE, { d: { about: 'Веду математику, десять лет в школе', hourly_rate: RATE } })).edubridgeSaveTeacherProfile
-    expect(saved).toEqual({ about: 'Веду математику, десять лет в школе', hourly_rate: RATE, rate_locked: false })
+    expect(saved).toEqual({ about: 'Веду математику, десять лет в школе', hourly_rate: NO_RATE, rate_locked: false })
     expect((await gql<any>(token, MY_PROFILE)).edubridgeMyTeacherProfile).toEqual(saved)
 
-    // Рассказ о себе правится без повторного ввода ставки.
     const edited = (await gql<any>(token, SAVE_PROFILE, { d: { about: 'Веду математику и физику' } })).edubridgeSaveTeacherProfile
-    expect(edited).toEqual({ about: 'Веду математику и физику', hourly_rate: RATE, rate_locked: false })
+    expect(edited).toEqual({ about: 'Веду математику и физику', hourly_rate: NO_RATE, rate_locked: false })
   })
 
   it(caseName('edu.gating.side.02', 'оферта преподавателя подписана, договор ещё нет — стол преподавателя закрыт, открыто только подключение'), async () => {
@@ -123,7 +126,7 @@ describe('Образование: преподаватель — профиль,
   it(caseName('edu.teach.side.02', 'договор двухподписный: после подписи преподавателя он на подписи у председателя, стол преподавателя открыт'), async () => {
     const { document, contract_number } = await signedContract(teacher, token)
     contract = (await gql<any>(token, SIGN_CONTRACT, { d: { document, contract_number } })).edubridgeSignContract
-    expect(contract).toMatchObject({ contract_number, status: 'PENDING_APPROVAL', hourly_rate: RATE, approved_at: null })
+    expect(contract).toMatchObject({ contract_number, status: 'PENDING_APPROVAL', hourly_rate: NO_RATE, approved_at: null })
     expect(contract.contract_hash.toLowerCase()).toBe(String(document.hash).toLowerCase())
 
     // Своя подпись на договоре открывает стол преподавателя.
@@ -137,27 +140,31 @@ describe('Образование: преподаватель — профиль,
     expect(approval.document.document.signatures.map((s: any) => s.signer)).toEqual([teacher.account])
   })
 
-  it(caseName('edu.teach.contract.01', 'председатель подписывает договор со стола одобрений — договор действует'), async () => {
+  it(caseName('edu.teach.contract.01', 'председатель подписывает договор со стола одобрений — договор действует; ставку назначает администратор, без неё допуска к курсу нет'), async () => {
     const approval = await pendingContractApproval(teacher.account)
     await approveContract(approval)
     const active = await waitFor(async () => {
       const c = (await gql<any>(token, MY_CONTRACT)).edubridgeMyContract
       return c?.status === 'ACTIVE' ? c : null
     }, { timeoutMs: 60_000, intervalMs: 1_000, label: 'договор преподавателя действует' })
-    expect(active).toMatchObject({ contract_number: contract.contract_number, contract_hash: contract.contract_hash, hourly_rate: RATE })
+    expect(active).toMatchObject({ contract_number: contract.contract_number, contract_hash: contract.contract_hash, hourly_rate: NO_RATE })
     expect(active.approved_at, 'дата подписи председателя').toBeTruthy()
     expect(await pendingContractApproval(teacher.account), 'одобрение закрыто').toBeUndefined()
+
+    // Ставку за час назначает администратор при приёме: без неё преподаватель к курсу не допускается.
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(teacher.account)), 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED')
+    expectCode(await gqlError(token, SET_TEACHER_RATE, { d: { username: teacher.account, hourly_rate: RATE } }), NO_RIGHTS)
+    expect((await gql<any>(chairman, SET_TEACHER_RATE, { d: { username: teacher.account, hourly_rate: RATE } })).edubridgeSetTeacherRate).toBe(RATE)
+    expect((await gql<any>(token, MY_CONTRACT)).edubridgeMyContract.hourly_rate).toBe(RATE)
   })
 
-  it(caseName('edu.teach.break.profile-01', 'пустой рассказ о себе, неназванная либо нулевая ставка и смена ставки после договора отклоняются'), async () => {
-    expectCode(await gqlError(outsiderToken, SAVE_PROFILE, { d: { about: '   ', hourly_rate: RATE } }), 'EDUBRIDGE_TEACHER_ABOUT_REQUIRED')
-    expectCode(await gqlError(outsiderToken, SAVE_PROFILE, { d: { about: 'Без ставки' } }), 'EDUBRIDGE_TEACHER_RATE_REQUIRED')
-    expectCode(await gqlError(outsiderToken, SAVE_PROFILE, { d: { about: 'Нулевая ставка', hourly_rate: '0.0000 RUB' } }), 'EDUBRIDGE_TEACHER_RATE_REQUIRED')
-    expect((await gql<any>(outsiderToken, MY_PROFILE)).edubridgeMyTeacherProfile.about).toBe('')
+  it(caseName('edu.teach.break.profile-01', 'пустой рассказ о себе отклоняется; ставку, названную преподавателем, профиль не принимает'), async () => {
+    expectCode(await gqlError(outsiderToken, SAVE_PROFILE, { d: { about: '   ' } }), 'EDUBRIDGE_TEACHER_ABOUT_REQUIRED')
+    expect((await gql<any>(outsiderToken, MY_PROFILE)).edubridgeMyTeacherProfile).toEqual({ about: '', hourly_rate: NO_RATE, rate_locked: false })
 
-    // Ставка закреплена договором: преподаватель сам её не меняет.
-    expectCode(await gqlError(token, SAVE_PROFILE, { d: { about: 'Хочу другую ставку', hourly_rate: '950.0000 RUB' } }), 'EDUBRIDGE_TEACHER_RATE_ALREADY_SET')
-    expect((await gql<any>(token, MY_PROFILE)).edubridgeMyTeacherProfile).toMatchObject({ about: 'Веду математику и физику', hourly_rate: RATE, rate_locked: true })
+    // Ставка — из договора, назначена администратором: преподаватель сам её не меняет.
+    const kept = (await gql<any>(token, SAVE_PROFILE, { d: { about: 'Веду математику и физику', hourly_rate: '950.0000 RUB' } })).edubridgeSaveTeacherProfile
+    expect(kept).toEqual({ about: 'Веду математику и физику', hourly_rate: RATE, rate_locked: true })
   })
 
   it(caseName('edu.teach.happy.06', 'администратор видит преподавателя в списке с договором и ставкой'), async () => {

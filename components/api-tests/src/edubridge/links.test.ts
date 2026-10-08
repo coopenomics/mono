@@ -38,7 +38,7 @@ describe('Образование: связки с ядром — одобрен�
     chairman = await tokenOf(CHAIRMAN)
     teacher = freshMember({ prefix: 'edulk' })
     token = await login(teacher)
-    await gql(token, SAVE_PROFILE, { d: { about: 'Веду историю', hourly_rate: '900.0000 RUB' } })
+    await gql(token, SAVE_PROFILE, { d: { about: 'Веду историю' } })
     await signOffer(teacher, token, 'TEACHER')
     const { document, contract_number } = await signedContract(teacher, token)
     await gql(token, SIGN_CONTRACT, { d: { document, contract_number } })

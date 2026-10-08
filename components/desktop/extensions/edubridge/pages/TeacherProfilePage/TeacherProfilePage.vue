@@ -16,7 +16,8 @@
         q-separator.q-my-md
         DataRow(:label="$t('edubridge.teacherProfilePage.activeCoursesLabel')" :value="String(activeAssignments)")
         DataRow(:label="$t('edubridge.teacherProfilePage.assignmentsTotalLabel')" :value="String(assignments.length)")
-        DataRow(:label="$t('edubridge.teacherProfilePage.hourlyRateLabel')" :value="formatAsset2Digits(profile?.hourly_rate ?? '')")
+        //- Ставку за час назначает администратор; преподаватель её видит.
+        DataRow(:label="$t('edubridge.teacherProfilePage.hourlyRateLabel')" :value="rateAssigned ? formatAsset2Digits(profile?.hourly_rate ?? '') : $t('edubridge.teacherProfilePage.hourlyRatePending')")
 
       //- Рассказ о себе: его видит администратор, когда допускает преподавателя к курсу.
       BaseCard.q-mt-md(variant="default" :title="$t('edubridge.teacherProfilePage.aboutTitle')")
@@ -137,6 +138,8 @@ const contractStatus = computed(
 );
 const pendingApproval = computed(() => contract.value?.status === Zeus.EduContractStatus.PENDING_APPROVAL);
 const declined = computed(() => contract.value?.status === Zeus.EduContractStatus.DECLINED);
+/** Ставку за час назначает администратор; до назначения она нулевая. */
+const rateAssigned = computed(() => Number.parseFloat(profile.value?.hourly_rate ?? '') > 0);
 const activeAssignments = computed(() => assignments.value.filter((a) => a.status === Zeus.EduAssignmentStatus.ACTIVE).length);
 /** Назначение в правой панели — по идентификатору: после обновления панель показывает свежее. */
 const assignmentOpen = ref(false);

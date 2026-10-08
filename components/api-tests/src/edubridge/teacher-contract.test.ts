@@ -19,6 +19,7 @@ import {
   MY_PROFILE,
   NO_RIGHTS,
   SAVE_PROFILE,
+  SET_TEACHER_RATE,
   SIGN_CONTRACT,
   TEACHERS,
   approveContract,
@@ -66,7 +67,7 @@ describe('Образование: договор преподавателя — 
     teacher = freshMember({ prefix: 'edux' })
     token = await login(teacher)
     plain = freshMember({ prefix: 'eduz' })
-    await gql(token, SAVE_PROFILE, { d: { about: 'Веду химию', hourly_rate: RATE } })
+    await gql(token, SAVE_PROFILE, { d: { about: 'Веду химию' } })
     await signOffer(teacher, token, 'TEACHER')
   }, 900_000)
 
@@ -91,7 +92,9 @@ describe('Образование: договор преподавателя — 
 
     // Договор подписывается заново и на этот раз подписан председателем.
     const second = await sign()
-    expect(second).toMatchObject({ status: 'PENDING_APPROVAL', decline_reason: '', hourly_rate: RATE })
+    expect(second).toMatchObject({ status: 'PENDING_APPROVAL', decline_reason: '', hourly_rate: '0.0000 RUB' })
+    // Ставку за час назначает администратор при приёме преподавателя.
+    await gql(chairman, SET_TEACHER_RATE, { d: { username: teacher.account, hourly_rate: RATE } })
     expect(second.contract_hash).not.toBe(first.contract_hash)
     await approveContract(await waitFor(() => pendingContractApproval(teacher.account), { timeoutMs: 60_000, intervalMs: 1_000, label: 'новый договор на столе одобрений' }))
     contract = await waitFor(async () => {
@@ -147,7 +150,7 @@ describe('Образование: договор преподавателя — 
     expect((await gql<any>(chairman, TERMINATE, { u: plain.account, r: 'Соглашение сторон' })).edubridgeTerminateContract).toBeNull()
   })
 
-  it(caseName('edu.teach.happy.11', 'прекращение договора по соглашению сторон; новый договор подписывается с новой ставкой'), async () => {
+  it(caseName('edu.teach.happy.11', 'прекращение договора по соглашению сторон; новый договор подписывается без ставки — её назначают заново'), async () => {
     await gql(chairman, CLOSE_ASSIGNMENT, { id: assignment.id })
     expect(await rowOf()).toMatchObject({ assignments_total: 1, assignments_active: 0 })
 
@@ -160,9 +163,10 @@ describe('Образование: договор преподавателя — 
     expect(await deskGrants(token)).toContain('Onboarding:teacher')
     expect((await gql<any>(token, MY_PROFILE)).edubridgeMyTeacherProfile.rate_locked).toBe(false)
 
+    // Новый договор — ставка назначается заново: названная преподавателем не принимается.
     await gql(token, SAVE_PROFILE, { d: { about: 'Веду химию и биологию', hourly_rate: '950.0000 RUB' } })
     const again = await sign()
-    expect(again).toMatchObject({ status: 'PENDING_APPROVAL', hourly_rate: '950.0000 RUB' })
+    expect(again).toMatchObject({ status: 'PENDING_APPROVAL', hourly_rate: '0.0000 RUB' })
     expect(again.contract_hash).not.toBe(contract.contract_hash)
   })
 

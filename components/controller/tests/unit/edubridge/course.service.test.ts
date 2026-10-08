@@ -20,7 +20,7 @@ function make(contracts: string[] = ['teach']) {
     findById: jest.fn(async (_coop: string, id: string) => saved.find((c) => c.id === id) ?? ({ id, external_ref: 'old', status: EduCourseStatus.DRAFT })),
   } as any;
   const teachers = {
-    listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, status: t.startsWith('ex_') ? EduContractStatus.TERMINATED : EduContractStatus.ACTIVE, signed_at: new Date('2026-02-01') }))),
+    listContracts: jest.fn(async () => contracts.map((t, i) => ({ teacher_username: t, contract_number: `УХД-${i + 1}`, status: t.startsWith('ex_') ? EduContractStatus.TERMINATED : EduContractStatus.ACTIVE, hourly_rate: t.startsWith('new_') ? '0.0000 RUB' : '1000.0000 RUB', signed_at: new Date('2026-02-01') }))),
   } as any;
   const skillspace = {
     listCourses: jest.fn(async () => [{ id: COURSE_UUID, name: 'Тестовый курс [coop]', slug: 'testovyj-kurs-coop' }, { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Другой' }]),
@@ -139,6 +139,15 @@ describe('EdubridgeCourseService — конструктор курса', () => {
   it('преподаватель с прекращённым договором на курс не назначается', async () => {
     const { service } = make(['teach', 'ex_teach']);
     await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'ex_teach'] })).rejects.toThrow(/ex_teach/);
+  });
+
+  it('преподаватель без назначенной ставки в курс не ставится — отказ с именем', async () => {
+    const { service, courses } = make(['teach', 'new_teach']);
+    await expect(service.create('voskhod', 'ant', { ...base, teacher_usernames: ['teach', 'new_teach'] })).rejects.toMatchObject({
+      code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED',
+      params: { teachers: 'new_teach' },
+    });
+    expect(courses.save).not.toHaveBeenCalled();
   });
 
   it('преподаватели курса получают допуск к нему — сверка после сохранения', async () => {

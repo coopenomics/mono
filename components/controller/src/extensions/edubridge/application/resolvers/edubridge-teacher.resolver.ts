@@ -85,7 +85,7 @@ export class EdubridgeTeacherResolver {
   async edubridgeSignContract(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduSignContractInputDTO): Promise<EduTeacherContractDTO> {
     requireTeacherOffer(m);
     return new EduTeacherContractDTO(
-      await this.teachers.signContract(coop(), m.username as string, data.document, data.contract_number, data.hourly_rate)
+      await this.teachers.signContract(coop(), m.username as string, data.document, data.contract_number)
     );
   }
 

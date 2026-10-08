@@ -17,7 +17,7 @@ import type { EduCourseEconomyInputDTO } from '../dto/edu-economy.dto';
 import { EdubridgeCourseImagesService } from './edubridge-course-images.service';
 import { EdubridgeEconomyService } from './edubridge-economy.service';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
-import { EdubridgeTeacherService, grantsTeaching, withoutContractError } from './edubridge-teacher.service';
+import { EdubridgeTeacherService, grantsTeaching, hasAssignedRate, withoutContractError, withoutRateError } from './edubridge-teacher.service';
 import { EdubridgeSectionsService } from './edubridge-sections.service';
 import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
@@ -250,7 +250,8 @@ export class EdubridgeCourseService {
   /**
    * Преподавать могут только пайщики с подписанным договором УХД: преподаватель
    * курса сразу получает допуск к нему. Ставку на курсе задаёт допуск — из
-   * договора, но не выше плановой ставки курса.
+   * договора, но не выше плановой ставки курса; без назначенной ставки
+   * преподаватель в курс не ставится.
    */
   private async validateTeachers(coopname: string, teachers: string[]): Promise<void> {
     if (!teachers.length) return;
@@ -260,6 +261,9 @@ export class EdubridgeCourseService {
     );
     const strangers = teachers.filter((t) => !contracts.has(t));
     if (strangers.length) throw withoutContractError(strangers);
+    // Ставку часа назначает администратор при приёме преподавателя — до допуска к курсу.
+    const unrated = teachers.filter((t) => !hasAssignedRate(contracts.get(t)));
+    if (unrated.length) throw withoutRateError(unrated);
   }
 
   private fields(input: EduCourseInputDTO, fee: { fee_month: string }): Partial<EdubridgeCourseRecord> {

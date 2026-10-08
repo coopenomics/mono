@@ -36,6 +36,11 @@ title: Образовательный мост — договор УХД, наз
 # оферты и договора (раньше ставку спрашивали под текстом договора, а сведений
 # о преподавателе не было вовсе). Рассказ живёт в профиле преподавателя, его
 # видит администратор в карточке; ставка после подписи договора закреплена.
+#
+# Правка 08.10.2026 (7DD-25), решение владельца: ставку за час преподаватель
+# себе не называет — её назначает администратор при приёме преподавателя.
+# Первый шаг подключения — только рассказ о себе; без назначенной ставки
+# преподаватель в курс не ставится.
 sources:
   contract:
     - components/contracts/cpp/edubridge/src/p.edu.teach/**
@@ -413,7 +418,7 @@ cases:
     level: backend
     kind: happy
     scenario: "Прекращение договора УХД: выход преподавателя из кооператива либо соглашение сторон."
-    expect: "termcontract в цепь, статус «прекращён»; договор подписывается заново, в том числе с новой ставкой."
+    expect: "termcontract в цепь, статус «прекращён»; договор подписывается заново, ставку администратор назначает заново."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher-contract.test.ts
     status: passing
@@ -543,16 +548,16 @@ cases:
   - id: edu.teach.happy.profile-01
     level: backend
     kind: happy
-    scenario: "Первый шаг подключения: преподаватель без договора называет ставку за час и рассказывает о себе; позже правит рассказ, не называя ставку."
-    expect: "Профиль сохраняется, рассказ обрезается по краям; правка рассказа оставляет названную ставку; договор берёт ставку из профиля, когда её не передали."
+    scenario: "Первый шаг подключения: преподаватель без договора рассказывает о себе; позже правит рассказ."
+    expect: "Профиль сохраняется, рассказ обрезается по краям; ставку преподаватель не задаёт — названная им не сохраняется; договор подписывается без ставки."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
   - id: edu.teach.break.profile-01
     level: backend
     kind: break
-    scenario: "Пустой рассказ о себе; ставка не названа или нулевая; попытка сменить ставку после подписи договора; подпись договора без названной ставки."
-    expect: "Отказ с объяснением; профиль не сохраняется, договор в цепь не уходит; закреплённую договором ставку меняет только администратор."
+    scenario: "Пустой рассказ о себе; преподаватель называет ставку при назначенной администратором."
+    expect: "Пустой рассказ отклоняется; ставка остаётся назначенной администратором."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/teacher.test.ts
     status: passing
@@ -609,4 +614,12 @@ cases:
     expect: "Сумма занятия одна при любом числе обучающихся; оплаченное время расходуется у каждого одинаково, остаток оплаты занятия поступает программе."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.teach.break.rate-01
+    level: backend
+    kind: break
+    scenario: "Администратор добавляет в курс преподавателя с договором, которому ставка за час ещё не назначена: прямым допуском и списком «Курс ведут»."
+    expect: "Отказ с именем преподавателя: сначала назначается ставка в карточке преподавателя; курс и допуск не сохраняются."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
     status: written

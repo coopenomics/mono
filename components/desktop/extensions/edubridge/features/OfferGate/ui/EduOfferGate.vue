@@ -17,7 +17,7 @@
       VerticalStepper(v-if="steps.length > 1" :steps="steps" :active-key="activeStep.key" :completed="completedKeys" @change="onStepChange")
         template(#active="{ step }")
           //- Подключение начинается со ставки и рассказа о себе; документы — следом.
-          EduGateProfileStep(v-if="step.key === 'profile'" :profile="profile" :symbol="symbol" @saved="onProfileSaved")
+          EduGateProfileStep(v-if="step.key === 'profile'" :profile="profile" @saved="onProfileSaved")
           template(v-else)
             //- До подписи договора ставку и рассказ о себе можно поправить: возврат к первому шагу — явной кнопкой.
             .q-mb-md(v-if="canEditProfile")
@@ -35,7 +35,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useDesktopStore } from 'src/entities/Desktop/model';
-import { useSystemStore } from 'src/entities/System/model';
 import { BaseBanner, BaseButton, BaseCard, CardListSkeleton } from 'src/shared/ui/base';
 import { PageHint, VerticalStepper, type StepperStep } from 'src/shared/ui/domain';
 import type { DigitalDocument } from 'src/shared/lib/document';
@@ -78,10 +77,8 @@ const contractDraft = ref<IContractDraft | null>(null);
 // Ставка часа и рассказ о себе — первый шаг подключения; после договора ставку
 // правит администратор в разделе «Экономика».
 const profile = ref<ITeacherProfile | null>(null);
-// Преподаватель вернулся к первому шагу, чтобы поправить ставку или рассказ.
+// Преподаватель вернулся к первому шагу, чтобы поправить рассказ о себе.
 const editingProfile = ref(false);
-const system = useSystemStore();
-const symbol = computed(() => system.governSymbol);
 
 const isTeacher = computed(() => props.kind === Zeus.EduOfferKind.TEACHER);
 const offer = computed(() => (isTeacher.value ? state.value?.teacher : state.value?.parent) ?? null);
@@ -89,10 +86,10 @@ const offerSigned = computed(() => offer.value?.source === 'AGREEMENT_SIGNED');
 // Договор считается подписанным преподавателем, пока председатель не отказал и договор не прекращён.
 const RESIGNABLE: string[] = [Zeus.EduContractStatus.DECLINED, Zeus.EduContractStatus.TERMINATED];
 const contractSigned = computed(() => Boolean(contract.value) && !RESIGNABLE.includes(contract.value?.status ?? ''));
-// Шаг пройден, когда названа ставка и есть рассказ о себе. Преподаватель с уже
+// Шаг пройден, когда есть рассказ о себе. Преподаватель с уже
 // подписанным договором к шагу не возвращается: рассказ он допишет в профиле.
 const profileDone = computed(
-  () => contractSigned.value || (Number.parseFloat(profile.value?.hourly_rate ?? '') > 0 && Boolean(profile.value?.about?.trim())),
+  () => contractSigned.value || Boolean(profile.value?.about?.trim()),
 );
 
 const steps = computed<StepperStep[]>(() =>
@@ -116,10 +113,10 @@ const activeStep = computed(() => {
   return steps.value.find((s) => !completedKeys.value.includes(s.key)) ?? null;
 });
 
-/** Пока договор не подписан (либо отклонён, либо прекращён), преподаватель правит ставку и рассказ о себе. */
+/** Пока договор не подписан (либо отклонён, либо прекращён), преподаватель правит рассказ о себе. */
 const canEditProfile = computed(() => isTeacher.value && !contractSigned.value);
 
-/** Клик по пройденному шагу: вернуться можно только к ставке и рассказу о себе, пока договор не подписан. */
+/** Клик по пройденному шагу: вернуться можно только к рассказу о себе, пока договор не подписан. */
 function onStepChange(key: string): void {
   if (key === 'profile' && !contractSigned.value) editingProfile.value = true;
 }
