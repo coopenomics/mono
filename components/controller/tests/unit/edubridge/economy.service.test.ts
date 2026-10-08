@@ -232,7 +232,9 @@ describe('Деньги программы', () => {
     expect(fund.wallets.map((w) => w.id)).toEqual(['w.edu.fund', 'w.edu.escrow', 'w.edu.teach', 'w.edu.member']);
     expect(fund.wallets[1]!.available).toBe('0.0000 RUB');
     expect(fund.movements).toHaveLength(1);
-    expect(fund.movements[0]!.title).toBe('Взнос за курс списан в фонд программы');
+    expect(fund.movements[0]!.title).toBe('Взнос за курс списан на кошелёк программы');
+    // На экране кошелёк называется кошельком программы, каким бы ни было имя в реестре книги учёта.
+    expect(fund.wallets[0]!.name).toBe('Кошелёк ЦПП «Образование»');
     expect(fund.movements[0]!.username).toBe('parent');
     expect(fund.movements[0]!.display_name).toBe('ФИО parent');
     // У каждого кошелька короткая подпись для карточки и подробная подсказка под знаком вопроса.

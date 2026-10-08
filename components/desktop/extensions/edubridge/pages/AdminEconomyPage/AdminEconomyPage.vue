@@ -1,9 +1,7 @@
 <template lang="pug">
 .q-pa-md
   PageHint.q-mb-md(storage-key="edu:admin-economy:banner-dismissed")
-    //- Сначала что на экране, затем путь взноса по кошелькам — в том же порядке, что плитки.
-    div {{ $t('edubridge.adminEconomyPage.hint.line1') }}
-    .q-mt-xs {{ $t('edubridge.adminEconomyPage.hint.line2') }}
+    | {{ $t('edubridge.adminEconomyPage.hint.line1') }}
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
     //- Действие вкладки живёт в её полосе, а не плавает над списком.
@@ -16,6 +14,9 @@
   template(v-if="tab === 'money'")
     //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
     //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
+    //- Схема пути взноса — по ссылке над плитками, сами плитки стоят в том же порядке.
+    .row.justify-end.q-mb-sm
+      MoneyFlowGuide
     StatStrip(:items="walletStats" :loading="firstLoad")
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
@@ -115,6 +116,8 @@ import { asDateInput, asText } from 'src/shared/lib/utils';
 import { formatAsset2Digits, splitAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseButton, BaseCard, BaseForm, BaseInput, BaseTable, EmptyState, FieldHelp, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
+import { MoneyFlowGuide } from '../../widgets/MoneyFlowGuide';
+import { PROGRAM_WALLET_ICONS, PROGRAM_WALLET_ORDER, type ProgramWalletId } from '../../shared/lib/programWallets';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { StatStrip, type StatStripItem } from '../../shared/ui/StatStrip';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
@@ -175,12 +178,15 @@ const markupHelp = computed(
  * конца гарантии, освобождается в фонд, из фонда уходит в резерв преподавателям.
  * Имя сервера длинное и формальное — в полосе короткая подпись, полное имя в подсказке.
  */
-const WALLET_VIEW: Record<string, { icon: string; order: number; caption: string }> = {
-  'w.edu.member': { icon: 'account_balance_wallet', order: 0, caption: i18nT('edubridge.adminEconomyPage.walletShort.members') },
-  'w.edu.escrow': { icon: 'lock_clock', order: 1, caption: i18nT('edubridge.adminEconomyPage.walletShort.escrow') },
-  'w.edu.fund': { icon: 'account_balance', order: 2, caption: i18nT('edubridge.adminEconomyPage.walletShort.fund') },
-  'w.edu.teach': { icon: 'co_present', order: 3, caption: i18nT('edubridge.adminEconomyPage.walletShort.reserve') },
+const WALLET_CAPTIONS: Record<ProgramWalletId, string> = {
+  'w.edu.member': i18nT('edubridge.adminEconomyPage.walletShort.members'),
+  'w.edu.escrow': i18nT('edubridge.adminEconomyPage.walletShort.escrow'),
+  'w.edu.fund': i18nT('edubridge.adminEconomyPage.walletShort.fund'),
+  'w.edu.teach': i18nT('edubridge.adminEconomyPage.walletShort.reserve'),
 };
+const WALLET_VIEW: Record<string, { icon: string; order: number; caption: string }> = Object.fromEntries(
+  PROGRAM_WALLET_ORDER.map((id, order) => [id, { icon: PROGRAM_WALLET_ICONS[id], order, caption: WALLET_CAPTIONS[id] }]),
+);
 const walletStats = computed<StatStripItem[]>(() =>
   [...(fund.value?.wallets ?? [])]
     .sort((a, b) => (WALLET_VIEW[a.id]?.order ?? 9) - (WALLET_VIEW[b.id]?.order ?? 9))

@@ -95,7 +95,8 @@ export class EdubridgeEconomyService {
     const wallets: EduProgramWalletDTO[] = [
       {
         id: FUND_WALLET,
-        name: fund?.name ?? i18nT('edubridge.economy.wallet.fund.name'),
+        // Имя из реестра книги учёта называет кошелёк «фондом» — на экране он «кошелёк программы».
+        name: i18nT('edubridge.economy.wallet.fund.name'),
         available: fundBalance,
         summary: i18nT('edubridge.economy.wallet.fund.summary'),
         hint: i18nT('edubridge.economy.wallet.fund.hint'),
