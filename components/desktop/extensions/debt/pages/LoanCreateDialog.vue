@@ -7,9 +7,16 @@ BaseDialog(
   @update:model-value='$emit("update:modelValue", $event)'
 )
   //- Второй шаг: заявление и договор на прочтение перед подписью.
+  //- Образец — документы вступления в «Благорост»: каждый документ в своей
+  //- карточке, читается и листается отдельно.
   .loan-review(v-if='prepared')
-    DocumentHtmlReader(:html='prepared.statementDoc.html')
-    DocumentHtmlReader(:html='prepared.contractDoc.html')
+    BaseCard(
+      v-for='doc in reviewDocs',
+      :key='doc.key',
+      :title='doc.title'
+    )
+      .loan-review__preview
+        DocumentHtmlReader(:html='doc.html')
 
   .loan-form(v-else)
     //- До конца загрузки — каркас, а не «обеспечение недоступно».
@@ -95,6 +102,7 @@ import { useSystemStore } from 'src/entities/System/model';
 import { useSessionStore } from 'src/entities/Session';
 import { api as walletApi } from 'src/entities/Wallet';
 import { BaseButton } from 'src/shared/ui/base/BaseButton';
+import { BaseCard } from 'src/shared/ui/base/BaseCard';
 import { BaseDialog } from 'src/shared/ui/base/BaseDialog';
 import { BaseInput } from 'src/shared/ui/base/BaseInput';
 import { BaseSelect } from 'src/shared/ui/base/BaseSelect';
@@ -148,6 +156,15 @@ const collateralOptions = computed<BaseSelectOption[]>(() =>
     label: collateralLabel(o.key),
     caption: t('debt.createDialog.collateralAvailable', { amount: formatAmount(o.available) }),
   })),
+);
+
+const reviewDocs = computed(() =>
+  prepared.value
+    ? [
+        { key: 'statement', title: t('debt.createDialog.statementTitle'), html: prepared.value.statementDoc.html },
+        { key: 'contract', title: t('debt.createDialog.contractTitle'), html: prepared.value.contractDoc.html },
+      ]
+    : [],
 );
 
 const formReady = computed(() => !loading.value && available.value.length > 0 && hasMethods.value);
@@ -265,10 +282,21 @@ async function submit(): Promise<void> {
 .loan-review {
   display: flex;
   flex-direction: column;
-  gap: var(--p-6);
+  gap: var(--p-4);
   width: 100%;
   max-width: 860px;
   margin: 0 auto;
+}
+
+/* Высота делит экран на двоих: оба документа видны сразу, каждый листается сам. */
+.loan-review__preview {
+  max-height: max(240px, calc((100vh - 340px) / 2));
+  overflow: auto;
+  padding: var(--p-4);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-r-sm);
+  background: var(--p-surface);
+  color: var(--p-ink);
 }
 
 .loan-form__footer {
