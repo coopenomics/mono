@@ -12,7 +12,7 @@ void debt::loanextok(eosio::name coopname, eosio::name username, checksum256 deb
   require_auth(_soviet);
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
-  eosio::check(d.username == username, "Заём принадлежит другому пайщику");
+  // username — председатель, подтвердивший одобрение: совет передаёт его имя, не имя заёмщика.
   eosio::check(d.requested_due_at.sec_since_epoch() != 0, "Заявления о продлении нет");
 
   Debt::Core::modify_debt(coopname, d.id, [&](auto& row) {
@@ -25,6 +25,6 @@ void debt::loanextok(eosio::name coopname, eosio::name username, checksum256 deb
     }
   });
 
-  require_recipient(username);
+  require_recipient(d.username);
   require_recipient(coopname);
 }

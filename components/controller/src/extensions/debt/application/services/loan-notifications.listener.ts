@@ -119,10 +119,10 @@ export class LoanNotificationsListener {
     const coopname = String(action.data.coopname ?? '');
     if (!debtHash || !coopname) return;
     try {
-      // Пайщик и сумма есть в записи зеркала, а не в обратном вызове; пока
-      // запись не дошла, имя берётся из данных действия.
+      // Пайщик и сумма — только из записи зеркала: в обратных вызовах одобрений
+      // поле username несёт имя председателя, а не заёмщика.
       const loan = await this.loans.findByDebtHash(debtHash);
-      const username = loan?.username ?? String(action.data.username ?? '');
+      const username = loan?.username;
       if (!username) return;
       await this.notifications.notifyUser(username, workflowId, { ...this.payloadOf(coopname, debtHash, loan), ...extra });
     } catch (error: any) {

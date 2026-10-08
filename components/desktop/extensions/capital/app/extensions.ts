@@ -95,7 +95,7 @@ function registerDebtDecisionHandler(): void {
   const previousDebtHandler = decisionFactory.getHandler('createdebt');
   decisionFactory.registerHandler('createdebt', {
     generateHandler: async (args) => {
-      const { decision_id, row } = args;
+      const { decision_id, username, row } = args;
       if (!row.table?.statement?.meta) {
         throw new Error(t('capital.error.missingCreatedebtMeta'));
       }
@@ -109,16 +109,15 @@ function registerDebtDecisionHandler(): void {
       }
 
       const { info } = useSystemStore();
-      const session = useSessionStore();
 
-      // Протокол подписывает председатель — документ формируется на его имя.
+      // Протокол формируется на имя заёмщика: по нему фабрика находит договор-основание.
       const { [Mutations.Capital.GenerateGetLoanDecision.name]: generated } = await client.Mutation(
         Mutations.Capital.GenerateGetLoanDecision.mutation,
         {
           variables: {
             data: {
               coopname: info.coopname,
-              username: session.username,
+              username,
               debt_hash: meta.debt_hash,
               amount: meta.amount,
               due_at: meta.due_at,

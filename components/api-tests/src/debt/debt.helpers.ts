@@ -121,7 +121,8 @@ export async function approveLoanByCouncil(draft: LoanDraft): Promise<number> {
   const gen = await waitFor(() => gql<any>(token, `mutation($d:DebtGenerateLoanDecisionInput!){ generateDebtLoanDecisionDocument(data:$d){ ${GENERATED} } }`, {
     d: {
       coopname: COOP,
-      username: CHAIRMAN.account,
+      // Протокол формируется на имя заёмщика — как его запрашивает стол совета.
+      username: draft.member.account,
       debt_hash: draft.debt_hash,
       amount: rubAsset(draft.amount),
       due_at: draft.due_at,

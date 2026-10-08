@@ -11,6 +11,8 @@ import {
   type INotificationPort,
 } from '@coopenomics/innercoop';
 
+import { DEBT_REPOSITORY, type DebtRepository } from '../../domain/repositories/debt.repository';
+
 interface ChainAction {
   data: Record<string, unknown>;
 }
@@ -32,6 +34,7 @@ export class CapitalDebtNotificationsListener {
   constructor(
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
+    @Inject(DEBT_REPOSITORY) private readonly debts: DebtRepository,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(CapitalDebtNotificationsListener.name);
@@ -67,9 +70,10 @@ export class CapitalDebtNotificationsListener {
     const debtHash = String(action.data.debt_hash ?? '').toLowerCase();
     if (!coopname || !debtHash) return;
     try {
-      // Отклонённый заём из цепи уже удалён — имя пайщика есть в данных действия.
+      // Отклонённый заём из цепи уже удалён — заёмщик берётся из зеркала. Поле
+      // username действия не годится: в обратных вызовах совета там председатель.
       const debt = await this.chainDebt(coopname, debtHash);
-      const username = debt?.username ?? String(action.data.username ?? '');
+      const username = debt?.username ?? (await this.mirrorUsername(debtHash));
       if (!username) return;
       await this.notifications.notifyUser(username, workflowId, { ...this.payloadOf(coopname, debtHash, debt), ...extra });
     } catch (error: any) {
@@ -85,6 +89,11 @@ export class CapitalDebtNotificationsListener {
       dueAt: debt ? String(debt.repaid_at).slice(0, 10) : '',
       link: `${platformSettings().frontendUrl}/${coopname}/debt/loans`,
     };
+  }
+
+  private async mirrorUsername(debtHash: string): Promise<string | undefined> {
+    const mirrored = await this.debts.findAll();
+    return mirrored.find((debt) => String(debt.debt_hash).toLowerCase() === debtHash)?.username;
   }
 
   private async chainDebt(coopname: string, debtHash: string): Promise<ChainDebtRow | undefined> {

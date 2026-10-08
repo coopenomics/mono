@@ -1,7 +1,6 @@
 import type { Cooperative } from 'cooptypes';
 import { decisionFactory } from 'src/shared/lib/decision-factory';
 import { useSystemStore } from 'src/entities/System/model';
-import { useSessionStore } from 'src/entities/Session';
 import { generateLoanDecision } from '../api';
 import { t } from '../i18n';
 
@@ -15,7 +14,7 @@ export function registerDebtDecisionHandlers(): void {
   const previous = decisionFactory.getHandler('createdebt');
   decisionFactory.registerHandler('createdebt', {
     generateHandler: async (args) => {
-      const { decision_id, row } = args;
+      const { decision_id, username, row } = args;
       if (!row.table?.statement?.meta) {
         throw new Error(t('debt.error.missingCreatedebtMeta'));
       }
@@ -29,13 +28,12 @@ export function registerDebtDecisionHandlers(): void {
       }
 
       const { info } = useSystemStore();
-      const session = useSessionStore();
 
-      // Протокол подписывает председатель — документ формируется на его имя.
-      // Данные заседания фабрика берёт сама по номеру решения.
+      // Протокол формируется на имя заёмщика: по нему фабрика находит договор-основание.
+      // Данные заседания она берёт сама по номеру решения; подписывает протокол председатель.
       return generateLoanDecision({
         coopname: info.coopname,
-        username: session.username,
+        username,
         debt_hash: meta.debt_hash,
         amount: meta.amount,
         due_at: meta.due_at,

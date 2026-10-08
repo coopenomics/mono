@@ -13,7 +13,7 @@ void debt::loansgndecl(eosio::name coopname, eosio::name username, checksum256 d
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
   eosio::check(d.status == Debt::Status::AUTHORIZED, "Отказать в подписи можно только по договору, который ждёт председателя");
-  eosio::check(d.username == username, "Договор принадлежит другому пайщику");
+  // username — председатель, подтвердивший одобрение: совет передаёт его имя, не имя заёмщика.
 
   Debt::Core::abandon_before_issue(coopname, d);
 

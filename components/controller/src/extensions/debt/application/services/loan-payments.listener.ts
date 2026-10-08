@@ -2,12 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   LOGGER_PORT,
+  PAYMENT_METHOD_PORT,
   PAYMENT_PORT,
   PaymentDirection,
   PaymentStatus,
   PaymentType,
   type ILoggerPort,
+  type InnerPaymentDetails,
   type InnerPaymentDraft,
+  type IPaymentMethodPort,
   type IPaymentPort,
 } from '@coopenomics/innercoop';
 import { QuantityUtils, generateUniqueHash } from '@coopenomics/extension-kit';
@@ -31,6 +34,7 @@ import { t } from '../../i18n';
 export class LoanPaymentsListener {
   constructor(
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly methods: IPaymentMethodPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
     this.logger.setContext(LoanPaymentsListener.name);
@@ -65,6 +69,7 @@ export class LoanPaymentsListener {
       memo: t('debt.payment.loanMemo', { number: entity.debt_hash.slice(0, 8).toUpperCase() }),
       secret: generateUniqueHash(),
       payment_method_id: methodId,
+      payment_details: await this.detailsOf(entity.username, methodId, amount),
       created_at: now,
       updated_at: now,
       blockchain_data: { debt_hash: entity.debt_hash },
@@ -72,6 +77,31 @@ export class LoanPaymentsListener {
     };
     await this.payments.create(draft);
     this.logger.log(`Заведён исходящий платёж по займу ${entity.debt_hash} для ${entity.username}`);
+  }
+
+  /**
+   * Реквизиты для кассира — снимок платёжного метода из заявления пайщика.
+   * Метод удалён или не указан — платёж заводится без реквизитов, кассир
+   * отклонит его по реквизитам, и заём вернётся к повтору.
+   */
+  private async detailsOf(username: string, methodId: string | undefined, amount: number): Promise<InnerPaymentDetails> {
+    let data: Record<string, any> = {};
+    if (methodId) {
+      try {
+        data = (await this.methods.get({ username, method_id: methodId })).data as Record<string, any>;
+      } catch (error: any) {
+        this.logger.warn(`Реквизиты ${methodId} пайщика ${username} не найдены: ${error.message}`);
+      }
+    }
+    return {
+      data,
+      amount_plus_fee: String(amount),
+      amount_without_fee: String(amount),
+      fee_amount: '0',
+      fee_percent: 0,
+      fact_fee_percent: 0,
+      tolerance_percent: 0,
+    };
   }
 
   private paymentMethodFromStatement(meta: unknown): string | undefined {

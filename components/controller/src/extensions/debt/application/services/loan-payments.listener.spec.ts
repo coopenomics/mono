@@ -37,11 +37,13 @@ function loan(chainStatus: string, present = true): LoanDomainEntity {
 describe('LoanPaymentsListener', () => {
   const logger = { setContext: jest.fn(), log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
   let payments: { findByHash: jest.Mock; create: jest.Mock; update: jest.Mock; list: jest.Mock };
+  let methods: { get: jest.Mock };
   let listener: LoanPaymentsListener;
 
   beforeEach(() => {
     payments = { findByHash: jest.fn().mockResolvedValue(null), create: jest.fn(), update: jest.fn(), list: jest.fn() };
-    listener = new LoanPaymentsListener(payments as any, logger as any);
+    methods = { get: jest.fn().mockResolvedValue({ data: { phone: '+79990001122' } }) };
+    listener = new LoanPaymentsListener(payments as any, methods as any, logger as any);
   });
 
   it('заводит исходящий платёж с хэшем займа, когда заём передан на выплату', async () => {
@@ -61,6 +63,9 @@ describe('LoanPaymentsListener', () => {
       related_extension: 'debt',
     });
     expect(draft.memo).toContain('AB12CD34');
+    // Реквизиты кассиру — снимок платёжного метода из заявления.
+    expect(methods.get).toHaveBeenCalledWith({ username: 'ant', method_id: 'm-1' });
+    expect(draft.payment_details).toMatchObject({ data: { phone: '+79990001122' }, amount_plus_fee: '1000' });
   });
 
   it('не заводит платёж до подписи председателя', async () => {

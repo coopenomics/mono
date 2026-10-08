@@ -14,7 +14,7 @@ void debt::loansigned(eosio::name coopname, eosio::name username, checksum256 de
 
   auto d = Debt::Core::get_debt_or_fail(coopname, debt_hash);
   eosio::check(d.status == Debt::Status::AUTHORIZED, "Договор подписывается после решения совета");
-  eosio::check(d.username == username, "Договор принадлежит другому пайщику");
+  // username — председатель, подтвердивший одобрение: совет передаёт его имя, не имя заёмщика.
   eosio::check(!is_empty_document(signed_contract), "Нужен договор с подписью председателя");
   eosio::check(signed_contract.hash == d.contract.hash, "Председатель подписывает тот же договор, что подписал пайщик");
 

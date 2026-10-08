@@ -3,13 +3,16 @@ import { OnEvent } from '@nestjs/event-emitter';
 import {
   CHAIN_PORT,
   LOGGER_PORT,
+  PAYMENT_METHOD_PORT,
   PAYMENT_PORT,
   PaymentDirection,
   PaymentStatus,
   PaymentType,
   type IChainPort,
   type ILoggerPort,
+  type InnerPaymentDetails,
   type InnerPaymentDraft,
+  type IPaymentMethodPort,
   type IPaymentPort,
 } from '@coopenomics/innercoop';
 import { QuantityUtils, generateUniqueHash } from '@coopenomics/extension-kit';
@@ -43,6 +46,7 @@ interface ChainDebtRow {
 export class CapitalDebtPaymentsListener {
   constructor(
     @Inject(PAYMENT_PORT) private readonly payments: IPaymentPort,
+    @Inject(PAYMENT_METHOD_PORT) private readonly methods: IPaymentMethodPort,
     @Inject(CHAIN_PORT) private readonly chain: IChainPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort
   ) {
@@ -74,7 +78,7 @@ export class CapitalDebtPaymentsListener {
         this.logger.warn(`Заём ${debtHash} не найден в цепи — платёж кассиру не заведён`);
         return;
       }
-      await this.payments.create(this.draftOf(coopname, debt));
+      await this.payments.create(await this.draftOf(coopname, debt));
       this.logger.log(`Заведён исходящий платёж по займу ${debtHash} для ${debt.username}`);
     } catch (error: any) {
       this.logger.error(`Платёж по займу ${debtHash} не заведён: ${error.message}`, error.stack);
@@ -93,9 +97,10 @@ export class CapitalDebtPaymentsListener {
     return rows.find((row) => String(row.debt_hash).toLowerCase() === debtHash);
   }
 
-  private draftOf(coopname: string, debt: ChainDebtRow): InnerPaymentDraft {
+  private async draftOf(coopname: string, debt: ChainDebtRow): Promise<InnerPaymentDraft> {
     const debtHash = String(debt.debt_hash).toLowerCase();
     const { amount, symbol } = QuantityUtils.parseQuantityString(debt.amount);
+    const methodId = this.methodOf(debt.statement?.meta);
     const now = new Date();
     return {
       hash: debtHash,
@@ -108,11 +113,37 @@ export class CapitalDebtPaymentsListener {
       status: PaymentStatus.PENDING,
       memo: t('capital.loanPayment.memo', { number: debtHash.slice(0, 8).toUpperCase() }),
       secret: generateUniqueHash(),
-      payment_method_id: this.methodOf(debt.statement?.meta),
+      payment_method_id: methodId,
+      payment_details: await this.detailsOf(debt.username, methodId, amount),
       created_at: now,
       updated_at: now,
       blockchain_data: { debt_hash: debtHash },
       related_extension: 'capital',
+    };
+  }
+
+  /**
+   * Реквизиты для кассира — снимок платёжного метода из заявления пайщика.
+   * Метод удалён или не указан — платёж заводится без реквизитов, кассир
+   * отклонит его по реквизитам, и заём вернётся к повтору.
+   */
+  private async detailsOf(username: string, methodId: string | undefined, amount: number): Promise<InnerPaymentDetails> {
+    let data: Record<string, any> = {};
+    if (methodId) {
+      try {
+        data = (await this.methods.get({ username, method_id: methodId })).data as Record<string, any>;
+      } catch (error: any) {
+        this.logger.warn(`Реквизиты ${methodId} пайщика ${username} не найдены: ${error.message}`);
+      }
+    }
+    return {
+      data,
+      amount_plus_fee: String(amount),
+      amount_without_fee: String(amount),
+      fee_amount: '0',
+      fee_percent: 0,
+      fact_fee_percent: 0,
+      tolerance_percent: 0,
     };
   }
 
