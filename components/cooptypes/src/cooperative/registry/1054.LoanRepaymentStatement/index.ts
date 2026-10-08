@@ -22,13 +22,12 @@ export interface Model {
   short_hash: string
   contract_date: string
   amount_digits: string
-  amount_words: string
 }
 
 export const title = "Заявление о возврате беспроцентного займа"
 export const description = "Заявление пайщика о возврате беспроцентного займа, целиком или частью, из средств его паевого взноса на главном кошельке"
 
-export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»</p><p>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ о возврате беспроцентного займа</h2><p>Прошу принять в счёт возврата беспроцентного займа по Договору о беспроцентном займе № {{short_hash}} от {{contract_date}} сумму {{amount_digits}} руб. ({{amount_words}}) из средств моего паевого взноса, учитываемых в целевой потребительской программе «Цифровой Кошелёк», и уменьшить мою задолженность по указанному Договору на эту сумму.</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
+export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»</p><p>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ о возврате беспроцентного займа</h2><p>Прошу принять в счёт возврата беспроцентного займа по Договору о беспроцентном займе № {{short_hash}} от {{contract_date}} сумму {{amount_digits}} из средств моего паевого взноса, учитываемых в целевой потребительской программе «Цифровой Кошелёк», и уменьшить мою задолженность по указанному Договору на эту сумму.</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
 
 export const translations = {
   ru: {
@@ -80,6 +79,5 @@ export const exampleData = {
   },
   "short_hash": "A1B2C3D4",
   "contract_date": "07.10.2026",
-  "amount_digits": "10 000,00",
-  "amount_words": "десять тысяч рублей 00 копеек"
+  "amount_digits": "10 000,00 RUB"
 }

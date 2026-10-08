@@ -3,7 +3,7 @@ import { LoanExtensionStatement } from '../Templates'
 import { DocFactory } from '../Factory'
 import type { IGeneratedDocument, IGenerationOptions, IMetaDocument, ITemplate } from '../Interfaces'
 import type { MongoDBConnector } from '../Services/Databazor'
-import { amountDigitsRu, amountInWordsRu } from '../Utils/amountInWords'
+import { amountWithSymbolRu } from '../Utils/amountDigits'
 import { formatDateRu, loanContractNumber } from './loan/shared'
 
 export { LoanExtensionStatement as Template } from '../Templates'
@@ -32,8 +32,7 @@ export class Factory extends DocFactory<LoanExtensionStatement.Action> {
       short_hash: loanContractNumber(this, data.debt_hash),
       contract_date: formatDateRu(data.contract_date),
       new_due_at: formatDateRu(data.new_due_at),
-      remaining_digits: amountDigitsRu(data.remaining),
-      remaining_words: amountInWordsRu(data.remaining),
+      remaining_digits: amountWithSymbolRu(data.remaining),
     }
     await this.validate(combinedData, template.model)
     const translation = template.translations[meta.lang]

@@ -25,9 +25,8 @@ export const Schema: JSONSchemaType<Model> = {
     short_hash: { type: 'string' },
     contract_date: { type: 'string' },
     amount_digits: { type: 'string' },
-    amount_words: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'contract_date', 'amount_digits', 'amount_words'],
+  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'contract_date', 'amount_digits'],
   additionalProperties: true,
 }
 

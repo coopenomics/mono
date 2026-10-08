@@ -24,13 +24,12 @@ export interface Model {
   contract_date: string
   new_due_at: string
   remaining_digits: string
-  remaining_words: string
 }
 
 export const title = "Заявление о продлении срока возврата беспроцентного займа"
 export const description = "Заявление пайщика о новом сроке возврата беспроцентного займа; вступает в силу после подписи председателя совета"
 
-export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»</p><p>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ о продлении срока возврата беспроцентного займа</h2><p>Прошу продлить срок возврата беспроцентного займа по Договору о беспроцентном займе № {{short_hash}} от {{contract_date}} до {{new_due_at}}. Остаток задолженности по Договору на дату заявления составляет {{remaining_digits}} руб. ({{remaining_words}}).</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p><p style=\"text-align: right\">Согласовано</p><p style=\"text-align: right\">Председатель Совета {{coop.chairman.last_name}} {{coop.chairman.first_name}} {{coop.chairman.middle_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
+export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»</p><p>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ о продлении срока возврата беспроцентного займа</h2><p>Прошу продлить срок возврата беспроцентного займа по Договору о беспроцентном займе № {{short_hash}} от {{contract_date}} до {{new_due_at}}. Остаток задолженности по Договору на дату заявления составляет {{remaining_digits}}.</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p><p style=\"text-align: right\">Согласовано</p><p style=\"text-align: right\">Председатель Совета {{coop.chairman.last_name}} {{coop.chairman.first_name}} {{coop.chairman.middle_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
 
 export const translations = {
   ru: {
@@ -83,6 +82,5 @@ export const exampleData = {
   "short_hash": "A1B2C3D4",
   "contract_date": "07.10.2026",
   "new_due_at": "07.07.2027",
-  "remaining_digits": "20 000,00",
-  "remaining_words": "двадцать тысяч рублей 00 копеек"
+  "remaining_digits": "20 000,00 RUB"
 }

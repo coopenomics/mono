@@ -1,7 +1,7 @@
 import { Cooperative, Debt } from 'cooptypes'
 import type { DocFactory } from '../../Factory'
 import { Udata } from '../../Models/Udata'
-import { amountDigitsRu, amountInWordsRu } from '../../Utils/amountInWords'
+import { amountWithSymbolRu } from '../../Utils/amountDigits'
 
 /**
  * Общие данные документов беспроцентного займа: основание (договор об участии
@@ -46,8 +46,9 @@ export function loanContractNumber(factory: DocFactory<any>, debt_hash: string):
   return factory.getShortHash(debt_hash, 8)
 }
 
+/** Сумма документа: цифрами с символом валюты из самого актива. */
 export function amountFields(amount: string) {
-  return { amount_digits: amountDigitsRu(amount), amount_words: amountInWordsRu(amount) }
+  return { amount_digits: amountWithSymbolRu(amount) }
 }
 
 /**

@@ -29,12 +29,11 @@ export const Schema: JSONSchemaType<Model> = {
     basis_number: { type: 'string' },
     basis_date: { type: 'string' },
     amount_digits: { type: 'string' },
-    amount_words: { type: 'string' },
     due_at: { type: 'string' },
     payment_details: { type: 'string' },
     collateral_text: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'amount_words', 'due_at', 'payment_details', 'collateral_text'],
+  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'due_at', 'payment_details', 'collateral_text'],
   additionalProperties: true,
 }
 

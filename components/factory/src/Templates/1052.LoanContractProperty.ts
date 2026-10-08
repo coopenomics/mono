@@ -29,11 +29,10 @@ export const Schema: JSONSchemaType<Model> = {
     basis_number: { type: 'string' },
     basis_date: { type: 'string' },
     amount_digits: { type: 'string' },
-    amount_words: { type: 'string' },
     due_at: { type: 'string' },
     storage_appendix_number: { type: 'string' },
   },
-  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'amount_words', 'due_at', 'storage_appendix_number'],
+  required: ['meta', 'coop', 'vars', 'user', 'short_hash', 'basis_number', 'basis_date', 'amount_digits', 'due_at', 'storage_appendix_number'],
   additionalProperties: true,
 }
 

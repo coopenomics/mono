@@ -31,7 +31,6 @@ export interface Model {
   basis_number: string
   basis_date: string
   amount_digits: string
-  amount_words: string
   due_at: string
   payment_details: string
   collateral_text: string
@@ -40,7 +39,7 @@ export interface Model {
 export const title = "Заявление на получение беспроцентного займа"
 export const description = "Заявление пайщика о выдаче беспроцентного займа с указанием обеспечения: имущество на ответственном хранении (Генерация) либо право на возврат части паевого взноса в целевой программе"
 
-export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>Приложение № {{short_hash}}</p><p>к {{basis_title_dative}} № {{basis_number}} от {{basis_date}}</p><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»<br>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ</h2><p>В соответствии с условиями {{basis_title_genitive}} № {{basis_number}} от {{basis_date}} прошу начислить на мой лицевой счёт в целевой потребительской программе «Цифровой Кошелёк» сумму {{amount_digits}} руб. ({{amount_words}}) для выдачи мне беспроцентного займа в указанном размере по следующим реквизитам:</p><p>{{payment_details}}</p><p>Обязуюсь произвести возврат полученных средств до {{due_at}}.</p><p>В качестве обеспечения займа прошу принять от меня {{collateral_text}}.</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
+export const context = "<div class=\"digital-document\"><div style=\"text-align: right\"><p>Приложение № {{short_hash}}</p><p>к {{basis_title_dative}} № {{basis_number}} от {{basis_date}}</p><p>В Совет {{vars.full_abbr_genitive}} «{{vars.name}}»<br>от пайщика {{user.full_name_or_short_name}}</p></div><h2 style=\"text-align: center\">ЗАЯВЛЕНИЕ</h2><p>В соответствии с условиями {{basis_title_genitive}} № {{basis_number}} от {{basis_date}} прошу начислить на мой лицевой счёт в целевой потребительской программе «Цифровой Кошелёк» сумму {{amount_digits}} для выдачи мне беспроцентного займа в указанном размере по следующим реквизитам:</p><p>{{payment_details}}</p><p>Обязуюсь произвести возврат полученных средств до {{due_at}}.</p><p>В качестве обеспечения займа прошу принять от меня {{collateral_text}}.</p><p style=\"text-align: right\">{{created_at}}</p><p style=\"text-align: right\">Пайщик {{user.full_name_or_short_name}}</p><p style=\"text-align: right\">Подписано электронной подписью</p></div><style>.digital-document {padding: 20px;white-space: pre-wrap;} .digital-document p {margin: 0 0 8px 0;} .digital-document h3 {margin: 16px 0 8px 0;}</style>"
 
 export const translations = {
   ru: {
@@ -96,8 +95,7 @@ export const exampleData = {
   "basis_title_instrumental": "Договором об участии в хозяйственной деятельности",
   "basis_number": "ED3BCFC5B681AA83D",
   "basis_date": "11.04.2026",
-  "amount_digits": "30 000,00",
-  "amount_words": "тридцать тысяч рублей 00 копеек",
+  "amount_digits": "30 000,00 RUB",
   "due_at": "07.04.2027",
   "payment_details": "№ счета получателя: 40817810000000000001\nБанк получателя: ПАО Сбербанк\nБИК: 044525225",
   "collateral_text": "имущественное право на возврат части паевого взноса по целевой потребительской программе «Благорост»"
