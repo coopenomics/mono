@@ -88,7 +88,9 @@ export class EdubridgeCourseService {
 
   /** Кого можно назначить преподавателем курса: пайщики с подписанным договором УХД. */
   async teacherOptions(coopname: string): Promise<EduTeacherOptionDTO[]> {
-    const contracts = await this.teachers.listContracts(coopname);
+    // В курс ставится преподаватель с договором и назначенной ставкой: остальных
+    // в списке выбора нет — форма курса не предлагает того, кого сервер не примет.
+    const contracts = (await this.teachers.listContracts(coopname)).filter((c) => grantsTeaching(c) && hasAssignedRate(c));
     const names = await this.names.displayNames(contracts.map((c) => c.teacher_username));
     return contracts.map((c) => ({
       username: c.teacher_username,

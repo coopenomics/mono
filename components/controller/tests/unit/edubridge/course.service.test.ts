@@ -171,8 +171,8 @@ describe('EdubridgeCourseService — конструктор курса', () => {
     expect(course.teacher_usernames).toEqual(['a', 'b']);
   });
 
-  it('teacherOptions отдаёт пайщиков с договором и номером договора', async () => {
-    const { service } = make(['a', 'b']);
+  it('teacherOptions отдаёт преподавателей с договором и назначенной ставкой; без ставки и с прекращённым договором в списке нет', async () => {
+    const { service } = make(['a', 'b', 'new_c', 'ex_d']);
     const options = await service.teacherOptions('voskhod');
     expect(options.map((o) => o.username)).toEqual(['a', 'b']);
     expect(options[0]!.contract_number).toBe('УХД-1');
