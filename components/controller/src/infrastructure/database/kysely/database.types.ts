@@ -1041,6 +1041,38 @@ export interface ConsumerDedup {
   event_id: string;
 }
 
+export interface DebtLoans {
+  _created_at: Generated<Timestamp>;
+  _id: Generated<string>;
+  _updated_at: Generated<Timestamp>;
+  amount: string | null;
+  block_num: Generated<number>;
+  blockchain_status: string | null;
+  collateral: string | null;
+  contract: Json | null;
+  coopname: string;
+  created_at: Timestamp | null;
+  debt_hash: string;
+  decision: Json | null;
+  due_at: Timestamp | null;
+  extension_statement: Json | null;
+  id: number | null;
+  issued_at: Timestamp | null;
+  last_pay_error: string | null;
+  memo: string | null;
+  overdue_at: Timestamp | null;
+  pledged: string | null;
+  present: Generated<boolean>;
+  remaining: string | null;
+  requested_due_at: Timestamp | null;
+  signed_contract: Json | null;
+  source: string | null;
+  source_ref: string | null;
+  statement: Json | null;
+  status: Generated<string>;
+  username: string | null;
+}
+
 export interface DraftTemplates {
   block_num: Int8;
   created_at: Generated<Timestamp>;
@@ -2298,6 +2330,7 @@ export interface DB {
   chatcoop_state: ChatcoopState;
   chatcoop_transcription_segments: ChatcoopTranscriptionSegments;
   consumer_dedup: ConsumerDedup;
+  debt_loans: DebtLoans;
   draft_templates: DraftTemplates;
   draft_translations: DraftTranslations;
   entity_versions: EntityVersions;
