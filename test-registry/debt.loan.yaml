@@ -229,7 +229,7 @@ cases:
       кошельками источника и обеспечения и остатком пайщика в программе
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.create.01
     level: backend
@@ -240,7 +240,7 @@ cases:
       сумма обеспечения ушла с кошелька программы, главный кошелёк не тронут
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.create.02
     level: backend
@@ -249,7 +249,7 @@ cases:
     expect: отказ DEBT_COLLATERAL_UNKNOWN до цепи
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.create.03
     level: backend
@@ -258,7 +258,7 @@ cases:
     expect: заявление отклонено, обеспечение не тронуто
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.rights.01
     level: backend
@@ -269,7 +269,7 @@ cases:
       его займы при любом отборе; совет видит заём в реестре
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.rights.02
     level: backend
@@ -278,7 +278,7 @@ cases:
     expect: отказ охвата «своё»
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.pay.01
     level: backend
@@ -289,7 +289,7 @@ cases:
       реквизитами из заявления и назначением «заём по договору № …»
     test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.pay.02
     level: backend
@@ -298,7 +298,7 @@ cases:
     expect: заём ждёт подписи председателя, платёж кассиру не заведён
     test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.pay.03
     level: backend
@@ -309,7 +309,7 @@ cases:
       закрыт правами
     test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.decline.01
     level: backend
@@ -321,7 +321,7 @@ cases:
       месте
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.issue.01
     level: backend
@@ -332,7 +332,7 @@ cases:
       непогашенных; отмена выданного займа отклонена
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.repay.01
     level: backend
@@ -344,7 +344,7 @@ cases:
       обеспечение на ту же сумму вернулось в программу
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.repay.02
     level: backend
@@ -353,7 +353,7 @@ cases:
     expect: оба отклонены, остаток не изменился
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.extend.01
     level: backend
@@ -364,7 +364,7 @@ cases:
       председателя действует новый срок, заявление сохранено в займе
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.status.01
     level: backend
@@ -375,7 +375,7 @@ cases:
       программе, из отбора непогашенных заём ушёл
     test: components/controller/src/extensions/debt/application/services/loan-payments.listener.spec.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.cancel.01
     level: backend
@@ -386,7 +386,7 @@ cases:
       обеспечение вернулось в программу, платёж не заведён
     test: components/api-tests/src/debt/loans.test.ts
     api: components/api-tests/src/debt/loans.test.ts
-    status: written
+    status: passing
 
   - id: dbt.loan.backend.term.01
     level: backend
