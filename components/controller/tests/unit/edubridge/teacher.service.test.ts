@@ -15,7 +15,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 const signedBy = (signer: string, hash = 'ABC') => ({ hash, doc_hash: hash, meta_hash: hash, version: '1.0', meta: {}, signatures: [{ signer }] }) as any;
 
 function make(
-  opts: { learners?: number; lessonAmount?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
+  opts: { learners?: number; lessonAmount?: string; contract?: boolean | EduContractStatus; assignmentStatus?: EduAssignmentStatus; lessonsTotal?: number; guaranteeDays?: number; subsLocked?: number; deferred?: string; plannedRate?: string; startsAt?: Date | null; courseTeachers?: string[]; profile?: { about: string; hourly_rate: string } | null } = {}
 ) {
   const assignment = { id: 'A1', coopname: 'voskhod', teacher_username: 'teach', course_id: 'C1', status: opts.assignmentStatus ?? EduAssignmentStatus.ACTIVE, period_from: '2025-09-01', period_to: '2027-06-01', created_at: new Date('2026-01-01') } as any;
   const store = new Map<string, any>();
@@ -60,10 +60,12 @@ function make(
       lesson_minutes: 60,
       guarantee_days: opts.guaranteeDays ?? 14,
       planned_hourly_rate: opts.plannedRate ?? '1000.0000 RUB',
-      starts_at: opts.startsAt ?? null,
+      // По умолчанию гарантийный срок группы вышел месяц назад: отчёт сразу даёт взнос и документы.
+      starts_at: opts.startsAt === undefined ? new Date(Date.now() - 45 * 86400_000) : opts.startsAt,
       teacher_usernames: opts.courseTeachers ?? ['teach'],
     })),
     save: jest.fn(async (c: any) => c),
+    listAll: jest.fn(async () => [await (courses as any).findById()]),
   } as any;
   const lessonStore = new Map<number, any>();
   const lessons = {
@@ -87,6 +89,9 @@ function make(
     openLesson: jest.fn(async () => { lessonOpen.current = true; return {}; }),
     chargeLesson: jest.fn(async () => ({})),
     dropLesson: jest.fn(async () => { lessonOpen.current = false; return {}; }),
+    // Условия группы и допуск в цепи: сколько подписок не закрыло гарантийный срок и сумма за занятия периода.
+    readTerms: jest.fn(async () => ({ subs_locked: opts.subsLocked ?? 0 })),
+    readAssignment: jest.fn(async () => ({ deferred: opts.deferred ?? '3000.0000 RUB', deferred_lessons: 2 })),
     readLesson: jest.fn(async () => (lessonOpen.current ? { learners: opts.learners ?? 1, amount: opts.lessonAmount ?? '1000.0000 RUB' } : null)),
   } as any;
   const chainTerms = { pushAssignment: jest.fn(async () => undefined), tryPushAssignment: jest.fn(async () => undefined), dropAssignment: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
@@ -656,15 +661,61 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(chain.holdRid).toHaveBeenCalledTimes(1);
   });
 
-  it('гарантийный срок — один на курс, от даты начала занятий: дата занятия и день отчёта на него не влияют', async () => {
-    const startsAt = new Date(Date.now() - 3 * 86400_000);
-    const { service, chain, store } = make({ startsAt });
-    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
-    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
-    await service.storageAct('voskhod', 'teach', contribution.id);
-    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
-    expect(chain.holdRid).toHaveBeenCalledTimes(1);
-    expect(Math.abs(contribution.hold_until.getTime() - (startsAt.getTime() + 14 * 86400_000))).toBeLessThan(1000);
+  it('в гарантийный срок группы отчёт сохраняется без взноса и документов; следующее занятие отчитывается сразу', async () => {
+    const { service, chain, store, lessons } = make({ startsAt: new Date(Date.now() - 3 * 86400_000) });
+    const first = await service.reportLesson('voskhod', 'teach', report as any);
+    expect(first.contribution_id).toBeNull();
+    expect(first.learners_count).toBe(1);
+    expect(store.size).toBe(0);
+    expect(chain.openLesson).toHaveBeenCalledTimes(1);
+    expect(chain.chargeLesson).toHaveBeenCalledWith(expect.objectContaining({ sub_hash: 'sub1' }));
+    expect(chain.holdRid).not.toHaveBeenCalled();
+    // Отчёт по тому же занятию второй раз не принимается; следующее занятие — сразу.
+    await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED' });
+    chain.readLesson.mockResolvedValueOnce(null);
+    const second = await service.reportLesson('voskhod', 'teach', { ...report, lesson_number: 2 } as any);
+    expect(second.contribution_id).toBeNull();
+    expect(lessons.save).toHaveBeenCalled();
+  });
+
+  it('в гарантийный срок отчёт без обучающихся с оплаченным доступом отзывается', async () => {
+    const { service, chain, store } = make({ startsAt: new Date(Date.now() - 3 * 86400_000), learners: 0 });
+    await expect(service.reportLesson('voskhod', 'teach', report as any)).rejects.toMatchObject({ code: 'EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS' });
+    expect(chain.dropLesson).toHaveBeenCalled();
+    expect(store.size).toBe(0);
+  });
+
+  it('гарантийный срок идёт либо подписки его не закрыли — взнос за занятия периода не заводится', async () => {
+    const running = make({ startsAt: new Date(Date.now() - 3 * 86400_000) });
+    await running.service.reportLesson('voskhod', 'teach', report as any);
+    expect(await running.service.openGuaranteePacks('voskhod')).toBe(0);
+    expect(running.store.size).toBe(0);
+
+    // Срок вышел, но одна подписка его не закрыла: заявление по гарантийным условиям на рассмотрении совета.
+    const frozen = make({ subsLocked: 1 });
+    await frozen.lessons.save({ id: 'LS1', coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: 1, learners_count: 2, contribution_id: null, materials: ['https://video/1'], held_at: new Date() });
+    expect(await frozen.service.openGuaranteePacks('voskhod')).toBe(0);
+    expect(frozen.store.size).toBe(0);
+  });
+
+  it('после гарантийного срока заводится один взнос на все занятия периода: сумма из допуска в цепи, материалы принимаются одним актом', async () => {
+    const { service, chain, store, lessons } = make();
+    for (const n of [1, 2]) {
+      await lessons.save({ id: `LS${n}`, coopname: 'voskhod', course_id: 'C1', group_id: 'G1', assignment_id: 'A1', teacher_username: 'teach', lesson_number: n, learners_count: 2, contribution_id: null, materials: [`https://video/${n}`], held_at: new Date(Date.now() - 40 * 86400_000), topic: `Тема ${n}`, duration_minutes: 60 });
+    }
+    expect(await service.openGuaranteePacks('voskhod')).toBe(1);
+    const pack = [...store.values()][0];
+    expect(pack).toMatchObject({ amount: '3000.0000 RUB', lesson_id: null, status: EduContributionStatus.DRAFT, links: ['https://video/1', 'https://video/2'] });
+    expect((await lessons.findByGroup()).map((l: any) => l.contribution_id)).toEqual([pack.id, pack.id]);
+    // Повторный проход очереди второй взнос не заводит.
+    expect(await service.openGuaranteePacks('voskhod')).toBe(0);
+
+    await service.storageAct('voskhod', 'teach', pack.id);
+    await service.holdContribution('voskhod', 'teach', pack.id, signedBy('teach', 'HOLD'));
+    const sent = chain.holdRid.mock.calls[0][0];
+    expect(sent.rid_hash).toBe(pack.rid_hash);
+    expect(sent.pack).toHaveLength(2);
+    expect(new Set(sent.pack).size).toBe(2);
   });
 
   it('срок курса вышел — заявление преподавателя уходит в совет сразу', async () => {
@@ -749,16 +800,6 @@ describe('EdubridgeTeacherService — занятия и гарантийный �
     expect(chain.submitRid).not.toHaveBeenCalled();
   });
 
-  it('пока идёт гарантийный срок, подписанное заявление в совет не уходит', async () => {
-    const { service, chain, council, store } = make();
-    const lesson = await service.reportLesson('voskhod', 'teach', report as any);
-    const contribution = [...store.values()].find((c) => c.lesson_id === lesson.id);
-    await service.holdContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'HOLD'));
-    const held = await service.submitContribution('voskhod', 'teach', contribution.id, signedBy('teach', 'STMT'));
-    expect(held.status).toBe(EduContributionStatus.HELD);
-    expect(chain.submitRid).not.toHaveBeenCalled();
-    expect(council.getDecisions).not.toHaveBeenCalled();
-  });
 
   it('по истечении срока очередь отправляет заявление сама, без участия преподавателя', async () => {
     const { service, chain, teachers, store } = make({ guaranteeDays: 0 });

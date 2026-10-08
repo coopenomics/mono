@@ -30,11 +30,15 @@
       .t-muted.t-sm {{ row.course_title }}
     template(#cell-held_at="{ row }") {{ formatDate(row.held_at) }}
     template(#cell-amount="{ row }")
-      span.t-num {{ row.contribution ? formatAsset2Digits(row.contribution.amount) : '______' }}
+      span.t-num(v-if="row.contribution") {{ formatAsset2Digits(row.contribution.amount) }}
+      //- Занятие гарантийного срока: сумма станет окончательной после срока, одна на все занятия периода.
+      span.t-muted.t-sm(v-else-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.amountAfterGuarantee') }}
+      span(v-else) ______
       //- Срез курса на дату занятия: по скольким участникам контракт провёл расчёт.
       .t-muted.t-sm(v-if="row.learners_count") {{ $t('edubridge.teacherLessonsPage.learnersLine', { count: row.learners_count }) }}
     template(#cell-status="{ row }")
       BaseBadge(v-if="row.contribution" :variant="statusOf(row.contribution.status).variant") {{ statusOf(row.contribution.status).label }}
+      BaseBadge(v-else-if="row.learners_count" variant="info") {{ $t('edubridge.teacherLessonsPage.statusInGuarantee') }}
       template(v-else) ______
     //- Действие за преподавателем — своей колонкой справа, как в реестрах Стола заказов; нажатие строку не открывает.
     template(#cell-actions="{ row }")
@@ -274,7 +278,8 @@ async function onReport(): Promise<void> {
     contributions.value = held ? fresh.map((c) => (c.id === held.id ? held : c)) : fresh;
     lessons.value = [created, ...lessons.value];
     reportOpen.value = false;
-    SuccessAlert(t('edubridge.teacherLessonsPage.reportSuccess'));
+    // В гарантийный срок отчёт сохраняется без документов: акт и заявление — после срока.
+    SuccessAlert(t(created.contribution_id ? 'edubridge.teacherLessonsPage.reportSuccess' : 'edubridge.teacherLessonsPage.reportSavedInGuarantee'));
   } catch (e) {
     FailAlert(e);
     // Отчёт записан, а передача материалов сорвалась: окно закрывается, занятие

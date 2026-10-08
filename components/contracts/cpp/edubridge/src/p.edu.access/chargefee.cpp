@@ -60,7 +60,7 @@ void edubridge::chargefee(eosio::name coopname,
                  Edubridge::Memo::get_collect_fee_memo());
 
   const bool first = sub->plan.value().lessons_paid == 0;
-  const bool guarantee = Edubridge::is_guarantee_running(terms, *sub, now);
+  const bool guarantee = Edubridge::is_guarantee_running(terms, now);
 
   if (guarantee) {
     // Гарантийный срок идёт: взнос удерживается целиком — возврат по гарантии полный.

@@ -157,7 +157,16 @@ export class EdubridgeChainAdapter implements EdubridgeChainPort {
     return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduTerms.tableName, String(courseRef));
   }
 
-  readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null> {
+async declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline): Promise<InnerTransactResult> {
+    await this.prepare(data.coopname);
+    return this.chain.transact(this.action(EdubridgeContract.Actions.Warrdecline.actionName, data as unknown as Record<string, unknown>, data.coopname));
+  }
+
+  readAssignment(coopname: string, assignmentRef: string | number): Promise<EdubridgeContract.Tables.EduAssigns.IEduAssignment | null> {
+    return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduAssigns.tableName, String(assignmentRef));
+  }
+
+    readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null> {
     return this.chain.getSingleRow(this.code, coopname, EdubridgeContract.Tables.EduLessons.tableName, ridHash, 'secondary', 'sha256');
   }
 

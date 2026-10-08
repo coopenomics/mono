@@ -40,6 +40,8 @@ export interface EdubridgeChainPort {
   claimGuarantee(data: EdubridgeContract.Actions.Warrclaim.IWarrclaim): Promise<InnerTransactResult>;
   /** Совет удовлетворил заявление: контракт закрывает подписку с возвратом всего взноса и публикует протокол. */
   grantGuarantee(data: EdubridgeContract.Actions.Warrgrant.IWarrgrant): Promise<InnerTransactResult>;
+  /** Совет отказал по заявлению по гарантийным условиям: заморозка взноса снимается; после срока оплата занятий периода остаётся программе. */
+  declineGuarantee(data: EdubridgeContract.Actions.Warrdecline.IWarrdecline): Promise<InnerTransactResult>;
   /** Гарантийный срок участника истёк: контракт освобождает удержанное и выделяет резерв преподавателям. */
   unlockFee(data: EdubridgeContract.Actions.Unlockfee.IUnlockfee): Promise<InnerTransactResult>;
   /** Отчёт преподавателя о занятии: открывает расчёт с участниками. */
@@ -72,7 +74,9 @@ export interface EdubridgeChainPort {
   /** Условия курса в цепи. `null` — ещё не заданы. */
   readTerms(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduTerms.IEduTerms | null>;
   /** Занятие, по которому идёт расчёт: число участников и сумма. `null` — расчёт завершён. */
-  readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null>;
+/** Допуск преподавателя в цепи: ставка и сумма за занятия гарантийного срока. */
+  readAssignment(coopname: string, assignmentRef: string | number): Promise<EdubridgeContract.Tables.EduAssigns.IEduAssignment | null>;
+    readLesson(coopname: string, ridHash: string): Promise<EdubridgeContract.Tables.EduLessons.IEduLesson | null>;
   /** Учёт средств курса: собрано, резерв преподавателям, выплачено. */
   readCourseFunds(coopname: string, courseRef: string | number): Promise<EdubridgeContract.Tables.EduCourses.IEduCourse | null>;
 }

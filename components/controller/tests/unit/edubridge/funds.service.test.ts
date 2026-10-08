@@ -46,7 +46,7 @@ function make(course: any, rows: any[], subs: any[]) {
 }
 
 describe('EdubridgeFundsService — гарантийный срок и удержание', () => {
-  it('пока идёт гарантийный срок участника, контракт не вызывается', async () => {
+  it('пока идёт гарантийный срок группы, контракт не вызывается', async () => {
     const { service, chain } = make(courseOf(true), [enrollmentOf()], [chainSub('1000.0000 RUB', false)]);
     await expect(service.unlockDue('voskhod', at(3))).resolves.toBe(0);
     expect(chain.unlockFee).not.toHaveBeenCalled();
@@ -65,6 +65,15 @@ describe('EdubridgeFundsService — гарантийный срок и удер�
     expect(chain.unlockFee).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'aabb' });
     expect(e.locked_amount).toBe('150.0000 RUB');
     expect(enrollments.save).toHaveBeenCalled();
+  });
+
+  it('заявление по гарантийным условиям на рассмотрении совета: срок вышел, но взнос заморожен — контракт не вызывается', async () => {
+    const e = enrollmentOf();
+    const frozen = { locked: '1000.0000 RUB', plan: { version: 1, released: false, claimed: true } };
+    const { service, chain } = make(courseOf(true), [e], [frozen]);
+    await expect(service.unlockDue('voskhod', at(15))).resolves.toBe(0);
+    expect(chain.unlockFee).not.toHaveBeenCalled();
+    expect(e.locked_amount).toBe('1000.0000 RUB');
   });
 
   it('срок уже закрыт: контракт не вызывается, удержанное сверяется с цепью', async () => {

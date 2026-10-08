@@ -32,6 +32,9 @@ void edubridge::cancelsub(eosio::name coopname,
                "EDUBRIDGE_SUBSCRIPTION_NOT_OWNER: Подписку отменяет тот пайщик, которому она принадлежит");
   eosio::check(sub->has_plan(), "EDUBRIDGE_SUBSCRIPTION_LEGACY: Подписка открыта до учёта занятий: закройте её действием expiresub");
 
+  eosio::check(!sub->plan.value().claimed,
+               "EDUBRIDGE_GUARANTEE_CLAIM_PENDING: По подписке рассматривается заявление по гарантийным условиям: отказ оформляется после решения совета");
+
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
   Edubridge::check_no_pending_lesson(coopname, terms, *sub);

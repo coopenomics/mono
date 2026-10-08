@@ -38,6 +38,8 @@ void edubridge::setassign(eosio::name coopname,
       a.username      = username;
       a.course_id     = course_id;
       a.rate          = rate;
+      a.deferred      = eosio::asset(0, _root_govern_symbol);
+      a.deferred_lessons = 0;
     });
   } else {
     eosio::check(it->username == username && it->course_id == course_id,
@@ -62,5 +64,7 @@ void edubridge::delassign(eosio::name coopname,
   edu_assignments_index assigns(_edubridge, coopname.value);
   auto it = assigns.find(assignment_id);
   eosio::check(it != assigns.end(), "EDUBRIDGE_ASSIGNMENT_NOT_FOUND: Допуск с указанным номером не найден");
+  eosio::check(it->deferred_lessons == 0 && it->deferred.amount <= 0,
+               "EDUBRIDGE_ASSIGNMENT_HAS_DEFERRED_LESSONS: По допуску есть занятия гарантийного срока без принятых материалов");
   assigns.erase(it);
 }

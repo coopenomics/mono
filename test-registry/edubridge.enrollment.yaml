@@ -491,6 +491,23 @@ cases:
     test: components/controller/tests/unit/edubridge/group.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written
+  - id: edu.enroll.side.27
+    level: backend
+    kind: side
+    scenario: "Заявление по гарантийным условиям на рассмотрении совета, гарантийный срок группы истёк."
+    expect: "Взнос заморожен: очередь гарантийный срок по подписке не закрывает, преподавателям он не выделяется."
+    test: components/controller/tests/unit/edubridge/funds.service.test.ts
+    external: unreachable
+    external_reason: "перемотка времени: гарантийный срок группы должен истечь за время рассмотрения заявления советом"
+    status: written
+  - id: edu.enroll.side.28
+    level: backend
+    kind: side
+    scenario: "Совет отклонил заявление по гарантийным условиям либо не решил в срок."
+    expect: "Заморозка взноса снимается действием контракта, подписка продолжает действовать; сбой снятия заявление на рассмотрение не возвращает."
+    test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
+    api: components/api-tests/src/edubridge/guarantee.test.ts
+    status: written
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

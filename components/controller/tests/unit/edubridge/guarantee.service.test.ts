@@ -40,7 +40,7 @@ function make(opts: { guaranteeDays?: number; startedDaysAgo?: number; status?: 
   const enrollments = { findById: jest.fn(async () => enrollment), findByMember: jest.fn(async () => [enrollment]) } as any;
   const courses = { findById: jest.fn(async () => course) } as any;
   const enrollmentService = { cancelByGuarantee: jest.fn(async () => enrollment) } as any;
-  const chain = { claimGuarantee: jest.fn(async () => ({})) } as any;
+  const chain = { claimGuarantee: jest.fn(async () => ({})), declineGuarantee: jest.fn(async () => ({})) } as any;
   const documents = { generate: jest.fn(async (r: any) => ({ hash: `H${r.data.registry_id}`, html: '', full_title: '', binary: '', meta: {} })) } as any;
   const freeDecisions = {
     createProjectOfFreeDecision: jest.fn(async () => {
@@ -122,12 +122,21 @@ describe('EdubridgeGuaranteeService', () => {
     expect(done.enrollmentService.cancelByGuarantee).not.toHaveBeenCalled();
   });
 
-  it('совет отклонил либо не решил в срок: заявление закрывается, подписка остаётся', async () => {
+  it('совет отклонил либо не решил в срок: заявление закрывается, заморозка взноса снимается, подписка остаётся', async () => {
     for (const [outcome, status] of [[EduCouncilOutcome.DECLINED, EduGuaranteeClaimStatus.DECLINED], [EduCouncilOutcome.EXPIRED, EduGuaranteeClaimStatus.EXPIRED]] as const) {
-      const { service, store, enrollmentService } = make({ claim: { id: 'G1', council_agenda_id: '7', status: EduGuaranteeClaimStatus.SUBMITTED } });
+      const { service, store, enrollmentService, chain, enrollment } = make({ claim: { id: 'G1', council_agenda_id: '7', enrollment_id: 'E1', member_username: 'ant', status: EduGuaranteeClaimStatus.SUBMITTED } });
       await service.onCouncilGaveUp('voskhod', '7', outcome);
       expect(store.claim.status).toBe(status);
       expect(enrollmentService.cancelByGuarantee).not.toHaveBeenCalled();
+      // Взнос был заморожен подачей заявления — контракт снимает заморозку по этой подписке.
+      expect(chain.declineGuarantee).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'ant', sub_hash: enrollment.sub_hash });
     }
+  });
+
+  it('отказ совета: сбой снятия заморозки заявление не возвращает на рассмотрение', async () => {
+    const { service, store, chain } = make({ claim: { id: 'G1', council_agenda_id: '7', enrollment_id: 'E1', member_username: 'ant', status: EduGuaranteeClaimStatus.SUBMITTED } });
+    chain.declineGuarantee.mockRejectedValueOnce(new Error('цепь недоступна'));
+    await service.onCouncilGaveUp('voskhod', '7', EduCouncilOutcome.DECLINED);
+    expect(store.claim.status).toBe(EduGuaranteeClaimStatus.DECLINED);
   });
 });

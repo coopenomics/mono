@@ -51,6 +51,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_terms {
   uint32_t lessons_opened;             ///< номер последнего открытого занятия
   uint64_t open_lesson_id;             ///< занятие, по которому идёт расчёт; 0 — открытого занятия нет
   eosio::time_point_sec last_held_at;  ///< дата последнего закрытого занятия
+  uint32_t subs_locked = 0;            ///< подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны
 
   uint64_t primary_key() const { return course_id; }
 
@@ -90,6 +91,8 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_assignment {
   eosio::name username;    ///< пайщик-преподаватель
   uint64_t course_id;      ///< курс
   eosio::asset rate;       ///< ставка преподавателя за час на одного участника
+  eosio::asset deferred;   ///< взнос преподавателя за занятия гарантийного срока: складывается по подпискам, закрывшим срок
+  uint32_t deferred_lessons = 0; ///< занятий гарантийного срока, по которым материалы ещё не приняты на хранение
 
   uint64_t primary_key() const { return assignment_id; }
   uint64_t by_course()   const { return course_id; }
@@ -125,6 +128,7 @@ struct [[eosio::table, eosio::contract(EDUBRIDGE)]] edu_lesson {
   uint32_t learners;               ///< участников с оплаченным доступом, по которым прошёл расчёт
   eosio::asset amount;             ///< взнос преподавателя за занятие
   eosio::time_point_sec created_at;
+  bool deferred = false;           ///< занятие гарантийного срока: документов с суммой нет до конца срока, сумма — в допуске преподавателя
 
   uint64_t primary_key() const { return id; }
   checksum256 by_hash()  const { return rid_hash; }

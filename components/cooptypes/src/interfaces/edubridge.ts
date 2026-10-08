@@ -102,6 +102,13 @@ export interface IWarrclaim {
   statement: IDocument2
 }
 
+/** Совет отказал по заявлению по гарантийным условиям — заморозка взноса снимается. */
+export interface IWarrdecline {
+  coopname: IName
+  username: IName
+  sub_hash: IChecksum256
+}
+
 export interface IWarrgrant {
   coopname: IName
   username: IName
@@ -173,6 +180,8 @@ export interface IHoldrid {
   username: IName
   rid_hash: IChecksum256
   rid_type: IName
+  /** Занятия гарантийного срока, принимаемые одним актом; пусто — одно занятие с хэшем `rid_hash`. */
+  pack: IChecksum256[]
   act: IDocument2
 }
 
@@ -341,8 +350,12 @@ export interface IEduSubPlan {
   reserve: IAsset
   /** Взнос преподавателей за проведённые занятия, ещё не выделенный в резерв. */
   due: IAsset
-  /** Гарантийный срок участника закрыт: удерживается только сумма возможного возврата. */
+  /** Гарантийный срок группы по подписке закрыт: удерживается только сумма возможного возврата. */
   released: IBool
+  /** Взнос преподавателей за занятия гарантийного срока — по допускам. */
+  dues: { assignment_id: IUint64, amount: IAsset }[]
+  /** Подано заявление по гарантийным условиям: взнос заморожен до решения совета. */
+  claimed: IBool
 }
 
 /** eduterms (scope = coopname, ключ — course_id) — условия курса, по которым считаются суммы. */
@@ -362,6 +375,8 @@ export interface IEduTerms {
   lessons_opened: IUint32
   open_lesson_id: IUint64
   last_held_at: ITimePointSec
+  /** Подписок с незакрытым гарантийным сроком: пока они есть, суммы преподавателей за гарантийный период не окончательны. */
+  subs_locked: IUint32
 }
 
 /** eduassigns (scope = coopname, ключ — assignment_id) — допуск преподавателя к курсу и его ставка. */
@@ -370,6 +385,10 @@ export interface IEduAssignment {
   username: IName
   course_id: IUint64
   rate: IAsset
+  /** Взнос преподавателя за занятия гарантийного срока — складывается по подпискам, закрывшим срок. */
+  deferred: IAsset
+  /** Занятий гарантийного срока без принятых материалов. */
+  deferred_lessons: IUint32
 }
 
 /** edulessons (scope = coopname) — занятие, по которому идёт расчёт с участниками. */
@@ -388,6 +407,8 @@ export interface IEduLesson {
   learners: IUint32
   amount: IAsset
   created_at: ITimePointSec
+  /** Занятие гарантийного срока: документы с суммой — после срока, одной суммой за период. */
+  deferred: IBool
 }
 
 /**

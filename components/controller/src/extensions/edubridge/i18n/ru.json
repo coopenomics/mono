@@ -209,6 +209,8 @@
     "teacher": {
       "assignmentExpectedResult": "Проведение занятий курса «{courseTitle}» по его учебной программе",
       "lessonContributionDescription": "Занятие № {lessonNumber} курса «{courseTitle}»",
+      "guaranteePackDescription": "Занятия № {from}–{to} курса «{courseTitle}» за гарантийный срок",
+      "guaranteePackTopic": "по № {to} включительно, занятия гарантийного срока",
       "ridRecallReason": "совет не принял решение о приёме: {reason}",
       "actDeclinedReason": "председатель отказал в подписи акта приёма-передачи"
     },

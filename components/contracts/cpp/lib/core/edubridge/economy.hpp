@@ -96,17 +96,16 @@ inline void update_terms(eosio::name coopname, uint64_t course_id, Fn&& change) 
 // ── Гарантийный срок ─────────────────────────────────────────────────────
 
 /**
- * @brief Идёт ли гарантийный срок участника по подписке.
+ * @brief Идёт ли гарантийный срок группы.
  *
- * Срок отсчитывается от более поздней из двух дат — начала занятий и дня
- * открытия подписки. У неактивированного курса с объявленной гарантией срок
- * ещё впереди. Продление срок заново не запускает.
+ * Срок один на группу и отсчитывается от начала занятий: участник, пришедший
+ * после его окончания, гарантийных условий не имеет. У неактивированной группы
+ * с объявленной гарантией срок ещё впереди.
  */
-inline bool is_guarantee_running(const edu_terms& terms, const edu_subscription& sub, eosio::time_point_sec now) {
+inline bool is_guarantee_running(const edu_terms& terms, eosio::time_point_sec now) {
   if (terms.guarantee_days == 0) return false;
   if (!terms.is_started()) return true;
-  const uint32_t from = std::max(terms.starts_at.sec_since_epoch(), sub.created_at.sec_since_epoch());
-  return now.sec_since_epoch() < from + terms.guarantee_days * SECONDS_IN_DAY;
+  return now.sec_since_epoch() < terms.starts_at.sec_since_epoch() + terms.guarantee_days * SECONDS_IN_DAY;
 }
 
 /// До какой даты материалы занятия лежат на ответственном хранении — гарантийный срок курса от начала занятий.
@@ -251,7 +250,34 @@ inline void rebalance_lock(eosio::name coopname, edu_subscription& s) {
 }
 
 /**
- * @brief Гарантийный срок участника истёк — взнос перестаёт удерживаться целиком.
+ * @brief Взнос преподавателей за занятия гарантийного срока по подписке — в суммы их допусков.
+ *
+ * Пока срок шёл, документов с суммой у преподавателя не было. Подписка закрыла
+ * срок — её часть переходит в сумму допуска, на которую преподаватель подпишет
+ * акт и заявление за весь гарантийный период. Допусков у группы единицы:
+ * перебор идёт по списку внутри строки подписки, не по таблице.
+ */
+inline void credit_dues(eosio::name coopname, edu_sub_plan& plan) {
+  edu_assignments_index assigns(_edubridge, coopname.value);
+  for (const auto& d : plan.dues) {
+    auto it = assigns.find(d.assignment_id);
+    if (it == assigns.end() || d.amount.amount <= 0) continue;
+    assigns.modify(it, RamPayer::of(assigns, coopname), [&](auto& a) {
+      a.deferred = (a.deferred.symbol == d.amount.symbol ? a.deferred : eosio::asset(0, d.amount.symbol)) + d.amount;
+    });
+  }
+  plan.drop_dues();
+}
+
+/// Подписка закрыла гарантийный срок либо закрыта до его конца — счётчик группы уменьшается.
+inline void unlock_subscription(eosio::name coopname, uint64_t course_id) {
+  update_terms(coopname, course_id, [&](auto& t) {
+    if (t.subs_locked > 0) t.subs_locked -= 1;
+  });
+}
+
+/**
+ * @brief Гарантийный срок группы истёк — взнос перестаёт удерживаться целиком.
  *
  * Весь взнос был удержан: возврат по гарантии — полный. Срок истёк, и
  * остаётся только возврат при отказе. Оплата занятий выделяется в резерв
@@ -265,7 +291,8 @@ inline void rebalance_lock(eosio::name coopname, edu_subscription& s) {
  */
 inline bool close_guarantee(eosio::name coopname, const edu_terms& terms, edu_subscription& s, eosio::time_point_sec now) {
   auto& plan = s.plan.value();
-  if (plan.released || is_guarantee_running(terms, s, now)) return false;
+  // Заявление по гарантийным условиям на рассмотрении совета: взнос заморожен.
+  if (plan.released || plan.claimed || is_guarantee_running(terms, now)) return false;
 
   const eosio::asset locked = s.locked_or_zero();
   const eosio::asset required = required_lock(s);
@@ -292,8 +319,9 @@ inline bool close_guarantee(eosio::name coopname, const edu_terms& terms, edu_su
   }
 
   s.set_amounts(s.charged_or_zero(), plan.reserve, locked > required ? required : locked);
-  plan.due = eosio::asset(0, _root_govern_symbol);
+  credit_dues(coopname, plan);
   plan.released = true;
+  unlock_subscription(coopname, s.course_id);
   return true;
 }
 
@@ -308,11 +336,13 @@ inline bool close_guarantee(eosio::name coopname, const edu_terms& terms, edu_su
  *
  * Строку подписки стирает вызывающее действие.
  */
-inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eosio::asset refund, bool to_share) {
+inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eosio::asset refund, bool to_share, bool drop_due = false) {
   const eosio::asset zero(0, _root_govern_symbol);
   const eosio::asset locked = sub.locked_or_zero();
   const eosio::asset allotted = sub.reserved_or_zero();
-  eosio::asset due = sub.has_plan() ? sub.plan.value().due : zero;
+  // Возврат по гарантийным условиям: участник забирает взнос целиком, в суммы
+  // преподавателей за гарантийный период его занятия не входят.
+  eosio::asset due = sub.has_plan() && !drop_due ? sub.plan.value().due : zero;
 
   // Возврат участнику обеспечен всегда: его взнос удержан либо лежит в резерве
   // подписки. Взнос преподавателей за уже проведённые занятия выделяется из
@@ -381,6 +411,21 @@ inline void settle_closing(eosio::name coopname, const edu_subscription& sub, eo
   }
 
   if (sub.has_plan()) {
+    const auto& closing = sub.plan.value();
+    if (!closing.released) {
+      // Подписка закрыта до конца гарантийного срока: выделенное за проведённые
+      // занятия переходит в суммы допусков в той доле, какую удалось выделить.
+      if (due.amount > 0) {
+        edu_sub_plan settled = closing;
+        if (due < closing.due) {
+          for (auto& d : settled.dues) {
+            d.amount = eosio::asset(static_cast<int64_t>(static_cast<__int128>(d.amount.amount) * due.amount / closing.due.amount), d.amount.symbol);
+          }
+        }
+        credit_dues(coopname, settled);
+      }
+      unlock_subscription(coopname, sub.course_id);
+    }
     update_terms(coopname, sub.course_id, [&](auto& t) {
       if (t.subs_active > 0) t.subs_active -= 1;
     });

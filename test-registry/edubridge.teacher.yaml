@@ -288,11 +288,12 @@ cases:
   - id: edu.teach.side.07
     level: backend
     kind: side
-    scenario: Подписанное заявление в гарантийный срок.
-    expect: В совет не уходит, держится расширением; по истечении срока отправляется очередью само.
+    scenario: "Гарантийный срок группы вышел, все подписки его закрыли: преподавателю заводится взнос за занятия периода."
+    expect: "Один взнос на все занятия гарантийного срока по допуску; сумму называет контракт; материалы принимаются одним актом с перечнем занятий; повторный проход очереди второй взнос не заводит."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    external: unreachable
+    external_reason: "перемотка времени: гарантийный срок группы должен истечь, а подписки — закрыть его проходом очереди"
+    status: written
   - id: edu.teach.happy.08
     level: backend
     kind: happy
@@ -377,11 +378,12 @@ cases:
   - id: edu.teach.side.13
     level: backend
     kind: side
-    scenario: "Начало занятий курса перенесено после проведённых занятий группы."
-    expect: "Дата начала в карточке курса — условие новых групп; у группы с занятиями срок хранения материалов прежний, акт и цепь называют одну дату."
+    scenario: "Гарантийный срок идёт либо хотя бы одна подписка группы его не закрыла (заявление по гарантийным условиям на рассмотрении совета)."
+    expect: "Взнос за занятия периода не заводится: сумма ещё не окончательна."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
-    api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    external: unreachable
+    external_reason: "перемотка времени: гарантийный срок группы должен истечь, а подписки — закрыть его проходом очереди"
+    status: written
   - id: edu.teach.break.07
     level: backend
     kind: break
@@ -494,11 +496,11 @@ cases:
   - id: edu.teach.side.21
     level: backend
     kind: side
-    scenario: "Гарантийный срок — один на курс, от даты начала занятий."
-    expect: "Срок хранения материалов равен дате начала занятий плюс срок курса и не зависит от даты занятия и дня отчёта; срок курса вышел — заявление уходит в совет сразу; у неактивированного курса срок считается от сегодняшнего дня."
+    scenario: "Отчёт о занятии в гарантийный срок группы."
+    expect: "Отчёт сохраняется и закрывает занятие; взноса и документов с суммой нет; следующее занятие отчитывается сразу, повторный отчёт по тому же занятию отклоняется; без обучающихся с оплаченным доступом отчёт отзывается."
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/lessons.test.ts
-    status: passing
+    status: written
   - id: edu.teacher.happy.sync-01
     level: backend
     kind: happy

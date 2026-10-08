@@ -31,6 +31,7 @@ void edubridge::holdrid(eosio::name coopname,
                         eosio::name username,
                         checksum256 rid_hash,
                         eosio::name rid_type,
+                        std::vector<checksum256> pack,
                         document2 act) {
   require_auth(coopname);
 
@@ -46,28 +47,77 @@ void edubridge::holdrid(eosio::name coopname,
 
   edu_lessons_index lessons(_edubridge, coopname.value);
   auto lessons_by_hash = lessons.get_index<"byhash"_n>();
-  auto lesson = lessons_by_hash.find(rid_hash);
-  eosio::check(lesson != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
-  eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
-  eosio::check(lesson->amount.amount > 0,
-               "EDUBRIDGE_LESSON_WITHOUT_LEARNERS: На дату занятия нет участников с оплаченным доступом: взнос преподавателя не начислен");
 
-  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);
-  const eosio::asset amount          = lesson->amount;
-  const uint64_t assignment_id       = lesson->assignment_id;
-  const uint64_t course_id           = lesson->course_id;
-  const eosio::time_point_sec held_at = lesson->held_at;
+  eosio::asset amount(0, _root_govern_symbol);
+  uint64_t assignment_id = 0;
+  uint64_t course_id = 0;
+  eosio::time_point_sec held_at;
+  bool single = pack.empty();
+
+  if (single) {
+    // Занятие после гарантийного срока: материалы принимаются по одному занятию, сумма — из его расчёта.
+    auto lesson = lessons_by_hash.find(rid_hash);
+    eosio::check(lesson != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
+    eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
+    eosio::check(!lesson->deferred,
+                 "EDUBRIDGE_LESSON_DEFERRED: Занятие проведено в гарантийный срок: материалы принимаются после срока, вместе с остальными занятиями периода");
+    eosio::check(lesson->amount.amount > 0,
+                 "EDUBRIDGE_LESSON_WITHOUT_LEARNERS: На дату занятия нет участников с оплаченным доступом: взнос преподавателя не начислен");
+    amount        = lesson->amount;
+    assignment_id = lesson->assignment_id;
+    course_id     = lesson->course_id;
+    held_at       = lesson->held_at;
+    lessons_by_hash.erase(lesson);
+  } else {
+    // Занятия гарантийного срока принимаются разом, одним актом: названы все
+    // занятия допуска за период, сумма — накопленная в допуске по подпискам,
+    // закрывшим срок. Перебор идёт по названному списку, не по таблице.
+    for (const auto& hash : pack) {
+      auto lesson = lessons_by_hash.find(hash);
+      eosio::check(lesson != lessons_by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
+      eosio::check(lesson->username == username, "EDUBRIDGE_LESSON_NOT_OWNER: Занятие открыто другим преподавателем");
+      eosio::check(lesson->deferred, "EDUBRIDGE_LESSON_NOT_DEFERRED: Занятие проведено после гарантийного срока: материалы по нему принимаются отдельно");
+      if (assignment_id == 0) {
+        assignment_id = lesson->assignment_id;
+        course_id     = lesson->course_id;
+      }
+      eosio::check(lesson->assignment_id == assignment_id, "EDUBRIDGE_LESSON_OTHER_ASSIGNMENT: Занятия относятся к разным допускам");
+      if (lesson->held_at > held_at) held_at = lesson->held_at;
+      lessons_by_hash.erase(lesson);
+    }
+  }
+
+  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, course_id);
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+
+  if (!single) {
+    eosio::check(!Edubridge::is_guarantee_running(terms, now),
+                 "EDUBRIDGE_GUARANTEE_RUNNING: Гарантийный срок группы ещё идёт: материалы занятий периода принимаются после срока");
+    eosio::check(terms.subs_locked == 0,
+                 "EDUBRIDGE_GUARANTEE_NOT_SETTLED: По группе не закрыт гарантийный срок всех подписок: сумма за занятия периода ещё не окончательна");
+    edu_assignments_index assigns(_edubridge, coopname.value);
+    auto assign = assigns.find(assignment_id);
+    eosio::check(assign != assigns.end() && assign->username == username,
+                 "EDUBRIDGE_TEACHER_NOT_ASSIGNED: Преподаватель не допущен к этому курсу");
+    eosio::check(assign->deferred_lessons == pack.size(),
+                 "EDUBRIDGE_LESSON_PACK_INCOMPLETE: Названы не все занятия гарантийного срока по допуску");
+    eosio::check(assign->deferred.amount > 0,
+                 "EDUBRIDGE_LESSON_WITHOUT_LEARNERS: За занятия гарантийного срока взнос преподавателя не начислен");
+    amount = assign->deferred;
+    assigns.modify(assign, RamPayer::of(assigns, coopname), [&](auto& a) {
+      a.deferred         = eosio::asset(0, _root_govern_symbol);
+      a.deferred_lessons = 0;
+    });
+  }
+
   // Срок хранения задаётся курсом и может оказаться в прошлом: гарантия не
-  // объявлена либо отчёт подан позже. Материалы принимаются и в этом случае —
-  // заявление о паевом взносе всё равно ждёт окончания срока (submitrid).
+  // объявлена либо срок уже вышел. Материалы принимаются и в этом случае.
   const eosio::time_point_sec hold_until = Edubridge::lesson_hold_until(terms, held_at);
 
   edu_rids_index rids(_edubridge, coopname.value);
   auto by_hash = rids.get_index<"byhash"_n>();
   eosio::check(by_hash.find(rid_hash) == by_hash.end(),
                "EDUBRIDGE_RID_ALREADY_HELD: Материалы с указанным hash уже приняты на ответственное хранение");
-
-  const auto now = eosio::time_point_sec(eosio::current_time_point());
 
   uint64_t rid_id = 0;
   rids.emplace(RamPayer::of(rids, coopname), [&](auto& r) {
@@ -85,12 +135,13 @@ void edubridge::holdrid(eosio::name coopname,
     rid_id             = r.id;
   });
 
-  // Расчёт по занятию завершён: запись стирается, курс открыт для следующего занятия.
-  lessons_by_hash.erase(lesson);
-  Edubridge::update_terms(coopname, course_id, [&](auto& t) {
-    t.open_lesson_id = 0;
-    t.last_held_at   = held_at;
-  });
+  // Расчёт по занятию завершён: курс открыт для следующего занятия.
+  if (single) {
+    Edubridge::update_terms(coopname, course_id, [&](auto& t) {
+      t.open_lesson_id = 0;
+      t.last_held_at   = held_at;
+    });
+  }
 
   // ── o.edu.hold: ISSUE → w.edu.hold (Дт 08 / Кт 76) ────────────────────
   Ledger2::apply(_edubridge, coopname,

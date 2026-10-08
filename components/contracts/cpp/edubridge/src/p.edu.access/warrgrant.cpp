@@ -40,7 +40,8 @@ void edubridge::warrgrant(eosio::name coopname,
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
   Edubridge::check_no_pending_lesson(coopname, terms, *sub);
 
-  Edubridge::settle_closing(coopname, *sub, sub->charged_or_zero(), true);
+  // Участник забирает взнос целиком; его занятия в суммы преподавателей за гарантийный период не входят.
+  Edubridge::settle_closing(coopname, *sub, sub->charged_or_zero(), true, true);
   subs.erase(sub);
 
   Soviet::make_complete_document(_edubridge, coopname, username,

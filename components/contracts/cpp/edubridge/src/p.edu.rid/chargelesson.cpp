@@ -17,9 +17,10 @@
  *    (TRANSFER w.edu.teach → w.edu.fund) на разницу до плановой ставки;
  *  - удержание по подписке уменьшается до суммы возможного возврата
  *    (`o.edu.unlock`): занятие проведено, возвращать за него нечего;
- *  - гарантийный срок участника ещё идёт — движений нет: взнос удержан
- *    целиком, взнос преподавателя запоминается в подписке и выделяется в
- *    резерв, когда срок закроется.
+ *  - гарантийный срок группы ещё идёт — движений нет: взнос удержан целиком,
+ *    взнос преподавателя запоминается в подписке по его допуску, выделяется в
+ *    резерв и переходит в сумму допуска, когда подписка закроет срок. Участник,
+ *    вернувший взнос по гарантийным условиям, в эту сумму не входит.
  *
  * Guards:
  *  - занятие открыто; подписка — того же курса и ведёт учёт занятий;
@@ -64,16 +65,26 @@ void edubridge::chargelesson(eosio::name coopname,
     charge = left < unit ? left : unit;
   }
   const eosio::asset rest = unit - charge;
-  // Гарантийный срок не закрыт — взнос удержан целиком, в резерв преподавателям он ещё не выделен.
-  const bool locked = !plan.released;
+  const auto now = eosio::time_point_sec(eosio::current_time_point());
+  // Занятие после гарантийного срока: участник с заявлением по гарантийным
+  // условиям на рассмотрении в расчёт не входит — его взнос заморожен.
+  eosio::check(lesson->deferred || !plan.claimed,
+               "EDUBRIDGE_GUARANTEE_CLAIM_PENDING: По подписке рассматривается заявление по гарантийным условиям: взнос заморожен до решения совета");
+  bool locked = false;
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
+    // Занятие проведено после гарантийного срока, а подписка его ещё не закрыла — закрывается до расчёта.
+    if (!lesson->deferred) Edubridge::close_guarantee(coopname, terms, s, now);
     auto& p = s.plan.value();
+    // Гарантийный срок не закрыт — взнос удержан целиком, в резерв преподавателям он ещё не выделен.
+    locked = !p.released;
     p.reserve      -= unit;
     p.lessons_done += 1;
     p.last_lesson   = lesson->number;
     if (locked) {
-      p.due += charge;
+      // Взнос преподавателя запоминается в подписке по его допуску: в сумму
+      // допуска он перейдёт, когда подписка закроет гарантийный срок.
+      p.add_due(lesson->assignment_id, charge);
     } else {
       s.set_amounts(s.charged_or_zero(), s.reserved_or_zero() - unit, s.locked_or_zero());
       // Занятие проведено — возможный возврат уменьшился, удержание освобождается.
@@ -91,6 +102,15 @@ void edubridge::chargelesson(eosio::name coopname,
       eosio::check(rest <= c.reserve, "EDUBRIDGE_COURSE_RESERVE_INSUFFICIENT: Резерв преподавателям по курсу меньше оплаты занятия");
       c.reserve -= rest;
     });
+  }
+
+  // Занятие гарантийного срока, а подписка срок уже закрыла: взнос преподавателя — сразу в сумму допуска.
+  if (lesson->deferred && !locked && charge.amount > 0) {
+    edu_assignments_index assigns(_edubridge, coopname.value);
+    auto assign = assigns.find(lesson->assignment_id);
+    if (assign != assigns.end()) {
+      assigns.modify(assign, RamPayer::of(assigns, coopname), [&](auto& a) { a.deferred += charge; });
+    }
   }
 
   lessons.modify(lesson, RamPayer::of(lessons, coopname), [&](auto& l) {

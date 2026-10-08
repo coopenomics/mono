@@ -26,8 +26,8 @@ using namespace Edubridge;
  * «Образовательный мост»).
  *
  * Реализует actions четырёх процессов из YAML-стандартов рядом с этим .hpp:
- *  - **p.edu.access** (11 actions): setcourse, convert, regstatement,
- *    warrclaim, warrgrant, opensub, chargefee, unlockfee, cancelsub, retshare,
+ *  - **p.edu.access** (12 actions): setcourse, convert, regstatement,
+ *    warrclaim, warrgrant, warrdecline, opensub, chargefee, unlockfee, cancelsub, retshare,
  *    expiresub — членский взнос за доступ к курсу вносится конвертацией
  *    паевого взноса (w.wal.share → w.edu.member, o.edu.conv) по Заявлению о
  *    конвертации и списывается в фонд программы (o.edu.fee). Все суммы
@@ -160,14 +160,25 @@ public:
 
   /**
    * @brief Опубликовать Заявление об аннулировании Подписки по Гарантийным
-   * условиям (шаблон 3013): основание для рассмотрения советом. Движений
-   * средств нет, подписка остаётся действующей до решения совета.
+   * условиям (шаблон 3013): основание для рассмотрения советом. Взнос
+   * участника замораживается до решения совета; подписка остаётся действующей.
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void warrclaim(eosio::name coopname,
                                    eosio::name username,
                                    checksum256 sub_hash,
                                    document2 statement);
+
+  /**
+   * @brief Совет отказал по заявлению об аннулировании Подписки по Гарантийным
+   * условиям: заморозка взноса снимается, подписка продолжает действовать.
+   * Гарантийный срок группы уже вышел — оплата занятий участника за
+   * гарантийный период остаётся на кошельке программы.
+   * @ingroup public_edubridge_actions
+   */
+  [[eosio::action]] void warrdecline(eosio::name coopname,
+                                     eosio::name username,
+                                     checksum256 sub_hash);
 
   /**
    * @brief Решение совета об удовлетворении заявления по Гарантийным условиям
@@ -251,6 +262,7 @@ public:
                                  eosio::name username,
                                  checksum256 rid_hash,
                                  eosio::name rid_type,
+                                 std::vector<checksum256> pack,
                                  document2 act);
 
   /**

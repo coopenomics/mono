@@ -52,6 +52,7 @@ describe('Образование: аннулирование подписки п
   let declined: any
   /** Подписка на курс без гарантийного срока. */
   let bare: any
+  let late: any
 
   const wallet = (name: string) => walletOf(token, learner.account, name)
   const claimOf = async (enrollmentId: string) => (await guaranteeOf(token, enrollmentId))?.claim ?? null
@@ -71,10 +72,13 @@ describe('Образование: аннулирование подписки п
     await signOffer(learner, token, 'PARENT')
     const self = await addLearner(token, 'Сам участник', true)
     const child = await addLearner(token, 'Ребёнок участника')
-    await fundShare(learner, token, fee * 4)
+    await fundShare(learner, token, fee * 5)
     granted = await subscribe(learner, token, self.id, courseA.id)
     declined = await subscribe(learner, token, child.id, courseB.id)
     bare = await subscribe(learner, token, self.id, courseBare.id)
+    // Группа идёт двадцать дней при сроке в четырнадцать: гарантийный срок группы вышел.
+    const courseLate = await publishCourse(chairman, section, -20)
+    late = await subscribe(learner, token, child.id, courseLate.id)
 
     stranger = freshMember({ prefix: 'eduh' })
     strangerToken = await login(stranger)
@@ -85,7 +89,7 @@ describe('Образование: аннулирование подписки п
     await educationOff()
   })
 
-  it(caseName('edu.enroll.break.10', 'заявление по гарантии не принимается: чужая подписка, пустая причина, курс без гарантии, чужая подпись'), async () => {
+  it(caseName('edu.enroll.break.10', 'заявление по гарантии не принимается: чужая подписка, пустая причина, курс без гарантии, срок группы вышел, чужая подпись'), async () => {
     const state = await guaranteeOf(token, declined.id)
     expect(state).toMatchObject({ available: true, claim: null })
     expect(amount(state.amount)).toBeCloseTo(fee, 4)
@@ -96,6 +100,12 @@ describe('Образование: аннулирование подписки п
 
     expect(await guaranteeOf(token, bare.id)).toMatchObject({ available: false, guarantee_until: null, claim: null })
     expectCode(await gqlError(token, GUARANTEE_STATEMENT, statementInput(bare.id)), 'EDUBRIDGE_GUARANTEE_NOT_AVAILABLE')
+
+    // Гарантийный срок один на группу, от начала занятий: пришедший после него гарантийных условий не имеет.
+    const lateState = await guaranteeOf(token, late.id)
+    expect(lateState).toMatchObject({ available: false, claim: null })
+    expect(Date.parse(lateState.guarantee_until), 'срок группы уже вышел').toBeLessThan(Date.now())
+    expectCode(await gqlError(token, GUARANTEE_STATEMENT, statementInput(late.id)), 'EDUBRIDGE_GUARANTEE_NOT_AVAILABLE')
 
     // Заявление участника, подписанное чужим ключом от чужого имени.
     const statement = (await gql<any>(token, GUARANTEE_STATEMENT, statementInput(declined.id))).edubridgeGuaranteeStatement
@@ -163,10 +173,17 @@ describe('Образование: аннулирование подписки п
     // Повторное заявление по той же подписке не подаётся.
     expectCode(await gqlError(token, GUARANTEE_STATEMENT, statementInput(declined.id)), 'EDUBRIDGE_GUARANTEE_ALREADY_CLAIMED')
 
-    // Обычный отказ возвращает половину остаточной стоимости на кошелёк программы.
+    // Заморозка взноса снята отказом совета: обычный отказ снова проходит и
+    // возвращает половину остаточной стоимости на кошелёк программы.
     const cancelled = (await gql<any>(token, CANCEL_ENROLLMENT, { id: declined.id })).edubridgeCancelEnrollment
     expect(cancelled).toMatchObject({ status: 'CANCELLED', refund_reason: 'refusal' })
     expect(amount(cancelled.refunded_amount)).toBeCloseTo(fee / 2, 4)
     expect(await wallet(PROGRAM_WALLET)).toBeCloseTo(programBefore + fee / 2, 4)
   }, 480_000)
+
+  it(caseName('edu.enroll.side.28', 'отказ совета снимает заморозку взноса: по закрытой подписке второй возврат не проходит'), async () => {
+    // Отказ после решения совета уже прошёл (заморозка снята контрактом); подписка закрыта — повтор отклоняется.
+    expectCode(await gqlError(token, CANCEL_ENROLLMENT, { id: declined.id }), 'EDUBRIDGE_SUBSCRIPTION_ALREADY_CLOSED')
+    expect((await claimOf(declined.id))?.status).toBe('DECLINED')
+  })
 })

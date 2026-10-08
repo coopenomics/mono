@@ -53,5 +53,9 @@ void edubridge::opensub(eosio::name coopname,
     s.plan.emplace(plan);
   });
 
-  Edubridge::update_terms(coopname, course_id, [&](auto& t) { t.subs_active += 1; });
+  // Гарантийный срок по подписке ещё не закрыт: его закроет первый взнос (срок группы вышел) либо очередь после срока.
+  Edubridge::update_terms(coopname, course_id, [&](auto& t) {
+    t.subs_active += 1;
+    t.subs_locked += 1;
+  });
 }

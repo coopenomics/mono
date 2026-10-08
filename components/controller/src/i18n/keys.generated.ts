@@ -1177,6 +1177,8 @@ export type MessageKey =
   | 'edubridge.skillspaceConnector.pingOk'
   | 'edubridge.teacher.actDeclinedReason'
   | 'edubridge.teacher.assignmentExpectedResult'
+  | 'edubridge.teacher.guaranteePackDescription'
+  | 'edubridge.teacher.guaranteePackTopic'
   | 'edubridge.teacher.lessonContributionDescription'
   | 'edubridge.teacher.ridRecallReason'
   | 'errors.ACCOUNT_AVATAR_EMPTY'

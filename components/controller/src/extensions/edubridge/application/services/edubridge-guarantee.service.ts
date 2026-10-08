@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
 import { Cooperative } from 'cooptypes';
-import { DomainError, platformSettings } from '@coopenomics/extension-kit';
+import { chainErrorCode, DomainError, platformSettings } from '@coopenomics/extension-kit';
 import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
@@ -193,7 +193,25 @@ export class EdubridgeGuaranteeService {
     claim.status = outcome === EduCouncilOutcome.DECLINED ? EduGuaranteeClaimStatus.DECLINED : EduGuaranteeClaimStatus.EXPIRED;
     claim.decided_at = new Date();
     await this.claims.save(claim);
+    await this.unfreeze(coopname, claim);
     this.logger.info(`[EDU.GUARANTEE] заявление ${claim.claim_hash}: совет решения не принял (${outcome})`);
+  }
+
+  /**
+   * Заморозка взноса снимается: подписка продолжает действовать. Гарантийный
+   * срок группы уже вышел — оплату занятий периода контракт оставляет программе.
+   * Подписка могла закрыться, пока совет решал, — тогда снимать нечего.
+   */
+  private async unfreeze(coopname: string, claim: EdubridgeGuaranteeClaimRecord): Promise<void> {
+    const enrollment = await this.enrollments.findById(coopname, claim.enrollment_id);
+    if (!enrollment || !isCancellable(enrollment)) return;
+    try {
+      await this.chain.declineGuarantee({ coopname, username: claim.member_username, sub_hash: enrollment.sub_hash });
+    } catch (e) {
+      if (chainErrorCode(e) !== 'EDUBRIDGE_GUARANTEE_CLAIM_NOT_FOUND') {
+        this.logger.error(`[EDU.GUARANTEE] заморозка по заявлению ${claim.claim_hash} не снята: ${(e as Error)?.message ?? e}`);
+      }
+    }
   }
 
   /** Идёт ли по подписке рассмотрение заявления: обычный отказ в это время закрыт, чтобы не было двух возвратов. */

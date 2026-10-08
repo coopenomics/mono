@@ -8,7 +8,9 @@
  * приложение по одной подписке вызывает `chargelesson`, затем `holdrid`.
  *
  * Занятия курса идут по порядку: следующее открывается, когда расчёт по
- * предыдущему завершён. Движений средств нет.
+ * предыдущему завершён. В гарантийный срок группы занятие закрывается самим
+ * отчётом: акт и заявление преподаватель подписывает после срока, одной
+ * суммой за все занятия периода. Движений средств нет.
  *
  * Guards:
  *  - допуск принадлежит преподавателю, его договор действует;
@@ -59,6 +61,10 @@ void edubridge::openlesson(eosio::name coopname,
   eosio::asset charge(rate.amount * static_cast<int64_t>(terms.lesson_minutes) / 60, rate.symbol);
   if (charge > unit) charge = unit;
 
+  // Пока идёт гарантийный срок группы, документов с суммой у преподавателя нет:
+  // сумма складывается в допуске по подпискам, закрывшим срок.
+  const bool deferred = Edubridge::is_guarantee_running(terms, now);
+
   uint64_t lesson_id = 0;
   lessons.emplace(RamPayer::of(lessons, coopname), [&](auto& l) {
     l.id            = get_global_id_in_scope(_edubridge, coopname, "edulessons"_n);
@@ -74,13 +80,22 @@ void edubridge::openlesson(eosio::name coopname,
     l.learners      = 0;
     l.amount        = eosio::asset(0, _root_govern_symbol);
     l.created_at    = now;
+    l.deferred      = deferred;
     lesson_id       = l.id;
   });
 
   Edubridge::update_terms(coopname, assign->course_id, [&](auto& t) {
     t.lessons_opened += 1;
-    t.open_lesson_id  = lesson_id;
+    if (deferred) {
+      // Занятие гарантийного срока закрывается отчётом: материалы и сумма — после срока.
+      t.last_held_at = held_at;
+    } else {
+      t.open_lesson_id = lesson_id;
+    }
   });
+  if (deferred) {
+    assigns.modify(assign, RamPayer::of(assigns, coopname), [&](auto& a) { a.deferred_lessons += 1; });
+  }
 }
 
 /**
@@ -102,9 +117,20 @@ void edubridge::droplesson(eosio::name coopname,
   eosio::check(found != by_hash.end(), "EDUBRIDGE_LESSON_NOT_FOUND: Занятие с указанным hash не найдено");
   eosio::check(found->learners == 0, "EDUBRIDGE_LESSON_ALREADY_CHARGED: По занятию уже прошёл расчёт с участниками");
 
+  const edu_terms terms = Edubridge::get_terms_or_fail(coopname, found->course_id);
+  eosio::check(found->number == terms.lessons_opened,
+               "EDUBRIDGE_LESSON_NOT_LAST: Отзывается только последний отчёт о занятии группы");
+  if (found->deferred) {
+    edu_assignments_index assigns(_edubridge, coopname.value);
+    auto assign = assigns.find(found->assignment_id);
+    if (assign != assigns.end() && assign->deferred_lessons > 0) {
+      assigns.modify(assign, RamPayer::of(assigns, coopname), [&](auto& a) { a.deferred_lessons -= 1; });
+    }
+  }
+  const uint64_t lesson_id = found->id;
   Edubridge::update_terms(coopname, found->course_id, [&](auto& t) {
     t.lessons_opened -= 1;
-    t.open_lesson_id  = 0;
+    if (t.open_lesson_id == lesson_id) t.open_lesson_id = 0;
   });
   by_hash.erase(found);
 }

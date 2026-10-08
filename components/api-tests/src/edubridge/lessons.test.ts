@@ -36,7 +36,6 @@ import {
   SETTLEMENT,
   SET_COURSE_STATUS,
   SUBMIT_CONTRIBUTION,
-  UPDATE_COURSE,
   addLearner,
   agendaWith,
   approveAct,
@@ -373,24 +372,19 @@ describe('Образование: занятия и взносы препода�
     }, 480_000)
   })
 
-  describe('курс с идущим гарантийным сроком: заявление держится', () => {
-    let keptOne: any
-    /** Черновик взноса по второму занятию группы. */
-    let heldSecond: any
+  describe('курс с идущим гарантийным сроком: отчёты без взноса и документов', () => {
+    it(caseName('edu.teach.side.21', 'в гарантийный срок группы отчёт сохраняется без взноса: документов с суммой нет, следующее занятие отчитывается сразу'), async () => {
+      const contributionsBefore = ((await gql<any>(token, MY_CONTRIBUTIONS)).edubridgeMyContributions as any[]).length
+      const first = (await gql<any>(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 1, materials: ['https://example.org/held-1'], topic: 'Первое занятие группы' } })).edubridgeReportLesson
+      expect(first).toMatchObject({ course_id: held.id, lesson_number: 1, duration_minutes: 60, contribution_id: null, materials: ['https://example.org/held-1'] })
 
-    it(caseName('edu.teach.side.21', 'гарантийный срок — один на курс, от даты начала занятий, и не зависит от дня занятия'), async () => {
-      const end = Date.parse(`${dayFromNow(-3)}T00:00:00.000Z`) + 14 * DAY_MS
-      const early = await reportLesson(token, heldAssignment.id, 1)
-      expect(Math.abs(Date.parse(early.contribution.hold_until) - end), 'срок хранения — начало занятий плюс срок курса').toBeLessThan(DAY_MS)
-
-      keptOne = await holdMaterials(teacher, token, early.contribution.id)
-      expect(keptOne.status).toBe('HELD')
-      expect(Math.abs(Date.parse(keptOne.hold_until) - end)).toBeLessThan(DAY_MS)
-      expect(Date.parse(keptOne.hold_until)).toBeGreaterThan(Date.now())
-
-      // Второе занятие — тот же срок: он идёт от начала занятий курса.
-      heldSecond = (await reportLesson(token, heldAssignment.id, 2)).contribution
-      expect(Math.abs(Date.parse(heldSecond.hold_until) - end)).toBeLessThan(DAY_MS)
+      // Взноса и документов по занятию нет: сумма станет окончательной после гарантийного срока.
+      expect(((await gql<any>(token, MY_CONTRIBUTIONS)).edubridgeMyContributions as any[]).length).toBe(contributionsBefore)
+      // Отчёт закрывает занятие: следующее отчитывается сразу, повторный отчёт по тому же — нет.
+      const second = (await gql<any>(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 2, materials: ['https://example.org/held-2'] } })).edubridgeReportLesson
+      expect(second).toMatchObject({ lesson_number: 2, contribution_id: null })
+      expectCode(await gqlError(token, REPORT_LESSON, { d: { assignment_id: heldAssignment.id, lesson_number: 1, materials: ['https://example.org/x'] } }), 'EDUBRIDGE_LESSON_REPORT_ALREADY_SUBMITTED')
+      expect(((await gql<any>(token, MY_LESSONS)).edubridgeMyLessons as any[]).filter(l => l.course_id === held.id).map(l => l.lesson_number).sort()).toEqual([1, 2])
     })
 
     it(caseName('edu.teach.side.17', 'материалы на хранении без подписанного заявления держат выход преподавателя'), async () => {
@@ -399,33 +393,6 @@ describe('Образование: занятия и взносы препода�
       expect(blockers.length).toBeGreaterThanOrEqual(3)
       expect(blockers.filter(b => b.includes(held.title) || b.includes(now.title))).toHaveLength(2)
       expect(blockers.some(b => !b.includes(held.title) && !b.includes(now.title)), 'причина про материалы без заявления').toBe(true)
-    })
-
-    it(caseName('edu.teach.side.07', 'подписанное заявление в гарантийный срок совету не уходит, держится до конца срока'), async () => {
-      const kept = await submitStatement(teacher, token, keptOne.id)
-      expect(kept.status).toBe('HELD')
-      expect(kept.statement_hash).toMatch(/^[0-9a-f]{64}$/)
-      expect(kept.council_decision_id).toBeNull()
-      // Заявление подписывается один раз.
-      const statement = (await gql<any>(token, RID_STATEMENT, { id: keptOne.id })).edubridgeRidStatement
-      const document = await signDocument(teacher.wif, statement, teacher.account, 1)
-      expectCode(await gqlError(token, SUBMIT_CONTRIBUTION, { d: { contribution_id: keptOne.id, document } }), 'EDUBRIDGE_STATEMENT_ALREADY_SIGNED')
-    })
-
-    it(caseName('edu.teach.side.13', 'перенос начала занятий курса идущую группу не затрагивает: срок хранения её материалов прежний'), async () => {
-      // Материалы второго занятия переданы на хранение — журнал группы открыт для третьего.
-      await holdMaterials(teacher, token, heldSecond.id)
-      const c = (await reportLesson(token, heldAssignment.id, 3)).contribution
-      const act = (await gql<any>(token, RID_STORAGE_ACT, { id: c.id })).edubridgeRidStorageAct
-      const document = await signDocument(teacher.wif, act, teacher.account, 1)
-
-      // Дата начала в карточке курса — условие новых групп; у группы с проведёнными занятиями она закреплена.
-      await gql(chairman, UPDATE_COURSE, { d: { ...heldInput, id: held.id, starts_at: dayFromNow(0), teacher_usernames: [teacher.account] } })
-
-      const kept = (await gql<any>(token, HOLD_CONTRIBUTION, { d: { contribution_id: c.id, document } })).edubridgeHoldContribution
-      const end = Date.parse(`${dayFromNow(-3)}T00:00:00.000Z`) + 14 * DAY_MS
-      expect(kept.status).toBe('HELD')
-      expect(Math.abs(Date.parse(kept.hold_until) - end), 'акт и хранение называют прежнюю дату').toBeLessThan(DAY_MS)
     })
   })
 

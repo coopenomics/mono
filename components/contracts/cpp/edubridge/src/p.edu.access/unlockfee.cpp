@@ -33,8 +33,10 @@ void edubridge::unlockfee(eosio::name coopname,
 
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, sub->course_id);
-  eosio::check(!Edubridge::is_guarantee_running(terms, *sub, now),
-               "EDUBRIDGE_GUARANTEE_RUNNING: Гарантийный срок участника ещё идёт: взнос остаётся удержанным");
+  eosio::check(!sub->plan.value().claimed,
+               "EDUBRIDGE_GUARANTEE_CLAIM_PENDING: По подписке рассматривается заявление по гарантийным условиям: взнос заморожен до решения совета");
+  eosio::check(!Edubridge::is_guarantee_running(terms, now),
+               "EDUBRIDGE_GUARANTEE_RUNNING: Гарантийный срок группы ещё идёт: взнос остаётся удержанным");
 
   subs.modify(sub, RamPayer::of(subs, coopname), [&](auto& s) {
     Edubridge::close_guarantee(coopname, terms, s, now);

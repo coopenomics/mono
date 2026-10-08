@@ -23,6 +23,8 @@ export class EdubridgeHoldWorker {
   async publishDue(): Promise<void> {
     const coopname = platformSettings().coopname;
     try {
+      // Гарантийный срок группы вышел и суммы окончательны — преподавателям заводятся взносы за занятия периода.
+      await this.teachers.openGuaranteePacks(coopname);
       const published = await this.teachers.publishDueContributions(coopname);
       if (published > 0) this.logger.info(`[EDU.RID] отправлено в совет заявлений по истечении гарантийного срока: ${published}`);
     } catch (e) {

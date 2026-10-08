@@ -68,7 +68,8 @@ export class EdubridgeFundsService {
     // Строки нет либо она открыта до учёта занятий — освобождать по ней контракту нечего.
     if (!sub?.plan || Number(sub.plan.version) !== 1) return false;
     let closed = false;
-    if (!sub.plan.released && !isEntryGuaranteeRunning(course, enrollment, now)) {
+    // Заявление по гарантийным условиям на рассмотрении совета: взнос заморожен, срок по подписке не закрывается.
+    if (!sub.plan.released && !sub.plan.claimed && !isEntryGuaranteeRunning(course, enrollment, now)) {
       await this.chain.unlockFee({ coopname, sub_hash: enrollment.sub_hash });
       sub = await this.chain.readSubscription(coopname, enrollment.sub_hash);
       closed = true;
