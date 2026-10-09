@@ -3,11 +3,14 @@ import {
   desktopGrantsOf,
   memberRolesOf,
   type AppRights,
+  type AssignableRole,
   type RightFacts,
   type RightsCaller,
   type RightsTable,
 } from '@coopenomics/extension-kit';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
+import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
+import { t } from '~/i18n';
 import { MEET_REPOSITORY, type MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
 import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/gateway/repositories/payment-file.repository';
@@ -20,8 +23,14 @@ import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/ga
  *  - `chairman`    — председатель совета.
  * Роль узла следует за составом совета в цепи. Совет проходит по роли в любом
  * статусе учётной записи; права пайщика действуют для принятого.
+ *
+ * Назначаемые роли председатель выдаёт принятому пайщику на странице
+ * управления доступом:
+ *  - `cashier` — кассир: реестр платежей стола совета.
  */
-export type CoreRightsRole = 'account' | 'participant' | 'council' | 'chairman';
+export type CoreNodeRole = 'account' | 'participant' | 'council' | 'chairman';
+export type CoreAssignableRole = 'cashier';
+export type CoreRightsRole = CoreNodeRole | CoreAssignableRole;
 
 /**
  * Таблица прав ядра (C28-87): роль → право `Ресурс:действие`.
@@ -127,10 +136,38 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         System: ['manage'],
         NotificationJournal: ['resend'],
         PushSubscription: ['read'],
+        // Страница управления доступом: назначение ролей приложений пайщикам.
+        AccessRole: ['manage'],
+      },
+    },
+  ],
+  cashier: [
+    {
+      when: [],
+      rights: {
+        // Реестр платежей стола совета: список, подтверждение оплаты и
+        // документы об оплате.
+        Payment: ['read:all', 'confirm'],
+        PaymentFile: ['read:all', 'upload'],
       },
     },
   ],
 };
+
+/**
+ * Приложение, под именем которого ядро объявляет назначаемые роли: страницы
+ * ролей стоят на столе совета.
+ */
+export const CORE_ROLES_APP = 'soviet';
+
+/** Роли ядра, которые председатель назначает пайщикам. */
+export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] = [
+  {
+    key: 'cashier',
+    title: t('accessRoles.roles.cashier.title'),
+    description: t('accessRoles.roles.cashier.description'),
+  },
+];
 
 /**
  * Права страниц, открытых без входа: контакты кооператива и подтверждение
@@ -139,7 +176,7 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
 export const corePublicGrants: readonly string[] = ['Cooperative:read', 'MembershipExit:confirm'];
 
 /** Роли ядра по роли и статусу пайщика в узле. */
-export function coreRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): CoreRightsRole[] {
+export function coreRolesOf(caller: Pick<RightsCaller, 'role' | 'status'>): CoreNodeRole[] {
   return ['account', ...memberRolesOf(caller)];
 }
 
@@ -155,6 +192,7 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
   readonly extensionName = 'core';
   readonly table = coreRightsTable;
   readonly publicGrants = corePublicGrants;
+  readonly assignableRoles = coreAssignableRoles;
 
   /**
    * Справочник объектов ядра: вид объекта → его владельцы по номеру.
@@ -171,20 +209,29 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
 
   constructor(
     private readonly grantsRegistry: ExtensionGrantsRegistry,
+    private readonly roleAssignments: RoleAssignmentsRegistry,
     @Inject(MEET_REPOSITORY) private readonly meets: MeetPreProcessingRepository,
     @Inject(PAYMENT_REPOSITORY) private readonly payments: PaymentRepository,
     @Inject(PAYMENT_FILE_REPOSITORY) private readonly paymentFiles: PaymentFileRepository
   ) {}
 
   onModuleInit(): void {
+    this.roleAssignments.declare(CORE_ROLES_APP, this.assignableRoles);
     const hook = desktopGrantsOf(this);
     for (const extensionName of CORE_DESKTOPS) {
       this.grantsRegistry.register({ extensionName, resolveGrants: (ctx) => hook.resolveGrants(ctx) });
     }
   }
 
+  /**
+   * Роли узла и назначенные председателем. Назначение действует у принятого
+   * пайщика: выход из кооператива закрывает доступ без снятия роли.
+   */
   async roles(caller: RightsCaller): Promise<CoreRightsRole[]> {
-    return coreRolesOf(caller);
+    const node = coreRolesOf(caller);
+    if (!node.includes('participant')) return node;
+    const assigned = await this.roleAssignments.rolesOf(CORE_ROLES_APP, caller.username);
+    return [...node, ...(assigned as CoreAssignableRole[])];
   }
 
   async locate(kind: string, ids: string[]): Promise<RightFacts[]> {

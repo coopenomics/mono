@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 298.
+Всего экспортов: 301.
 
 ## ACCOUNT_PORT
 
@@ -653,6 +653,14 @@
 - `order: number`
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
+
+## InnerAssignableRole
+
+`interface` · core-ports
+
+- `key: string`
+- `title: string`
+- `description: string`
 
 ## InnerBankTransferData
 
@@ -2236,6 +2244,13 @@
 - `registerIntakeForm(spec: InnerIntakeFormRegistration): void`
 - `unregisterIntakeForm(id: string, extensionName: string): void`
 
+## IRoleAssignmentsPort
+
+`interface` · core-ports
+
+- `declare(extensionName: string, roles: readonly InnerAssignableRole[]): void`
+- `rolesOf(extensionName: string, username: string): Promise<string[]>`
+
 ## ISecretCipherPort
 
 `interface` · core-ports
@@ -2538,6 +2553,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.RegistrationRegistry')`
+
+## ROLE_ASSIGNMENTS_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.RoleAssignments')`
 
 ## SECRET_CIPHER_PORT
 

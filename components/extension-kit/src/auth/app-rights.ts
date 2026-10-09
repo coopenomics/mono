@@ -39,6 +39,18 @@ export interface RightsCaller {
   status?: string | null;
 }
 
+/**
+ * Роль, которую приложение даёт назначать пайщикам. Права роли записаны в
+ * таблице прав приложения под тем же ключом; назначение ведёт ядро.
+ */
+export interface AssignableRole<R extends string = string> {
+  key: R;
+  /** Название роли для председателя: «Кассир». */
+  title: string;
+  /** Что роль открывает пайщику — одной фразой. */
+  description: string;
+}
+
 export interface AppRights<R extends string = string, C extends string = string> {
   /** Имя рабочего стола расширения: под ним выдаются права страниц. */
   readonly extensionName: string;
@@ -55,6 +67,13 @@ export interface AppRights<R extends string = string, C extends string = string>
    * когда без них право не складывается.
    */
   readonly lazyConditions?: readonly C[];
+
+  /**
+   * Роли таблицы, которые председатель назначает пайщикам на странице
+   * управления доступом. Приложение объявляет их ядру при запуске и
+   * дописывает назначенные в ответ `roles`.
+   */
+  readonly assignableRoles?: readonly AssignableRole<R>[];
 
   /** Роли приложения у пайщика. `request` — запрос, если роли уже посчитал гард членства. */
   roles(caller: RightsCaller, request?: unknown): Promise<R[]>;

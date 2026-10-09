@@ -1441,6 +1441,9 @@ export const AllTypesProps: Record<string,any> = {
 		assignCapabilitySet:{
 			data:"AssignCapabilitySetInput"
 		},
+		assignRole:{
+			data:"RoleAssignmentInput"
+		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
@@ -2378,6 +2381,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		revokeParticipantKey:{
 			data:"RevokeParticipantKeyInput"
+		},
+		revokeRole:{
+			data:"RoleAssignmentInput"
 		},
 		revokeSession:{
 			data:"RevokeSessionInput"
@@ -3361,6 +3367,9 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RobotVoteMode: "enum" as const,
+	RoleAssignmentInput:{
+
+	},
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -3768,6 +3777,14 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		status:"ApprovalStatus",
 		username:"String"
+	},
+	AssignableRole:{
+		assignments:"RoleAssignment",
+		description:"String",
+		extension_name:"String",
+		extension_title:"String",
+		key:"String",
+		title:"String"
 	},
 	AuthSequence:{
 		account:"String",
@@ -6754,6 +6771,7 @@ export const ReturnTypes: Record<string,any> = {
 		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
 		assignCapabilitySet:"Boolean",
+		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
 		cancelMembershipExit:"Boolean",
@@ -7055,6 +7073,7 @@ export const ReturnTypes: Record<string,any> = {
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
 		revokeParticipantKey:"RevokeKeyResult",
+		revokeRole:"AssignableRole",
 		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
@@ -7736,6 +7755,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
+		getAssignableRoles:"AssignableRole",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
 		getCandidateIntake:"CandidateIntake",
@@ -8166,6 +8186,12 @@ export const ReturnTypes: Record<string,any> = {
 		member:"String",
 		mode:"RobotVoteMode",
 		permission_name:"String"
+	},
+	RoleAssignment:{
+		assigned_at:"DateTime",
+		assigned_by:"String",
+		display_name:"String",
+		username:"String"
 	},
 	SbpAccount:{
 		phone:"String"

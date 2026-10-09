@@ -54,3 +54,4 @@ export * from './signed-document.port';
 export * from './signature-info.contract';
 export * from './meta-document.contract';
 export * from './mono-account.contract';
+export * from './role-assignments.port';

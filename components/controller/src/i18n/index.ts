@@ -14,6 +14,7 @@ import { registerMessages } from '@coopenomics/i18n/server';
 import cooperative from './locales/ru/cooperative.json';
 import document from './locales/ru/document.json';
 import freeDecision from './locales/ru/free-decision.json';
+import accessRolesDictionary from './locales/ru/accessRoles.json';
 import accountDictionary from './locales/ru/account.json';
 import agendaDictionary from './locales/ru/agenda.json';
 import agreementDictionary from './locales/ru/agreement.json';
@@ -95,6 +96,7 @@ const CORE_DICTIONARIES: Array<[string, Record<string, any>]> = [
   ['agreement', agreementDictionary],
   ['agenda', agendaDictionary],
   ['account', accountDictionary],
+  ['accessRoles', accessRolesDictionary],
   ['cooperative', cooperative],
   ['document', document],
   ['free-decision', freeDecision],

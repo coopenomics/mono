@@ -4,6 +4,8 @@
 
 /* eslint-disable */
 export type MessageKey =
+  | 'accessRoles.roles.cashier.description'
+  | 'accessRoles.roles.cashier.title'
   | 'account.accountInteractor.registrationDeclinedRefundedMessage'
   | 'account.accountInteractor.registrationDeclinedRefundingMessage'
   | 'account.createEntrepreneurDataInput.fieldBankAccountRequired'
@@ -1063,6 +1065,8 @@ export type MessageKey =
   | 'documentApproval.documentApprovalProposal.titleMultiple'
   | 'documentApproval.documentApprovalProposal.titleSingle'
   | 'documentApproval.documentApprovalState.fallbackTitle'
+  | 'errors.ACCESS_ROLE_PARTICIPANT_REQUIRED'
+  | 'errors.ACCESS_ROLE_UNKNOWN'
   | 'errors.ACCOUNT_BLOCKCHAIN_REGISTRATION_FAILED'
   | 'errors.ACCOUNT_CANDIDATE_NOT_FOUND'
   | 'errors.ACCOUNT_DATA_CHANGED_AFTER_SIGNING'
@@ -2862,6 +2866,9 @@ export type MessageKey =
   | 'yookassa.payment.defaultDescription';
 
 export type MessageBranch =
+  | 'accessRoles'
+  | 'accessRoles.roles'
+  | 'accessRoles.roles.cashier'
   | 'account'
   | 'account.accountInteractor'
   | 'account.createEntrepreneurDataInput'

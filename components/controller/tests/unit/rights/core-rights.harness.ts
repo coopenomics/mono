@@ -67,6 +67,8 @@ export interface CoreStand {
   payments?: Record<string, string>;
   /** Файлы платежей: номер файла → номер платежа. */
   files?: Record<number, string>;
+  /** Назначенные роли: учётное имя → ключи ролей. */
+  assigned?: Record<string, string[]>;
 }
 
 export function makeGuard(stand: CoreStand = {}) {
@@ -78,8 +80,12 @@ export function makeGuard(stand: CoreStand = {}) {
   const fileRepo = {
     findById: jest.fn(async (id: number) => (stand.files?.[id] ? { payment_hash: stand.files[id] } : null)),
   };
-  const rights = new CoreRights(registry as any, meetRepo as any, paymentRepo as any, fileRepo as any);
-  return { pass: guardOver(rights), rights, registry, meetRepo };
+  const roleAssignments = {
+    declare: jest.fn(),
+    rolesOf: jest.fn(async (_app: string, username: string) => stand.assigned?.[username] ?? []),
+  };
+  const rights = new CoreRights(registry as any, roleAssignments as any, meetRepo as any, paymentRepo as any, fileRepo as any);
+  return { pass: guardOver(rights), rights, registry, meetRepo, roleAssignments };
 }
 
 /** Проход общего гарда над описанием прав `rights`; отказ — исключение. */

@@ -32,6 +32,9 @@ const FILES = {
   agenda: 'agenda/resolvers/agenda.resolver.ts',
   templates: 'document-approval/resolvers/document-approval.resolver.ts',
   document: 'document/resolvers/document.resolver.ts',
+  gateway: 'gateway/resolvers/gateway.resolver.ts',
+  paymentFiles: 'gateway/resolvers/payment-files.resolver.ts',
+  accessRoles: 'access-roles/access-roles.resolver.ts',
 };
 
 describe('роли ядра', () => {
@@ -227,5 +230,73 @@ describe('права страниц стола совета', () => {
     const { rights, registry } = makeGuard();
     rights.onModuleInit();
     expect(registry.register).toHaveBeenCalledWith(expect.objectContaining({ extensionName: 'soviet' }));
+  });
+});
+
+describe('назначаемая роль «кассир» (C28-90)', () => {
+  const CASHIER = { assigned: { ivan: ['cashier'], cand: ['cashier'] } };
+  const PAYMENTS: [string, string, Record<string, unknown>][] = [
+    [FILES.gateway, 'getPayments', { data: {} }],
+    [FILES.gateway, 'setPaymentStatus', { data: { id: '1' } }],
+    [FILES.paymentFiles, 'uploadPaymentProof', { data: {} }],
+  ];
+  const grantsFor = async (caller: Caller, stand = CASHIER) => {
+    const { rights } = makeGuard(stand);
+    return desktopGrantsOf(rights).resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
+  };
+
+  // access.roles.happy.06
+  it.each(PAYMENTS)('кассир проходит операцию реестра платежей %s → %s', async (file, operation, args) => {
+    const { pass } = makeGuard(CASHIER);
+    await expect(pass(requirementOf(file, operation), participant, args)).resolves.toBe(true);
+  });
+
+  // access.roles.side.05
+  it.each(PAYMENTS)('пайщик без роли на операции %s → %s получает отказ', async (file, operation, args) => {
+    const { pass } = makeGuard();
+    await expect(pass(requirementOf(file, operation), participant, args)).rejects.toMatchObject(
+      operation === 'getPayments' ? OWN : NO_RIGHT
+    );
+  });
+
+  // access.roles.happy.07
+  it('кассир получает из страниц стола совета только реестр платежей', async () => {
+    const grants = await grantsFor(participant);
+    expect(grants).toContain('Payment:read:all');
+    expect(grants).toContain('Payment:confirm');
+    for (const grant of ['Agenda:read', 'Participant:read:all', 'Document:read:all', 'DocumentTemplate:read', 'Expense:read:all', 'Meet:create', 'Union:read', 'AccessRole:manage']) {
+      expect(grants).not.toContain(grant);
+    }
+  });
+
+  // access.roles.side.06
+  it('назначение действует у принятого пайщика: кандидат с назначенной ролью прав кассира не получает', async () => {
+    const { pass, roleAssignments } = makeGuard(CASHIER);
+    await expect(pass(requirementOf(FILES.gateway, 'setPaymentStatus'), candidate, { data: { id: '1' } })).rejects.toMatchObject(NO_RIGHT);
+    expect(roleAssignments.rolesOf).not.toHaveBeenCalled();
+    expect(await grantsFor(candidate)).not.toContain('Payment:read:all');
+  });
+
+  // access.roles.happy.08
+  it('ядро объявляет роль кассира под приложением стола совета', () => {
+    const { rights, roleAssignments } = makeGuard();
+    rights.onModuleInit();
+    expect(roleAssignments.declare).toHaveBeenCalledWith('soviet', [expect.objectContaining({ key: 'cashier' })]);
+  });
+
+  // core.acc.happy.12
+  it('право страницы управления доступом получает только председатель', async () => {
+    expect(await grantsFor(chairman)).toContain('AccessRole:manage');
+    expect(await grantsFor(councilMember)).not.toContain('AccessRole:manage');
+    expect(await grantsFor(participant)).not.toContain('AccessRole:manage');
+  });
+
+  // access.roles.side.07
+  it.each(['getAssignableRoles', 'assignRole', 'revokeRole'])('управление доступом (%s) — только председатель', async (operation) => {
+    const { pass } = makeGuard(CASHIER);
+    const requirement = requirementOf(FILES.accessRoles, operation);
+    await expect(pass(requirement, chairman)).resolves.toBe(true);
+    await expect(pass(requirement, councilMember)).rejects.toMatchObject(NO_RIGHT);
+    await expect(pass(requirement, participant)).rejects.toMatchObject(NO_RIGHT);
   });
 });

@@ -1809,6 +1809,23 @@ export type ValueTypes = {
 	/** Имя аккаунта пайщика */
 	username: string | Variable<any, string>
 };
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: AliasType<{
+	/** Пайщики с этой ролью */
+	assignments?:ValueTypes["RoleAssignment"],
+	/** Что роль открывает пайщику */
+	description?:boolean | `@${string}`,
+	/** Имя приложения, которое объявило роль */
+	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которое объявило роль */
+	extension_title?:boolean | `@${string}`,
+	/** Ключ роли */
+	key?:boolean | `@${string}`,
+	/** Название роли */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AssignableRole']?: Omit<ValueTypes["AssignableRole"], "...on AssignableRole">
+}>;
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -11984,6 +12001,7 @@ addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any
 applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
+assignRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
@@ -12291,6 +12309,7 @@ returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any
 	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ValueTypes["RevokeCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ValueTypes["RevokeParticipantKeyInput"] | Variable<any, string>},ValueTypes["RevokeKeyResult"]],
+revokeRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 revokeSession?: [{	data: ValueTypes["RevokeSessionInput"] | Variable<any, string>},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string>},ValueTypes["Account"]],
@@ -13911,6 +13930,8 @@ getAccounts?: [{	data?: ValueTypes["GetAccountsInput"] | undefined | null | Vari
 getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ValueTypes["AgendaWithDocuments"],
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles?:ValueTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -14985,6 +15006,25 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 		__typename?: boolean | `@${string}`,
 	['...on RobotVoter']?: Omit<ValueTypes["RobotVoter"], "...on RobotVoter">
 }>;
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: AliasType<{
+	/** Дата назначения */
+	assigned_at?:boolean | `@${string}`,
+	/** Учётное имя назначившего роль */
+	assigned_by?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RoleAssignment']?: Omit<ValueTypes["RoleAssignment"], "...on RoleAssignment">
+}>;
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string | Variable<any, string>,
+	/** Учётное имя пайщика */
+	username: string | Variable<any, string>
+};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -17038,6 +17078,22 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: AliasType<{
+	/** Пайщики с этой ролью */
+	assignments?:ResolverInputTypes["RoleAssignment"],
+	/** Что роль открывает пайщику */
+	description?:boolean | `@${string}`,
+	/** Имя приложения, которое объявило роль */
+	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которое объявило роль */
+	extension_title?:boolean | `@${string}`,
+	/** Ключ роли */
+	key?:boolean | `@${string}`,
+	/** Название роли */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -26940,6 +26996,7 @@ addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},Resol
 applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
+assignRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
@@ -27247,6 +27304,7 @@ returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},Resol
 	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ResolverInputTypes["RevokeCapabilitySetInput"]},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ResolverInputTypes["RevokeParticipantKeyInput"]},ResolverInputTypes["RevokeKeyResult"]],
+revokeRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 revokeSession?: [{	data: ResolverInputTypes["RevokeSessionInput"]},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramDocDataInput"]},ResolverInputTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInputTypes["Account"]],
@@ -28795,6 +28853,8 @@ getAccounts?: [{	data?: ResolverInputTypes["GetAccountsInput"] | undefined | nul
 getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ResolverInputTypes["AgendaWithDocuments"],
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles?:ResolverInputTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
@@ -29834,6 +29894,24 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	permission_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: AliasType<{
+	/** Дата назначения */
+	assigned_at?:boolean | `@${string}`,
+	/** Учётное имя назначившего роль */
+	assigned_by?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
+};
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -31835,6 +31913,21 @@ export type ModelTypes = {
 	set_key: string,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: {
+		/** Пайщики с этой ролью */
+	assignments: Array<ModelTypes["RoleAssignment"]>,
+	/** Что роль открывает пайщику */
+	description: string,
+	/** Имя приложения, которое объявило роль */
+	extension_name: string,
+	/** Название приложения, которое объявило роль */
+	extension_title: string,
+	/** Ключ роли */
+	key: string,
+	/** Название роли */
+	title: string
 };
 	["AuthSequence"]: {
 		account: string,
@@ -41395,6 +41488,8 @@ export type ModelTypes = {
 	approveVerification: ModelTypes["VerificationReview"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
+	/** Назначить роль пайщику */
+	assignRole: ModelTypes["AssignableRole"],
 	/** Утвердить и исполнить решение совета */
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
@@ -41997,6 +42092,8 @@ export type ModelTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: ModelTypes["RevokeKeyResult"],
+	/** Снять роль с пайщика */
+	revokeRole: ModelTypes["AssignableRole"],
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП */
@@ -43555,6 +43652,8 @@ export type ModelTypes = {
 	getActions: ModelTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<ModelTypes["AgendaWithDocuments"]>,
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles: Array<ModelTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
@@ -44667,6 +44766,23 @@ export type ModelTypes = {
 	mode: ModelTypes["RobotVoteMode"],
 	/** Разрешение аккаунта с ключом робота */
 	permission_name: string
+};
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: {
+		/** Дата назначения */
+	assigned_at: ModelTypes["DateTime"],
+	/** Учётное имя назначившего роль */
+	assigned_by: string,
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
 };
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -46655,6 +46771,23 @@ export type GraphQLTypes = {
 	set_key: string,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: {
+	__typename: "AssignableRole",
+	/** Пайщики с этой ролью */
+	assignments: Array<GraphQLTypes["RoleAssignment"]>,
+	/** Что роль открывает пайщику */
+	description: string,
+	/** Имя приложения, которое объявило роль */
+	extension_name: string,
+	/** Название приложения, которое объявило роль */
+	extension_title: string,
+	/** Ключ роли */
+	key: string,
+	/** Название роли */
+	title: string,
+	['...on AssignableRole']: Omit<GraphQLTypes["AssignableRole"], "...on AssignableRole">
 };
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
@@ -56840,6 +56973,8 @@ export type GraphQLTypes = {
 	approveVerification: GraphQLTypes["VerificationReview"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
+	/** Назначить роль пайщику */
+	assignRole: GraphQLTypes["AssignableRole"],
 	/** Утвердить и исполнить решение совета */
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
@@ -57442,6 +57577,8 @@ export type GraphQLTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: GraphQLTypes["RevokeKeyResult"],
+	/** Снять роль с пайщика */
+	revokeRole: GraphQLTypes["AssignableRole"],
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП */
@@ -59175,6 +59312,8 @@ export type GraphQLTypes = {
 	getActions: GraphQLTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<GraphQLTypes["AgendaWithDocuments"]>,
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles: Array<GraphQLTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
@@ -60361,6 +60500,25 @@ export type GraphQLTypes = {
 	/** Разрешение аккаунта с ключом робота */
 	permission_name: string,
 	['...on RobotVoter']: Omit<GraphQLTypes["RobotVoter"], "...on RobotVoter">
+};
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: {
+	__typename: "RoleAssignment",
+	/** Дата назначения */
+	assigned_at: GraphQLTypes["DateTime"],
+	/** Учётное имя назначившего роль */
+	assigned_by: string,
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on RoleAssignment']: Omit<GraphQLTypes["RoleAssignment"], "...on RoleAssignment">
+};
+	["RoleAssignmentInput"]: {
+		/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
 };
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
@@ -63229,6 +63387,7 @@ type ZEUS_VARIABLES = {
 	["RobotDelegateKeyInput"]: ValueTypes["RobotDelegateKeyInput"];
 	["RobotRetryDecisionInput"]: ValueTypes["RobotRetryDecisionInput"];
 	["RobotVoteMode"]: ValueTypes["RobotVoteMode"];
+	["RoleAssignmentInput"]: ValueTypes["RoleAssignmentInput"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];

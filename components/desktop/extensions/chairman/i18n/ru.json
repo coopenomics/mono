@@ -1,5 +1,22 @@
 {
   "chairman": {
+    "accessRolesPage": {
+      "appLabel": "Приложение «{app}»",
+      "assignAction": "Назначить",
+      "assignDialogTitle": "Назначить роль «{role}»",
+      "assignedMessage": "Роль назначена",
+      "assignedMeta": "Назначена {date} · {by}",
+      "emptyBody": "Роли появляются вместе с приложениями, которые их объявляют.",
+      "emptyTitle": "Ролей приложений пока нет",
+      "hint": "Роль открывает пайщику страницы и действия приложения. Назначение и снятие действуют сразу, пайщик получает уведомление и видит новые страницы после обновления рабочего стола.",
+      "holdersLabel": "Назначена пайщикам: {count}",
+      "noHolders": "Роль никому не назначена.",
+      "participantLabel": "Пайщик",
+      "revokeAction": "Снять",
+      "revokeDialogBody": "{name} потеряет доступ, который даёт роль.",
+      "revokeDialogTitle": "Снять роль «{role}»",
+      "revokedMessage": "Роль снята"
+    },
     "agendaPresets": {
       "proposalCreatedMessage": "Предложение повестки успешно создано"
     },
@@ -81,6 +98,7 @@
       "projectCreateFailed": "Не удалось создать проект решения"
     },
     "install": {
+      "accessRolesNavTitle": "Управление доступом",
       "agendaPresetsNavTitle": "Пресеты предложений",
       "appCatalogNavTitle": "Каталог приложений",
       "appInstallNavTitle": "Установка приложения",

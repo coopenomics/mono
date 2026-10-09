@@ -23,6 +23,8 @@ import { PAYMENT_REPOSITORY } from '~/domain/gateway/repositories/payment.reposi
 import { PaymentKyselyRepository } from './repositories/payment.kysely-repository';
 import { PAYMENT_FILE_REPOSITORY } from '~/domain/gateway/repositories/payment-file.repository';
 import { PaymentFileKyselyRepository } from './repositories/payment-file.kysely-repository';
+import { ROLE_ASSIGNMENT_REPOSITORY } from '~/domain/access-roles/role-assignment.repository';
+import { RoleAssignmentKyselyRepository } from './repositories/role-assignment.kysely-repository';
 import { NOTIFICATION_SUBSCRIPTION_PORT } from '~/domain/notification/interfaces/web-push-subscription.port';
 import { WebPushSubscriptionKyselyRepository } from './repositories/web-push-subscription.kysely-repository';
 import {
@@ -127,6 +129,10 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     {
       provide: PAYMENT_FILE_REPOSITORY,
       useClass: PaymentFileKyselyRepository,
+    },
+    {
+      provide: ROLE_ASSIGNMENT_REPOSITORY,
+      useClass: RoleAssignmentKyselyRepository,
     },
     {
       provide: NOTIFICATION_SUBSCRIPTION_PORT,
@@ -247,6 +253,7 @@ import { SignedDocumentKyselyRepository } from './repositories/signed-document.k
     CANDIDATE_REPOSITORY,
     PAYMENT_REPOSITORY,
     PAYMENT_FILE_REPOSITORY,
+    ROLE_ASSIGNMENT_REPOSITORY,
     NOTIFICATION_SUBSCRIPTION_PORT,
     LEDGER_OPERATION_REPOSITORY,
     AGREEMENT_REPOSITORY,

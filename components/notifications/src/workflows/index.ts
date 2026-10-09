@@ -63,6 +63,8 @@ import { workflow as branchMeetingReminderWorkflow } from './branch-meeting-remi
 import { workflow as branchTrustedRequestedWorkflow } from './branch-trusted-requested';
 import { workflow as branchTrustedResolvedWorkflow } from './branch-trusted-resolved';
 import { workflow as expenseAdvanceReportReminderWorkflow } from './expense-advance-report-reminder';
+import { workflow as accessRoleAssignedWorkflow } from './access-role-assigned';
+import { workflow as accessRoleRevokedWorkflow } from './access-role-revoked';
 
 // Импортируем все воркфлоу
 export * as Welcome from './welcome';
@@ -124,6 +126,8 @@ export * as MarketplaceSupplierApproved from './marketplace-supplier-approved';
 export * as MarketplaceAidPayoutConfirmed from './marketplace-aid-payout-confirmed';
 export * as MarketplaceAidCouncilDecided from './marketplace-aid-council-decided';
 export * as ExpenseAdvanceReportReminder from './expense-advance-report-reminder';
+export * as AccessRoleAssigned from './access-role-assigned';
+export * as AccessRoleRevoked from './access-role-revoked';
 
 // Массив всех воркфлоу для автоматической регистрации
 export const allWorkflows: WorkflowDefinition[] = [
@@ -190,6 +194,8 @@ export const allWorkflows: WorkflowDefinition[] = [
   branchTrustedRequestedWorkflow,
   branchTrustedResolvedWorkflow,
   expenseAdvanceReportReminderWorkflow,
+  accessRoleAssignedWorkflow,
+  accessRoleRevokedWorkflow,
 ];
 
 // Экспортируем воркфлоу по ID для удобного доступа

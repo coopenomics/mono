@@ -14,6 +14,7 @@ import {
   COUNCIL_PORT,
   DECISION_TRACKING_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   GLOBAL_SEARCH_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
@@ -110,6 +111,7 @@ import { UserModule } from '~/application/user/user.module';
 import { RegistrationModule } from '~/application/registration/registration.module';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
 import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
+import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import { RegistrationDocumentParametersRegistry } from '~/domain/registration/services/registration-document-parameters.registry';
@@ -433,6 +435,12 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       useExisting: ExtensionGrantsRegistry,
     },
     {
+      // Назначаемые роли: приложение объявляет свои и спрашивает назначенные
+      // пайщику. `RoleAssignmentsRegistryModule` глобальный.
+      provide: ROLE_ASSIGNMENTS_PORT,
+      useExisting: RoleAssignmentsRegistry,
+    },
+    {
       // Реестр единого поиска — так же: расширение кладёт своего поставщика,
       // опрашивает ядро. `GlobalSearchRegistryModule` глобальный.
       provide: GLOBAL_SEARCH_REGISTRY_PORT,
@@ -524,6 +532,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     EXTENSION_CONFIG_PORT,
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
+    ROLE_ASSIGNMENTS_PORT,
     GLOBAL_SEARCH_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
