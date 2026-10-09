@@ -1286,6 +1286,7 @@ export interface EdubridgeLearners {
   id: Generated<string>;
   is_self: Generated<boolean>;
   member_username: string;
+  platform_removed_at: Timestamp | null;
   recipient_type: Generated<EdubridgeLearnersRecipientTypeEnum>;
   recipient_value: string;
   updated_at: Generated<Timestamp>;

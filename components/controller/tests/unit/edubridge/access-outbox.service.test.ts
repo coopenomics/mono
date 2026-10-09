@@ -109,6 +109,16 @@ describe('EdubridgeAccessOutboxService.processDue', () => {
     expect(enrollment.access_state).toBe(EduAccessState.PENDING);
   });
 
+  it('новая выдача снимает отметку администратора «удалён с площадки»: аккаунт на площадке снова есть', async () => {
+    const { service, learners } = make();
+    const learner = await learners.findById();
+    learner.platform_removed_at = new Date('2026-10-01');
+    learners.save = jest.fn(async (l: any) => l);
+    await service.processDue('voskhod');
+    expect(learner.platform_removed_at).toBeNull();
+    expect(learners.save).toHaveBeenCalledWith(learner);
+  });
+
   describe('отзыв при другой действующей подписке того же получателя', () => {
     const revoke = { kind: EduAccessTaskKind.REVOKE };
     const active = (extra: Record<string, unknown> = {}) => ({ id: 'E2', learner_id: 'L1', course_id: 'C1', group_id: 'G2', status: 'active', ...extra });

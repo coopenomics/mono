@@ -11,6 +11,8 @@ import {
   EduMemberCardDTO,
   EduMemberRowDTO,
   EduQueueFilterInputDTO,
+  EduLearnerAccountDTO,
+  EduMarkLearnerRemovedInputDTO,
   EduRetryEnrollmentCloseInputDTO,
   EduRetryTaskInputDTO,
   EduSetConnectorEnabledInputDTO,
@@ -72,6 +74,13 @@ export class EdubridgeAdminResolver {
   @RequireRight('EduQueue', 'manage')
   edubridgeRetryTask(@Args('data') data: EduRetryTaskInputDTO): Promise<EduAccessTaskDTO> {
     return this.admin.retry(coop(), data.task_id);
+  }
+
+  @Mutation(() => EduLearnerAccountDTO, { name: 'edubridgeMarkLearnerRemoved', description: 'Отметить, что аккаунт обучающегося удалён с площадки' })
+  @UseGuards(GqlJwtAuthGuard, RightsGuard)
+  @RequireRight('EduQueue', 'manage')
+  edubridgeMarkLearnerRemoved(@Args('data') data: EduMarkLearnerRemovedInputDTO): Promise<EduLearnerAccountDTO> {
+    return this.admin.markLearnerRemoved(coop(), data.learner_id);
   }
 
   @Mutation(() => EduEnrollmentDTO, { name: 'edubridgeRetryEnrollmentClose', description: 'Повторить закрытие подписки, которая не закрылась при выходе пайщика из кооператива' })

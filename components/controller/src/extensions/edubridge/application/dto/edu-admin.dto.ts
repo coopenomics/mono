@@ -17,12 +17,26 @@ export class EduMemberRowDTO {
   @Field(() => Int, { description: 'Подписок, требующих внимания' }) attention_count!: number;
 }
 
+/**
+ * Аккаунт обучающегося на площадках — по нашим данным о выдаче доступа.
+ * Удалить аккаунт по API площадки не дают: администратор видит, кому доступ
+ * уже не нужен, удаляет аккаунт в кабинете школы и отмечает это.
+ */
+@ObjectType('EduLearnerAccount')
+export class EduLearnerAccountDTO {
+  @Field(() => ID, { description: 'Обучающийся' }) learner_id!: string;
+  @Field(() => [EduAccessCarrier], { description: 'Площадки, на которых обучающемуся выдавался доступ' }) carriers!: EduAccessCarrier[];
+  @Field(() => Int, { description: 'Действующих подписок обучающегося' }) active_enrollments!: number;
+  @Field(() => Date, { nullable: true, description: 'Когда администратор отметил, что аккаунт удалён с площадки' }) removed_at!: Date | null;
+}
+
 /** Сводная карточка пайщика для администратора. */
 @ObjectType('EduMemberCard')
 export class EduMemberCardDTO {
   @Field(() => String) username!: string;
   @Field(() => String, { description: 'ФИО пайщика' }) display_name!: string;
   @Field(() => [EduLearnerDTO]) learners!: EduLearnerDTO[];
+  @Field(() => [EduLearnerAccountDTO], { description: 'Аккаунты обучающихся на площадках' }) learner_accounts!: EduLearnerAccountDTO[];
   @Field(() => [EduEnrollmentDTO]) enrollments!: EduEnrollmentDTO[];
   @Field(() => [EduAccessTaskDTO]) tasks!: EduAccessTaskDTO[];
 }
@@ -138,6 +152,11 @@ export class EduAdminInputDTO {
 @InputType('EduRetryEnrollmentCloseInput')
 export class EduRetryEnrollmentCloseInputDTO {
   @Field(() => ID, { description: 'Подписка' }) @IsUUID() enrollment_id!: string;
+}
+
+@InputType('EduMarkLearnerRemovedInput')
+export class EduMarkLearnerRemovedInputDTO {
+  @Field(() => ID, { description: 'Обучающийся' }) @IsUUID() learner_id!: string;
 }
 
 @InputType('EduRetryTaskInput')

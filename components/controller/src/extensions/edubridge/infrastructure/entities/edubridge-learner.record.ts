@@ -25,6 +25,9 @@ export class EdubridgeLearnerRecord {
 
   public is_self!: boolean;
 
+  /** Администратор отметил, что аккаунт обучающегося удалён с площадки; новая выдача доступа отметку снимает. */
+  public platform_removed_at!: Date | null;
+
   public created_at!: Date;
 
   public updated_at!: Date;

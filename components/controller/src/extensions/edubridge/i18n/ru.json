@@ -288,6 +288,7 @@
     "EDUBRIDGE_LESSON_NOT_PAID_BY_LEARNERS": "По курсу «{courseTitle}» нет оплаченных учениками часов: отчёт о занятии не принимается",
     "EDUBRIDGE_GROUP_NOT_FOUND": "Группа курса не найдена",
     "EDUBRIDGE_GROUP_ENROLLMENT_CLOSED": "Набор в группу закрыт",
+    "EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS": "У обучающегося есть действующая подписка: аккаунт на площадке ему нужен",
     "EDUBRIDGE_GROUP_CHOICE_REQUIRED": "У курса несколько идущих групп: выберите группу",
     "EDUBRIDGE_LESSON_PREVIOUS_NOT_CLOSED": "По занятию № {lessonNumber} материалы не переданы на ответственное хранение. Следующий отчёт принимается после передачи материалов",
     "EDUBRIDGE_LESSON_DATE_BEFORE_PREVIOUS": "Занятия курса отчитываются по порядку дат: занятие № {lessonNumber} проведено {heldAt}, дата нового занятия должна быть не раньше",

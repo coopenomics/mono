@@ -38,7 +38,16 @@
         .edu-member__head
           .text-subtitle2 {{ $t('edubridge.adminMembersPage.card.learnersTitle') }}
         .t-sm.t-muted(v-if="!card.learners.length") {{ $t('edubridge.adminMembersPage.card.learnersEmpty') }}
-        DataRow(v-for="l in card.learners" :key="asText(l.id)" :label="l.display_name" :value="l.recipient_value ?? $t('edubridge.adminMembersPage.card.contactHidden')" mono)
+        //- Адрес копируется одним нажатием: по нему обучающегося находят в кабинете школы.
+        //- У обучающегося без подписок, которому выдавался доступ на площадке, аккаунт
+        //- можно удалить в кабинете школы и отметить это здесь.
+        template(v-for="l in card.learners" :key="asText(l.id)")
+          DataRow(:label="l.display_name" :value="l.recipient_value ?? $t('edubridge.adminMembersPage.card.contactHidden')" mono :copyable="Boolean(l.recipient_value)")
+          .edu-member__account(v-if="accountOf(l)?.removed_at")
+            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.removed', { date: formatDate(accountOf(l)?.removed_at ?? '') }) }}
+          .edu-member__account(v-else-if="canMarkRemoved(l)")
+            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.noSubscriptions', { platforms: platformsOf(l) }) }}
+            BaseButton(variant="secondary" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}
 
       .edu-member__section
         .edu-member__head
@@ -61,8 +70,11 @@
         .edu-member__head
           .text-subtitle2 {{ $t('edubridge.adminMembersPage.card.tasksTitle') }}
         .t-sm.t-muted(v-if="!card.tasks.length") {{ $t('edubridge.adminMembersPage.card.tasksEmpty') }}
-        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="620px")
+        BaseTable(v-else :columns="taskColumns" :rows="card.tasks" row-key="id" min-width="720px")
           template(#cell-kind="{ row }") {{ kindOf(row.kind) }}
+          //- Когда задача выполнена, а пока не выполнена — когда поставлена: одинаковые строки различаются по времени.
+          template(#cell-when="{ row }")
+            span.t-num {{ formatMoment(row.done_at ?? row.created_at) }}
           template(#cell-status="{ row }")
             BaseBadge(:variant="taskStatusOf(row.status).variant") {{ taskStatusOf(row.status).label }}
           template(#cell-actions="{ row }")
@@ -75,12 +87,13 @@ import { onMounted, ref } from 'vue';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
-import { useFirstLoad } from 'src/shared/lib/composables';
+import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge, BaseButton, BaseInput, BaseTable, EmptyState, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer, IdentityCell, PageHint } from 'src/shared/ui/domain';
 import { ACCESS_STATE_LABELS } from '../../entities/Learner';
-import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, retryEnrollmentClose, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
+import { TASK_KIND_LABELS, TASK_STATUS_LABELS, fetchMemberCard, fetchMembers, markLearnerRemoved, retryEnrollmentClose, retryTask, type IMemberCard, type IMemberRow } from '../../entities/Admin';
+import { CARRIER_LABELS } from '../../entities/Course';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
@@ -104,11 +117,14 @@ const firstLoad = useFirstLoad(loading);
 const drawerOpen = ref(false);
 const retrying = ref<string | null>(null);
 const closing = ref<string | null>(null);
+const marking = ref<string | null>(null);
+const { confirm } = useConfirm();
 
 const columns: BaseTableColumn<IMemberRow>[] = [
   { key: 'member', label: i18nT('edubridge.adminMembersPage.column.member') },
-  { key: 'learners_count', label: i18nT('edubridge.adminMembersPage.column.learnersCount'), numeric: true, width: '130px' },
-  { key: 'active_enrollments', label: i18nT('edubridge.adminMembersPage.column.activeEnrollments'), numeric: true, width: '110px' },
+  { key: 'learners_count', label: i18nT('edubridge.adminMembersPage.column.learnersCount'), numeric: true, width: '130px', sortable: true },
+  // Сортировка по подпискам поднимает наверх учеников без подписок: их аккаунты на площадках можно удалить.
+  { key: 'active_enrollments', label: i18nT('edubridge.adminMembersPage.column.activeEnrollments'), numeric: true, width: '130px', sortable: true },
   { key: 'access', label: i18nT('edubridge.adminMembersPage.column.access'), width: '170px' },
 ];
 const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] = [
@@ -119,6 +135,7 @@ const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] =
 ];
 const taskColumns: BaseTableColumn<IMemberCard['tasks'][number]>[] = [
   { key: 'kind', label: i18nT('edubridge.adminMembersPage.taskColumn.kind'), width: '100px' },
+  { key: 'when', label: i18nT('edubridge.adminMembersPage.taskColumn.when'), width: '120px', nowrap: true },
   { key: 'status', label: i18nT('edubridge.adminMembersPage.taskColumn.status'), width: '180px' },
   { key: 'last_error', label: i18nT('edubridge.adminMembersPage.taskColumn.lastError') },
   { key: 'actions', label: '', align: 'right', width: '130px' },
@@ -131,6 +148,8 @@ const accessOf = (s: string) => ACCESS_STATE_LABELS[s] ?? { label: s, variant: '
 const taskStatusOf = (s: string) => TASK_STATUS_LABELS[s] ?? { label: s, variant: 'neutral' as const };
 const kindOf = (k: string) => TASK_KIND_LABELS[k] ?? k;
 const formatDate = (v: string | Date) => new Date(v).toLocaleDateString('ru-RU');
+/** День и время коротко: «09.10, 14:03». */
+const formatMoment = (v: string | Date) => new Date(v).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 async function load(): Promise<void> {
   loading.value = true;
@@ -150,6 +169,36 @@ async function open(row: IMemberRow): Promise<void> {
     drawerOpen.value = true;
   } catch (e) {
     FailAlert(e);
+  }
+}
+
+type ILearnerRow = IMemberCard['learners'][number];
+/** Аккаунт обучающегося на площадках — по нашим данным о выдаче доступа. */
+const accountOf = (l: ILearnerRow) => card.value?.learner_accounts.find((a) => asText(a.learner_id) === asText(l.id));
+/** Подписок нет, доступ на площадке выдавался, отметки ещё нет — аккаунт можно удалить в кабинете школы. */
+const canMarkRemoved = (l: ILearnerRow): boolean => {
+  const account = accountOf(l);
+  return Boolean(account && !account.removed_at && account.active_enrollments === 0 && account.carriers.length);
+};
+const platformsOf = (l: ILearnerRow): string => (accountOf(l)?.carriers ?? []).map((c) => CARRIER_LABELS[c] ?? c).join(', ');
+
+/** Администратор удалил аккаунт в кабинете школы и отмечает это; новая выдача доступа отметку снимет. */
+async function onMarkRemoved(l: ILearnerRow): Promise<void> {
+  const agreed = await confirm({
+    title: i18nT('edubridge.adminMembersPage.account.confirmTitle'),
+    message: i18nT('edubridge.adminMembersPage.account.confirmMessage', { name: l.display_name, platforms: platformsOf(l) }),
+    confirmLabel: i18nT('edubridge.adminMembersPage.account.markRemoved'),
+  });
+  if (!agreed) return;
+  const id = asText(l.id);
+  marking.value = id;
+  try {
+    await markLearnerRemoved(id);
+    if (card.value) card.value = await fetchMemberCard(card.value.username);
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    marking.value = null;
   }
 }
 
@@ -205,6 +254,14 @@ onMounted(load);
   margin-top: var(--p-5);
   padding-top: var(--p-4);
   border-top: 1px solid var(--p-line);
+}
+/* Строка об аккаунте на площадке стоит под адресом обучающегося: пояснение слева, действие справа. */
+.edu-member__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--p-3);
+  padding: var(--p-1) 0 var(--p-3);
 }
 .edu-member__head {
   margin-bottom: var(--p-2);

@@ -41,7 +41,11 @@ const rawEnrollmentSelector = {
   refund_reason: true,
   cancelled_at: true,
 }
-const rawMemberCardSelector = { username: true, display_name: true, learners: rawLearnerSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
+const rawLearnerAccountSelector = { learner_id: true, carriers: true, active_enrollments: true, removed_at: true }
+const _validateLearnerAccount: MakeAllFieldsRequired<ValueTypes['EduLearnerAccount']> = rawLearnerAccountSelector
+export const eduLearnerAccountSelector = Selector('EduLearnerAccount')(rawLearnerAccountSelector)
+
+const rawMemberCardSelector = { username: true, display_name: true, learners: rawLearnerSelector, learner_accounts: rawLearnerAccountSelector, enrollments: rawEnrollmentSelector, tasks: rawTaskSelector }
 const _validateMemberCard: MakeAllFieldsRequired<ValueTypes['EduMemberCard']> = rawMemberCardSelector
 export const eduMemberCardSelector = Selector('EduMemberCard')(rawMemberCardSelector)
 

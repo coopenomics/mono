@@ -7434,6 +7434,18 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduLearner']?: Omit<ValueTypes["EduLearner"], "...on EduLearner">
 }>;
+	["EduLearnerAccount"]: AliasType<{
+	/** Действующих подписок обучающегося */
+	active_enrollments?:boolean | `@${string}`,
+	/** Площадки, на которых обучающемуся выдавался доступ */
+	carriers?:boolean | `@${string}`,
+	/** Обучающийся */
+	learner_id?:boolean | `@${string}`,
+	/** Когда администратор отметил, что аккаунт удалён с площадки */
+	removed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on EduLearnerAccount']?: Omit<ValueTypes["EduLearnerAccount"], "...on EduLearnerAccount">
+}>;
 	["EduLearnerInput"]: {
 	/** Имя обучающегося */
 	display_name: string | Variable<any, string>,
@@ -7496,10 +7508,16 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on EduLevel']?: Omit<ValueTypes["EduLevel"], "...on EduLevel">
 }>;
+	["EduMarkLearnerRemovedInput"]: {
+	/** Обучающийся */
+	learner_id: ValueTypes["ID"] | Variable<any, string>
+};
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
 	enrollments?:ValueTypes["EduEnrollment"],
+	/** Аккаунты обучающихся на площадках */
+	learner_accounts?:ValueTypes["EduLearnerAccount"],
 	learners?:ValueTypes["EduLearner"],
 	tasks?:ValueTypes["EduAccessTask"],
 	username?:boolean | `@${string}`,
@@ -13488,6 +13506,7 @@ edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean
 edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
+edubridgeMarkLearnerRemoved?: [{	data: ValueTypes["EduMarkLearnerRemovedInput"] | Variable<any, string>},ValueTypes["EduLearnerAccount"]],
 edubridgeRemoveLearner?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ValueTypes["EduReorderInput"] | Variable<any, string>},ValueTypes["EduSection"]],
@@ -24127,6 +24146,17 @@ export type ResolverInputTypes = {
 	recipient_value?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduLearnerAccount"]: AliasType<{
+	/** Действующих подписок обучающегося */
+	active_enrollments?:boolean | `@${string}`,
+	/** Площадки, на которых обучающемуся выдавался доступ */
+	carriers?:boolean | `@${string}`,
+	/** Обучающийся */
+	learner_id?:boolean | `@${string}`,
+	/** Когда администратор отметил, что аккаунт удалён с площадки */
+	removed_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["EduLearnerInput"]: {
 	/** Имя обучающегося */
 	display_name: string,
@@ -24187,10 +24217,16 @@ export type ResolverInputTypes = {
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["EduMarkLearnerRemovedInput"]: {
+	/** Обучающийся */
+	learner_id: ResolverInputTypes["ID"]
+};
 	["EduMemberCard"]: AliasType<{
 	/** ФИО пайщика */
 	display_name?:boolean | `@${string}`,
 	enrollments?:ResolverInputTypes["EduEnrollment"],
+	/** Аккаунты обучающихся на площадках */
+	learner_accounts?:ResolverInputTypes["EduLearnerAccount"],
 	learners?:ResolverInputTypes["EduLearner"],
 	tasks?:ResolverInputTypes["EduAccessTask"],
 	username?:boolean | `@${string}`,
@@ -30005,6 +30041,7 @@ edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`]
 edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
+edubridgeMarkLearnerRemoved?: [{	data: ResolverInputTypes["EduMarkLearnerRemovedInput"]},ResolverInputTypes["EduLearnerAccount"]],
 edubridgeRemoveLearner?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
 edubridgeReorderLevels?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
 edubridgeReorderSections?: [{	data: ResolverInputTypes["EduReorderInput"]},ResolverInputTypes["EduSection"]],
@@ -40305,6 +40342,16 @@ export type ModelTypes = {
 	/** Почта / Telegram / код пропуска */
 	recipient_value?: string | undefined | null
 };
+	["EduLearnerAccount"]: {
+		/** Действующих подписок обучающегося */
+	active_enrollments: number,
+	/** Площадки, на которых обучающемуся выдавался доступ */
+	carriers: Array<ModelTypes["EduAccessCarrier"]>,
+	/** Обучающийся */
+	learner_id: ModelTypes["ID"],
+	/** Когда администратор отметил, что аккаунт удалён с площадки */
+	removed_at?: ModelTypes["DateTime"] | undefined | null
+};
 	["EduLearnerInput"]: {
 	/** Имя обучающегося */
 	display_name: string,
@@ -40363,10 +40410,16 @@ export type ModelTypes = {
 	/** Уровень внутри раздела: «7 класс», «Ступень 1» */
 	title: string
 };
+	["EduMarkLearnerRemovedInput"]: {
+	/** Обучающийся */
+	learner_id: ModelTypes["ID"]
+};
 	["EduMemberCard"]: {
 		/** ФИО пайщика */
 	display_name: string,
 	enrollments: Array<ModelTypes["EduEnrollment"]>,
+	/** Аккаунты обучающихся на площадках */
+	learner_accounts: Array<ModelTypes["EduLearnerAccount"]>,
 	learners: Array<ModelTypes["EduLearner"]>,
 	tasks: Array<ModelTypes["EduAccessTask"]>,
 	username: string
@@ -46104,6 +46157,8 @@ export type ModelTypes = {
 	edubridgeGuaranteeStatement: ModelTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
 	edubridgeHoldContribution: ModelTypes["EduContribution"],
+	/** Отметить, что аккаунт обучающегося удалён с площадки */
+	edubridgeMarkLearnerRemoved: ModelTypes["EduLearnerAccount"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Порядок уровней раздела — их последовательность */
@@ -57003,6 +57058,18 @@ export type GraphQLTypes = {
 	recipient_value?: string | undefined | null,
 	['...on EduLearner']: Omit<GraphQLTypes["EduLearner"], "...on EduLearner">
 };
+	["EduLearnerAccount"]: {
+	__typename: "EduLearnerAccount",
+	/** Действующих подписок обучающегося */
+	active_enrollments: number,
+	/** Площадки, на которых обучающемуся выдавался доступ */
+	carriers: Array<GraphQLTypes["EduAccessCarrier"]>,
+	/** Обучающийся */
+	learner_id: GraphQLTypes["ID"],
+	/** Когда администратор отметил, что аккаунт удалён с площадки */
+	removed_at?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on EduLearnerAccount']: Omit<GraphQLTypes["EduLearnerAccount"], "...on EduLearnerAccount">
+};
 	["EduLearnerInput"]: {
 		/** Имя обучающегося */
 	display_name: string,
@@ -57065,11 +57132,17 @@ export type GraphQLTypes = {
 	title: string,
 	['...on EduLevel']: Omit<GraphQLTypes["EduLevel"], "...on EduLevel">
 };
+	["EduMarkLearnerRemovedInput"]: {
+		/** Обучающийся */
+	learner_id: GraphQLTypes["ID"]
+};
 	["EduMemberCard"]: {
 	__typename: "EduMemberCard",
 	/** ФИО пайщика */
 	display_name: string,
 	enrollments: Array<GraphQLTypes["EduEnrollment"]>,
+	/** Аккаунты обучающихся на площадках */
+	learner_accounts: Array<GraphQLTypes["EduLearnerAccount"]>,
 	learners: Array<GraphQLTypes["EduLearner"]>,
 	tasks: Array<GraphQLTypes["EduAccessTask"]>,
 	username: string,
@@ -63221,6 +63294,8 @@ export type GraphQLTypes = {
 	edubridgeGuaranteeStatement: GraphQLTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
 	edubridgeHoldContribution: GraphQLTypes["EduContribution"],
+	/** Отметить, что аккаунт обучающегося удалён с площадки */
+	edubridgeMarkLearnerRemoved: GraphQLTypes["EduLearnerAccount"],
 	/** Удалить обучающегося без действующих подписок */
 	edubridgeRemoveLearner: boolean,
 	/** Порядок уровней раздела — их последовательность */
@@ -69427,6 +69502,7 @@ type ZEUS_VARIABLES = {
 	["EduHoldContributionInput"]: ValueTypes["EduHoldContributionInput"];
 	["EduLearnerInput"]: ValueTypes["EduLearnerInput"];
 	["EduLessonReportInput"]: ValueTypes["EduLessonReportInput"];
+	["EduMarkLearnerRemovedInput"]: ValueTypes["EduMarkLearnerRemovedInput"];
 	["EduOfferKind"]: ValueTypes["EduOfferKind"];
 	["EduOnboardingSource"]: ValueTypes["EduOnboardingSource"];
 	["EduQueueFilterInput"]: ValueTypes["EduQueueFilterInput"];

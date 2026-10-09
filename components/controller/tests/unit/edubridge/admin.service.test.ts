@@ -22,7 +22,7 @@ function make() {
     isConfigured: jest.fn(async (_c: string, _k: string, fields: any[]) => fields.length === 0),
     setFlags: jest.fn(async (_c: string, _k: string, fields: any[]) => Object.fromEntries(fields.map((f: any) => [f.key, false]))),
   } as any;
-  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials, { refreshStaff: jest.fn() } as any), admins, credentials, bindings, connectors };
+  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials, { refreshStaff: jest.fn() } as any), admins, credentials, bindings, connectors, learner, learners, enrollments, tasks };
 }
 
 describe('EdubridgeAdminService', () => {
@@ -88,6 +88,37 @@ describe('EdubridgeAdminService', () => {
     const { service: s } = make();
     const t = await s.retry('voskhod', 'T1');
     expect(t.attempts).toBe(3);
+  });
+});
+
+describe('EdubridgeAdminService — аккаунт обучающегося на площадке', () => {
+  const closed = { id: 'E1', learner_id: 'L1', course_id: 'C1', status: 'expired' };
+  const granted = (carrier: string) => ({ id: `T-${carrier}`, enrollment_id: 'E1', kind: 'grant', status: 'done', carrier });
+
+  it('карточка называет площадки, куда выдавался доступ, и число действующих подписок; очная выдача аккаунтом не считается', async () => {
+    const { service, enrollments, tasks } = make();
+    enrollments.findByMember = jest.fn(async () => [closed]);
+    tasks.findByEnrollment = jest.fn(async () => [granted('skillspace'), granted('onsite'), { ...granted('getcourse'), status: 'needs_attention' }]);
+    const card = await service.memberCard('voskhod', 'ant', true);
+    expect(card.learner_accounts).toEqual([{ learner_id: 'L1', carriers: ['skillspace'], active_enrollments: 0, removed_at: null }]);
+  });
+
+  it('отметка «удалён с площадки» ставится обучающемуся без действующих подписок; с действующей подпиской — отказ', async () => {
+    const free = make();
+    free.learners.findById = jest.fn(async () => free.learner);
+    free.learners.save = jest.fn(async (l: any) => l);
+    free.enrollments.findByLearner = jest.fn(async () => [closed]);
+    const account = await free.service.markLearnerRemoved('voskhod', 'L1');
+    expect(account.removed_at).toBeInstanceOf(Date);
+    expect(free.learners.save).toHaveBeenCalledWith(expect.objectContaining({ platform_removed_at: expect.any(Date) }));
+
+    const busy = make();
+    busy.learners.findById = jest.fn(async () => busy.learner);
+    busy.enrollments.findByLearner = jest.fn(async () => [{ ...closed, status: 'active' }]);
+    await expect(busy.service.markLearnerRemoved('voskhod', 'L1')).rejects.toMatchObject({ code: 'EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS' });
+    const unknown = make();
+    unknown.learners.findById = jest.fn(async () => null);
+    await expect(unknown.service.markLearnerRemoved('voskhod', 'L9')).rejects.toMatchObject({ code: 'EDUBRIDGE_LEARNER_NOT_FOUND' });
   });
 });
 

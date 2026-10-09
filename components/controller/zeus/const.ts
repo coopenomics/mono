@@ -685,6 +685,9 @@ export const AllTypesProps: Record<string,any> = {
 	EduLessonReportInput:{
 
 	},
+	EduMarkLearnerRemovedInput:{
+
+	},
 	EduOfferKind: "enum" as const,
 	EduOnboardingSource: "enum" as const,
 	EduQueueFilterInput:{
@@ -2090,6 +2093,9 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeHoldContribution:{
 			data:"EduHoldContributionInput"
+		},
+		edubridgeMarkLearnerRemoved:{
+			data:"EduMarkLearnerRemovedInput"
 		},
 		edubridgeRemoveLearner:{
 
@@ -5922,6 +5928,12 @@ export const ReturnTypes: Record<string,any> = {
 		recipient_type:"EduRecipientType",
 		recipient_value:"String"
 	},
+	EduLearnerAccount:{
+		active_enrollments:"Int",
+		carriers:"EduAccessCarrier",
+		learner_id:"ID",
+		removed_at:"DateTime"
+	},
 	EduLesson:{
 		contribution_id:"ID",
 		course_id:"ID",
@@ -5945,6 +5957,7 @@ export const ReturnTypes: Record<string,any> = {
 	EduMemberCard:{
 		display_name:"String",
 		enrollments:"EduEnrollment",
+		learner_accounts:"EduLearnerAccount",
 		learners:"EduLearner",
 		tasks:"EduAccessTask",
 		username:"String"
@@ -7759,6 +7772,7 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeDismissAdmin:"Boolean",
 		edubridgeGuaranteeStatement:"GeneratedDocument",
 		edubridgeHoldContribution:"EduContribution",
+		edubridgeMarkLearnerRemoved:"EduLearnerAccount",
 		edubridgeRemoveLearner:"Boolean",
 		edubridgeReorderLevels:"EduSection",
 		edubridgeReorderSections:"EduSection",

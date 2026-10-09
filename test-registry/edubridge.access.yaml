@@ -149,6 +149,14 @@ cases:
     test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
     api: components/api-tests/src/edubridge/platforms.test.ts
     status: written
+  - id: edu.access.side.11
+    level: backend
+    kind: side
+    scenario: "У обучающегося нет действующих подписок, доступ на площадке ему выдавался. Администратор удаляет аккаунт в кабинете школы и отмечает это; затем обучающегося подписывают снова."
+    expect: "Карточка ученика называет площадки, где выдавался доступ, и число действующих подписок. Отметка «удалён с площадки» ставится только без действующих подписок, иначе отказ EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS; ученик её поставить не может. Новая выдача доступа проходит как обычно и отметку снимает."
+    test: components/controller/tests/unit/edubridge/admin.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: written
   - id: edu.access.happy.10
     level: backend
     kind: happy

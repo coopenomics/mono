@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { EduAccessCarrier, EduConnectorHealth, type EduAccessTaskStatus } from '../../domain/enums';
+import { EduAccessCarrier, EduAccessTaskKind, EduAccessTaskStatus, EduConnectorHealth, EduEnrollmentStatus } from '../../domain/enums';
+import type { EdubridgeAccessTaskRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
 import { AccessCarrierRegistry } from '../../infrastructure/connectors/access-carrier.registry';
 import { EdubridgeAccessTaskKyselyRepository } from '../../infrastructure/repositories/edubridge-access-task.kysely-repository';
 import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositories/edubridge-admin.kysely-repository';
@@ -8,7 +9,7 @@ import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositori
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
-import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
+import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduLearnerAccountDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeConnectorCredentialsStore } from '../../infrastructure/connectors/connector-credentials.store';
 import type { EduConnectorCredentialFieldDTO } from '../dto/edu-admin.dto';
@@ -56,9 +57,26 @@ export class EdubridgeAdminService {
       username,
       display_name: await this.names.displayName(username),
       learners: learners.map((l) => new EduLearnerDTO(l, { showContact: showContacts })),
+      learner_accounts: learners.map((l) => accountOf(l, enrollments, tasks)),
       enrollments: cards,
       tasks: tasks.map((t) => new EduAccessTaskDTO(t)),
     };
+  }
+
+  /**
+   * Администратор удалил аккаунт обучающегося в кабинете школы и отмечает это.
+   * Отметка учётная: площадку мы не спрашиваем. Пока есть действующая подписка,
+   * аккаунт нужен — отметка не ставится.
+   */
+  async markLearnerRemoved(coopname: string, learnerId: string): Promise<EduLearnerAccountDTO> {
+    const learner = await this.learners.findById(coopname, learnerId);
+    if (!learner) throw DomainError.notFound('EDUBRIDGE_LEARNER_NOT_FOUND');
+    const enrollments = await this.enrollments.findByLearner(coopname, learnerId);
+    if (enrollments.some((e) => e.status === EduEnrollmentStatus.ACTIVE)) throw DomainError.badRequest('EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS');
+    learner.platform_removed_at = new Date();
+    await this.learners.save(learner);
+    const tasks = (await Promise.all(enrollments.map((e) => this.tasks.findByEnrollment(coopname, e.id)))).flat();
+    return accountOf(learner, enrollments, tasks);
   }
 
   async queue(coopname: string, statuses?: EduAccessTaskStatus[]): Promise<EduAccessTaskDTO[]> {
@@ -143,4 +161,20 @@ export class EdubridgeAdminService {
     await this.liveFeed.refreshStaff(coopname);
     return removed;
   }
+}
+
+/** Площадки, где у получателя заводится аккаунт: очно и в сообществах аккаунта школы нет. */
+const ACCOUNT_CARRIERS = new Set<EduAccessCarrier>([EduAccessCarrier.SKILLSPACE, EduAccessCarrier.GETCOURSE]);
+
+/** Аккаунт обучающегося на площадках по нашим данным: куда выдавали доступ и сколько подписок действует. */
+function accountOf(learner: EdubridgeLearnerRecord, enrollments: EdubridgeEnrollmentRecord[], tasks: EdubridgeAccessTaskRecord[]): EduLearnerAccountDTO {
+  const own = enrollments.filter((e) => e.learner_id === learner.id);
+  const ids = new Set(own.map((e) => e.id));
+  const granted = tasks.filter((t) => ids.has(t.enrollment_id) && t.kind === EduAccessTaskKind.GRANT && t.status === EduAccessTaskStatus.DONE && ACCOUNT_CARRIERS.has(t.carrier));
+  return {
+    learner_id: learner.id,
+    carriers: [...new Set(granted.map((t) => t.carrier))],
+    active_enrollments: own.filter((e) => e.status === EduEnrollmentStatus.ACTIVE).length,
+    removed_at: learner.platform_removed_at ?? null,
+  };
 }

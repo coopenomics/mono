@@ -223,6 +223,14 @@ export class EdubridgeAccessOutboxService {
     return true;
   }
 
+  /** Доступ выдан заново — аккаунт на площадке снова есть: отметка администратора «удалён с площадки» снимается. */
+  private async clearRemovedMark(coopname: string, learnerId: string): Promise<void> {
+    const learner = await this.learners.findById(coopname, learnerId);
+    if (!learner?.platform_removed_at) return;
+    learner.platform_removed_at = null;
+    await this.learners.save(learner);
+  }
+
   private async done(task: EdubridgeAccessTaskRecord, enrollment: EdubridgeEnrollmentRecord, result: ConnectorResult): Promise<void> {
     task.status = EduAccessTaskStatus.DONE;
     task.attempts += 1;
@@ -231,6 +239,7 @@ export class EdubridgeAccessOutboxService {
     task.done_at = new Date();
     await this.tasks.save(task);
 
+    if (task.kind === EduAccessTaskKind.GRANT) await this.clearRemovedMark(task.coopname, enrollment.learner_id);
     if (!task.recipient_override) {
       // Переопределённый получатель — это отзыв старого адреса при смене контакта; состояние не трогаем.
       enrollment.access_state = task.kind === EduAccessTaskKind.GRANT ? EduAccessState.GRANTED : EduAccessState.REVOKED;

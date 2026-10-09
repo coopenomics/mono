@@ -12,7 +12,7 @@
 import crypto from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Who } from '../core'
-import { CHAIRMAN, STUB_URL, amount, caseName, freshMember, gql, gqlError, login, stubRequests, stubReset, stubRoute, tokenOf, waitFor } from '../core'
+import { CHAIRMAN, STUB_URL, amount, caseName, expectCode, freshMember, gql, gqlError, login, stubRequests, stubReset, stubRoute, tokenOf, waitFor } from '../core'
 import {
   CANCEL_ENROLLMENT,
   COURSE,
@@ -34,6 +34,8 @@ const EXTENSIONS = 'query($d:GetExtensionsInput){ getExtensions(data:$d){ name e
 const UPDATE_EXTENSION = 'mutation($d:ExtensionInput!){ updateExtension(data:$d){ name enabled } }'
 const TASK_FIELDS = 'id enrollment_id kind carrier status attempts last_error last_result done_at'
 const MEMBER_CARD = `query($u:String!){ edubridgeMemberCard(username:$u){ tasks{ ${TASK_FIELDS} } } }`
+const LEARNER_ACCOUNTS = 'query($u:String!){ edubridgeMemberCard(username:$u){ learner_accounts{ learner_id carriers active_enrollments removed_at } } }'
+const MARK_REMOVED = 'mutation($d:EduMarkLearnerRemovedInput!){ edubridgeMarkLearnerRemoved(data:$d){ learner_id carriers active_enrollments removed_at } }'
 const RETRY_TASK = `mutation($d:EduRetryTaskInput!){ edubridgeRetryTask(data:$d){ ${TASK_FIELDS} } }`
 const CONNECTOR_FIELDS = 'carrier configured health last_check_at last_check_message'
 const CONNECTORS = `query{ edubridgeConnectors{ ${CONNECTOR_FIELDS} } }`
@@ -264,6 +266,34 @@ describe('Образование: выдача доступа на площад�
       await gql(token, CANCEL_ENROLLMENT, { id: b.id })
       await taskIn(b.id, 'REVOKE', ['DONE'])
       expect(await removals()).toBe(1)
+    }, 480_000)
+
+    it(caseName('edu.access.side.11', 'аккаунт обучающегося без подписок: администратор отмечает, что удалил его с площадки; новая выдача отметку снимает'), async () => {
+      const course = await skillspaceCourse()
+      learnerNo += 1
+      const email = `learner-${learnerNo}-${crypto.randomBytes(3).toString('hex')}@school.example`
+      const learner = (await gql<any>(token, ADD_LEARNER, { d: { display_name: `Иванов Пётр Сергеевич ${learnerNo}`, recipient_type: 'EMAIL', recipient_value: email } })).edubridgeAddLearner
+      const accountOf = async (): Promise<any> =>
+        ((await gql<any>(chairman, LEARNER_ACCOUNTS, { u: member.account })).edubridgeMemberCard.learner_accounts as any[]).find(a => a.learner_id === learner.id)
+
+      const first = await subscribe(member, token, learner.id, course.id)
+      await taskIn(first.id, 'GRANT', ['DONE'])
+      expect(await accountOf()).toMatchObject({ carriers: ['SKILLSPACE'], active_enrollments: 1, removed_at: null })
+      // Пока подписка действует, аккаунт нужен — отметка не ставится.
+      expectCode(await gqlError(chairman, MARK_REMOVED, { d: { learner_id: learner.id } }), 'EDUBRIDGE_LEARNER_HAS_SUBSCRIPTIONS')
+      // Обучающийся и ученик отметку поставить не могут.
+      expect(await gqlError(token, MARK_REMOVED, { d: { learner_id: learner.id } })).not.toBeNull()
+
+      await gql(token, CANCEL_ENROLLMENT, { id: first.id })
+      await taskIn(first.id, 'REVOKE', ['DONE'])
+      expect(await accountOf()).toMatchObject({ carriers: ['SKILLSPACE'], active_enrollments: 0, removed_at: null })
+      const marked = (await gql<any>(chairman, MARK_REMOVED, { d: { learner_id: learner.id } })).edubridgeMarkLearnerRemoved
+      expect(marked.removed_at).toBeTruthy()
+
+      // Новая подписка: доступ выдаётся как обычно, отметка снята.
+      const again = await subscribe(member, token, learner.id, (await skillspaceCourse()).id)
+      await taskIn(again.id, 'GRANT', ['DONE'])
+      expect(await accountOf()).toMatchObject({ active_enrollments: 1, removed_at: null })
     }, 480_000)
 
     it(caseName('edu.access.side.04', 'курс удалён на площадке — задача требует внимания без выдачи; площадка недоступна при сверке — задача ждёт повтора'), async () => {
