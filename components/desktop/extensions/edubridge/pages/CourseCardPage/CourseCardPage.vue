@@ -11,6 +11,8 @@
       template(#facts)
         span(v-if="course.schedule") {{ course.schedule }}
         span(v-if="course.starts_at") {{ $t('edubridge.courseCardPage.startsFrom', { date: formatDate(course.starts_at) }) }}
+        //- Длительность программы словами: ученик не делит занятия на месяцы сам.
+        span(v-if="programSpan") {{ $t('edubridge.courseCardPage.programSpan', { span: programSpan }) }}
       template(#actions)
         //- Доступ уже оплачен: срок виден, главное действие — продление; записать ещё одного обучающегося — рядом.
         template(v-if="paidUntil")
@@ -72,6 +74,7 @@ import { BaseBadge, BaseButton, BaseCard, CardListSkeleton, EmptyState } from 's
 import { fetchCatalogCourse, type ICatalogCourse } from '../../entities/Course';
 import { fetchMyLearners, type ILearner, fetchMyEnrollments, type IEnrollment } from '../../entities/Learner';
 import { RENEW_SOON_DAYS, daysLeft, isLiveEnrollment } from '../../shared/lib/subscriptionDue';
+import { programSpanLabel } from '../../shared/lib/courseMonths';
 import { SubscribeDialog } from '../../features/Subscribe';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 import { CourseHero } from '../../widgets/CourseHero';
@@ -104,6 +107,7 @@ const paidUntil = computed(() => {
   const dates = ownEnrollments.value.map((e) => (e.paid_until ? new Date(String(e.paid_until)).getTime() : 0)).filter(Boolean);
   return dates.length ? new Date(Math.max(...dates)) : null;
 });
+const programSpan = computed(() => programSpanLabel(course.value?.lessons_per_month, course.value?.lessons_total));
 /** Правая колонка нужна, когда есть кого назвать. */
 const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length));
 const left = computed(() => daysLeft(paidUntil.value));

@@ -225,8 +225,7 @@ import { StatTile } from '../../shared/ui/StatStrip';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
-import { courseMonthsLabel } from '../../shared/lib/courseMonths';
-import { t } from '../../i18n';
+import { programSpanLabel } from '../../shared/lib/courseMonths';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
@@ -290,21 +289,8 @@ const {
   removeTeacher,
 } = state;
 
-/**
- * Длительность программы словами: занятия программы, делённые на занятия в
- * месяц. Счёт идёт неделями, месяц — четыре недели; неполная неделя считается
- * неделей. «1 неделя», «1 месяц», «1 месяц 2 недели».
- */
-const WEEKS_IN_MONTH = 4;
-const programMonths = computed(() => {
-  const perMonth = Number(lessonsPerMonth.value || 0);
-  const total = Number(lessonsTotal.value || 0);
-  if (!(perMonth > 0) || !(total > 0)) return '______';
-  const weeks = Math.ceil((total / perMonth) * WEEKS_IN_MONTH);
-  const rest = weeks % WEEKS_IN_MONTH;
-  const parts = [courseMonthsLabel(Math.floor(weeks / WEEKS_IN_MONTH)), rest ? t('edubridge.courseForm.programWeeks', rest) : ''];
-  return parts.filter(Boolean).join(' ');
-});
+/** Длительность программы — показ рядом с числом занятий; расчёт общий со страницей курса. */
+const programMonths = computed(() => programSpanLabel(lessonsPerMonth.value, lessonsTotal.value) || '______');
 
 const route = useRoute();
 const router = useRouter();
