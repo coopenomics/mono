@@ -1,7 +1,7 @@
 <template lang="pug">
 BaseForm(:loading="loading" @submit="submit")
   //- Кто учится — первым: себе пайщик ничего не вводит, имя и почта берутся из его профиля.
-  .edu-learner-form__who.q-mb-md(v-if="canChooseSelf")
+  .edu-learner-form__who.q-mb-md(v-if="canChooseSelf && !fixedWho")
     BaseRadioCard(v-model="who" value="self" :title="$t('edubridge.learnerForm.whoSelf')")
     BaseRadioCard(v-model="who" value="other" :title="$t('edubridge.learnerForm.whoOther')")
   template(v-if="showFields")
@@ -22,10 +22,18 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseButton, BaseForm, BaseInput, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { useSessionStore } from 'src/entities/Session';
 import { addLearner, RECIPIENT_LABELS, updateLearner, type ILearner, type ILearnerInput } from '../../entities/Learner';
+import { selfLearnerInput } from './model/selfLearner';
 import { t } from '../../i18n';
 
-/** `hasSelf` — пайщик уже записан обучающимся: себя второй раз не добавить, выбора нет. */
-const props = withDefaults(defineProps<{ learner?: ILearner | null; defaultSelf?: boolean; hasSelf?: boolean }>(), { defaultSelf: false, hasSelf: false });
+/**
+ * `hasSelf` — пайщик уже записан обучающимся: себя второй раз не добавить, выбора нет.
+ * `fixedWho` — кто учится, уже выбрано снаружи (плитками окна подписки): свой выбор форма не показывает.
+ */
+const props = withDefaults(defineProps<{ learner?: ILearner | null; defaultSelf?: boolean; hasSelf?: boolean; fixedWho?: 'self' | 'other' | null }>(), {
+  defaultSelf: false,
+  hasSelf: false,
+  fixedWho: null,
+});
 const emit = defineEmits<{ saved: [learner: ILearner]; cancel: [] }>();
 
 const session = useSessionStore();
@@ -35,7 +43,7 @@ const form = reactive<ILearnerInput>({
   display_name: '',
   recipient_type: Zeus.EduRecipientType.EMAIL,
   recipient_value: '',
-  is_self: canChooseSelf.value && props.defaultSelf,
+  is_self: props.fixedWho ? props.fixedWho === 'self' : canChooseSelf.value && props.defaultSelf,
 });
 const who = computed<'self' | 'other'>({
   get: () => (form.is_self ? 'self' : 'other'),
@@ -52,8 +60,7 @@ const PLAIN_FIELD = { autocomplete: 'off', 'data-bwignore': 'true', 'data-1p-ign
 /** Что уходит на сервер: добавляя себя, пайщик ничего не вводил — подставляем его имя и почту. */
 function payload(): ILearnerInput {
   if (!form.is_self) return { ...form };
-  const own = { ...form, display_name: session.displayName };
-  return ownEmail.value ? { ...own, recipient_type: Zeus.EduRecipientType.EMAIL, recipient_value: ownEmail.value } : own;
+  return selfLearnerInput() ?? { ...form, display_name: session.displayName };
 }
 
 watch(

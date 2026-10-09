@@ -1,11 +1,15 @@
 <template lang="pug">
-BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAccess')" size="md" @update:model-value="(v) => emit('update:modelValue', v)")
+BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAccess')" size="lg" @update:model-value="(v) => emit('update:modelValue', v)")
   .q-gutter-md
-    BaseSelect(v-model="learnerId" :label="$t('edubridge.subscribeDialog.learnerLabel')" :options="learnerOptions" required)
-      template(#after)
-        BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.subscribeDialog.addLearnerAriaLabel')" @click="learnerFormOpen = true")
-          template(#icon-left)
-            q-icon(name="add" size="18px")
+    //- Кто учится — плитками: добавленные обучающиеся, сам пайщик и «другой человек».
+    //- Здесь только выбор: себя пайщик добавляет одним нажатием, данные другого
+    //- человека вводятся в отдельном окне — второй кнопки «Добавить» в этом окне нет.
+    .edu-subscribe__who
+      .t-eyebrow.q-mb-sm {{ $t('edubridge.subscribeDialog.whoTitle') }}
+      .edu-subscribe__tiles
+        BaseRadioCard(v-for="l in pool" :key="asText(l.id)" v-model="who" :value="asText(l.id)" :title="l.display_name" :meta="l.is_self ? $t('edubridge.subscribeDialog.selfMeta') : undefined" :disabled="addingSelf")
+        BaseRadioCard(v-if="!hasSelf" v-model="who" :value="WHO_SELF" :title="$t('edubridge.learnerForm.whoSelf')" :disabled="addingSelf")
+        BaseRadioCard(v-model="who" :value="WHO_OTHER" :title="$t('edubridge.learnerForm.whoOther')" :disabled="addingSelf")
     BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
     //- Набор идёт в группу: у курса с несколькими открытыми группами участник выбирает свою.
     BaseSelect(v-if="groupOptions.length > 1" v-model="groupId" :label="$t('edubridge.subscribeDialog.groupLabel')" :options="groupOptions" required)
@@ -42,9 +46,8 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
     BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") {{ $t('edubridge.subscribeDialog.cancel') }}
     BaseButton(variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") {{ $t('edubridge.subscribeDialog.getAccess') }}
 
-  BaseDialog(v-model="learnerFormOpen" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md")
-    LearnerForm(:default-self="!pool.length" :has-self="pool.some((l) => l.is_self)" @saved="onLearnerAdded" @cancel="learnerFormOpen = false")
-
+  BaseDialog(:model-value="Boolean(newLearnerWho)" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md" @update:model-value="(v) => v || cancelNewLearner()")
+    LearnerForm(v-if="newLearnerWho" :key="newLearnerWho" :fixed-who="newLearnerWho" @saved="onLearnerAdded" @cancel="cancelNewLearner")
 </template>
 
 <script setup lang="ts">
@@ -58,9 +61,9 @@ import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 's
 import { DataRow } from 'src/shared/ui/domain';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import type { DigitalDocument } from 'src/shared/lib/document';
-import { fetchQuote, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
+import { addLearner, fetchQuote, type IEnrollment, type ILearner, type IQuote } from '../../../entities/Learner';
 import { courseSectionLabel, type ICatalogCourse } from '../../../entities/Course';
-import { LearnerForm } from '../../../widgets/LearnerForm';
+import { LearnerForm, selfLearnerInput } from '../../../widgets/LearnerForm';
 import { courseMonthsLabel } from '../../../shared/lib/courseMonths';
 import { FeeAmount } from '../../../shared/ui/FeeAmount';
 import { buildConvertStatement, subscribe } from '../api';
@@ -88,7 +91,11 @@ const emit = defineEmits<{
 
 
 const learnerId = ref<string | null>(null);
-const learnerFormOpen = ref(false);
+/** Плитка нового обучающегося нажата: открыто окно с его данными, прежний выбор сохранён. */
+const WHO_SELF = '__self';
+const WHO_OTHER = '__other';
+const newLearnerWho = ref<'self' | 'other' | null>(null);
+const addingSelf = ref(false);
 /** Список обучающихся диалога: приходит от страницы, но пополняется прямо здесь. */
 const pool = ref<ILearner[]>([...props.learners]);
 const courseId = ref<string | null>(props.lockedCourseId ?? null);
@@ -103,7 +110,42 @@ const hasProgramFunds = computed(() => parseFloat(String(quote.value?.from_progr
 const busy = ref(false);
 const statement = ref<DigitalDocument | null>(null);
 
-const learnerOptions = computed(() => pool.value.map((l) => ({ value: asText(l.id), label: l.is_self ? t('edubridge.subscribeDialog.selfLearnerLabel', { name: l.display_name }) : l.display_name })));
+const hasSelf = computed(() => pool.value.some((l) => l.is_self));
+const WHO_TILES = { self: WHO_SELF, other: WHO_OTHER };
+/** Выбранная плитка: обучающийся из списка либо одна из двух плиток нового. */
+const who = computed<string | number>({
+  get: () => (newLearnerWho.value ? WHO_TILES[newLearnerWho.value] : (learnerId.value ?? '')),
+  set: (v) => void pickWho(String(v)),
+});
+
+async function pickWho(value: string): Promise<void> {
+  if (value === WHO_OTHER) return startNewLearner('other');
+  if (value !== WHO_SELF) {
+    newLearnerWho.value = null;
+    learnerId.value = value;
+    return;
+  }
+  // Себя пайщик добавляет одним нажатием: имя и почта берутся из учётной записи.
+  const own = selfLearnerInput();
+  if (!own) return startNewLearner('self');
+  addingSelf.value = true;
+  try {
+    onLearnerAdded(await addLearner(own));
+  } catch (e) {
+    FailAlert(e);
+  } finally {
+    addingSelf.value = false;
+  }
+}
+
+function startNewLearner(kind: 'self' | 'other'): void {
+  newLearnerWho.value = kind;
+}
+
+/** Окно нового обучающегося закрыто без сохранения — выбор остаётся прежним. */
+function cancelNewLearner(): void {
+  newLearnerWho.value = null;
+}
 const courseOptions = computed(() => props.courses.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
 const courseTitle = computed(() => props.courses.find((c) => c.id === courseId.value)?.title ?? '');
 
@@ -204,7 +246,7 @@ watch(
 function onLearnerAdded(learner: ILearner): void {
   pool.value = [...pool.value.filter((l) => asText(l.id) !== asText(learner.id)), learner];
   learnerId.value = asText(learner.id);
-  learnerFormOpen.value = false;
+  newLearnerWho.value = null;
   emit('learner-added', learner);
 }
 
@@ -240,6 +282,12 @@ async function submit(): Promise<void> {
 .edu-subscribe__options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--p-3);
+}
+/* Плитки «кто учится» уже плиток взноса: две в ряд помещаются и в узком окне. */
+.edu-subscribe__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--p-3);
 }
 </style>
