@@ -54,17 +54,18 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       | {{ $t('edubridge.courseForm.termsLockedBanner') }}
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.lessons') }}
-      .edu-course-form__triple
+      .edu-course-form__pair
         BaseInput(v-model="lessonsPerMonth" :label="$t('edubridge.courseForm.lessonsPerMonthLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonsPerMonth")
         BaseInput(v-model="lessonMinutes" :label="$t('edubridge.courseForm.lessonMinutesLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonMinutes")
+      //- Длительность программы стоит рядом с числом занятий и считается сама: занятия программы, делённые на занятия в месяц.
+      .edu-course-form__pair
         BaseInput(v-model="lessonsTotal" :label="$t('edubridge.courseForm.lessonsTotalLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
-        //- Длительность программы считается сама: занятия программы, делённые на занятия в месяц.
         BaseInput(:model-value="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" readonly)
 
     .edu-course-form__group
@@ -400,13 +401,6 @@ defineExpose({ submit: requestSubmit, validate });
   display: flex;
   align-items: center;
   gap: var(--p-2);
-}
-/* Три коротких числа занятий стоят одним рядом; на узком экране переносятся по одному. */
-.edu-course-form__triple {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: var(--p-3) var(--p-4);
-  align-items: start;
 }
 /* Пара коротких полей встаёт в ряд, только когда хватает ширины: иначе
    подсказка под одним полем обрезается высотой соседнего. */
