@@ -42,7 +42,7 @@ function emptyForm(): CourseFormFields {
     schedule: '',
     teacher_usernames: [],
     lessons_per_month: 8,
-    lessons_total: 64,
+    lessons_total: 8,
     lesson_minutes: 60,
     planned_hourly_rate: '',
     pay_per_learner: true,
@@ -129,7 +129,7 @@ function useCover(course: CourseSource) {
 /** Параметры занятий — числами в полях; ставка уходит asset-строкой «1000.0000 RUB». */
 function useEconomyFields(symbol: ComputedRef<string>) {
   const lessonsPerMonth = ref('8');
-  const lessonsTotal = ref('64');
+  const lessonsTotal = ref('8');
   const lessonMinutes = ref('60');
   const plannedRate = ref('');
   /** Способ расчёта с преподавателем: за каждого участника либо фиксированный за занятие. */
