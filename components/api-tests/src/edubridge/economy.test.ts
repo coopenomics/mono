@@ -149,6 +149,8 @@ describe('Образование: экономика курса — взнос, 
     const fees = (await gql<any>(chairman, COURSE_FEES, { id: saved.id })).edubridgeCourse
     expect(fees).toMatchObject({ course_payment_enabled: false, course_discount_percent: 0, fee_course: null })
     expect(amount(fees.fee_month)).toBe(9600)
+    // Полный взнос за программу виден и без взноса разом: восемь месяцев по 9 600.
+    expect(amount(fees.fee_course_base)).toBe(76800)
   })
 
   it(caseName('edu.econ.break.04', 'курс без занятий в программе не сохраняется и не считается'), async () => {

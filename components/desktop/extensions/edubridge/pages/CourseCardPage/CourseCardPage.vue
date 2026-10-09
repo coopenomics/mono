@@ -26,10 +26,12 @@
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
       //- цена «от …», которую участник ни разу не вносит.
-      StatTile(:caption="$t('edubridge.course.feeMonthCaption')")
+      //- У программы на месяц взнос один — «за курс». У длинной рядом с месячным стоит полный
+      //- взнос за весь курс: разом со скидкой либо сумма помесячных.
+      StatTile(:caption="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      StatTile(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
-        FeeAmount(:value="course.fee_course" size="lg")
+      StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
+        FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
       StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
       StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 

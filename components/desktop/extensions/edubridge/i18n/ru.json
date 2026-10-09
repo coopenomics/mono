@@ -564,12 +564,14 @@
         "PUBLISHED": "Опубликован"
       },
       "feeMonthCaption": "взнос в месяц",
-      "feeCourseCaption": "за весь курс разом"
+      "feeCourseCaption": "за весь курс разом",
+      "feeWholeCaption": "взнос за курс",
+      "feeCourseTotalCaption": "за весь курс"
     },
     "courseCard": {
       "feeCourseLabel": "За весь курс",
       "feeMonthLabel": "Взнос в месяц",
-      "lessonsPerMonth": "{n} занятие в месяц по {minutes} мин | {n} занятия в месяц по {minutes} мин | {n} занятий в месяц по {minutes} мин"
+      "feeWholeLabel": "Взнос за курс"
     },
     "courseCardPage": {
       "aboutTitle": "О курсе",

@@ -11,47 +11,44 @@ BaseCard.edu-course-card(variant="default" role="link" tabindex="0" @click="emit
       .edu-course-card__fact(v-if="course.schedule")
         q-icon(name="schedule" size="16px")
         span.ellipsis {{ course.schedule }}
-      .edu-course-card__fact(v-if="course.lessons_per_month")
-        q-icon(name="event_available" size="16px")
-        span.ellipsis {{ lessons }}
       .edu-course-card__fact(v-if="months")
         q-icon(name="date_range" size="16px")
         span.ellipsis {{ months }}
-    //- Деньги — отдельным блоком из подписанных чисел: взнос в месяц и, если
-    //- кооператив его принимает, взнос за весь курс. Срок курса стоит выше, среди фактов.
+    //- Деньги — отдельным блоком из подписанных чисел. У программы на месяц
+    //- взнос один — «за курс». У длинной — взнос в месяц и полный взнос за весь
+    //- курс: со скидкой, если кооператив принимает его разом, иначе сумма помесячных.
     .edu-course-card__fees
       .edu-course-card__fee
-        .edu-course-card__fee-label {{ $t('edubridge.courseCard.feeMonthLabel') }}
+        .edu-course-card__fee-label {{ singleMonth ? $t('edubridge.courseCard.feeWholeLabel') : $t('edubridge.courseCard.feeMonthLabel') }}
         FeeAmount(:value="course.fee_month" size="md")
-      .edu-course-card__fee(v-if="course.fee_course")
+      .edu-course-card__fee(v-if="!singleMonth && feeCourse")
         //- Насколько взнос разом меньше помесячного за те же месяцы — значком у подписи.
         .edu-course-card__fee-label
           span {{ $t('edubridge.courseCard.feeCourseLabel') }}
           BaseBadge(v-if="saving" variant="pos") −{{ saving }}%
-        FeeAmount(:value="course.fee_course" size="md")
+        FeeAmount(:value="feeCourse" size="md")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseBadge, BaseCard } from 'src/shared/ui/base';
 import { courseSectionLabel, type ICatalogCourse } from '../../entities/Course';
-import { courseMonthsLabel } from '../../shared/lib/courseMonths';
-import { t } from '../../i18n';
+import { programSpanLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
  * Карточка курса в каталоге: обложка (или заглушка), раздел и уровень, название,
- * расписание, нагрузка в месяц, членский взнос за месяц и год. Тип направления и
+ * расписание, длительность программы, членский взнос за месяц и за весь курс. Тип направления и
  * площадка посетителю не показываются — суть курса читается из заголовка.
  */
 const props = defineProps<{ course: ICatalogCourse }>();
 const emit = defineEmits<{ open: [] }>();
 
-const lessons = computed(() => {
-  const n = Number(props.course.lessons_per_month);
-  return t('edubridge.courseCard.lessonsPerMonth', { minutes: props.course.lesson_minutes }, n);
-});
-
-const months = computed(() => courseMonthsLabel(props.course.course_months));
+/** Длительность программы — тем же расчётом, что в форме и на странице курса. */
+const months = computed(() => programSpanLabel(props.course.lessons_per_month, props.course.lessons_total));
+/** Программа на один месяц: взнос за месяц и есть взнос за курс. */
+const singleMonth = computed(() => Number(props.course.course_months) === 1);
+/** Полный взнос за весь курс: разом со скидкой, а когда разом не принимается — сумма помесячных. */
+const feeCourse = computed(() => props.course.fee_course ?? props.course.fee_course_base ?? null);
 
 /** Выгода взноса за весь курс против помесячного за те же месяцы, целые проценты; ноль — значок не нужен. */
 const saving = computed(() => {

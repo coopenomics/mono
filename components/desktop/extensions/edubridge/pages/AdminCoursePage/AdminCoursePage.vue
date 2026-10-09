@@ -16,7 +16,7 @@
         .edu-course__buttons
           //- «Изменить» — слева и обычная; справа главное действие над публикацией курса.
           BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
-          BaseButton(v-if="published" variant="primary" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
+          BaseButton(v-if="published" variant="danger" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
           BaseButton(v-else variant="primary" :loading="busy" @click="setStatus(Zeus.EduCourseStatus.PUBLISHED)") {{ $t('edubridge.adminCoursePage.publishButton') }}
           //- Отмена набора и удаление — решения с последствиями, поэтому они лежат
           //- под кнопкой «ещё», а не рядом с обычными действиями. Меню — в слоте
@@ -32,10 +32,12 @@
                   q-item(clickable v-close-popup :disable="deleting" @click="removeCourse")
                     q-item-section.text-negative {{ $t('edubridge.adminCoursePage.deleteMenuItem') }}
       //- Числа курса — те же и в том же порядке, что видит ученик в каталоге.
-      StatTile(:caption="$t('edubridge.course.feeMonthCaption')")
+      //- У программы на месяц взнос один — «за курс». У длинной рядом с месячным стоит полный
+      //- взнос за весь курс: разом со скидкой либо сумма помесячных.
+      StatTile(:caption="Number(course.course_months) === 1 ? $t('edubridge.course.feeWholeCaption') : $t('edubridge.course.feeMonthCaption')")
         FeeAmount(:value="course.fee_month" size="lg")
-      StatTile(v-if="course.fee_course" :caption="$t('edubridge.course.feeCourseCaption')")
-        FeeAmount(:value="course.fee_course" size="lg")
+      StatTile(v-if="Number(course.course_months) > 1 && (course.fee_course || course.fee_course_base)" :caption="course.fee_course ? $t('edubridge.course.feeCourseCaption') : $t('edubridge.course.feeCourseTotalCaption')")
+        FeeAmount(:value="course.fee_course ?? course.fee_course_base ?? ''" size="lg")
       StatTile(:value="course.lessons_per_month" :caption="$t('edubridge.course.lessonsPerMonthCaption', { minutes: course.lesson_minutes }, Number(course.lessons_per_month))")
       StatTile(:value="course.lessons_total" :caption="$t('edubridge.course.lessonsTotalCaption', Number(course.lessons_total))")
 

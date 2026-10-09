@@ -12,7 +12,7 @@
     row-key="username"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="680px"
+    min-width="760px"
     @row-click="open"
   )
     template(#cell-member="{ row }")
@@ -122,9 +122,9 @@ const { confirm } = useConfirm();
 
 const columns: BaseTableColumn<IMemberRow>[] = [
   { key: 'member', label: i18nT('edubridge.adminMembersPage.column.member') },
-  { key: 'learners_count', label: i18nT('edubridge.adminMembersPage.column.learnersCount'), numeric: true, width: '130px', sortable: true },
+  { key: 'learners_count', label: i18nT('edubridge.adminMembersPage.column.learnersCount'), numeric: true, width: '170px', sortable: true },
   // Сортировка по подпискам поднимает наверх учеников без подписок: их аккаунты на площадках можно удалить.
-  { key: 'active_enrollments', label: i18nT('edubridge.adminMembersPage.column.activeEnrollments'), numeric: true, width: '130px', sortable: true },
+  { key: 'active_enrollments', label: i18nT('edubridge.adminMembersPage.column.activeEnrollments'), numeric: true, width: '140px', sortable: true },
   { key: 'access', label: i18nT('edubridge.adminMembersPage.column.access'), width: '170px' },
 ];
 const enrollmentColumns: BaseTableColumn<IMemberCard['enrollments'][number]>[] = [

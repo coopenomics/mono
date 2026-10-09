@@ -84,7 +84,7 @@ export class EduCatalogCourseDTO {
   @Field(() => String, { nullable: true, description: 'Членский взнос за весь курс разом; пусто — принимается только помесячный взнос' })
   fee_course!: string | null;
 
-  @Field(() => String, { nullable: true, description: 'Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом' })
+  @Field(() => String, { nullable: true, description: 'Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы' })
   fee_course_base!: string | null;
 
   @Field(() => String, { nullable: true, description: 'На сколько взнос разом меньше суммы помесячных' })
@@ -108,7 +108,8 @@ export class EduCatalogCourseDTO {
     // Взнос разом — месячный за месяцы курса со скидкой; тем же расчётом его берёт подписка.
     const full = e.course_payment_enabled && this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, e.course_discount_bp / 100) : null;
     this.fee_course = full?.amount ?? null;
-    this.fee_course_base = full?.base ?? null;
+    // Полный взнос за программу виден всегда — и когда взнос принимается только помесячно.
+    this.fee_course_base = this.course_months > 0 ? feeForMonths(e.fee_month, this.course_months, 0).base : null;
     this.course_discount_amount = full?.discount ?? null;
   }
 }
