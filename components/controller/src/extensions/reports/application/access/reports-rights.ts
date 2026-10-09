@@ -67,7 +67,26 @@ export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
       { title: t('reports.roles.accountant.permissions.requisitesEdit'), access: 'write', rights: ['ReportRequisites:manage'] },
       { title: t('reports.roles.accountant.permissions.calendarMarks'), access: 'write', rights: ['ReportCalendar:manage'] },
       { title: t('reports.roles.accountant.permissions.taxPay'), access: 'write', rights: ['WithheldTax:pay'] },
+      {
+        title: t('reports.roles.accountant.permissions.registries'),
+        access: 'read',
+        rights: ['core/Ledger:read', 'core/Process:read:all'],
+      },
+      {
+        title: t('reports.roles.accountant.permissions.participants'),
+        access: 'read',
+        rights: ['core/Account:read:all', 'core/Wallet:read:all'],
+      },
     ],
+    // Реестры процессов, операций, проводок, кошельков и счетов стол берёт
+    // операциями ядра. Перенос между кошельками (`Ledger:move`) на столе
+    // выключен и роли не выдаётся.
+    coreRights: {
+      Ledger: ['read'],
+      Process: ['read:all'],
+      Account: ['read:all'],
+      Wallet: ['read:all'],
+    },
   },
 ];
 

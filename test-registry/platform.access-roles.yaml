@@ -256,6 +256,25 @@ cases:
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: access.roles.happy.12
+    level: backend
+    kind: happy
+    scenario: бухгалтер открывает реестры процессов, операций, проводок, кошельков и счетов стола бухгалтера
+    expect: данные приходят — роль при объявлении запросила права ядра на чтение бухгалтерии, процессов, кошельков и данных пайщиков, и ядро выдаёт их держателю роли, не зная роли по имени; перенос между кошельками и операции кассира закрыты; после снятия роли бухгалтерия закрыта
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.06
+    level: backend
+    kind: break
+    scenario: приложение объявляет назначаемую роль с ключом роли узла (председатель, член совета, пайщик)
+    expect: узел не запускается; назначение с таким ключом прав председателя и совета в ядре не даёт
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "объявление роли с ключом роли узла останавливает запуск узла — у поднятого стенда такого состояния нет"
+    status: written   # прогон — CI на полигоне ci/tests
+
   - id: access.roles.ui.01
     level: ui
     kind: happy

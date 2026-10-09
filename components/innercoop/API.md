@@ -662,6 +662,7 @@
 - `title: string`
 - `description: string`
 - `permissions: readonly InnerRolePermission[]`
+- `coreRights?: Readonly<Record<string, readonly string[]>>`
 
 ## InnerBankTransferData
 

@@ -69,6 +69,8 @@ export interface CoreStand {
   files?: Record<number, string>;
   /** Назначенные роли: учётное имя → ключи ролей. */
   assigned?: Record<string, string[]>;
+  /** Права ядра, которые запросили роли приложений: роль → ресурс → действия. */
+  coreRights?: Record<string, Record<string, string[]>>;
 }
 
 export function makeGuard(stand: CoreStand = {}) {
@@ -82,7 +84,10 @@ export function makeGuard(stand: CoreStand = {}) {
   };
   const roleAssignments = {
     declare: jest.fn(),
-    rolesOf: jest.fn(async (_app: string, username: string) => stand.assigned?.[username] ?? []),
+    rolesInCore: jest.fn(async (_app: string, username: string) => stand.assigned?.[username] ?? []),
+    coreRows: jest.fn(() =>
+      Object.fromEntries(Object.entries(stand.coreRights ?? {}).map(([role, rights]) => [role, [{ when: [], rights }]]))
+    ),
   };
   const rights = new CoreRights(registry as any, roleAssignments as any, meetRepo as any, paymentRepo as any, fileRepo as any);
   return { pass: guardOver(rights), rights, registry, meetRepo, roleAssignments };

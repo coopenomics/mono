@@ -9,7 +9,7 @@ import {
   type RightsTable,
 } from '@coopenomics/extension-kit';
 import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.registry';
-import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
+import { NODE_ROLE_KEYS, RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { t } from '~/i18n';
 import { MEET_REPOSITORY, type MeetPreProcessingRepository } from '~/domain/meet/repositories/meet-pre.repository';
 import { PAYMENT_REPOSITORY, type PaymentRepository } from '~/domain/gateway/repositories/payment.repository';
@@ -198,9 +198,18 @@ const CORE_DESKTOPS = ['soviet', 'chairman', 'participant'];
  * и права страниц столов ядра.
  */
 @Injectable()
-export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleInit {
+export class CoreRights implements AppRights<string, never>, OnModuleInit {
   readonly extensionName = 'core';
-  readonly table = coreRightsTable;
+
+  /**
+   * Таблица ядра и права ядра, которые запросили роли приложений: страницы
+   * приложения берут часть данных операциями ядра (стол бухгалтера читает
+   * бухгалтерию и кошельки). Строки ядра главнее одноимённых.
+   */
+  get table(): RightsTable<string, never> {
+    return { ...this.roleAssignments.coreRows(), ...coreRightsTable };
+  }
+
   readonly publicGrants = corePublicGrants;
   readonly assignableRoles = coreAssignableRoles;
 
@@ -237,11 +246,12 @@ export class CoreRights implements AppRights<CoreRightsRole, never>, OnModuleIni
    * Роли узла и назначенные председателем. Назначение действует у принятого
    * пайщика: выход из кооператива закрывает доступ без снятия роли.
    */
-  async roles(caller: RightsCaller): Promise<CoreRightsRole[]> {
+  async roles(caller: RightsCaller): Promise<string[]> {
     const node = coreRolesOf(caller);
     if (!node.includes('participant')) return node;
-    const assigned = await this.roleAssignments.rolesOf(CORE_ROLES_APP, caller.username);
-    return [...node, ...(assigned as CoreAssignableRole[])];
+    const assigned = await this.roleAssignments.rolesInCore(CORE_ROLES_APP, caller.username);
+    // Роль узла назначением не получить: её даёт состав совета.
+    return [...node, ...assigned.filter((role) => !NODE_ROLE_KEYS.has(role))];
   }
 
   async locate(kind: string, ids: string[]): Promise<RightFacts[]> {

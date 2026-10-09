@@ -63,7 +63,7 @@ describe('платформа: назначаемые роли и управле�
     // access.roles.happy.11: полномочия роли словами — что читает и что ведёт.
     const access = (key: string) => (roles.find(r => r.key === key)?.permissions as any[]).map(p => p.access).sort()
     expect(access(ROLE)).toEqual(['READ', 'READ', 'WRITE', 'WRITE'])
-    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
+    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
   }, 60_000)
 
   it(caseName('core.acc.happy.12', 'страница управления доступом есть у председателя и закрыта совету и пайщику'), async () => {
@@ -141,6 +141,12 @@ describe('платформа: назначаемые роли и управле�
       const chairmanGrants = await reportsGrants(tokens[CHAIRMAN.account])
       expect(chairmanGrants).toContain('Report:read')
       expect(await reportsGrants(tokens[member.account])).toEqual(expect.arrayContaining(chairmanGrants))
+      // access.roles.happy.12: реестры стола берут данные операциями ядра — бухгалтеру они открыты.
+      for (const name of ['getLedger2Wallets', 'getLedger2History', 'getLedger2Postings', 'getLedger2Accounts', 'processes', 'getAccounts'])
+        expect(await probe.denial(tokens[member.account], name), name).toBeNull()
+      // Перенос между кошельками и операции кассира роль бухгалтера не даёт.
+      expect(await probe.denial(tokens[member.account], 'walmoveWallets')).toBe(NO_RIGHT)
+      expect(await probe.denial(tokens[member.account], 'setPaymentStatus')).toBe(NO_RIGHT)
       // Роль бухгалтера страниц стола совета не открывает.
       expect(await sovietGrants(tokens[member.account])).not.toContain('Agenda:read')
     }
@@ -148,7 +154,8 @@ describe('платформа: назначаемые роли и управле�
       await gql(tokens[CHAIRMAN.account], REVOKE, input(member.account, 'accountant'))
     }
     expect(await reportsGrants(tokens[member.account])).toEqual([])
-  }, 120_000)
+    expect(await probe.denial(tokens[member.account], 'getLedger2Wallets'), 'после снятия роли бухгалтерия закрыта').toBe(NO_RIGHT)
+  }, 240_000)
 
   it(caseName('access.roles.happy.04', 'после снятия роли доступ закрыт, повторное снятие проходит'), async () => {
     const revoked = (await gql<any>(tokens[CHAIRMAN.account], REVOKE, input(member.account))).revokeRole

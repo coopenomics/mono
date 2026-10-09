@@ -1425,7 +1425,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getAccounts": {
     "guest": "deny",
@@ -1442,7 +1442,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getActions": {
     "guest": "deny",
@@ -1816,7 +1816,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLedger2Accounts": {
     "guest": "deny",
@@ -1833,7 +1833,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLedger2History": {
     "guest": "deny",
@@ -1850,7 +1850,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLedger2Postings": {
     "guest": "deny",
@@ -1867,7 +1867,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLedger2Wallets": {
     "guest": "deny",
@@ -1884,7 +1884,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLedgerHistory": {
     "guest": "deny",
@@ -1901,7 +1901,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getLoginFactors": {
     "guest": "deny",
@@ -2122,7 +2122,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getProgramWallets": {
     "guest": "deny",
@@ -2139,7 +2139,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getProviderSubscriptionById": {
     "guest": "deny",
@@ -2411,7 +2411,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "getUserWebPushSubscriptions": {
     "guest": "deny",
@@ -4111,7 +4111,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "processes": {
     "guest": "deny",
@@ -4128,7 +4128,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "searchDocuments": {
     "guest": "deny",
@@ -4162,7 +4162,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "pass"
   },
   "sovietRobotCouncil": {
     "guest": "deny",

@@ -26,6 +26,7 @@ import {
 } from './core-rights.harness';
 
 const FILES = {
+  ledger2: 'ledger2/resolvers/ledger2.resolver.ts',
   meet: 'meet/resolvers/meet.resolver.ts',
   freeDecision: 'free-decision/resolvers/free-decision.resolver.ts',
   decision: 'decision/resolvers/decision.resolver.ts',
@@ -273,7 +274,7 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
   it('назначение действует у принятого пайщика: кандидат с назначенной ролью прав кассира не получает', async () => {
     const { pass, roleAssignments } = makeGuard(CASHIER);
     await expect(pass(requirementOf(FILES.gateway, 'setPaymentStatus'), candidate, { data: { id: '1' } })).rejects.toMatchObject(NO_RIGHT);
-    expect(roleAssignments.rolesOf).not.toHaveBeenCalled();
+    expect(roleAssignments.rolesInCore).not.toHaveBeenCalled();
     expect(await grantsFor(candidate)).not.toContain('Payment:read:all');
   });
 
@@ -312,5 +313,22 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     await expect(pass(requirement, chairman)).resolves.toBe(true);
     await expect(pass(requirement, councilMember)).rejects.toMatchObject(NO_RIGHT);
     await expect(pass(requirement, participant)).rejects.toMatchObject(NO_RIGHT);
+  });
+
+  // access.roles.happy.12
+  it('роль приложения получает в ядре только те права, которые запросила при объявлении', async () => {
+    const stand = { assigned: { ivan: ['accountant'] }, coreRights: { accountant: { Ledger: ['read'] } } };
+    const { pass } = makeGuard(stand);
+    const ledger = requirementOf(FILES.ledger2, 'getLedger2Wallets');
+    await expect(pass(ledger, participant)).resolves.toBe(true);
+    // Перенос между кошельками роль не запрашивала — отказ, как и пайщику без роли.
+    await expect(pass(requirementOf(FILES.ledger2, 'walmoveWallets'), participant)).rejects.toMatchObject(NO_RIGHT);
+    await expect(pass(requirementOf(FILES.gateway, 'setPaymentStatus'), participant, { data: { id: '1' } })).rejects.toMatchObject(NO_RIGHT);
+    await expect(makeGuard().pass(ledger, participant)).rejects.toMatchObject(NO_RIGHT);
+    // access.roles.break.06: назначение с ключом роли узла прав председателя не даёт.
+    const spoof = makeGuard({ assigned: { ivan: ['chairman'] }, coreRights: { chairman: { Ledger: ['read'] } } });
+    expect(spoof.rights.table.chairman).toBe(makeGuard().rights.table.chairman);
+    await expect(spoof.pass(requirementOf(FILES.accessRoles, 'assignRole'), participant)).rejects.toMatchObject(NO_RIGHT);
+    await expect(spoof.pass(ledger, participant)).rejects.toMatchObject(NO_RIGHT);
   });
 });

@@ -28,8 +28,10 @@ describe.each(APPS)('полномочия ролей: %s', (_title, rights) => {
   it.each(roles.map((role) => [role.key, role] as const))('роль %s: перечень словами совпадает с правами таблицы', (_key, role) => {
     const byResource = rightsByRole(rights.table)[role.key] ?? {};
     const inTable = Object.entries(byResource).flatMap(([resource, actions]) => (actions as string[]).map((action) => `${resource}:${action}`));
+    // Права ядра, которые роль запросила, называются в перечне с приставкой `core/`.
+    const inCore = Object.entries(role.coreRights ?? {}).flatMap(([resource, actions]) => actions.map((action) => `core/${resource}:${action}`));
     const named = role.permissions.flatMap((permission) => [...permission.rights]);
-    expect([...named].sort()).toEqual([...new Set(inTable)].sort());
+    expect([...named].sort()).toEqual([...new Set([...inTable, ...inCore])].sort());
     expect(new Set(named).size).toBe(named.length);
   });
 
