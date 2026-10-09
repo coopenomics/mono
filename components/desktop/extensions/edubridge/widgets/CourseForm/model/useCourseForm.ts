@@ -4,7 +4,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { useSystemStore } from 'src/entities/System/model';
 import { asText, fileToBase64, formatToAsset } from 'src/shared/lib/utils';
 import { courseMonthsLabel as courseMonthsText } from '../../../shared/lib/courseMonths';
-import { fetchCourseEconomy, fetchCourseFeePreview, fetchEconomySettings, type ICourseFee } from '../../../entities/Economy';
+import { fetchCourseEconomy, fetchCourseFeePreview, type ICourseFee } from '../../../entities/Economy';
 import {
   CARRIER_LABELS,
   CARRIERS_BY_DIRECTION,
@@ -385,22 +385,6 @@ function useTaxonomy(form: CourseFormFields) {
   return { sectionOptions, levelOptions, pickSection, pickLevel };
 }
 
-/**
- * Целевой членский взнос кооператива — один на все курсы, задаётся в разделе
- * «Экономика». Форма показывает его сразу, до расчёта взноса курса.
- */
-function useMembershipFee() {
-  const markupPercent = ref<number | null>(null);
-  onMounted(async () => {
-    try {
-      markupPercent.value = (await fetchEconomySettings()).markup_percent;
-    } catch (e) {
-      FailAlert(e);
-    }
-  });
-  return { markupPercent };
-}
-
 /** Преподаватели — пайщики с подписанным договором УХД, их может быть несколько. */
 function useTeachers(form: CourseFormFields) {
   const teachers = ref<ITeacherOption[]>([]);
@@ -472,7 +456,6 @@ export function createCourseFormState(course: CourseSource) {
   const access = useAccess(form);
   const teachers = useTeachers(form);
   const taxonomy = useTaxonomy(form);
-  const membershipFee = useMembershipFee();
   const locks = useTermsLocks();
 
   watch(
@@ -512,7 +495,7 @@ export function createCourseFormState(course: CourseSource) {
     }
   }
 
-  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...membershipFee, ...locks, submit };
+  return { symbol, loading, error, form, ...cover, ...economy, ...feePreview, ...access, ...teachers, ...taxonomy, ...locks, submit };
 }
 
 export type CourseFormState = ReturnType<typeof createCourseFormState>;

@@ -28,7 +28,5 @@ export const COURSE_FORM_HELP = {
   skillspaceGroup: t('edubridge.courseFormHelp.skillspaceGroup'),
   skillspaceGroupEmpty: t('edubridge.courseFormHelp.skillspaceGroupEmpty'),
   externalRef: t('edubridge.courseFormHelp.externalRef'),
-  membershipFee:
-    t('edubridge.courseFormHelp.membershipFee'),
   coursePayment: t('edubridge.courseFormHelp.coursePayment'),
 } as const;

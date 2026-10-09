@@ -92,39 +92,29 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         q-icon(name="lock")
       | {{ $t('edubridge.courseForm.termsLockedBanner') }}
 
+    //- Сверху — то, чем курс управляется: два переключателя. Ниже — ставка и,
+    //- когда взнос за весь курс принимается, скидка за него.
     .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.rate') }}
-      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
-        template(#append)
-          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       //- Способ расчёта с преподавателем задаётся при создании курса; при
       //- действующих подписках контракт его менять не даёт.
       .edu-course-form__check
         BaseCheckbox(v-model="payPerLearner")
           | {{ $t('edubridge.courseForm.payPerLearnerCheckbox') }}
         FieldHelp(:text="COURSE_FORM_HELP.payPerLearner")
-      //- Целевой членский взнос один на кооператив: здесь он только виден, а
-      //- меняется в «Экономике» — кнопка ведёт туда, черновик курса сохраняется.
-      .edu-course-form__fee-line
-        .edu-course-form__fee-label {{ $t('edubridge.courseForm.group.membershipFee') }}
-        FieldHelp(:text="COURSE_FORM_HELP.membershipFee")
-        q-space
-        .edu-course-form__fee-value {{ markupPercent === null ? '______' : $t(`edubridge.courseForm.markupPercentLine`, { percent: markupPercent }) }}
-        BaseButton(variant="secondary" size="sm" type="button" @click="openEconomySettings") {{ $t('common.action.edit') }}
-
-    //- Взнос вносят помесячно либо разом за весь курс. Поле скидки стоит на месте
-    //- всегда и лишь включается — форма не прыгает при переключении.
-    .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.courseFee') }}
       .edu-course-form__check
         BaseCheckbox(v-model="coursePayment")
           | {{ $t('edubridge.courseForm.coursePaymentCheckbox') }}
         FieldHelp(:text="coursePaymentHint")
+
+    .edu-course-form__group
+      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       BaseInput(
+        v-if="coursePayment"
         v-model="courseDiscount"
         :label="$t('edubridge.courseForm.courseDiscountLabel')"
         type="number"
-        :disabled="!coursePayment"
         :error="discountError"
       )
         template(#append)
@@ -226,7 +216,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
@@ -290,7 +279,6 @@ const {
   levelOptions,
   pickSection,
   pickLevel,
-  markupPercent,
   teacherOptions,
   teacherName,
   teacherHint,
@@ -301,12 +289,6 @@ const {
 /** Длительность программы — показ рядом с числом занятий; расчёт общий со страницей курса. */
 const programMonths = computed(() => programSpanLabel(lessonsPerMonth.value, lessonsTotal.value) || '______');
 
-const route = useRoute();
-const router = useRouter();
-/** К правке целевого членского взноса — «Экономика», вкладка «Настройки». */
-function openEconomySettings(): void {
-  void router.push({ name: 'edubridge-admin-economy', params: { coopname: route.params.coopname }, query: { tab: 'settings' } });
-}
 
 /** Раздел «Первая группа» — только по своему шагу мастера нового курса: у существующего курса группы ведутся отдельно. */
 const show = (section: CourseFormSection): boolean => (props.section ? props.section === section : section !== 'group');
@@ -368,32 +350,11 @@ defineExpose({ submit: requestSubmit, validate });
   font-weight: 600;
   color: var(--p-ink-2);
 }
-.edu-course-form__fee-line {
-  display: flex;
-  align-items: center;
-  gap: var(--p-3);
-  padding: var(--p-3) var(--p-4);
-  background: var(--p-surface);
-  border: 1px solid var(--p-line);
-  border-radius: var(--p-r-md);
-}
 .edu-course-form__limit {
   font-size: var(--p-fs-body-sm);
   line-height: var(--p-lh-body-sm);
   color: var(--p-ink-3);
   white-space: nowrap;
-}
-.edu-course-form__fee-label {
-  font-size: var(--p-fs-body-sm);
-  line-height: var(--p-lh-body-sm);
-  color: var(--p-ink-2);
-}
-.edu-course-form__fee-value {
-  font-size: var(--p-fs-body);
-  line-height: var(--p-lh-body);
-  font-weight: 600;
-  color: var(--p-ink);
-  font-variant-numeric: tabular-nums;
 }
 .edu-course-form__check {
   display: flex;
