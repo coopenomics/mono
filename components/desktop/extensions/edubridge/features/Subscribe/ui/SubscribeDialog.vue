@@ -1,6 +1,10 @@
 <template lang="pug">
 BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAccess')" size="lg" @update:model-value="(v) => emit('update:modelValue', v)")
   .q-gutter-md
+    BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
+    //- Набор идёт в группу: у курса с несколькими открытыми группами участник выбирает свою.
+    BaseSelect(v-if="groupOptions.length > 1" v-model="groupId" :label="$t('edubridge.subscribeDialog.groupLabel')" :options="groupOptions" required)
+
     //- Кто учится — плитками: добавленные обучающиеся, сам пайщик и «другой человек».
     //- Здесь только выбор: себя пайщик добавляет одним нажатием, данные другого
     //- человека вводятся в отдельном окне — второй кнопки «Добавить» в этом окне нет.
@@ -10,9 +14,6 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
         BaseRadioCard(v-for="l in pool" :key="asText(l.id)" v-model="who" :value="asText(l.id)" :title="l.is_self ? $t('edubridge.learnerForm.whoSelf') : l.display_name" :disabled="addingSelf")
         BaseRadioCard(v-if="!hasSelf" v-model="who" :value="WHO_SELF" :title="$t('edubridge.learnerForm.whoSelf')" :disabled="addingSelf")
         BaseRadioCard(v-model="who" :value="WHO_OTHER" :title="$t('edubridge.learnerForm.whoOther')" :disabled="addingSelf")
-    BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)
-    //- Набор идёт в группу: у курса с несколькими открытыми группами участник выбирает свою.
-    BaseSelect(v-if="groupOptions.length > 1" v-model="groupId" :label="$t('edubridge.subscribeDialog.groupLabel')" :options="groupOptions" required)
 
     //- Два способа внести взнос — рядом, с полными суммами: скидка за взнос
     //- разом видна как разница в рублях. Второй способ есть не у каждого курса.
