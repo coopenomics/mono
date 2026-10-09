@@ -10,6 +10,19 @@
  * спрашивает, какие из них ему назначены.
  */
 
+/**
+ * Полномочие роли словами: что пайщик с этой ролью читает или ведёт.
+ * Показывается председателю на странице управления доступом.
+ */
+export interface InnerRolePermission {
+  /** Что именно: «Реестр платежей кооператива». */
+  title: string;
+  /** `read` — пайщик видит, `write` — пайщик меняет. */
+  access: 'read' | 'write';
+  /** Права таблицы приложения `Ресурс:действие`, которые стоят за полномочием. */
+  rights: readonly string[];
+}
+
 /** Роль, которую приложение даёт назначать пайщикам. */
 export interface InnerAssignableRole {
   /**
@@ -21,6 +34,8 @@ export interface InnerAssignableRole {
   title: string;
   /** Что роль открывает пайщику — одной фразой. */
   description: string;
+  /** Полномочия роли по пунктам: вместе они называют все права роли из таблицы приложения. */
+  permissions: readonly InnerRolePermission[];
 }
 
 export interface IRoleAssignmentsPort {

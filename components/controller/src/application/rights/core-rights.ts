@@ -170,6 +170,12 @@ export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] 
     key: 'cashier',
     title: t('accessRoles.roles.cashier.title'),
     description: t('accessRoles.roles.cashier.description'),
+    permissions: [
+      { title: t('accessRoles.roles.cashier.permissions.registry'), access: 'read', rights: ['Payment:read:all'] },
+      { title: t('accessRoles.roles.cashier.permissions.proofs'), access: 'read', rights: ['PaymentFile:read:all'] },
+      { title: t('accessRoles.roles.cashier.permissions.confirm'), access: 'write', rights: ['Payment:confirm'] },
+      { title: t('accessRoles.roles.cashier.permissions.upload'), access: 'write', rights: ['PaymentFile:upload'] },
+    ],
   },
 ];
 

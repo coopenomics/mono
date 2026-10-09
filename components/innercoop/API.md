@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 301.
+Всего экспортов: 302.
 
 ## ACCOUNT_PORT
 
@@ -661,6 +661,7 @@
 - `key: string`
 - `title: string`
 - `description: string`
+- `permissions: readonly InnerRolePermission[]`
 
 ## InnerBankTransferData
 
@@ -1947,6 +1948,14 @@
 - `outcome: InnerRobotDecisionOutcome`
 - `tx_hash?: string`
 - `detail?: string`
+
+## InnerRolePermission
+
+`interface` · core-ports
+
+- `title: string`
+- `access: 'read' | 'write'`
+- `rights: readonly string[]`
 
 ## InnerRoomMessageKind
 

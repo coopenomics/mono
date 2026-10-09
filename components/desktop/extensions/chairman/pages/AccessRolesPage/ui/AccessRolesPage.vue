@@ -26,6 +26,14 @@
 
     .role-card__description {{ role.description }}
 
+    //- Полномочия роли словами: что пайщик с ролью видит и что меняет.
+    .role-card__permissions
+      .permission-group(v-for='group in permissionGroups(role)', :key='group.access')
+        .role-card__eyebrow {{ group.label }}
+        .permission-row(v-for='permission in group.items', :key='permission.title')
+          q-icon(:name='group.icon', size='16px')
+          span {{ permission.title }}
+
     .role-card__holders
       .role-card__eyebrow {{ $t('chairman.accessRolesPage.holdersLabel', { count: role.assignments.length }) }}
       .role-card__empty(v-if='!role.assignments.length') {{ $t('chairman.accessRolesPage.noHolders') }}
@@ -69,6 +77,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
+import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { Avatar, BaseButton, BaseCard, BaseDialog, CardListSkeleton, EmptyState } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
@@ -92,6 +101,24 @@ const activeHolder = ref<IRoleAssignment | null>(null);
 const selectedUsername = ref<string | undefined>();
 
 const activeHolders = computed(() => activeRole.value?.assignments.map((holder) => holder.username) ?? []);
+
+interface PermissionGroup {
+  access: Zeus.RolePermissionAccess;
+  label: string;
+  icon: string;
+  items: IAssignableRole['permissions'];
+}
+
+// Два перечня: сначала что роль читает, затем что ведёт. Пустой перечень не показывается.
+function permissionGroups(role: IAssignableRole): PermissionGroup[] {
+  const groups: PermissionGroup[] = [
+    { access: Zeus.RolePermissionAccess.READ, label: t('chairman.accessRolesPage.readsLabel'), icon: 'visibility', items: [] },
+    { access: Zeus.RolePermissionAccess.WRITE, label: t('chairman.accessRolesPage.writesLabel'), icon: 'edit', items: [] },
+  ];
+  return groups
+    .map((group) => ({ ...group, items: role.permissions.filter((permission) => permission.access === group.access) }))
+    .filter((group) => group.items.length > 0);
+}
 
 async function load(): Promise<void> {
   try {
@@ -186,6 +213,20 @@ onMounted(load);
     color: var(--p-ink-2);
   }
 
+  &__permissions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--p-5);
+    margin-top: var(--p-4);
+    padding: var(--p-4);
+    border-radius: var(--p-r-md);
+    background: var(--p-surface-2);
+
+    @media (max-width: 768px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
   &__holders {
     display: flex;
     flex-direction: column;
@@ -198,6 +239,24 @@ onMounted(load);
     color: var(--p-ink-3);
     text-transform: uppercase;
     letter-spacing: var(--p-ls-eyebrow);
+  }
+}
+
+.permission-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--p-2);
+}
+
+.permission-row {
+  display: flex;
+  align-items: center;
+  gap: var(--p-2);
+  font-size: var(--p-fs-body-sm);
+  color: var(--p-ink);
+
+  .q-icon {
+    color: var(--p-ink-3);
   }
 }
 

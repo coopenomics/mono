@@ -3370,6 +3370,7 @@ export const AllTypesProps: Record<string,any> = {
 	RoleAssignmentInput:{
 
 	},
+	RolePermissionAccess: "enum" as const,
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -3784,6 +3785,7 @@ export const ReturnTypes: Record<string,any> = {
 		extension_name:"String",
 		extension_title:"String",
 		key:"String",
+		permissions:"RolePermission",
 		title:"String"
 	},
 	AuthSequence:{
@@ -8192,6 +8194,10 @@ export const ReturnTypes: Record<string,any> = {
 		assigned_by:"String",
 		display_name:"String",
 		username:"String"
+	},
+	RolePermission:{
+		access:"RolePermissionAccess",
+		title:"String"
 	},
 	SbpAccount:{
 		phone:"String"

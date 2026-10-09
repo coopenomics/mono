@@ -13,7 +13,7 @@ import type { RightsProbe } from '../rights/probe'
 import { NO_RIGHT, loadRightsProbe } from '../rights/probe'
 
 const ROLE = 'cashier'
-const ROLES_QUERY = 'query{ getAssignableRoles{ key title extension_name assignments{ username assigned_by } } }'
+const ROLES_QUERY = 'query{ getAssignableRoles{ key title extension_name permissions{ title access } assignments{ username assigned_by } } }'
 const ASSIGN = 'mutation($d:RoleAssignmentInput!){ assignRole(data:$d){ key assignments{ username assigned_by } } }'
 const REVOKE = 'mutation($d:RoleAssignmentInput!){ revokeRole(data:$d){ key assignments{ username } } }'
 const DESKTOP = 'query{ getDesktop{ workspaces{ name extension_name grants } } }'
@@ -60,6 +60,10 @@ describe('платформа: назначаемые роли и управле�
     const roles = (await gql<any>(tokens[CHAIRMAN.account], ROLES_QUERY)).getAssignableRoles as any[]
     // access.roles.happy.01, access.roles.happy.08: роль кассира объявлена под столом совета.
     expect(roles.find(r => r.key === ROLE)).toMatchObject({ extension_name: 'soviet', title: expect.any(String) })
+    // access.roles.happy.11: полномочия роли словами — что читает и что ведёт.
+    const access = (key: string) => (roles.find(r => r.key === key)?.permissions as any[]).map(p => p.access).sort()
+    expect(access(ROLE)).toEqual(['READ', 'READ', 'WRITE', 'WRITE'])
+    expect(access('accountant')).toEqual(['READ', 'READ', 'READ', 'READ', 'WRITE', 'WRITE', 'WRITE', 'WRITE'])
   }, 60_000)
 
   it(caseName('core.acc.happy.12', 'страница управления доступом есть у председателя и закрыта совету и пайщику'), async () => {

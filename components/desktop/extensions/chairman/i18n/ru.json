@@ -12,10 +12,12 @@
       "holdersLabel": "Назначена пайщикам: {count}",
       "noHolders": "Роль никому не назначена.",
       "participantLabel": "Пайщик",
+      "readsLabel": "Читает",
       "revokeAction": "Снять",
       "revokeDialogBody": "{name} потеряет доступ, который даёт роль.",
       "revokeDialogTitle": "Снять роль «{role}»",
-      "revokedMessage": "Роль снята"
+      "revokedMessage": "Роль снята",
+      "writesLabel": "Ведёт"
     },
     "agendaPresets": {
       "proposalCreatedMessage": "Предложение повестки успешно создано"

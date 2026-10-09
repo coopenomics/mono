@@ -6,8 +6,8 @@ import { Workflows } from '@coopenomics/notifications';
 import { AccessRolesService } from '~/application/access-roles/access-roles.service';
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 
-const CASHIER = { key: 'cashier', title: 'Кассир', description: 'Видит реестр платежей' };
-const ACCOUNTANT = { key: 'accountant', title: 'Бухгалтер', description: 'Ведёт стол бухгалтера' };
+const CASHIER = { key: 'cashier', title: 'Кассир', description: 'Видит реестр платежей', permissions: [{ title: 'Реестр платежей', access: 'read' as const, rights: ['Payment:read:all'] }] };
+const ACCOUNTANT = { key: 'accountant', title: 'Бухгалтер', description: 'Ведёт стол бухгалтера', permissions: [] };
 
 interface Row {
   username: string;
@@ -147,6 +147,8 @@ describe('перечень ролей', () => {
     const roles = await service.list();
     expect(roles.map((role) => role.key)).toEqual(['cashier', 'accountant']);
     expect(roles[0]).toMatchObject({ key: 'cashier', title: 'Кассир', extension_name: 'soviet' });
+    // access.roles.happy.11: полномочия роли отдаются словами с видом доступа, права таблицы наружу не уходят.
+    expect(roles[0].permissions).toEqual([{ title: 'Реестр платежей', access: 'read' }]);
     expect(roles[0].assignments.map((row) => row.username)).toEqual(['ivan', 'petr']);
   });
 

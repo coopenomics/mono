@@ -7,8 +7,8 @@
  */
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 
-const CASHIER = { key: 'cashier', title: 'Кассир', description: 'Видит реестр платежей' };
-const STOREKEEPER = { key: 'storekeeper', title: 'Кладовщик', description: 'Ведёт склад' };
+const CASHIER = { key: 'cashier', title: 'Кассир', description: 'Видит реестр платежей', permissions: [{ title: 'Реестр платежей', access: 'read' as const, rights: ['Payment:read:all'] }] };
+const STOREKEEPER = { key: 'storekeeper', title: 'Кладовщик', description: 'Ведёт склад', permissions: [] };
 
 function makeRegistry(active: { username: string; role: string }[] = []) {
   const repository = {

@@ -1,4 +1,24 @@
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, ObjectType, registerEnumType } from '@nestjs/graphql';
+
+/** Вид полномочия роли: пайщик видит или меняет. */
+export enum RolePermissionAccess {
+  READ = 'read',
+  WRITE = 'write',
+}
+
+registerEnumType(RolePermissionAccess, {
+  name: 'RolePermissionAccess',
+  description: 'Вид полномочия роли: чтение или запись',
+});
+
+@ObjectType('RolePermission', { description: 'Полномочие роли: что пайщик с этой ролью читает или ведёт' })
+export class RolePermissionDTO {
+  @Field(() => String, { description: 'Что именно читает или ведёт пайщик' })
+  title!: string;
+
+  @Field(() => RolePermissionAccess, { description: 'Чтение или запись' })
+  access!: RolePermissionAccess;
+}
 
 @ObjectType('RoleAssignment', { description: 'Пайщик, которому назначена роль' })
 export class RoleAssignmentDTO {
@@ -31,6 +51,9 @@ export class AssignableRoleDTO {
 
   @Field(() => String, { description: 'Название приложения, которое объявило роль' })
   extension_title!: string;
+
+  @Field(() => [RolePermissionDTO], { description: 'Полномочия роли по пунктам' })
+  permissions!: RolePermissionDTO[];
 
   @Field(() => [RoleAssignmentDTO], { description: 'Пайщики с этой ролью' })
   assignments!: RoleAssignmentDTO[];

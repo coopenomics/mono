@@ -58,6 +58,16 @@ export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
     key: 'accountant',
     title: t('reports.roles.accountant.title'),
     description: t('reports.roles.accountant.description'),
+    permissions: [
+      { title: t('reports.roles.accountant.permissions.reports'), access: 'read', rights: ['Report:read'] },
+      { title: t('reports.roles.accountant.permissions.requisites'), access: 'read', rights: ['ReportRequisites:read'] },
+      { title: t('reports.roles.accountant.permissions.calendar'), access: 'read', rights: ['ReportCalendar:read'] },
+      { title: t('reports.roles.accountant.permissions.tax'), access: 'read', rights: ['WithheldTax:read'] },
+      { title: t('reports.roles.accountant.permissions.drafts'), access: 'write', rights: ['Report:draft', 'Report:generate'] },
+      { title: t('reports.roles.accountant.permissions.requisitesEdit'), access: 'write', rights: ['ReportRequisites:manage'] },
+      { title: t('reports.roles.accountant.permissions.calendarMarks'), access: 'write', rights: ['ReportCalendar:manage'] },
+      { title: t('reports.roles.accountant.permissions.taxPay'), access: 'write', rights: ['WithheldTax:pay'] },
+    ],
   },
 ];
 

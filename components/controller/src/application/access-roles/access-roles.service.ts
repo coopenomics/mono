@@ -13,7 +13,7 @@ import {
 } from '~/domain/access-roles/role-assignment.repository';
 import { USER_REPOSITORY, type UserRepository } from '~/domain/user/repositories/user.repository';
 import { AppRegistry } from '~/extensions/extensions.registry';
-import type { AssignableRoleDTO, RoleAssignmentDTO } from './dto/assignable-role.dto';
+import { RolePermissionAccess, type AssignableRoleDTO, type RoleAssignmentDTO } from './dto/assignable-role.dto';
 import type { RoleAssignmentInputDTO } from './dto/role-assignment-input.dto';
 import { RoleAssignmentsRegistry, type DeclaredRole } from './role-assignments.registry';
 
@@ -104,6 +104,10 @@ export class AccessRolesService {
       description: role.description,
       extension_name: role.extensionName,
       extension_title: this.appTitle(role.extensionName),
+      permissions: role.permissions.map((permission) => ({
+        title: permission.title,
+        access: permission.access === 'write' ? RolePermissionAccess.WRITE : RolePermissionAccess.READ,
+      })),
       assignments,
     };
   }

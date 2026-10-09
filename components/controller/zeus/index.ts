@@ -1821,6 +1821,8 @@ export type ValueTypes = {
 	extension_title?:boolean | `@${string}`,
 	/** Ключ роли */
 	key?:boolean | `@${string}`,
+	/** Полномочия роли по пунктам */
+	permissions?:ValueTypes["RolePermission"],
 	/** Название роли */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`,
@@ -15025,6 +15027,17 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Учётное имя пайщика */
 	username: string | Variable<any, string>
 };
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: AliasType<{
+	/** Чтение или запись */
+	access?:boolean | `@${string}`,
+	/** Что именно читает или ведёт пайщик */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RolePermission']?: Omit<ValueTypes["RolePermission"], "...on RolePermission">
+}>;
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]:RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -17090,6 +17103,8 @@ export type ResolverInputTypes = {
 	extension_title?:boolean | `@${string}`,
 	/** Ключ роли */
 	key?:boolean | `@${string}`,
+	/** Полномочия роли по пунктам */
+	permissions?:ResolverInputTypes["RolePermission"],
 	/** Название роли */
 	title?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
@@ -29912,6 +29927,16 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Учётное имя пайщика */
 	username: string
 };
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: AliasType<{
+	/** Чтение или запись */
+	access?:boolean | `@${string}`,
+	/** Что именно читает или ведёт пайщик */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]:RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -31926,6 +31951,8 @@ export type ModelTypes = {
 	extension_title: string,
 	/** Ключ роли */
 	key: string,
+	/** Полномочия роли по пунктам */
+	permissions: Array<ModelTypes["RolePermission"]>,
 	/** Название роли */
 	title: string
 };
@@ -44784,6 +44811,14 @@ export type ModelTypes = {
 	/** Учётное имя пайщика */
 	username: string
 };
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: {
+		/** Чтение или запись */
+	access: ModelTypes["RolePermissionAccess"],
+	/** Что именно читает или ведёт пайщик */
+	title: string
+};
+	["RolePermissionAccess"]:RolePermissionAccess;
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
@@ -46785,6 +46820,8 @@ export type GraphQLTypes = {
 	extension_title: string,
 	/** Ключ роли */
 	key: string,
+	/** Полномочия роли по пунктам */
+	permissions: Array<GraphQLTypes["RolePermission"]>,
 	/** Название роли */
 	title: string,
 	['...on AssignableRole']: Omit<GraphQLTypes["AssignableRole"], "...on AssignableRole">
@@ -60520,6 +60557,17 @@ export type GraphQLTypes = {
 	/** Учётное имя пайщика */
 	username: string
 };
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: {
+	__typename: "RolePermission",
+	/** Чтение или запись */
+	access: GraphQLTypes["RolePermissionAccess"],
+	/** Что именно читает или ведёт пайщик */
+	title: string,
+	['...on RolePermission']: Omit<GraphQLTypes["RolePermission"], "...on RolePermission">
+};
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]: RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -62717,6 +62765,11 @@ export enum RobotVoteMode {
 	AUTO = "AUTO",
 	FOLLOW = "FOLLOW"
 }
+/** Вид полномочия роли: чтение или запись */
+export enum RolePermissionAccess {
+	READ = "READ",
+	WRITE = "WRITE"
+}
 /** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 export enum RoomMessageKind {
 	AUDIO = "AUDIO",
@@ -63388,6 +63441,7 @@ type ZEUS_VARIABLES = {
 	["RobotRetryDecisionInput"]: ValueTypes["RobotRetryDecisionInput"];
 	["RobotVoteMode"]: ValueTypes["RobotVoteMode"];
 	["RoleAssignmentInput"]: ValueTypes["RoleAssignmentInput"];
+	["RolePermissionAccess"]: ValueTypes["RolePermissionAccess"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];

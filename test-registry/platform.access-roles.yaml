@@ -247,6 +247,15 @@ cases:
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
+  - id: access.roles.happy.11
+    level: backend
+    kind: happy
+    scenario: председатель открывает карточку роли на странице управления доступом
+    expect: видит полномочия роли словами в двух перечнях — что роль читает и что ведёт; перечень называет все права роли из таблицы прав приложения и ничего сверх них
+    test: components/controller/tests/unit/access-roles/role-permissions.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
   - id: access.roles.ui.01
     level: ui
     kind: happy

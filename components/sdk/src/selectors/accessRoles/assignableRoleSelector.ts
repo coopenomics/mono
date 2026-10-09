@@ -7,6 +7,10 @@ const rawAssignableRoleSelector = {
   description: true,
   extension_name: true,
   extension_title: true,
+  permissions: {
+    title: true,
+    access: true,
+  },
   assignments: {
     username: true,
     display_name: true,
