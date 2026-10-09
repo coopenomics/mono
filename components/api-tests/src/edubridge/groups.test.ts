@@ -212,6 +212,20 @@ describe('Образование: группы курса и расчёт зан
       expect(moved).toMatchObject({ starts_at: dayFromNow(30), enrollment_open: true })
     })
 
+    it(caseName('edu.enroll.side.32', 'дата начала у курса — ближайшая группа с открытым набором'), async () => {
+      const { course } = await create({ starts_at: dayFromNow(30) })
+      const startOf = async (): Promise<string> => (await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.starts_at
+      const [first] = await groupsOf(course.id)
+      const second = (await gql<any>(chairman, CREATE_GROUP, { d: { course_id: course.id, starts_at: dayFromNow(45) } })).edubridgeCreateGroup
+      expect(await startOf()).toBe(dayFromNow(30))
+      // Первая группа перенесена дальше второй — курс показывает день второй.
+      await gql(chairman, UPDATE_GROUP, { d: { id: first.id, starts_at: dayFromNow(60) } })
+      expect(await startOf()).toBe(dayFromNow(45))
+      // Набор во вторую закрыт — ближайшей открытой остаётся первая.
+      await gql(chairman, UPDATE_GROUP, { d: { id: second.id, enrollment_open: false } })
+      expect(await startOf()).toBe(dayFromNow(60))
+    })
+
     it(caseName('edu.enroll.side.31', 'срок программы группы вышел, действующих подписок нет — группа завершена сама, записи в неё нет'), async () => {
       // 32 занятия по 8 в месяц — четыре месяца; начало полгода назад.
       const created = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: dayFromNow(-200), guarantee_days: 0 }) })).edubridgeCreateCourse

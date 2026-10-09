@@ -36,11 +36,13 @@ function make(opts: { groups?: any[]; enrollments?: any[]; lessons?: any[]; cour
       return g;
     }),
   } as any;
-  const courses = { findById: jest.fn(async () => opts.course ?? course), listAll: jest.fn(async () => [opts.course ?? course]) } as any;
+  // Запись курса своя на каждый случай: служба правит у неё дату начала по группам.
+  const record = { ...(opts.course ?? course) };
+  const courses = { findById: jest.fn(async () => record), listAll: jest.fn(async () => [record]), save: jest.fn(async (c: any) => c) } as any;
   const enrollments = { findByGroup: jest.fn(async () => opts.enrollments ?? []) } as any;
   const lessons = { findByGroup: jest.fn(async () => opts.lessons ?? []) } as any;
   const chainTerms = { pushCourse: jest.fn(async () => undefined), tryPushCourse: jest.fn(async () => true) } as any;
-  return { service: new EdubridgeGroupService(groups, courses, enrollments, lessons, chainTerms, logger), store, chainTerms, groups };
+  return { service: new EdubridgeGroupService(groups, courses, enrollments, lessons, chainTerms, logger), store, chainTerms, groups, record, courses };
 }
 
 const group = (extra: Record<string, unknown> = {}) => ({
@@ -123,6 +125,26 @@ describe('EdubridgeGroupService — группа как единица расч�
     const moved = make({ groups: [group({ starts_at: '2026-09-01' })] });
     await moved.service.list('voskhod', 'C1');
     await expect(moved.service.update('voskhod', { id: 'G1', starts_at: '2099-01-10' })).resolves.toMatchObject({ starts_at: '2099-01-10', enrollment_open: true, enrollment_closed_on_start: false });
+  });
+
+  it('дата начала у курса — ближайшая группа с открытым набором; без набора — самая поздняя дата идущих групп', async () => {
+    const two = make({ groups: [group({ starts_at: '2026-09-01' }), group({ id: 'G2', chain_ref: '1001', starts_at: '2099-03-01' })] });
+    // Вторая группа перенесена ближе: курс показывает её день, начавшаяся первая набор уже закрыла.
+    await two.service.update('voskhod', { id: 'G2', starts_at: '2099-02-01' });
+    expect(two.record.starts_at).toBe('2099-02-01');
+    expect(two.courses.save).toHaveBeenCalled();
+    // Набор во вторую закрыт администратором — открытых групп нет, остаётся самая поздняя дата.
+    await two.service.update('voskhod', { id: 'G2', enrollment_open: false });
+    expect(two.record.starts_at).toBe('2099-02-01');
+  });
+
+  it('группа на площадке, заданная в панели группы, переживает правку курса; смена курса площадки привязку меняет', async () => {
+    const kept = make({ groups: [group({ external_ref: 'course-uuid:group-b' })] });
+    await kept.service.applyCourseTerms('voskhod', { ...course, external_ref: 'course-uuid:group-a' });
+    expect(kept.store[0].external_ref).toBe('course-uuid:group-b');
+    const moved = make({ groups: [group({ external_ref: 'course-uuid:group-b' })] });
+    await moved.service.applyCourseTerms('voskhod', { ...course, external_ref: 'other-course' });
+    expect(moved.store[0].external_ref).toBe('other-course');
   });
 
   it('условия курса изменены: группа без взносов и занятий берёт новые, группа с участниками остаётся на прежних', async () => {

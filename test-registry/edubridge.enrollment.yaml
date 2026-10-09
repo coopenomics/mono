@@ -531,6 +531,14 @@ cases:
     test: components/controller/tests/unit/edubridge/group.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written
+  - id: edu.enroll.side.32
+    level: backend
+    kind: side
+    scenario: "У курса несколько групп; дата начала группы перенесена либо набор в группу закрыт. Курс правится после того, как группе в её панели назначена группа площадки."
+    expect: "Дата начала у курса — день ближайшей группы с открытым набором, без набора — самая поздняя дата идущих групп. Группа площадки, заданная у группы, правкой курса не затирается; смена курса площадки привязку меняет."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

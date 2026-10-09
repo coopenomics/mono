@@ -70,17 +70,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.programMonths")
 
-    .edu-course-form__group
-      .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
+      //- Дата начала занятий — у группы: она задаётся на шаге «Первая группа» и в панели группы.
       .edu-course-form__pair
-        BaseInput(
-          v-model="form.starts_at"
-          :label="$t('edubridge.courseForm.startsAtLabel')"
-          type="date"
-          stack-label
-        )
-          template(#append)
-            FieldHelp(:text="COURSE_FORM_HELP.startsAt")
         BaseInput(
           v-model="guaranteeDays"
           :label="$t('edubridge.courseForm.guaranteeDaysLabel')"
@@ -88,6 +79,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         )
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.guaranteeDays")
+        //- Пустая ячейка держит поле в половину ряда, как у полей выше.
+        div
 
   //- Взнос не вводится руками: он складывается из часов занятий по плановой
   //- ставке и целевого членского взноса кооператива. Итог расчёта стоит первым
@@ -173,7 +166,26 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       )
         template(#append)
           FieldHelp(:text="platformCourses.length ? COURSE_FORM_HELP.skillspaceCourse : COURSE_FORM_HELP.skillspaceCourseEmpty")
+    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" :label="$t('edubridge.courseForm.externalRefLabel')" mono required)
+      template(#append)
+        FieldHelp(:text="COURSE_FORM_HELP.externalRef")
+
+  //- Первая группа заводится вместе с курсом: её дата начала и группа площадки.
+  //- Шаг есть только у нового курса; дальше группы ведутся на странице курса.
+  section.edu-course-form__section(v-if="show('group')")
+    .edu-course-form__legend(v-if="!section") {{ $t('edubridge.courseForm.section.group') }}
+    .t-sm.t-muted {{ $t('edubridge.courseForm.firstGroupNote') }}
+    .edu-course-form__pair
+      BaseInput(
+        v-model="form.starts_at"
+        :label="$t('edubridge.courseForm.startsAtLabel')"
+        type="date"
+        stack-label
+      )
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.startsAt")
       BaseSelect(
+        v-if="isSkillspace"
         v-model="skillspaceGroupId"
         :label="$t('edubridge.courseForm.skillspaceGroupLabel')"
         :options="platformGroupOptions"
@@ -182,9 +194,6 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
       )
         template(#append)
           FieldHelp(:text="platformGroupOptions.length ? COURSE_FORM_HELP.skillspaceGroup : COURSE_FORM_HELP.skillspaceGroupEmpty")
-    BaseInput(v-else-if="isPlatform" v-model="form.external_ref" :label="$t('edubridge.courseForm.externalRefLabel')" mono required)
-      template(#append)
-        FieldHelp(:text="COURSE_FORM_HELP.externalRef")
 
   //- Назначенные преподаватели идут списком имён, а выбор — строкой под ним.
   section.edu-course-form__section(v-if="show('teachers')")
@@ -299,7 +308,8 @@ function openEconomySettings(): void {
   void router.push({ name: 'edubridge-admin-economy', params: { coopname: route.params.coopname }, query: { tab: 'settings' } });
 }
 
-const show = (section: CourseFormSection): boolean => !props.section || props.section === section;
+/** Раздел «Первая группа» — только по своему шагу мастера нового курса: у существующего курса группы ведутся отдельно. */
+const show = (section: CourseFormSection): boolean => (props.section ? props.section === section : section !== 'group');
 
 async function submit(): Promise<void> {
   emit('busy', true);

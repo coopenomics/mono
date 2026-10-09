@@ -77,16 +77,28 @@ export class EdubridgeGroupService {
    * подписок нет, группа завершена.
    */
   private async closeStarted(groups: EdubridgeGroupRecord[]): Promise<EdubridgeGroupRecord[]> {
+    const changed = await this.settle(groups);
+    for (const courseId of changed) await this.syncCourseStart(groups[0].coopname, courseId);
+    return groups;
+  }
+
+  /** Сверка состояния групп с их датами; возвращает курсы, у групп которых что-то изменилось. */
+  private async settle(groups: EdubridgeGroupRecord[]): Promise<Set<string>> {
+    const changed = new Set<string>();
     for (const group of groups) {
       if (group.status !== EduGroupStatus.ACTIVE) continue;
-      if (await this.finishEnded(group)) continue;
+      if (await this.finishEnded(group)) {
+        changed.add(group.course_id);
+        continue;
+      }
       if (group.enrollment_closed_on_start || !hasStarted(group.starts_at)) continue;
       group.enrollment_open = false;
       group.enrollment_closed_on_start = true;
       await this.groups.save(group);
+      changed.add(group.course_id);
       this.logger.info(`Набор в группу «${group.title}» закрыт: занятия начались`);
     }
-    return groups;
+    return changed;
   }
 
   /** Срок программы группы вышел, действующих подписок нет — группа завершена; возвращает, завершена ли. */
@@ -178,6 +190,7 @@ export class EdubridgeGroupService {
     const group = (await this.groups.findById(coopname, stored.id)) ?? stored;
     // Группа с наступившим днём начала открывается уже с закрытым набором.
     await this.closeStarted([group]);
+    await this.syncCourseStart(coopname, course.id);
     await this.chainTerms.pushCourse(this.viewOf(course, group));
     this.logger.info(`Группа «${group.title}» курса «${course.title}» открыта, номер в цепи ${group.chain_ref}`);
     return group;
@@ -200,7 +213,26 @@ export class EdubridgeGroupService {
       // Набор в начавшейся группе задан администратором — сам он больше не закрывается.
       if (hasStarted(group.starts_at)) group.enrollment_closed_on_start = true;
     }
-    return this.groups.save(group);
+    const saved = await this.groups.save(group);
+    await this.syncCourseStart(coopname, group.course_id);
+    return saved;
+  }
+
+  /**
+   * Дата начала занятий у курса — производная от его групп: ближайшая группа
+   * с открытым набором, а когда набора нет — самая поздняя дата идущих групп. Её
+   * показывают каталог и страница курса, чтобы ученик видел день, с которого
+   * может начать.
+   */
+  private async syncCourseStart(coopname: string, courseId: string): Promise<void> {
+    const course = await this.courses.findById(coopname, courseId);
+    if (!course) return;
+    const groups = await this.groups.findByCourse(coopname, courseId);
+    await this.settle(groups);
+    const next = nearestStart(groups);
+    if (sameDay(next, course.starts_at)) return;
+    course.starts_at = next;
+    await this.courses.save(course);
   }
 
   /** Новая дата начала занятий: до первого занятия; от неё идут гарантийный срок и занятия в цепи. */
@@ -227,7 +259,9 @@ export class EdubridgeGroupService {
       Object.assign(group, termsOf(course));
       // Единственная группа курса идёт с его датой начала и привязкой к площадке.
       if (groups.length === 1) {
-        Object.assign(group, { starts_at: course.starts_at, external_ref: course.external_ref });
+        group.starts_at = course.starts_at;
+        // Группа на площадке задаётся в панели группы: привязка курса меняет её, только когда сменился сам курс площадки.
+        if (platformCourseOf(group.external_ref) !== platformCourseOf(course.external_ref)) group.external_ref = course.external_ref;
         reopenBeforeStart(group);
       }
       try {
@@ -294,6 +328,21 @@ function reopenBeforeStart(group: EdubridgeGroupRecord): void {
   if (!group.enrollment_closed_on_start || hasStarted(group.starts_at)) return;
   group.enrollment_closed_on_start = false;
   group.enrollment_open = true;
+}
+
+/** Курс площадки из привязки вида «курс:группа». */
+function platformCourseOf(externalRef: string | null | undefined): string {
+  return String(externalRef ?? '').split(':')[0];
+}
+
+/** Дата начала для показа у курса: ближайшая группа с открытым набором, иначе самая поздняя дата идущих групп. */
+function nearestStart(groups: EdubridgeGroupRecord[]): string | null {
+  const dated = groups.filter((g) => g.status === EduGroupStatus.ACTIVE && g.starts_at).map((g) => ({ open: g.enrollment_open, at: String(g.starts_at) }));
+  const day = (v: string) => new Date(v).getTime();
+  const open = dated.filter((g) => g.open).sort((a, b) => day(a.at) - day(b.at));
+  if (open.length) return open[0].at;
+  const rest = dated.sort((a, b) => day(b.at) - day(a.at));
+  return rest[0]?.at ?? null;
 }
 
 /** Одна ли это дата; `null` и пустая строка — «не назначена». */
