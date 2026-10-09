@@ -92,8 +92,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         q-icon(name="lock")
       | {{ $t('edubridge.courseForm.termsLockedBanner') }}
 
-    //- Сверху — то, чем курс управляется: два переключателя. Ниже — ставка и,
-    //- когда взнос за весь курс принимается, скидка за него.
+    //- Порядок по смыслу расчёта: способ расчёта с преподавателем, ставка,
+    //- затем взнос за весь курс и — когда он принимается — скидка за него.
     .edu-course-form__group
       //- Способ расчёта с преподавателем задаётся при создании курса; при
       //- действующих подписках контракт его менять не даёт.
@@ -101,15 +101,13 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         BaseCheckbox(v-model="payPerLearner")
           | {{ $t('edubridge.courseForm.payPerLearnerCheckbox') }}
         FieldHelp(:text="COURSE_FORM_HELP.payPerLearner")
+      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
+        template(#append)
+          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       .edu-course-form__check
         BaseCheckbox(v-model="coursePayment")
           | {{ $t('edubridge.courseForm.coursePaymentCheckbox') }}
         FieldHelp(:text="coursePaymentHint")
-
-    .edu-course-form__group
-      BaseInput(v-model="plannedRate" :label="$t('edubridge.courseForm.plannedRateLabel')" type="number" :suffix="symbol" required)
-        template(#append)
-          FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       BaseInput(
         v-if="coursePayment"
         v-model="courseDiscount"
