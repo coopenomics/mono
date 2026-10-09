@@ -328,4 +328,3 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     await expect(pass(requirementOf(FILES.ledger2, 'getLedger2Wallets'), participant)).rejects.toMatchObject(NO_RIGHT);
   });
 });
-});
