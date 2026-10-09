@@ -157,6 +157,7 @@ public:
    */
   [[eosio::action]] void regstatement(eosio::name coopname,
                                       eosio::name username,
+                                      checksum256 sub_hash,
                                       document2 statement);
 
   /**

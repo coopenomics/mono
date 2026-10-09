@@ -79,8 +79,10 @@ describe('EdubridgeChainAdapter — состав транзакций подпи
 
   it('оплата целиком с кошелька программы: заявление публикует regstatement', async () => {
     const { adapter, chain } = make();
-    await adapter.convertAndSubscribe(null, open, charge, { statement: { coopname: 'voskhod', username: 'ant', statement: doc({ b: 2 }) } as any });
+    await adapter.convertAndSubscribe(null, open, charge, { statement: { coopname: 'voskhod', username: 'ant', sub_hash: 'S', statement: doc({ b: 2 }) } as any });
     expect(names(chain)).toEqual(['regstatement', 'opensub', 'chargefee']);
+    // Заявление несёт хэш подписки: реестр процессов находит его по этому хэшу.
+    expect(chain.transact.mock.calls[0][0][0].data.sub_hash).toBe('S');
     expect(chain.transact.mock.calls[0][0][0].data.statement.meta).toBe('{"b":2}');
   });
 

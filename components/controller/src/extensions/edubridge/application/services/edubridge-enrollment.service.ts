@@ -595,7 +595,7 @@ export class EdubridgeEnrollmentService {
       statement_hash: document.hash,
     };
     return this.chain.convertAndSubscribe(convert as never, open, charge, {
-      statement: convert ? undefined : { coopname, username: member, statement: document as never },
+      statement: convert ? undefined : { coopname, username: member, sub_hash: plan.subHash, statement: document as never },
     });
   }
 

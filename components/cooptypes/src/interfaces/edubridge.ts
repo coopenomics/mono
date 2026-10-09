@@ -94,6 +94,8 @@ export interface IUnlockfee {
 export interface IRegstatement {
   coopname: IName
   username: IName
+  /** Хэш подписки — хэш процесса доступа к курсу: заявление публикуется в его пакете. */
+  sub_hash: IChecksum256
   statement: IDocument2
 }
 

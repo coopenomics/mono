@@ -4,7 +4,8 @@
  * Обычно заявление (шаблон 3011) публикует `convert`. Когда взнос за период
  * полностью покрыт остатком кошелька программы участника, конвертации нет —
  * и подписанное заявление публикуется этим действием в той же транзакцией,
- * что открытие либо продление подписки. Движений средств нет.
+ * что открытие либо продление подписки. Движений средств нет. Заявление
+ * публикуется пакетом процесса подписки (package = sub_hash), как и в `convert`.
  *
  * Guards:
  *  - заявление не пустое и подписано ключом самого пайщика;
@@ -14,6 +15,7 @@
  */
 void edubridge::regstatement(eosio::name coopname,
                              eosio::name username,
+                             checksum256 sub_hash,
                              document2 statement) {
   require_auth(coopname);
 
@@ -26,5 +28,5 @@ void edubridge::regstatement(eosio::name coopname,
 
   Soviet::make_complete_document(_edubridge, coopname, username,
                                  "regstatement"_n,
-                                 statement.hash, statement);
+                                 sub_hash, statement);
 }

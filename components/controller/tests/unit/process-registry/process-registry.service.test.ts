@@ -323,6 +323,37 @@ describe('ProcessRegistryService.getProcess', () => {
       expect(view.documents[0].hash).toBe('c'.repeat(64));
     });
 
+    test('(h1e) заявление из edubridge::convert и edubridge::regstatement попадает в документы доступа к курсу', async () => {
+      // Конвертация и публикация заявления несут хэш подписки параметром `sub_hash`:
+      // по нему реестр находит действие, а заявление берёт из его поля `statement`.
+      const feeAnchor = makeAction({
+        account: 'ledger2',
+        name: 'apply',
+        data: { operation_code: 'o.edu.fee', process_hash: HASH, coopname: COOP, username: 'learner' },
+        block_num: 100 as any,
+        global_sequence: '12',
+      });
+      const subscription = makeDelta({ code: 'edubridge', table: 'edusubs', value: { sub_hash: HASH, coopname: COOP }, block_num: 100 as any });
+      for (const name of ['convert', 'regstatement']) {
+        const publish = makeAction({
+          account: 'edubridge',
+          name,
+          data: { coopname: COOP, username: 'learner', sub_hash: HASH.toUpperCase(), statement: signedDoc('e'.repeat(64), 1) },
+          block_num: 100 as any,
+          global_sequence: '11',
+        });
+        const queries: ProcessDocumentActionsQuery[] = [];
+        const svc = makeService({ actions: [feeAnchor], entityDeltasPerLocation: [[subscription]], linkedActions: [publish], documentQueries: queries });
+        const view = await svc.getProcess(HASH, COOP);
+
+        expect(view.process_type).toBe('p.edu.access');
+        expect(view.documents).toHaveLength(1);
+        expect(view.documents[0].source).toEqual({ code: 'edubridge', table: name, field: 'statement', primary_key: '11' });
+        // Действие ищется в блоке самой подписки: конвертация, взнос и заявление — одна транзакция.
+        expect(queries[0]).toMatchObject({ hash: HASH, coopname: COOP, fromBlock: 100, toBlock: 100 });
+      }
+    });
+
     test('(h2) один документ из дельты и из действия — одна запись с максимумом подписей', async () => {
       const docHash = 'd'.repeat(64);
       const order = makeDelta({
