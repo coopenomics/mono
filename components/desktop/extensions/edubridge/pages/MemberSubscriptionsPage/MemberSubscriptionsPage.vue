@@ -13,7 +13,7 @@
 
   ReturnToShareCard.q-mb-md(:key="walletRev")
 
-  //- Подписки — реестр: базовая таблица из четырёх столбцов, которая помещается
+  //- Подписки — реестр: базовая таблица из пяти столбцов, которая помещается
   //- и при узком окне. Строка открывает правую панель; «Продлить» — в строке.
   BaseTable(
     v-if="firstLoad || enrollments.length"
@@ -22,7 +22,7 @@
     row-key="id"
     :loading="firstLoad"
     :clickable-rows="true"
-    min-width="700px"
+    min-width="820px"
     @row-click="openDetails"
   )
     template(#cell-course_title="{ row }")
@@ -36,9 +36,10 @@
       //- Сколько осталось — когда срок подходит: взнос вносится заново на каждый период.
       .edu-subs__due(v-if="isRenewSoon(row)") {{ $t('edubridge.memberSubscriptionsPage.daysLeft', { n: daysLeft(row.paid_until) }, Number(daysLeft(row.paid_until))) }}
     template(#cell-status="{ row }")
-      .edu-subs__state
-        BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
-        BaseBadge(:variant="accessOf(row.access_state).variant") {{ accessOf(row.access_state).label }}
+      BaseBadge(:variant="statusOf(row.status).variant") {{ statusOf(row.status).label }}
+    //- Под заголовком «Доступ» состояние названо одним словом.
+    template(#cell-access_state="{ row }")
+      BaseBadge(:variant="accessOf(row.access_state).variant") {{ $t(`edubridge.access.short.${row.access_state}`) }}
     //- «Продлить» нажимают каждый период — кнопка в строке; остальные действия — в панели.
     template(#cell-actions="{ row }")
       BaseButton(v-if="isActive(row)" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
@@ -168,7 +169,8 @@ const formatDate = (v: unknown) => new Date(v instanceof Date ? v : String(v)).t
 const columns: BaseTableColumn<IEnrollment>[] = [
   { key: 'course_title', label: t('edubridge.memberSubscriptionsPage.columns.course') },
   { key: 'paid_until', label: t('edubridge.memberSubscriptionsPage.columns.paidUntil'), width: '150px', nowrap: true },
-  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '180px', nowrap: true },
+  { key: 'status', label: t('edubridge.memberSubscriptionsPage.columns.status'), width: '130px', nowrap: true },
+  { key: 'access_state', label: t('edubridge.memberSubscriptionsPage.columns.access'), width: '150px', nowrap: true },
   { key: 'actions', label: '', align: 'right', width: '130px', nowrap: true },
 ];
 const refundReason = (r: string) => REFUND_REASON_LABELS[r] ?? r;
@@ -283,12 +285,6 @@ onMounted(load);
 .edu-subs__due {
   font-size: var(--p-fs-meta, 12px);
   color: var(--p-warn);
-}
-.edu-subs__state {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--p-1);
 }
 /* Панель подписки. */
 .edu-sub__badges {

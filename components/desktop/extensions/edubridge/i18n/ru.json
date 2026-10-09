@@ -1,6 +1,13 @@
 {
   "edubridge": {
     "access": {
+      "short": {
+        "GRANTED": "Выдан",
+        "NEEDS_ATTENTION": "Требует внимания",
+        "NONE": "Нет",
+        "PENDING": "Выдаётся",
+        "REVOKED": "Отозван"
+      },
       "status": {
         "GRANTED": "Доступ выдан",
         "NEEDS_ATTENTION": "Требует внимания",
@@ -825,7 +832,8 @@
       "columns": {
         "course": "Курс",
         "paidUntil": "Оплачено до",
-        "status": "Подписка и доступ"
+        "status": "Подписка",
+        "access": "Доступ"
       },
       "daysLeft": "остался {n} день | осталось {n} дня | осталось {n} дней",
       "details": {
