@@ -3217,6 +3217,31 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
 		},
+		reportsLedgerAccounts:{
+
+		},
+		reportsLedgerHistory:{
+			input:"GetLedger2HistoryInput"
+		},
+		reportsLedgerPostings:{
+			input:"GetLedger2PostingsInput"
+		},
+		reportsLedgerWallets:{
+
+		},
+		reportsParticipantWallets:{
+
+		},
+		reportsProcess:{
+
+		},
+		reportsProcesses:{
+			filter:"ProcessesFilter",
+			pagination:"PaginationInput"
+		},
+		reportsSubjects:{
+
+		},
 		searchDocuments:{
 			data:"SearchDocumentsInput"
 		},
@@ -7913,6 +7938,15 @@ export const ReturnTypes: Record<string,any> = {
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
+		reportsLedgerAccounts:"Ledger2Account",
+		reportsLedgerHistory:"Ledger2HistoryResponse",
+		reportsLedgerPostings:"Ledger2PostingsResponse",
+		reportsLedgerWallets:"Ledger2Wallet",
+		reportsParticipantWallets:"ReportsParticipantWallet",
+		reportsParticipants:"ReportsParticipant",
+		reportsProcess:"ProcessView",
+		reportsProcesses:"ProcessSummaryPaginationResult",
+		reportsSubjects:"ReportsSubject",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
 		sovietRobotCouncil:"RobotCouncil",
@@ -8064,6 +8098,20 @@ export const ReturnTypes: Record<string,any> = {
 		signerRepDoc:"RequisiteFieldView",
 		signerSnils:"RequisiteFieldView",
 		signerType:"String"
+	},
+	ReportsParticipant:{
+		name:"String",
+		username:"String"
+	},
+	ReportsParticipantWallet:{
+		available:"String",
+		program_id:"String",
+		username:"String"
+	},
+	ReportsSubject:{
+		account_kind:"String",
+		name:"String",
+		username:"String"
 	},
 	RepresentedBy:{
 		based_on:"String",

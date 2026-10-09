@@ -23,7 +23,7 @@ div.participant-wallets-page
       template(#body='props')
         q-tr(:key='`pw_${props.row.username}`' :props='props')
           q-td.col-user(auto-width)
-            .name {{ getName(props.row) || '—' }}
+            .name {{ props.row.name || '—' }}
             .username.caption-muted {{ props.row.username }}
 
           q-td.text-right(
@@ -61,7 +61,7 @@ div.participant-wallets-page
           q-card.q-pa-md.q-mb-sm
             .row.items-center.q-gutter-x-md
               .col
-                .text-body1 {{ getName(props.row) || '—' }}
+                .text-body1 {{ props.row.name || '—' }}
                 .text-caption.caption-muted {{ props.row.username }}
               .col-auto
                 q-btn(
@@ -88,10 +88,9 @@ import { uiLocale } from 'src/shared/i18n';
 import { QIcon, QTooltip } from 'quasar'
 import { FailAlert } from 'src/shared/api'
 import { useSystemStore } from 'src/entities/System/model'
-import { useAccountStore } from 'src/entities/Account/model'
 import { useWindowSize } from 'src/shared/hooks'
-import { formatAsset2Digits, getName } from 'src/shared/lib/utils'
-import type { IAccount } from 'src/entities/Account/types'
+import { formatAsset2Digits } from 'src/shared/lib/utils'
+import { loadDeskParticipants, type IDeskParticipant } from 'app/extensions/reports/shared/lib/registries'
 import {
   loadProgramsAndWallets,
   type IProgramsAndWallets,
@@ -100,7 +99,6 @@ import {
 import { t as i18nT } from '../../../i18n';
 
 const { info } = useSystemStore()
-const accountStore = useAccountStore()
 const { isMobile } = useWindowSize()
 
 const loading = ref(false)
@@ -110,7 +108,7 @@ const data = ref<IProgramsAndWallets>({
   matrix: {},
   totals: {},
 })
-const rows = ref<IAccount[]>([])
+const rows = ref<IDeskParticipant[]>([])
 
 function programTypeFor(colName: string): string {
   const id = Number(colName.replace('prog_', ''))
@@ -149,7 +147,7 @@ const columns = computed(() => {
     name: `prog_${prog.id}`,
     align: 'right' as const,
     label: prog.title,
-    field: (row: IAccount) => {
+    field: (row: IDeskParticipant) => {
       const c = data.value.matrix[row.username]?.[prog.id]
       return c ? c.available : 0
     },
@@ -160,7 +158,7 @@ const columns = computed(() => {
       name: 'name',
       align: 'left' as const,
       label: i18nT('reports.participantWalletsPage.column.name'),
-      field: (row: IAccount) => getName(row) || row.username,
+      field: (row: IDeskParticipant) => row.name || row.username,
       sortable: true,
     },
     ...progCols,
@@ -168,7 +166,7 @@ const columns = computed(() => {
       name: 'total',
       align: 'right' as const,
       label: i18nT('reports.participantWalletsPage.totalLabel'),
-      field: (row: IAccount) => {
+      field: (row: IDeskParticipant) => {
         const t = totalFor(row.username)
         return t.available
       },
@@ -217,19 +215,15 @@ const WalletCell = {
 async function reload(): Promise<void> {
   loading.value = true
   try {
-    await Promise.all([
-      loadProgramsAndWallets(info.coopname).then((d) => { data.value = d }),
-      accountStore.getAccounts({ options: { page: 1, limit: 1000, sortOrder: 'DESC' } }),
+    const [walletsData, participants] = await Promise.all([
+      loadProgramsAndWallets(info.coopname),
+      loadDeskParticipants(true),
     ])
-    // accounts: только accepted-пайщики, сортировка по ФИО/username для читаемости.
-    rows.value = accountStore.accounts.items
-      .filter((a) => a.participant_account?.status === 'accepted')
+    data.value = walletsData
+    // Принятые пайщики приходят с именем для показа; сортировка по имени для читаемости.
+    rows.value = participants
       .slice()
-      .sort((a, b) => {
-        const an = (getName(a) || a.username).toLowerCase()
-        const bn = (getName(b) || b.username).toLowerCase()
-        return an.localeCompare(bn, uiLocale())
-      })
+      .sort((a, b) => (a.name || a.username).toLowerCase().localeCompare((b.name || b.username).toLowerCase(), uiLocale()))
   } catch (e) {
     FailAlert(e, i18nT('reports.participantWalletsPage.loadError'))
   } finally {

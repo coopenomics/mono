@@ -58,6 +58,16 @@ const SUITES: Suite[] = [
       getReportCalendar: COUNCIL,
       getWithheldTaxState: COUNCIL,
       getWithheldTaxPayments: COUNCIL,
+      // Реестры стола — собственные операции под правом стола (C28-90).
+      reportsLedgerAccounts: COUNCIL,
+      reportsLedgerWallets: COUNCIL,
+      reportsLedgerHistory: COUNCIL,
+      reportsLedgerPostings: COUNCIL,
+      reportsProcess: COUNCIL,
+      reportsProcesses: COUNCIL,
+      reportsParticipants: COUNCIL,
+      reportsParticipantWallets: COUNCIL,
+      reportsSubjects: COUNCIL,
     },
     rest: CHAIR,
   },
@@ -155,7 +165,7 @@ describe('права страниц столов расширений', () => {
     const rights = new ReportsRights(registry, roleAssignments);
     expect(await grantsOf(rights, chairman)).toEqual(expect.arrayContaining(['Report:read', 'ReportCalendar:read', 'WithheldTax:read', 'ReportRequisites:manage']));
     // access.roles.happy.10
-    expect((await grantsOf(rights, councilMember)).sort()).toEqual(['Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
+    expect((await grantsOf(rights, councilMember)).sort()).toEqual(['Registry:read', 'Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
     expect(await grantsOf(rights, participant)).toEqual([]);
   });
 

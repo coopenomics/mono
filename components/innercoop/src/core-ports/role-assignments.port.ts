@@ -36,13 +36,6 @@ export interface InnerAssignableRole {
   description: string;
   /** Полномочия роли по пунктам: вместе они называют все права роли из таблицы приложения. */
   permissions: readonly InnerRolePermission[];
-  /**
-   * Права ядра `Ресурс → действия`, которые нужны роли: страницы приложения
-   * берут часть данных операциями ядра (бухгалтерия, пайщики, кошельки). Ядро
-   * даёт их пайщику с этой ролью, не зная роли по имени. В полномочиях такие
-   * права называются с приставкой `core/`: `core/Ledger:read`.
-   */
-  coreRights?: Readonly<Record<string, readonly string[]>>;
 }
 
 export interface IRoleAssignmentsPort {

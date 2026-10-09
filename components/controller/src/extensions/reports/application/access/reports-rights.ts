@@ -28,14 +28,20 @@ export type ReportsRole = CouncilRole | 'accountant';
 
 /** Все возможности стола: отчётность, её реквизиты, календарь сдачи и удержанный налог. */
 const FULL_DESK: Record<string, string[]> = {
+  Registry: ['read'],
   Report: ['read', 'draft', 'generate'],
   ReportRequisites: ['read', 'manage'],
   ReportCalendar: ['read', 'manage'],
   WithheldTax: ['read', 'pay'],
 };
 
-/** Чтение стола: совет видит отчётность, реквизиты, календарь сдачи и удержанный налог. */
+/**
+ * Чтение стола: реестры бухгалтерии и процессов, отчётность, реквизиты,
+ * календарь сдачи и удержанный налог. Реестры (`Registry:read`) стол отдаёт
+ * собственными операциями, данные берёт у ядра внутри сервера.
+ */
 const READ_DESK: Record<string, string[]> = {
+  Registry: ['read'],
   Report: ['read'],
   ReportRequisites: ['read'],
   ReportCalendar: ['read'],
@@ -67,26 +73,8 @@ export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
       { title: t('reports.roles.accountant.permissions.requisitesEdit'), access: 'write', rights: ['ReportRequisites:manage'] },
       { title: t('reports.roles.accountant.permissions.calendarMarks'), access: 'write', rights: ['ReportCalendar:manage'] },
       { title: t('reports.roles.accountant.permissions.taxPay'), access: 'write', rights: ['WithheldTax:pay'] },
-      {
-        title: t('reports.roles.accountant.permissions.registries'),
-        access: 'read',
-        rights: ['core/Ledger:read', 'core/Process:read:all'],
-      },
-      {
-        title: t('reports.roles.accountant.permissions.participants'),
-        access: 'read',
-        rights: ['core/Account:read:all', 'core/Wallet:read:all'],
-      },
+      { title: t('reports.roles.accountant.permissions.registries'), access: 'read', rights: ['Registry:read'] },
     ],
-    // Реестры процессов, операций, проводок, кошельков и счетов стол берёт
-    // операциями ядра. Перенос между кошельками (`Ledger:move`) на столе
-    // выключен и роли не выдаётся.
-    coreRights: {
-      Ledger: ['read'],
-      Process: ['read:all'],
-      Account: ['read:all'],
-      Wallet: ['read:all'],
-    },
   },
 ];
 

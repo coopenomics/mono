@@ -129,12 +129,13 @@
 import { ref, onMounted } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { uiLocale } from 'src/shared/i18n';
 import { copyToClipboard } from 'quasar'
 import { useWindowSize } from 'src/shared/hooks'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
-import { useLedger2Store, type ILedger2Account, type ILedger2Operation } from 'src/entities/Ledger2'
+import type { ILedger2Account, ILedger2Operation } from 'src/entities/Ledger2'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
@@ -143,7 +144,7 @@ import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
-const ledger2Store = useLedger2Store()
+const registries = useDeskRegistries()
 
 const loading = ref(false)
 const pagination = ref({ rowsPerPage: 0 })
@@ -210,7 +211,7 @@ async function toggleExpand(id: number) {
   if (childOps.value.has(id)) return
   childLoading.value.add(id)
   try {
-    const resp = await ledger2Store.loadHistory({
+    const resp = await registries.loadHistory({
       coopname: info.coopname,
       accountId: id,
       actionNames: ['debit', 'credit'],
@@ -228,7 +229,7 @@ async function toggleExpand(id: number) {
 async function loadAccounts(): Promise<void> {
   try {
     loading.value = true
-    accounts.value = await ledger2Store.loadAccounts(info.coopname)
+    accounts.value = await registries.loadAccounts(info.coopname)
   } catch (e) {
     FailAlert(e)
   } finally {

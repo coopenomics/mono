@@ -38,6 +38,17 @@ export * from './database/sql-builder';
 export * from './database/relations';
 export * from './database/schema-migration';
 export * from './dto/pagination.dto';
+// Типы реестров бухгалтерии и процессов: одни и те же у операций ядра и у
+// операций приложения, которое показывает реестры по своей таблице прав.
+export * from './registries/ledger2-account.dto';
+export * from './registries/ledger2-wallet.dto';
+export * from './registries/ledger2-operation.dto';
+export * from './registries/ledger2-posting.dto';
+export * from './registries/get-ledger2-history-input.dto';
+export * from './registries/get-ledger2-postings-input.dto';
+export * from './registries/processes-filter.input';
+export * from './registries/process-summary.dto';
+export * from './registries/process-view.dto';
 export * from './dto/require-fields';
 export * from './dto/transaction-result-response.dto';
 export * from './config/config-policy';

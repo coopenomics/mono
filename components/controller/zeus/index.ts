@@ -14135,6 +14135,16 @@ paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
+reportsLedgerAccounts?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Account"]],
+reportsLedgerHistory?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<any, string>},ValueTypes["Ledger2HistoryResponse"]],
+reportsLedgerPostings?: [{	input: ValueTypes["GetLedger2PostingsInput"] | Variable<any, string>},ValueTypes["Ledger2PostingsResponse"]],
+reportsLedgerWallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Wallet"]],
+reportsParticipantWallets?: [{	coopname: string | Variable<any, string>},ValueTypes["ReportsParticipantWallet"]],
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants?:ValueTypes["ReportsParticipant"],
+reportsProcess?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
+reportsProcesses?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
+reportsSubjects?: [{	usernames: Array<string> | Variable<any, string>},ValueTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
 	/** Совет кооператива: идентификатор, председатель, состав и порог голосов */
@@ -14518,6 +14528,37 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: AliasType<{
+	/** ФИО пайщика или название организации */
+	name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsParticipant']?: Omit<ValueTypes["ReportsParticipant"], "...on ReportsParticipant">
+}>;
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: AliasType<{
+	/** Доступный остаток */
+	available?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsParticipantWallet']?: Omit<ValueTypes["ReportsParticipantWallet"], "...on ReportsParticipantWallet">
+}>;
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: AliasType<{
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind?:boolean | `@${string}`,
+	/** ФИО или название для показа */
+	name?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsSubject']?: Omit<ValueTypes["ReportsSubject"], "...on ReportsSubject">
+}>;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -29071,6 +29112,16 @@ paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
+reportsLedgerAccounts?: [{	coopname: string},ResolverInputTypes["Ledger2Account"]],
+reportsLedgerHistory?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},ResolverInputTypes["Ledger2HistoryResponse"]],
+reportsLedgerPostings?: [{	input: ResolverInputTypes["GetLedger2PostingsInput"]},ResolverInputTypes["Ledger2PostingsResponse"]],
+reportsLedgerWallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
+reportsParticipantWallets?: [{	coopname: string},ResolverInputTypes["ReportsParticipantWallet"]],
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants?:ResolverInputTypes["ReportsParticipant"],
+reportsProcess?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
+reportsProcesses?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
+reportsSubjects?: [{	usernames: Array<string>},ResolverInputTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
 	/** Совет кооператива: идентификатор, председатель, состав и порог голосов */
@@ -29436,6 +29487,34 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: AliasType<{
+	/** ФИО пайщика или название организации */
+	name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: AliasType<{
+	/** Доступный остаток */
+	available?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: AliasType<{
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind?:boolean | `@${string}`,
+	/** ФИО или название для показа */
+	name?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -43990,6 +44069,24 @@ export type ModelTypes = {
 	process: ModelTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: ModelTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: счета плана счетов с остатками */
+	reportsLedgerAccounts: Array<ModelTypes["Ledger2Account"]>,
+	/** Стол бухгалтера: реестр операций */
+	reportsLedgerHistory: ModelTypes["Ledger2HistoryResponse"],
+	/** Стол бухгалтера: реестр проводок */
+	reportsLedgerPostings: ModelTypes["Ledger2PostingsResponse"],
+	/** Стол бухгалтера: кошельки кооператива с остатками */
+	reportsLedgerWallets: Array<ModelTypes["Ledger2Wallet"]>,
+	/** Стол бухгалтера: кошельки пайщиков по программам кооператива */
+	reportsParticipantWallets: Array<ModelTypes["ReportsParticipantWallet"]>,
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants: Array<ModelTypes["ReportsParticipant"]>,
+	/** Стол бухгалтера: процесс целиком по его идентификатору */
+	reportsProcess: ModelTypes["ProcessView"],
+	/** Стол бухгалтера: реестр процессов */
+	reportsProcesses: ModelTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */
+	reportsSubjects: Array<ModelTypes["ReportsSubject"]>,
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<ModelTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -44341,6 +44438,31 @@ export type ModelTypes = {
 };
 	["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: {
+		/** ФИО пайщика или название организации */
+	name: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: {
+		/** Доступный остаток */
+	available: string,
+	/** Идентификатор программы */
+	program_id: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: {
+		/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind: string,
+	/** ФИО или название для показа */
+	name: string,
+	/** Учётное имя */
+	username: string
+};
 	["RepresentedBy"]: {
 		/** На основании чего действует */
 	based_on: string,
@@ -59660,6 +59782,24 @@ export type GraphQLTypes = {
 	process: GraphQLTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: счета плана счетов с остатками */
+	reportsLedgerAccounts: Array<GraphQLTypes["Ledger2Account"]>,
+	/** Стол бухгалтера: реестр операций */
+	reportsLedgerHistory: GraphQLTypes["Ledger2HistoryResponse"],
+	/** Стол бухгалтера: реестр проводок */
+	reportsLedgerPostings: GraphQLTypes["Ledger2PostingsResponse"],
+	/** Стол бухгалтера: кошельки кооператива с остатками */
+	reportsLedgerWallets: Array<GraphQLTypes["Ledger2Wallet"]>,
+	/** Стол бухгалтера: кошельки пайщиков по программам кооператива */
+	reportsParticipantWallets: Array<GraphQLTypes["ReportsParticipantWallet"]>,
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants: Array<GraphQLTypes["ReportsParticipant"]>,
+	/** Стол бухгалтера: процесс целиком по его идентификатору */
+	reportsProcess: GraphQLTypes["ProcessView"],
+	/** Стол бухгалтера: реестр процессов */
+	reportsProcesses: GraphQLTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */
+	reportsSubjects: Array<GraphQLTypes["ReportsSubject"]>,
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<GraphQLTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -60048,6 +60188,37 @@ export type GraphQLTypes = {
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]: ReportSubmissionMark;
 	["ReportType"]: ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: {
+	__typename: "ReportsParticipant",
+	/** ФИО пайщика или название организации */
+	name: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on ReportsParticipant']: Omit<GraphQLTypes["ReportsParticipant"], "...on ReportsParticipant">
+};
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: {
+	__typename: "ReportsParticipantWallet",
+	/** Доступный остаток */
+	available: string,
+	/** Идентификатор программы */
+	program_id: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on ReportsParticipantWallet']: Omit<GraphQLTypes["ReportsParticipantWallet"], "...on ReportsParticipantWallet">
+};
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: {
+	__typename: "ReportsSubject",
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind: string,
+	/** ФИО или название для показа */
+	name: string,
+	/** Учётное имя */
+	username: string,
+	['...on ReportsSubject']: Omit<GraphQLTypes["ReportsSubject"], "...on ReportsSubject">
+};
 	["RepresentedBy"]: {
 	__typename: "RepresentedBy",
 	/** На основании чего действует */

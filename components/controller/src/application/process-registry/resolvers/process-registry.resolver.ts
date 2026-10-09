@@ -2,18 +2,18 @@ import { Resolver, Query, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import {
   GqlJwtAuthGuard,
-  createPaginationResult,
+  PaginatedProcessSummary,
   PaginationInputDTO,
   PaginationResult,
   RequireRight,
   RightsGuard,
 } from '@coopenomics/extension-kit';
 import { ProcessRegistryService } from '~/domain/process-registry/services/process-registry.service';
-import { ProcessViewDTO } from '../dto/process-view.dto';
-import { ProcessSummaryDTO } from '../dto/process-summary.dto';
-import { ProcessesFilterInput } from '../dto/processes-filter.input';
+import { ProcessViewDTO } from '@coopenomics/extension-kit';
+import { ProcessSummaryDTO } from '@coopenomics/extension-kit';
+import { ProcessesFilterInput } from '@coopenomics/extension-kit';
 
-const paginatedProcesses = createPaginationResult(ProcessSummaryDTO, 'ProcessSummary');
+const paginatedProcesses = PaginatedProcessSummary;
 
 @Resolver()
 export class ProcessRegistryResolver {

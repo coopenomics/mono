@@ -15,6 +15,7 @@ import {
   DECISION_TRACKING_PORT,
   DESKTOP_GRANTS_REGISTRY_PORT,
   ROLE_ASSIGNMENTS_PORT,
+  ACCOUNTING_REGISTRY_PORT,
   GLOBAL_SEARCH_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
@@ -142,6 +143,8 @@ import { ChatcoopInnercoopChatCoopCalendarAdapter } from './chatcoop/infrastruct
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './capital/infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { ExpensesInnercoopExpenseChassisAdapter } from './expenses/infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastructure/innercoop/ledger2-innercoop-history.adapter';
+import { AccountingRegistryInnercoopAdapter } from '~/application/ledger2/infrastructure/innercoop/accounting-registry.adapter';
+import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-registry-domain.module';
 
 /**
  * Глобальная привязка портов @coopenomics/innercoop к их реализациям-расширениям.
@@ -164,6 +167,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ExpensesExtensionModule,
     SovietRobotExtensionModule,
     Ledger2Module,
+    ProcessRegistryDomainModule,
     RedisModule,
     SystemDomainModule,
     DocumentDomainModule,
@@ -434,6 +438,13 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
     },
+    AccountingRegistryInnercoopAdapter,
+    {
+      // Реестры бухгалтерии и процессов для приложений, которые показывают
+      // их на своём столе по своей таблице прав.
+      provide: ACCOUNTING_REGISTRY_PORT,
+      useExisting: AccountingRegistryInnercoopAdapter,
+    },
     {
       // Назначаемые роли: приложение объявляет свои и спрашивает назначенные
       // пайщику. `RoleAssignmentsRegistryModule` глобальный.
@@ -533,6 +544,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     CHAIN_RESOURCES_PORT,
     DESKTOP_GRANTS_REGISTRY_PORT,
     ROLE_ASSIGNMENTS_PORT,
+    ACCOUNTING_REGISTRY_PORT,
     GLOBAL_SEARCH_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,

@@ -9,13 +9,19 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 302.
+Всего экспортов: 305.
 
 ## ACCOUNT_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Account')`
+
+## ACCOUNTING_REGISTRY_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.AccountingRegistry')`
 
 ## AGREEMENT_CATALOG_PORT
 
@@ -230,6 +236,17 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.GlobalSearchRegistry')`
+
+## IAccountingRegistryPort
+
+`interface` · core-ports
+
+- `ledgerAccounts(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerWallets(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerHistory(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `ledgerPostings(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `process(hash: string, coopname: string): Promise<InnerRegistryRecord>`
+- `processes(filter: InnerRegistryRecord, pagination: InnerRegistryRecord): Promise<InnerRegistryRecord>`
 
 ## IAccountPort
 
@@ -662,7 +679,6 @@
 - `title: string`
 - `description: string`
 - `permissions: readonly InnerRolePermission[]`
-- `coreRights?: Readonly<Record<string, readonly string[]>>`
 
 ## InnerBankTransferData
 
@@ -1915,6 +1931,12 @@
 - `username: string`
 - `meta: string`
 - `document: ISignedDocument`
+
+## InnerRegistryRecord
+
+`type` · core-ports
+
+- `Record<string, any>`
 
 ## InnerRepresentative
 

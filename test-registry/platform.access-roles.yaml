@@ -17,6 +17,10 @@ sources:
     - components/innercoop/src/core-ports/role-assignments.port.ts
     - components/controller/src/extensions/reports/application/access/**
     - components/desktop/extensions/reports/shared/lib/rights.ts
+    - components/desktop/extensions/reports/shared/lib/registries.ts
+    - components/controller/src/extensions/reports/application/resolvers/registries.resolver.ts
+    - components/controller/src/extensions/reports/application/services/registries.service.ts
+    - components/innercoop/src/core-ports/accounting-registry.port.ts
     - components/controller/src/extensions/innercoop-bridge.module.ts
   ui:
     - components/desktop/extensions/chairman/pages/AccessRolesPage/**
@@ -259,9 +263,9 @@ cases:
   - id: access.roles.happy.12
     level: backend
     kind: happy
-    scenario: бухгалтер открывает реестры процессов, операций, проводок, кошельков и счетов стола бухгалтера
-    expect: данные приходят — роль при объявлении запросила права ядра на чтение бухгалтерии, процессов, кошельков и данных пайщиков, и ядро выдаёт их держателю роли, не зная роли по имени; перенос между кошельками и операции кассира закрыты; после снятия роли бухгалтерия закрыта
-    test: components/controller/tests/unit/rights/core-rights.test.ts
+    scenario: бухгалтер и член совета открывают реестры процессов, операций, проводок, счетов и кошельков стола бухгалтера
+    expect: данные приходят собственными операциями стола под его правом; в ядре роль бухгалтера прав не даёт — бухгалтерия, учётные записи и кошельки ядра ему закрыты; реестры получают только имя и вид субъекта, без личных данных пайщиков; после снятия роли реестры закрыты
+    test: components/controller/tests/unit/reports/registries.service.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 

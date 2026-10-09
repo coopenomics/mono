@@ -81,29 +81,3 @@ describe('роли пайщика', () => {
     expect(repository.findActiveByUser).not.toHaveBeenCalled();
   });
 });
-
-describe('права ядра для ролей приложений', () => {
-  const ACCOUNTANT = { key: 'accountant', title: 'Бухгалтер', description: 'Ведёт стол бухгалтера', permissions: [], coreRights: { Ledger: ['read'] } };
-
-  // access.roles.happy.12
-  it('ядро получает строки прав только от ролей, которые их запросили', () => {
-    const { registry } = makeRegistry();
-    registry.declare('soviet', [CASHIER]);
-    registry.declare('reports', [ACCOUNTANT]);
-    expect(registry.coreRows()).toEqual({ accountant: [{ when: [], rights: { Ledger: ['read'] } }] });
-  });
-
-  // access.roles.happy.12
-  it('в ядре действуют роли приложения ядра и роли, запросившие права ядра', async () => {
-    const { registry } = makeRegistry([
-      { username: 'ivan', role: 'cashier' },
-      { username: 'ivan', role: 'accountant' },
-      { username: 'ivan', role: 'storekeeper' },
-    ]);
-    registry.declare('soviet', [CASHIER]);
-    registry.declare('reports', [ACCOUNTANT]);
-    registry.declare('market', [STOREKEEPER]);
-    expect((await registry.rolesInCore('soviet', 'ivan')).sort()).toEqual(['accountant', 'cashier']);
-    expect(await registry.rolesInCore('soviet', 'petr')).toEqual([]);
-  });
-});

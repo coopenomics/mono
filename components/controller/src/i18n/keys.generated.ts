@@ -2781,7 +2781,6 @@ export type MessageKey =
   | 'reports.roles.accountant.permissions.calendar'
   | 'reports.roles.accountant.permissions.calendarMarks'
   | 'reports.roles.accountant.permissions.drafts'
-  | 'reports.roles.accountant.permissions.participants'
   | 'reports.roles.accountant.permissions.registries'
   | 'reports.roles.accountant.permissions.reports'
   | 'reports.roles.accountant.permissions.requisites'

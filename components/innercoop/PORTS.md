@@ -18,6 +18,7 @@
 | Порт | Контракт | Реализует | Потребители | Назначение |
 |---|---|---|---|---|
 | `ACCOUNT_PORT` | `IAccountPort` (4)<br><sub>core-ports/account.port.ts</sub> | `AccountInnercoopAdapter` | capital, cardcoop, chairman, chatcoop, ku, marketplace, participant, reports, soviet-robot | Учётные записи пайщиков кооператива: найти по имени, перечислить с пагинацией, получить человеческое имя для показа. |
+| `ACCOUNTING_REGISTRY_PORT` | `IAccountingRegistryPort` (6)<br><sub>core-ports/accounting-registry.port.ts</sub> | `AccountingRegistryInnercoopAdapter` | reports | Реестры бухгалтерии и процессов для приложения, которое показывает их на своём столе. |
 | `AGREEMENT_CATALOG_PORT` | `IAgreementCatalogPort` (1)<br><sub>core-ports/agreement-catalog.port.ts</sub> | `AgreementCatalogInnercoopAdapter` | marketplace | Справочник оферт кооператива — что вообще предлагается подписать. |
 | `BRANCH_PORT` | `IBranchPort` (2)<br><sub>core-ports/branch.port.ts</sub> | `BranchInnercoopAdapter` | ku, marketplace | Кооперативные участки — территориальные подразделения кооператива. |
 | `CANDIDATE_PORT` | `ICandidatePort` (2)<br><sub>core-ports/candidate.port.ts</sub> | `CandidateInnercoopAdapter` | capital | Заявки на вступление в кооператив. |
@@ -62,7 +63,7 @@
 | `USER_DIRECTORY_PORT` | `IUserDirectoryPort` (3)<br><sub>core-ports/user-directory.port.ts</sub> | `UserDirectoryInnercoopAdapter` | capital, cardcoop, chatcoop, marketplace | Справочник пользователей кооператива — учётные имена и роли. |
 | `VAULT_PORT` | `IVaultPort` (1)<br><sub>core-ports/vault.port.ts</sub> | `VaultInnercoopAdapter` | capital, cardcoop, chairman, expenses, ku, marketplace, reports, soviet-robot | Ключи подписи, хранимые кооперативом. |
 | `VERIFICATION_PORT` | `IVerificationPort` (2)<br><sub>core-ports/verification.port.ts</sub> | `VerificationInnercoopAdapter` | marketplace | Верификация личности пайщика — уровни подтверждения, которыми ядро отвечает на вопрос расширения «можно ли этому пайщику доверить действие». |
-| `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital | Кошельки пайщика. |
+| `PROGRAM_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `ProgramWalletInnercoopAdapter` | capital, reports | Кошельки пайщика. |
 | `USER_WALLET_PORT` | `IProgramWalletPort` (2)<br><sub>core-ports/wallet.port.ts</sub> | `UserWalletInnercoopAdapter` | marketplace | Кошельки пайщика. |
 
 ## Межрасширенческие порты
@@ -90,4 +91,4 @@
 | `GLOBAL_SEARCH_REGISTRY_PORT` | `IGlobalSearchRegistryPort` (1)<br><sub>hooks/global-search.hook.ts</sub> | `GlobalSearchRegistry` | — | Поставщик единого поиска. |
 | `REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT` | `IRegistrationDocumentParametersRegistryPort` (2)<br><sub>hooks/registration-document-parameters.hook.ts</sub> | `RegistrationDocumentParametersRegistry` | capital, marketplace | Параметры оферты, которые расширение выдаёт вступающему пайщику. |
 
-Всего портов: 58.
+Всего портов: 59.

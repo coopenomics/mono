@@ -1,5 +1,4 @@
 import { Global, Inject, Injectable, Module } from '@nestjs/common';
-import type { RightsGroup } from '@coopenomics/extension-kit';
 import type { InnerAssignableRole, IRoleAssignmentsPort } from '@coopenomics/innercoop';
 import config from '~/config/config';
 import {
@@ -57,34 +56,6 @@ export class RoleAssignmentsRegistry implements IRoleAssignmentsPort {
 
   find(key: string): DeclaredRole | undefined {
     return this.declared.get(key);
-  }
-
-  /**
-   * Строки для таблицы прав ядра: роль приложения → права ядра, которые она
-   * запросила при объявлении (`coreRights`). Ядро дописывает их к своей
-   * таблице, не зная роли по имени.
-   */
-  coreRows(): Record<string, RightsGroup<never>[]> {
-    const rows: Record<string, RightsGroup<never>[]> = {};
-    for (const role of this.declared.values()) {
-      if (!role.coreRights) continue;
-      const rights: Record<string, string[]> = {};
-      for (const [resource, actions] of Object.entries(role.coreRights)) rights[resource] = [...actions];
-      rows[role.key] = [{ when: [], rights }];
-    }
-    return rows;
-  }
-
-  /**
-   * Роли пайщика, которые действуют в ядре: объявленные приложением ядра
-   * `coreApp` и роли других приложений, запросившие права ядра.
-   */
-  async rolesInCore(coreApp: string, username: string): Promise<string[]> {
-    const acting = this.list().filter((role) => role.extensionName === coreApp || role.coreRights);
-    if (acting.length === 0) return [];
-    const keys = new Set(acting.map((role) => role.key));
-    const active = await this.assignments.findActiveByUser(config.coopname, username);
-    return active.filter((row) => keys.has(row.role)).map((row) => row.role);
   }
 
   async rolesOf(extensionName: string, username: string): Promise<string[]> {
