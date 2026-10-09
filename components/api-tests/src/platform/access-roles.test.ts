@@ -111,6 +111,28 @@ describe('платформа: назначаемые роли и управле�
       expect(await probe.denial(tokens[member.account], name), name).toBeNull()
   }, 120_000)
 
+  it(caseName('access.roles.happy.09', 'бухгалтер получает стол бухгалтера целиком, после снятия роли стол закрыт'), async () => {
+    const reportsGrants = async (token: string): Promise<string[]> => {
+      const desk = (await gql<any>(token, DESKTOP)).getDesktop
+      return ((desk.workspaces as any[]).find(w => w.extension_name === 'reports')?.grants as string[] | undefined) ?? []
+    }
+    const roles = (await gql<any>(tokens[CHAIRMAN.account], ROLES_QUERY)).getAssignableRoles as any[]
+    expect(roles.find(r => r.key === 'accountant')).toMatchObject({ extension_name: 'reports' })
+    expect(await reportsGrants(tokens[member.account])).toEqual([])
+    await gql(tokens[CHAIRMAN.account], ASSIGN, input(member.account, 'accountant'))
+    try {
+      const chairmanGrants = await reportsGrants(tokens[CHAIRMAN.account])
+      expect(chairmanGrants).toContain('Report:read')
+      expect(await reportsGrants(tokens[member.account])).toEqual(expect.arrayContaining(chairmanGrants))
+      // Роль бухгалтера страниц стола совета не открывает.
+      expect(await sovietGrants(tokens[member.account])).not.toContain('Agenda:read')
+    }
+    finally {
+      await gql(tokens[CHAIRMAN.account], REVOKE, input(member.account, 'accountant'))
+    }
+    expect(await reportsGrants(tokens[member.account])).toEqual([])
+  }, 120_000)
+
   it(caseName('access.roles.happy.04', 'после снятия роли доступ закрыт, повторное снятие проходит'), async () => {
     const revoked = (await gql<any>(tokens[CHAIRMAN.account], REVOKE, input(member.account))).revokeRole
     expect((revoked.assignments as any[]).map(a => a.username)).not.toContain(member.account)

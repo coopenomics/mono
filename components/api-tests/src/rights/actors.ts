@@ -11,7 +11,9 @@
  *  - supplierRejected — заявку поставщика отклонил председатель;
  *  - branchTrusted   — доверенный кооперативного участка;
  *  - capitalMember   — участник Благороста с договором УХД;
- *  - exited          — вышел из кооператива, выход завершён.
+ *  - exited          — вышел из кооператива, выход завершён;
+ *  - cashier         — пайщик с назначенной ролью кассира (реестр платежей);
+ *  - accountant      — пайщик с назначенной ролью бухгалтера (стол бухгалтера).
  *
  * Оператор чужого участка и ведущий проекта в матрицу не входят: их право
  * зависит от объекта, а матрица зовёт операции с чужими аргументами. Их
@@ -84,6 +86,8 @@ const MAKERS: { name: string, make: () => Promise<Who> }[] = [
       return who
     },
   },
+  { name: 'cashier', make: () => roleHolder('mxcash', 'cashier') },
+  { name: 'accountant', make: () => roleHolder('mxacc', 'accountant') },
 ]
 
 async function supplierApplicant(prefix: string): Promise<Who> {
@@ -142,6 +146,13 @@ export async function ensureOrdererOnboarded(who: Who): Promise<string[]> {
     fixed.push('пункт выдачи не был выбран — выбран krg')
   }
   return fixed
+}
+
+/** Принятый пайщик, которому председатель назначил роль приложения. */
+async function roleHolder(prefix: string, role: string): Promise<Who> {
+  const who = await freshMember({ prefix })
+  await gql(await tokenOf(CHAIRMAN), 'mutation($d:RoleAssignmentInput!){ assignRole(data:$d){ key } }', { d: { username: who.account, role } })
+  return who
 }
 
 /**

@@ -20,6 +20,7 @@ import {
   LOGGER_PORT,
   ORGANIZATION_PORT,
   PAYMENT_DESK_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   VAULT_PORT,
 } from '@coopenomics/innercoop';
 
@@ -39,6 +40,8 @@ export const reportsPorts = {
     CHAIN_PORT,
     PAYMENT_DESK_PORT,
     VAULT_PORT,
+    // Роль бухгалтера: стол объявляет её кооперативу и узнаёт, кому она назначена.
+    ROLE_ASSIGNMENTS_PORT,
   ],
   optional: [
     // Лента изменений: стол живёт по своим таблицам без перезагрузки.

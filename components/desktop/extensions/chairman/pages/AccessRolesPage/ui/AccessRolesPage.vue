@@ -33,7 +33,7 @@
         Avatar(:name='holder.display_name', size='sm')
         .holder-row__identity
           .holder-row__name {{ holder.display_name }}
-          .holder-row__meta {{ $t('chairman.accessRolesPage.assignedMeta', { date: formatDocumentDate(holder.assigned_at), by: holder.assigned_by }) }}
+          .holder-row__meta {{ $t('chairman.accessRolesPage.assignedMeta', { date: formatDocumentDate(String(holder.assigned_at)), by: holder.assigned_by }) }}
         BaseButton(variant='secondary', size='sm', @click='openRevoke(role, holder)')
           | {{ $t('chairman.accessRolesPage.revokeAction') }}
 

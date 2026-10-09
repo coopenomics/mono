@@ -7,6 +7,7 @@ import { AccessRolesService } from '~/application/access-roles/access-roles.serv
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 
 const CASHIER = { key: 'cashier', title: 'Кассир', description: 'Видит реестр платежей' };
+const ACCOUNTANT = { key: 'accountant', title: 'Бухгалтер', description: 'Ведёт стол бухгалтера' };
 
 interface Row {
   username: string;
@@ -15,7 +16,7 @@ interface Row {
   assigned_at: Date;
 }
 
-function makeService(options: { users?: Record<string, boolean>; notifyFails?: boolean } = {}) {
+function makeService(options: { users?: Record<string, boolean>; notifyFails?: boolean; installed?: string[] } = {}) {
   const rows: Row[] = [];
   const repository = {
     findActiveByUser: jest.fn(async (_coop: string, username: string) => rows.filter((row) => row.username === username)),
@@ -50,7 +51,11 @@ function makeService(options: { users?: Record<string, boolean>; notifyFails?: b
   const logger = { setContext: jest.fn(), error: jest.fn() };
   const registry = new RoleAssignmentsRegistry(repository as any);
   registry.declare('soviet', [CASHIER]);
-  const service = new AccessRolesService(registry, repository as any, users as any, accounts as any, notifications as any, logger as any);
+  registry.declare('reports', [ACCOUNTANT]);
+  const extensions = {
+    getCombinedAppList: jest.fn(async () => (options.installed ?? ['soviet', 'reports']).map((name) => ({ name }))),
+  };
+  const service = new AccessRolesService(registry, extensions as any, repository as any, users as any, accounts as any, notifications as any, logger as any);
   return { service, repository, notifications, logger, rows };
 }
 
@@ -140,8 +145,16 @@ describe('перечень ролей', () => {
     await service.assign('ant', { username: 'ivan', role: 'cashier' });
     await service.assign('ant', { username: 'petr', role: 'cashier' });
     const roles = await service.list();
-    expect(roles).toHaveLength(1);
+    expect(roles.map((role) => role.key)).toEqual(['cashier', 'accountant']);
     expect(roles[0]).toMatchObject({ key: 'cashier', title: 'Кассир', extension_name: 'soviet' });
     expect(roles[0].assignments.map((row) => row.username)).toEqual(['ivan', 'petr']);
+  });
+
+  // access.roles.side.09
+  it('роль приложения, которое в кооперативе не установлено, не показывается и не назначается', async () => {
+    const { service, repository } = makeService({ installed: ['soviet'] });
+    expect((await service.list()).map((role) => role.key)).toEqual(['cashier']);
+    await expect(service.assign('ant', { username: 'ivan', role: 'accountant' })).rejects.toMatchObject({ code: 'ACCESS_ROLE_UNKNOWN' });
+    expect(repository.assign).not.toHaveBeenCalled();
   });
 });

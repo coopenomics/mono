@@ -5,7 +5,8 @@ title: Платформа — назначаемые роли приложени
 # Роль объявляет приложение: её права записаны в таблице прав приложения, а
 # ядро ведёт только связь «роль — пайщик» — кто назначил и когда, кто снял —
 # и показывает объявленные роли на странице управления доступом стола
-# председателя. Первая роль — кассир: реестр платежей стола совета. Ключ роли
+# председателя. Роли: кассир — реестр платежей стола совета, бухгалтер — стол
+# бухгалтера целиком; каждую объявляет своё приложение. Ключ роли
 # уникален среди всех приложений, повтор останавливает запуск узла.
 
 sources:
@@ -14,6 +15,7 @@ sources:
     - components/controller/src/domain/access-roles/**
     - components/controller/src/infrastructure/database/kysely/repositories/role-assignment.kysely-repository.ts
     - components/innercoop/src/core-ports/role-assignments.port.ts
+    - components/controller/src/extensions/reports/application/access/**
     - components/controller/src/extensions/innercoop-bridge.module.ts
   ui:
     - components/desktop/extensions/chairman/pages/AccessRolesPage/**
@@ -204,6 +206,35 @@ cases:
     test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
     external: unreachable
     external_reason: "отказ очереди уведомлений через API стенда не создать"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.09
+    level: backend
+    kind: happy
+    scenario: председатель назначает пайщику роль бухгалтера, которую объявило приложение отчётности
+    expect: пайщик получает стол бухгалтера целиком — те же права страниц, что у председателя; страниц стола совета роль не открывает; после снятия стол закрыт
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.08
+    level: backend
+    kind: side
+    scenario: роль бухгалтера назначена, пайщик перестал быть принятым
+    expect: прав стола бухгалтера нет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    external: unreachable
+    external_reason: "кандидату роль назначить нельзя (access.roles.break.04), а назначение пайщику до его выхода требует полного процесса выхода с решением совета — отдельный сценарий выхода"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.09
+    level: backend
+    kind: side
+    scenario: приложение, объявившее роль, в кооперативе не установлено
+    expect: роль на странице управления доступом не показывается, назначение отвечает ACCESS_ROLE_UNKNOWN
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    external: unreachable
+    external_reason: "снятие приложения с общего стенда ломает соседние наборы; оба приложения с ролями на стенде установлены"
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: access.roles.ui.01

@@ -3,6 +3,7 @@ import { DomainError } from '@coopenomics/extension-kit';
 import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
+import { ExtensionListingInteractor } from '~/application/appstore/interactors/extension-listing.interactor';
 import { WinstonLoggerService } from '~/application/logger/logger-app.service';
 import { ACCOUNT_DATA_PORT, type AccountDataPort } from '~/domain/account/ports/account-data.port';
 import {
@@ -25,6 +26,7 @@ import { RoleAssignmentsRegistry, type DeclaredRole } from './role-assignments.r
 export class AccessRolesService {
   constructor(
     private readonly registry: RoleAssignmentsRegistry,
+    private readonly extensions: ExtensionListingInteractor,
     @Inject(ROLE_ASSIGNMENT_REPOSITORY) private readonly assignments: RoleAssignmentRepository,
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accounts: AccountDataPort,
@@ -34,15 +36,25 @@ export class AccessRolesService {
     this.logger.setContext(AccessRolesService.name);
   }
 
-  /** Объявленные роли с пайщиками, которым они назначены. */
+  /** Роли установленных приложений с пайщиками, которым они назначены. */
   async list(): Promise<AssignableRoleDTO[]> {
-    const active = await this.assignments.findActive(config.coopname);
-    return Promise.all(this.registry.list().map((role) => this.present(role, active)));
+    const [active, installed] = await Promise.all([this.assignments.findActive(config.coopname), this.installedApps()]);
+    const roles = this.registry.list().filter((role) => installed.has(role.extensionName));
+    return Promise.all(roles.map((role) => this.present(role, active)));
+  }
+
+  /** Приложения кооператива: роль неустановленного приложения не показывается и не назначается. */
+  private async installedApps(): Promise<Set<string>> {
+    const apps = await this.extensions.getCombinedAppList({ is_installed: true, is_available: true, enabled: true });
+    return new Set(apps.map((app) => app.name));
   }
 
   /** Назначить роль пайщику. Повторное назначение ничего не меняет. */
   async assign(actor: string, data: RoleAssignmentInputDTO): Promise<AssignableRoleDTO> {
     const role = this.declared(data.role);
+    if (!(await this.installedApps()).has(role.extensionName)) {
+      throw DomainError.notFound('ACCESS_ROLE_UNKNOWN', { role: data.role });
+    }
     const user = await this.users.findByUsername(data.username);
     if (!user?.isActive()) {
       throw DomainError.unprocessable('ACCESS_ROLE_PARTICIPANT_REQUIRED', { username: data.username });

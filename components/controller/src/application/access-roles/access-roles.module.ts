@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AccountInfrastructureModule } from '~/infrastructure/account/account-infrastructure.module';
+import { AppStoreModule } from '../appstore/appstore-app.module';
 import { CoreRightsModule } from '../rights/core-rights.module';
 import { AccessRolesResolver } from './access-roles.resolver';
 import { AccessRolesService } from './access-roles.service';
@@ -10,7 +11,7 @@ import { AccessRolesService } from './access-roles.service';
  * глобальном `RoleAssignmentsRegistryModule` — он нужен таблицам прав.
  */
 @Module({
-  imports: [CoreRightsModule, AccountInfrastructureModule],
+  imports: [CoreRightsModule, AccountInfrastructureModule, AppStoreModule],
   providers: [AccessRolesService, AccessRolesResolver],
 })
 export class AccessRolesModule {}
