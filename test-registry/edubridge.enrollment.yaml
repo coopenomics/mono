@@ -486,8 +486,8 @@ cases:
   - id: edu.enroll.side.26
     level: backend
     kind: side
-    scenario: "Условия курса изменены при действующих группах; дата начала группы после первого занятия; завершение группы с подписками."
-    expect: "Группа без взносов и занятий берёт новые условия, группа с участниками остаётся на прежних; дата начала после первого занятия не меняется; группа с действующими подписками не завершается."
+    scenario: "Условия курса изменены при действующих группах; дата начала группы после первого занятия."
+    expect: "Группа без взносов и занятий берёт новые условия, группа с участниками остаётся на прежних; дата начала после первого занятия не меняется."
     test: components/controller/tests/unit/edubridge/group.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written
@@ -520,6 +520,14 @@ cases:
     kind: side
     scenario: "День начала занятий группы наступил; участник записывается в неё. Затем администратор открывает набор снова либо переносит начало на будущий день."
     expect: "Набор в группу закрыт сам, запись отклоняется с кодом EDUBRIDGE_GROUP_ENROLLMENT_CLOSED. После открытия администратором участник записывается, и сам набор больше не закрывается; после переноса начала набор открыт до нового дня начала."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
+  - id: edu.enroll.side.31
+    level: backend
+    kind: side
+    scenario: "Срок программы группы вышел: от дня начала прошли все её месяцы."
+    expect: "Группа без действующих подписок завершена сама, записи в неё нет; с действующей подпиской она идёт дальше; группа без конечной программы не заканчивается."
     test: components/controller/tests/unit/edubridge/group.service.test.ts
     api: components/api-tests/src/edubridge/groups.test.ts
     status: written

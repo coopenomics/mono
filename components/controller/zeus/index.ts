@@ -13478,7 +13478,6 @@ edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any
 edubridgeCancelEnrollment?: [{	enrollment_id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ValueTypes["EduAccessCarrier"] | Variable<any, string>},ValueTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduAssignment"]],
-edubridgeCloseGroup?: [{	id: ValueTypes["ID"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeConvertStatement?: [{	data: ValueTypes["EduQuoteInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ValueTypes["EduAssignmentInput"] | Variable<any, string>},ValueTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ValueTypes["EduCourseInput"] | Variable<any, string>},ValueTypes["EduCourse"]],
@@ -29996,7 +29995,6 @@ edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boole
 edubridgeCancelEnrollment?: [{	enrollment_id: ResolverInputTypes["ID"]},ResolverInputTypes["EduEnrollment"]],
 edubridgeCheckConnector?: [{	carrier: ResolverInputTypes["EduAccessCarrier"]},ResolverInputTypes["EduConnectorBinding"]],
 edubridgeCloseAssignment?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduAssignment"]],
-edubridgeCloseGroup?: [{	id: ResolverInputTypes["ID"]},ResolverInputTypes["EduGroup"]],
 edubridgeConvertStatement?: [{	data: ResolverInputTypes["EduQuoteInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeCreateAssignment?: [{	data: ResolverInputTypes["EduAssignmentInput"]},ResolverInputTypes["EduAssignment"]],
 edubridgeCreateCourse?: [{	data: ResolverInputTypes["EduCourseInput"]},ResolverInputTypes["EduCourse"]],
@@ -46086,8 +46084,6 @@ export type ModelTypes = {
 	edubridgeCheckConnector: ModelTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: ModelTypes["EduAssignment"],
-	/** Завершить группу: набор закрыт, подписок и занятий по ней больше нет */
-	edubridgeCloseGroup: ModelTypes["EduGroup"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: ModelTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */
@@ -63205,8 +63201,6 @@ export type GraphQLTypes = {
 	edubridgeCheckConnector: GraphQLTypes["EduConnectorBinding"],
 	/** Снять допуск преподавателя к курсу */
 	edubridgeCloseAssignment: GraphQLTypes["EduAssignment"],
-	/** Завершить группу: набор закрыт, подписок и занятий по ней больше нет */
-	edubridgeCloseGroup: GraphQLTypes["EduGroup"],
 	/** Сформировать заявление о конвертации паевого взноса в членский */
 	edubridgeConvertStatement: GraphQLTypes["GeneratedDocument"],
 	/** Допустить преподавателя к курсу: расписание, ожидаемый результат и период ведения */

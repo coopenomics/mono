@@ -2061,9 +2061,6 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeCloseAssignment:{
 
 		},
-		edubridgeCloseGroup:{
-
-		},
 		edubridgeConvertStatement:{
 			data:"EduQuoteInput"
 		},
@@ -7752,7 +7749,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCancelEnrollment:"EduEnrollment",
 		edubridgeCheckConnector:"EduConnectorBinding",
 		edubridgeCloseAssignment:"EduAssignment",
-		edubridgeCloseGroup:"EduGroup",
 		edubridgeConvertStatement:"GeneratedDocument",
 		edubridgeCreateAssignment:"EduAssignment",
 		edubridgeCreateCourse:"EduCourse",

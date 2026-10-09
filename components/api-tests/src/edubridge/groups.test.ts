@@ -43,7 +43,6 @@ const COURSE_GROUPS = `query($id:ID!){ edubridgeCourseGroups(course_id:$id){ ${G
 const OPEN_GROUPS = `query($id:ID!){ edubridgeOpenGroups(course_id:$id){ ${GROUP_FIELDS} } }`
 const CREATE_GROUP = `mutation($d:EduCreateGroupInput!){ edubridgeCreateGroup(data:$d){ ${GROUP_FIELDS} } }`
 const UPDATE_GROUP = `mutation($d:EduUpdateGroupInput!){ edubridgeUpdateGroup(data:$d){ ${GROUP_FIELDS} } }`
-const CLOSE_GROUP = `mutation($id:ID!){ edubridgeCloseGroup(id:$id){ ${GROUP_FIELDS} } }`
 const MY_ENROLLMENT_GROUPS = 'query{ edubridgeMyEnrollments{ id group_id status } }'
 
 /** Ставка преподавателя за час на одного обучающегося; плановая ставка курсов набора — 1000. */
@@ -106,7 +105,7 @@ describe('Образование: группы курса и расчёт зан
     await educationOff()
   })
 
-  describe('группа курса: условия, набор, завершение', () => {
+  describe('группа курса: условия и набор', () => {
     let course: any
     let input: Record<string, unknown>
     let first: any
@@ -159,10 +158,6 @@ describe('Образование: группы курса и расчёт зан
       expect(second).toMatchObject({ course_id: course.id, status: 'ACTIVE', enrollment_open: true, starts_at: dayFromNow(45), fee_month: repriced.fee_month, planned_hourly_rate: '1200.0000 RUB' })
       expect(second.id).not.toBe(first.id)
       expect(second.title, 'группы названы по-разному').not.toBe(first.title)
-
-      // Группа с действующей подпиской не завершается.
-      expectCode(await gqlError(chairman, CLOSE_GROUP, { id: first.id }), 'EDUBRIDGE_GROUP_HAS_SUBSCRIPTIONS')
-      expect((await groupsOf(course.id)).find(g => g.id === first.id).status).toBe('ACTIVE')
     })
 
     it(caseName('edu.enroll.side.25', 'запись в группу: при нескольких открытых группу выбирают, закрытый набор отклоняется, единственная открытая берётся сама'), async () => {
@@ -188,10 +183,8 @@ describe('Образование: группы курса и расчёт зан
       const { course: other } = await create({ starts_at: dayFromNow(30) })
       expectCode(await gqlError(token, QUOTE, quoteInput(child.id, other.id, second.id)), 'EDUBRIDGE_GROUP_NOT_FOUND')
 
-      // Подписка закрыта — группа завершается, набор в неё закрыт.
+      // Подписка закрывается: следующие случаи набора считают кошельки с чистого остатка.
       await gql(token, CANCEL_ENROLLMENT, { id: paid.id })
-      const finished = (await gql<any>(chairman, CLOSE_GROUP, { id: first.id })).edubridgeCloseGroup
-      expect(finished).toMatchObject({ id: first.id, status: 'CLOSED' })
     })
   })
 
@@ -217,6 +210,16 @@ describe('Образование: группы курса и расчёт зан
       await gql(chairman, UPDATE_GROUP, { d: { id: late.id, enrollment_open: false } })
       const moved = (await gql<any>(chairman, UPDATE_GROUP, { d: { id: late.id, starts_at: dayFromNow(30) } })).edubridgeUpdateGroup
       expect(moved).toMatchObject({ starts_at: dayFromNow(30), enrollment_open: true })
+    })
+
+    it(caseName('edu.enroll.side.31', 'срок программы группы вышел, действующих подписок нет — группа завершена сама, записи в неё нет'), async () => {
+      // 32 занятия по 8 в месяц — четыре месяца; начало полгода назад.
+      const created = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: dayFromNow(-200), guarantee_days: 0 }) })).edubridgeCreateCourse
+      const course = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
+      const [group] = await groupsOf(course.id)
+      expect(group).toMatchObject({ status: 'CLOSED', enrollment_open: false })
+      expect((await gql<any>(token, OPEN_GROUPS, { id: course.id })).edubridgeOpenGroups).toEqual([])
+      expectCode(await gqlError(token, QUOTE, quoteInput(child.id, course.id, group.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
     })
   })
 

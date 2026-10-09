@@ -58,10 +58,6 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         template(#footer)
           .row.justify-end.q-gutter-sm
             BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('common.action.save') }}
-    template(v-if="details && details.status === Zeus.EduGroupStatus.ACTIVE" #footer)
-      .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.closeHint') }}
-      .edu-row-actions
-        BaseButton(variant="secondary" :disabled="details.learners_active > 0" :loading="closing" @click="onClose") {{ $t('edubridge.courseGroups.close') }}
 
   //- Новая группа: условия берутся с курса на день открытия.
   BaseDialog(v-model="createOpen" :title="$t('edubridge.courseGroups.createTitle')" size="sm")
@@ -82,14 +78,14 @@ import { Zeus } from '@coopenomics/sdk';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { asText, pluralizeDays } from 'src/shared/lib/utils';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { useConfirm, useFirstLoad } from 'src/shared/lib/composables';
+import { useFirstLoad } from 'src/shared/lib/composables';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { BaseBadge, BaseButton, BaseCard, BaseCheckbox, BaseDialog, BaseForm, BaseInput, BaseSelect, BaseTable, type BaseTableColumn } from 'src/shared/ui/base';
 import { DataRow, DetailsDrawer } from 'src/shared/ui/domain';
 import { fetchPlatformCourses, type ICourse } from '../../entities/Course';
 import { fetchCourseEconomy, type ICourseEconomy } from '../../entities/Economy';
-import { closeGroup, createGroup, fetchCourseGroups, updateGroup, type IGroup } from '../../entities/Group';
+import { createGroup, fetchCourseGroups, updateGroup, type IGroup } from '../../entities/Group';
 import { t } from '../../i18n';
 
 /**
@@ -101,12 +97,10 @@ import { t } from '../../i18n';
 const props = defineProps<{ course: ICourse }>();
 const emit = defineEmits<{ changed: [] }>();
 
-const { confirm } = useConfirm();
 const groups = ref<IGroup[]>([]);
 const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const busy = ref(false);
-const closing = ref(false);
 
 const columns: BaseTableColumn<IGroup>[] = [
   { key: 'title', label: t('edubridge.courseGroups.column.title') },
@@ -208,25 +202,6 @@ async function onSave(): Promise<void> {
     FailAlert(e);
   } finally {
     busy.value = false;
-  }
-}
-
-async function onClose(): Promise<void> {
-  if (!details.value) return;
-  const agreed = await confirm({
-    title: t('edubridge.courseGroups.closeConfirmTitle'),
-    message: t('edubridge.courseGroups.closeConfirmMessage', { groupTitle: details.value.title }),
-    confirmLabel: t('edubridge.courseGroups.close'),
-  });
-  if (!agreed) return;
-  closing.value = true;
-  try {
-    replace(await closeGroup(asText(details.value.id)));
-    detailsOpen.value = false;
-  } catch (e) {
-    FailAlert(e);
-  } finally {
-    closing.value = false;
   }
 }
 

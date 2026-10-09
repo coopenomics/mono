@@ -145,11 +145,16 @@ describe('EdubridgeGroupService — группа как единица расч�
     expect(fresh.chainTerms.pushCourse).toHaveBeenCalledWith(expect.objectContaining({ starts_at: '2026-10-01' }));
   });
 
-  it('группа с действующими подписками не завершается', async () => {
-    const busy = make({ groups: [group()], enrollments: [{ status: EduEnrollmentStatus.ACTIVE }] });
-    await expect(busy.service.close('voskhod', 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_HAS_SUBSCRIPTIONS' });
-    const free = make({ groups: [group()], enrollments: [{ status: EduEnrollmentStatus.EXPIRED }] });
-    await expect(free.service.close('voskhod', 'G1')).resolves.toMatchObject({ status: EduGroupStatus.CLOSED, enrollment_open: false });
+  it('группа завершается сама, когда срок программы вышел и действующих подписок нет; с действующей подпиской она идёт дальше', async () => {
+    // 64 занятия по 8 в месяц — восемь месяцев от дня начала.
+    const over = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.EXPIRED }] });
+    await expect(over.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.CLOSED, enrollment_open: false })]);
+    await expect(over.service.openFor('voskhod', course, 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED' });
+    const busy = make({ groups: [group({ starts_at: '2025-01-10' })], enrollments: [{ status: EduEnrollmentStatus.ACTIVE }] });
+    await expect(busy.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.ACTIVE, enrollment_open: false })]);
+    // Срок программы ещё идёт, и группа без конечной программы не заканчивается.
+    const running = make({ groups: [group({ starts_at: '2026-09-01' }), group({ id: 'G2', starts_at: '2020-01-10', lessons_total: 0 })] });
+    await expect(running.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ status: EduGroupStatus.ACTIVE }), expect.objectContaining({ status: EduGroupStatus.ACTIVE })]);
   });
 });
 

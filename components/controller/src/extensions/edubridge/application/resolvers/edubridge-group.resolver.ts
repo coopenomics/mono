@@ -71,11 +71,4 @@ export class EdubridgeGroupResolver {
   async edubridgeUpdateGroup(@Args('data') data: EduUpdateGroupInputDTO): Promise<EduGroupDTO> {
     return this.dto(await this.groups.update(coop(), data));
   }
-
-  @Mutation(() => EduGroupDTO, { name: 'edubridgeCloseGroup', description: 'Завершить группу: набор закрыт, подписок и занятий по ней больше нет' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
-  async edubridgeCloseGroup(@Args('id', { type: () => ID }) id: string): Promise<EduGroupDTO> {
-    return this.dto(await this.groups.close(coop(), id));
-  }
 }

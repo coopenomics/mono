@@ -58,7 +58,6 @@ export * as DeleteCourse from './deleteCourse'
 /** Группы курса: открыть, изменить, завершить */
 export * as CreateGroup from './createGroup'
 export * as UpdateGroup from './updateGroup'
-export * as CloseGroup from './closeGroup'
 export * as SetAssignmentRate from './setAssignmentRate'
 /** Отклонить взнос РИД */
 export * as DeclineContribution from './declineContribution'

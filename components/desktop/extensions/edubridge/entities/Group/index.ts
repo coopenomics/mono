@@ -36,8 +36,3 @@ export async function updateGroup(data: IUpdateGroupInput): Promise<IGroup> {
   const { [Mutations.Edubridge.UpdateGroup.name]: result } = await client.Mutation(Mutations.Edubridge.UpdateGroup.mutation, { variables: { data } });
   return result;
 }
-
-export async function closeGroup(id: string): Promise<IGroup> {
-  const { [Mutations.Edubridge.CloseGroup.name]: result } = await client.Mutation(Mutations.Edubridge.CloseGroup.mutation, { variables: { id } });
-  return result;
-}

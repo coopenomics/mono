@@ -7,6 +7,8 @@ import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositori
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeGroupKyselyRepository } from '../../infrastructure/repositories/edubridge-group.kysely-repository';
 import { EdubridgeLessonKyselyRepository } from '../../infrastructure/repositories/edubridge-lesson.kysely-repository';
+import { courseMonths } from '../../domain/economy/course-fee.calculator';
+import { addMonths } from '../../domain/economy/course-period.calculator';
 import { EdubridgeChainTermsService } from './edubridge-chain-terms.service';
 import { t } from '../../i18n';
 
@@ -69,19 +71,32 @@ export class EdubridgeGroupService {
   }
 
   /**
-   * Набор в группу закрывается сам с дня начала занятий — один раз. Дальше
-   * его ведёт администратор: открыв набор снова, он принимает участника в
-   * идущую группу, и сам набор уже не закрывается.
+   * Состояние группы по её датам. С дня начала занятий набор закрывается сам —
+   * один раз: дальше его ведёт администратор и, открыв набор снова, принимает
+   * участника в идущую группу. Когда срок программы вышел и действующих
+   * подписок нет, группа завершена.
    */
   private async closeStarted(groups: EdubridgeGroupRecord[]): Promise<EdubridgeGroupRecord[]> {
     for (const group of groups) {
-      if (group.status !== EduGroupStatus.ACTIVE || group.enrollment_closed_on_start || !hasStarted(group.starts_at)) continue;
+      if (group.status !== EduGroupStatus.ACTIVE) continue;
+      if (await this.finishEnded(group)) continue;
+      if (group.enrollment_closed_on_start || !hasStarted(group.starts_at)) continue;
       group.enrollment_open = false;
       group.enrollment_closed_on_start = true;
       await this.groups.save(group);
       this.logger.info(`Набор в группу «${group.title}» закрыт: занятия начались`);
     }
     return groups;
+  }
+
+  /** Срок программы группы вышел, действующих подписок нет — группа завершена; возвращает, завершена ли. */
+  private async finishEnded(group: EdubridgeGroupRecord): Promise<boolean> {
+    if (!hasEnded(group) || (await this.hasLiveSubscriptions(group.coopname, group.id))) return false;
+    group.status = EduGroupStatus.CLOSED;
+    group.enrollment_open = false;
+    await this.groups.save(group);
+    this.logger.info(`Группа «${group.title}» завершена: срок программы вышел`);
+    return true;
   }
 
   /**
@@ -196,15 +211,6 @@ export class EdubridgeGroupService {
     await this.chainTerms.pushCourse(this.viewOf(course, group));
   }
 
-  /** Группа завершена: набор закрыт, новых занятий и подписок по ней нет. Действующие подписки её держат. */
-  async close(coopname: string, id: string): Promise<EdubridgeGroupRecord> {
-    const group = await this.get(coopname, id);
-    if (await this.hasLiveSubscriptions(coopname, group.id)) throw DomainError.badRequest('EDUBRIDGE_GROUP_HAS_SUBSCRIPTIONS');
-    group.status = EduGroupStatus.CLOSED;
-    group.enrollment_open = false;
-    return this.groups.save(group);
-  }
-
   /**
    * Условия курса изменены: группы, по которым ещё никто не вносил взнос и не
    * проводил занятий, берут новые условия; у остальных они прежние. Отказ
@@ -266,6 +272,13 @@ export class EdubridgeGroupService {
 
 function termsOf(course: EdubridgeCourseRecord): Partial<EdubridgeGroupRecord> {
   return Object.fromEntries(TERM_FIELDS.map((f) => [f, course[f]])) as Partial<EdubridgeGroupRecord>;
+}
+
+/** Срок программы группы вышел: от дня начала прошли все её месяцы. Группа без конечной программы не заканчивается. */
+function hasEnded(group: EdubridgeGroupRecord, now: Date = new Date()): boolean {
+  const months = courseMonths(group.lessons_per_month, group.lessons_total);
+  if (!group.starts_at || !months) return false;
+  return addMonths(new Date(group.starts_at), months).getTime() <= now.getTime();
 }
 
 /** День начала занятий наступил; группа без даты начала не начиналась. */
