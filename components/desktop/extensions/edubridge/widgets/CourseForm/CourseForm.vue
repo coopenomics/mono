@@ -105,9 +105,10 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         template(#append)
           FieldHelp(:text="COURSE_FORM_HELP.plannedRate")
       .edu-course-form__check
-        BaseCheckbox(v-model="coursePayment")
+        //- Взнос за весь курс — для программ длиннее месяца: у месячной он равен помесячному, переключатель недоступен.
+        BaseCheckbox(v-model="coursePayment" :disabled="!programIsLong && !coursePayment")
           | {{ $t('edubridge.courseForm.coursePaymentCheckbox') }}
-        FieldHelp(:text="coursePaymentHint")
+        FieldHelp(:text="programIsLong ? coursePaymentHint : COURSE_FORM_HELP.coursePaymentShort")
       BaseInput(
         v-if="coursePayment"
         v-model="courseDiscount"
@@ -213,7 +214,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
 import { DataRow, IdentityCell } from 'src/shared/ui/domain';
@@ -283,6 +284,17 @@ const {
   addTeacher,
   removeTeacher,
 } = state;
+
+/** Программа длиннее одного месяца: только у такой взнос за весь курс отличается от помесячного. */
+const programIsLong = computed(() => {
+  const perMonth = Number(lessonsPerMonth.value || 0);
+  const total = Number(lessonsTotal.value || 0);
+  return perMonth > 0 && total > perMonth;
+});
+// Программа сокращена до месяца — взнос за весь курс больше не принимается.
+watch(programIsLong, (long) => {
+  if (!long) coursePayment.value = false;
+});
 
 /** Длительность программы — показ рядом с числом занятий; расчёт общий со страницей курса. */
 const programMonths = computed(() => programSpanLabel(lessonsPerMonth.value, lessonsTotal.value) || '______');

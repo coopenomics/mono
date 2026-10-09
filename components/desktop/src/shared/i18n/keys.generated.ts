@@ -3007,6 +3007,7 @@ export type MessageKey =
   | 'edubridge.courseForm.total.markup'
   | 'edubridge.courseFormHelp.carrier'
   | 'edubridge.courseFormHelp.coursePayment'
+  | 'edubridge.courseFormHelp.coursePaymentShort'
   | 'edubridge.courseFormHelp.description'
   | 'edubridge.courseFormHelp.direction'
   | 'edubridge.courseFormHelp.externalRef'
