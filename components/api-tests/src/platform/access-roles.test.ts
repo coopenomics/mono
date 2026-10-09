@@ -145,7 +145,8 @@ describe('платформа: назначаемые роли и управле�
       for (const name of ['reportsLedgerAccounts', 'reportsLedgerWallets', 'reportsLedgerHistory', 'reportsLedgerPostings', 'reportsProcesses', 'reportsParticipants', 'reportsParticipantWallets', 'reportsSubjects'])
         expect(await probe.denial(tokens[member.account], name), name).toBeNull()
       // В ядре роль бухгалтера прав не даёт: бухгалтерия, пайщики и кошельки ядра закрыты.
-      for (const name of ['getLedger2Wallets', 'getLedger2History', 'getAccounts', 'walmoveWallets', 'setPaymentStatus'])
+      // Операции кассира здесь не проверяются: у пайщика в этот момент назначена и роль кассира.
+      for (const name of ['getLedger2Wallets', 'getLedger2History', 'getAccounts', 'walmoveWallets'])
         expect(await probe.denial(tokens[member.account], name), name).toBe(NO_RIGHT)
       // Роль бухгалтера страниц стола совета не открывает.
       expect(await sovietGrants(tokens[member.account])).not.toContain('Agenda:read')
