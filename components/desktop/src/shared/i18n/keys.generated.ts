@@ -3018,6 +3018,7 @@ export type MessageKey =
   | 'edubridge.courseFormHelp.membershipFee'
   | 'edubridge.courseFormHelp.payPerLearner'
   | 'edubridge.courseFormHelp.plannedRate'
+  | 'edubridge.courseFormHelp.programMonths'
   | 'edubridge.courseFormHelp.schedule'
   | 'edubridge.courseFormHelp.section'
   | 'edubridge.courseFormHelp.skillspaceCourse'

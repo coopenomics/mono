@@ -16,6 +16,7 @@ export const COURSE_FORM_HELP = {
   lessonsPerMonth: t('edubridge.courseFormHelp.lessonsPerMonth'),
   lessonMinutes: t('edubridge.courseFormHelp.lessonMinutes'),
   lessonsTotal: t('edubridge.courseFormHelp.lessonsTotal'),
+  programMonths: t('edubridge.courseFormHelp.programMonths'),
   plannedRate: t('edubridge.courseFormHelp.plannedRate'),
   payPerLearner: t('edubridge.courseFormHelp.payPerLearner'),
   startsAt: t('edubridge.courseFormHelp.startsAt'),

@@ -67,6 +67,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
         BaseInput(:model-value="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" readonly)
+          template(#append)
+            FieldHelp(:text="COURSE_FORM_HELP.programMonths")
 
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
