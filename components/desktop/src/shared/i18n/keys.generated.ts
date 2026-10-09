@@ -3273,7 +3273,6 @@ export type MessageKey =
   | 'edubridge.subscribeDialog.perMonth'
   | 'edubridge.subscribeDialog.periodCourseTitle'
   | 'edubridge.subscribeDialog.periodMonthTitle'
-  | 'edubridge.subscribeDialog.selfMeta'
   | 'edubridge.subscribeDialog.success'
   | 'edubridge.subscribeDialog.topUpWallet'
   | 'edubridge.subscribeDialog.whoTitle'

@@ -7,7 +7,7 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
     .edu-subscribe__who
       .t-eyebrow.q-mb-sm {{ $t('edubridge.subscribeDialog.whoTitle') }}
       .edu-subscribe__tiles
-        BaseRadioCard(v-for="l in pool" :key="asText(l.id)" v-model="who" :value="asText(l.id)" :title="l.display_name" :meta="l.is_self ? $t('edubridge.subscribeDialog.selfMeta') : undefined" :disabled="addingSelf")
+        BaseRadioCard(v-for="l in pool" :key="asText(l.id)" v-model="who" :value="asText(l.id)" :title="l.is_self ? $t('edubridge.learnerForm.whoSelf') : l.display_name" :disabled="addingSelf")
         BaseRadioCard(v-if="!hasSelf" v-model="who" :value="WHO_SELF" :title="$t('edubridge.learnerForm.whoSelf')" :disabled="addingSelf")
         BaseRadioCard(v-model="who" :value="WHO_OTHER" :title="$t('edubridge.learnerForm.whoOther')" :disabled="addingSelf")
     BaseSelect(v-model="courseId" :label="$t('edubridge.subscribeDialog.courseLabel')" :options="courseOptions" :disabled="Boolean(lockedCourseId)" required)

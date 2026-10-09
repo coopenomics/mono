@@ -869,7 +869,7 @@
       }
     },
     "subscribeDialog": {
-      "availableShareLabel": "Доступно паевого в главном кошельке",
+      "availableShareLabel": "Доступно в главном паевом кошельке",
       "cancel": "Отмена",
       "courseDiscountMeta": "за {months} · меньше на {discount}",
       "courseLabel": "Курс",
@@ -878,13 +878,12 @@
       "fromProgramLabel": "Зачтётся с кошелька программы",
       "fromShareLabel": "Конвертируется с паевого",
       "getAccess": "Получить доступ",
-      "notEnoughFunds": "Не хватает {shortfall}. Пополните паевой взнос в главном кошельке.",
+      "notEnoughFunds": "Не хватает {shortfall}. Пополните главный паевой кошелёк.",
       "paidUntilLabel": "Будет оплачено до",
       "perMonth": "в месяц",
       "periodCourseTitle": "За весь курс разом",
       "periodMonthTitle": "Помесячно",
       "newLearnerTitle": "Новый обучающийся",
-      "selfMeta": "Вы",
       "success": "Членский взнос внесён, доступ оформляется",
       "topUpWallet": "Пополнить на эту сумму",
       "groupLabel": "Группа",
