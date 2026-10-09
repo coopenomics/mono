@@ -53,18 +53,20 @@ inline void accept(eosio::name coopname,
   eosio::check(rid->statement_hash != checksum256(),
                "EDUBRIDGE_RID_STATEMENT_NOT_SUBMITTED: Заявление о паевом взносе по этим материалам ещё не подано");
 
+  // Все операции приёма идут под хэшем процесса взноса (rid_hash), а не под хэшем акта:
+  // иначе реестр показывает приём отдельным процессом от хранения материалов.
   // ── o.edu.rid: Дт 04 / Кт 08 — результат принят в состав НМА ──────────
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::ACCEPT_EDU_RID,
                  processes::edubridge::RID,
-                 amount, username, act.hash,
+                 amount, username, rid_hash,
                  Edubridge::Memo::get_accept_rid_memo(rid_id));
 
   // ── o.edu.ridshr: TRANSFER w.edu.hold → w.edu.share (Дт 76 / Кт 80) ───
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::SETTLE_EDU_RID,
                  processes::edubridge::RID,
-                 amount, username, act.hash,
+                 amount, username, rid_hash,
                  Edubridge::Memo::get_settle_rid_memo(rid_id));
 
   // ── o.edu.settle: расчёт с преподавателем за счёт резерва программы ────
@@ -83,7 +85,7 @@ inline void accept(eosio::name coopname,
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::SETTLE_TEACHER_RESERVE,
                  processes::edubridge::RID,
-                 amount, coopname, act.hash,
+                 amount, coopname, rid_hash,
                  Edubridge::Memo::get_settle_reserve_memo(rid_id));
 
   // Протокол и акт — в реестр документов пакетом процесса (package = rid_hash).
