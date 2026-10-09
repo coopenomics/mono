@@ -241,6 +241,31 @@ describe('Образование: выдача доступа на площад�
       expect((await gql<any>(chairman, COURSE, { id: course.id })).edubridgeCourse.id).toBe(course.id)
     }, 300_000)
 
+    it(caseName('edu.access.side.10', 'доступ получателя к курсу площадки оплачен другой подпиской — отзыв площадке не уходит, пока действует вторая'), async () => {
+      // Два курса кооператива привязаны к одному курсу школы; обучающийся подписан на оба.
+      const [first, second] = [await skillspaceCourse(), await skillspaceCourse()]
+      learnerNo += 1
+      const email = `learner-${learnerNo}-${crypto.randomBytes(3).toString('hex')}@school.example`
+      const learner = (await gql<any>(token, ADD_LEARNER, { d: { display_name: `Иванов Пётр Сергеевич ${learnerNo}`, recipient_type: 'EMAIL', recipient_value: email } })).edubridgeAddLearner
+      const a = await subscribe(member, token, learner.id, first.id)
+      const b = await subscribe(member, token, learner.id, second.id)
+      await taskIn(a.id, 'GRANT', ['DONE'])
+      await taskIn(b.id, 'GRANT', ['DONE'])
+      const removals = async (): Promise<number> =>
+        (await stubRequests(`${SS}/course/${SS_COURSE}/student-remove`)).filter(r => formOf(r.body).get('email') === email).length
+
+      // Первая подписка закрыта: задача отзыва выполнена, но с курса школы ученика не снимают.
+      await gql(token, CANCEL_ENROLLMENT, { id: a.id })
+      await taskIn(a.id, 'REVOKE', ['DONE'])
+      expect(await removals(), 'отзыв площадке не ушёл: доступ оплачен второй подпиской').toBe(0)
+      expect((await enrollmentOf(token, a.id))?.access_state).toBe('REVOKED')
+
+      // Закрыта и вторая — теперь ученик снимается с курса школы.
+      await gql(token, CANCEL_ENROLLMENT, { id: b.id })
+      await taskIn(b.id, 'REVOKE', ['DONE'])
+      expect(await removals()).toBe(1)
+    }, 480_000)
+
     it(caseName('edu.access.side.04', 'курс удалён на площадке — задача требует внимания без выдачи; площадка недоступна при сверке — задача ждёт повтора'), async () => {
       const gone = await skillspaceCourse(SS_OTHER_COURSE)
       await stubRoute('GET', `${SS}/school/course/list`, { body: [{ id: SS_COURSE, name: 'Курс школы' }] })

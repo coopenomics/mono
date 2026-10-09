@@ -54,6 +54,11 @@ export interface AccessCarrierConnector {
   grant(request: AccessRequest): Promise<ConnectorResult>;
   revoke(request: AccessRequest): Promise<ConnectorResult>;
   check(coopname: string, courseRef: string): Promise<CourseCheckResult>;
+  /**
+   * С чего именно отзыв снимает получателя — по привязке курса. Площадка,
+   * где отзыв снимает с курса целиком, называет курс; без метода — привязка как есть.
+   */
+  revokeScope?(courseRef: string): string;
   /** Проверка подключения без привязки к курсу — одно чтение с ключами кооператива. */
   ping(coopname: string): Promise<ConnectorPingResult>;
 }

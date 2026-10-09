@@ -8,6 +8,7 @@ import {
   EduAccessTaskKind,
   EduAccessTaskStatus,
   EduConnectorHealth,
+  EduEnrollmentStatus,
   type EduRecipientType,
 } from '../../domain/enums';
 import type { AccessCarrierConnector, AccessRequest, ConnectorResult, CourseCheckResult } from '../../domain/connectors/access-carrier.connector';
@@ -49,6 +50,12 @@ function courseCheckProblem(check: CourseCheckResult, course: EdubridgeCourseRec
 
 /** Как долго верить сверке курса с площадкой. */
 export const CHECK_TTL_MS = 60 * 60_000;
+
+/** С чего отзыв площадки снимает получателя: курс площадки либо привязка как есть. */
+function revokeScopeOf(connector: AccessCarrierConnector, courseRef: string | null | undefined): string {
+  const ref = String(courseRef ?? '').trim();
+  return connector.revokeScope ? connector.revokeScope(ref) : ref;
+}
 
 /** Задержка перед попыткой n (1-based): 1, 2, 4, 8 … минут, не больше 60. */
 export function backoffMinutes(attempt: number): number {
@@ -126,9 +133,38 @@ export class EdubridgeAccessOutboxService {
       course_ref: course.external_ref,
       enrollment_id: enrollment.id,
     };
+    // Доступ того же получателя к тому же курсу площадки оплачен другой подпиской — отзывать нечего.
+    if (task.kind === EduAccessTaskKind.REVOKE && (await this.paidByAnotherSubscription(task, ctx, request))) {
+      this.logger.info(`[EDU.OUTBOX] отзыв по подписке ${enrollment.id} не исполнен: доступ получателя к курсу площадки оплачен другой подпиской`);
+      return this.done(task, enrollment, { code: 'exists', message: t('edubridge.accessOutbox.reason.paidByAnotherSubscription') });
+    }
     const result = task.kind === EduAccessTaskKind.GRANT ? await connector.grant(request) : await connector.revoke(request);
     await this.bindings.touch(task.coopname, task.carrier, result);
     return this.settle(task, enrollment, result);
+  }
+
+  /**
+   * Есть ли у того же получателя другая действующая подписка на тот же курс
+   * площадки. Тогда отзыв снял бы оплаченный доступ: ученик перешёл в другую
+   * группу курса, два курса кооператива привязаны к одному курсу площадки либо
+   * одного обучающегося записали двое пайщиков.
+   */
+  private async paidByAnotherSubscription(task: EdubridgeAccessTaskRecord, ctx: TaskContext, request: AccessRequest): Promise<boolean> {
+    const scope = revokeScopeOf(ctx.connector, request.course_ref);
+    if (!scope) return false;
+    for (const learner of await this.learners.findByRecipient(task.coopname, request.recipient.type, request.recipient.value)) {
+      const others = (await this.enrollments.findByLearner(task.coopname, learner.id)).filter((e) => e.id !== ctx.enrollment.id && e.status === EduEnrollmentStatus.ACTIVE);
+      for (const other of others) {
+        if (await this.grantsSameScope(task, ctx.connector, other, scope)) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Подписка даёт доступ к тому же курсу той же площадки. */
+  private async grantsSameScope(task: EdubridgeAccessTaskRecord, connector: AccessCarrierConnector, other: EdubridgeEnrollmentRecord, scope: string): Promise<boolean> {
+    const course = await this.groups.courseOf(task.coopname, other.course_id, other.group_id);
+    return Boolean(course) && course?.carrier === task.carrier && revokeScopeOf(connector, course.external_ref) === scope;
   }
 
   /** Исход площадки → состояние задачи: успех/«уже есть» — done, отказ — вмешательство, остальное — повтор. */

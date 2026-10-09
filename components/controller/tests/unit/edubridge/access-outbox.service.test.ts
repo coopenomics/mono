@@ -5,7 +5,7 @@ import { EDUBRIDGE_ACCESS_GRANTED_EVENT, EDUBRIDGE_ACCESS_NEEDS_ATTENTION_EVENT 
 
 const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 
-function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?: Date | null } = {}) {
+function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?: Date | null; others?: any[]; otherCourse?: any } = {}) {
   const task = {
     id: 'T1', coopname: 'voskhod', enrollment_id: 'E1', kind: EduAccessTaskKind.GRANT, carrier: EduAccessCarrier.SKILLSPACE,
     trigger_trx: 'TRX', status: EduAccessTaskStatus.RUNNING, attempts: 0, next_attempt_at: new Date(), recipient_override: null, ...opts.task,
@@ -14,20 +14,22 @@ function make(opts: { grant?: any; check?: any; task?: Partial<any>; checkedAt?:
   const course = { id: 'C1', carrier: EduAccessCarrier.SKILLSPACE, external_ref: 'course-42', external_title_seen: 'Алгебра', external_checked_at: opts.checkedAt ?? null } as any;
   const learner = { id: 'L1', recipient_type: 'email', recipient_value: 'kid@x.ru' } as any;
   const tasks = { enqueue: jest.fn(async (d: any) => ({ ...d })), claimDue: jest.fn(async () => [task]), save: jest.fn(async (t: any) => t), findById: jest.fn(async () => task) } as any;
-  const enrollments = { findById: jest.fn(async () => enrollment), save: jest.fn(async (e: any) => e) } as any;
-  const learners = { findById: jest.fn(async () => learner) } as any;
-  const courses = { findById: jest.fn(async () => course), save: jest.fn(async (c: any) => c) } as any;
+  // Другие подписки того же получателя: по ним отзыв решает, оплачен ли доступ ещё кем-то.
+  const enrollments = { findById: jest.fn(async () => enrollment), save: jest.fn(async (e: any) => e), findByLearner: jest.fn(async () => [enrollment, ...(opts.others ?? [])]) } as any;
+  const learners = { findById: jest.fn(async () => learner), findByRecipient: jest.fn(async () => [learner]) } as any;
+  const courses = { findById: jest.fn(async (_c: string, id: string) => (id === 'C2' ? opts.otherCourse : course)), save: jest.fn(async (c: any) => c) } as any;
   const bindings = { touch: jest.fn(), setHealth: jest.fn() } as any;
   const connector = {
     carrier: EduAccessCarrier.SKILLSPACE,
     grant: jest.fn(async (_r: any) => opts.grant ?? { code: 'ok' }),
     revoke: jest.fn(async (_r: any) => ({ code: 'ok' })),
+    revokeScope: (ref: string) => ref.split(':')[0],
     check: jest.fn(async (_c: string, _ref: string) => opts.check ?? { found: true, title: 'Алгебра' }),
   };
   const connectors = { get: jest.fn(() => connector) } as any;
   const events = { emit: jest.fn() } as any;
   const service = new EdubridgeAccessOutboxService(tasks, enrollments, learners, courses, bindings, connectors, logger, events, { viewOf: (c: any) => c, courseOf: jest.fn(async (...a: any[]) => (courses as any).findById(a[0], a[1])), openFor: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), get: jest.fn(async () => ({ id: 'G1', chain_ref: '3', course_id: 'C1' })), list: jest.fn(async () => [{ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active', starts_at: null, teacher_reserve_balance: null, teacher_settled_total: null }]), firstOf: jest.fn(async () => ({ id: 'G1', chain_ref: '7', course_id: 'C1', status: 'active' })), saveFunds: jest.fn(async (g: any, r: string, st: string) => { g.teacher_reserve_balance = r; g.teacher_settled_total = st; return true; }) } as any);
-  return { service, task, enrollment, tasks, connector, events, bindings };
+  return { service, task, enrollment, tasks, connector, events, bindings, learners };
 }
 
 describe('backoffMinutes', () => {
@@ -105,5 +107,39 @@ describe('EdubridgeAccessOutboxService.processDue', () => {
     await service.processDue('voskhod');
     expect((connector.revoke.mock.calls[0]![0] as any).recipient.value).toBe('old@x.ru');
     expect(enrollment.access_state).toBe(EduAccessState.PENDING);
+  });
+
+  describe('отзыв при другой действующей подписке того же получателя', () => {
+    const revoke = { kind: EduAccessTaskKind.REVOKE };
+    const active = (extra: Record<string, unknown> = {}) => ({ id: 'E2', learner_id: 'L1', course_id: 'C1', group_id: 'G2', status: 'active', ...extra });
+
+    it('ученик перешёл в другую группу того же курса: отзыв площадке не уходит, задача выполнена, прежняя подписка — «отозван»', async () => {
+      const { service, task, enrollment, connector, learners } = make({ task: revoke, others: [active()] });
+      await service.processDue('voskhod');
+      expect(connector.revoke).not.toHaveBeenCalled();
+      expect(task).toMatchObject({ status: EduAccessTaskStatus.DONE, last_result: 'exists' });
+      expect(enrollment.access_state).toBe(EduAccessState.REVOKED);
+      // Получатель ищется по адресу у всех пайщиков, а не только у плательщика подписки.
+      expect(learners.findByRecipient).toHaveBeenCalledWith('voskhod', 'email', 'kid@x.ru');
+    });
+
+    it('другой курс кооператива привязан к тому же курсу площадки — отзыв не уходит; к другому курсу площадки — уходит', async () => {
+      const same = make({ task: revoke, others: [active({ course_id: 'C2' })], otherCourse: { id: 'C2', carrier: EduAccessCarrier.SKILLSPACE, external_ref: 'course-42:group-b' } });
+      await same.service.processDue('voskhod');
+      expect(same.connector.revoke).not.toHaveBeenCalled();
+      const other = make({ task: revoke, others: [active({ course_id: 'C2' })], otherCourse: { id: 'C2', carrier: EduAccessCarrier.SKILLSPACE, external_ref: 'course-77' } });
+      await other.service.processDue('voskhod');
+      expect(other.connector.revoke).toHaveBeenCalledTimes(1);
+    });
+
+    it('другая подписка получателя уже закрыта либо её нет — отзыв уходит площадке', async () => {
+      const closed = make({ task: revoke, others: [active({ status: 'expired' })] });
+      await closed.service.processDue('voskhod');
+      expect(closed.connector.revoke).toHaveBeenCalledTimes(1);
+      const alone = make({ task: revoke });
+      await alone.service.processDue('voskhod');
+      expect(alone.connector.revoke).toHaveBeenCalledTimes(1);
+      expect(alone.task.last_result).toBe('ok');
+    });
   });
 });

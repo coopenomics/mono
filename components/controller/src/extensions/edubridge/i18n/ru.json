@@ -7,6 +7,7 @@
         "courseNotFoundOnPlatform": "Курс не найден на площадке",
         "courseRenamed": "Курс на площадке переименован: «{seenTitle}» → «{currentTitle}»",
         "learnerOrCourseNotFound": "Обучающийся или курс не найдены",
+        "paidByAnotherSubscription": "Доступ получателя к курсу площадки оплачен другой подпиской — отзыв не исполнен",
         "platformRejected": "Отказ площадки",
         "platformUnavailable": "Площадка недоступна",
         "subscriptionNotFound": "Подписка не найдена"

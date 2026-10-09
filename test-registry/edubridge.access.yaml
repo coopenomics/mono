@@ -141,6 +141,14 @@ cases:
     test: components/controller/tests/unit/edubridge/connectors.test.ts
     api: components/api-tests/src/edubridge/platforms.test.ts
     status: passing
+  - id: edu.access.side.10
+    level: backend
+    kind: side
+    scenario: "Подписка закрыта, а у того же получателя есть другая действующая подписка на тот же курс площадки: ученик перешёл в другую группу курса, два курса кооператива привязаны к одному курсу площадки либо одного обучающегося записали двое пайщиков."
+    expect: "Отзыв площадке не уходит, задача отзыва выполнена, закрытая подписка помечена «отозван»; доступ на площадке остаётся. Когда закрыта и вторая подписка, ученик снимается с курса площадки. При другой подписке на другой курс площадки либо уже закрытой — отзыв уходит как обычно."
+    test: components/controller/tests/unit/edubridge/access-outbox.service.test.ts
+    api: components/api-tests/src/edubridge/platforms.test.ts
+    status: written
   - id: edu.access.happy.10
     level: backend
     kind: happy

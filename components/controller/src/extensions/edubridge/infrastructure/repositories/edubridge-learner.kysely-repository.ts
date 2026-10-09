@@ -20,6 +20,16 @@ export class EdubridgeLearnerKyselyRepository {
     return this.repo.find({ coopname, id: oneOf(ids) });
   }
 
+  /** Обучающиеся с этим контактом у всех пайщиков: на площадке один адрес — один получатель. */
+  findByRecipient(coopname: string, type: string, value: string): Promise<EdubridgeLearnerRecord[]> {
+    return this.repo
+      .sqlBuilder('l')
+      .where('l.coopname = :coopname', { coopname })
+      .andWhere('l.recipient_type = :type', { type })
+      .andWhere('lower(l.recipient_value) = lower(:value)', { value })
+      .getMany();
+  }
+
   create(data: Partial<EdubridgeLearnerRecord>): EdubridgeLearnerRecord {
     return this.repo.create(data);
   }

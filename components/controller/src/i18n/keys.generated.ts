@@ -1081,6 +1081,7 @@ export type MessageKey =
   | 'edubridge.accessOutbox.reason.courseNotFoundOnPlatform'
   | 'edubridge.accessOutbox.reason.courseRenamed'
   | 'edubridge.accessOutbox.reason.learnerOrCourseNotFound'
+  | 'edubridge.accessOutbox.reason.paidByAnotherSubscription'
   | 'edubridge.accessOutbox.reason.platformRejected'
   | 'edubridge.accessOutbox.reason.platformUnavailable'
   | 'edubridge.accessOutbox.reason.subscriptionNotFound'

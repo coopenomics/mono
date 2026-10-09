@@ -159,6 +159,11 @@ export class SkillspaceConnector implements AccessCarrierConnector {
     return this.post('/course/student-invite', body);
   }
 
+  /** Отзыв снимает ученика с курса школы целиком — группа курса не различается. */
+  revokeScope(courseRef: string): string {
+    return splitSkillspaceRef(courseRef).course;
+  }
+
   async revoke(request: AccessRequest): Promise<ConnectorResult> {
     const token = await this.token(request.coopname);
     const blocked = this.guard(request, token);
