@@ -4,10 +4,10 @@ q-btn(
   @click='openDialog',
   :color='micro ? "accent" : "primary"',
   :flat='micro',
-  :outline='Boolean(label)',
+  :outline='Boolean(label) && !primary',
   :no-caps='Boolean(label)',
   :dense='micro',
-  :size='micro || label ? "sm" : undefined'
+  :size='micro || (label && !primary) ? "sm" : undefined'
 )
   //- С подписью кнопка стоит внутри чужой формы (например, запись на курс) и называет действие словами.
   span(v-if='label') {{ label }}
@@ -73,12 +73,15 @@ interface Props {
   amount?: number | null;
   /** Подпись кнопки вместо значка — когда кнопка стоит внутри чужой формы. */
   label?: string;
+  /** Кнопка с подписью — главное действие чужого окна: залита и обычного размера. */
+  primary?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   micro: false,
   amount: null,
   label: '',
+  primary: false,
 });
 const emit = defineEmits<{ deposited: [] }>();
 import { ref, computed } from 'vue';

@@ -29,22 +29,21 @@ BaseDialog(:model-value="modelValue" :title="$t('edubridge.subscribeDialog.getAc
     template(v-if="quote")
       //- Взнос сначала берётся с кошелька программы: возвращённые средства
       //- идут в дело, а с паевого конвертируется только недостача.
-      DataRow(v-if="hasProgramFunds" :label="$t('edubridge.subscribeDialog.fromProgramLabel')" :value="formatAsset2Digits(quote.from_program)")
-      DataRow(v-if="hasProgramFunds" :label="$t('edubridge.subscribeDialog.fromShareLabel')" :value="formatAsset2Digits(quote.to_convert)")
-      DataRow(:label="$t('edubridge.subscribeDialog.availableShareLabel')" :value="formatAsset2Digits(quote.available)")
-      DataRow(:label="quote.is_extension ? $t('edubridge.subscribeDialog.extendedUntilLabel') : $t('edubridge.subscribeDialog.paidUntilLabel')" :value="formatDate(quote.paid_until)")
+      DataRow(v-if="hasProgramFunds" align="spread" :label="$t('edubridge.subscribeDialog.fromProgramLabel')" :value="formatAsset2Digits(quote.from_program)")
+      DataRow(v-if="hasProgramFunds" align="spread" :label="$t('edubridge.subscribeDialog.fromShareLabel')" :value="formatAsset2Digits(quote.to_convert)")
+      DataRow(align="spread" :label="$t('edubridge.subscribeDialog.availableShareLabel')" :value="formatAsset2Digits(quote.available)")
+      DataRow(v-if="!quote.enough" align="spread" :label="$t('edubridge.subscribeDialog.shortfallLabel')")
+        template(#value-override)
+          span.edu-subscribe__shortfall {{ formatAsset2Digits(quote.shortfall) }}
+      DataRow(align="spread" :label="quote.is_extension ? $t('edubridge.subscribeDialog.extendedUntilLabel') : $t('edubridge.subscribeDialog.paidUntilLabel')" :value="formatDate(quote.paid_until)")
 
-      BaseBanner(v-if="!quote.enough" variant="warn")
-        template(#icon)
-          q-icon(name="account_balance_wallet")
-        | {{ $t('edubridge.subscribeDialog.notEnoughFunds', { shortfall: formatAsset2Digits(quote.shortfall) }) }}
-        .q-mt-sm
-          //- Пополнение — здесь же, окном с подставленной суммой; после зачисления расчёт пересчитывается.
-          DepositButton(:amount="shortfallAmount" :label="$t('edubridge.subscribeDialog.topUpWallet')" @deposited="reloadQuotes")
 
   template(#footer)
     BaseButton(variant="ghost" :disabled="busy" @click="emit('update:modelValue', false)") {{ $t('edubridge.subscribeDialog.cancel') }}
-    BaseButton(variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") {{ $t('edubridge.subscribeDialog.getAccess') }}
+    //- Средств не хватает — главным действием окна становится пополнение на недостающую сумму;
+    //- после зачисления расчёт пересчитывается и на этом месте стоит «Получить доступ».
+    DepositButton(v-if="quote && !quote.enough" primary :amount="shortfallAmount" :label="$t('edubridge.subscribeDialog.topUpWallet')" @deposited="reloadQuotes")
+    BaseButton(v-else variant="primary" :disabled="!quote?.enough" :loading="busy" @click="submit") {{ $t('edubridge.subscribeDialog.getAccess') }}
 
   BaseDialog(:model-value="Boolean(newLearnerWho)" :title="$t('edubridge.subscribeDialog.newLearnerTitle')" size="md" @update:model-value="(v) => v || cancelNewLearner()")
     LearnerForm(v-if="newLearnerWho" :key="newLearnerWho" :fixed-who="newLearnerWho" @saved="onLearnerAdded" @cancel="cancelNewLearner")
@@ -57,7 +56,7 @@ import { Zeus } from '@coopenomics/sdk';
 import { asDateInput, asText } from 'src/shared/lib/utils';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
-import { BaseBanner, BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
+import { BaseButton, BaseDialog, BaseRadioCard, BaseSelect } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { DepositButton } from 'src/features/Wallet/DepositToWallet';
 import type { DigitalDocument } from 'src/shared/lib/document';
@@ -289,5 +288,16 @@ async function submit(): Promise<void> {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--p-3);
+}
+.edu-subscribe__wallet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--p-2) var(--p-3);
+  width: 100%;
+}
+.edu-subscribe__shortfall {
+  color: var(--p-neg);
+  font-weight: 600;
 }
 </style>
