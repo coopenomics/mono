@@ -2981,6 +2981,8 @@ export type MessageKey =
   | 'edubridge.courseForm.noTeachersEmpty'
   | 'edubridge.courseForm.payPerLearnerCheckbox'
   | 'edubridge.courseForm.plannedRateLabel'
+  | 'edubridge.courseForm.programMonthsLabel'
+  | 'edubridge.courseForm.programWeeks'
   | 'edubridge.courseForm.removeTeacherAriaLabel'
   | 'edubridge.courseForm.scheduleLabel'
   | 'edubridge.courseForm.schedulePlaceholder'

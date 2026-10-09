@@ -64,6 +64,8 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
         BaseInput(v-model="lessonsTotal" :label="$t('edubridge.courseForm.lessonsTotalLabel')" type="number" required)
           template(#append)
             FieldHelp(:text="COURSE_FORM_HELP.lessonsTotal")
+        //- Длительность программы считается сама: занятия программы, делённые на занятия в месяц.
+        BaseInput(:model-value="programMonths" :label="$t('edubridge.courseForm.programMonthsLabel')" readonly)
 
     .edu-course-form__group
       .edu-course-form__group-title {{ $t('edubridge.courseForm.group.terms') }}
@@ -211,7 +213,7 @@ BaseForm.edu-course-form(ref="formEl" :loading="loading" :error="error" @submit=
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { formatAsset2Digits } from 'src/shared/lib/utils/formatAsset2Digits';
 import { BaseBanner, BaseButton, BaseCheckbox, BaseForm, BaseInput, BaseSelect, FieldHelp } from 'src/shared/ui/base';
@@ -220,6 +222,8 @@ import { StatTile } from '../../shared/ui/StatStrip';
 import { COURSE_IMAGE_ACCEPT, type ICourse } from '../../entities/Course';
 import { createCourseFormState, injectCourseForm, type CourseFormSection } from './model/useCourseForm';
 import { COURSE_FORM_HELP } from './model/courseFormHelp';
+import { courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { t } from '../../i18n';
 
 /**
  * Конструктор курса. На полной странице правки каждый раздел — отдельный шаг,
@@ -282,6 +286,22 @@ const {
   addTeacher,
   removeTeacher,
 } = state;
+
+/**
+ * Длительность программы словами: занятия программы, делённые на занятия в
+ * месяц. Счёт идёт неделями, месяц — четыре недели; неполная неделя считается
+ * неделей. «1 неделя», «1 месяц», «1 месяц 2 недели».
+ */
+const WEEKS_IN_MONTH = 4;
+const programMonths = computed(() => {
+  const perMonth = Number(lessonsPerMonth.value || 0);
+  const total = Number(lessonsTotal.value || 0);
+  if (!(perMonth > 0) || !(total > 0)) return '______';
+  const weeks = Math.ceil((total / perMonth) * WEEKS_IN_MONTH);
+  const rest = weeks % WEEKS_IN_MONTH;
+  const parts = [courseMonthsLabel(Math.floor(weeks / WEEKS_IN_MONTH)), rest ? t('edubridge.courseForm.programWeeks', rest) : ''];
+  return parts.filter(Boolean).join(' ');
+});
 
 const route = useRoute();
 const router = useRouter();

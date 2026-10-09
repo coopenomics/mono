@@ -604,6 +604,8 @@
       "guaranteeDaysLabel": "Гарантийный срок, дней",
       "lessonMinutesLabel": "Длительность занятия, минут",
       "lessonsPerMonthLabel": "Занятий в месяц",
+      "programMonthsLabel": "Длительность программы",
+      "programWeeks": "{n} неделя | {n} недели | {n} недель",
       "lessonsTotalLabel": "Занятий в программе",
       "levelLabel": "Уровень",
       "markupPercentLine": "{percent}%",
