@@ -1,7 +1,6 @@
 import { TableStore } from '@coopenomics/extension-kit';
 import { Inject, Injectable } from '@nestjs/common';
 import { EDUBRIDGE_GROUP_STORE } from '../database/edubridge-stores';
-import { EduGroupStatus } from '../../domain/enums';
 import { EdubridgeGroupRecord } from '../entities';
 
 /** Группы (наборы) курсов: у каждой свои условия, участники, занятия и учёт средств. */
@@ -15,11 +14,6 @@ export class EdubridgeGroupKyselyRepository {
 
   findByCourse(coopname: string, courseId: string): Promise<EdubridgeGroupRecord[]> {
     return this.repo.find({ coopname, course_id: courseId }, { order: { created_at: 'ASC' } });
-  }
-
-  /** Группы курса, в которые сейчас идёт набор. */
-  findOpenByCourse(coopname: string, courseId: string): Promise<EdubridgeGroupRecord[]> {
-    return this.repo.find({ coopname, course_id: courseId, status: EduGroupStatus.ACTIVE, enrollment_open: true }, { order: { created_at: 'ASC' } });
   }
 
   listAll(coopname: string): Promise<EdubridgeGroupRecord[]> {

@@ -141,7 +141,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeGroupRecord>(db, {
         table: 'edubridge_groups',
-        columns: ['id', 'coopname', 'chain_ref', 'course_id', 'title', 'status', 'enrollment_open', 'external_ref', 'starts_at', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'planned_hourly_rate', 'pay_per_learner', 'guarantee_days', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'teacher_reserve_balance', 'teacher_settled_total', 'created_at', 'updated_at'],
+        columns: ['id', 'coopname', 'chain_ref', 'course_id', 'title', 'status', 'enrollment_open', 'enrollment_closed_on_start', 'external_ref', 'starts_at', 'lessons_per_month', 'lessons_total', 'lesson_minutes', 'planned_hourly_rate', 'pay_per_learner', 'guarantee_days', 'course_payment_enabled', 'course_discount_bp', 'fee_month', 'teacher_reserve_balance', 'teacher_settled_total', 'created_at', 'updated_at'],
         primaryKey: ['id'],
         dates: ['starts_at'],
         updatedAt: 'updated_at',

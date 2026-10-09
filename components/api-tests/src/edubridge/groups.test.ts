@@ -28,9 +28,11 @@ import {
   educationOff,
   educationOn,
   fundShare,
+  hasStarted,
   holdMaterials,
   onboardTeacher,
   reportLesson,
+  reopenEnrollment,
   signOffer,
   subscribe,
   walletOf,
@@ -60,6 +62,7 @@ describe('Образование: группы курса и расчёт зан
   const create = async (over: Record<string, unknown> = {}) => {
     const input = courseInput(section, over)
     const created = (await gql<any>(chairman, CREATE_COURSE, { d: input })).edubridgeCreateCourse
+    if (hasStarted(input)) await reopenEnrollment(chairman, created.id)
     const course = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
     return { input, course }
   }
@@ -189,6 +192,31 @@ describe('Образование: группы курса и расчёт зан
       await gql(token, CANCEL_ENROLLMENT, { id: paid.id })
       const finished = (await gql<any>(chairman, CLOSE_GROUP, { id: first.id })).edubridgeCloseGroup
       expect(finished).toMatchObject({ id: first.id, status: 'CLOSED' })
+    })
+  })
+
+  describe('набор в начавшуюся группу', () => {
+    it(caseName('edu.enroll.side.30', 'с дня начала занятий набор в группу закрыт; администратор открывает его снова и принимает участника'), async () => {
+      const created = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: dayFromNow(0), guarantee_days: 0 }) })).edubridgeCreateCourse
+      const course = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
+      const [group] = await groupsOf(course.id)
+      expect(group).toMatchObject({ status: 'ACTIVE', enrollment_open: false })
+      expect((await gql<any>(token, OPEN_GROUPS, { id: course.id })).edubridgeOpenGroups).toEqual([])
+      expectCode(await gqlError(token, QUOTE, quoteInput(child.id, course.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
+      expectCode(await gqlError(token, QUOTE, quoteInput(child.id, course.id, group.id)), 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED')
+
+      // Исключение: администратор открывает набор в идущую группу — участник записывается, и сам набор больше не закрывается.
+      const reopened = (await gql<any>(chairman, UPDATE_GROUP, { d: { id: group.id, enrollment_open: true } })).edubridgeUpdateGroup
+      expect(reopened.enrollment_open).toBe(true)
+      expect((await gql<any>(token, QUOTE, quoteInput(child.id, course.id))).edubridgeQuote.group_id).toBe(group.id)
+      expect((await groupsOf(course.id))[0].enrollment_open).toBe(true)
+
+      // Начало перенесено на будущий день: набор открыт и закроется сам в новый день начала.
+      const { course: ahead } = await create({ starts_at: dayFromNow(0) })
+      const [late] = await groupsOf(ahead.id)
+      await gql(chairman, UPDATE_GROUP, { d: { id: late.id, enrollment_open: false } })
+      const moved = (await gql<any>(chairman, UPDATE_GROUP, { d: { id: late.id, starts_at: dayFromNow(30) } })).edubridgeUpdateGroup
+      expect(moved).toMatchObject({ starts_at: dayFromNow(30), enrollment_open: true })
     })
   })
 

@@ -54,10 +54,12 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         BaseSelect(v-if="platformGroupOptions.length" v-model="form.platform_group" :label="$t('edubridge.courseGroups.platformGroupLabel')" :options="platformGroupOptions" :hint="$t('edubridge.courseGroups.platformGroupHint')")
         BaseCheckbox(v-model="form.enrollment_open")
           | {{ $t('edubridge.courseGroups.enrollmentOpenCheckbox') }}
+        .t-sm.t-muted.q-mt-xs {{ $t('edubridge.courseGroups.enrollmentHint') }}
         template(#footer)
           .row.justify-end.q-gutter-sm
             BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('common.action.save') }}
     template(v-if="details && details.status === Zeus.EduGroupStatus.ACTIVE" #footer)
+      .t-sm.t-muted.q-mb-sm {{ $t('edubridge.courseGroups.closeHint') }}
       .edu-row-actions
         BaseButton(variant="secondary" :disabled="details.learners_active > 0" :loading="closing" @click="onClose") {{ $t('edubridge.courseGroups.close') }}
 
@@ -196,9 +198,11 @@ async function onSave(): Promise<void> {
         // Дата начала закреплена после первого занятия — тогда она не отправляется.
         ...(details.value.lessons_held > 0 ? {} : { starts_at: form.starts_at || null }),
         ...(platformCourseId.value ? { external_ref: refOf(form.platform_group) } : {}),
-        enrollment_open: form.enrollment_open,
+        // Набор отправляется, когда его изменил администратор: иначе его ведёт дата начала.
+        ...(form.enrollment_open === details.value.enrollment_open ? {} : { enrollment_open: form.enrollment_open }),
       }),
     );
+    if (details.value) form.enrollment_open = details.value.enrollment_open;
     SuccessAlert(t('edubridge.courseGroups.saved'));
   } catch (e) {
     FailAlert(e);

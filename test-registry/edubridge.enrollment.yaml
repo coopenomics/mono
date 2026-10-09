@@ -515,6 +515,14 @@ cases:
     test: components/controller/tests/unit/edubridge/guarantee.service.test.ts
     api: components/api-tests/src/edubridge/guarantee-term.test.ts
     status: written
+  - id: edu.enroll.side.30
+    level: backend
+    kind: side
+    scenario: "День начала занятий группы наступил; участник записывается в неё. Затем администратор открывает набор снова либо переносит начало на будущий день."
+    expect: "Набор в группу закрыт сам, запись отклоняется с кодом EDUBRIDGE_GROUP_ENROLLMENT_CLOSED. После открытия администратором участник записывается, и сам набор больше не закрывается; после переноса начала набор открыт до нового дня начала."
+    test: components/controller/tests/unit/edubridge/group.service.test.ts
+    api: components/api-tests/src/edubridge/groups.test.ts
+    status: written
   - id: edu.enroll.ui.06
     level: ui
     kind: happy

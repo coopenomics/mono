@@ -57,14 +57,31 @@ export class EdubridgeGroupService {
     this.logger.setContext(EdubridgeGroupService.name);
   }
 
-  list(coopname: string, courseId: string): Promise<EdubridgeGroupRecord[]> {
-    return this.groups.findByCourse(coopname, courseId);
+  async list(coopname: string, courseId: string): Promise<EdubridgeGroupRecord[]> {
+    return this.closeStarted(await this.groups.findByCourse(coopname, courseId));
   }
 
   async get(coopname: string, id: string): Promise<EdubridgeGroupRecord> {
     const group = await this.groups.findById(coopname, id);
     if (!group) throw DomainError.notFound('EDUBRIDGE_GROUP_NOT_FOUND');
+    await this.closeStarted([group]);
     return group;
+  }
+
+  /**
+   * Набор в группу закрывается сам с дня начала занятий — один раз. Дальше
+   * его ведёт администратор: открыв набор снова, он принимает участника в
+   * идущую группу, и сам набор уже не закрывается.
+   */
+  private async closeStarted(groups: EdubridgeGroupRecord[]): Promise<EdubridgeGroupRecord[]> {
+    for (const group of groups) {
+      if (group.status !== EduGroupStatus.ACTIVE || group.enrollment_closed_on_start || !hasStarted(group.starts_at)) continue;
+      group.enrollment_open = false;
+      group.enrollment_closed_on_start = true;
+      await this.groups.save(group);
+      this.logger.info(`Набор в группу «${group.title}» закрыт: занятия начались`);
+    }
+    return groups;
   }
 
   /**
@@ -111,7 +128,7 @@ export class EdubridgeGroupService {
       if (group.status !== EduGroupStatus.ACTIVE || !group.enrollment_open) throw DomainError.badRequest('EDUBRIDGE_GROUP_ENROLLMENT_CLOSED');
       return group;
     }
-    const open = await this.groups.findOpenByCourse(coopname, course.id);
+    const open = (await this.list(coopname, course.id)).filter((g) => g.status === EduGroupStatus.ACTIVE && g.enrollment_open);
     if (!open.length) {
       // Курс без групп — первая заводится сама: курс и есть его первая группа.
       if (!(await this.groups.findByCourse(coopname, course.id)).length) return this.create(coopname, { course_id: course.id });
@@ -144,6 +161,8 @@ export class EdubridgeGroupService {
     const stored = await this.groups.save(entity);
     // Запись перечитывается: номер группы для цепи выдаёт база при вставке.
     const group = (await this.groups.findById(coopname, stored.id)) ?? stored;
+    // Группа с наступившим днём начала открывается уже с закрытым набором.
+    await this.closeStarted([group]);
     await this.chainTerms.pushCourse(this.viewOf(course, group));
     this.logger.info(`Группа «${group.title}» курса «${course.title}» открыта, номер в цепи ${group.chain_ref}`);
     return group;
@@ -160,14 +179,21 @@ export class EdubridgeGroupService {
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.title?.trim()) group.title = input.title.trim();
     if (input.external_ref !== undefined && input.external_ref !== null) group.external_ref = input.external_ref.trim();
-    if (typeof input.enrollment_open === 'boolean') group.enrollment_open = input.enrollment_open;
-    if (input.starts_at !== undefined && sameDay(input.starts_at, group.starts_at) === false) {
-      if ((await this.lessons.findByGroup(coopname, group.id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS');
-      group.starts_at = input.starts_at || null;
-      // Дата начала — условие расчёта: от неё идут гарантийный срок и занятия в цепи.
-      await this.chainTerms.pushCourse(this.viewOf(course, group));
+    if (input.starts_at !== undefined && sameDay(input.starts_at, group.starts_at) === false) await this.moveStart(course, group, input.starts_at);
+    if (typeof input.enrollment_open === 'boolean') {
+      group.enrollment_open = input.enrollment_open;
+      // Набор в начавшейся группе задан администратором — сам он больше не закрывается.
+      if (hasStarted(group.starts_at)) group.enrollment_closed_on_start = true;
     }
     return this.groups.save(group);
+  }
+
+  /** Новая дата начала занятий: до первого занятия; от неё идут гарантийный срок и занятия в цепи. */
+  private async moveStart(course: EdubridgeCourseRecord, group: EdubridgeGroupRecord, startsAt: string | null): Promise<void> {
+    if ((await this.lessons.findByGroup(group.coopname, group.id)).length) throw DomainError.badRequest('EDUBRIDGE_COURSE_START_LOCKED_BY_LESSONS');
+    group.starts_at = startsAt || null;
+    reopenBeforeStart(group);
+    await this.chainTerms.pushCourse(this.viewOf(course, group));
   }
 
   /** Группа завершена: набор закрыт, новых занятий и подписок по ней нет. Действующие подписки её держат. */
@@ -194,7 +220,10 @@ export class EdubridgeGroupService {
       if (group.status !== EduGroupStatus.ACTIVE || (await this.isTouched(coopname, group.id))) continue;
       Object.assign(group, termsOf(course));
       // Единственная группа курса идёт с его датой начала и привязкой к площадке.
-      if (groups.length === 1) Object.assign(group, { starts_at: course.starts_at, external_ref: course.external_ref });
+      if (groups.length === 1) {
+        Object.assign(group, { starts_at: course.starts_at, external_ref: course.external_ref });
+        reopenBeforeStart(group);
+      }
       try {
         await this.chainTerms.pushCourse(this.viewOf(course, group));
         await this.groups.save(group);
@@ -237,6 +266,21 @@ export class EdubridgeGroupService {
 
 function termsOf(course: EdubridgeCourseRecord): Partial<EdubridgeGroupRecord> {
   return Object.fromEntries(TERM_FIELDS.map((f) => [f, course[f]])) as Partial<EdubridgeGroupRecord>;
+}
+
+/** День начала занятий наступил; группа без даты начала не начиналась. */
+function hasStarted(startsAt: string | null | undefined, now: Date = new Date()): boolean {
+  return Boolean(startsAt) && new Date(startsAt as string).getTime() <= now.getTime();
+}
+
+/**
+ * Начало занятий перенесено на будущий день: набор, закрытый по началу, снова
+ * открыт и закроется сам в новый день начала.
+ */
+function reopenBeforeStart(group: EdubridgeGroupRecord): void {
+  if (!group.enrollment_closed_on_start || hasStarted(group.starts_at)) return;
+  group.enrollment_closed_on_start = false;
+  group.enrollment_open = true;
 }
 
 /** Одна ли это дата; `null` и пустая строка — «не назначена». */

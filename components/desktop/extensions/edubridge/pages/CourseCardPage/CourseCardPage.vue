@@ -18,6 +18,8 @@
             BaseBadge(variant="pos") {{ $t('edubridge.courseCardPage.accessPaidUntil', { date: formatDate(paidUntil) }) }}
             .edu-course__due(v-if="renewSoon") {{ $t('edubridge.courseCardPage.daysLeft', { n: left }, Number(left)) }}
           BaseButton(variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.extend') }}
+        //- Занятия во всех группах начались — набор закрыт, записаться можно в следующую группу.
+        BaseBadge(v-else-if="enrollmentClosed" variant="neutral") {{ $t('edubridge.courseCardPage.enrollmentClosed') }}
         BaseButton(v-else variant="primary" @click="getAccess") {{ $t('edubridge.courseCardPage.getAccess') }}
         .edu-course__guest(v-if="!session.isAuth") {{ $t('edubridge.courseCardPage.guestHint') }}
       //- Обе полные суммы рядом: скидка видна как разница в рублях, а не как
@@ -57,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { fetchOpenGroups } from '../../entities/Group';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { asText } from 'src/shared/lib/utils';
@@ -106,6 +109,8 @@ const hasSide = computed(() => Boolean(course.value?.teacher_usernames.length));
 const left = computed(() => daysLeft(paidUntil.value));
 const renewSoon = computed(() => left.value !== null && left.value <= RENEW_SOON_DAYS);
 const learners = ref<ILearner[]>([]);
+/** Набор закрыт: групп с открытым набором у курса нет. Пока группы не прочитаны — кнопка остаётся. */
+const enrollmentClosed = ref(false);
 /** Свои подписки читает только участник, подписавший оферту ученика. */
 const canSeeGuarantee = computed(() => session.isAuth && desktopStore.hasGrant('edubridge-member', 'EduEnrollment:read:own'));
 const { fioCache, enrichFio } = useFioCache();
@@ -162,7 +167,16 @@ async function loadCourse(): Promise<void> {
   const id = route.params.id ? String(route.params.id) : '';
   if (!id) return;
   course.value = await fetchCatalogCourse(id);
-  await loadOwnEnrollments();
+  await Promise.all([loadOwnEnrollments(), loadEnrollmentState(id)]);
+}
+
+async function loadEnrollmentState(courseId: string): Promise<void> {
+  try {
+    enrollmentClosed.value = !(await fetchOpenGroups(courseId)).length;
+  } catch {
+    // Группы не прочитаны — о закрытом наборе скажет сервер при оформлении.
+    enrollmentClosed.value = false;
+  }
 }
 
 /** Свои подписки на курс читает участник с офертой ученика; гостю и остальным кнопка остаётся «Получить доступ». */

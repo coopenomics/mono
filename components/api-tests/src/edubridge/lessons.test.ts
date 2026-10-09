@@ -53,6 +53,7 @@ import {
   holdMaterials,
   onboardTeacher,
   pendingActApproval,
+  reopenEnrollment,
   reportLesson,
   signOffer,
   signTransferAct,
@@ -98,8 +99,10 @@ describe('Образование: занятия и взносы препода�
     const running = guaranteeFor(3 * 3600)
     heldInput = courseInput(section, { starts_at: running.starts_at, guarantee_days: running.guarantee_days })
     const created = (await gql<any>(chairman, CREATE_COURSE, { d: heldInput })).edubridgeCreateCourse
+    await reopenEnrollment(chairman, created.id)
     held = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
     const nowCreated = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: dayFromNow(-3), guarantee_days: 0 }) })).edubridgeCreateCourse
+    await reopenEnrollment(chairman, nowCreated.id)
     now = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: nowCreated.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
 
     teacher = freshMember({ prefix: 'eduk' })

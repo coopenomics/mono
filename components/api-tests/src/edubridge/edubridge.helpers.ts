@@ -293,10 +293,35 @@ export async function createSection(token: string): Promise<string> {
   return d.edubridgeSaveSection.id
 }
 
-/** Опубликованный курс; `startsInDays` — день начала занятий от сегодняшнего. */
+const STARTED_GROUPS = 'query($id:ID!){ edubridgeCourseGroups(course_id:$id){ id status enrollment_open starts_at } }'
+const REOPEN_GROUP = 'mutation($d:EduUpdateGroupInput!){ edubridgeUpdateGroup(data:$d){ id enrollment_open } }'
+
+/**
+ * Набор в группу закрывается сам с дня начала занятий. Наборам нужен идущий
+ * курс с участниками — администратор открывает набор в начавшиеся группы
+ * курса снова, как делает это, принимая участника в идущую группу.
+ */
+export async function reopenEnrollment(token: string, courseId: string): Promise<void> {
+  const groups = (await gql<any>(token, STARTED_GROUPS, { id: courseId })).edubridgeCourseGroups as any[]
+  for (const group of groups) {
+    if (group.status !== 'ACTIVE' || group.enrollment_open) continue
+    await gql(token, REOPEN_GROUP, { d: { id: group.id, enrollment_open: true } })
+  }
+}
+
+/** День начала занятий курса наступил: набор в его группу закрыт и открывается администратором. */
+export function hasStarted(input: Record<string, unknown>): boolean {
+  return typeof input.starts_at === 'string' && input.starts_at <= dayFromNow(0)
+}
+
+/**
+ * Опубликованный курс; `startsInDays` — день начала занятий от сегодняшнего.
+ * У начавшегося курса набор открыт администратором снова: участники наборов записываются в идущую группу.
+ */
 export async function publishCourse(token: string, sectionId: string, startsInDays: number | null, over: Record<string, unknown> = {}): Promise<any> {
   const input = courseInput(sectionId, { ...(startsInDays === null ? {} : { starts_at: dayFromNow(startsInDays) }), ...over })
   const created = (await gql<any>(token, CREATE_COURSE, { d: input })).edubridgeCreateCourse
+  if (hasStarted(input)) await reopenEnrollment(token, created.id)
   return (await gql<any>(token, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
 }
 

@@ -29,7 +29,6 @@ function make(opts: { groups?: any[]; enrollments?: any[]; lessons?: any[]; cour
   const groups = {
     findById: jest.fn(async (_c: string, id: string) => store.find((g) => g.id === id) ?? null),
     findByCourse: jest.fn(async () => store),
-    findOpenByCourse: jest.fn(async () => store.filter((g) => g.status === EduGroupStatus.ACTIVE && g.enrollment_open)),
     create: jest.fn((d: any) => ({ ...d })),
     save: jest.fn(async (g: any) => {
       if (!g.id) Object.assign(g, { id: `G${store.length + 1}`, chain_ref: String(++seq) });
@@ -52,8 +51,10 @@ const group = (extra: Record<string, unknown> = {}) => ({
   title: 'Группа 1',
   status: EduGroupStatus.ACTIVE,
   enrollment_open: true,
+  enrollment_closed_on_start: false,
   external_ref: 'course-uuid:group-a',
-  starts_at: '2026-09-01',
+  // Занятия группы ещё не начались: набор открыт.
+  starts_at: '2099-09-01',
   lessons_per_month: 8,
   lessons_total: 64,
   lesson_minutes: 60,
@@ -98,6 +99,30 @@ describe('EdubridgeGroupService — группа как единица расч�
     const closed = make({ groups: [group({ enrollment_open: false })] });
     await expect(closed.service.openFor('voskhod', course)).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED' });
     await expect(closed.service.openFor('voskhod', course, 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED' });
+  });
+
+  it('набор в группу закрывается сам с дня начала занятий; администратор открывает его снова, и сам он уже не закрывается', async () => {
+    const started = make({ groups: [group({ starts_at: '2026-09-01' })] });
+    await expect(started.service.openFor('voskhod', course)).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED' });
+    await expect(started.service.openFor('voskhod', course, 'G1')).rejects.toMatchObject({ code: 'EDUBRIDGE_GROUP_ENROLLMENT_CLOSED' });
+    expect(started.store[0]).toMatchObject({ enrollment_open: false, enrollment_closed_on_start: true });
+    // Исключение: администратор принимает участника в идущую группу.
+    await expect(started.service.update('voskhod', { id: 'G1', enrollment_open: true })).resolves.toMatchObject({ enrollment_open: true });
+    await expect(started.service.openFor('voskhod', course)).resolves.toMatchObject({ id: 'G1' });
+    await expect(started.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ enrollment_open: true })]);
+  });
+
+  it('группа без даты начала и группа с будущим началом набор не закрывают; новая группа с наступившим началом открывается с закрытым набором', async () => {
+    const waiting = make({ groups: [group({ starts_at: null }), group({ id: 'G2', chain_ref: '1001' })] });
+    await expect(waiting.service.list('voskhod', 'C1')).resolves.toEqual([expect.objectContaining({ enrollment_open: true }), expect.objectContaining({ enrollment_open: true })]);
+    const late = make({ groups: [group()] });
+    await expect(late.service.create('voskhod', { course_id: 'C1', starts_at: '2026-09-01' })).resolves.toMatchObject({ enrollment_open: false, enrollment_closed_on_start: true });
+  });
+
+  it('начало перенесено на будущий день: набор, закрытый по началу, снова открыт и закроется в новый день начала', async () => {
+    const moved = make({ groups: [group({ starts_at: '2026-09-01' })] });
+    await moved.service.list('voskhod', 'C1');
+    await expect(moved.service.update('voskhod', { id: 'G1', starts_at: '2099-01-10' })).resolves.toMatchObject({ starts_at: '2099-01-10', enrollment_open: true, enrollment_closed_on_start: false });
   });
 
   it('условия курса изменены: группа без взносов и занятий берёт новые, группа с участниками остаётся на прежних', async () => {

@@ -41,6 +41,7 @@ import {
   councilGrants,
   holdMaterials,
   onboardTeacher,
+  reopenEnrollment,
   reportLesson,
   signOffer,
   submitGuaranteeClaim,
@@ -99,6 +100,7 @@ describe.runIf(SHORT_DAYS)('Образование: конец гарантий�
     const term = guaranteeFor(WINDOW_SECONDS)
     endsAt = term.ends_at
     const created = (await gql<any>(chairman, CREATE_COURSE, { d: courseInput(section, { starts_at: term.starts_at, guarantee_days: term.guarantee_days }) })).edubridgeCreateCourse
+    await reopenEnrollment(chairman, created.id)
     course = (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
     fee = amount(course.fee_month)
     assignment = (await gql<any>(chairman, CREATE_ASSIGNMENT, {

@@ -26,10 +26,12 @@ import {
   educationOff,
   educationOn,
   fundShare,
+  hasStarted,
   holdMaterials,
   onboardTeacher,
   quoteOf,
   reportLesson,
+  reopenEnrollment,
   signOffer,
   subscribe,
 } from './edubridge.helpers'
@@ -49,6 +51,7 @@ describe('Образование: правила курса — удаление
   const create = async (over: Record<string, unknown> = {}, publish = true) => {
     const input = courseInput(section, over)
     const created = (await gql<any>(chairman, CREATE_COURSE, { d: input })).edubridgeCreateCourse
+    if (hasStarted(input)) await reopenEnrollment(chairman, created.id)
     const course = publish
       ? (await gql<any>(chairman, SET_COURSE_STATUS, { d: { id: created.id, status: 'PUBLISHED' } })).edubridgeSetCourseStatus
       : created

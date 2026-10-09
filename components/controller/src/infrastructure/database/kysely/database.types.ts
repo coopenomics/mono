@@ -1238,6 +1238,7 @@ export interface EdubridgeGroups {
   course_id: string;
   course_payment_enabled: Generated<boolean>;
   created_at: Generated<Timestamp>;
+  enrollment_closed_on_start: Generated<boolean>;
   enrollment_open: Generated<boolean>;
   external_ref: Generated<string>;
   fee_month: string;
