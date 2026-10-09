@@ -23,24 +23,25 @@ BaseCard.edu-admin-course(variant="default" role="link" tabindex="0" @click="emi
       .edu-admin-course__fact(v-if="months")
         q-icon(name="date_range" size="16px")
         span.ellipsis {{ months }}
-    //- Деньги — отдельным блоком из подписанных чисел: взнос в месяц и, если
-    //- кооператив его принимает, взнос за весь курс. Срок курса стоит выше, среди фактов.
+    //- Деньги — как в каталоге ученика. У программы на месяц взнос один — «за курс».
+    //- У длинной — взнос в месяц и полный взнос за весь курс: со скидкой, если
+    //- кооператив принимает его разом, иначе сумма помесячных.
     .edu-admin-course__fees
       .edu-admin-course__fee
-        .edu-admin-course__fee-label {{ $t('edubridge.adminCourseCard.feeMonthLabel') }}
+        .edu-admin-course__fee-label {{ singleMonth ? $t('edubridge.courseCard.feeWholeLabel') : $t('edubridge.adminCourseCard.feeMonthLabel') }}
         FeeAmount(:value="course.fee_month" size="md")
-      .edu-admin-course__fee(v-if="course.fee_course")
+      .edu-admin-course__fee(v-if="!singleMonth && feeCourse")
         //- Насколько взнос разом меньше помесячного за те же месяцы — значком у подписи.
         .edu-admin-course__fee-label
           span {{ $t('edubridge.adminCourseCard.feeCourseLabel') }}
           BaseBadge(v-if="saving" variant="pos") −{{ saving }}%
-        FeeAmount(:value="course.fee_course" size="md")
+        FeeAmount(:value="feeCourse" size="md")
 </template>
 <script setup lang="ts">
 import { computed } from 'vue';
 import { BaseBadge, BaseCard } from 'src/shared/ui/base';
 import { COURSE_STATUS_LABELS, courseSectionLabel, type ICourse } from '../../entities/Course';
-import { courseMonthsLabel } from '../../shared/lib/courseMonths';
+import { programSpanLabel } from '../../shared/lib/courseMonths';
 import { FeeAmount } from '../../shared/ui/FeeAmount';
 
 /**
@@ -56,7 +57,12 @@ const emit = defineEmits<{ open: [] }>();
 const status = computed(() => COURSE_STATUS_LABELS[props.course.status] ?? { label: props.course.status, variant: 'neutral' as const });
 const teachers = computed(() => props.course.teacher_usernames.map((u) => props.teacherNames?.[u] || u));
 
-const months = computed(() => courseMonthsLabel(props.course.course_months));
+/** Длительность программы — тем же расчётом, что в каталоге и в форме курса. */
+const months = computed(() => programSpanLabel(props.course.lessons_per_month, props.course.lessons_total));
+/** Программа на один месяц: взнос за месяц и есть взнос за курс. */
+const singleMonth = computed(() => Number(props.course.course_months) === 1);
+/** Полный взнос за весь курс: разом со скидкой, а когда разом не принимается — сумма помесячных. */
+const feeCourse = computed(() => props.course.fee_course ?? props.course.fee_course_base ?? null);
 
 /** Выгода взноса за весь курс против помесячного за те же месяцы, целые проценты; ноль — значок не нужен. */
 const saving = computed(() => {
