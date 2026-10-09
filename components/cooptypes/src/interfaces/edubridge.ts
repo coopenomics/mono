@@ -40,6 +40,8 @@ export interface IDocument2 {
 export interface IConvert {
   coopname: IName
   username: IName
+  /** Хэш подписки — хэш процесса доступа к курсу: конвертация идёт под ним же, что взнос и удержание. */
+  sub_hash: IChecksum256
   amount: IAsset
   statement: IDocument2
 }

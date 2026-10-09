@@ -11,6 +11,9 @@
  *  - `o.edu.conv` (TRANSFER w.wal.share → w.edu.member, Дт 80 / Кт 86) —
  *    паевой переходит в целевое финансирование на членский кошелёк программы.
  *
+ * Операция идёт под хэшем подписки (`sub_hash`) — тем же, что взнос и
+ * удержание в `chargefee`: в реестре процессов доступ к курсу один.
+ *
  * Guards:
  *  - amount > 0 в _root_govern_symbol; Заявление подписано ключом самого пайщика.
  *  - Пайщик — активный член кооператива.
@@ -20,6 +23,7 @@
  */
 void edubridge::convert(eosio::name coopname,
                         eosio::name username,
+                        checksum256 sub_hash,
                         eosio::asset amount,
                         document2 statement) {
   require_auth(coopname);
@@ -45,12 +49,12 @@ void edubridge::convert(eosio::name coopname,
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::CONVERT_TO_EDU_MEMBER,
                  processes::edubridge::ACCESS,
-                 amount, username, statement.hash,
+                 amount, username, sub_hash,
                  Edubridge::Memo::get_convert_to_member_memo());
 
-  // Заявление о конвертации публикуется в реестр документов отдельным
-  // самостоятельным пакетом (package = hash самого заявления).
+  // Заявление о конвертации публикуется в реестр документов пакетом процесса
+  // подписки (package = sub_hash): конвертация, взнос и удержание — один процесс.
   Soviet::make_complete_document(_edubridge, coopname, username,
                                  "convert"_n,
-                                 statement.hash, statement);
+                                 sub_hash, statement);
 }

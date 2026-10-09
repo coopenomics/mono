@@ -83,11 +83,12 @@ public:
    * «Образование». Один шаг ledger2: o.edu.conv (TRANSFER w.wal.share →
    * w.edu.member, Дт 80 / Кт 86). `statement` — подписанное пайщиком
    * Заявление о конвертации (шаблон 3011), публикуется в реестр документов
-   * отдельным пакетом (package = hash заявления).
+   * пакетом процесса подписки (package = sub_hash).
    * @ingroup public_edubridge_actions
    */
   [[eosio::action]] void convert(eosio::name coopname,
                                  eosio::name username,
+                                 checksum256 sub_hash,
                                  eosio::asset amount,
                                  document2 statement);
 

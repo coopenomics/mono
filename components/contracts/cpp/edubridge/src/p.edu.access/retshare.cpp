@@ -55,7 +55,7 @@ void edubridge::retshare(eosio::name coopname,
   if (amount.amount > 0) {
     Ledger2::apply(_edubridge, coopname,
                    operations::edubridge::RETURN_TO_SHARE,
-                   processes::edubridge::ACCESS,
+                   processes::edubridge::RETURN_SHARE,
                    amount, username, statement.hash,
                    Edubridge::Memo::get_return_to_share_memo());
   }

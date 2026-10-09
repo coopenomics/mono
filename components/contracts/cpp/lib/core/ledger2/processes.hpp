@@ -96,6 +96,8 @@ namespace processes {
     inline constexpr eosio::name RID       = "p.edu.rid"_n;      ///< Паевой взнос преподавателя результатом интеллектуальной деятельности: заявление → решение совета → акт (o.edu.rid, одноактовый по средствам). Анкер процесса — rid_hash.
     inline constexpr eosio::name SPEND     = "p.edu.spend"_n;    ///< Расход средств программы «Образование»: служебная записка на расход из фонда, решение совета, оплата или аванс под отчёт, отчёт. Обслуживает шасси расходов; анкер процесса — expense_hash.
     inline constexpr eosio::name TEACH     = "p.edu.teach"_n;    ///< Участие преподавателя в хозяйственной деятельности: договор УХД и приложения к нему на курс, обе подписи (преподаватель + председатель через одобрение). Движений средств нет. Анкер процесса — contract_hash.
+    inline constexpr eosio::name RETURN_SHARE   = "p.edu.retshr"_n;  ///< Возврат членского взноса программы «Образование» на паевой по заявлению участника (o.edu.retshr). Самостоятельный процесс из одного действия: хэш процесса — хэш заявления.
+    inline constexpr eosio::name WITHDRAW_SHARE = "p.edu.wthshr"_n;  ///< Перевод паевого взноса преподавателя из программы «Образование» в программу «Цифровой Кошелёк» по его заявлению (o.edu.wthshr). Самостоятельный процесс из одного действия: хэш процесса — хэш заявления.
   }
 
   // soviet
@@ -140,6 +142,7 @@ static constexpr eosio::name PROCESS_REGISTRY[] = {
   branch::FEES,          branch::AID,          branch::SPEND,
   expense::PROPOSAL,
   edubridge::ACCESS,     edubridge::RID,       edubridge::TEACH,     edubridge::SPEND,
+  edubridge::RETURN_SHARE, edubridge::WITHDRAW_SHARE,
   soviet::AXN_CONVERT,   soviet::TAX,
   migration::TRANSIT,
   adjustment::CORRECTION,

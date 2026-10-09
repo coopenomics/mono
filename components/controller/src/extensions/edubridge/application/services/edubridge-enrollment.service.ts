@@ -574,7 +574,8 @@ export class EdubridgeEnrollmentService {
     funding: PlanFunding,
     document: ISignedDocument
   ) {
-    const convert = parseFloat(funding.toConvert) > 0 ? { coopname, username: member, amount: funding.toConvert, statement: document } : null;
+    // Конвертация идёт под хэшем подписки — тем же, что взнос: в реестре процессов доступ к курсу один.
+    const convert = parseFloat(funding.toConvert) > 0 ? { coopname, username: member, sub_hash: plan.subHash, amount: funding.toConvert, statement: document } : null;
     const open = plan.isExtension
       ? null
       : {

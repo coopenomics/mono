@@ -62,8 +62,10 @@ describe('EdubridgeChainAdapter — состав транзакций подпи
 
   it('оплата с конвертацией: convert → opensub → chargefee, заявление едет в convert строкой', async () => {
     const { adapter, chain } = make();
-    await adapter.convertAndSubscribe({ coopname: 'voskhod', username: 'ant', amount: '1000.0000 RUB', statement: doc({ a: 1 }) } as any, open, charge);
+    await adapter.convertAndSubscribe({ coopname: 'voskhod', username: 'ant', sub_hash: 'S', amount: '1000.0000 RUB', statement: doc({ a: 1 }) } as any, open, charge);
     expect(names(chain)).toEqual(['convert', 'opensub', 'chargefee']);
+    // Конвертация и взнос — под одним хэшем подписки: один процесс в реестре.
+    expect(chain.transact.mock.calls[0][0][0].data.sub_hash).toBe(chain.transact.mock.calls[0][0][2].data.sub_hash);
     expect(chain.transact.mock.calls[0][0][0].data.statement.meta).toBe('{"a":1}');
   });
 

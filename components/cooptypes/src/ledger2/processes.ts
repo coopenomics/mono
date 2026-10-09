@@ -57,6 +57,8 @@ export const LEDGER2_PROCESS_REGISTRY: readonly ProcessMeta[] = [
   { type: 'p.edu.rid',      contract: 'edubridge',    name: 'RID',         human_name: 'Паевой взнос преподавателя результатом интеллектуальной деятельности' },
   { type: 'p.edu.teach',    contract: 'edubridge',    name: 'TEACH',       human_name: 'Участие преподавателя в хозяйственной деятельности' },
   { type: 'p.edu.spend',    contract: 'edubridge',    name: 'SPEND',       human_name: 'Расход средств ЦПП «Образование»' },
+  { type: 'p.edu.retshr',   contract: 'edubridge',    name: 'RETURN_SHARE', human_name: 'Возврат членского взноса ЦПП «Образование» на паевой взнос' },
+  { type: 'p.edu.wthshr',   contract: 'edubridge',    name: 'WITHDRAW_SHARE', human_name: 'Перевод паевого взноса преподавателя в ЦПП «Цифровой Кошелёк»' },
 
   // soviet
   { type: 'p.sov.axncnv',   contract: 'soviet',       name: 'AXN_CONVERT', human_name: 'Конвертация паевого в делегатский ЧВ' },

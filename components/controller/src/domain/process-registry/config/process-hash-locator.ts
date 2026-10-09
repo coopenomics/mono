@@ -186,6 +186,10 @@ export const PROCESS_HASH_LOCATOR: Readonly<Record<string, HashLocation[]>> = Ob
   //   - `expenses.hash` — расход программы, поданный в шасси расходов
   //     (живёт до завершения расхода; onexpdone стирает запись).
   'p.edu.spend':  [{ code: 'edubridge', table: 'expenses', field: 'hash' }],
+  // Возврат на паевой и перевод паевого преподавателя — процессы из одного
+  // действия по заявлению: записи сущности в цепи нет, хэш процесса — хэш заявления.
+  'p.edu.retshr': [],
+  'p.edu.wthshr': [],
 
   // requirement b6 «Экономика КУ».
   // p.brn.fees — распределение членских взносов КУ: ручное распределение

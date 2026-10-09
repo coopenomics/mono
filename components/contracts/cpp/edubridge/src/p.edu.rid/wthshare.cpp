@@ -45,7 +45,7 @@ void edubridge::wthshare(eosio::name coopname,
 
   Ledger2::apply(_edubridge, coopname,
                  operations::edubridge::WITHDRAW_EDU_SHARE,
-                 processes::edubridge::RID,
+                 processes::edubridge::WITHDRAW_SHARE,
                  amount, username, statement.hash,
                  Edubridge::Memo::get_withdraw_share_memo());
 

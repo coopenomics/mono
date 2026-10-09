@@ -93,6 +93,9 @@ describe('EdubridgeEnrollmentService', () => {
     const [convert, open, charge] = chain.convertAndSubscribe.mock.calls[0];
     // Восемь месяцев по 1000 со скидкой 10%.
     expect(convert.amount).toBe('7200.0000 RUB');
+    // Конвертация идёт под хэшем подписки — тем же, что открытие и взнос: один процесс.
+    expect(convert.sub_hash).toBe(open.sub_hash);
+    expect(convert.sub_hash).toBe(charge.sub_hash);
     // Сумму взноса считает контракт; приложение называет период и сумму из
     // подписанного заявления — при расхождении контракт взнос не примет.
     expect(charge.expected).toBe('7200.0000 RUB');
