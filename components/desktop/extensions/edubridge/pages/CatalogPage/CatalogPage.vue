@@ -3,10 +3,7 @@
   //- Разделы — вкладки под шапкой, уровни — ряд переключателей: каталог листают, а не настраивают.
   PageTabs(v-if="sections.length" hoist :tabs="sectionTabs" :active-key="sectionId ?? ALL" @select="(tab) => pickSection(tab.key)")
 
-  PageHint.q-mb-md(storage-key="edu:catalog:banner-dismissed")
-    | {{ $t('edubridge.catalogPage.hint.line1') }}
-
-  .edu-catalog__levels.q-mb-md(v-if="levels.length")
+  .edu-catalog__levels.q-mb-md(v-if="levelChips.length > 1")
     button.chip.chip--lg.edu-catalog__level(
       v-for="l in levelChips"
       :key="l.key"
@@ -45,7 +42,6 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { FailAlert } from 'src/shared/api';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { CourseCardSkeleton } from '../../shared/ui/CourseCardSkeleton';
-import { PageHint } from 'src/shared/ui/domain';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { fetchCatalog, type ICatalogCourse } from '../../entities/Course';
 import { fetchSections, type ISection } from '../../entities/Section';
@@ -81,18 +77,30 @@ const sectionTabs = computed<PageTab[]>(() => [
   { key: ALL, label: t('edubridge.catalogPage.allSections') },
   ...sections.value.map((sec) => ({ key: String(sec.id), label: sec.title })),
 ]);
-const levels = computed(() => sections.value.find((sec) => String(sec.id) === sectionId.value)?.levels ?? []);
-const levelChips = computed(() => [
-  { key: ALL, label: t('edubridge.catalogPage.allLevels') },
-  ...levels.value.map((l) => ({ key: String(l.id), label: l.title })),
-]);
+/**
+ * Уровни видны всегда. Внутри раздела — его уровни. На вкладке «Все курсы» —
+ * уровни всех разделов, одноимённые сведены в один: «1 класс» показывает курсы
+ * первого класса по всем разделам, поэтому ключ там — название уровня.
+ */
+const levelChips = computed(() => {
+  const all = { key: ALL, label: t('edubridge.catalogPage.allLevels') };
+  if (sectionId.value) {
+    const own = sections.value.find((sec) => String(sec.id) === sectionId.value)?.levels ?? [];
+    return [all, ...own.map((l) => ({ key: String(l.id), label: l.title }))];
+  }
+  const titles = [...new Set(sections.value.flatMap((sec) => sec.levels ?? []).map((l) => l.title))];
+  return [all, ...titles.map((title) => ({ key: title, label: title }))];
+});
 const hasMore = computed(() => currentPage.value < totalPages.value);
 
 async function load(page: number): Promise<void> {
   loading.value = true;
   try {
     const result = await fetchCatalog({
-      filter: { section_id: sectionId.value ?? undefined, level_id: levelId.value ?? undefined },
+      // В разделе уровень отбирается по идентификатору, на вкладке «Все курсы» — по названию во всех разделах.
+      filter: sectionId.value
+        ? { section_id: sectionId.value, level_id: levelId.value ?? undefined }
+        : { level_title: levelId.value ?? undefined },
       options: { page, limit: PAGE_SIZE, sortBy: 'sort_order', sortOrder: 'ASC' },
     });
     items.value = page === 1 ? result.items : [...items.value, ...result.items];

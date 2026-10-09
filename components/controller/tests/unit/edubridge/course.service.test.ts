@@ -220,6 +220,15 @@ describe('EdubridgeCourseService — раздел и уровень из спр�
   });
 });
 
+describe('EdubridgeCourseService — каталог', () => {
+  it('отбор по названию уровня уходит в хранилище вместе с признаком «опубликован»: уровень отбирается во всех разделах', async () => {
+    const { service, courses } = make();
+    courses.findPage = jest.fn(async () => ({ items: [], totalCount: 0, totalPages: 0, currentPage: 1 }));
+    await service.catalog('voskhod', { level_title: '1 класс' });
+    expect(courses.findPage).toHaveBeenCalledWith('voskhod', { level_title: '1 класс', status: 'published' }, undefined);
+  });
+});
+
 describe('EdubridgeCourseService — обложка курса', () => {
   const png = Buffer.from('png-bytes').toString('base64');
 

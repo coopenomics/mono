@@ -189,4 +189,20 @@ describe('Образование: разделы и уровни каталог�
     expect(shown.levels.map((l: any) => l.title)).toEqual(['Ступень 1'])
     expect(shown.levels.every((l: any) => Boolean(l.id) && Boolean(l.title))).toBe(true)
   })
+
+  it(caseName('edu.catalog.side.09', 'отбор по названию уровня без раздела: одноимённые уровни разных разделов показываются вместе'), async () => {
+    const title = unique('Класс')
+    const [physics, chemistry] = [await saveSection(unique('Физика')), await saveSection(unique('Химия'))]
+    const inPhysics = await publishCourse(chairman, physics.id, 30, { level_id: (await saveLevel(physics.id, title)).id })
+    const inChemistry = await publishCourse(chairman, chemistry.id, 30, { level_id: (await saveLevel(chemistry.id, title)).id })
+    const other = await publishCourse(chairman, chemistry.id, 30, { level_id: (await saveLevel(chemistry.id, unique('Класс'))).id })
+
+    const byTitle = (await gql<any>(null, CATALOG_PAGE, { f: { level_title: title } })).edubridgeCatalog
+    const ids = (byTitle.items as any[]).map(c => c.id)
+    expect(ids.sort()).toEqual([inPhysics.id, inChemistry.id].sort())
+    expect(ids).not.toContain(other.id)
+    // Регистр названия не важен.
+    const lower = (await gql<any>(null, CATALOG_PAGE, { f: { level_title: title.toLowerCase() } })).edubridgeCatalog
+    expect(lower.totalCount).toBe(2)
+  })
 })

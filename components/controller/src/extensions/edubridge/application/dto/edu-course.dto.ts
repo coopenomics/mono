@@ -185,6 +185,11 @@ export class EduCatalogFilterInputDTO {
   @IsOptional()
   @IsUUID()
   level_id?: string;
+
+  @Field(() => String, { nullable: true, description: 'Название уровня — отбор по уровню сразу во всех разделах каталога' })
+  @IsOptional()
+  @IsString()
+  level_title?: string;
 }
 
 @InputType('EduCoursesFilterInput')

@@ -7,6 +7,8 @@ import { EdubridgeCourseRecord, EdubridgeLevelRecord, EdubridgeSectionRecord } f
 export interface EduCourseFilter {
   section_id?: string;
   level_id?: string;
+  /** Название уровня: одноимённые уровни разных разделов отбираются вместе. */
+  level_title?: string;
   status?: EduCourseStatus;
 }
 
@@ -46,6 +48,7 @@ export class EdubridgeCourseKyselyRepository {
       .where('c.coopname = :coopname', { coopname });
     if (filter.section_id) qb.andWhere('c.section_id = :section_id', { section_id: filter.section_id });
     if (filter.level_id) qb.andWhere('c.level_id = :level_id', { level_id: filter.level_id });
+    if (filter.level_title) qb.andWhere('lower(lvl.title) = lower(:level_title)', { level_title: filter.level_title.trim() });
     if (filter.status) qb.andWhere('c.status = :status', { status: filter.status });
     if (sortBy === 'sort_order') {
       // Порядок по умолчанию — порядок справочника: раздел, уровень, затем курс.

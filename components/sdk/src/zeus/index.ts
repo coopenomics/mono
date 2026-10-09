@@ -6831,7 +6831,7 @@ export type ValueTypes = {
 	description?:boolean | `@${string}`,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?:boolean | `@${string}`,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
@@ -6868,6 +6868,8 @@ export type ValueTypes = {
 	["EduCatalogFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null | Variable<any, string>,
 	/** Раздел каталога из справочника */
 	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>
 };
@@ -6980,7 +6982,7 @@ export type ValueTypes = {
 	external_title_seen?:boolean | `@${string}`,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?:boolean | `@${string}`,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
@@ -7169,6 +7171,8 @@ export type ValueTypes = {
 	["EduCoursesFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null | Variable<any, string>,
 	/** Раздел каталога из справочника */
 	section_id?: ValueTypes["ID"] | undefined | null | Variable<any, string>,
 	/** Состояние курса */
@@ -23561,7 +23565,7 @@ export type ResolverInputTypes = {
 	description?:boolean | `@${string}`,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?:boolean | `@${string}`,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
@@ -23597,6 +23601,8 @@ export type ResolverInputTypes = {
 	["EduCatalogFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: ResolverInputTypes["ID"] | undefined | null
 };
@@ -23705,7 +23711,7 @@ export type ResolverInputTypes = {
 	external_title_seen?:boolean | `@${string}`,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?:boolean | `@${string}`,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?:boolean | `@${string}`,
 	/** Членский взнос за месяц */
 	fee_month?:boolean | `@${string}`,
@@ -23890,6 +23896,8 @@ export type ResolverInputTypes = {
 	["EduCoursesFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ResolverInputTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: ResolverInputTypes["ID"] | undefined | null,
 	/** Состояние курса */
@@ -39786,7 +39794,7 @@ export type ModelTypes = {
 	description: string,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?: string | undefined | null,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
@@ -39821,6 +39829,8 @@ export type ModelTypes = {
 	["EduCatalogFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: ModelTypes["ID"] | undefined | null
 };
@@ -39920,7 +39930,7 @@ export type ModelTypes = {
 	external_title_seen?: string | undefined | null,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?: string | undefined | null,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
@@ -40099,6 +40109,8 @@ export type ModelTypes = {
 	["EduCoursesFilterInput"]: {
 	/** Уровень внутри раздела из справочника */
 	level_id?: ModelTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: ModelTypes["ID"] | undefined | null,
 	/** Состояние курса */
@@ -56456,7 +56468,7 @@ export type GraphQLTypes = {
 	description: string,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?: string | undefined | null,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
@@ -56492,6 +56504,8 @@ export type GraphQLTypes = {
 	["EduCatalogFilterInput"]: {
 		/** Уровень внутри раздела из справочника */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: GraphQLTypes["ID"] | undefined | null
 };
@@ -56605,7 +56619,7 @@ export type GraphQLTypes = {
 	external_title_seen?: string | undefined | null,
 	/** Членский взнос за весь курс разом; пусто — принимается только помесячный взнос */
 	fee_course?: string | undefined | null,
-	/** Сумма помесячных взносов за весь курс — с ней сравнивается взнос разом */
+	/** Сумма помесячных взносов за весь курс: полный взнос за программу; с ней сравнивается взнос разом. Пусто у курса без конечной программы */
 	fee_course_base?: string | undefined | null,
 	/** Членский взнос за месяц */
 	fee_month: string,
@@ -56793,6 +56807,8 @@ export type GraphQLTypes = {
 	["EduCoursesFilterInput"]: {
 		/** Уровень внутри раздела из справочника */
 	level_id?: GraphQLTypes["ID"] | undefined | null,
+	/** Название уровня — отбор по уровню сразу во всех разделах каталога */
+	level_title?: string | undefined | null,
 	/** Раздел каталога из справочника */
 	section_id?: GraphQLTypes["ID"] | undefined | null,
 	/** Состояние курса */

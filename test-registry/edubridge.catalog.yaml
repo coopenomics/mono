@@ -130,6 +130,14 @@ cases:
     test: components/controller/tests/unit/edubridge/course.service.test.ts
     api: components/api-tests/src/edubridge/sections.test.ts
     status: passing
+  - id: edu.catalog.side.09
+    level: backend
+    kind: side
+    scenario: "Каталог открыт на всех разделах, ученик выбирает уровень; уровни с одним названием есть в нескольких разделах."
+    expect: "Отбор по названию уровня без раздела возвращает опубликованные курсы этого уровня из всех разделов; курсы других уровней не попадают; регистр названия не важен."
+    test: components/controller/tests/unit/edubridge/course.service.test.ts
+    api: components/api-tests/src/edubridge/sections.test.ts
+    status: written
   - id: edu.catalog.ui.04
     level: ui
     kind: side
