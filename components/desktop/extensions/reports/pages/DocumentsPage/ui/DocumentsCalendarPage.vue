@@ -18,6 +18,7 @@ import { ref } from 'vue'
 import type { IReportType } from 'src/entities/Report'
 import ReportsCalendar from 'extensions/reports/widgets/reports-calendar/ReportsCalendar.vue'
 import ReportEditorDialog from './ReportEditorDialog.vue'
+import { useReportsRights } from 'app/extensions/reports/shared/lib/rights'
 
 const showEditor = ref(false)
 const editorReportType = ref<IReportType | null>(null)
@@ -30,7 +31,11 @@ const editorPeriod = ref<number | null>(null)
 // дёргаем widget.reload() явно.
 const calendarRef = ref<InstanceType<typeof ReportsCalendar> | null>(null)
 
+const { canDraft } = useReportsRights()
+
 function onCalendarSelect(payload: { reportType: IReportType; year: number; period: number | null }) {
+  // Редактор отчёта ведёт черновик: без права записи календарь только показывает сроки.
+  if (!canDraft.value) return
   editorReportType.value = payload.reportType
   editorYear.value = payload.year
   editorPeriod.value = payload.period

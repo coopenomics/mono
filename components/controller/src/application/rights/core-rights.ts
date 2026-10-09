@@ -97,8 +97,10 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         // подпись сверяет сама операция.
         Agreement: ['read:all', 'sign:all', 'confirm'],
         Registration: ['read:all'],
-        Payment: ['read:all', 'confirm'],
-        PaymentFile: ['read:all', 'upload'],
+        // Реестр платежей совет читает; подтверждают оплату и прикладывают
+        // документы об оплате председатель и кассир (C28-90).
+        Payment: ['read:all'],
+        PaymentFile: ['read:all'],
         Wallet: ['read:all'],
         Process: ['read:all'],
         Ledger: ['read'],
@@ -132,6 +134,8 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Extension: ['manage'],
         ExtensionOnboarding: ['manage'],
         PaymentMethod: ['manage:all'],
+        Payment: ['confirm'],
+        PaymentFile: ['upload'],
         Ledger: ['move'],
         System: ['manage'],
         NotificationJournal: ['resend'],

@@ -43,7 +43,24 @@ interface Suite {
 }
 
 const SUITES: Suite[] = [
-  { title: 'Стол бухгалтера', rights: new ReportsRights(registry, roleAssignments), dir: 'reports/application/resolvers', ops: {}, rest: CHAIR },
+  {
+    // Стол читает совет; черновики, формирование, реквизиты, отметки и налог ведёт председатель.
+    title: 'Стол бухгалтера',
+    rights: new ReportsRights(registry, roleAssignments),
+    dir: 'reports/application/resolvers',
+    ops: {
+      getAvailableReports: COUNCIL,
+      getReportPreview: COUNCIL,
+      getReportHistory: COUNCIL,
+      getReport: COUNCIL,
+      getReportRequisites: COUNCIL,
+      checkReportReadiness: COUNCIL,
+      getReportCalendar: COUNCIL,
+      getWithheldTaxState: COUNCIL,
+      getWithheldTaxPayments: COUNCIL,
+    },
+    rest: CHAIR,
+  },
   {
     title: 'Стол связи',
     rights: new ChatcoopRights(registry),
@@ -134,10 +151,11 @@ describe('права страниц столов расширений', () => {
   const grantsOf = async (rights: AppRights<any, any>, caller: Caller) =>
     desktopGrantsOf(rights).resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
 
-  it('Стол бухгалтера открыт председателю', async () => {
+  it('Стол бухгалтера ведёт председатель, член совета его читает', async () => {
     const rights = new ReportsRights(registry, roleAssignments);
     expect(await grantsOf(rights, chairman)).toEqual(expect.arrayContaining(['Report:read', 'ReportCalendar:read', 'WithheldTax:read', 'ReportRequisites:manage']));
-    expect(await grantsOf(rights, councilMember)).toEqual([]);
+    // access.roles.happy.10
+    expect((await grantsOf(rights, councilMember)).sort()).toEqual(['Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
     expect(await grantsOf(rights, participant)).toEqual([]);
   });
 

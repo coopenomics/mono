@@ -34,12 +34,20 @@ const FULL_DESK: Record<string, string[]> = {
   WithheldTax: ['read', 'pay'],
 };
 
+/** Чтение стола: совет видит отчётность, реквизиты, календарь сдачи и удержанный налог. */
+const READ_DESK: Record<string, string[]> = {
+  Report: ['read'],
+  ReportRequisites: ['read'],
+  ReportCalendar: ['read'],
+  WithheldTax: ['read'],
+};
+
 /**
  * Таблица прав Стола бухгалтера (C28-87): роль → право `Ресурс:действие`.
- * Стол целиком ведут председатель и бухгалтер (C28-90).
+ * Стол ведут председатель и бухгалтер, член совета его читает (C28-90).
  */
 export const reportsRightsTable: RightsTable<ReportsRole, never> = {
-  council: [],
+  council: [{ when: [], rights: READ_DESK }],
   chairman: [{ when: [], rights: FULL_DESK }],
   accountant: [{ when: [], rights: FULL_DESK }],
 };

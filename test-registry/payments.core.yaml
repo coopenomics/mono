@@ -128,7 +128,7 @@ cases:
   - id: pay.core.happy.03
     level: backend
     kind: happy
-    scenario: член совета отменяет ожидающий платёж и указывает причину
+    scenario: председатель отменяет ожидающий платёж и указывает причину
     expect: платёж CANCELLED, причина сохранена и видна пайщику, статус больше не меняется
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts

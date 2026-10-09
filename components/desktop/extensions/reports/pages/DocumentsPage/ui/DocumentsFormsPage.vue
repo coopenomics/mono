@@ -39,7 +39,7 @@
       template(#body-cell-actions='props')
         q-td(:props='props')
           q-btn(
-            v-if='props.row.readyToGenerate'
+            v-if='canDraft && props.row.readyToGenerate'
             flat dense
             icon='fa-solid fa-pen-to-square'
             color='primary'
@@ -47,7 +47,7 @@
           )
             q-tooltip {{ $t('reports.documentsFormsPage.openEditorLabel') }}
           q-btn(
-            v-else
+            v-else-if='canDraft'
             flat dense
             icon='fa-solid fa-gear'
             color='warning'
@@ -70,6 +70,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { REPORT_DOCS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useReportsRights } from 'app/extensions/reports/shared/lib/rights'
 import { storeToRefs } from 'pinia'
 import { FailAlert } from 'src/shared/api'
 import {
@@ -133,6 +134,8 @@ function defaultPeriodFor(p: string): number | null {
   if (p === 'yearly') return null
   return 1
 }
+
+const { canDraft } = useReportsRights()
 
 function openEditor(r: IAvailableReport) {
   editorReportType.value = r.type as IReportType

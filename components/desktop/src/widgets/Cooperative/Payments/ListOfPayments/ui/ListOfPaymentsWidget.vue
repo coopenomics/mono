@@ -57,7 +57,7 @@
                     q-icon.proof-icon.proof-icon--missing(v-else-if='!hideActions && proofState(row) === "missing"', name='receipt_long', size='16px')
                       q-tooltip {{ $t('cooperative.listOfPaymentsWidget.proofMissingTooltip') }}
                 td.col-action(v-if='!hideActions', @click.stop)
-                  .cell-actions(v-if='["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
+                  .cell-actions(v-if='!readOnly && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)')
                     SetOrderPaidStatusButton(:id='row.id')
                     //- Там, где решение уже принято советом (возврат взноса, расход
                     //- по СЗ, материальная помощь), кассир не отклоняет — прячем
@@ -72,6 +72,7 @@
                   .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
                     AttachPaymentProofPanel(
                       :payment-hash='paymentProofHash(row) ?? ""',
+                      :readonly='readOnly',
                       :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
                       @uploaded='onProofUploaded(row)'
                     )
@@ -148,7 +149,7 @@
             span {{ directionLabel(row) }}
             span {{ formatDateToHumanDateTime(row.created_at) }}
         .pay-card__actions(
-          v-if='!hideActions && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)',
+          v-if='!hideActions && !readOnly && ["EXPIRED", "PENDING", "FAILED"].includes(row.status)',
           @click.stop
         )
           SetOrderPaidStatusButton(:id='row.id')
@@ -159,6 +160,7 @@
           .q-mt-sm(v-if='!hideActions && paymentProofHash(row)')
             AttachPaymentProofPanel(
               :payment-hash='paymentProofHash(row) ?? ""',
+              :readonly='readOnly',
               :step='expenseProofRef(row) ? { number: 1, title: $t("cooperative.listOfPaymentsWidget.confirmPaymentStep") } : undefined',
               @uploaded='onProofUploaded(row)'
             )
@@ -253,6 +255,12 @@ const props = defineProps({
     default: null,
   },
   hideActions: {
+    type: Boolean,
+    default: false,
+  },
+  // Реестр без права подтверждать оплату: платежи и документы об оплате
+  // видны, кнопки подтверждения и загрузка документа скрыты.
+  readOnly: {
     type: Boolean,
     default: false,
   },

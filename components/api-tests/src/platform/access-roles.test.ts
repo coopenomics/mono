@@ -81,6 +81,19 @@ describe('платформа: назначаемые роли и управле�
     expect(await sovietGrants(tokens[member.account])).not.toContain('Payment:read:all')
   }, 120_000)
 
+  it(caseName('access.roles.happy.10', 'член совета читает реестр платежей и стол бухгалтера, запись ему закрыта'), async () => {
+    const council = tokens[COUNCIL.account]
+    expect(await probe.denial(council, 'getPayments')).toBeNull()
+    expect(await probe.denial(council, 'setPaymentStatus')).toBe(NO_RIGHT)
+    expect(await probe.denial(council, 'uploadPaymentProof')).toBe(NO_RIGHT)
+    for (const name of ['getAvailableReports', 'getReportCalendar', 'getReportRequisites', 'getWithheldTaxState'])
+      expect(await probe.denial(council, name), name).toBeNull()
+    for (const name of ['saveReportDraft', 'generateReportFromEdits', 'markReportPeriod', 'updateReportRequisites', 'payWithheldTax'])
+      expect(await probe.denial(council, name), name).toBe(NO_RIGHT)
+    // Председатель подтверждает оплату по своему праву.
+    expect(await probe.denial(tokens[CHAIRMAN.account], 'setPaymentStatus')).toBeNull()
+  }, 240_000)
+
   it(caseName('access.roles.break.03', 'необъявленную роль назначить нельзя'), async () => {
     expect((await gqlError(tokens[CHAIRMAN.account], ASSIGN, input(member.account, 'director')))?.code).toBe('ACCESS_ROLE_UNKNOWN')
   }, 60_000)

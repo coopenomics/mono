@@ -186,9 +186,10 @@ describe('Отчётность — отметки календаря', () => {
     expect(await cellStatus(), '«сдан вне платформы» важнее черновика').toBe('SUBMITTED_EXTERNALLY')
   })
 
-  it(caseName('rep.cal.side.01', 'календарь и отметки — только председателю'), async () => {
+  it(caseName('rep.cal.side.01', 'отметки ставит только председатель; календарь читает и член совета'), async () => {
+    expect(await gqlError(council, CALENDAR, { y: YEAR }), 'совет читает календарь').toBeNull()
+    expectCode(await gqlError(member, CALENDAR, { y: YEAR }), 'KIT_INSUFFICIENT_RIGHTS')
     for (const token of [council, member]) {
-      expectCode(await gqlError(token, CALENDAR, { y: YEAR }), 'KIT_INSUFFICIENT_RIGHTS')
       expectCode(
         await gqlError(token, MARK, { d: { reportType: 'RSV', year: cell.reportYear, period: cell.periodCode, mark: null } }),
         'KIT_INSUFFICIENT_RIGHTS',

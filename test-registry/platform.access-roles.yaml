@@ -16,6 +16,7 @@ sources:
     - components/controller/src/infrastructure/database/kysely/repositories/role-assignment.kysely-repository.ts
     - components/innercoop/src/core-ports/role-assignments.port.ts
     - components/controller/src/extensions/reports/application/access/**
+    - components/desktop/extensions/reports/shared/lib/rights.ts
     - components/controller/src/extensions/innercoop-bridge.module.ts
   ui:
     - components/desktop/extensions/chairman/pages/AccessRolesPage/**
@@ -235,6 +236,15 @@ cases:
     test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
     external: unreachable
     external_reason: "снятие приложения с общего стенда ломает соседние наборы; оба приложения с ролями на стенде установлены"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.10
+    level: backend
+    kind: happy
+    scenario: член совета открывает реестр платежей и стол бухгалтера
+    expect: чтение проходит; подтверждение оплаты, загрузка документа об оплате, черновики, формирование отчёта, отметки календаря, реквизиты и перечисление налога закрыты — запись ведут председатель и роли кассира и бухгалтера
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: access.roles.ui.01

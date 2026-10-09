@@ -284,6 +284,20 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     expect(roleAssignments.declare).toHaveBeenCalledWith('soviet', [expect.objectContaining({ key: 'cashier' })]);
   });
 
+  // access.roles.happy.10
+  it('реестр платежей член совета читает; подтверждают оплату и прикладывают документы председатель и кассир', async () => {
+    const { pass } = makeGuard(CASHIER);
+    await expect(pass(requirementOf(FILES.gateway, 'getPayments'), councilMember, { data: {} })).resolves.toBe(true);
+    for (const operation of ['setPaymentStatus', 'uploadPaymentProof']) {
+      const requirement = requirementOf(operation === 'setPaymentStatus' ? FILES.gateway : FILES.paymentFiles, operation);
+      await expect(pass(requirement, councilMember, { data: { id: '1' } })).rejects.toMatchObject(NO_RIGHT);
+      await expect(pass(requirement, chairman, { data: { id: '1' } })).resolves.toBe(true);
+    }
+    const grants = await grantsFor(councilMember);
+    expect(grants).toContain('Payment:read:all');
+    expect(grants).not.toContain('Payment:confirm');
+  });
+
   // core.acc.happy.12
   it('право страницы управления доступом получает только председатель', async () => {
     expect(await grantsFor(chairman)).toContain('AccessRole:manage');
