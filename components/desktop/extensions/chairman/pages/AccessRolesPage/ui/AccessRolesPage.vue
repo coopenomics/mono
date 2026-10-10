@@ -21,7 +21,9 @@
         .role-card__title {{ role.title }}
         .role-card__meta {{ $t('chairman.accessRolesPage.appLabel', { app: role.extension_title }) }}
     template(#actions)
-      BaseButton(variant='secondary', size='sm', @click='openAssign(role)')
+      BaseButton(variant='primary', size='sm', @click='openAssign(role)')
+        template(#icon-left)
+          q-icon(name='person_add', size='16px')
         | {{ $t('chairman.accessRolesPage.assignAction') }}
 
     .role-card__description {{ role.description }}
@@ -42,7 +44,9 @@
         .holder-row__identity
           .holder-row__name {{ holder.display_name }}
           .holder-row__meta {{ $t('chairman.accessRolesPage.assignedMeta', { date: formatDocumentDate(String(holder.assigned_at)), by: holder.assigned_by }) }}
-        BaseButton(variant='secondary', size='sm', @click='openRevoke(role, holder)')
+        BaseButton(variant='danger', size='sm', @click='openRevoke(role, holder)')
+          template(#icon-left)
+            q-icon(name='person_remove', size='16px')
           | {{ $t('chairman.accessRolesPage.revokeAction') }}
 
   BaseDialog(
