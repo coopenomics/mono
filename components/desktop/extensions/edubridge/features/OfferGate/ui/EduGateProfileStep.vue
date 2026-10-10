@@ -1,6 +1,5 @@
 <template lang="pug">
 .edu-gate-profile
-  .text-body2.q-mb-md {{ $t('edubridge.eduGateProfileStep.description') }}
 
   BaseForm(:loading="busy" @submit="submit")
     BaseInput(

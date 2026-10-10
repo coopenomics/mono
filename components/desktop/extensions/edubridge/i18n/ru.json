@@ -1051,7 +1051,6 @@
       "teacherOption": "{teacherName}, договор № {contractNumber}"
     },
     "eduGateProfileStep": {
-      "description": "Расскажите о себе. Ставку за час определяет администратор кооператива.",
       "aboutLabel": "О себе",
       "aboutHint": "Предметы, опыт, образование.",
       "aboutPlaceholder": "Например: преподаю математику в 5–9 классах, 12 лет в школе, готовлю к ОГЭ",

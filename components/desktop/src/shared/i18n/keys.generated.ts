@@ -3078,7 +3078,6 @@ export type MessageKey =
   | 'edubridge.eduGateProfileStep.aboutHint'
   | 'edubridge.eduGateProfileStep.aboutLabel'
   | 'edubridge.eduGateProfileStep.aboutPlaceholder'
-  | 'edubridge.eduGateProfileStep.description'
   | 'edubridge.eduGateProfileStep.submit'
   | 'edubridge.eduOfferGate.contactChairmanHint'
   | 'edubridge.eduOfferGate.contractAgreeLabel'
