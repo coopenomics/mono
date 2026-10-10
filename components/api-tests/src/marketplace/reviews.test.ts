@@ -44,6 +44,8 @@ const NO_RIGHT = ['403', 'KIT_INSUFFICIENT_RIGHTS']
 const NOT_OWN = ['403', 'KIT_RIGHT_SCOPE_OWN']
 /** Отказ проверки ввода приходит раньше доменного кода. */
 const BAD_INPUT = ['400', '422']
+/** Подписанная ссылка файлового хранилища: путь к файлу, срок и подпись. */
+const SIGNED_URL = /\/storage\/.+\?exp=\d+&sig=[0-9a-f]+$/
 
 async function reviewsOf(token: string, filter: Record<string, unknown>): Promise<any[]> {
   const d = await gql<any>(token, LIST, { f: filter, o: PAGE })
@@ -335,7 +337,7 @@ describe('профиль поставщика: читают все, правит
 
   it(caseName('mkt.profile.happy.07', 'обложка отдаётся ссылкой'), async () => {
     const p = await profileOf(memberToken, sidorov.account)
-    expect(String(p.cover_url), 'ссылка на обложку').toMatch(/^https?:\/\//)
+    expect(String(p.cover_url), 'ссылка на обложку').toMatch(SIGNED_URL)
   })
 
   it(caseName('mkt.profile.happy.01', 'заказчик читает профиль: название, рассказ, число предложений и оценка'), async () => {
@@ -354,7 +356,7 @@ describe('профиль поставщика: читают все, правит
     const d = await gql<any>(supplierToken, UPDATE_MY_PROFILE, { d: { about: 'Мёд и воск' } })
     const p = d.marketplaceUpdateMySupplierProfile
     expect(p).toMatchObject({ about: 'Мёд и воск', custom_display_name: 'Пасека Сидорова' })
-    expect(String(p.cover_url), 'обложка на месте').toMatch(/^https?:\/\//)
+    expect(String(p.cover_url), 'обложка на месте').toMatch(SIGNED_URL)
   })
 
   it(caseName('mkt.profile.happy.06', 'пустое название возвращает имя из сертификата, обложка убирается'), async () => {
