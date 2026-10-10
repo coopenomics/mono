@@ -2,12 +2,30 @@ import { guaranteeDaySeconds, guaranteeEndsAt, guaranteeSeconds, isGuaranteeRunn
 
 describe('Гарантийный срок группы — длина суток', () => {
   const previous = process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
+  const previousMode = process.env.NODE_ENV;
   afterEach(() => {
     if (previous === undefined) delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
     else process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = previous;
+    process.env.NODE_ENV = previousMode;
   });
 
-  it('в работе сутки — 86 400 секунд: срок в цепь уходит днями курса в секундах', () => {
+  it('в работе сутки всегда настоящие: переменная короткого срока там не действует', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = '300';
+    expect(guaranteeDaySeconds()).toBe(86_400);
+    expect(guaranteeSeconds({ guarantee_days: 14 })).toBe(14 * 86_400);
+  });
+
+  it('на стенде разработки сутки — пять минут сами собой; переменная задаёт другую длину', () => {
+    process.env.NODE_ENV = 'development';
+    delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
+    expect(guaranteeDaySeconds()).toBe(300);
+    expect(guaranteeEndsAt({ starts_at: '2026-10-01', guarantee_days: 1 })).toEqual(new Date('2026-10-01T00:05:00Z'));
+    process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = '86400';
+    expect(guaranteeDaySeconds()).toBe(86_400);
+  });
+
+  it('без переменной вне стенда разработки сутки — 86 400 секунд: срок в цепь уходит днями курса в секундах', () => {
     delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
     expect(guaranteeDaySeconds()).toBe(86_400);
     expect(guaranteeSeconds({ guarantee_days: 14 })).toBe(14 * 86_400);

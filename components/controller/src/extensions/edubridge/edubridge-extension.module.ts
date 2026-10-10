@@ -27,6 +27,7 @@ import { registerEdubridgeDocuments } from './application/onboarding/register-ed
 import { registerEdubridgeOnboardingSteps } from './application/onboarding/register-edubridge-onboarding-steps';
 import { registerEdubridgeInAgreementRegistry } from './application/registration/register-edubridge-in-agreement-registry';
 import { EDUBRIDGE_EXTENSION_NAME } from './constants/edubridge.constants';
+import { guaranteeDaySeconds, isGuaranteeDayShortened } from './domain/economy/guarantee';
 import {
   EDU_ONBOARDING_STEPS,
   EDU_PARENT_AGREEMENT_TYPE,
@@ -94,6 +95,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     await this.groupService.pushAll(platformSettings().coopname).catch((e) => this.logger.warn(`[EDU.GROUPS] условия групп в цепь не записаны: ${(e as Error)?.message ?? e}`));
     await this.teacherService.syncAllCourseAssignments(platformSettings().coopname);
     await this.teacherService.ensureContractRefs(platformSettings().coopname);
+    if (isGuaranteeDayShortened()) this.logger.warn(`[EDU.GUARANTEE] сутки гарантийного срока укорочены до ${guaranteeDaySeconds()} с — режим стенда; в работе сутки всегда настоящие`);
     this.logger.info('edubridge-extension готов');
   }
 
