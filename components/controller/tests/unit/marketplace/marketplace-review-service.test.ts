@@ -67,7 +67,9 @@ function build(order: Record<string, unknown> | null = makeOrder()) {
     findByOrder: jest.fn().mockResolvedValue(null),
     create: jest.fn(async (input: ReviewCreateInput) => makeReview(input)),
     updateContent: jest.fn(async (_id: string, patch: { stars: number; text: string }) => makeReview(patch)),
-    setStatus: jest.fn(async (_id: string, patch: Partial<MarketplaceReviewDomainEntity>) => makeReview(patch)),
+    setStatus: jest.fn(async (_id: string, patch: Parameters<MarketplaceReviewDomainRepository['setStatus']>[1]) =>
+      makeReview(patch)
+    ),
     list: jest.fn().mockResolvedValue({ items: [], totalCount: 0, totalPages: 1, currentPage: 1 }),
     ratingsByOffers: jest.fn().mockResolvedValue(new Map()),
     summary: jest.fn(),
