@@ -193,7 +193,7 @@
     },
     "roles": {
       "accountant": {
-        "description": "Ведёт стол бухгалтера.",
+        "description": "Управляет столом бухгалтера.",
         "permissions": {
           "calendar": "Календарь сдачи отчётности",
           "calendarMarks": "Отметки о сдаче в календаре",

@@ -17,7 +17,7 @@
       "revokeDialogBody": "{name} потеряет доступ, который даёт роль.",
       "revokeDialogTitle": "Снять роль «{role}»",
       "revokedMessage": "Роль снята",
-      "writesLabel": "Ведёт"
+      "writesLabel": "Управляет"
     },
     "agendaPresets": {
       "proposalCreatedMessage": "Предложение повестки успешно создано"
