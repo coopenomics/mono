@@ -110,8 +110,8 @@ describe('операции образования под общим гардом
   // access.roles.happy.14
   it('член совета курсы читает, но не ведёт; администратор образования ведёт курсы и допуски', async () => {
     const { pass, rights, roleAssignments } = make(ADMIN_FACTS);
-    const read = req('edubridge-course.resolver.ts', 'edubridgeCourses');
-    const create = req('edubridge-course.resolver.ts', 'edubridgeCreateCourse');
+    const read = req('edubridge-course-admin.resolver.ts', 'edubridgeCourses');
+    const create = req('edubridge-course-admin.resolver.ts', 'edubridgeCreateCourse');
     const assign = req('edubridge-teacher.resolver.ts', 'edubridgeCreateAssignment');
     for (const who of [councilMember, eduAdmin, chairman]) await expect(pass(read, who)).resolves.toBe(true);
     await expect(pass(create, councilMember)).rejects.toMatchObject(NO_RIGHT);

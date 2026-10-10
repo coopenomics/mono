@@ -44,7 +44,7 @@
         template(v-for="l in card.learners" :key="asText(l.id)")
           DataRow(:label="l.display_name" :value="l.recipient_value ?? $t('edubridge.adminMembersPage.card.contactHidden')" mono :copyable="Boolean(l.recipient_value)")
           .edu-member__account(v-if="accountOf(l)?.removed_at")
-            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.removed', { date: formatDate(accountOf(l)?.removed_at ?? '') }) }}
+            .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.removed', { date: formatDate(String(accountOf(l)?.removed_at ?? '')) }) }}
           .edu-member__account(v-else-if="canMarkRemoved(l)")
             .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.noSubscriptions', { platforms: platformsOf(l) }) }}
             BaseButton(v-if="canManageQueue" variant="secondary" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}

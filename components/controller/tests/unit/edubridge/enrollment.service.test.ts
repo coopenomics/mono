@@ -299,7 +299,8 @@ describe('EdubridgeEnrollmentService — удержание взноса', () =>
     await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, document);
     const [convert, , , extras] = chain.convertAndSubscribe.mock.calls[0];
     expect(convert).toBeNull();
-    expect(extras.statement).toEqual({ coopname: 'voskhod', username: 'ant', statement: document });
+    // Заявление идёт под хэшем подписки — тем же, что несёт сам документ.
+    expect(extras.statement).toEqual({ coopname: 'voskhod', username: 'ant', sub_hash: expect.stringMatching(/^[0-9a-f]{64}$/), statement: document });
   });
 
   it('при конвертации заявление несёт convert — отдельно оно не публикуется', async () => {
