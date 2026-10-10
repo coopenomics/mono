@@ -31,6 +31,7 @@ import { EdubridgeGuaranteeClaimKyselyRepository } from '../infrastructure/repos
 import { EDUBRIDGE_CHAIN_PORT } from '../domain/ports/edubridge-chain.port';
 import { EdubridgeConfigHolder } from './config/edubridge-config.holder';
 import { EdubridgeRights } from './access/edubridge-rights';
+import { EdubridgeSearchProvider } from './search/edubridge-search.provider';
 import { EdubridgeMembershipService } from './membership/edubridge-membership.service';
 import { EdubridgeNamesService } from './membership/edubridge-names.service';
 import { EDUBRIDGE_ROLE_FACTS_PORT } from './membership/edubridge-role-facts.port';
@@ -87,6 +88,8 @@ import { EdubridgeLiveFeedService } from './services/edubridge-live-feed.service
     // Права: описание для общего гарда операций и прав страниц стола
     EdubridgeRights,
     { provide: APP_RIGHTS, useExisting: EdubridgeRights },
+    // Ученики и преподаватели в едином поиске окна столов и страниц
+    EdubridgeSearchProvider,
     RightsGuard,
     EdubridgeCapitalNarrowingPolicy,
     // Репозитории и адаптеры

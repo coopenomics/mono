@@ -155,4 +155,11 @@ cases:
     test: components/controller/tests/unit/edubridge/course.service.test.ts
     api: components/api-tests/src/edubridge/course-rules.test.ts
     status: written
-
+  - id: edu.admin.side.18
+    level: backend
+    kind: side
+    scenario: "Администратор ищет в окне столов и страниц ученика, его обучающегося либо преподавателя; тот же запрос делает ученик."
+    expect: "Группы «Ученики» и «Преподаватели» возвращают находки только тому, у кого есть право на соответствующую страницу. Пайщик и его обучающийся ведут в карточку ученика, преподаватель — на свою страницу. Без права группа пуста, данные не читаются."
+    test: components/controller/tests/unit/edubridge/search.provider.test.ts
+    api: components/api-tests/src/edubridge/admin.test.ts
+    status: written

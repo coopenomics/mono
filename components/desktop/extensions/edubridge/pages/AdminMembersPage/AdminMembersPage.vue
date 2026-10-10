@@ -83,7 +83,8 @@
 
 <script setup lang="ts">
 import { refreshMenuBadges } from 'src/shared/lib/menuBadges';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { debounce } from 'quasar';
 import { Zeus } from '@coopenomics/sdk';
 import { asText } from 'src/shared/lib/utils';
@@ -247,6 +248,16 @@ async function reloadMembers(): Promise<void> {
 useLiveReload([EduLive.learners, EduLive.enrollments, EduLive.accessTasks], reloadMembers);
 
 onMounted(load);
+
+// Находка единого поиска ведёт сюда с учётным именем пайщика — его карточка открывается сразу.
+const route = useRoute();
+watch(
+  () => route.query.member,
+  (member) => {
+    if (typeof member === 'string' && member) void open({ username: member } as IMemberRow);
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

@@ -1,5 +1,10 @@
 {
   "edubridge": {
+    "search": {
+      "membersGroup": "Ученики",
+      "teachersGroup": "Преподаватели",
+      "learnerOf": "обучающийся · {payer}"
+    },
     "accessOutbox": {
       "reason": {
         "attemptsExhausted": "Исчерпаны попытки ({attempts}): {message}",

@@ -24,6 +24,7 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   EXTENSION_CONFIG_PORT,
   FILE_STORAGE_PORT,
+  GLOBAL_SEARCH_REGISTRY_PORT,
   LEDGER2_HISTORY_PORT,
   LOGGER_PORT,
   MEMBER_EXIT_REGISTRY_PORT,
@@ -59,6 +60,8 @@ export const edubridgePorts = {
     EXPENSE_CHASSIS_PORT,
     EXTENSION_CONFIG_PORT,
     FILE_STORAGE_PORT,
+    // Ученики и преподаватели в едином поиске окна столов и страниц.
+    GLOBAL_SEARCH_REGISTRY_PORT,
     // Лента движения средств программы в разделе «Экономика» — журнал ledger2.
     LEDGER2_HISTORY_PORT,
     LOGGER_PORT,

@@ -30,6 +30,17 @@ export class EdubridgeLearnerKyselyRepository {
       .getMany();
   }
 
+  /** Обучающиеся кооператива по части имени — для единого поиска. */
+  searchByName(coopname: string, query: string, limit: number): Promise<EdubridgeLearnerRecord[]> {
+    return this.repo
+      .sqlBuilder('l')
+      .where('l.coopname = :coopname', { coopname })
+      .andWhere('l.display_name ILIKE :pattern', { pattern: `%${query.trim().replace(/[%_]/g, '')}%` })
+      .orderBy('l.display_name', 'ASC')
+      .limit(limit)
+      .getMany();
+  }
+
   create(data: Partial<EdubridgeLearnerRecord>): EdubridgeLearnerRecord {
     return this.repo.create(data);
   }

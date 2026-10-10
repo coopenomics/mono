@@ -332,6 +332,20 @@ describe('Образование: стол администратора, выд�
     }, 600_000)
   })
 
+  it(caseName('edu.admin.side.18', 'единый поиск: ученик и его обучающийся находятся администратором и ведут в карточку ученика; сам ученик в этой группе ничего не находит'), async () => {
+    const SEARCH = 'query($d:GlobalSearchInput!){ globalSearch(data:$d){ key hits{ key title route{ name query } } } }'
+    const members = async (t: string, query: string): Promise<any> =>
+      ((await gql<any>(t, SEARCH, { d: { query } })).globalSearch as any[]).find(g => g.key === 'edubridge-members')
+    const leadsToCard = (hit: any) => hit.route.name === 'edubridge-admin-registry' && hit.route.query?.member === learner.account
+
+    // По фамилии пайщика и по имени обучающегося — находка одна и та же по смыслу: карточка ученика.
+    expect(((await members(chairman, 'Очнопропускова')).hits as any[]).some(leadsToCard)).toBe(true)
+    const byLearner = (await members(chairman, 'Варвара сама')).hits as any[]
+    expect(byLearner.some(h => h.title === 'Варвара сама' && leadsToCard(h))).toBe(true)
+    // Реестр учеников ученику закрыт — группы в его выдаче нет.
+    expect(await members(token, 'Очнопропускова')).toBeUndefined()
+  })
+
   it(caseName('edu.access.happy.03', 'отмена подписки отзывает доступ'), async () => {
     await gql(token, CANCEL_ENROLLMENT, { id: enrollment.id })
     const revoked = await waitFor(async () => {
