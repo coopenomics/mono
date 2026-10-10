@@ -3211,6 +3211,7 @@ export type MessageKey =
   | 'edubridge.memberSubscriptionsPage.extend'
   | 'edubridge.memberSubscriptionsPage.hint.line1'
   | 'edubridge.memberSubscriptionsPage.renewNotice'
+  | 'edubridge.moneyFlow.button'
   | 'edubridge.moneyFlow.intro'
   | 'edubridge.moneyFlow.node.escrow'
   | 'edubridge.moneyFlow.node.expenseRecipient'

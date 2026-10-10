@@ -5,7 +5,10 @@
 
   PageTabs.q-mb-md(:tabs="tabs" :active-key="tab" @select="(t) => (tab = t.key)")
     //- Действие вкладки живёт в её полосе, а не плавает над списком.
-    template(v-if="tab === 'expenses'" #actions)
+    //- На «Деньгах» в той же полосе — кнопка схемы движения средств: отдельной строки она не занимает.
+    template(v-if="tab === 'money'" #actions)
+      MoneyFlowGuide
+    template(v-else-if="tab === 'expenses'" #actions)
       BaseButton(variant="primary" size="sm" @click="expenseOpen = true")
         template(#icon-left)
           q-icon(name="add" size="18px")
@@ -14,7 +17,7 @@
   template(v-if="tab === 'money'")
     //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
     //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
-    //- Схема пути взноса стоит на вкладке «Настройки»; плитки идут в том же порядке.
+    //- Схема пути взноса открывается кнопкой в строке вкладок; плитки идут в том же порядке.
     StatStrip(:items="walletStats" :loading="firstLoad")
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
@@ -97,10 +100,6 @@
                 template(#append)
                   FieldHelp(:text="markupHelp")
               BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
-      //- Как движутся средства программы — здесь же, развёрнуто: настройка взноса читается вместе с его путём.
-      .col-12
-        BaseCard(:title="$t('edubridge.moneyFlow.title')")
-          MoneyFlowGuide
 </template>
 
 <script setup lang="ts">
