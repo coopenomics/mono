@@ -16,7 +16,7 @@ interface Row {
   assigned_at: Date;
 }
 
-function makeService(options: { users?: Record<string, boolean>; notifyFails?: boolean; installed?: string[] } = {}) {
+function makeService(options: { users?: Record<string, boolean>; notifyFails?: boolean; installed?: string[]; attach?: boolean } = {}) {
   const rows: Row[] = [];
   const repository = {
     findActiveByUser: jest.fn(async (_coop: string, username: string) => rows.filter((row) => row.username === username)),
@@ -52,6 +52,7 @@ function makeService(options: { users?: Record<string, boolean>; notifyFails?: b
   const registry = new RoleAssignmentsRegistry(repository as any);
   registry.declare('soviet', [CASHIER]);
   registry.declare('reports', [ACCOUNTANT]);
+  if (options.attach) registry.attach('reports', [{ key: 'cashier', permissions: [{ title: 'Отчёты', access: 'read', rights: ['Report:read'] }] }]);
   const extensions = {
     getCombinedAppList: jest.fn(async () => (options.installed ?? ['soviet', 'reports']).map((name) => ({ name }))),
   };
@@ -158,5 +159,17 @@ describe('перечень ролей', () => {
     expect((await service.list()).map((role) => role.key)).toEqual(['cashier']);
     await expect(service.assign('ant', { username: 'ivan', role: 'accountant' })).rejects.toMatchObject({ code: 'ACCESS_ROLE_UNKNOWN' });
     expect(repository.assign).not.toHaveBeenCalled();
+  });
+
+  // access.roles.happy.13
+  it('полномочия роли складываются из объявившего приложения и установленных приложений, которые её дополнили', async () => {
+    const withDesk = makeService({ attach: true });
+    const role = (await withDesk.service.list()).find((item) => item.key === 'cashier');
+    expect(role?.permissions.map((permission) => permission.title)).toEqual(['Реестр платежей', 'Отчёты']);
+    expect(role?.extension_title).toContain(' · ');
+    const withoutDesk = makeService({ attach: true, installed: ['soviet'] });
+    const alone = (await withoutDesk.service.list()).find((item) => item.key === 'cashier');
+    expect(alone?.permissions.map((permission) => permission.title)).toEqual(['Реестр платежей']);
+    expect(alone?.extension_title).not.toContain(' · ');
   });
 });

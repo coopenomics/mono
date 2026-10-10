@@ -282,7 +282,10 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
   it('ядро объявляет роль кассира под приложением стола совета', () => {
     const { rights, roleAssignments } = makeGuard();
     rights.onModuleInit();
-    expect(roleAssignments.declare).toHaveBeenCalledWith('soviet', [expect.objectContaining({ key: 'cashier' })]);
+    expect(roleAssignments.declare).toHaveBeenCalledWith(
+      'soviet',
+      expect.arrayContaining([expect.objectContaining({ key: 'cashier' }), expect.objectContaining({ key: 'auditor' })])
+    );
   });
 
   // access.roles.happy.10
@@ -326,5 +329,19 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     const { pass } = makeGuard({ assigned: { ivan: ['chairman'] } });
     await expect(pass(requirementOf(FILES.accessRoles, 'assignRole'), participant)).rejects.toMatchObject(NO_RIGHT);
     await expect(pass(requirementOf(FILES.ledger2, 'getLedger2Wallets'), participant)).rejects.toMatchObject(NO_RIGHT);
+  });
+
+  // access.roles.happy.13
+  it('ревизор читает реестр платежей и документы об оплате, записи у него нет', async () => {
+    const stand = { assigned: { ivan: ['auditor'] } };
+    const { pass } = makeGuard(stand);
+    await expect(pass(requirementOf(FILES.gateway, 'getPayments'), participant, { data: {} })).resolves.toBe(true);
+    await expect(pass(requirementOf(FILES.gateway, 'setPaymentStatus'), participant, { data: { id: '1' } })).rejects.toMatchObject(NO_RIGHT);
+    await expect(pass(requirementOf(FILES.paymentFiles, 'uploadPaymentProof'), participant, { data: {} })).rejects.toMatchObject(NO_RIGHT);
+    const { rights } = makeGuard(stand);
+    const grants = await desktopGrantsOf(rights).resolveGrants({ username: participant.username, userRole: participant.role, userStatus: participant.status });
+    expect(grants).toContain('Payment:read:all');
+    expect(grants).not.toContain('Payment:confirm');
+    expect(grants).not.toContain('AccessRole:manage');
   });
 });

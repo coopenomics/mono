@@ -9,7 +9,7 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 305.
+Всего экспортов: 306.
 
 ## ACCOUNT_PORT
 
@@ -678,6 +678,13 @@
 - `key: string`
 - `title: string`
 - `description: string`
+- `permissions: readonly InnerRolePermission[]`
+
+## InnerAttachedRole
+
+`interface` · core-ports
+
+- `key: string`
 - `permissions: readonly InnerRolePermission[]`
 
 ## InnerBankTransferData
@@ -2281,6 +2288,7 @@
 `interface` · core-ports
 
 - `declare(extensionName: string, roles: readonly InnerAssignableRole[]): void`
+- `attach(extensionName: string, roles: readonly InnerAttachedRole[]): void`
 - `rolesOf(extensionName: string, username: string): Promise<string[]>`
 
 ## ISecretCipherPort

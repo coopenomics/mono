@@ -40,7 +40,7 @@ export class AccessRolesService {
   async list(): Promise<AssignableRoleDTO[]> {
     const [active, installed] = await Promise.all([this.assignments.findActive(config.coopname), this.installedApps()]);
     const roles = this.registry.list().filter((role) => installed.has(role.extensionName));
-    return Promise.all(roles.map((role) => this.present(role, active)));
+    return Promise.all(roles.map((role) => this.present(role, active, installed)));
   }
 
   /** Приложения кооператива: роль неустановленного приложения не показывается и не назначается. */
@@ -67,7 +67,7 @@ export class AccessRolesService {
       assigned_by: actor,
     });
     if (assigned) await this.notify(Workflows.AccessRoleAssigned.id, role, data.username);
-    return this.present(role, await this.assignments.findActive(config.coopname));
+    return this.present(role, await this.assignments.findActive(config.coopname), await this.installedApps());
   }
 
   /** Снять роль с пайщика. Снятие роли, которой у пайщика нет, ничего не меняет. */
@@ -75,7 +75,7 @@ export class AccessRolesService {
     const role = this.declared(data.role);
     const revoked = await this.assignments.revoke(config.coopname, data.username, role.key, actor);
     if (revoked) await this.notify(Workflows.AccessRoleRevoked.id, role, data.username);
-    return this.present(role, await this.assignments.findActive(config.coopname));
+    return this.present(role, await this.assignments.findActive(config.coopname), await this.installedApps());
   }
 
   private declared(key: string): DeclaredRole {
@@ -88,7 +88,15 @@ export class AccessRolesService {
     return AppRegistry[extensionName]?.title ?? extensionName;
   }
 
-  private async present(role: DeclaredRole, active: RoleAssignmentData[]): Promise<AssignableRoleDTO> {
+  private async present(
+    role: DeclaredRole,
+    active: RoleAssignmentData[],
+    installed: ReadonlySet<string>
+  ): Promise<AssignableRoleDTO> {
+    // Роль дополняют только установленные приложения: стол без приложения пайщик не увидит.
+    const attachments = this.registry.attachmentsOf(role.key).filter((attachment) => installed.has(attachment.extensionName));
+    const permissions = [...role.permissions, ...attachments.flatMap((attachment) => [...attachment.permissions])];
+    const apps = [role.extensionName, ...attachments.map((attachment) => attachment.extensionName)];
     const holders = active.filter((row) => row.role === role.key);
     const assignments: RoleAssignmentDTO[] = await Promise.all(
       holders.map(async (row) => ({
@@ -103,8 +111,8 @@ export class AccessRolesService {
       title: role.title,
       description: role.description,
       extension_name: role.extensionName,
-      extension_title: this.appTitle(role.extensionName),
-      permissions: role.permissions.map((permission) => ({
+      extension_title: apps.map((app) => this.appTitle(app)).join(' · '),
+      permissions: permissions.map((permission) => ({
         title: permission.title,
         access: permission.access === 'write' ? RolePermissionAccess.WRITE : RolePermissionAccess.READ,
       })),

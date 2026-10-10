@@ -4,6 +4,7 @@ import {
   desktopGrantsOf,
   type AppRights,
   type AssignableRole,
+  type AttachedRole,
   type CouncilRole,
   type RightsCaller,
   type RightsTable,
@@ -23,8 +24,9 @@ export const REPORTS_DESKTOP_NAME = 'reports';
 /**
  * Исполнители Стола бухгалтера: роли совета и назначаемая роль `accountant` —
  * бухгалтер, которому председатель выдал стол на странице управления доступом.
+ * Роль `auditor` (ревизор) объявляет стол совета; здесь ей дано чтение стола.
  */
-export type ReportsRole = CouncilRole | 'accountant';
+export type ReportsRole = CouncilRole | 'accountant' | 'auditor';
 
 /** Все возможности стола: отчётность, её реквизиты, календарь сдачи и удержанный налог. */
 const FULL_DESK: Record<string, string[]> = {
@@ -56,7 +58,17 @@ export const reportsRightsTable: RightsTable<ReportsRole, never> = {
   council: [{ when: [], rights: READ_DESK }],
   chairman: [{ when: [], rights: FULL_DESK }],
   accountant: [{ when: [], rights: FULL_DESK }],
+  auditor: [{ when: [], rights: READ_DESK }],
 };
+
+/** Чтение стола словами — общее для бухгалтера и ревизора. */
+const READ_PERMISSIONS: AssignableRole['permissions'] = [
+  { title: t('reports.roles.accountant.permissions.reports'), access: 'read', rights: ['Report:read'] },
+  { title: t('reports.roles.accountant.permissions.requisites'), access: 'read', rights: ['ReportRequisites:read'] },
+  { title: t('reports.roles.accountant.permissions.calendar'), access: 'read', rights: ['ReportCalendar:read'] },
+  { title: t('reports.roles.accountant.permissions.tax'), access: 'read', rights: ['WithheldTax:read'] },
+  { title: t('reports.roles.accountant.permissions.registries'), access: 'read', rights: ['Registry:read'] },
+];
 
 /** Роли стола, которые председатель назначает пайщикам. */
 export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
@@ -65,18 +77,17 @@ export const reportsAssignableRoles: readonly AssignableRole<'accountant'>[] = [
     title: t('reports.roles.accountant.title'),
     description: t('reports.roles.accountant.description'),
     permissions: [
-      { title: t('reports.roles.accountant.permissions.reports'), access: 'read', rights: ['Report:read'] },
-      { title: t('reports.roles.accountant.permissions.requisites'), access: 'read', rights: ['ReportRequisites:read'] },
-      { title: t('reports.roles.accountant.permissions.calendar'), access: 'read', rights: ['ReportCalendar:read'] },
-      { title: t('reports.roles.accountant.permissions.tax'), access: 'read', rights: ['WithheldTax:read'] },
+      ...READ_PERMISSIONS,
       { title: t('reports.roles.accountant.permissions.drafts'), access: 'write', rights: ['Report:draft', 'Report:generate'] },
       { title: t('reports.roles.accountant.permissions.requisitesEdit'), access: 'write', rights: ['ReportRequisites:manage'] },
       { title: t('reports.roles.accountant.permissions.calendarMarks'), access: 'write', rights: ['ReportCalendar:manage'] },
       { title: t('reports.roles.accountant.permissions.taxPay'), access: 'write', rights: ['WithheldTax:pay'] },
-      { title: t('reports.roles.accountant.permissions.registries'), access: 'read', rights: ['Registry:read'] },
     ],
   },
 ];
+
+/** Роли других приложений, которым стол даёт права: ревизор читает стол целиком. */
+export const reportsAttachedRoles: readonly AttachedRole<'auditor'>[] = [{ key: 'auditor', permissions: READ_PERMISSIONS }];
 
 /**
  * Описание прав Стола бухгалтера: по нему работают общий гард операций
@@ -87,6 +98,7 @@ export class ReportsRights implements AppRights<ReportsRole, never>, OnModuleIni
   readonly extensionName = REPORTS_DESKTOP_NAME;
   readonly table = reportsRightsTable;
   readonly assignableRoles = reportsAssignableRoles;
+  readonly attachedRoles = reportsAttachedRoles;
 
   constructor(
     @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
@@ -95,6 +107,7 @@ export class ReportsRights implements AppRights<ReportsRole, never>, OnModuleIni
 
   onModuleInit(): void {
     this.roleAssignments.declare(REPORTS_DESKTOP_NAME, this.assignableRoles);
+    this.roleAssignments.attach(REPORTS_DESKTOP_NAME, this.attachedRoles);
     this.grantsRegistry.register(desktopGrantsOf(this));
   }
 

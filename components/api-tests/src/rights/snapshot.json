@@ -14,7 +14,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "agreementTemplates": {
     "guest": "pass",
@@ -31,7 +32,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "buildInitialReportEdits": {
     "guest": "deny",
@@ -48,7 +50,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "candidates": {
     "guest": "deny",
@@ -65,7 +68,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCandidates": {
     "guest": "deny",
@@ -82,7 +86,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCommit": {
     "guest": "deny",
@@ -99,7 +104,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCommits": {
     "guest": "deny",
@@ -116,7 +122,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalComponentMetrics": {
     "guest": "deny",
@@ -133,7 +140,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalContributor": {
     "guest": "deny",
@@ -150,7 +158,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalContributors": {
     "guest": "deny",
@@ -167,7 +176,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCycles": {
     "guest": "deny",
@@ -184,7 +194,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDeallocationLimit": {
     "guest": "deny",
@@ -201,7 +212,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalDebt": {
     "guest": "deny",
@@ -218,7 +230,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDebts": {
     "guest": "deny",
@@ -235,7 +248,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalExpense": {
     "guest": "deny",
@@ -252,7 +266,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalExpenses": {
     "guest": "deny",
@@ -269,7 +284,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalFavorites": {
     "guest": "deny",
@@ -286,7 +302,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGetContentRevision": {
     "guest": "deny",
@@ -303,7 +320,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGetContentRevisions": {
     "guest": "deny",
@@ -320,7 +338,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGetOpenTimer": {
     "guest": "deny",
@@ -337,7 +356,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGetProcessInstance": {
     "guest": "deny",
@@ -354,7 +374,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalGetProcessInstances": {
     "guest": "deny",
@@ -371,7 +392,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalGetProcessTemplate": {
     "guest": "deny",
@@ -388,7 +410,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalGetProcessTemplates": {
     "guest": "deny",
@@ -405,7 +428,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalInvest": {
     "guest": "deny",
@@ -422,7 +446,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalInvests": {
     "guest": "deny",
@@ -439,7 +464,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalIssue": {
     "guest": "deny",
@@ -456,7 +482,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalIssueMetricBindings": {
     "guest": "deny",
@@ -473,7 +500,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalIssues": {
     "guest": "deny",
@@ -490,7 +518,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMeasures": {
     "guest": "deny",
@@ -507,7 +536,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMetricContributions": {
     "guest": "deny",
@@ -524,7 +554,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMetricSeries": {
     "guest": "deny",
@@ -541,7 +572,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMetricSuperposition": {
     "guest": "deny",
@@ -558,7 +590,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMetricSuperpositionHistory": {
     "guest": "deny",
@@ -575,7 +608,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMetricWave": {
     "guest": "deny",
@@ -592,7 +626,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalProgramExpense": {
     "guest": "deny",
@@ -609,7 +644,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalProgramExpenses": {
     "guest": "deny",
@@ -626,7 +662,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalProject": {
     "guest": "deny",
@@ -643,7 +680,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalProjects": {
     "guest": "deny",
@@ -660,7 +698,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalProjectWithRelations": {
     "guest": "deny",
@@ -677,7 +716,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalResult": {
     "guest": "deny",
@@ -694,7 +734,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalResults": {
     "guest": "deny",
@@ -711,7 +752,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSegment": {
     "guest": "deny",
@@ -728,7 +770,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSegments": {
     "guest": "deny",
@@ -745,7 +788,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalState": {
     "guest": "deny",
@@ -762,7 +806,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalStories": {
     "guest": "deny",
@@ -779,7 +824,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalStory": {
     "guest": "deny",
@@ -796,7 +842,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalTimeEntries": {
     "guest": "deny",
@@ -813,7 +860,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalTimeEntriesByIssues": {
     "guest": "deny",
@@ -830,7 +878,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalTimeStats": {
     "guest": "deny",
@@ -847,7 +896,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalVote": {
     "guest": "deny",
@@ -864,7 +914,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalVotes": {
     "guest": "deny",
@@ -881,7 +932,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cardcoopEntry": {
     "guest": "pass",
@@ -898,7 +950,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cardcoopEntryAvailable": {
     "guest": "pass",
@@ -915,7 +968,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cardcoopMyCard": {
     "guest": "deny",
@@ -932,7 +986,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chairmanApproval": {
     "guest": "deny",
@@ -949,7 +1004,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chairmanApprovals": {
     "guest": "deny",
@@ -966,7 +1022,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopCheckUsernameAvailability": {
     "guest": "deny",
@@ -983,7 +1040,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopGetAccountStatus": {
     "guest": "deny",
@@ -1000,7 +1058,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopGetMaxOriginServerTsForRoom": {
     "guest": "deny",
@@ -1017,7 +1076,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopGetRoomMessagesForUtcDate": {
     "guest": "deny",
@@ -1034,7 +1094,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopGetTranscription": {
     "guest": "deny",
@@ -1051,7 +1112,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopGetTranscriptions": {
     "guest": "deny",
@@ -1068,7 +1130,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopListCalendarEvents": {
     "guest": "deny",
@@ -1085,7 +1148,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopListCalendarRooms": {
     "guest": "deny",
@@ -1102,7 +1166,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopListNonProjectCommunicationRooms": {
     "guest": "deny",
@@ -1119,7 +1184,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopListProjectCommunicationRooms": {
     "guest": "deny",
@@ -1136,7 +1202,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopListSecretaryRooms": {
     "guest": "deny",
@@ -1153,7 +1220,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopListUtcDatesWithNewRoomMessages": {
     "guest": "deny",
@@ -1170,7 +1238,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "checkReportReadiness": {
     "guest": "deny",
@@ -1187,7 +1256,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cooperativeAgreements": {
     "guest": "pass",
@@ -1204,7 +1274,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cooperativePrograms": {
     "guest": "pass",
@@ -1221,7 +1292,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "documentApprovalsSeedPlan": {
     "guest": "deny",
@@ -1238,7 +1310,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "documentTemplateBlank": {
     "guest": "deny",
@@ -1255,7 +1328,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "documentTemplates": {
     "guest": "deny",
@@ -1272,7 +1346,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "documentTemplatesAttention": {
     "guest": "deny",
@@ -1289,7 +1364,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseFile": {
     "guest": "deny",
@@ -1306,7 +1382,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseFilesByItem": {
     "guest": "deny",
@@ -1323,7 +1400,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseFilesByProposal": {
     "guest": "deny",
@@ -1340,7 +1418,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseProposal": {
     "guest": "deny",
@@ -1357,7 +1436,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "expenseProposalsByCooperative": {
     "guest": "deny",
@@ -1374,7 +1454,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseProposalsByMember": {
     "guest": "deny",
@@ -1391,7 +1472,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "expenseRequisitesByProposal": {
     "guest": "deny",
@@ -1408,7 +1490,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getAccount": {
     "guest": "deny",
@@ -1425,7 +1508,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getAccounts": {
     "guest": "deny",
@@ -1442,7 +1526,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getActions": {
     "guest": "deny",
@@ -1459,7 +1544,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getAgenda": {
     "guest": "deny",
@@ -1476,7 +1562,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getAssignableRoles": {
     "guest": "deny",
@@ -1493,7 +1580,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getAvailableReports": {
     "guest": "deny",
@@ -1510,7 +1598,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getBranches": {
     "guest": "deny",
@@ -1527,7 +1616,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getCandidateIntake": {
     "guest": "deny",
@@ -1544,7 +1634,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getCapabilitySets": {
     "guest": "deny",
@@ -1561,7 +1652,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getCapitalIssueLogs": {
     "guest": "deny",
@@ -1578,7 +1670,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getCapitalOnboardingState": {
     "guest": "deny",
@@ -1595,7 +1688,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getCapitalProjectLogs": {
     "guest": "deny",
@@ -1612,7 +1706,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getChairmanOnboardingState": {
     "guest": "deny",
@@ -1629,7 +1724,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getCurrentInstance": {
     "guest": "deny",
@@ -1646,7 +1742,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getCurrentTableStates": {
     "guest": "deny",
@@ -1663,7 +1760,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getDeltas": {
     "guest": "deny",
@@ -1680,7 +1778,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getDesktop": {
     "guest": "pass",
@@ -1697,7 +1796,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getDocuments": {
     "guest": "deny",
@@ -1714,7 +1814,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getExtensionLogs": {
     "guest": "deny",
@@ -1731,7 +1832,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getExtensionOnboardingState": {
     "guest": "deny",
@@ -1748,7 +1850,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getExtensions": {
     "guest": "deny",
@@ -1765,7 +1868,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getInboxNotifications": {
     "guest": "deny",
@@ -1782,7 +1886,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getInstallationStatus": {
     "guest": "pass",
@@ -1799,7 +1904,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getLedger": {
     "guest": "deny",
@@ -1816,7 +1922,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLedger2Accounts": {
     "guest": "deny",
@@ -1833,7 +1940,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLedger2History": {
     "guest": "deny",
@@ -1850,7 +1958,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLedger2Postings": {
     "guest": "deny",
@@ -1867,7 +1976,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLedger2Wallets": {
     "guest": "deny",
@@ -1884,7 +1994,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLedgerHistory": {
     "guest": "deny",
@@ -1901,7 +2012,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getLoginFactors": {
     "guest": "deny",
@@ -1918,7 +2030,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getMeet": {
     "guest": "deny",
@@ -1935,7 +2048,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getMeets": {
     "guest": "deny",
@@ -1952,7 +2066,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getMyAccess": {
     "guest": "deny",
@@ -1969,7 +2084,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getMyCertificate": {
     "guest": "deny",
@@ -1986,7 +2102,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getNodeSyncState": {
     "guest": "pass",
@@ -2003,7 +2120,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getNotification": {
     "guest": "deny",
@@ -2020,7 +2138,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getNotifications": {
     "guest": "deny",
@@ -2037,7 +2156,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getParticipantCapabilitySets": {
     "guest": "deny",
@@ -2054,7 +2174,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getParticipantLoginSecurity": {
     "guest": "deny",
@@ -2071,7 +2192,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getPaymentMethods": {
     "guest": "deny",
@@ -2088,7 +2210,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getPayments": {
     "guest": "deny",
@@ -2105,7 +2228,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "pass"
   },
   "getProgramWallet": {
     "guest": "deny",
@@ -2122,7 +2246,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getProgramWallets": {
     "guest": "deny",
@@ -2139,7 +2264,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getProviderSubscriptionById": {
     "guest": "deny",
@@ -2156,7 +2282,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getProviderSubscriptions": {
     "guest": "deny",
@@ -2173,7 +2300,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getPublicProvision": {
     "guest": "pass",
@@ -2190,7 +2318,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getRecoveryStrategy": {
     "guest": "deny",
@@ -2207,7 +2336,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getRegistrationAgreements": {
     "guest": "pass",
@@ -2224,7 +2354,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getRegistrationConfig": {
     "guest": "pass",
@@ -2241,7 +2372,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getReport": {
     "guest": "deny",
@@ -2258,7 +2390,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getReportCalendar": {
     "guest": "deny",
@@ -2275,7 +2408,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getReportDraft": {
     "guest": "deny",
@@ -2292,7 +2426,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "getReportHistory": {
     "guest": "deny",
@@ -2309,7 +2444,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getReportPreview": {
     "guest": "deny",
@@ -2326,7 +2462,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getReportRequisites": {
     "guest": "deny",
@@ -2343,7 +2480,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getSessions": {
     "guest": "deny",
@@ -2360,7 +2498,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getSystemInfo": {
     "guest": "pass",
@@ -2377,7 +2516,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getUnreadNotificationsCount": {
     "guest": "deny",
@@ -2394,7 +2534,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getUserWallets": {
     "guest": "deny",
@@ -2411,7 +2552,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getUserWebPushSubscriptions": {
     "guest": "deny",
@@ -2428,7 +2570,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getWebPushSubscriptionStats": {
     "guest": "deny",
@@ -2445,7 +2588,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "getWithheldTaxPayments": {
     "guest": "deny",
@@ -2462,7 +2606,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "getWithheldTaxState": {
     "guest": "deny",
@@ -2479,7 +2624,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "globalSearch": {
     "guest": "deny",
@@ -2496,7 +2642,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuDecision": {
     "guest": "deny",
@@ -2513,7 +2660,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuDecisions": {
     "guest": "deny",
@@ -2530,7 +2678,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuTrustRequests": {
     "guest": "deny",
@@ -2547,7 +2696,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "listExpensePlans": {
     "guest": "deny",
@@ -2564,7 +2714,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "listReportDrafts": {
     "guest": "deny",
@@ -2581,7 +2732,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "marketplaceAidStatementSignablePayload": {
     "guest": "deny",
@@ -2598,7 +2750,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAplReceptionChairmanSignablePayloads": {
     "guest": "deny",
@@ -2615,7 +2768,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAplReceptionSupplierSignablePayloads": {
     "guest": "deny",
@@ -2632,7 +2786,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCategoryOfferCounts": {
     "guest": "deny",
@@ -2649,7 +2804,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCheckoutSignablePayloads": {
     "guest": "deny",
@@ -2666,7 +2822,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCppStatus": {
     "guest": "deny",
@@ -2683,7 +2840,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceDefaultVitrine": {
     "guest": "deny",
@@ -2700,7 +2858,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetAvailabilityStats": {
     "guest": "deny",
@@ -2717,7 +2876,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetAvailableCategories": {
     "guest": "deny",
@@ -2734,7 +2894,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetAvailableCategoryTree": {
     "guest": "deny",
@@ -2751,7 +2912,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetBranchEconomy": {
     "guest": "deny",
@@ -2768,7 +2930,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetBranchWalletHistory": {
     "guest": "deny",
@@ -2785,7 +2948,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetCart": {
     "guest": "deny",
@@ -2802,7 +2966,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetCategoryRules": {
     "guest": "deny",
@@ -2819,7 +2984,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetEconomyConfig": {
     "guest": "deny",
@@ -2836,7 +3002,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetOffer": {
     "guest": "deny",
@@ -2853,7 +3020,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetOrder": {
     "guest": "deny",
@@ -2870,7 +3038,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetOutgoingPayment": {
     "guest": "deny",
@@ -2887,7 +3056,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetPersonalEconomy": {
     "guest": "deny",
@@ -2904,7 +3074,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetPersonalWalletHistory": {
     "guest": "deny",
@@ -2921,7 +3092,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetShipment": {
     "guest": "deny",
@@ -2938,7 +3110,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGetSupplierPaymentSettings": {
     "guest": "deny",
@@ -2955,7 +3128,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceIssuanceActPayload": {
     "guest": "deny",
@@ -2972,7 +3146,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceIssuanceClosePayload": {
     "guest": "deny",
@@ -2989,7 +3164,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceIssuanceConvertPayload": {
     "guest": "deny",
@@ -3006,7 +3182,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceIssuanceSaga": {
     "guest": "deny",
@@ -3023,7 +3200,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceIssuanceStatementPayload": {
     "guest": "deny",
@@ -3040,7 +3218,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceLedgerInvariants": {
     "guest": "deny",
@@ -3057,7 +3236,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAids": {
     "guest": "deny",
@@ -3074,7 +3254,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAllOffers": {
     "guest": "deny",
@@ -3091,7 +3272,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAllOrders": {
     "guest": "deny",
@@ -3108,7 +3290,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAplReceptionsAsSupplier": {
     "guest": "deny",
@@ -3125,7 +3308,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAplReceptionsByBraname": {
     "guest": "deny",
@@ -3142,7 +3326,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListAvailableCategories": {
     "guest": "deny",
@@ -3159,7 +3344,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListBranchOrders": {
     "guest": "deny",
@@ -3176,7 +3362,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListCatalog": {
     "guest": "deny",
@@ -3193,7 +3380,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListCategories": {
     "guest": "deny",
@@ -3210,7 +3398,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListConsolidatedRequests": {
     "guest": "deny",
@@ -3227,7 +3416,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListContainers": {
     "guest": "deny",
@@ -3244,7 +3434,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListContainerTypes": {
     "guest": "deny",
@@ -3261,7 +3452,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListCoopCategories": {
     "guest": "deny",
@@ -3278,7 +3470,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListExpressPickupsByBraname": {
     "guest": "deny",
@@ -3295,7 +3488,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListInventory": {
     "guest": "deny",
@@ -3312,7 +3506,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListIssuanceSagas": {
     "guest": "deny",
@@ -3329,7 +3524,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListIssuancesByBraname": {
     "guest": "deny",
@@ -3346,7 +3542,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListKUDetails": {
     "guest": "deny",
@@ -3363,7 +3560,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceListModerationLog": {
     "guest": "deny",
@@ -3380,7 +3578,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListMyOffers": {
     "guest": "deny",
@@ -3397,7 +3596,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListMyOrders": {
     "guest": "deny",
@@ -3414,7 +3614,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListMyReturnClaims": {
     "guest": "deny",
@@ -3431,7 +3632,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListOutgoingPayments": {
     "guest": "deny",
@@ -3448,7 +3650,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListOutgoingPaymentsAsSupplier": {
     "guest": "deny",
@@ -3465,7 +3668,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListPendingOffers": {
     "guest": "deny",
@@ -3482,7 +3686,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListReturnClaimsByBraname": {
     "guest": "deny",
@@ -3499,7 +3704,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListShipments": {
     "guest": "deny",
@@ -3516,7 +3722,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListShipmentsByBraname": {
     "guest": "deny",
@@ -3533,7 +3740,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListStock": {
     "guest": "deny",
@@ -3550,7 +3758,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListStockProposals": {
     "guest": "deny",
@@ -3567,7 +3776,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListStorageCells": {
     "guest": "deny",
@@ -3584,7 +3794,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListSupplierClaims": {
     "guest": "deny",
@@ -3601,7 +3812,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListSupplierOrders": {
     "guest": "deny",
@@ -3618,7 +3830,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListSupplierPickupOrders": {
     "guest": "deny",
@@ -3635,7 +3848,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListSuppliers": {
     "guest": "deny",
@@ -3652,7 +3866,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListWriteoffCandidates": {
     "guest": "deny",
@@ -3669,7 +3884,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceListWriteoffProposals": {
     "guest": "deny",
@@ -3686,7 +3902,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceMemberWallet": {
     "guest": "deny",
@@ -3703,7 +3920,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceMySupplierState": {
     "guest": "deny",
@@ -3720,7 +3938,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceOnboardingState": {
     "guest": "deny",
@@ -3737,7 +3956,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceOpenWriteoffDraft": {
     "guest": "deny",
@@ -3754,7 +3974,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRegistrationOfferStatus": {
     "guest": "deny",
@@ -3771,7 +3992,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceResolveContainerByCode": {
     "guest": "deny",
@@ -3788,7 +4010,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceReturnClaim": {
     "guest": "deny",
@@ -3805,7 +4028,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceReturnClaimChairmanSignablePayload": {
     "guest": "deny",
@@ -3822,7 +4046,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceReturnClaimSignablePayload": {
     "guest": "deny",
@@ -3839,7 +4064,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceStockIssuancePayloads": {
     "guest": "deny",
@@ -3856,7 +4082,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceStockProposalSignablePayloads": {
     "guest": "deny",
@@ -3873,7 +4100,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSupplierClaim": {
     "guest": "deny",
@@ -3890,7 +4118,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSupplierClaimSummary": {
     "guest": "deny",
@@ -3907,7 +4136,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWhoAmI": {
     "guest": "deny",
@@ -3924,7 +4154,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceWriteoffPendingConfirmations": {
     "guest": "deny",
@@ -3941,7 +4172,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWriteoffProposal": {
     "guest": "deny",
@@ -3958,7 +4190,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWriteoffProtocolDocument": {
     "guest": "deny",
@@ -3975,7 +4208,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWriteoffServiceMemoSignablePayload": {
     "guest": "deny",
@@ -3992,7 +4226,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWriteoffStatementSignablePayload": {
     "guest": "deny",
@@ -4009,7 +4244,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "membershipExit": {
     "guest": "deny",
@@ -4026,7 +4262,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "membershipExitReturnPreview": {
     "guest": "deny",
@@ -4043,7 +4280,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "participantIdentityForVerification": {
     "guest": "deny",
@@ -4060,7 +4298,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "paymentFile": {
     "guest": "deny",
@@ -4077,7 +4316,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "pass"
   },
   "paymentProofs": {
     "guest": "deny",
@@ -4094,7 +4334,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "pass"
   },
   "process": {
     "guest": "deny",
@@ -4111,7 +4352,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "processes": {
     "guest": "deny",
@@ -4128,7 +4370,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "searchDocuments": {
     "guest": "deny",
@@ -4145,7 +4388,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "searchPrivateAccounts": {
     "guest": "deny",
@@ -4162,7 +4406,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotCouncil": {
     "guest": "deny",
@@ -4179,7 +4424,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotJournal": {
     "guest": "deny",
@@ -4196,7 +4442,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotKeys": {
     "guest": "deny",
@@ -4213,7 +4460,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotKeyStatus": {
     "guest": "deny",
@@ -4230,7 +4478,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotRegistry": {
     "guest": "deny",
@@ -4247,7 +4496,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "validateReportEdits": {
     "guest": "deny",
@@ -4264,7 +4514,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "verificationReviewPhotos": {
     "guest": "deny",
@@ -4281,7 +4532,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "verificationReviews": {
     "guest": "deny",
@@ -4298,7 +4550,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "activateTwoFactor": {
     "guest": "deny",
@@ -4315,7 +4568,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "addBranchWhitelist": {
     "guest": "deny",
@@ -4332,7 +4586,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "addParticipant": {
     "guest": "deny",
@@ -4349,7 +4604,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "addPaymentMethod": {
     "guest": "deny",
@@ -4366,7 +4622,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "addTrustedAccount": {
     "guest": "deny",
@@ -4383,7 +4640,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "applyDocumentApprovalsSeed": {
     "guest": "deny",
@@ -4400,7 +4658,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "approveVerification": {
     "guest": "deny",
@@ -4417,7 +4676,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "assignCapabilitySet": {
     "guest": "deny",
@@ -4434,7 +4694,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "assignRole": {
     "guest": "deny",
@@ -4451,7 +4712,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "authorizeDecision": {
     "guest": "deny",
@@ -4468,7 +4730,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "authorizeForceRecovery": {
     "guest": "deny",
@@ -4485,7 +4748,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "cancelMembershipExit": {
     "guest": "deny",
@@ -4502,7 +4766,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalAddAuthor": {
     "guest": "deny",
@@ -4519,7 +4784,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalAddFavorite": {
     "guest": "deny",
@@ -4536,7 +4802,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalAddWorklog": {
     "guest": "deny",
@@ -4553,7 +4820,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalAllocateFunds": {
     "guest": "deny",
@@ -4570,7 +4838,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalApproveCommit": {
     "guest": "deny",
@@ -4587,7 +4856,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalArchiveComponentMetric": {
     "guest": "deny",
@@ -4604,7 +4874,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCalculateVotes": {
     "guest": "deny",
@@ -4621,7 +4892,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCloseProject": {
     "guest": "deny",
@@ -4638,7 +4910,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCompleteProcessStep": {
     "guest": "deny",
@@ -4655,7 +4928,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCompleteRegistration": {
     "guest": "deny",
@@ -4672,7 +4946,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCompleteVoting": {
     "guest": "deny",
@@ -4689,7 +4964,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalConvertSegment": {
     "guest": "deny",
@@ -4706,7 +4982,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateCommit": {
     "guest": "deny",
@@ -4723,7 +5000,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateComponentMetric": {
     "guest": "deny",
@@ -4740,7 +5018,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCreateCycle": {
     "guest": "deny",
@@ -4757,7 +5036,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateDebt": {
     "guest": "deny",
@@ -4774,7 +5054,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateExpense": {
     "guest": "deny",
@@ -4791,7 +5072,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateIssue": {
     "guest": "deny",
@@ -4808,7 +5090,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCreateLocalProject": {
     "guest": "deny",
@@ -4825,7 +5108,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalCreateProcessTemplate": {
     "guest": "deny",
@@ -4842,7 +5126,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProgramExpense": {
     "guest": "deny",
@@ -4859,7 +5144,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProgramInvest": {
     "guest": "deny",
@@ -4876,7 +5162,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProgramProperty": {
     "guest": "deny",
@@ -4893,7 +5180,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProject": {
     "guest": "deny",
@@ -4910,7 +5198,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProjectInvest": {
     "guest": "deny",
@@ -4927,7 +5216,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateProjectProperty": {
     "guest": "deny",
@@ -4944,7 +5234,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalCreateStory": {
     "guest": "deny",
@@ -4961,7 +5252,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDeallocateFunds": {
     "guest": "deny",
@@ -4978,7 +5270,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalDeclineCommit": {
     "guest": "deny",
@@ -4995,7 +5288,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDeleteIssue": {
     "guest": "deny",
@@ -5012,7 +5306,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDeleteProcessTemplate": {
     "guest": "deny",
@@ -5029,7 +5324,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalDeleteProject": {
     "guest": "deny",
@@ -5046,7 +5342,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalDeleteStory": {
     "guest": "deny",
@@ -5063,7 +5360,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalEditContributor": {
     "guest": "deny",
@@ -5080,7 +5378,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalEditProject": {
     "guest": "deny",
@@ -5097,7 +5396,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalFinalizeProject": {
     "guest": "deny",
@@ -5114,7 +5414,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalFundProgram": {
     "guest": "deny",
@@ -5131,7 +5432,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationAgreement": {
     "guest": "deny",
@@ -5148,7 +5450,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationMoneyInvestStatement": {
     "guest": "deny",
@@ -5165,7 +5468,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationPropertyInvestAct": {
     "guest": "deny",
@@ -5182,7 +5486,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationPropertyInvestDecision": {
     "guest": "deny",
@@ -5199,7 +5504,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationPropertyInvestStatement": {
     "guest": "deny",
@@ -5216,7 +5522,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateCapitalizationToMainWalletConvertStatement": {
     "guest": "deny",
@@ -5233,7 +5540,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateComponentGenerationContract": {
     "guest": "deny",
@@ -5250,7 +5558,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateExpenseDecision": {
     "guest": "deny",
@@ -5267,7 +5576,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateExpenseStatement": {
     "guest": "deny",
@@ -5284,7 +5594,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationContract": {
     "guest": "deny",
@@ -5301,7 +5612,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationConvertStatement": {
     "guest": "deny",
@@ -5318,7 +5630,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationMoneyInvestStatement": {
     "guest": "deny",
@@ -5335,7 +5648,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationPropertyInvestAct": {
     "guest": "deny",
@@ -5352,7 +5666,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationPropertyInvestDecision": {
     "guest": "deny",
@@ -5369,7 +5684,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGenerationPropertyInvestStatement": {
     "guest": "deny",
@@ -5386,7 +5702,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGetLoanDecision": {
     "guest": "deny",
@@ -5403,7 +5720,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateGetLoanStatement": {
     "guest": "deny",
@@ -5420,7 +5738,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateProgramMoneyInvestStatement": {
     "guest": "deny",
@@ -5437,7 +5756,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateProjectGenerationContract": {
     "guest": "deny",
@@ -5454,7 +5774,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateRegistrationDocuments": {
     "guest": "deny",
@@ -5471,7 +5792,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateResultContributionAct": {
     "guest": "deny",
@@ -5488,7 +5810,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateResultContributionDecision": {
     "guest": "deny",
@@ -5505,7 +5828,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalGenerateResultContributionStatement": {
     "guest": "deny",
@@ -5522,7 +5846,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalImportContributor": {
     "guest": "deny",
@@ -5539,7 +5864,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalLogMetricContribution": {
     "guest": "deny",
@@ -5556,7 +5882,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalMakeClearance": {
     "guest": "deny",
@@ -5573,7 +5900,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalMoveIssueToComponent": {
     "guest": "deny",
@@ -5590,7 +5918,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalOpenProject": {
     "guest": "deny",
@@ -5607,7 +5936,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalPauseTimer": {
     "guest": "deny",
@@ -5624,7 +5954,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalPushResult": {
     "guest": "deny",
@@ -5641,7 +5972,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalRefreshProgram": {
     "guest": "deny",
@@ -5658,7 +5990,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalRefreshSegment": {
     "guest": "deny",
@@ -5675,7 +6008,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalRegisterContributor": {
     "guest": "deny",
@@ -5692,7 +6026,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalRemoveFavorite": {
     "guest": "deny",
@@ -5709,7 +6044,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalRestoreContentRevision": {
     "guest": "deny",
@@ -5726,7 +6062,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalResumeTimer": {
     "guest": "deny",
@@ -5743,7 +6080,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalSetConfig": {
     "guest": "deny",
@@ -5760,7 +6098,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalSetIssueMetricBindings": {
     "guest": "deny",
@@ -5777,7 +6116,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSetMaster": {
     "guest": "deny",
@@ -5794,7 +6134,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalSetPlan": {
     "guest": "deny",
@@ -5811,7 +6152,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSetProjectDevelopmentRepositoryUrl": {
     "guest": "deny",
@@ -5828,7 +6170,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSetProjectPriority": {
     "guest": "deny",
@@ -5845,7 +6188,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalSignActAsChairman": {
     "guest": "deny",
@@ -5862,7 +6206,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalSignActAsContributor": {
     "guest": "deny",
@@ -5879,7 +6224,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalStartProcess": {
     "guest": "deny",
@@ -5896,7 +6242,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalStartProject": {
     "guest": "deny",
@@ -5913,7 +6260,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalStartTimer": {
     "guest": "deny",
@@ -5930,7 +6278,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalStartVoting": {
     "guest": "deny",
@@ -5947,7 +6296,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalStopProject": {
     "guest": "deny",
@@ -5964,7 +6314,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalStopTimer": {
     "guest": "deny",
@@ -5981,7 +6332,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalSubmitVote": {
     "guest": "deny",
@@ -5998,7 +6350,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalTopupProgramExpensePool": {
     "guest": "deny",
@@ -6015,7 +6368,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalUpdateComponentMetric": {
     "guest": "deny",
@@ -6032,7 +6386,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalUpdateIssue": {
     "guest": "deny",
@@ -6049,7 +6404,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "capitalUpdateMeasure": {
     "guest": "deny",
@@ -6066,7 +6422,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalUpdateProcessTemplate": {
     "guest": "deny",
@@ -6083,7 +6440,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "capitalUpdateStory": {
     "guest": "deny",
@@ -6100,7 +6458,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cardcoopRequestEntryDisclosure": {
     "guest": "pass",
@@ -6117,7 +6476,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "cardcoopTakeEntryProfile": {
     "guest": "pass",
@@ -6134,7 +6494,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chairmanConfirmApprove": {
     "guest": "deny",
@@ -6151,7 +6512,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chairmanDeclineApprove": {
     "guest": "deny",
@@ -6168,7 +6530,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopCreateAccount": {
     "guest": "deny",
@@ -6185,7 +6548,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopCreateCalendarEvent": {
     "guest": "deny",
@@ -6202,7 +6566,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopCreateCalendarIcsSubscription": {
     "guest": "deny",
@@ -6219,7 +6584,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "chatcoopCreateSecretaryRoom": {
     "guest": "deny",
@@ -6236,7 +6602,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopDeleteCalendarEvent": {
     "guest": "deny",
@@ -6253,7 +6620,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopRemoveSecretaryRoom": {
     "guest": "deny",
@@ -6270,7 +6638,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopUpdateCalendarEvent": {
     "guest": "deny",
@@ -6287,7 +6656,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "chatcoopUpdateTranscriptionMemo": {
     "guest": "deny",
@@ -6304,7 +6674,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "completeCapitalOnboardingStep": {
     "guest": "deny",
@@ -6321,7 +6692,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "completeChairmanAgendaStep": {
     "guest": "deny",
@@ -6338,7 +6710,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "completeChairmanGeneralMeetStep": {
     "guest": "deny",
@@ -6355,7 +6728,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "completeExtensionOnboardingStep": {
     "guest": "deny",
@@ -6372,7 +6746,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "confirmAgreement": {
     "guest": "deny",
@@ -6389,7 +6764,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "confirmEmailVerification": {
     "guest": "pass",
@@ -6406,7 +6782,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "confirmMembershipExit": {
     "guest": "deny",
@@ -6423,7 +6800,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createAnnualGeneralMeet": {
     "guest": "deny",
@@ -6440,7 +6818,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createBranch": {
     "guest": "deny",
@@ -6457,7 +6836,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createDepositPayment": {
     "guest": "deny",
@@ -6474,7 +6854,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createExpensePlan": {
     "guest": "deny",
@@ -6491,7 +6872,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createExpenseProposal": {
     "guest": "deny",
@@ -6508,7 +6890,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createInitialPayment": {
     "guest": "deny",
@@ -6525,7 +6908,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createMembershipExit": {
     "guest": "deny",
@@ -6542,7 +6926,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "createProjectOfFreeDecision": {
     "guest": "deny",
@@ -6559,7 +6944,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createWebPushSubscription": {
     "guest": "deny",
@@ -6576,7 +6962,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "createWithdraw": {
     "guest": "deny",
@@ -6593,7 +6980,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deactivateWebPushSubscriptionById": {
     "guest": "deny",
@@ -6610,7 +6998,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "declineAgreement": {
     "guest": "deny",
@@ -6627,7 +7016,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "declineDecision": {
     "guest": "deny",
@@ -6644,7 +7034,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deleteAccount": {
     "guest": "deny",
@@ -6661,7 +7052,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deleteBranch": {
     "guest": "deny",
@@ -6678,7 +7070,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deleteBranchWhitelist": {
     "guest": "deny",
@@ -6695,7 +7088,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deleteExpensePlan": {
     "guest": "deny",
@@ -6712,7 +7106,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "deletePaymentMethod": {
     "guest": "deny",
@@ -6729,7 +7124,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "deleteReportDraft": {
     "guest": "deny",
@@ -6746,7 +7142,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "deleteTrustedAccount": {
     "guest": "deny",
@@ -6763,7 +7160,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "disableTwoFactor": {
     "guest": "deny",
@@ -6780,7 +7178,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "editBranch": {
     "guest": "deny",
@@ -6797,7 +7196,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "enrollTwoFactor": {
     "guest": "deny",
@@ -6814,7 +7214,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "generateAnnualGeneralMeetAgendaDocument": {
     "guest": "deny",
@@ -6831,7 +7232,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateAnnualGeneralMeetDecisionDocument": {
     "guest": "deny",
@@ -6848,7 +7250,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateAnnualGeneralMeetNotificationDocument": {
     "guest": "deny",
@@ -6865,7 +7268,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateBallotForAnnualGeneralMeetDocument": {
     "guest": "deny",
@@ -6882,7 +7286,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateConvertToAxonStatement": {
     "guest": "deny",
@@ -6899,7 +7304,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateDocument": {
     "guest": "deny",
@@ -6916,7 +7322,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateExpenseProposalDecisionDocument": {
     "guest": "deny",
@@ -6933,7 +7340,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateExpenseProposalStatementDocument": {
     "guest": "deny",
@@ -6950,7 +7358,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateFreeDecision": {
     "guest": "deny",
@@ -6967,7 +7376,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateMembershipExitApplication": {
     "guest": "deny",
@@ -6984,7 +7394,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateMembershipExitDecision": {
     "guest": "deny",
@@ -7001,7 +7412,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateParticipantApplication": {
     "guest": "deny",
@@ -7018,7 +7430,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateParticipantApplicationDecision": {
     "guest": "deny",
@@ -7035,7 +7448,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generatePrivacyAgreement": {
     "guest": "deny",
@@ -7052,7 +7466,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateProjectOfFreeDecision": {
     "guest": "deny",
@@ -7069,7 +7484,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateRegistrationDocuments": {
     "guest": "deny",
@@ -7086,7 +7502,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateReportFromEdits": {
     "guest": "deny",
@@ -7103,7 +7520,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "generateReturnByMoneyDecisionDocument": {
     "guest": "deny",
@@ -7120,7 +7538,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateReturnByMoneyStatementDocument": {
     "guest": "deny",
@@ -7137,7 +7556,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateSelectBranchDocument": {
     "guest": "deny",
@@ -7154,7 +7574,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateSignatureAgreement": {
     "guest": "deny",
@@ -7171,7 +7592,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateSovietDecisionOnAnnualMeetDocument": {
     "guest": "deny",
@@ -7188,7 +7610,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateUserAgreement": {
     "guest": "deny",
@@ -7205,7 +7628,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "generateWalletAgreement": {
     "guest": "deny",
@@ -7222,7 +7646,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "initSystem": {
     "guest": "deny",
@@ -7239,7 +7664,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "installExtension": {
     "guest": "deny",
@@ -7256,7 +7682,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "installSystem": {
     "guest": "deny",
@@ -7273,7 +7700,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuApproveTrusted": {
     "guest": "deny",
@@ -7290,7 +7718,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuCancelDecision": {
     "guest": "deny",
@@ -7307,7 +7736,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuCloseDecision": {
     "guest": "deny",
@@ -7324,7 +7754,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuCreateDecision": {
     "guest": "deny",
@@ -7341,7 +7772,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuDeclineTrusted": {
     "guest": "deny",
@@ -7358,7 +7790,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuExecDecision": {
     "guest": "deny",
@@ -7375,7 +7808,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuGenerateEstablishmentDecision": {
     "guest": "deny",
@@ -7392,7 +7826,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateEstablishmentPetition": {
     "guest": "deny",
@@ -7409,7 +7844,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateMeetingBallot": {
     "guest": "deny",
@@ -7426,7 +7862,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateMeetingDecision": {
     "guest": "deny",
@@ -7443,7 +7880,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateMeetingProposal": {
     "guest": "deny",
@@ -7460,7 +7898,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateTrustedLiabilityAgreement": {
     "guest": "deny",
@@ -7477,7 +7916,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateTrustedPowerOfAttorney": {
     "guest": "deny",
@@ -7494,7 +7934,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateTrustedStatement": {
     "guest": "deny",
@@ -7511,7 +7952,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateTrusteeLiabilityAgreement": {
     "guest": "deny",
@@ -7528,7 +7970,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuGenerateTrusteePowerOfAttorney": {
     "guest": "deny",
@@ -7545,7 +7988,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuJoinDecision": {
     "guest": "deny",
@@ -7562,7 +8006,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "kuRequestTrusted": {
     "guest": "deny",
@@ -7579,7 +8024,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuStartDecision": {
     "guest": "deny",
@@ -7596,7 +8042,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "kuVoteOnDecision": {
     "guest": "deny",
@@ -7613,7 +8060,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "login": {
     "guest": "pass",
@@ -7630,7 +8078,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "logout": {
     "guest": "pass",
@@ -7647,7 +8096,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "markAllNotificationsRead": {
     "guest": "deny",
@@ -7664,7 +8114,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceAcceptCpp": {
     "guest": "deny",
@@ -7681,7 +8132,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAcceptOrdersBatch": {
     "guest": "deny",
@@ -7698,7 +8150,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAcceptReturnAtVisit": {
     "guest": "deny",
@@ -7715,7 +8168,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAddAvailableCategories": {
     "guest": "deny",
@@ -7732,7 +8186,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAddAvailableCategoryTypes": {
     "guest": "deny",
@@ -7749,7 +8204,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAddSupplier": {
     "guest": "deny",
@@ -7766,7 +8222,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAddToCart": {
     "guest": "deny",
@@ -7783,7 +8240,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAdmitSupplierClaim": {
     "guest": "deny",
@@ -7800,7 +8258,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceApproveOffer": {
     "guest": "deny",
@@ -7817,7 +8276,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceApproveReturnVisit": {
     "guest": "deny",
@@ -7834,7 +8294,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceApproveSupplier": {
     "guest": "deny",
@@ -7851,7 +8312,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceAssignInventoryPlacement": {
     "guest": "deny",
@@ -7868,7 +8330,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceBindInventoryBarcode": {
     "guest": "deny",
@@ -7885,7 +8348,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelAplReception": {
     "guest": "deny",
@@ -7902,7 +8366,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelIssuance": {
     "guest": "deny",
@@ -7919,7 +8384,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelOrder": {
     "guest": "deny",
@@ -7936,7 +8402,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelStockOrder": {
     "guest": "deny",
@@ -7953,7 +8420,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelStockProposal": {
     "guest": "deny",
@@ -7970,7 +8438,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCancelWriteoffDraft": {
     "guest": "deny",
@@ -7987,7 +8456,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCheckoutCart": {
     "guest": "deny",
@@ -8004,7 +8474,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceClearAvailableCategories": {
     "guest": "deny",
@@ -8021,7 +8492,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceClearCart": {
     "guest": "deny",
@@ -8038,7 +8510,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceClearInventoryLabel": {
     "guest": "deny",
@@ -8055,7 +8528,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCloseIssuance": {
     "guest": "deny",
@@ -8072,7 +8546,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceConfirmWriteoff": {
     "guest": "deny",
@@ -8089,7 +8564,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateAid": {
     "guest": "deny",
@@ -8106,7 +8582,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateAplReception": {
     "guest": "deny",
@@ -8123,7 +8600,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateBranchExpense": {
     "guest": "deny",
@@ -8140,7 +8618,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateContainers": {
     "guest": "deny",
@@ -8157,7 +8636,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateContainerType": {
     "guest": "deny",
@@ -8174,7 +8654,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateCustomCategory": {
     "guest": "deny",
@@ -8191,7 +8672,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateExpressReception": {
     "guest": "deny",
@@ -8208,7 +8690,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateOffer": {
     "guest": "deny",
@@ -8225,7 +8708,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateReturnClaim": {
     "guest": "deny",
@@ -8242,7 +8726,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateShipment": {
     "guest": "deny",
@@ -8259,7 +8744,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateStockProposal": {
     "guest": "deny",
@@ -8276,7 +8762,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateStorageCell": {
     "guest": "deny",
@@ -8293,7 +8780,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateStorageGrid": {
     "guest": "deny",
@@ -8310,7 +8798,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceCreateWriteoffDraft": {
     "guest": "deny",
@@ -8327,7 +8816,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDeclineOrdersBatch": {
     "guest": "deny",
@@ -8344,7 +8834,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDeclineStockProposal": {
     "guest": "deny",
@@ -8361,7 +8852,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDeleteCustomCategory": {
     "guest": "deny",
@@ -8378,7 +8870,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDeleteTrusteeWeight": {
     "guest": "deny",
@@ -8395,7 +8888,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDetailKU": {
     "guest": "deny",
@@ -8412,7 +8906,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceDistributeBranchFunds": {
     "guest": "deny",
@@ -8429,7 +8924,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceFinalizeStockIssuance": {
     "guest": "deny",
@@ -8446,7 +8942,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceFixIssuanceFact": {
     "guest": "deny",
@@ -8463,7 +8960,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceGenerateInventoryLabel": {
     "guest": "deny",
@@ -8480,7 +8978,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceHandBackReturn": {
     "guest": "deny",
@@ -8497,7 +8996,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceMoveContainer": {
     "guest": "deny",
@@ -8514,7 +9014,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplacePublishStock": {
     "guest": "deny",
@@ -8531,7 +9032,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceReadyIssue": {
     "guest": "deny",
@@ -8548,7 +9050,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRejectOffer": {
     "guest": "deny",
@@ -8565,7 +9068,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRejectReturnAtVisit": {
     "guest": "deny",
@@ -8582,7 +9086,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRejectReturnRemote": {
     "guest": "deny",
@@ -8599,7 +9104,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRejectSupplier": {
     "guest": "deny",
@@ -8616,7 +9122,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRemoveAvailableCategories": {
     "guest": "deny",
@@ -8633,7 +9140,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRemoveAvailableCategoryTypes": {
     "guest": "deny",
@@ -8650,7 +9158,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRemoveFromCart": {
     "guest": "deny",
@@ -8667,7 +9176,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRenameStorageSection": {
     "guest": "deny",
@@ -8684,7 +9194,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceReplaceAvailableItems": {
     "guest": "deny",
@@ -8701,7 +9212,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRepublishOffer": {
     "guest": "deny",
@@ -8718,7 +9230,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRequestSupplier": {
     "guest": "deny",
@@ -8735,7 +9248,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceRetireStorageCells": {
     "guest": "deny",
@@ -8752,7 +9266,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceRetryKUGeocode": {
     "guest": "deny",
@@ -8769,7 +9284,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSetCartDeliveryPoint": {
     "guest": "deny",
@@ -8786,7 +9302,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceSetKUStatus": {
     "guest": "deny",
@@ -8803,7 +9320,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSetMembershipFee": {
     "guest": "deny",
@@ -8820,7 +9338,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSetOfferWarranty": {
     "guest": "deny",
@@ -8837,7 +9356,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSetSupplierPayoutMethod": {
     "guest": "deny",
@@ -8854,7 +9374,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSetTrusteeWeight": {
     "guest": "deny",
@@ -8871,7 +9392,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSignAplReceptionAsChairman": {
     "guest": "deny",
@@ -8888,7 +9410,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSignAplReceptionAsSupplier": {
     "guest": "deny",
@@ -8905,7 +9428,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSignIssuanceAct": {
     "guest": "deny",
@@ -8922,7 +9446,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSignIssuanceStatement": {
     "guest": "deny",
@@ -8939,7 +9464,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSignOnboardingOffer": {
     "guest": "deny",
@@ -8956,7 +9482,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "marketplaceSplitInventory": {
     "guest": "deny",
@@ -8973,7 +9500,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSubmitWriteoffDraft": {
     "guest": "deny",
@@ -8990,7 +9518,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUnpublishStock": {
     "guest": "deny",
@@ -9007,7 +9536,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUpdateCartItem": {
     "guest": "deny",
@@ -9024,7 +9554,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUpdateContainer": {
     "guest": "deny",
@@ -9041,7 +9572,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUpdateOffer": {
     "guest": "deny",
@@ -9058,7 +9590,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUpdateStorageCell": {
     "guest": "deny",
@@ -9075,7 +9608,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceUpdateWriteoffDraft": {
     "guest": "deny",
@@ -9092,7 +9626,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceWithdrawOffer": {
     "guest": "deny",
@@ -9109,7 +9644,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "markNotificationRead": {
     "guest": "deny",
@@ -9126,7 +9662,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "markReportPeriod": {
     "guest": "deny",
@@ -9143,7 +9680,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "notifyOnAnnualGeneralMeet": {
     "guest": "deny",
@@ -9160,7 +9698,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "overspendExpenseItem": {
     "guest": "deny",
@@ -9177,7 +9716,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "payExpenseItem": {
     "guest": "deny",
@@ -9194,7 +9734,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "payWithheldTax": {
     "guest": "deny",
@@ -9211,7 +9752,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "processConvertToAxonStatement": {
     "guest": "deny",
@@ -9228,7 +9770,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "proposeDocumentApproval": {
     "guest": "deny",
@@ -9245,7 +9788,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "publishProjectOfFreeDecision": {
     "guest": "deny",
@@ -9262,7 +9806,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "refresh": {
     "guest": "deny",
@@ -9279,7 +9824,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "registerAccount": {
     "guest": "pass",
@@ -9296,7 +9842,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "registerParticipant": {
     "guest": "deny",
@@ -9313,7 +9860,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "rejectVerification": {
     "guest": "deny",
@@ -9330,7 +9878,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "reportExpenseItem": {
     "guest": "deny",
@@ -9347,7 +9896,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "reportNotMe": {
     "guest": "deny",
@@ -9364,7 +9914,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "requestEmailVerification": {
     "guest": "pass",
@@ -9381,7 +9932,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "requestForceRecoveryConsent": {
     "guest": "deny",
@@ -9398,7 +9950,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "resendNotification": {
     "guest": "deny",
@@ -9415,7 +9968,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "resetKey": {
     "guest": "deny",
@@ -9432,7 +9986,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "resetParticipantTwoFactor": {
     "guest": "deny",
@@ -9449,7 +10004,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "resetRegistration": {
     "guest": "deny",
@@ -9466,7 +10022,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "restartAnnualGeneralMeet": {
     "guest": "deny",
@@ -9483,7 +10040,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "returnExpenseItem": {
     "guest": "deny",
@@ -9500,7 +10058,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "revokeAllSessions": {
     "guest": "deny",
@@ -9517,7 +10076,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "revokeCapabilitySet": {
     "guest": "deny",
@@ -9534,7 +10094,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "revokeParticipantKey": {
     "guest": "deny",
@@ -9551,7 +10112,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "revokeRole": {
     "guest": "deny",
@@ -9568,7 +10130,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "revokeSession": {
     "guest": "deny",
@@ -9585,7 +10148,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "saveCapitalProgramDocDataHash": {
     "guest": "deny",
@@ -9602,7 +10166,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "saveMyPassport": {
     "guest": "deny",
@@ -9619,7 +10184,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "saveReportDraft": {
     "guest": "deny",
@@ -9636,7 +10202,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "selectBranch": {
     "guest": "deny",
@@ -9653,7 +10220,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sendAgreement": {
     "guest": "deny",
@@ -9670,7 +10238,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "setBranchPrivate": {
     "guest": "deny",
@@ -9687,7 +10256,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "setLoginFactors": {
     "guest": "deny",
@@ -9704,7 +10274,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "setPaymentStatus": {
     "guest": "deny",
@@ -9721,7 +10292,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "setRecoveryStrategy": {
     "guest": "deny",
@@ -9738,7 +10310,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "setWif": {
     "guest": "deny",
@@ -9755,7 +10328,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "signByPresiderOnAnnualGeneralMeet": {
     "guest": "deny",
@@ -9772,7 +10346,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "signBySecretaryOnAnnualGeneralMeet": {
     "guest": "deny",
@@ -9789,7 +10364,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotDelegateKey": {
     "guest": "deny",
@@ -9806,7 +10382,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotRetryDecision": {
     "guest": "deny",
@@ -9823,7 +10400,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "sovietRobotRevokeKey": {
     "guest": "deny",
@@ -9840,7 +10418,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "startInstall": {
     "guest": "pass",
@@ -9857,7 +10436,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "startResetKey": {
     "guest": "pass",
@@ -9874,7 +10454,8 @@
     "capitalMember": "pass",
     "exited": "pass",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "submitExpenseReport": {
     "guest": "deny",
@@ -9891,7 +10472,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "triggerNotificationWorkflow": {
     "guest": "deny",
@@ -9908,7 +10490,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "uninstallExtension": {
     "guest": "deny",
@@ -9925,7 +10508,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "unverifyParticipant": {
     "guest": "deny",
@@ -9942,7 +10526,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "updateAccount": {
     "guest": "deny",
@@ -9959,7 +10544,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "updateBankAccount": {
     "guest": "deny",
@@ -9976,7 +10562,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "updateExtension": {
     "guest": "deny",
@@ -9993,7 +10580,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "updateReportRequisites": {
     "guest": "deny",
@@ -10010,7 +10598,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "deny"
   },
   "updateSettings": {
     "guest": "deny",
@@ -10027,7 +10616,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "updateSystem": {
     "guest": "deny",
@@ -10044,7 +10634,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "uploadExpenseFile": {
     "guest": "deny",
@@ -10061,7 +10652,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "uploadPaymentProof": {
     "guest": "deny",
@@ -10078,7 +10670,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "verifyEmail": {
     "guest": "deny",
@@ -10095,7 +10688,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "verifyParticipantOnsite": {
     "guest": "deny",
@@ -10112,7 +10706,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "voteOnAnnualGeneralMeet": {
     "guest": "deny",
@@ -10129,7 +10724,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "walmoveWallets": {
     "guest": "deny",
@@ -10146,7 +10742,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "deny"
+    "accountant": "deny",
+    "auditor": "deny"
   },
   "marketplaceSwitchSupplierModel": {
     "guest": "deny",
@@ -10163,7 +10760,8 @@
     "capitalMember": "pass",
     "exited": "deny",
     "cashier": "pass",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsLedgerAccounts": {
     "guest": "deny",
@@ -10180,7 +10778,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsLedgerWallets": {
     "guest": "deny",
@@ -10197,7 +10796,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsLedgerHistory": {
     "guest": "deny",
@@ -10214,7 +10814,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsLedgerPostings": {
     "guest": "deny",
@@ -10231,7 +10832,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsProcess": {
     "guest": "deny",
@@ -10248,7 +10850,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsProcesses": {
     "guest": "deny",
@@ -10265,7 +10868,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsParticipants": {
     "guest": "deny",
@@ -10282,7 +10886,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsParticipantWallets": {
     "guest": "deny",
@@ -10299,7 +10904,8 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   },
   "reportsSubjects": {
     "guest": "deny",
@@ -10316,6 +10922,7 @@
     "capitalMember": "deny",
     "exited": "deny",
     "cashier": "deny",
-    "accountant": "pass"
+    "accountant": "pass",
+    "auditor": "pass"
   }
 }

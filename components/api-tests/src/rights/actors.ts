@@ -13,7 +13,8 @@
  *  - capitalMember   — участник Благороста с договором УХД;
  *  - exited          — вышел из кооператива, выход завершён;
  *  - cashier         — пайщик с назначенной ролью кассира (реестр платежей);
- *  - accountant      — пайщик с назначенной ролью бухгалтера (стол бухгалтера).
+ *  - accountant      — пайщик с назначенной ролью бухгалтера (стол бухгалтера);
+ *  - auditor         — пайщик с назначенной ролью ревизора (чтение платежей и стола бухгалтера).
  *
  * Оператор чужого участка и ведущий проекта в матрицу не входят: их право
  * зависит от объекта, а матрица зовёт операции с чужими аргументами. Их
@@ -88,6 +89,7 @@ const MAKERS: { name: string, make: () => Promise<Who> }[] = [
   },
   { name: 'cashier', make: () => roleHolder('mxcash', 'cashier') },
   { name: 'accountant', make: () => roleHolder('mxacc', 'accountant') },
+  { name: 'auditor', make: () => roleHolder('mxaud', 'auditor') },
 ]
 
 async function supplierApplicant(prefix: string): Promise<Who> {

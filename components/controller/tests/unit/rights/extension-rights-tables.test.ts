@@ -24,6 +24,7 @@ const registry = { register: jest.fn() } as any;
 const accountant: Caller = { username: 'olga', role: 'user', status: 'active' };
 const roleAssignments = {
   declare: jest.fn(),
+  attach: jest.fn(),
   rolesOf: jest.fn(async (_app: string, username: string) => (username === 'olga' ? ['accountant'] : [])),
 } as any;
 
@@ -175,6 +176,16 @@ describe('права страниц столов расширений', () => {
     expect(await grantsOf(rights, accountant)).toEqual(expect.arrayContaining(await grantsOf(rights, chairman)));
     rights.onModuleInit();
     expect(roleAssignments.declare).toHaveBeenCalledWith('reports', [expect.objectContaining({ key: 'accountant' })]);
+  });
+
+  // access.roles.happy.13
+  it('ревизор читает стол бухгалтера как член совета: ни одного права записи', async () => {
+    const auditor: Caller = { username: 'revizor', role: 'user', status: 'active' };
+    const assignments = { declare: jest.fn(), attach: jest.fn(), rolesOf: jest.fn(async () => ['auditor']) } as any;
+    const rights = new ReportsRights(registry, assignments);
+    expect((await grantsOf(rights, auditor)).sort()).toEqual(['Registry:read', 'Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
+    rights.onModuleInit();
+    expect(assignments.attach).toHaveBeenCalledWith('reports', [expect.objectContaining({ key: 'auditor' })]);
   });
 
   // access.roles.side.08

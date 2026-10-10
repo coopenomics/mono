@@ -81,3 +81,36 @@ describe('роли пайщика', () => {
     expect(repository.findActiveByUser).not.toHaveBeenCalled();
   });
 });
+
+describe('роль, которую дополняет другое приложение', () => {
+  const AUDITOR = { key: 'auditor', title: 'Ревизор', description: 'Читает', permissions: [{ title: 'Реестр платежей', access: 'read' as const, rights: ['Payment:read:all'] }] };
+  const DESK_READ = [{ title: 'Отчёты', access: 'read' as const, rights: ['Report:read'] }];
+
+  // access.roles.happy.13
+  it('роль получают и приложение, которое её объявило, и приложение, которое к ней присоединилось', async () => {
+    const { registry } = makeRegistry([{ username: 'ivan', role: 'auditor' }]);
+    registry.attach('reports', [{ key: 'auditor', permissions: DESK_READ }]);
+    registry.declare('soviet', [AUDITOR]);
+    registry.onApplicationBootstrap();
+    expect(await registry.rolesOf('soviet', 'ivan')).toEqual(['auditor']);
+    expect(await registry.rolesOf('reports', 'ivan')).toEqual(['auditor']);
+    expect(await registry.rolesOf('market', 'ivan')).toEqual([]);
+    expect(registry.attachmentsOf('auditor')).toEqual([{ extensionName: 'reports', permissions: DESK_READ }]);
+    expect(registry.list()).toHaveLength(1);
+  });
+
+  // access.roles.break.07
+  it('дополнение роли, которую никто не объявил, останавливает запуск', () => {
+    const { registry } = makeRegistry();
+    registry.attach('reports', [{ key: 'auditor', permissions: DESK_READ }]);
+    expect(() => registry.onApplicationBootstrap()).toThrow(/reports.*auditor/);
+  });
+
+  // access.roles.break.07
+  it('приложение не дополняет собственную роль', () => {
+    const { registry } = makeRegistry();
+    registry.declare('soviet', [AUDITOR]);
+    registry.attach('soviet', [{ key: 'auditor', permissions: DESK_READ }]);
+    expect(() => registry.onApplicationBootstrap()).toThrow(/soviet.*auditor/);
+  });
+});

@@ -27,9 +27,11 @@ import { PAYMENT_FILE_REPOSITORY, type PaymentFileRepository } from '~/domain/ga
  * Назначаемые роли председатель выдаёт принятому пайщику на странице
  * управления доступом:
  *  - `cashier` — кассир: реестр платежей стола совета.
+ *  - `auditor` — ревизор: читает то же, что кассир, без записи; чтение стола
+ *    бухгалтера ему даёт приложение отчётности.
  */
 export type CoreNodeRole = 'account' | 'participant' | 'council' | 'chairman';
-export type CoreAssignableRole = 'cashier';
+export type CoreAssignableRole = 'cashier' | 'auditor';
 export type CoreRightsRole = CoreNodeRole | CoreAssignableRole;
 
 /**
@@ -156,6 +158,16 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
       },
     },
   ],
+  auditor: [
+    {
+      when: [],
+      rights: {
+        // Ревизор реестр платежей и документы об оплате читает, записи у него нет.
+        Payment: ['read:all'],
+        PaymentFile: ['read:all'],
+      },
+    },
+  ],
 };
 
 /**
@@ -175,6 +187,15 @@ export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] 
       { title: t('accessRoles.roles.cashier.permissions.proofs'), access: 'read', rights: ['PaymentFile:read:all'] },
       { title: t('accessRoles.roles.cashier.permissions.confirm'), access: 'write', rights: ['Payment:confirm'] },
       { title: t('accessRoles.roles.cashier.permissions.upload'), access: 'write', rights: ['PaymentFile:upload'] },
+    ],
+  },
+  {
+    key: 'auditor',
+    title: t('accessRoles.roles.auditor.title'),
+    description: t('accessRoles.roles.auditor.description'),
+    permissions: [
+      { title: t('accessRoles.roles.cashier.permissions.registry'), access: 'read', rights: ['Payment:read:all'] },
+      { title: t('accessRoles.roles.cashier.permissions.proofs'), access: 'read', rights: ['PaymentFile:read:all'] },
     ],
   },
 ];

@@ -158,6 +158,38 @@ describe('платформа: назначаемые роли и управле�
     expect(await probe.denial(tokens[member.account], 'reportsLedgerWallets'), 'после снятия роли реестры закрыты').toBe(NO_RIGHT)
   }, 240_000)
 
+  it(caseName('access.roles.happy.13', 'ревизор читает платежи и стол бухгалтера, ни одной записи'), async () => {
+    const reportsGrants = async (token: string): Promise<string[]> => {
+      const desk = (await gql<any>(token, DESKTOP)).getDesktop
+      return ((desk.workspaces as any[]).find(w => w.extension_name === 'reports')?.grants as string[] | undefined) ?? []
+    }
+    const other: Who = ROLES.otherMember()
+    const token = await tokenOf(other)
+    await gql(tokens[CHAIRMAN.account], REVOKE, input(other.account, 'auditor'))
+    expect(await sovietGrants(token)).not.toContain('Payment:read:all')
+    const assigned = (await gql<any>(tokens[CHAIRMAN.account], ASSIGN, input(other.account, 'auditor'))).assignRole
+    try {
+      // Роль объявил стол совета, стол бухгалтера её дополнил: полномочия — только чтение.
+      const roles = (await gql<any>(tokens[CHAIRMAN.account], ROLES_QUERY)).getAssignableRoles as any[]
+      const auditor = roles.find(r => r.key === 'auditor')
+      expect((auditor.permissions as any[]).every(p => p.access === 'READ')).toBe(true)
+      expect((auditor.permissions as any[]).length).toBeGreaterThan(2)
+      expect((assigned.assignments as any[]).map(a => a.username)).toContain(other.account)
+      for (const name of ['getPayments', 'paymentProofs', 'getAvailableReports', 'getReportCalendar', 'getWithheldTaxState', 'reportsLedgerPostings', 'reportsProcesses'])
+        expect(await probe.denial(token, name), name).toBeNull()
+      for (const name of ['setPaymentStatus', 'uploadPaymentProof', 'saveReportDraft', 'generateReportFromEdits', 'markReportPeriod', 'updateReportRequisites', 'payWithheldTax', 'assignRole'])
+        expect(await probe.denial(token, name), name).toBe(NO_RIGHT)
+      const soviet = await sovietGrants(token)
+      expect(soviet).toContain('Payment:read:all')
+      expect(soviet).not.toContain('Payment:confirm')
+      expect(await reportsGrants(token)).not.toContain('Report:draft')
+    }
+    finally {
+      await gql(tokens[CHAIRMAN.account], REVOKE, input(other.account, 'auditor'))
+    }
+    expect(await probe.denial(token, 'reportsLedgerPostings')).toBe(NO_RIGHT)
+  }, 240_000)
+
   it(caseName('access.roles.happy.04', 'после снятия роли доступ закрыт, повторное снятие проходит'), async () => {
     const revoked = (await gql<any>(tokens[CHAIRMAN.account], REVOKE, input(member.account))).revokeRole
     expect((revoked.assignments as any[]).map(a => a.username)).not.toContain(member.account)

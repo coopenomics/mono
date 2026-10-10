@@ -56,7 +56,7 @@
 | `PROGRAM_AGREEMENT_PORT` | `IProgramAgreementPort` (2)<br><sub>core-ports/program-agreement.port.ts</sub> | `ProgramAgreementInnercoopAdapter` | marketplace | Подписание пайщиком соглашения об участии в целевой программе. |
 | `REALTIME_CHANNEL_PORT` | `IRealtimeChannelPort` (2)<br><sub>core-ports/realtime.port.ts</sub> | `RealtimeChannelInnercoopAdapter` | — | Шина событий реального времени — то, из чего кормятся подписки клиента. |
 | `REGISTRATION_REGISTRY_PORT` | `IRegistrationRegistryPort` (6)<br><sub>core-ports/registration.port.ts</sub> | `AgreementRegistryService` | capital, marketplace* | Оферты и программы участия, которые расширение предлагает вступающему пайщику. |
-| `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (2)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | reports | Назначаемые роли приложений. |
+| `ROLE_ASSIGNMENTS_PORT` | `IRoleAssignmentsPort` (3)<br><sub>core-ports/role-assignments.port.ts</sub> | `RoleAssignmentsRegistry` | reports | Назначаемые роли приложений. |
 | `SECRET_CIPHER_PORT` | `ISecretCipherPort` (2)<br><sub>core-ports/secret-cipher.port.ts</sub> | `SecretCipherInnercoopAdapter` | capital, chatcoop, soviet-robot | Шифрование секретов расширения. |
 | `USER_CERTIFICATE_PORT` | `IUserCertificatePort` (1)<br><sub>core-ports/user-certificate.port.ts</sub> | `UserCertificateInnercoopAdapter` | marketplace | Сертификат пайщика — как его подписывать в документах и показывать в интерфейсе. |
 | `USER_DATA_PORT` | `IUserDataPort` (5)<br><sub>core-ports/user-data.port.ts</sub> | `UserDataInnercoopAdapter` | capital, marketplace | Пользовательские данные пайщика — записи «ключ→значение» в разрезе кооператива. |

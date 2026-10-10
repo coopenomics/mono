@@ -38,11 +38,30 @@ export interface InnerAssignableRole {
   permissions: readonly InnerRolePermission[];
 }
 
+/**
+ * Дополнение к роли другого приложения. Роль объявлена один раз, но открывает
+ * чтение или действия сразу в нескольких приложениях: ревизор читает и стол
+ * совета, и стол бухгалтера. Каждое приложение называет полномочия по своей
+ * таблице прав; права в чужой таблице роль от этого не получает.
+ */
+export interface InnerAttachedRole {
+  /** Ключ роли, объявленной другим приложением. */
+  key: string;
+  /** Полномочия роли в этом приложении: вместе они называют её права в его таблице. */
+  permissions: readonly InnerRolePermission[];
+}
+
 export interface IRoleAssignmentsPort {
   /** Объявить назначаемые роли приложения. Зовётся один раз при запуске. */
   declare(extensionName: string, roles: readonly InnerAssignableRole[]): void;
 
-  /** Роли приложения, назначенные пайщику сейчас. */
+  /**
+   * Присоединить полномочия приложения к ролям, объявленным другими
+   * приложениями. Роль без объявления останавливает запуск узла.
+   */
+  attach(extensionName: string, roles: readonly InnerAttachedRole[]): void;
+
+  /** Роли, назначенные пайщику сейчас: объявленные приложением и те, к которым оно присоединилось. */
   rolesOf(extensionName: string, username: string): Promise<string[]>;
 }
 

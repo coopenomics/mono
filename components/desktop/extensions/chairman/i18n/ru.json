@@ -1,7 +1,7 @@
 {
   "chairman": {
     "accessRolesPage": {
-      "appLabel": "Приложение «{app}»",
+      "appLabel": "{app}",
       "assignAction": "Назначить",
       "assignDialogTitle": "Назначить роль «{role}»",
       "assignedMessage": "Роль назначена",

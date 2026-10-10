@@ -4,6 +4,8 @@
 
 /* eslint-disable */
 export type MessageKey =
+  | 'accessRoles.roles.auditor.description'
+  | 'accessRoles.roles.auditor.title'
   | 'accessRoles.roles.cashier.description'
   | 'accessRoles.roles.cashier.permissions.confirm'
   | 'accessRoles.roles.cashier.permissions.proofs'
@@ -2883,6 +2885,7 @@ export type MessageKey =
 export type MessageBranch =
   | 'accessRoles'
   | 'accessRoles.roles'
+  | 'accessRoles.roles.auditor'
   | 'accessRoles.roles.cashier'
   | 'accessRoles.roles.cashier.permissions'
   | 'account'

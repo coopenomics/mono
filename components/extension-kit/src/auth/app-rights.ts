@@ -69,6 +69,17 @@ export interface AssignableRole<R extends string = string> {
   permissions: readonly RolePermission[];
 }
 
+/**
+ * Дополнение к роли другого приложения: роль объявлена один раз, а это
+ * приложение даёт ей права в своей таблице и называет их словами.
+ */
+export interface AttachedRole<R extends string = string> {
+  /** Ключ роли, объявленной другим приложением; строка с этим ключом есть в таблице прав. */
+  key: R;
+  /** Полномочия роли в этом приложении — все её права в его таблице и ничего сверх них. */
+  permissions: readonly RolePermission[];
+}
+
 export interface AppRights<R extends string = string, C extends string = string> {
   /** Имя рабочего стола расширения: под ним выдаются права страниц. */
   readonly extensionName: string;
@@ -92,6 +103,12 @@ export interface AppRights<R extends string = string, C extends string = string>
    * дописывает назначенные в ответ `roles`.
    */
   readonly assignableRoles?: readonly AssignableRole<R>[];
+
+  /**
+   * Роли других приложений, которым это приложение даёт права в своей
+   * таблице: ревизор, объявленный столом совета, читает и стол бухгалтера.
+   */
+  readonly attachedRoles?: readonly AttachedRole<R>[];
 
   /** Роли приложения у пайщика. `request` — запрос, если роли уже посчитал гард членства. */
   roles(caller: RightsCaller, request?: unknown): Promise<R[]>;
