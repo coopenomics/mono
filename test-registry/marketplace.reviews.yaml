@@ -50,6 +50,7 @@ cases:
     scenario: "Заказчик оставляет отзыв по полученному заказу"
     expect: "отзыв создан опубликованным; поставщик и предложение взяты из заказа, текст обрезан по краям"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.02
@@ -58,6 +59,7 @@ cases:
     scenario: "Оценка без текста; отзыв по заказу, возвращённому после выдачи"
     expect: "отзыв принят с пустым текстом"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.03
@@ -66,6 +68,7 @@ cases:
     scenario: "Автор меняет оценку и текст своего отзыва"
     expect: "отзыв переписан"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.04
@@ -74,6 +77,7 @@ cases:
     scenario: "Администратор скрывает отзыв с причиной"
     expect: "записано, кто, когда и почему скрыл"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.05
@@ -82,6 +86,7 @@ cases:
     scenario: "Администратор возвращает скрытый отзыв в публикацию"
     expect: "отзыв опубликован, сведения о скрытии очищены"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.06
@@ -90,6 +95,7 @@ cases:
     scenario: "Администратор просит список вместе со скрытыми отзывами"
     expect: "в списке отзывы любого состояния либо выбранного"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.07
@@ -98,6 +104,7 @@ cases:
     scenario: "Каталог спрашивает оценку у каждой карточки страницы"
     expect: "оценки всех карточек приходят одним запросом к базе, средняя округлена до десятых"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.happy.08
@@ -106,6 +113,7 @@ cases:
     scenario: "Сводка отзывов о поставщике"
     expect: "пять строк распределения от пяти звёзд к одной, средняя по опубликованным отзывам"
     test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.01
@@ -114,6 +122,7 @@ cases:
     scenario: "Отзыв по заказу, который ещё не получен либо отменён"
     expect: "отказ MARKETPLACE_REVIEW_ORDER_NOT_RECEIVED, отзыв не создаётся"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.02
@@ -122,6 +131,8 @@ cases:
     scenario: "Отзыв по чужому заказу"
     expect: "отказ MARKETPLACE_REVIEW_FOREIGN_ORDER"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "отказ сервиса по чужому заказу снаружи не достать: общий гард прав отказывает раньше (случай mkt.review.rights.side.01)"
     status: written
 
   - id: mkt.review.side.03
@@ -130,6 +141,7 @@ cases:
     scenario: "Отзыв по заказу, которого нет либо он другого кооператива"
     expect: "отказ MARKETPLACE_REVIEW_ORDER_NOT_FOUND"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.04
@@ -138,6 +150,7 @@ cases:
     scenario: "Второй отзыв на тот же заказ"
     expect: "отказ MARKETPLACE_REVIEW_ALREADY_EXISTS"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.05
@@ -146,6 +159,7 @@ cases:
     scenario: "Оценка вне диапазона 1–5 либо дробная"
     expect: "отказ MARKETPLACE_REVIEW_STARS_OUT_OF_RANGE до обращения к заказу"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.06
@@ -154,6 +168,7 @@ cases:
     scenario: "Текст отзыва длиннее предела"
     expect: "отказ MARKETPLACE_REVIEW_TEXT_TOO_LONG; текст ровно в предел принимается"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.07
@@ -162,6 +177,8 @@ cases:
     scenario: "Правка чужого отзыва"
     expect: "отказ MARKETPLACE_REVIEW_FOREIGN"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "отказ сервиса по чужому отзыву снаружи не достать: общий гард прав отказывает раньше (случай mkt.review.rights.side.02)"
     status: written
 
   - id: mkt.review.side.08
@@ -170,6 +187,7 @@ cases:
     scenario: "Автор правит отзыв, скрытый администратором"
     expect: "отказ MARKETPLACE_REVIEW_HIDDEN_NOT_EDITABLE"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.09
@@ -178,6 +196,8 @@ cases:
     scenario: "Правка отзыва другого кооператива"
     expect: "отказ MARKETPLACE_REVIEW_NOT_FOUND"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "на стенде один кооператив: отзыва другого кооператива через API не создать"
     status: written
 
   - id: mkt.review.side.10
@@ -186,6 +206,7 @@ cases:
     scenario: "Скрытие отзыва без причины"
     expect: "отказ MARKETPLACE_REVIEW_HIDE_REASON_REQUIRED"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.11
@@ -194,6 +215,7 @@ cases:
     scenario: "Публикация уже опубликованного отзыва"
     expect: "запись не меняется"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.12
@@ -202,6 +224,7 @@ cases:
     scenario: "Скрытие отзыва, которого нет"
     expect: "отказ MARKETPLACE_REVIEW_NOT_FOUND"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.13
@@ -210,6 +233,7 @@ cases:
     scenario: "Пайщик без права модерации просит скрытые отзывы"
     expect: "в списке только опубликованные"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.14
@@ -218,6 +242,7 @@ cases:
     scenario: "Администратор читает список без просьбы о скрытых"
     expect: "в списке только опубликованные"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.15
@@ -226,6 +251,7 @@ cases:
     scenario: "Отзыв по заказу спрашивает не его автор"
     expect: "ответ пуст; автору отдаётся и скрытый отзыв"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.16
@@ -234,6 +260,8 @@ cases:
     scenario: "Каталог спрашивает оценки второй раз"
     expect: "новый запрос к базе: оценки между запросами не запоминаются"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "проверяется число запросов к базе — снаружи оно не видно; сами оценки проверяет случай mkt.review.happy.07"
     status: written
 
   - id: mkt.review.side.17
@@ -242,6 +270,8 @@ cases:
     scenario: "Оценки для пустого перечня предложений"
     expect: "запроса к базе нет"
     test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    external: unreachable
+    external_reason: "проверяется отсутствие запроса к базе — снаружи оно не видно"
     status: written
 
   - id: mkt.review.side.18
@@ -250,6 +280,7 @@ cases:
     scenario: "Сводка по предложению без отзывов"
     expect: "оценки нет, счётчик ноль, пять пустых строк"
     test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.side.19
@@ -258,6 +289,7 @@ cases:
     scenario: "Поиск по тексту со знаками подстановки, сортировка по неразрешённому полю"
     expect: "знаки ищутся буквально, сортировка по дате отзыва"
     test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.break.01
@@ -266,6 +298,8 @@ cases:
     scenario: "Двойное нажатие: база отвергла вторую запись по уникальности"
     expect: "отказ MARKETPLACE_REVIEW_ALREADY_EXISTS вместо ошибки сервера"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "гонка двух одновременных записей одного отзыва: через API второй запрос отсекает проверка до записи (случай mkt.review.side.04)"
     status: written
 
   - id: mkt.review.break.02
@@ -274,6 +308,8 @@ cases:
     scenario: "База недоступна при записи отзыва"
     expect: "ошибка базы не маскируется под «отзыв уже есть»"
     test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    external: unreachable
+    external_reason: "отказ базы посреди записи через API стенда не создать"
     status: written
 
   - id: mkt.review.rights.happy.01
@@ -282,6 +318,7 @@ cases:
     scenario: "Заказчик оставляет отзыв по своему заказу и правит свой отзыв"
     expect: "гард пропускает по охвату «своё»"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.happy.02
@@ -290,6 +327,7 @@ cases:
     scenario: "Администратор скрывает отзыв"
     expect: "гард пропускает"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.happy.03
@@ -298,6 +336,7 @@ cases:
     scenario: "Отзывы и профиль поставщика читают заказчик, поставщик, оператор участка, администратор и член совета"
     expect: "гард пропускает каждую роль"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.side.01
@@ -306,6 +345,7 @@ cases:
     scenario: "Отзыв по чужому заказу, правка чужого отзыва"
     expect: "отказ по охвату KIT_RIGHT_SCOPE_OWN"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.side.02
@@ -314,6 +354,7 @@ cases:
     scenario: "Поставщик правит либо скрывает отзыв о себе"
     expect: "отказ KIT_INSUFFICIENT_RIGHTS"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.side.03
@@ -322,6 +363,7 @@ cases:
     scenario: "Заказчик без оферты и пункта выдачи оставляет отзыв"
     expect: "отказ: право действует после подключения"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.rights.side.04
@@ -330,6 +372,7 @@ cases:
     scenario: "Заказчик, оператор участка либо член совета скрывает отзыв"
     expect: "отказ KIT_INSUFFICIENT_RIGHTS"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.01
@@ -338,6 +381,7 @@ cases:
     scenario: "Заказчик открывает профиль поставщика"
     expect: "название, рассказ, обложка, число предложений каталога и сводная оценка"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.02
@@ -346,6 +390,7 @@ cases:
     scenario: "Профиль поставщика, который о себе ничего не написал"
     expect: "имя из сертификата, рассказ пуст, страница открывается"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.03
@@ -354,6 +399,7 @@ cases:
     scenario: "Профиль кооператива — поставщика имущества со склада"
     expect: "профиль помечен как профиль кооператива"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.04
@@ -362,6 +408,7 @@ cases:
     scenario: "Поставщик первый раз сохраняет профиль с обложкой"
     expect: "профиль создан, текст обрезан по краям, файл обложки в хранилище"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.05
@@ -370,6 +417,7 @@ cases:
     scenario: "Поставщик правит одно поле профиля"
     expect: "остальные поля прежние"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.06
@@ -378,6 +426,7 @@ cases:
     scenario: "Поставщик очищает название и убирает обложку"
     expect: "имя снова из сертификата, обложки нет"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.happy.07
@@ -386,6 +435,7 @@ cases:
     scenario: "Ссылка на обложку профиля"
     expect: "ссылку подписывает хранилище; без обложки ссылки нет"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.side.01
@@ -394,6 +444,7 @@ cases:
     scenario: "Поставщик из реестра без предложений и без профиля"
     expect: "страница открывается"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.side.02
@@ -402,6 +453,7 @@ cases:
     scenario: "Учётная запись без профиля, без предложений и вне реестра поставщиков"
     expect: "отказ MARKETPLACE_SUPPLIER_PROFILE_NOT_FOUND"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.side.03
@@ -410,6 +462,8 @@ cases:
     scenario: "Сертификат поставщика не читается"
     expect: "вместо имени показана учётная запись"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    external: unreachable
+    external_reason: "сертификат пайщика на стенде читается всегда: сбой чтения через API не создать"
     status: written
 
   - id: mkt.profile.side.04
@@ -418,6 +472,7 @@ cases:
     scenario: "Рассказ либо название длиннее предела"
     expect: "отказ, профиль не пишется"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.break.01
@@ -426,6 +481,7 @@ cases:
     scenario: "Хранилище отвергло файл обложки"
     expect: "отказ хранилища, профиль не пишется"
     test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.rights.happy.01
@@ -434,6 +490,7 @@ cases:
     scenario: "Поставщик правит свой профиль"
     expect: "гард пропускает по охвату «своё»"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.rights.happy.02
@@ -442,6 +499,7 @@ cases:
     scenario: "Администратор правит профиль кооператива"
     expect: "гард пропускает"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.rights.side.01
@@ -450,6 +508,7 @@ cases:
     scenario: "Заказчик, не поставщик, правит профиль поставщика"
     expect: "отказ KIT_INSUFFICIENT_RIGHTS"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.profile.rights.side.02
@@ -458,6 +517,7 @@ cases:
     scenario: "Поставщик, оператор участка либо член совета правит профиль кооператива"
     expect: "отказ KIT_INSUFFICIENT_RIGHTS"
     test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    api: components/api-tests/src/marketplace/reviews.test.ts
     status: written
 
   - id: mkt.review.ui.happy.01

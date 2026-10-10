@@ -4,6 +4,7 @@ import { MarketplaceOfferStatuses, type MarketplaceOfferImage } from '../../doma
 import {
   MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX,
   MARKETPLACE_SUPPLIER_PROFILE_NAME_MAX,
+  type MarketplaceSupplierProfileDomainEntity,
 } from '../../domain/entities/marketplace-supplier-profile.entity';
 import {
   MARKETPLACE_OFFER_REPOSITORY,
@@ -78,10 +79,9 @@ export class MarketplaceSupplierProfileService {
     }
 
     const custom_display_name = profile?.display_name?.trim() || null;
-    const certificate_name = custom_display_name ? null : await this.display.resolveAccountName(supplier_account);
     return {
       supplier_account,
-      display_name: custom_display_name ?? certificate_name ?? supplier_account,
+      display_name: custom_display_name ?? (await this.certificateName(supplier_account)),
       custom_display_name,
       about: profile?.about ?? '',
       cover: profile?.cover ?? null,
@@ -103,37 +103,9 @@ export class MarketplaceSupplierProfileService {
     update: SupplierProfileUpdate
   ): Promise<SupplierProfileView> {
     const current = await this.profiles.find(coopname, supplier_account);
-
-    const about = update.about === undefined ? current?.about ?? '' : (update.about ?? '').trim();
-    if (about.length > MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX) {
-      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_PROFILE_ABOUT_TOO_LONG', {
-        max: MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX,
-      });
-    }
-
-    const display_name =
-      update.display_name === undefined ? current?.display_name ?? null : (update.display_name ?? '').trim() || null;
-    if (display_name && display_name.length > MARKETPLACE_SUPPLIER_PROFILE_NAME_MAX) {
-      throw DomainError.badRequest('MARKETPLACE_SUPPLIER_PROFILE_NAME_TOO_LONG', {
-        max: MARKETPLACE_SUPPLIER_PROFILE_NAME_MAX,
-      });
-    }
-
-    let cover = current?.cover ?? null;
-    if (update.cover) {
-      const bytes = Buffer.from(update.cover.base64, 'base64');
-      // Файл обложки лежит рядом с изображениями предложений поставщика и
-      // назван по содержимому: прежний файл не удаляется — то же изображение
-      // может стоять и в его предложении.
-      cover = await this.images.putImage({
-        bytes,
-        contentType: update.cover.mime_type,
-        coopname,
-        ownerAccount: supplier_account,
-      });
-    } else if (update.remove_cover) {
-      cover = null;
-    }
+    const about = nextAbout(update, current);
+    const display_name = nextDisplayName(update, current);
+    const cover = await this.nextCover(coopname, supplier_account, update, current?.cover ?? null);
 
     await this.profiles.save(coopname, supplier_account, { about, display_name, cover });
     return this.getProfile(coopname, supplier_account);
@@ -144,6 +116,32 @@ export class MarketplaceSupplierProfileService {
     return cover ? this.images.getReadUrl(cover.bucket_key) : null;
   }
 
+  /** Имя из сертификата пайщика; сертификат не читается — учётная запись. */
+  private async certificateName(supplier_account: string): Promise<string> {
+    return (await this.display.resolveAccountName(supplier_account)) ?? supplier_account;
+  }
+
+  /** Обложка после правки: новая, прежняя либо никакой. */
+  private async nextCover(
+    coopname: string,
+    supplier_account: string,
+    update: SupplierProfileUpdate,
+    current: MarketplaceOfferImage | null
+  ): Promise<MarketplaceOfferImage | null> {
+    if (update.cover) {
+      // Файл обложки лежит рядом с изображениями предложений поставщика и
+      // назван по содержимому: прежний файл не удаляется — то же изображение
+      // может стоять и в его предложении.
+      return this.images.putImage({
+        bytes: Buffer.from(update.cover.base64, 'base64'),
+        contentType: update.cover.mime_type,
+        coopname,
+        ownerAccount: supplier_account,
+      });
+    }
+    return update.remove_cover ? null : current;
+  }
+
   /** Число предложений поставщика, которые заказчик видит в каталоге. */
   private async countCatalogOffers(coopname: string, supplier_account: string): Promise<number> {
     const page = await this.offers.list(
@@ -152,4 +150,31 @@ export class MarketplaceSupplierProfileService {
     );
     return page.totalCount;
   }
+}
+
+/** Рассказ о себе после правки: не задан — прежний. */
+function nextAbout(update: SupplierProfileUpdate, current: MarketplaceSupplierProfileDomainEntity | null): string {
+  if (update.about === undefined) return current?.about ?? '';
+  const about = (update.about ?? '').trim();
+  if (about.length > MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX) {
+    throw DomainError.badRequest('MARKETPLACE_SUPPLIER_PROFILE_ABOUT_TOO_LONG', {
+      max: MARKETPLACE_SUPPLIER_PROFILE_ABOUT_MAX,
+    });
+  }
+  return about;
+}
+
+/** Название после правки: не задано — прежнее; пустая строка — названия нет. */
+function nextDisplayName(
+  update: SupplierProfileUpdate,
+  current: MarketplaceSupplierProfileDomainEntity | null
+): string | null {
+  if (update.display_name === undefined) return current?.display_name ?? null;
+  const display_name = (update.display_name ?? '').trim() || null;
+  if (display_name && display_name.length > MARKETPLACE_SUPPLIER_PROFILE_NAME_MAX) {
+    throw DomainError.badRequest('MARKETPLACE_SUPPLIER_PROFILE_NAME_TOO_LONG', {
+      max: MARKETPLACE_SUPPLIER_PROFILE_NAME_MAX,
+    });
+  }
+  return display_name;
 }
