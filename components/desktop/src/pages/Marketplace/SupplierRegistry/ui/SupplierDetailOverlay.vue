@@ -24,6 +24,11 @@ DetailsDrawer(
     )
     DataRow(:label='$t("marketplace.supplierDetailOverlay.accountLabel")', :value='supplier.member_account', copyable, mono)
 
+    //- Страница поставщика: рассказ о себе, его предложения и отзывы заказчиков
+    .supplier-detail__actions
+      BaseButton(variant='secondary', size='sm', @click='openProfile')
+        | {{ $t('marketplace.supplierDetailOverlay.openProfileButton') }}
+
     //- Решение председателя по заявке — здесь же, не возвращаясь в реестр
     .supplier-detail__actions(v-if='canModerate')
       BaseButton(
@@ -40,6 +45,7 @@ DetailsDrawer(
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useQueryOverlay } from 'src/shared/lib/navigation';
 import { DetailsDrawer, DataRow, IdentityCell } from 'src/shared/ui/domain';
 import { BaseBadge, BaseButton } from 'src/shared/ui/base';
@@ -74,6 +80,16 @@ const emit = defineEmits<{
 }>();
 
 const overlay = useQueryOverlay('supplier');
+const route = useRoute();
+const router = useRouter();
+
+function openProfile(): void {
+  if (!supplier.value) return;
+  void router.push({
+    name: 'marketplace-admin-supplier-profile',
+    params: { coopname: String(route.params.coopname ?? ''), account: supplier.value.member_account },
+  });
+}
 
 const supplier = computed<MarketplaceSupplierView | null>(() => {
   const account = overlay.value.value;

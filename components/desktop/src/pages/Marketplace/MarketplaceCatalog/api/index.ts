@@ -21,6 +21,8 @@ export interface ListCatalogVariables {
   // Эпик 16 / Story 16.3: пункт выдачи (КУ). Если задан — каталог показывает
   // только товары, доставимые на этот КУ. null/undefined — без КУ-фильтра.
   delivery_braname?: string | null;
+  // Только предложения одного поставщика — для его страницы.
+  supplier_account?: string | null;
 }
 
 function mapSortToBackend(sort: CatalogSort | undefined): {
@@ -49,6 +51,7 @@ export async function fetchCatalog(
     sortBy,
     sortOrder,
     delivery_braname: variables.delivery_braname ?? null,
+    supplier_account: variables.supplier_account ?? null,
   };
   const { [Queries.Marketplace.ListCatalog.name]: page } = await client.Query(
     Queries.Marketplace.ListCatalog.query,

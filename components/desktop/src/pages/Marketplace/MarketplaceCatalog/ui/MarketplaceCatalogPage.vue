@@ -5,24 +5,13 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
-import {
-  marketLiveTables,
-  marketplaceAvailablePackages,
-  offerCardUnitCost,
-  offerCardUnitLabel,
-} from 'src/shared/lib/marketplace';
-import {
-  CatalogOfferCard,
-  CatalogOfferCardSkeleton,
-  type CatalogOffer,
-  type CatalogOfferStatus,
-} from 'src/widgets/Marketplace/CatalogOfferCard';
+import { marketLiveTables } from 'src/shared/lib/marketplace';
+import { CatalogOfferCard, CatalogOfferCardSkeleton } from 'src/widgets/Marketplace/CatalogOfferCard';
 import { BaseButton, EmptyState } from 'src/shared/ui/base';
 import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { KUHeaderBar } from 'src/widgets/Marketplace/KUHeaderBar';
 import { WalletHeaderButton } from 'src/widgets/Marketplace/WalletHeaderButton';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
-import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
 import { getMembershipFeePercent } from 'src/shared/lib/marketplace';
 import {
   fetchCatalog,
@@ -34,6 +23,7 @@ import type {
   MarketplaceCategoryView,
   MarketplaceOfferView,
 } from '../types';
+import { canOrderOffer, toCatalogOffer } from '../lib/catalog-offer';
 import AddToCartDialog from './AddToCartDialog.vue';
 import { t } from 'src/shared/i18n';
 
@@ -125,60 +115,6 @@ const categoryNameById = computed<Record<number, string>>(() => {
   return map;
 });
 
-// Цена задаётся за базовую единицу (Эпик 17) — справочный пересчёт из фасовки
-// больше не нужен; нота-подсказка не показывается.
-function referencePriceNote(_offer: MarketplaceOfferView): string | undefined {
-  return undefined;
-}
-
-function toCatalogOffer(offer: MarketplaceOfferView): CatalogOffer {
-  const isEmpty = !offer.unlimited_flag && offer.quantity_available <= 0;
-  const status: CatalogOfferStatus = isEmpty ? 'sold-out' : 'published';
-  // Заказчику показываем только ту тару, которую он может взять: пустая
-  // упаковка в карточке обещает товар, а в окне «В корзину» упирается в
-  // «Доступно: 0». Крупная цена тоже считается по доступной таре — иначе
-  // карточка называет цену литровой бутылки, которой на складе нет.
-  const availableOffer = {
-    ...offer,
-    packages: marketplaceAvailablePackages(offer.packages, offer.unlimited_flag),
-  };
-  // Основная доступная тара задаёт и цену, и остаток: карточка говорит «130 ₽
-  // за упак. 0,5 л — 90 упак.», а весь перечень тары заказчик выбирает в окне
-  // «В корзину» или на странице предложения (решение владельца 14.09.2026).
-  const mainPackage =
-    availableOffer.packages.find((p) => p.is_default) ?? availableOffer.packages[0] ?? null;
-  return {
-    id: offer.id,
-    title: offer.product_name,
-    description: offer.description ?? undefined,
-    images: marketplaceOfferImageUrls(offer.images),
-    remainUnits: offer.unlimited_flag
-      ? undefined
-      : mainPackage
-        ? mainPackage.quantity_available
-        : offer.quantity_available,
-    unitCost: offerCardUnitCost(availableOffer),
-    unitLabel: offerCardUnitLabel(availableOffer),
-    referenceNote: referencePriceNote(offer),
-    status,
-    category: categoryNameById.value[offer.category_id] ?? undefined,
-    supplierName: offer.supplier_name ?? undefined,
-    // Остаток склада кооператива (requirement 76): мгновенная выдача, без цикла поставки.
-    coopStock: Boolean(offer.stock_braname),
-  };
-}
-
-function canOrder(offer: MarketplaceOfferView): boolean {
-  if (offer.unlimited_flag) return true;
-  if (offer.quantity_available <= 0) return false;
-  // Отпуск упаковкой: остаток ведётся на каждой таре, и общий котёл литров
-  // ничего не решает — если свободных упаковок нет, заказывать нечего.
-  if (offer.packages?.length) {
-    return marketplaceAvailablePackages(offer.packages, false).length > 0;
-  }
-  return true;
-}
-
 async function loadCategories(): Promise<void> {
   // Счётчики КУ-скоупим текущим пунктом выдачи — пустые на нём категории уйдут
   // из вкладок (categoryTabs фильтрует count==0). Без КУ (гость) — глобально.
@@ -258,9 +194,18 @@ function offerKUNames(offer: MarketplaceOfferView): string[] {
 }
 
 function onSelectOffer(offer: MarketplaceOfferView): void {
-  if (!canOrder(offer) || needsKU.value) return;
+  if (!canOrderOffer(offer) || needsKU.value) return;
   cartDialogOffer.value = offer;
   cartDialogOpen.value = true;
+}
+
+// Имя поставщика на карточке ведёт на его страницу: кто он, что ещё поставляет
+// и что о нём говорят.
+function goToSupplier(offer: MarketplaceOfferView): void {
+  void router.push({
+    name: 'marketplace-supplier-profile',
+    params: { coopname: coopname.value, account: offer.supplier_account },
+  });
 }
 
 // Клик по карточке открывает страницу с полным описанием предложения; быстрый
@@ -433,7 +378,13 @@ q-page.catalog(role="region", :aria-label="$t('marketplace.marketplaceCatalogPag
   q-infinite-scroll(@load="onLoadMore", :disable="!hasMore || loading")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in items", :key="o.id")
-        CatalogOfferCard(:offer="toCatalogOffer(o)", :fee-percent="feePercent", :show-fee-note="false", @click="goToDetail(o)")
+        CatalogOfferCard(
+          :offer="toCatalogOffer(o, categoryNameById)",
+          :fee-percent="feePercent",
+          :show-fee-note="false",
+          @click="goToDetail(o)",
+          @supplier-click="goToSupplier(o)"
+        )
           template(v-if="needsKU && offerKUNames(o).length", #details)
             .catalog__offer-ku
               q-icon(name="location_on", size="14px")
@@ -442,7 +393,7 @@ q-page.catalog(role="region", :aria-label="$t('marketplace.marketplaceCatalogPag
             BaseButton(
               variant="primary",
               size="sm",
-              :disabled="!canOrder(o) || needsKU",
+              :disabled="!canOrderOffer(o) || needsKU",
               @click.stop="onSelectOffer(o)"
             ) {{ $t('marketplace.marketplaceCatalogPage.addToCartAction') }}
     template(#loading)

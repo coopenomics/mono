@@ -35,6 +35,8 @@ export const MARKETPLACE_LIVE_TABLES: InnerChainChangesTable[] = [
     'marketplace_category',
     'marketplace_ttn_document',
     'marketplace_cart_item',
+    'marketplace_supplier_profile',
+    'marketplace_review',
   ].map((table) => ({ code: CODE, table })),
   { code: CODE, table: 'marketplace_cart', owner_field: 'orderer_account' },
 ];

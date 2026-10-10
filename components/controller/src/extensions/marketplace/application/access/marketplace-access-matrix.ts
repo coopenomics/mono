@@ -108,6 +108,10 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         // каталог показывает цену с учётом взноса.
         Economy: ['read'],
         MemberWallet: ['read:own'],
+        // Задача 598-61: заказчик открывает профиль поставщика, читает отзывы и
+        // оставляет отзыв по своему полученному заказу.
+        SupplierProfile: ['read'],
+        Review: ['read', 'create:own', 'update:own'],
       },
     },
   ],
@@ -130,6 +134,9 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         SupplierClaim: ['read:to-self', 'respond:to-self'],
         // Выплаты кооператива этому поставщику.
         Payment: ['read:to-self'],
+        // Задача 598-61: поставщик ведёт свой профиль и читает отзывы о себе.
+        SupplierProfile: ['read', 'update:own'],
+        Review: ['read'],
       },
     },
   ],
@@ -181,6 +188,9 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         // своего участка по решению совета (подпись Служебной записки 1111 →
         // confirmwroff) и видит список таких ожидающих подтверждения групп.
         Writeoff: ['read:own-KU', 'confirm:own-KU'],
+        // Задача 598-61: карточка предложения у оператора показывает поставщика и отзывы.
+        SupplierProfile: ['read'],
+        Review: ['read'],
       },
     },
     {
@@ -243,6 +253,10 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         // requirement b6: администратор устанавливает единую ставку членского
         // взноса кооператива и видит экономику любого КУ и все заявки на помощь.
         Economy: ['read', 'read:all', 'read:own-KU', 'set-fee', 'use:own'],
+        // Задача 598-61: администратор ведёт профиль кооператива (имущество со
+        // склада) и скрывает отзывы с причиной.
+        SupplierProfile: ['read', 'manage'],
+        Review: ['read', 'moderate'],
       },
     },
     {
@@ -279,6 +293,9 @@ export const marketplaceRightsTable: RightsTable<MarketplaceRole, MarketplaceCon
         // Совет ведёт read-only надзор за расчётами кооператива с поставщиками:
         // подтверждение/отказ выплат делает кассир, совету нужен только обзор.
         Payment: ['read:all'],
+        // Задача 598-61: совет читает профили поставщиков и отзывы.
+        SupplierProfile: ['read'],
+        Review: ['read'],
       },
     },
   ],

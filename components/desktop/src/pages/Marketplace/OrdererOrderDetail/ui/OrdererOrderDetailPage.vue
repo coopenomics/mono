@@ -11,6 +11,8 @@ import { ActivityTimeline, type ActivityEvent } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
 import { HandoffCodeDialog } from 'src/widgets/Marketplace/HandoffCode';
 import { CancelOrderDialog } from 'src/widgets/Marketplace/CancelOrderDialog';
+import { ReviewFormDialog } from 'src/widgets/Marketplace/ReviewFormDialog';
+import { loadMyReviewByOrder, type MarketplaceReviewView } from 'src/entities/MarketplaceReview';
 import {
   HandoffTokenKind,
   marketLiveTables,
@@ -205,6 +207,31 @@ const hasMap = computed(() => pvzLat.value !== null && pvzLng.value !== null);
 // Факт выдачи появляется, когда оператор открыл выдачу.
 const issuanceFact = computed(() => order.value?.issuance_fact ?? null);
 
+// Отзыв заказчик оставляет после получения — и по возвращённому заказу тоже:
+// он имущество получил и видел.
+const review = ref<MarketplaceReviewView | null>(null);
+const reviewDialogOpen = ref(false);
+const canReview = computed(
+  () =>
+    order.value?.status === Zeus.MarketplaceOrderStatus.RECEIVED ||
+    order.value?.status === Zeus.MarketplaceOrderStatus.RETURNED,
+);
+const reviewHidden = computed(() => review.value?.status === Zeus.MarketplaceReviewStatus.HIDDEN);
+
+async function loadReview(): Promise<void> {
+  if (!orderId.value) return;
+  try {
+    review.value = await loadMyReviewByOrder(orderId.value);
+  } catch {
+    // Некритично для страницы заказа — без данных блок предложит оставить отзыв,
+    // а сервер повторный отзыв не примет.
+  }
+}
+
+function onReviewSaved(saved: MarketplaceReviewView): void {
+  review.value = saved;
+}
+
 // Хронология этапов → канон ActivityTimeline. Берём только проставленные
 // отметки времени; тип события задаёт цвет иконки на ленте.
 const timelineEvents = computed<ActivityEvent[]>(() => {
@@ -245,6 +272,10 @@ const timelineEvents = computed<ActivityEvent[]>(() => {
         entry.at,
       );
     }
+  }
+
+  if (review.value) {
+    add('review', 'create', 'rate_review', t('marketplace.ordererOrderDetailPage.statusReviewLeft'), review.value.created_at);
   }
 
   // Заказные и возвратные события идут из независимых источников — сводим в
@@ -326,6 +357,7 @@ async function onOrderCancelled(): Promise<void> {
 onMounted(() => {
   void load();
   void loadReturnClaims();
+  void loadReview();
   void getMembershipFeePercent()
     .then((p) => {
       feePercent.value = p;
@@ -339,9 +371,10 @@ const reloadLive = debounce(() => {
   if (loading.value) return;
   void load();
 }, 400);
-useLiveReload(marketLiveTables('order', 'return'), async () => {
+useLiveReload(marketLiveTables('order', 'return', 'review'), async () => {
     await reloadLive();
     await loadReturnClaims();
+    await loadReview();
   });
 </script>
 
@@ -460,12 +493,51 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
                 q-icon(name="assignment", size="16px")
               | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
 
+      //- Отзыв о полученном имуществе: оставить, прочитать свой, поправить.
+      BaseCard.order-detail__card(v-if="canReview")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.reviewLabel') }}
+        .order-detail__review
+          template(v-if="review")
+            .order-detail__review-head
+              q-rating(
+                :model-value="review.stars",
+                readonly,
+                :max="5",
+                size="18px",
+                color="accent",
+                icon="star_border",
+                icon-selected="star"
+              )
+              BaseBadge(v-if="reviewHidden", variant="neutral") {{ $t('marketplace.ordererOrderDetailPage.reviewHiddenBadge') }}
+            .order-detail__review-text(v-if="review.text") {{ review.text }}
+            .t-muted(v-if="reviewHidden && review.hidden_reason")
+              | {{ $t('marketplace.ordererOrderDetailPage.reviewHiddenReason', { reason: review.hidden_reason }) }}
+            .order-detail__return-actions(v-if="!reviewHidden")
+              BaseButton(variant="secondary", size="sm", @click="reviewDialogOpen = true") {{ $t('marketplace.ordererOrderDetailPage.reviewEditButton') }}
+          template(v-else)
+            .t-muted {{ $t('marketplace.ordererOrderDetailPage.reviewInvite') }}
+            .order-detail__return-actions
+              BaseButton(variant="primary", size="sm", @click="reviewDialogOpen = true")
+                template(#icon-left)
+                  q-icon(name="rate_review", size="16px")
+                | {{ $t('marketplace.ordererOrderDetailPage.reviewLeaveButton') }}
+
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)
           .t-h3 {{ $t('marketplace.ordererOrderDetailPage.timelineTitle') }}
         ActivityTimeline(:events="timelineEvents", group-by-date)
 
     HandoffCodeDialog(v-model="receiveDialogOpen", :coopname="coopname", :kind="HandoffTokenKind.Receive")
+
+    ReviewFormDialog(
+      v-if="order",
+      v-model="reviewDialogOpen",
+      :order-id="order.id",
+      :offer-name="order.product_name",
+      :review="review",
+      @saved="onReviewSaved"
+    )
 
     CancelOrderDialog(
       v-model="cancelDialogOpen",
@@ -657,6 +729,25 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
     display: flex;
     flex-direction: column;
     gap: var(--p-4, 16px);
+  }
+
+  &__review {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-3, 12px);
+  }
+
+  &__review-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3, 12px);
+  }
+
+  &__review-text {
+    color: var(--p-ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   // Иконка + жирная строка состояния + приглушённая деталь снизу — тот же

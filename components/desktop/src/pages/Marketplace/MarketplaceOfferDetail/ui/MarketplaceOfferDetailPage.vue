@@ -10,6 +10,10 @@ import { useSystemStore } from 'src/entities/System/model';
 import { BaseButton, BaseBadge, EmptyState } from 'src/shared/ui/base';
 import { DataRow } from 'src/shared/ui/domain';
 import { OfferGallery } from 'src/widgets/Marketplace/OfferGallery';
+import { ReviewHideDialog } from 'src/widgets/Marketplace/ReviewHideDialog';
+import { ReviewList } from 'src/widgets/Marketplace/ReviewList';
+import { ReviewStars } from 'src/widgets/Marketplace/ReviewStars';
+import type { MarketplaceReviewView } from 'src/entities/MarketplaceReview';
 import { marketplaceOrderUnitLabel } from 'src/shared/lib/consts';
 import { MarketplaceSaleForm } from 'src/shared/lib/consts/marketplace-units';
 import { marketplaceOfferImageUrls } from 'src/shared/lib/utils';
@@ -58,6 +62,7 @@ const BACK_TARGETS: Record<string, { label: string; name: string }> = {
   offers: { label: t('marketplace.marketplaceOfferDetailPage.backToOffers'), name: 'marketplace-admin-offers' },
   moderation: { label: t('marketplace.marketplaceOfferDetailPage.backToModeration'), name: 'marketplace-moderation' },
   warehouse: { label: t('marketplace.marketplaceOfferDetailPage.backToWarehouse'), name: 'marketplace-warehouse-summary' },
+  reviews: { label: t('marketplace.marketplaceOfferDetailPage.backToReviews'), name: 'marketplace-admin-reviews' },
 };
 
 const backTarget = computed<{ label: string; name: string }>(() => {
@@ -219,6 +224,22 @@ const deliveryPoints = computed(() =>
   })),
 );
 
+// Имя поставщика ведёт на его страницу: кто он, что ещё поставляет и что о нём
+// говорят. Предложение со склада открывает профиль кооператива.
+const supplierRoute = computed(() => ({
+  name: readonly.value ? 'marketplace-admin-supplier-profile' : 'marketplace-supplier-profile',
+  params: { coopname: coopname.value, account: offer.value?.supplier_account ?? '' },
+}));
+
+// Администратор скрывает отзыв прямо на странице предложения.
+const hideDialogOpen = ref(false);
+const reviewToHide = ref<MarketplaceReviewView | null>(null);
+
+function askHideReview(review: MarketplaceReviewView): void {
+  reviewToHide.value = review;
+  hideDialogOpen.value = true;
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   try {
@@ -301,9 +322,11 @@ q-page.offer-detail(role="region", :aria-label="$t('marketplace.marketplaceOffer
 
       h1.offer-detail__title {{ offer.product_name }}
 
-      .offer-detail__supplier(v-if="offer.supplier_name")
+      router-link.offer-detail__supplier(v-if="offer.supplier_name", :to="supplierRoute")
         q-icon(name="storefront", size="16px")
         span {{ offer.supplier_name }}
+
+      ReviewStars(:rating="offer.rating_avg", :count="offer.reviews_count")
 
       .offer-detail__price {{ priceLabel }}
       .offer-detail__fee-note(v-if="referenceNote") {{ referenceNote }}
@@ -383,6 +406,12 @@ q-page.offer-detail(role="region", :aria-label="$t('marketplace.marketplaceOffer
           span.offer-detail__point-name {{ row.name }}
           span.offer-detail__point-vol {{ row.price }} · {{ row.stock }}
 
+    //- Отзывы пишут заказчики из своих полученных заказов; здесь их читают.
+    section.offer-detail__section
+      .offer-detail__section-head {{ $t('marketplace.marketplaceOfferDetailPage.reviewsTitle') }}
+      ReviewList(:offer-id="offer.id", :moderation="readonly", @hide="askHideReview")
+
+  ReviewHideDialog(v-if="readonly", v-model="hideDialogOpen", :review="reviewToHide")
 
   AddToCartDialog(
     v-if="!readonly",
@@ -480,6 +509,14 @@ q-page.offer-detail(role="region", :aria-label="$t('marketplace.marketplaceOffer
     gap: var(--p-2, 8px);
     color: var(--p-ink-2);
     font-size: var(--p-fs-body-sm);
+    text-decoration: none;
+    // Ссылка на страницу поставщика занимает ширину текста, а не всей строки.
+    align-self: flex-start;
+
+    &:hover {
+      color: var(--p-primary);
+      text-decoration: underline;
+    }
   }
 
   &__price {

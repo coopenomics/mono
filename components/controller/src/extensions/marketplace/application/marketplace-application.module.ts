@@ -132,6 +132,10 @@ import {
   MarketplaceOutgoingPaymentResolver,
 } from './resolvers/marketplace-outgoing-payment.resolver';
 import { MarketplaceSupplierSettingsResolver } from './resolvers/marketplace-supplier-settings.resolver';
+import { MarketplaceSupplierProfileResolver } from './resolvers/marketplace-supplier-profile.resolver';
+import { MarketplaceSupplierProfileService } from './services/marketplace-supplier-profile.service';
+import { MarketplaceReviewFieldsResolver, MarketplaceReviewResolver } from './resolvers/marketplace-review.resolver';
+import { MarketplaceReviewService } from './services/marketplace-review.service';
 import {
   MarketplaceSupplierSettingsService,
   MARKETPLACE_SUPPLIER_SETTINGS_SERVICE,
@@ -258,6 +262,9 @@ import {
     MarketplaceOutgoingPaymentResolver,
     MarketplaceOutgoingPaymentFieldsResolver,
     MarketplaceSupplierSettingsResolver,
+    MarketplaceSupplierProfileResolver,
+    MarketplaceReviewResolver,
+    MarketplaceReviewFieldsResolver,
     MarketplaceIssuanceResolver,
     MarketplaceReturnClaimResolver,
     MarketplaceSupplierClaimResolver,
@@ -305,6 +312,9 @@ import {
       useClass: MarketplaceSupplierSettingsService,
     },
     MarketplaceSupplierSettingsService,
+    // Профиль поставщика и отзывы заказчиков (задача 598-61)
+    MarketplaceReviewService,
+    MarketplaceSupplierProfileService,
     // Story 3.2
     {
       provide: MARKETPLACE_OFFER_SERVICE,

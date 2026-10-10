@@ -145,3 +145,11 @@ export * as StockProposalSignablePayloads from './stockProposalSignablePayloads'
 export * as ListSuppliers from './listSuppliers'
 /** Запись текущего пайщика в реестре поставщиков (онбординг стола поставщика) */
 export * as MySupplierState from './mySupplierState'
+/** Профиль поставщика: имя, рассказ о себе, обложка, число предложений и сводная оценка */
+export * as SupplierProfile from './supplierProfile'
+/** Отзывы о предложении, обо всех предложениях поставщика либо одного автора */
+export * as ListReviews from './listReviews'
+/** Сводная оценка по отзывам: средняя, число отзывов, распределение по оценкам */
+export * as ReviewSummary from './reviewSummary'
+/** Отзыв заказчика по его заказу */
+export * as MyReviewByOrder from './myReviewByOrder'

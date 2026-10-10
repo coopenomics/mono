@@ -45,6 +45,9 @@ title: Доступные категории кооператива — огра
 # убраны. Отказ «право не положено» отвечает кодом KIT_INSUFFICIENT_RIGHTS (был
 # отказ без кода). Набор случаев прежний.
 
+# Правка 2026-10-10 (598-61, профиль поставщика и отзывы): таблица прав получила права профиля поставщика и отзывов
+# (`SupplierProfile:*`, `Review:*`); права категорий (`Whitelist:manage`) прежние, набор случаев прежний.
+
 sources:
   backend:
     - components/controller/src/extensions/marketplace/application/resolvers/available-category-admin.resolver.ts

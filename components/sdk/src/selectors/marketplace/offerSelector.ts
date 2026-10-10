@@ -43,6 +43,8 @@ const rawOfferSelector = {
   pack_size: true,
   stock_braname: true,
   stock_package_size: true,
+  rating_avg: true,
+  reviews_count: true,
   status: true,
   approved_by: true,
   approved_at: true,

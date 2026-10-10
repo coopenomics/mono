@@ -9704,6 +9704,14 @@ export type ValueTypes = {
 	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
 	signed_statement: ValueTypes["MarketplaceReturnStatementSignedInput"] | Variable<any, string>
 };
+	["MarketplaceCreateReviewInput"]: {
+	/** Полученный заказ, о котором отзыв. */
+	order_id: string | Variable<any, string>,
+	/** Оценка от 1 до 5. */
+	stars: number | Variable<any, string>,
+	/** Текст отзыва. */
+	text?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: string | Variable<any, string>,
@@ -10112,7 +10120,9 @@ export type ValueTypes = {
 	/** Ключ сортировки (например, "name") */
 	sortBy?: string | undefined | null | Variable<any, string>,
 	/** Направление сортировки ("ASC" или "DESC") */
-	sortOrder: string | Variable<any, string>
+	sortOrder: string | Variable<any, string>,
+	/** Учётная запись поставщика. Если задана — в каталоге остаются только его предложения. */
+	supplier_account?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceListConsolidatedRequestsInput"]: {
 	/** Фильтр по идентификатору предложения. */
@@ -10196,6 +10206,20 @@ export type ValueTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string | Variable<any, string>
+};
+	["MarketplaceListReviewsFilterInput"]: {
+	/** Отзывы одного автора. */
+	author_account?: string | undefined | null | Variable<any, string>,
+	/** Показать и скрытые отзывы. Действует только для администратора. */
+	include_hidden?: boolean | undefined | null | Variable<any, string>,
+	/** Отзывы об одном предложении. */
+	offer_id?: string | undefined | null | Variable<any, string>,
+	/** Подстрока текста отзыва. */
+	search?: string | undefined | null | Variable<any, string>,
+	/** Отбор по состоянию — вместе с показом скрытых. */
+	status?: ValueTypes["MarketplaceReviewStatus"] | undefined | null | Variable<any, string>,
+	/** Отзывы обо всех предложениях поставщика. */
+	supplier_account?: string | undefined | null | Variable<any, string>
 };
 	["MarketplaceListShipmentsByBranameInput"]: {
 	/** Кооперативный участок получения партий. */
@@ -10282,9 +10306,13 @@ export type ValueTypes = {
 	quantity_available?:boolean | `@${string}`,
 	quantity_blocked?:boolean | `@${string}`,
 	quantity_consumed?:boolean | `@${string}`,
+	/** Средняя оценка предложения по отзывам заказчиков. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Число отзывов заказчиков о предложении. */
+	reviews_count?:boolean | `@${string}`,
 	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
 	sale_form?:boolean | `@${string}`,
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
@@ -11072,6 +11100,74 @@ export type ValueTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string | Variable<any, string>
 };
+	["MarketplaceReview"]: AliasType<{
+	/** Учётная запись автора отзыва. */
+	author_account?:boolean | `@${string}`,
+	/** Имя автора отзыва (ФИО физлица либо наименование организации). */
+	author_name?:boolean | `@${string}`,
+	/** Когда отзыв оставлен. */
+	created_at?:boolean | `@${string}`,
+	/** Причина, по которой администратор скрыл отзыв. Видна автору и администратору. */
+	hidden_reason?:boolean | `@${string}`,
+	/** Идентификатор отзыва. */
+	id?:boolean | `@${string}`,
+	/** Предложение, о котором отзыв. */
+	offer_id?:boolean | `@${string}`,
+	/** Название предложения, о котором отзыв. */
+	offer_name?:boolean | `@${string}`,
+	/** Заказ, по которому оставлен отзыв. */
+	order_id?:boolean | `@${string}`,
+	/** Оценка от 1 до 5. */
+	stars?:boolean | `@${string}`,
+	/** Состояние отзыва. */
+	status?:boolean | `@${string}`,
+	/** Учётная запись поставщика этого предложения. */
+	supplier_account?:boolean | `@${string}`,
+	/** Текст отзыва; может быть пустым, если автор поставил только оценку. */
+	text?:boolean | `@${string}`,
+	/** Когда отзыв последний раз менялся. */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReview']?: Omit<ValueTypes["MarketplaceReview"], "...on MarketplaceReview">
+}>;
+	["MarketplaceReviewPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ValueTypes["MarketplaceReview"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReviewPaginationResult']?: Omit<ValueTypes["MarketplaceReviewPaginationResult"], "...on MarketplaceReviewPaginationResult">
+}>;
+	["MarketplaceReviewStarsCount"]: AliasType<{
+	/** Число отзывов с такой оценкой. */
+	count?:boolean | `@${string}`,
+	/** Оценка от 1 до 5. */
+	stars?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReviewStarsCount']?: Omit<ValueTypes["MarketplaceReviewStarsCount"], "...on MarketplaceReviewStarsCount">
+}>;
+	/** Состояние отзыва: PUBLISHED — опубликован и виден пайщикам, HIDDEN — скрыт администратором. */
+["MarketplaceReviewStatus"]:MarketplaceReviewStatus;
+	["MarketplaceReviewSummary"]: AliasType<{
+	/** Средняя оценка. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
+	/** Число опубликованных отзывов. */
+	reviews_count?:boolean | `@${string}`,
+	/** Распределение отзывов по оценкам, от пяти звёзд к одной. */
+	stars_breakdown?:ValueTypes["MarketplaceReviewStarsCount"],
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceReviewSummary']?: Omit<ValueTypes["MarketplaceReviewSummary"], "...on MarketplaceReviewSummary">
+}>;
+	["MarketplaceReviewSummaryInput"]: {
+	/** Сводка по одному предложению. */
+	offer_id?: string | undefined | null | Variable<any, string>,
+	/** Сводка по всем предложениям поставщика. */
+	supplier_account?: string | undefined | null | Variable<any, string>
+};
 	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
 ["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
@@ -11095,6 +11191,14 @@ export type ValueTypes = {
 	offer_id: string | Variable<any, string>,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number | Variable<any, string>
+};
+	["MarketplaceSetReviewStatusInput"]: {
+	/** Идентификатор отзыва. */
+	id: string | Variable<any, string>,
+	/** Причина скрытия. Обязательна, когда отзыв скрывают. */
+	reason?: string | undefined | null | Variable<any, string>,
+	/** Новое состояние: HIDDEN — скрыть, PUBLISHED — вернуть в публикацию. */
+	status: ValueTypes["MarketplaceReviewStatus"] | Variable<any, string>
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
@@ -11627,6 +11731,36 @@ export type ValueTypes = {
 		__typename?: boolean | `@${string}`,
 	['...on MarketplaceSupplierPaymentSettings']?: Omit<ValueTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 }>;
+	["MarketplaceSupplierProfile"]: AliasType<{
+	/** Что поставщик рассказывает о себе. */
+	about?:boolean | `@${string}`,
+	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
+	cover_url?:boolean | `@${string}`,
+	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
+	custom_display_name?:boolean | `@${string}`,
+	/** Имя поставщика на его странице: заданное им название либо имя из сертификата. */
+	display_name?:boolean | `@${string}`,
+	/** Профиль кооператива: он поставляет имущество со своего склада. */
+	is_cooperative?:boolean | `@${string}`,
+	/** Число предложений поставщика, доступных к заказу. */
+	offers_count?:boolean | `@${string}`,
+	/** Средняя оценка по отзывам на все предложения поставщика. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
+	/** Число отзывов на все предложения поставщика. */
+	reviews_count?:boolean | `@${string}`,
+	/** Учётная запись поставщика. */
+	supplier_account?:boolean | `@${string}`,
+	/** Когда поставщик последний раз правил профиль. */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on MarketplaceSupplierProfile']?: Omit<ValueTypes["MarketplaceSupplierProfile"], "...on MarketplaceSupplierProfile">
+}>;
+	["MarketplaceSupplierProfileCoverInput"]: {
+	/** Содержимое изображения в base64. */
+	base64: string | Variable<any, string>,
+	/** Тип изображения: image/jpeg, image/png либо image/webp. */
+	mime_type: string | Variable<any, string>
+};
 	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
 ["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
@@ -11679,6 +11813,14 @@ export type ValueTypes = {
 	/** Новая подпись бокса. */
 	label?: string | undefined | null | Variable<any, string>
 };
+	["MarketplaceUpdateMyReviewInput"]: {
+	/** Идентификатор отзыва. */
+	id: string | Variable<any, string>,
+	/** Оценка от 1 до 5. */
+	stars: number | Variable<any, string>,
+	/** Текст отзыва. */
+	text?: string | undefined | null | Variable<any, string>
+};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ValueTypes["MarketplaceBarcodeStrategy"] | undefined | null | Variable<any, string>,
 	category_id?: number | undefined | null | Variable<any, string>,
@@ -11708,6 +11850,16 @@ export type ValueTypes = {
 	is_active?: boolean | undefined | null | Variable<any, string>,
 	/** Новая подпись ячейки. */
 	label?: string | undefined | null | Variable<any, string>
+};
+	["MarketplaceUpdateSupplierProfileInput"]: {
+	/** Что поставщик рассказывает о себе. Не задано — текст остаётся прежним. */
+	about?: string | undefined | null | Variable<any, string>,
+	/** Новая обложка профиля. Не задана — обложка остаётся прежней. */
+	cover?: ValueTypes["MarketplaceSupplierProfileCoverInput"] | undefined | null | Variable<any, string>,
+	/** Название на странице поставщика. Пустая строка возвращает имя из сертификата; не задано — название остаётся прежним. */
+	display_name?: string | undefined | null | Variable<any, string>,
+	/** Убрать обложку профиля. */
+	remove_cover?: boolean | undefined | null | Variable<any, string>
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string | Variable<any, string>,
@@ -12495,6 +12647,7 @@ marketplaceCreateCustomCategory?: [{	input: ValueTypes["CreateCustomCategoryInpu
 marketplaceCreateExpressReception?: [{	data: ValueTypes["MarketplaceCreateExpressReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ValueTypes["MarketplaceCreateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceCreateReturnClaim?: [{	data: ValueTypes["MarketplaceCreateReturnClaimInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaimResult"]],
+marketplaceCreateReview?: [{	data: ValueTypes["MarketplaceCreateReviewInput"] | Variable<any, string>},ValueTypes["MarketplaceReview"]],
 marketplaceCreateShipment?: [{	data: ValueTypes["MarketplaceCreateShipmentInput"] | Variable<any, string>},ValueTypes["MarketplaceCreateShipmentResult"]],
 marketplaceCreateStockProposal?: [{	data: ValueTypes["MarketplaceCreateStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockProposal"]],
 marketplaceCreateStorageCell?: [{	data: ValueTypes["MarketplaceCreateStorageCellInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
@@ -12530,6 +12683,7 @@ marketplaceSetCartDeliveryPoint?: [{	input: ValueTypes["MarketplaceSetCartDelive
 marketplaceSetKUStatus?: [{	data: ValueTypes["MarketplaceSetKUStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ValueTypes["MarketplaceSetMembershipFeeInput"] | Variable<any, string>},ValueTypes["MarketplaceEconomyConfig"]],
 marketplaceSetOfferWarranty?: [{	input: ValueTypes["MarketplaceSetOfferWarrantyInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
+marketplaceSetReviewStatus?: [{	data: ValueTypes["MarketplaceSetReviewStatusInput"] | Variable<any, string>},ValueTypes["MarketplaceReview"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ValueTypes["MarketplaceSetTrusteeWeightInput"] | Variable<any, string>},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ValueTypes["MarketplaceSignAplReceptionInput"] | Variable<any, string>},ValueTypes["MarketplaceAplReceptionResult"]],
@@ -12543,6 +12697,9 @@ marketplaceSwitchSupplierModel?: [{	input: ValueTypes["MarketplaceSwitchSupplier
 marketplaceUnpublishStock?: [{	data: ValueTypes["MarketplaceUnpublishStockInput"] | Variable<any, string>},ValueTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ValueTypes["MarketplaceUpdateCartItemInput"] | Variable<any, string>},ValueTypes["MarketplaceCart"]],
 marketplaceUpdateContainer?: [{	data: ValueTypes["MarketplaceUpdateContainerInput"] | Variable<any, string>},ValueTypes["MarketplaceContainer"]],
+marketplaceUpdateCooperativeProfile?: [{	data: ValueTypes["MarketplaceUpdateSupplierProfileInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierProfile"]],
+marketplaceUpdateMyReview?: [{	data: ValueTypes["MarketplaceUpdateMyReviewInput"] | Variable<any, string>},ValueTypes["MarketplaceReview"]],
+marketplaceUpdateMySupplierProfile?: [{	data: ValueTypes["MarketplaceUpdateSupplierProfileInput"] | Variable<any, string>},ValueTypes["MarketplaceSupplierProfile"]],
 marketplaceUpdateOffer?: [{	input: ValueTypes["MarketplaceUpdateOfferInput"] | Variable<any, string>},ValueTypes["MarketplaceOffer"]],
 marketplaceUpdateStorageCell?: [{	data: ValueTypes["MarketplaceUpdateStorageCellInput"] | Variable<any, string>},ValueTypes["MarketplaceStorageCell"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ValueTypes["MarketplaceUpdateWriteoffDraftInput"] | Variable<any, string>},ValueTypes["MarketplaceWriteoffProposal"]],
@@ -14363,6 +14520,7 @@ marketplaceListOutgoingPayments?: [{	filter?: ValueTypes["MarketplaceListOutgoin
 marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ValueTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ValueTypes["MarketplaceListPendingOffersInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ValueTypes["MarketplaceListReturnClaimsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceReturnClaim"]],
+marketplaceListReviews?: [{	filter?: ValueTypes["MarketplaceListReviewsFilterInput"] | undefined | null | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceReviewPaginationResult"]],
 marketplaceListShipments?: [{	data?: ValueTypes["MarketplaceListShipmentsInput"] | undefined | null | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListShipmentsByBraname?: [{	data: ValueTypes["MarketplaceListShipmentsByBranameInput"] | Variable<any, string>},ValueTypes["MarketplaceShipment"]],
 marketplaceListStock?: [{	braname?: string | undefined | null | Variable<any, string>},ValueTypes["MarketplaceInventoryItem"]],
@@ -14379,6 +14537,8 @@ marketplaceListSupplierPickupOrders?: [{	data: ValueTypes["MarketplaceListSuppli
 marketplaceListWriteoffProposals?: [{	data: ValueTypes["MarketplaceListWriteoffProposalsInput"] | Variable<any, string>,	options?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов. */
 	marketplaceMemberWallet?:ValueTypes["MarketplaceMemberWallet"],
+marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
+	order_id: string | Variable<any, string>},ValueTypes["MarketplaceReview"]],
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
 	marketplaceMySupplierState?:ValueTypes["MarketplaceSupplier"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
@@ -14392,11 +14552,14 @@ marketplaceReturnClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string | Variable<any, string>,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
 	inspection_result: string | Variable<any, string>},ValueTypes["MarketplaceReturnAcceptancePayload"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ValueTypes["MarketplaceReturnClaimSignablePayloadInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
+marketplaceReviewSummary?: [{	filter: ValueTypes["MarketplaceReviewSummaryInput"] | Variable<any, string>},ValueTypes["MarketplaceReviewSummary"]],
 marketplaceStockIssuancePayloads?: [{	data: ValueTypes["MarketplaceStockIssuancePrepareInput"] | Variable<any, string>},ValueTypes["MarketplaceStockIssuanceOperatorLine"]],
 marketplaceStockProposalSignablePayloads?: [{	data: ValueTypes["MarketplaceResolveStockProposalInput"] | Variable<any, string>},ValueTypes["MarketplaceStockAcceptPayload"]],
 marketplaceSupplierClaim?: [{	claim_id: string | Variable<any, string>},ValueTypes["MarketplaceSupplierClaim"]],
 	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
 	marketplaceSupplierClaimSummary?:ValueTypes["MarketplaceSupplierClaimSummary"],
+marketplaceSupplierProfile?: [{	/** Учётная запись поставщика. */
+	supplier_account: string | Variable<any, string>},ValueTypes["MarketplaceSupplierProfile"]],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI?:ValueTypes["MarketplaceCurrentMember"],
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
@@ -25040,6 +25203,14 @@ export type ResolverInputTypes = {
 	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
 	signed_statement: ResolverInputTypes["MarketplaceReturnStatementSignedInput"]
 };
+	["MarketplaceCreateReviewInput"]: {
+	/** Полученный заказ, о котором отзыв. */
+	order_id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: string,
@@ -25435,7 +25606,9 @@ export type ResolverInputTypes = {
 	/** Ключ сортировки (например, "name") */
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
-	sortOrder: string
+	sortOrder: string,
+	/** Учётная запись поставщика. Если задана — в каталоге остаются только его предложения. */
+	supplier_account?: string | undefined | null
 };
 	["MarketplaceListConsolidatedRequestsInput"]: {
 	/** Фильтр по идентификатору предложения. */
@@ -25520,6 +25693,20 @@ export type ResolverInputTypes = {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
 };
+	["MarketplaceListReviewsFilterInput"]: {
+	/** Отзывы одного автора. */
+	author_account?: string | undefined | null,
+	/** Показать и скрытые отзывы. Действует только для администратора. */
+	include_hidden?: boolean | undefined | null,
+	/** Отзывы об одном предложении. */
+	offer_id?: string | undefined | null,
+	/** Подстрока текста отзыва. */
+	search?: string | undefined | null,
+	/** Отбор по состоянию — вместе с показом скрытых. */
+	status?: ResolverInputTypes["MarketplaceReviewStatus"] | undefined | null,
+	/** Отзывы обо всех предложениях поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListShipmentsByBranameInput"]: {
 	/** Кооперативный участок получения партий. */
 	braname: string,
@@ -25603,9 +25790,13 @@ export type ResolverInputTypes = {
 	quantity_available?:boolean | `@${string}`,
 	quantity_blocked?:boolean | `@${string}`,
 	quantity_consumed?:boolean | `@${string}`,
+	/** Средняя оценка предложения по отзывам заказчиков. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
 	reject_reason?:boolean | `@${string}`,
 	rejected_at?:boolean | `@${string}`,
 	rejected_by?:boolean | `@${string}`,
+	/** Число отзывов заказчиков о предложении. */
+	reviews_count?:boolean | `@${string}`,
 	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
 	sale_form?:boolean | `@${string}`,
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
@@ -26369,6 +26560,70 @@ export type ResolverInputTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["MarketplaceReview"]: AliasType<{
+	/** Учётная запись автора отзыва. */
+	author_account?:boolean | `@${string}`,
+	/** Имя автора отзыва (ФИО физлица либо наименование организации). */
+	author_name?:boolean | `@${string}`,
+	/** Когда отзыв оставлен. */
+	created_at?:boolean | `@${string}`,
+	/** Причина, по которой администратор скрыл отзыв. Видна автору и администратору. */
+	hidden_reason?:boolean | `@${string}`,
+	/** Идентификатор отзыва. */
+	id?:boolean | `@${string}`,
+	/** Предложение, о котором отзыв. */
+	offer_id?:boolean | `@${string}`,
+	/** Название предложения, о котором отзыв. */
+	offer_name?:boolean | `@${string}`,
+	/** Заказ, по которому оставлен отзыв. */
+	order_id?:boolean | `@${string}`,
+	/** Оценка от 1 до 5. */
+	stars?:boolean | `@${string}`,
+	/** Состояние отзыва. */
+	status?:boolean | `@${string}`,
+	/** Учётная запись поставщика этого предложения. */
+	supplier_account?:boolean | `@${string}`,
+	/** Текст отзыва; может быть пустым, если автор поставил только оценку. */
+	text?:boolean | `@${string}`,
+	/** Когда отзыв последний раз менялся. */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceReviewPaginationResult"]: AliasType<{
+	/** Текущая страница */
+	currentPage?:boolean | `@${string}`,
+	/** Элементы текущей страницы */
+	items?:ResolverInputTypes["MarketplaceReview"],
+	/** Общее количество элементов */
+	totalCount?:boolean | `@${string}`,
+	/** Общее количество страниц */
+	totalPages?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceReviewStarsCount"]: AliasType<{
+	/** Число отзывов с такой оценкой. */
+	count?:boolean | `@${string}`,
+	/** Оценка от 1 до 5. */
+	stars?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Состояние отзыва: PUBLISHED — опубликован и виден пайщикам, HIDDEN — скрыт администратором. */
+["MarketplaceReviewStatus"]:MarketplaceReviewStatus;
+	["MarketplaceReviewSummary"]: AliasType<{
+	/** Средняя оценка. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
+	/** Число опубликованных отзывов. */
+	reviews_count?:boolean | `@${string}`,
+	/** Распределение отзывов по оценкам, от пяти звёзд к одной. */
+	stars_breakdown?:ResolverInputTypes["MarketplaceReviewStarsCount"],
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceReviewSummaryInput"]: {
+	/** Сводка по одному предложению. */
+	offer_id?: string | undefined | null,
+	/** Сводка по всем предложениям поставщика. */
+	supplier_account?: string | undefined | null
+};
 	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
 ["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
@@ -26392,6 +26647,14 @@ export type ResolverInputTypes = {
 	offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReviewStatusInput"]: {
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Причина скрытия. Обязательна, когда отзыв скрывают. */
+	reason?: string | undefined | null,
+	/** Новое состояние: HIDDEN — скрыть, PUBLISHED — вернуть в публикацию. */
+	status: ResolverInputTypes["MarketplaceReviewStatus"]
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
@@ -26907,6 +27170,35 @@ export type ResolverInputTypes = {
 	payout_method_id?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	["MarketplaceSupplierProfile"]: AliasType<{
+	/** Что поставщик рассказывает о себе. */
+	about?:boolean | `@${string}`,
+	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
+	cover_url?:boolean | `@${string}`,
+	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
+	custom_display_name?:boolean | `@${string}`,
+	/** Имя поставщика на его странице: заданное им название либо имя из сертификата. */
+	display_name?:boolean | `@${string}`,
+	/** Профиль кооператива: он поставляет имущество со своего склада. */
+	is_cooperative?:boolean | `@${string}`,
+	/** Число предложений поставщика, доступных к заказу. */
+	offers_count?:boolean | `@${string}`,
+	/** Средняя оценка по отзывам на все предложения поставщика. Пусто — отзывов нет. */
+	rating_avg?:boolean | `@${string}`,
+	/** Число отзывов на все предложения поставщика. */
+	reviews_count?:boolean | `@${string}`,
+	/** Учётная запись поставщика. */
+	supplier_account?:boolean | `@${string}`,
+	/** Когда поставщик последний раз правил профиль. */
+	updated_at?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["MarketplaceSupplierProfileCoverInput"]: {
+	/** Содержимое изображения в base64. */
+	base64: string,
+	/** Тип изображения: image/jpeg, image/png либо image/webp. */
+	mime_type: string
+};
 	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
 ["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
@@ -26957,6 +27249,14 @@ export type ResolverInputTypes = {
 	/** Новая подпись бокса. */
 	label?: string | undefined | null
 };
+	["MarketplaceUpdateMyReviewInput"]: {
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ResolverInputTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
@@ -26986,6 +27286,16 @@ export type ResolverInputTypes = {
 	is_active?: boolean | undefined | null,
 	/** Новая подпись ячейки. */
 	label?: string | undefined | null
+};
+	["MarketplaceUpdateSupplierProfileInput"]: {
+	/** Что поставщик рассказывает о себе. Не задано — текст остаётся прежним. */
+	about?: string | undefined | null,
+	/** Новая обложка профиля. Не задана — обложка остаётся прежней. */
+	cover?: ResolverInputTypes["MarketplaceSupplierProfileCoverInput"] | undefined | null,
+	/** Название на странице поставщика. Пустая строка возвращает имя из сертификата; не задано — название остаётся прежним. */
+	display_name?: string | undefined | null,
+	/** Убрать обложку профиля. */
+	remove_cover?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
@@ -27753,6 +28063,7 @@ marketplaceCreateCustomCategory?: [{	input: ResolverInputTypes["CreateCustomCate
 marketplaceCreateExpressReception?: [{	data: ResolverInputTypes["MarketplaceCreateExpressReceptionInput"]},ResolverInputTypes["MarketplaceCreateExpressReceptionResult"]],
 marketplaceCreateOffer?: [{	input: ResolverInputTypes["MarketplaceCreateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceCreateReturnClaim?: [{	data: ResolverInputTypes["MarketplaceCreateReturnClaimInput"]},ResolverInputTypes["MarketplaceReturnClaimResult"]],
+marketplaceCreateReview?: [{	data: ResolverInputTypes["MarketplaceCreateReviewInput"]},ResolverInputTypes["MarketplaceReview"]],
 marketplaceCreateShipment?: [{	data: ResolverInputTypes["MarketplaceCreateShipmentInput"]},ResolverInputTypes["MarketplaceCreateShipmentResult"]],
 marketplaceCreateStockProposal?: [{	data: ResolverInputTypes["MarketplaceCreateStockProposalInput"]},ResolverInputTypes["MarketplaceStockProposal"]],
 marketplaceCreateStorageCell?: [{	data: ResolverInputTypes["MarketplaceCreateStorageCellInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
@@ -27788,6 +28099,7 @@ marketplaceSetCartDeliveryPoint?: [{	input: ResolverInputTypes["MarketplaceSetCa
 marketplaceSetKUStatus?: [{	data: ResolverInputTypes["MarketplaceSetKUStatusInput"]},ResolverInputTypes["MarketplaceKUDetails"]],
 marketplaceSetMembershipFee?: [{	data: ResolverInputTypes["MarketplaceSetMembershipFeeInput"]},ResolverInputTypes["MarketplaceEconomyConfig"]],
 marketplaceSetOfferWarranty?: [{	input: ResolverInputTypes["MarketplaceSetOfferWarrantyInput"]},ResolverInputTypes["MarketplaceOffer"]],
+marketplaceSetReviewStatus?: [{	data: ResolverInputTypes["MarketplaceSetReviewStatusInput"]},ResolverInputTypes["MarketplaceReview"]],
 marketplaceSetSupplierPayoutMethod?: [{	input: ResolverInputTypes["MarketplaceSetSupplierPayoutMethodInput"]},ResolverInputTypes["MarketplaceSupplierPaymentSettings"]],
 marketplaceSetTrusteeWeight?: [{	data: ResolverInputTypes["MarketplaceSetTrusteeWeightInput"]},boolean | `@${string}`],
 marketplaceSignAplReceptionAsChairman?: [{	data: ResolverInputTypes["MarketplaceSignAplReceptionInput"]},ResolverInputTypes["MarketplaceAplReceptionResult"]],
@@ -27801,6 +28113,9 @@ marketplaceSwitchSupplierModel?: [{	input: ResolverInputTypes["MarketplaceSwitch
 marketplaceUnpublishStock?: [{	data: ResolverInputTypes["MarketplaceUnpublishStockInput"]},ResolverInputTypes["MarketplaceUnpublishStockResult"]],
 marketplaceUpdateCartItem?: [{	input: ResolverInputTypes["MarketplaceUpdateCartItemInput"]},ResolverInputTypes["MarketplaceCart"]],
 marketplaceUpdateContainer?: [{	data: ResolverInputTypes["MarketplaceUpdateContainerInput"]},ResolverInputTypes["MarketplaceContainer"]],
+marketplaceUpdateCooperativeProfile?: [{	data: ResolverInputTypes["MarketplaceUpdateSupplierProfileInput"]},ResolverInputTypes["MarketplaceSupplierProfile"]],
+marketplaceUpdateMyReview?: [{	data: ResolverInputTypes["MarketplaceUpdateMyReviewInput"]},ResolverInputTypes["MarketplaceReview"]],
+marketplaceUpdateMySupplierProfile?: [{	data: ResolverInputTypes["MarketplaceUpdateSupplierProfileInput"]},ResolverInputTypes["MarketplaceSupplierProfile"]],
 marketplaceUpdateOffer?: [{	input: ResolverInputTypes["MarketplaceUpdateOfferInput"]},ResolverInputTypes["MarketplaceOffer"]],
 marketplaceUpdateStorageCell?: [{	data: ResolverInputTypes["MarketplaceUpdateStorageCellInput"]},ResolverInputTypes["MarketplaceStorageCell"]],
 marketplaceUpdateWriteoffDraft?: [{	data: ResolverInputTypes["MarketplaceUpdateWriteoffDraftInput"]},ResolverInputTypes["MarketplaceWriteoffProposal"]],
@@ -29548,6 +29863,7 @@ marketplaceListOutgoingPayments?: [{	filter?: ResolverInputTypes["MarketplaceLis
 marketplaceListOutgoingPaymentsAsSupplier?: [{	filter?: ResolverInputTypes["MarketplaceListOutgoingPaymentsAsSupplierFilterInput"] | undefined | null},ResolverInputTypes["MarketplaceOutgoingPaymentRequest"]],
 marketplaceListPendingOffers?: [{	input?: ResolverInputTypes["MarketplaceListPendingOffersInput"] | undefined | null},ResolverInputTypes["MarketplaceOfferPaginationResult"]],
 marketplaceListReturnClaimsByBraname?: [{	data: ResolverInputTypes["MarketplaceListReturnClaimsByBranameInput"]},ResolverInputTypes["MarketplaceReturnClaim"]],
+marketplaceListReviews?: [{	filter?: ResolverInputTypes["MarketplaceListReviewsFilterInput"] | undefined | null,	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["MarketplaceReviewPaginationResult"]],
 marketplaceListShipments?: [{	data?: ResolverInputTypes["MarketplaceListShipmentsInput"] | undefined | null},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListShipmentsByBraname?: [{	data: ResolverInputTypes["MarketplaceListShipmentsByBranameInput"]},ResolverInputTypes["MarketplaceShipment"]],
 marketplaceListStock?: [{	braname?: string | undefined | null},ResolverInputTypes["MarketplaceInventoryItem"]],
@@ -29564,6 +29880,8 @@ marketplaceListSupplierPickupOrders?: [{	data: ResolverInputTypes["MarketplaceLi
 marketplaceListWriteoffProposals?: [{	data: ResolverInputTypes["MarketplaceListWriteoffProposalsInput"],	options?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedMarketplaceWriteoffProposals"]],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов. */
 	marketplaceMemberWallet?:ResolverInputTypes["MarketplaceMemberWallet"],
+marketplaceMyReviewByOrder?: [{	/** Идентификатор заказа. */
+	order_id: string},ResolverInputTypes["MarketplaceReview"]],
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
 	marketplaceMySupplierState?:ResolverInputTypes["MarketplaceSupplier"],
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
@@ -29577,11 +29895,14 @@ marketplaceReturnClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceRet
 marketplaceReturnClaimChairmanSignablePayload?: [{	claim_id: string,	/** Результат осмотра имущества на участке — попадает в текст заявления. */
 	inspection_result: string},ResolverInputTypes["MarketplaceReturnAcceptancePayload"]],
 marketplaceReturnClaimSignablePayload?: [{	data: ResolverInputTypes["MarketplaceReturnClaimSignablePayloadInput"]},ResolverInputTypes["GeneratedDocument"]],
+marketplaceReviewSummary?: [{	filter: ResolverInputTypes["MarketplaceReviewSummaryInput"]},ResolverInputTypes["MarketplaceReviewSummary"]],
 marketplaceStockIssuancePayloads?: [{	data: ResolverInputTypes["MarketplaceStockIssuancePrepareInput"]},ResolverInputTypes["MarketplaceStockIssuanceOperatorLine"]],
 marketplaceStockProposalSignablePayloads?: [{	data: ResolverInputTypes["MarketplaceResolveStockProposalInput"]},ResolverInputTypes["MarketplaceStockAcceptPayload"]],
 marketplaceSupplierClaim?: [{	claim_id: string},ResolverInputTypes["MarketplaceSupplierClaim"]],
 	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
 	marketplaceSupplierClaimSummary?:ResolverInputTypes["MarketplaceSupplierClaimSummary"],
+marketplaceSupplierProfile?: [{	/** Учётная запись поставщика. */
+	supplier_account: string},ResolverInputTypes["MarketplaceSupplierProfile"]],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI?:ResolverInputTypes["MarketplaceCurrentMember"],
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
@@ -39894,6 +40215,14 @@ export type ModelTypes = {
 	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
 	signed_statement: ModelTypes["MarketplaceReturnStatementSignedInput"]
 };
+	["MarketplaceCreateReviewInput"]: {
+	/** Полученный заказ, о котором отзыв. */
+	order_id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceCreateShipmentInput"]: {
 	/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: string,
@@ -40269,7 +40598,9 @@ export type ModelTypes = {
 	/** Ключ сортировки (например, "name") */
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
-	sortOrder: string
+	sortOrder: string,
+	/** Учётная запись поставщика. Если задана — в каталоге остаются только его предложения. */
+	supplier_account?: string | undefined | null
 };
 	["MarketplaceListConsolidatedRequestsInput"]: {
 	/** Фильтр по идентификатору предложения. */
@@ -40354,6 +40685,20 @@ export type ModelTypes = {
 	/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
 };
+	["MarketplaceListReviewsFilterInput"]: {
+	/** Отзывы одного автора. */
+	author_account?: string | undefined | null,
+	/** Показать и скрытые отзывы. Действует только для администратора. */
+	include_hidden?: boolean | undefined | null,
+	/** Отзывы об одном предложении. */
+	offer_id?: string | undefined | null,
+	/** Подстрока текста отзыва. */
+	search?: string | undefined | null,
+	/** Отбор по состоянию — вместе с показом скрытых. */
+	status?: ModelTypes["MarketplaceReviewStatus"] | undefined | null,
+	/** Отзывы обо всех предложениях поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceListShipmentsByBranameInput"]: {
 	/** Кооперативный участок получения партий. */
 	braname: string,
@@ -40435,9 +40780,13 @@ export type ModelTypes = {
 	quantity_available: number,
 	quantity_blocked: number,
 	quantity_consumed: number,
+	/** Средняя оценка предложения по отзывам заказчиков. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
 	reject_reason?: string | undefined | null,
 	rejected_at?: ModelTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Число отзывов заказчиков о предложении. */
+	reviews_count: number,
 	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
 	sale_form: ModelTypes["MarketplaceSaleForm"],
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
@@ -41168,6 +41517,65 @@ export type ModelTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["MarketplaceReview"]: {
+		/** Учётная запись автора отзыва. */
+	author_account: string,
+	/** Имя автора отзыва (ФИО физлица либо наименование организации). */
+	author_name?: string | undefined | null,
+	/** Когда отзыв оставлен. */
+	created_at: ModelTypes["DateTime"],
+	/** Причина, по которой администратор скрыл отзыв. Видна автору и администратору. */
+	hidden_reason?: string | undefined | null,
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Предложение, о котором отзыв. */
+	offer_id: string,
+	/** Название предложения, о котором отзыв. */
+	offer_name?: string | undefined | null,
+	/** Заказ, по которому оставлен отзыв. */
+	order_id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Состояние отзыва. */
+	status: ModelTypes["MarketplaceReviewStatus"],
+	/** Учётная запись поставщика этого предложения. */
+	supplier_account: string,
+	/** Текст отзыва; может быть пустым, если автор поставил только оценку. */
+	text: string,
+	/** Когда отзыв последний раз менялся. */
+	updated_at: ModelTypes["DateTime"]
+};
+	["MarketplaceReviewPaginationResult"]: {
+		/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<ModelTypes["MarketplaceReview"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number
+};
+	["MarketplaceReviewStarsCount"]: {
+		/** Число отзывов с такой оценкой. */
+	count: number,
+	/** Оценка от 1 до 5. */
+	stars: number
+};
+	["MarketplaceReviewStatus"]:MarketplaceReviewStatus;
+	["MarketplaceReviewSummary"]: {
+		/** Средняя оценка. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
+	/** Число опубликованных отзывов. */
+	reviews_count: number,
+	/** Распределение отзывов по оценкам, от пяти звёзд к одной. */
+	stars_breakdown: Array<ModelTypes["MarketplaceReviewStarsCount"]>
+};
+	["MarketplaceReviewSummaryInput"]: {
+	/** Сводка по одному предложению. */
+	offer_id?: string | undefined | null,
+	/** Сводка по всем предложениям поставщика. */
+	supplier_account?: string | undefined | null
+};
 	["MarketplaceSaleForm"]:MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
 ["MarketplaceSetCartDeliveryPointInput"]: {
@@ -41190,6 +41598,14 @@ export type ModelTypes = {
 	offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReviewStatusInput"]: {
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Причина скрытия. Обязательна, когда отзыв скрывают. */
+	reason?: string | undefined | null,
+	/** Новое состояние: HIDDEN — скрыть, PUBLISHED — вернуть в публикацию. */
+	status: ModelTypes["MarketplaceReviewStatus"]
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 	/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
@@ -41683,6 +42099,34 @@ export type ModelTypes = {
 	/** Идентификатор реквизитов (платёжного метода), выбранных поставщиком для получения выплат. Пусто — поставщик выбор не делал, используются реквизиты по умолчанию. */
 	payout_method_id?: string | undefined | null
 };
+	["MarketplaceSupplierProfile"]: {
+		/** Что поставщик рассказывает о себе. */
+	about: string,
+	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
+	cover_url?: string | undefined | null,
+	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
+	custom_display_name?: string | undefined | null,
+	/** Имя поставщика на его странице: заданное им название либо имя из сертификата. */
+	display_name: string,
+	/** Профиль кооператива: он поставляет имущество со своего склада. */
+	is_cooperative: boolean,
+	/** Число предложений поставщика, доступных к заказу. */
+	offers_count: number,
+	/** Средняя оценка по отзывам на все предложения поставщика. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
+	/** Число отзывов на все предложения поставщика. */
+	reviews_count: number,
+	/** Учётная запись поставщика. */
+	supplier_account: string,
+	/** Когда поставщик последний раз правил профиль. */
+	updated_at?: ModelTypes["DateTime"] | undefined | null
+};
+	["MarketplaceSupplierProfileCoverInput"]: {
+	/** Содержимое изображения в base64. */
+	base64: string,
+	/** Тип изображения: image/jpeg, image/png либо image/webp. */
+	mime_type: string
+};
 	["MarketplaceSupplierStatus"]:MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
 	/** Дата нового договора (ГГГГ-ММ-ДД) */
@@ -41729,6 +42173,14 @@ export type ModelTypes = {
 	/** Новая подпись бокса. */
 	label?: string | undefined | null
 };
+	["MarketplaceUpdateMyReviewInput"]: {
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceUpdateOfferInput"]: {
 	barcode_strategy?: ModelTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
@@ -41758,6 +42210,16 @@ export type ModelTypes = {
 	is_active?: boolean | undefined | null,
 	/** Новая подпись ячейки. */
 	label?: string | undefined | null
+};
+	["MarketplaceUpdateSupplierProfileInput"]: {
+	/** Что поставщик рассказывает о себе. Не задано — текст остаётся прежним. */
+	about?: string | undefined | null,
+	/** Новая обложка профиля. Не задана — обложка остаётся прежней. */
+	cover?: ModelTypes["MarketplaceSupplierProfileCoverInput"] | undefined | null,
+	/** Название на странице поставщика. Пустая строка возвращает имя из сертификата; не задано — название остаётся прежним. */
+	display_name?: string | undefined | null,
+	/** Убрать обложку профиля. */
+	remove_cover?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 	id: string,
@@ -42737,6 +43199,8 @@ export type ModelTypes = {
 	marketplaceCreateOffer: ModelTypes["MarketplaceOffer"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
 	marketplaceCreateReturnClaim: ModelTypes["MarketplaceReturnClaimResult"],
+	/** Заказчик оставляет отзыв по полученному заказу: оценка от 1 до 5 и текст. */
+	marketplaceCreateReview: ModelTypes["MarketplaceReview"],
 	/** Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями. */
 	marketplaceCreateShipment: ModelTypes["MarketplaceCreateShipmentResult"],
 	/** Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит. */
@@ -42807,6 +43271,8 @@ export type ModelTypes = {
 	marketplaceSetMembershipFee: ModelTypes["MarketplaceEconomyConfig"],
 	/** Изменить гарантийный срок возврата предложения (admin) */
 	marketplaceSetOfferWarranty: ModelTypes["MarketplaceOffer"],
+	/** Администратор скрывает отзыв с причиной либо возвращает его в публикацию. */
+	marketplaceSetReviewStatus: ModelTypes["MarketplaceReview"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
 	marketplaceSetSupplierPayoutMethod: ModelTypes["MarketplaceSupplierPaymentSettings"],
 	/** Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка. */
@@ -42833,6 +43299,12 @@ export type ModelTypes = {
 	marketplaceUpdateCartItem: ModelTypes["MarketplaceCart"],
 	/** Председатель кооперативного участка правит подпись бокса или выводит его из оборота. Вывести можно только пустой бокс. */
 	marketplaceUpdateContainer: ModelTypes["MarketplaceContainer"],
+	/** Администратор правит профиль кооператива — поставщика имущества со склада. */
+	marketplaceUpdateCooperativeProfile: ModelTypes["MarketplaceSupplierProfile"],
+	/** Автор правит свой отзыв: оценку и текст. */
+	marketplaceUpdateMyReview: ModelTypes["MarketplaceReview"],
+	/** Поставщик правит свой профиль: название, рассказ о себе и обложку. */
+	marketplaceUpdateMySupplierProfile: ModelTypes["MarketplaceSupplierProfile"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: ModelTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка правит подпись ячейки или выводит её из оборота. Вывести можно только пустую ячейку. */
@@ -44704,6 +45176,8 @@ export type ModelTypes = {
 	marketplaceListPendingOffers: ModelTypes["MarketplaceOfferPaginationResult"],
 	/** Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ. */
 	marketplaceListReturnClaimsByBraname: Array<ModelTypes["MarketplaceReturnClaim"]>,
+	/** Отзывы о предложении, обо всех предложениях поставщика либо одного автора. Скрытые отзывы видит только администратор. */
+	marketplaceListReviews: ModelTypes["MarketplaceReviewPaginationResult"],
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<ModelTypes["MarketplaceShipment"]>,
 	/** Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи. */
@@ -44728,6 +45202,8 @@ export type ModelTypes = {
 	marketplaceListWriteoffProposals: ModelTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов. */
 	marketplaceMemberWallet: ModelTypes["MarketplaceMemberWallet"],
+	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
+	marketplaceMyReviewByOrder?: ModelTypes["MarketplaceReview"] | undefined | null,
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
 	marketplaceMySupplierState?: ModelTypes["MarketplaceSupplier"] | undefined | null,
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
@@ -44744,6 +45220,8 @@ export type ModelTypes = {
 	marketplaceReturnClaimChairmanSignablePayload: ModelTypes["MarketplaceReturnAcceptancePayload"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: ModelTypes["GeneratedDocument"],
+	/** Сводная оценка по опубликованным отзывам о предложении либо обо всех предложениях поставщика: средняя, число отзывов и распределение по оценкам. */
+	marketplaceReviewSummary: ModelTypes["MarketplaceReviewSummary"],
 	/** Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая. */
 	marketplaceStockIssuancePayloads: Array<ModelTypes["MarketplaceStockIssuanceOperatorLine"]>,
 	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька. */
@@ -44752,6 +45230,8 @@ export type ModelTypes = {
 	marketplaceSupplierClaim: ModelTypes["MarketplaceSupplierClaim"],
 	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
 	marketplaceSupplierClaimSummary: ModelTypes["MarketplaceSupplierClaimSummary"],
+	/** Профиль поставщика: имя, рассказ о себе, обложка, число предложений и сводная оценка. */
+	marketplaceSupplierProfile: ModelTypes["MarketplaceSupplierProfile"],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI: ModelTypes["MarketplaceCurrentMember"],
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
@@ -55469,6 +55949,14 @@ export type GraphQLTypes = {
 	/** Подписанная пайщиком рекламация — заявление о гарантийном возврате имущества (реестр документов 1106). */
 	signed_statement: GraphQLTypes["MarketplaceReturnStatementSignedInput"]
 };
+	["MarketplaceCreateReviewInput"]: {
+		/** Полученный заказ, о котором отзыв. */
+	order_id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceCreateShipmentInput"]: {
 		/** Идентификатор консолидированной заявки в статусе ACCEPTED. */
 	cycle_id: string,
@@ -55877,7 +56365,9 @@ export type GraphQLTypes = {
 	/** Ключ сортировки (например, "name") */
 	sortBy?: string | undefined | null,
 	/** Направление сортировки ("ASC" или "DESC") */
-	sortOrder: string
+	sortOrder: string,
+	/** Учётная запись поставщика. Если задана — в каталоге остаются только его предложения. */
+	supplier_account?: string | undefined | null
 };
 	["MarketplaceListConsolidatedRequestsInput"]: {
 		/** Фильтр по идентификатору предложения. */
@@ -55961,6 +56451,20 @@ export type GraphQLTypes = {
 	["MarketplaceListReturnClaimsByBranameInput"]: {
 		/** Кооперативный участок (delivery_braname исходного заказа). */
 	delivery_braname: string
+};
+	["MarketplaceListReviewsFilterInput"]: {
+		/** Отзывы одного автора. */
+	author_account?: string | undefined | null,
+	/** Показать и скрытые отзывы. Действует только для администратора. */
+	include_hidden?: boolean | undefined | null,
+	/** Отзывы об одном предложении. */
+	offer_id?: string | undefined | null,
+	/** Подстрока текста отзыва. */
+	search?: string | undefined | null,
+	/** Отбор по состоянию — вместе с показом скрытых. */
+	status?: GraphQLTypes["MarketplaceReviewStatus"] | undefined | null,
+	/** Отзывы обо всех предложениях поставщика. */
+	supplier_account?: string | undefined | null
 };
 	["MarketplaceListShipmentsByBranameInput"]: {
 		/** Кооперативный участок получения партий. */
@@ -56048,9 +56552,13 @@ export type GraphQLTypes = {
 	quantity_available: number,
 	quantity_blocked: number,
 	quantity_consumed: number,
+	/** Средняя оценка предложения по отзывам заказчиков. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
 	reject_reason?: string | undefined | null,
 	rejected_at?: GraphQLTypes["DateTime"] | undefined | null,
 	rejected_by?: string | undefined | null,
+	/** Число отзывов заказчиков о предложении. */
+	reviews_count: number,
 	/** Способ отпуска: по мере (by_measure) или упаковкой (packaged). */
 	sale_form: GraphQLTypes["MarketplaceSaleForm"],
 	/** Срок годности имущества в днях (основа списания скоропорта). Задаёт поставщик. */
@@ -56837,6 +57345,74 @@ export type GraphQLTypes = {
 	/** Версия генератора, использованного для создания документа */
 	version: string
 };
+	["MarketplaceReview"]: {
+	__typename: "MarketplaceReview",
+	/** Учётная запись автора отзыва. */
+	author_account: string,
+	/** Имя автора отзыва (ФИО физлица либо наименование организации). */
+	author_name?: string | undefined | null,
+	/** Когда отзыв оставлен. */
+	created_at: GraphQLTypes["DateTime"],
+	/** Причина, по которой администратор скрыл отзыв. Видна автору и администратору. */
+	hidden_reason?: string | undefined | null,
+	/** Идентификатор отзыва. */
+	id: string,
+	/** Предложение, о котором отзыв. */
+	offer_id: string,
+	/** Название предложения, о котором отзыв. */
+	offer_name?: string | undefined | null,
+	/** Заказ, по которому оставлен отзыв. */
+	order_id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Состояние отзыва. */
+	status: GraphQLTypes["MarketplaceReviewStatus"],
+	/** Учётная запись поставщика этого предложения. */
+	supplier_account: string,
+	/** Текст отзыва; может быть пустым, если автор поставил только оценку. */
+	text: string,
+	/** Когда отзыв последний раз менялся. */
+	updated_at: GraphQLTypes["DateTime"],
+	['...on MarketplaceReview']: Omit<GraphQLTypes["MarketplaceReview"], "...on MarketplaceReview">
+};
+	["MarketplaceReviewPaginationResult"]: {
+	__typename: "MarketplaceReviewPaginationResult",
+	/** Текущая страница */
+	currentPage: number,
+	/** Элементы текущей страницы */
+	items: Array<GraphQLTypes["MarketplaceReview"]>,
+	/** Общее количество элементов */
+	totalCount: number,
+	/** Общее количество страниц */
+	totalPages: number,
+	['...on MarketplaceReviewPaginationResult']: Omit<GraphQLTypes["MarketplaceReviewPaginationResult"], "...on MarketplaceReviewPaginationResult">
+};
+	["MarketplaceReviewStarsCount"]: {
+	__typename: "MarketplaceReviewStarsCount",
+	/** Число отзывов с такой оценкой. */
+	count: number,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	['...on MarketplaceReviewStarsCount']: Omit<GraphQLTypes["MarketplaceReviewStarsCount"], "...on MarketplaceReviewStarsCount">
+};
+	/** Состояние отзыва: PUBLISHED — опубликован и виден пайщикам, HIDDEN — скрыт администратором. */
+["MarketplaceReviewStatus"]: MarketplaceReviewStatus;
+	["MarketplaceReviewSummary"]: {
+	__typename: "MarketplaceReviewSummary",
+	/** Средняя оценка. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
+	/** Число опубликованных отзывов. */
+	reviews_count: number,
+	/** Распределение отзывов по оценкам, от пяти звёзд к одной. */
+	stars_breakdown: Array<GraphQLTypes["MarketplaceReviewStarsCount"]>,
+	['...on MarketplaceReviewSummary']: Omit<GraphQLTypes["MarketplaceReviewSummary"], "...on MarketplaceReviewSummary">
+};
+	["MarketplaceReviewSummaryInput"]: {
+		/** Сводка по одному предложению. */
+	offer_id?: string | undefined | null,
+	/** Сводка по всем предложениям поставщика. */
+	supplier_account?: string | undefined | null
+};
 	/** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
 ["MarketplaceSaleForm"]: MarketplaceSaleForm;
 	/** Сменить пункт выдачи (КУ) корзины. */
@@ -56860,6 +57436,14 @@ export type GraphQLTypes = {
 		offer_id: string,
 	/** Новый гарантийный срок возврата в днях (окно возврата имущества). */
 	warranty_days: number
+};
+	["MarketplaceSetReviewStatusInput"]: {
+		/** Идентификатор отзыва. */
+	id: string,
+	/** Причина скрытия. Обязательна, когда отзыв скрывают. */
+	reason?: string | undefined | null,
+	/** Новое состояние: HIDDEN — скрыть, PUBLISHED — вернуть в публикацию. */
+	status: GraphQLTypes["MarketplaceReviewStatus"]
 };
 	["MarketplaceSetSupplierPayoutMethodInput"]: {
 		/** Идентификатор реквизитов (платёжного метода) из раздела «Реквизиты» пайщика. */
@@ -57392,6 +57976,36 @@ export type GraphQLTypes = {
 	payout_method_id?: string | undefined | null,
 	['...on MarketplaceSupplierPaymentSettings']: Omit<GraphQLTypes["MarketplaceSupplierPaymentSettings"], "...on MarketplaceSupplierPaymentSettings">
 };
+	["MarketplaceSupplierProfile"]: {
+	__typename: "MarketplaceSupplierProfile",
+	/** Что поставщик рассказывает о себе. */
+	about: string,
+	/** Ссылка на обложку профиля; подписана и ограничена по времени. Пусто — обложки нет. */
+	cover_url?: string | undefined | null,
+	/** Название, которое поставщик задал сам. Пусто — показывается имя из сертификата. */
+	custom_display_name?: string | undefined | null,
+	/** Имя поставщика на его странице: заданное им название либо имя из сертификата. */
+	display_name: string,
+	/** Профиль кооператива: он поставляет имущество со своего склада. */
+	is_cooperative: boolean,
+	/** Число предложений поставщика, доступных к заказу. */
+	offers_count: number,
+	/** Средняя оценка по отзывам на все предложения поставщика. Пусто — отзывов нет. */
+	rating_avg?: number | undefined | null,
+	/** Число отзывов на все предложения поставщика. */
+	reviews_count: number,
+	/** Учётная запись поставщика. */
+	supplier_account: string,
+	/** Когда поставщик последний раз правил профиль. */
+	updated_at?: GraphQLTypes["DateTime"] | undefined | null,
+	['...on MarketplaceSupplierProfile']: Omit<GraphQLTypes["MarketplaceSupplierProfile"], "...on MarketplaceSupplierProfile">
+};
+	["MarketplaceSupplierProfileCoverInput"]: {
+		/** Содержимое изображения в base64. */
+	base64: string,
+	/** Тип изображения: image/jpeg, image/png либо image/webp. */
+	mime_type: string
+};
 	/** Статус поставщика в реестре: на рассмотрении, одобрен, отклонён */
 ["MarketplaceSupplierStatus"]: MarketplaceSupplierStatus;
 	["MarketplaceSwitchSupplierModelInput"]: {
@@ -57444,6 +58058,14 @@ export type GraphQLTypes = {
 	/** Новая подпись бокса. */
 	label?: string | undefined | null
 };
+	["MarketplaceUpdateMyReviewInput"]: {
+		/** Идентификатор отзыва. */
+	id: string,
+	/** Оценка от 1 до 5. */
+	stars: number,
+	/** Текст отзыва. */
+	text?: string | undefined | null
+};
 	["MarketplaceUpdateOfferInput"]: {
 		barcode_strategy?: GraphQLTypes["MarketplaceBarcodeStrategy"] | undefined | null,
 	category_id?: number | undefined | null,
@@ -57473,6 +58095,16 @@ export type GraphQLTypes = {
 	is_active?: boolean | undefined | null,
 	/** Новая подпись ячейки. */
 	label?: string | undefined | null
+};
+	["MarketplaceUpdateSupplierProfileInput"]: {
+		/** Что поставщик рассказывает о себе. Не задано — текст остаётся прежним. */
+	about?: string | undefined | null,
+	/** Новая обложка профиля. Не задана — обложка остаётся прежней. */
+	cover?: GraphQLTypes["MarketplaceSupplierProfileCoverInput"] | undefined | null,
+	/** Название на странице поставщика. Пустая строка возвращает имя из сертификата; не задано — название остаётся прежним. */
+	display_name?: string | undefined | null,
+	/** Убрать обложку профиля. */
+	remove_cover?: boolean | undefined | null
 };
 	["MarketplaceUpdateWriteoffDraftInput"]: {
 		id: string,
@@ -58500,6 +59132,8 @@ export type GraphQLTypes = {
 	marketplaceCreateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Пайщик подаёт заявление на гарантийный возврат имущества — backend кладёт фото в защищённое хранилище и фиксирует заявление в блокчейне. */
 	marketplaceCreateReturnClaim: GraphQLTypes["MarketplaceReturnClaimResult"],
+	/** Заказчик оставляет отзыв по полученному заказу: оценка от 1 до 5 и текст. */
+	marketplaceCreateReview: GraphQLTypes["MarketplaceReview"],
 	/** Сформировать партии поставки из акцептованной заявки. Каждая группа = одна партия (КУ + вариант доставки + опционально подмножество заказов). Покрытие всех КУ не обязательно — допустима частичная отгрузка и догрузка остатка отдельными партиями. */
 	marketplaceCreateShipment: GraphQLTypes["MarketplaceCreateShipmentResult"],
 	/** Оператор у стойки формирует бандл выдачи пайщику (существующие заказы и/или докладка со склада), с уже подписанными им актами передачи — пайщику немедленно приходит акт на подпись получения. До его подписи ничего в блокчейне не происходит. */
@@ -58570,6 +59204,8 @@ export type GraphQLTypes = {
 	marketplaceSetMembershipFee: GraphQLTypes["MarketplaceEconomyConfig"],
 	/** Изменить гарантийный срок возврата предложения (admin) */
 	marketplaceSetOfferWarranty: GraphQLTypes["MarketplaceOffer"],
+	/** Администратор скрывает отзыв с причиной либо возвращает его в публикацию. */
+	marketplaceSetReviewStatus: GraphQLTypes["MarketplaceReview"],
 	/** Поставщик выбирает реквизиты, на которые получает выплаты по актам приёмки. */
 	marketplaceSetSupplierPayoutMethod: GraphQLTypes["MarketplaceSupplierPaymentSettings"],
 	/** Назначить или изменить вес участника в распределении членских взносов участка (доля участника = его вес, делённый на сумму весов). Доступно председателю участка. */
@@ -58596,6 +59232,12 @@ export type GraphQLTypes = {
 	marketplaceUpdateCartItem: GraphQLTypes["MarketplaceCart"],
 	/** Председатель кооперативного участка правит подпись бокса или выводит его из оборота. Вывести можно только пустой бокс. */
 	marketplaceUpdateContainer: GraphQLTypes["MarketplaceContainer"],
+	/** Администратор правит профиль кооператива — поставщика имущества со склада. */
+	marketplaceUpdateCooperativeProfile: GraphQLTypes["MarketplaceSupplierProfile"],
+	/** Автор правит свой отзыв: оценку и текст. */
+	marketplaceUpdateMyReview: GraphQLTypes["MarketplaceReview"],
+	/** Поставщик правит свой профиль: название, рассказ о себе и обложку. */
+	marketplaceUpdateMySupplierProfile: GraphQLTypes["MarketplaceSupplierProfile"],
 	/** Поставщик правит свой Offer — статус сбрасывается в PENDING_MODERATION */
 	marketplaceUpdateOffer: GraphQLTypes["MarketplaceOffer"],
 	/** Председатель кооперативного участка правит подпись ячейки или выводит её из оборота. Вывести можно только пустую ячейку. */
@@ -60644,6 +61286,8 @@ export type GraphQLTypes = {
 	marketplaceListPendingOffers: GraphQLTypes["MarketplaceOfferPaginationResult"],
 	/** Список заявлений на гарантийный возврат, привязанных к кооперативному участку доставки — для председателя своего КУ. */
 	marketplaceListReturnClaimsByBraname: Array<GraphQLTypes["MarketplaceReturnClaim"]>,
+	/** Отзывы о предложении, обо всех предложениях поставщика либо одного автора. Скрытые отзывы видит только администратор. */
+	marketplaceListReviews: GraphQLTypes["MarketplaceReviewPaginationResult"],
 	/** Список партий поставки текущего поставщика — для стола подготовки поставки и истории. */
 	marketplaceListShipments: Array<GraphQLTypes["MarketplaceShipment"]>,
 	/** Список партий поставки, ожидаемых на кооперативном участке, — для стола приёмки оператора пункта выдачи. */
@@ -60668,6 +61312,8 @@ export type GraphQLTypes = {
 	marketplaceListWriteoffProposals: GraphQLTypes["PaginatedMarketplaceWriteoffProposals"],
 	/** Кошельки пайщика в Столе заказов: паевой Цифрового кошелька, паевой резерв под заказы и свободный паевой Стола заказов. */
 	marketplaceMemberWallet: GraphQLTypes["MarketplaceMemberWallet"],
+	/** Отзыв заказчика по его заказу. Пусто — отзыв ещё не оставлен. */
+	marketplaceMyReviewByOrder?: GraphQLTypes["MarketplaceReview"] | undefined | null,
 	/** Запись текущего пайщика в реестре поставщиков (для онбординга) */
 	marketplaceMySupplierState?: GraphQLTypes["MarketplaceSupplier"] | undefined | null,
 	/** Состояние онбординга пайщика в Столе заказов: показывать ли gate или пропускать на стол */
@@ -60684,6 +61330,8 @@ export type GraphQLTypes = {
 	marketplaceReturnClaimChairmanSignablePayload: GraphQLTypes["MarketplaceReturnAcceptancePayload"],
 	/** Превью заявления на гарантийный возврат имущества для подписания пайщиком-заказчиком. */
 	marketplaceReturnClaimSignablePayload: GraphQLTypes["GeneratedDocument"],
+	/** Сводная оценка по опубликованным отзывам о предложении либо обо всех предложениях поставщика: средняя, число отзывов и распределение по оценкам. */
+	marketplaceReviewSummary: GraphQLTypes["MarketplaceReviewSummary"],
 	/** Подготовка докладки со склада: по строке корзины — детерминированный order_hash будущего заказа и снапшоты цены/упаковки. Оператор ничего не подписывает: его подпись закрывающая. */
 	marketplaceStockIssuancePayloads: Array<GraphQLTypes["MarketplaceStockIssuanceOperatorLine"]>,
 	/** Нагрузка к подписи бандла пайщиком: по каждой строке — заявление о возврате паевого взноса имуществом; если кошельков программы не хватает на бандл — одно заявление 1110 о переводе недостающего с Цифрового кошелька. */
@@ -60692,6 +61340,8 @@ export type GraphQLTypes = {
 	marketplaceSupplierClaim: GraphQLTypes["MarketplaceSupplierClaim"],
 	/** Сводка претензий текущего поставщика: признанный долг к удержанию из выплат и отказанные суммы. */
 	marketplaceSupplierClaimSummary: GraphQLTypes["MarketplaceSupplierClaimSummary"],
+	/** Профиль поставщика: имя, рассказ о себе, обложка, число предложений и сводная оценка. */
+	marketplaceSupplierProfile: GraphQLTypes["MarketplaceSupplierProfile"],
 	/** Контекст пайщика для Стола заказов: роли, участки оператора и включённые настройки адресного хранения */
 	marketplaceWhoAmI: GraphQLTypes["MarketplaceCurrentMember"],
 	/** Группы списаний, ожидающих подтверждения складом: по проекту, одобренному советом, — отдельная строка на каждый кооперативный участок. Председатель КУ видит только свои участки. */
@@ -63520,6 +64170,11 @@ export enum MarketplaceReturnClaimStatus {
 	REJECTED_AT_VISIT = "REJECTED_AT_VISIT",
 	REJECTED_REMOTELY = "REJECTED_REMOTELY"
 }
+/** Состояние отзыва: PUBLISHED — опубликован и виден пайщикам, HIDDEN — скрыт администратором. */
+export enum MarketplaceReviewStatus {
+	HIDDEN = "HIDDEN",
+	PUBLISHED = "PUBLISHED"
+}
 /** Способ отпуска товара: by_measure — по мере (делимый, заказывают произвольное количество, цена за базовую единицу); packaged — упаковкой (целыми упаковками фиксированного содержимого, у каждой своя цена). */
 export enum MarketplaceSaleForm {
 	BY_MEASURE = "BY_MEASURE",
@@ -64268,6 +64923,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceCreateOfferInput"]: ValueTypes["MarketplaceCreateOfferInput"];
 	["MarketplaceCreateOrderProposalLineInput"]: ValueTypes["MarketplaceCreateOrderProposalLineInput"];
 	["MarketplaceCreateReturnClaimInput"]: ValueTypes["MarketplaceCreateReturnClaimInput"];
+	["MarketplaceCreateReviewInput"]: ValueTypes["MarketplaceCreateReviewInput"];
 	["MarketplaceCreateShipmentInput"]: ValueTypes["MarketplaceCreateShipmentInput"];
 	["MarketplaceCreateStockProposalInput"]: ValueTypes["MarketplaceCreateStockProposalInput"];
 	["MarketplaceCreateStockProposalLineInput"]: ValueTypes["MarketplaceCreateStockProposalLineInput"];
@@ -64308,6 +64964,7 @@ type ZEUS_VARIABLES = {
 	["MarketplaceListOutgoingPaymentsFilterInput"]: ValueTypes["MarketplaceListOutgoingPaymentsFilterInput"];
 	["MarketplaceListPendingOffersInput"]: ValueTypes["MarketplaceListPendingOffersInput"];
 	["MarketplaceListReturnClaimsByBranameInput"]: ValueTypes["MarketplaceListReturnClaimsByBranameInput"];
+	["MarketplaceListReviewsFilterInput"]: ValueTypes["MarketplaceListReviewsFilterInput"];
 	["MarketplaceListShipmentsByBranameInput"]: ValueTypes["MarketplaceListShipmentsByBranameInput"];
 	["MarketplaceListShipmentsInput"]: ValueTypes["MarketplaceListShipmentsInput"];
 	["MarketplaceListStockProposalsInput"]: ValueTypes["MarketplaceListStockProposalsInput"];
@@ -64345,11 +65002,14 @@ type ZEUS_VARIABLES = {
 	["MarketplaceReturnClaimStatus"]: ValueTypes["MarketplaceReturnClaimStatus"];
 	["MarketplaceReturnStatementSignedInput"]: ValueTypes["MarketplaceReturnStatementSignedInput"];
 	["MarketplaceReturnStatementSignedMetaDocumentInput"]: ValueTypes["MarketplaceReturnStatementSignedMetaDocumentInput"];
+	["MarketplaceReviewStatus"]: ValueTypes["MarketplaceReviewStatus"];
+	["MarketplaceReviewSummaryInput"]: ValueTypes["MarketplaceReviewSummaryInput"];
 	["MarketplaceSaleForm"]: ValueTypes["MarketplaceSaleForm"];
 	["MarketplaceSetCartDeliveryPointInput"]: ValueTypes["MarketplaceSetCartDeliveryPointInput"];
 	["MarketplaceSetKUStatusInput"]: ValueTypes["MarketplaceSetKUStatusInput"];
 	["MarketplaceSetMembershipFeeInput"]: ValueTypes["MarketplaceSetMembershipFeeInput"];
 	["MarketplaceSetOfferWarrantyInput"]: ValueTypes["MarketplaceSetOfferWarrantyInput"];
+	["MarketplaceSetReviewStatusInput"]: ValueTypes["MarketplaceSetReviewStatusInput"];
 	["MarketplaceSetSupplierPayoutMethodInput"]: ValueTypes["MarketplaceSetSupplierPayoutMethodInput"];
 	["MarketplaceSetTrusteeWeightInput"]: ValueTypes["MarketplaceSetTrusteeWeightInput"];
 	["MarketplaceShareReturnActSignedInput"]: ValueTypes["MarketplaceShareReturnActSignedInput"];
@@ -64374,14 +65034,17 @@ type ZEUS_VARIABLES = {
 	["MarketplaceSupplierClaimStatus"]: ValueTypes["MarketplaceSupplierClaimStatus"];
 	["MarketplaceSupplierMemberInput"]: ValueTypes["MarketplaceSupplierMemberInput"];
 	["MarketplaceSupplierModel"]: ValueTypes["MarketplaceSupplierModel"];
+	["MarketplaceSupplierProfileCoverInput"]: ValueTypes["MarketplaceSupplierProfileCoverInput"];
 	["MarketplaceSupplierStatus"]: ValueTypes["MarketplaceSupplierStatus"];
 	["MarketplaceSwitchSupplierModelInput"]: ValueTypes["MarketplaceSwitchSupplierModelInput"];
 	["MarketplaceUnitOfMeasure"]: ValueTypes["MarketplaceUnitOfMeasure"];
 	["MarketplaceUnpublishStockInput"]: ValueTypes["MarketplaceUnpublishStockInput"];
 	["MarketplaceUpdateCartItemInput"]: ValueTypes["MarketplaceUpdateCartItemInput"];
 	["MarketplaceUpdateContainerInput"]: ValueTypes["MarketplaceUpdateContainerInput"];
+	["MarketplaceUpdateMyReviewInput"]: ValueTypes["MarketplaceUpdateMyReviewInput"];
 	["MarketplaceUpdateOfferInput"]: ValueTypes["MarketplaceUpdateOfferInput"];
 	["MarketplaceUpdateStorageCellInput"]: ValueTypes["MarketplaceUpdateStorageCellInput"];
+	["MarketplaceUpdateSupplierProfileInput"]: ValueTypes["MarketplaceUpdateSupplierProfileInput"];
 	["MarketplaceUpdateWriteoffDraftInput"]: ValueTypes["MarketplaceUpdateWriteoffDraftInput"];
 	["MarketplaceWithdrawOfferInput"]: ValueTypes["MarketplaceWithdrawOfferInput"];
 	["MarketplaceWriteoffItemInput"]: ValueTypes["MarketplaceWriteoffItemInput"];

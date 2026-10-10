@@ -64,6 +64,7 @@ export class MarketplaceCatalogResolver {
         category_id: input?.category_id ?? undefined,
         available_only: true,
         delivery_braname: input?.delivery_braname ?? undefined,
+        supplier_account: input?.supplier_account ?? undefined,
       },
       pagination
     );

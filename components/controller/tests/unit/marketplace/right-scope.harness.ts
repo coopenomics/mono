@@ -109,6 +109,7 @@ export function makeScopeGuard(world: ScopeWorld = {}) {
       findByOrderHash: jest.fn().mockResolvedValue(null),
     },
     WriteoffProposal: repo('WriteoffProposal'),
+    Review: repo('Review'),
   };
   const subjects = new MarketplaceRightSubjects(
     repos.Order as any,
@@ -123,7 +124,8 @@ export function makeScopeGuard(world: ScopeWorld = {}) {
     repos.SupplierClaim as any,
     repos.StockProposal as any,
     repos.IssuanceSaga as any,
-    repos.WriteoffProposal as any
+    repos.WriteoffProposal as any,
+    repos.Review as any
   );
 
   const kuChairmanService = {

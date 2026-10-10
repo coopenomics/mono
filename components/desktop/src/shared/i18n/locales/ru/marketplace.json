@@ -31,6 +31,37 @@
     "adminIssuancePoints": {
       "intro": "Пункты выдачи заказов — это кооперативные участки, подключённые к Столу заказов. Участки создаются на столе совета; здесь председатель делает их пунктами выдачи, указывая фактический адрес, контакты и режим работы. Адрес геокодируется автоматически для карты."
     },
+    "adminReviewsPage": {
+      "ariaLabel": "Отзывы заказчиков",
+      "column": {
+        "author": "Автор",
+        "date": "Дата",
+        "offer": "Предложение",
+        "stars": "Оценка",
+        "status": "Состояние",
+        "text": "Текст"
+      },
+      "drawerTitle": "Отзыв",
+      "emptyBody": "Отзывы появятся после первых выданных заказов.",
+      "emptyTitle": "Отзывов пока нет",
+      "hiddenReasonLabel": "Причина скрытия",
+      "hideAction": "Скрыть",
+      "hint": "Заказчики оставляют отзывы по полученным заказам. Скрытый отзыв видят его автор и администратор, в сводную оценку он не входит.",
+      "pagerLabel": "Отзывы",
+      "publishAction": "Вернуть в публикацию",
+      "publishedNotice": "Отзыв опубликован",
+      "searchPlaceholder": "Поиск по тексту отзыва",
+      "status": {
+        "hidden": "Скрыт",
+        "published": "Опубликован"
+      },
+      "supplierLabel": "Поставщик",
+      "tab": {
+        "all": "Все",
+        "hidden": "Скрытые",
+        "published": "Опубликованные"
+      }
+    },
     "adminWarehouseSummary": {
       "intro": "Склад кооператива: что принято, выдано и списано по каждому пункту выдачи. Только для чтения — операции выполняются на столах ПВЗ. Нажмите на наименование, чтобы открыть предложение, по которому имущество пришло."
     },
@@ -266,6 +297,11 @@
       "typesEmptyTitle": "Типы боксов не заведены",
       "volumePreview": "Полезный объём: {volume}",
       "widthLabel": "Ширина, см"
+    },
+    "coopProfilePage": {
+      "ariaLabel": "Профиль кооператива",
+      "hint": "Кооператив поставляет имущество со своего склада. Этот профиль заказчик открывает с карточек «со склада».",
+      "openProfileAction": "Открыть страницу"
     },
     "coopStockSection": {
       "cancelButton": "Отменить",
@@ -737,6 +773,7 @@
       "backToModeration": "К модерации",
       "backToOffers": "К реестру предложений",
       "backToOrders": "К реестру заказов",
+      "backToReviews": "К отзывам",
       "backToWarehouse": "К складу",
       "cartAction": "В корзину",
       "daysCount": "{days} дн.",
@@ -753,6 +790,7 @@
       "packageStockUnlimited": "без ограничения",
       "packagesTitle": "Упаковки",
       "rejectAction": "Отклонить",
+      "reviewsTitle": "Отзывы",
       "selectPvzHint": "Выберите пункт выдачи в каталоге, чтобы заказывать.",
       "shelfLifeLabel": "Срок годности",
       "stockAvailablePackaged": "В наличии: {stock}",
@@ -1773,6 +1811,12 @@
       "productByOfferLabel": "Товар по предложению",
       "productLabelFallback": "Товар",
       "returnClaimLabel": "Заявление на возврат",
+      "reviewEditButton": "Изменить",
+      "reviewHiddenBadge": "Скрыт администратором",
+      "reviewHiddenReason": "Причина: {reason}",
+      "reviewInvite": "Расскажите, каким оказалось имущество и как прошла выдача.",
+      "reviewLabel": "Отзыв",
+      "reviewLeaveButton": "Оставить отзыв",
       "showQrButton": "Показать QR",
       "statusAwaitingShipment": "Ожидает отгрузки",
       "statusCancelled": "Заказ отменён",
@@ -1780,6 +1824,7 @@
       "statusPlaced": "Заказ оформлен",
       "statusReceived": "Заказ получен",
       "statusReturnClaimSubmitted": "Заявление на гарантийный возврат подано",
+      "statusReviewLeft": "Отзыв оставлен",
       "submitClaimButton": "Подать заявление на возврат",
       "submitNewClaimButton": "Подать новое заявление",
       "timelineTitle": "Хронология",
@@ -2032,6 +2077,34 @@
       "refundPendingMemberFee": "Имущество и паевой взнос возвращены — членский взнос ждёт пополнения кошелька участка",
       "returnedToOrderer": "Имущество выдано обратно"
     },
+    "reviewFormDialog": {
+      "savedNotice": "Отзыв сохранён",
+      "starsLabel": "Оценка",
+      "submitAction": "Отправить",
+      "textHint": "{count} из {max} знаков",
+      "textLabel": "Отзыв",
+      "textTooLong": "Текст длиннее {max} знаков",
+      "titleCreate": "Отзыв о полученном имуществе",
+      "titleEdit": "Изменить отзыв"
+    },
+    "reviewHideDialog": {
+      "hiddenNotice": "Отзыв скрыт",
+      "note": "Причину увидит автор отзыва.",
+      "reasonLabel": "Причина скрытия",
+      "reasonTooLong": "Причина длиннее {max} знаков",
+      "submitAction": "Скрыть отзыв",
+      "title": "Скрыть отзыв"
+    },
+    "reviewList": {
+      "authorFallback": "Пайщик",
+      "emptyBody": "Отзыв оставляет заказчик после получения заказа.",
+      "emptyTitle": "Отзывов пока нет",
+      "hideAction": "Скрыть",
+      "showMoreAction": "Показать ещё"
+    },
+    "reviewStars": {
+      "count": "{n} отзыв | {n} отзыва | {n} отзывов"
+    },
     "scannerDialog": {
       "title": "Сканировать QR"
     },
@@ -2240,8 +2313,17 @@
       "contractDateLabel": "Дата договора",
       "contractLabel": "Договор",
       "modelLabel": "Модель",
+      "openProfileButton": "Открыть профиль",
       "rejectButton": "Отклонить",
       "title": "Поставщик"
+    },
+    "supplierMyProfilePage": {
+      "ariaLabel": "Мой профиль",
+      "hint": "Профиль открывается заказчику с вашего имени на карточке предложения. Расскажите, что вы поставляете и где работаете.",
+      "noReviews": "Отзывов пока нет",
+      "offersLabel": "Предложений в каталоге",
+      "openAsOrdererAction": "Открыть как заказчик",
+      "ratingLabel": "Оценка заказчиков"
     },
     "supplierOnboardingPage": {
       "applicationPendingText1": "Заявку рассмотрит председатель кооператива. После одобрения",
@@ -2266,6 +2348,39 @@
       "shareModelTitle": "Паевая модель",
       "submitButton": "Отправить заявку",
       "submitHint": "После подачи заявку рассмотрит председатель кооператива — затем стол поставщика откроется."
+    },
+    "supplierProfileForm": {
+      "aboutHint": "{count} из {max} знаков",
+      "aboutLabel": "О себе",
+      "aboutTooLong": "Текст длиннее {max} знаков",
+      "coverLabel": "Обложка",
+      "coverPickHint": "JPEG, PNG или WEBP, до 10 МБ",
+      "coverPickTitle": "Выберите изображение",
+      "nameHint": "Пустое поле — имя из сертификата",
+      "nameLabel": "Название",
+      "nameTooLong": "Название длиннее {max} знаков",
+      "removeCoverAction": "Убрать обложку",
+      "saveAction": "Сохранить",
+      "savedNotice": "Профиль сохранён"
+    },
+    "supplierProfilePage": {
+      "aboutTitle": "О поставщике",
+      "addToCartAction": "В корзину",
+      "ariaLabel": "Поставщик",
+      "backAction": "Назад",
+      "eyebrowCooperative": "Склад кооператива",
+      "eyebrowSupplier": "Поставщик",
+      "noReviews": "Отзывов пока нет",
+      "notFoundBody": "Проверьте ссылку либо вернитесь в каталог.",
+      "notFoundTitle": "Поставщик не найден",
+      "offersEmptyBody": "Предложения появятся здесь после публикации.",
+      "offersEmptyTitle": "Опубликованных предложений нет",
+      "offersLabel": "Предложений",
+      "offersTitle": "Имущество",
+      "reviewsLabel": "Отзывов",
+      "reviewsTitle": "Отзывы о поставщике",
+      "selectPvzHint": "Выберите пункт выдачи в каталоге, чтобы положить имущество в корзину.",
+      "showMoreAction": "Показать ещё"
     },
     "supplierRegistryPage": {
       "accountLabel": "Аккаунт поставщика",
