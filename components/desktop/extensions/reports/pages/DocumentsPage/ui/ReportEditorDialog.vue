@@ -12,7 +12,9 @@ q-dialog(
       .text-subtitle1.ellipsis
         | {{ $t('reports.reportEditorDialog.title', { reportTitle, year, periodSuffix }) }}
       q-space
+      BaseBadge(v-if='readonly', variant='neutral') {{ $t('reports.reportEditorDialog.readonlyLabel') }}
       q-chip(
+        v-else
         :color='saveStatusColor'
         text-color='white'
         dense
@@ -60,6 +62,7 @@ q-dialog(
               icon='fa-solid fa-triangle-exclamation'
             ) {{ m.label }}
           q-btn(
+            v-if='!readonly'
             color='primary'
             icon='fa-solid fa-pen-to-square'
             :label='$t("reports.reportEditorDialog.goToRequisitesLabel")'
@@ -69,6 +72,7 @@ q-dialog(
 
         BuhotchEditor(
           v-else-if='reportType === "BUHOTCH" && edits'
+          :inert='readonly'
           v-model:edits='buhotchEdits'
           :field-errors='fieldErrors'
           @dirty='onDirty'
@@ -78,7 +82,7 @@ q-dialog(
         //- часть которых условная, при закрытии диалога роняет Vue на
         //- размонтировании пустого узла («Cannot destructure property type of
         //- vnode as it is null»), и окно перестаёт закрываться.
-        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits')
+        .editor-stack(v-else-if='reportType && reportType !== "BUHOTCH" && edits', :inert='readonly')
           ZeroReportEditor(
             :report-type='reportType'
             v-model:edits='zeroEdits'
@@ -131,7 +135,12 @@ q-dialog(
         //- Валидация + кнопки генерации — только когда форма загружена
         //- (реквизиты заполнены, edits подтянулись). Для notReady показываем
         //- только блок отметок «не надо сдавать / сдан вне платформы» ниже.
-        template(v-if='!notReady')
+        //- Просмотр: только сведения о состоянии отчёта, действий нет.
+        .mark-hint.q-mb-md(v-if='readonly')
+          q-icon(name='visibility' size='14px')
+          |  {{ $t('reports.reportEditorDialog.readonlyHint') }}
+
+        template(v-if='!notReady && !readonly')
           .validation-badge.q-mb-sm(:class='{ ok: isValid, bad: !isValid }')
             q-icon(:name='isValid ? "fa-solid fa-check" : "fa-solid fa-triangle-exclamation"')
             span(v-if='isValid') {{ $t('reports.reportEditorDialog.formValidLabel') }}
@@ -218,6 +227,7 @@ q-dialog(
             q-icon(name='fa-solid fa-circle-xmark' color='grey-7' size='14px')
             |  {{ $t('reports.reportEditorDialog.markedNotRequiredText') }}
           q-btn(
+            v-if='!readonly'
             color='grey-7'
             icon='fa-solid fa-rotate-left'
             :label='$t("reports.reportEditorDialog.unmarkLabel")'
@@ -232,6 +242,7 @@ q-dialog(
             q-icon(name='fa-solid fa-circle-check' color='positive' size='14px')
             |  {{ $t('reports.reportEditorDialog.markedSubmittedOffPlatformText') }}
           q-btn(
+            v-if='!readonly'
             color='grey-7'
             icon='fa-solid fa-rotate-left'
             :label='$t("reports.reportEditorDialog.unmarkLabel")'
@@ -241,7 +252,7 @@ q-dialog(
           )
             q-tooltip {{ $t('reports.reportEditorDialog.restoreStatusHint') }}
 
-        template(v-else)
+        template(v-else-if='!readonly')
           q-btn.q-mb-sm(
             outline
             color='positive'
@@ -321,6 +332,7 @@ q-dialog(
 </template>
 
 <script setup lang="ts">
+import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import { computed, ref, watch } from 'vue'
 import { uiLocale } from 'src/shared/i18n';
 import { useQuasar } from 'quasar'
@@ -420,6 +432,8 @@ const props = defineProps<{
   reportType: IReportType | null
   year: number
   period?: number | null
+  /** Просмотр: отчёт открыт на чтение, без правки, сохранения, формирования и отметок. */
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{

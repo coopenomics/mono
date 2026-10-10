@@ -1441,6 +1441,9 @@ export const AllTypesProps: Record<string,any> = {
 		assignCapabilitySet:{
 			data:"AssignCapabilitySetInput"
 		},
+		assignRole:{
+			data:"RoleAssignmentInput"
+		},
 		authorizeDecision:{
 			data:"AuthorizeDecisionInput"
 		},
@@ -2379,6 +2382,9 @@ export const AllTypesProps: Record<string,any> = {
 		revokeParticipantKey:{
 			data:"RevokeParticipantKeyInput"
 		},
+		revokeRole:{
+			data:"RoleAssignmentInput"
+		},
 		revokeSession:{
 			data:"RevokeSessionInput"
 		},
@@ -3211,6 +3217,31 @@ export const AllTypesProps: Record<string,any> = {
 			filter:"ProcessesFilter",
 			pagination:"PaginationInput"
 		},
+		reportsLedgerAccounts:{
+
+		},
+		reportsLedgerHistory:{
+			input:"GetLedger2HistoryInput"
+		},
+		reportsLedgerPostings:{
+			input:"GetLedger2PostingsInput"
+		},
+		reportsLedgerWallets:{
+
+		},
+		reportsParticipantWallets:{
+
+		},
+		reportsProcess:{
+
+		},
+		reportsProcesses:{
+			filter:"ProcessesFilter",
+			pagination:"PaginationInput"
+		},
+		reportsSubjects:{
+
+		},
 		searchDocuments:{
 			data:"SearchDocumentsInput"
 		},
@@ -3361,6 +3392,10 @@ export const AllTypesProps: Record<string,any> = {
 
 	},
 	RobotVoteMode: "enum" as const,
+	RoleAssignmentInput:{
+
+	},
+	RolePermissionAccess: "enum" as const,
 	RoomMessageKind: "enum" as const,
 	SaveCapitalProgramDocDataInput:{
 
@@ -3768,6 +3803,15 @@ export const ReturnTypes: Record<string,any> = {
 		present:"Boolean",
 		status:"ApprovalStatus",
 		username:"String"
+	},
+	AssignableRole:{
+		assignments:"RoleAssignment",
+		description:"String",
+		extension_name:"String",
+		extension_title:"String",
+		key:"String",
+		permissions:"RolePermission",
+		title:"String"
 	},
 	AuthSequence:{
 		account:"String",
@@ -6754,6 +6798,7 @@ export const ReturnTypes: Record<string,any> = {
 		applyDocumentApprovalsSeed:"DocumentApprovalSeedResult",
 		approveVerification:"VerificationReview",
 		assignCapabilitySet:"Boolean",
+		assignRole:"AssignableRole",
 		authorizeDecision:"Transaction",
 		authorizeForceRecovery:"ForceRecoveryAuthorization",
 		cancelMembershipExit:"Boolean",
@@ -7055,6 +7100,7 @@ export const ReturnTypes: Record<string,any> = {
 		revokeAllSessions:"RevokedSessionsResult",
 		revokeCapabilitySet:"Boolean",
 		revokeParticipantKey:"RevokeKeyResult",
+		revokeRole:"AssignableRole",
 		revokeSession:"Boolean",
 		saveCapitalProgramDocDataHash:"CapitalOnboardingState",
 		saveMyPassport:"Account",
@@ -7736,6 +7782,7 @@ export const ReturnTypes: Record<string,any> = {
 		getAccounts:"AccountsPaginationResult",
 		getActions:"PaginatedActionsPaginationResult",
 		getAgenda:"AgendaWithDocuments",
+		getAssignableRoles:"AssignableRole",
 		getAvailableReports:"AvailableReport",
 		getBranches:"Branch",
 		getCandidateIntake:"CandidateIntake",
@@ -7891,6 +7938,15 @@ export const ReturnTypes: Record<string,any> = {
 		paymentProofs:"PaymentFile",
 		process:"ProcessView",
 		processes:"ProcessSummaryPaginationResult",
+		reportsLedgerAccounts:"Ledger2Account",
+		reportsLedgerHistory:"Ledger2HistoryResponse",
+		reportsLedgerPostings:"Ledger2PostingsResponse",
+		reportsLedgerWallets:"Ledger2Wallet",
+		reportsParticipantWallets:"ReportsParticipantWallet",
+		reportsParticipants:"ReportsParticipant",
+		reportsProcess:"ProcessView",
+		reportsProcesses:"ProcessSummaryPaginationResult",
+		reportsSubjects:"ReportsSubject",
 		searchDocuments:"SearchResult",
 		searchPrivateAccounts:"PrivateAccountSearchResult",
 		sovietRobotCouncil:"RobotCouncil",
@@ -8043,6 +8099,20 @@ export const ReturnTypes: Record<string,any> = {
 		signerSnils:"RequisiteFieldView",
 		signerType:"String"
 	},
+	ReportsParticipant:{
+		name:"String",
+		username:"String"
+	},
+	ReportsParticipantWallet:{
+		available:"String",
+		program_id:"String",
+		username:"String"
+	},
+	ReportsSubject:{
+		account_kind:"String",
+		name:"String",
+		username:"String"
+	},
 	RepresentedBy:{
 		based_on:"String",
 		first_name:"String",
@@ -8166,6 +8236,16 @@ export const ReturnTypes: Record<string,any> = {
 		member:"String",
 		mode:"RobotVoteMode",
 		permission_name:"String"
+	},
+	RoleAssignment:{
+		assigned_at:"DateTime",
+		assigned_by:"String",
+		display_name:"String",
+		username:"String"
+	},
+	RolePermission:{
+		access:"RolePermissionAccess",
+		title:"String"
 	},
 	SbpAccount:{
 		phone:"String"

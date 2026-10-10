@@ -33,3 +33,30 @@ export * as GetWithheldTaxState from './getWithheldTaxState'
 
 /** История перечислений удержанного налога — от новых к старым */
 export * as GetWithheldTaxPayments from './getWithheldTaxPayments'
+
+/** Счета плана счетов с остатками — реестр стола бухгалтера */
+export * as ReportsLedgerAccounts from './reportsLedgerAccounts'
+
+/** Кошельки кооператива с остатками — реестр стола бухгалтера */
+export * as ReportsLedgerWallets from './reportsLedgerWallets'
+
+/** Реестр операций стола бухгалтера */
+export * as ReportsLedgerHistory from './reportsLedgerHistory'
+
+/** Реестр проводок стола бухгалтера */
+export * as ReportsLedgerPostings from './reportsLedgerPostings'
+
+/** Процесс целиком — реестр стола бухгалтера */
+export * as ReportsProcess from './reportsProcess'
+
+/** Реестр процессов стола бухгалтера */
+export * as ReportsProcesses from './reportsProcesses'
+
+/** Принятые пайщики с именами — для реестров стола бухгалтера */
+export * as ReportsParticipants from './reportsParticipants'
+
+/** Кошельки пайщиков по программам — реестр кошельков стола бухгалтера */
+export * as ReportsParticipantWallets from './reportsParticipantWallets'
+
+/** Имена и вид субъектов операций — для реестров стола бухгалтера */
+export * as ReportsSubjects from './reportsSubjects'

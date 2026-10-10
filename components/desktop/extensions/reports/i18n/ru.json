@@ -177,7 +177,8 @@
       "refreshLabel": "Обновить",
       "requisitesFilledLabel": "Реквизиты заполнены",
       "requisitesIncompleteLabel": "Не все реквизиты заполнены",
-      "title": "Доступные формы"
+      "title": "Доступные формы",
+      "viewReportLabel": "Открыть на просмотр"
     },
     "documentsPage": {
       "tab": {
@@ -441,6 +442,8 @@
       "pdfExportUnsupported": "PDF-экспорт для {reportTitle} пока не поддерживается",
       "pdfGenerateError": "Ошибка генерации PDF",
       "periodSuffixLabel": " · период {period}",
+      "readonlyHint": "Отчёт открыт на просмотр. Правка, формирование и отметки доступны председателю и бухгалтеру.",
+      "readonlyLabel": "Просмотр",
       "regenerateError": "Ошибка перегенерации",
       "regenerateHint": "Подтянуть актуальные данные из реестра; ваши правки сохраняются",
       "regenerateLabel": "Перегенерировать",

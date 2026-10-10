@@ -46,7 +46,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.processesTitle'),
               icon: 'fa-solid fa-diagram-project',
-              requires: 'Report:read',
+              requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -59,7 +59,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.operationsTitle'),
               icon: 'fa-solid fa-list-ul',
-              requires: 'Report:read',
+              requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -72,7 +72,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.postingsTitle'),
               icon: 'fa-solid fa-arrows-split-up-and-left',
-              requires: 'Report:read',
+              requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -85,7 +85,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.walletsTitle'),
               icon: 'fa-solid fa-wallet',
-              requires: 'Report:read',
+              requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },
@@ -100,7 +100,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.walletsCoopTitle'),
                   icon: 'fa-solid fa-building',
-                  requires: 'Report:read',
+                  requires: 'Registry:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -113,7 +113,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
                 meta: {
                   title: t('reports.install.route.walletsParticipantsTitle'),
                   icon: 'fa-solid fa-users',
-                  requires: 'Report:read',
+                  requires: 'Registry:read',
                   agreements: agreementsBase,
                   requiresAuth: true,
                   hidden: true,
@@ -128,7 +128,7 @@ export default async function (): Promise<IWorkspaceConfig[]> {
             meta: {
               title: t('reports.install.route.accountsTitle'),
               icon: 'fa-solid fa-sitemap',
-              requires: 'Report:read',
+              requires: 'Registry:read',
               agreements: agreementsBase,
               requiresAuth: true,
             },

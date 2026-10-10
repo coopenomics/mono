@@ -1,5 +1,6 @@
 import { CoreBaseline1790197276751 } from './1790197276751-baseline';
 import { PaymentsQuantityNumeric1790316882052 } from './1790316882052-payments-quantity-numeric';
+import { RoleAssignments1791538523720 } from './1791538523720-role-assignments';
 import type { SchemaMigrationClass } from '@coopenomics/extension-kit';
 
 /**
@@ -15,4 +16,5 @@ import type { SchemaMigrationClass } from '@coopenomics/extension-kit';
 export const coreDatabaseMigrations: ReadonlyArray<SchemaMigrationClass> = [
   CoreBaseline1790197276751,
   PaymentsQuantityNumeric1790316882052,
+  RoleAssignments1791538523720,
 ];

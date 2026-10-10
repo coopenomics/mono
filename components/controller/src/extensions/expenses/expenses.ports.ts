@@ -12,6 +12,7 @@
  */
 import {
   DESKTOP_GRANTS_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   CHAIN_CHANGES_PORT,
   CHAIN_PORT,
   DOCUMENT_PORT,
@@ -26,6 +27,8 @@ import {
 export const expensesPorts = {
   required: [
     DESKTOP_GRANTS_REGISTRY_PORT,
+    // Ревизору расходы дают чтение своего реестра: дополнение роли и её держатели.
+    ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,
     DOCUMENT_PORT,
     FILE_STORAGE_PORT,

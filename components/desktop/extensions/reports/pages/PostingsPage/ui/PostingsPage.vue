@@ -217,6 +217,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { copyToClipboard } from 'quasar'
@@ -224,9 +225,7 @@ import { useWindowSize } from 'src/shared/hooks'
 import { useSystemStore } from 'src/entities/System/model'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { EntityIdBadge } from 'src/shared/ui'
-import { useLedger2Store } from 'src/entities/Ledger2'
 import type { ILedger2Posting, ILedger2PostingsFilterInput } from 'src/entities/Ledger2'
-import { useAccountStore } from 'src/entities/Account'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
@@ -236,8 +235,7 @@ const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
-const ledger2Store = useLedger2Store()
-const accountStore = useAccountStore()
+const registries = useDeskRegistries()
 
 // Реестр-источник: cooptypes/src/ledger2/operations.ts (LEDGER2_OPERATION_REGISTRY).
 // Без локальных копий human-name'ов.
@@ -306,7 +304,9 @@ function creditCode(id: number | null | undefined): number | null {
 
 const loading = ref(false)
 const items = ref<ILedger2Posting[]>([])
-const fioCache = ref(new Map<string, string>())
+// Имена субъектов отдаёт операция стола бухгалтера — без личных данных пайщиков.
+const deskNames = useDeskFioCache()
+const fioCache = deskNames.fioCache
 
 const pagination = ref({ page: 1, rowsPerPage: 50, rowsNumber: 0 })
 
@@ -436,7 +436,7 @@ async function clearUsernameFilter() {
 
 async function resolveAccountName(id: number) {
   try {
-    const accounts = await ledger2Store.loadAccounts(info.coopname)
+    const accounts = await registries.loadAccounts(info.coopname)
     const a = accounts.find((x) => x.id === id)
     if (a) filters.accountName = a.name
   } catch {
@@ -522,7 +522,7 @@ async function load() {
       input.dateTo = to
     }
 
-    const resp = await ledger2Store.loadPostings(input)
+    const resp = await registries.loadPostings(input)
     if (myId !== lastRequestId) return
     if (resp) {
       items.value = resp.items
@@ -546,32 +546,7 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 async function enrichFio(rows: ILedger2Posting[]) {
-  const usernames = [
-    ...new Set(rows.map((o) => o.username).filter((u): u is string => !!u && !fioCache.value.has(u))),
-  ]
-  if (!usernames.length) return
-  await Promise.allSettled(
-    usernames.map(async (username) => {
-      try {
-        const acc = await accountStore.fetchAccount(username)
-        const pd = acc?.private_account
-        if (!pd) return
-        let fio = ''
-        if (pd.type === 'individual' && pd.individual_data) {
-          const d = pd.individual_data
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        } else if (pd.type === 'organization' && pd.organization_data) {
-          fio = (pd.organization_data as any).short_name ?? username
-        } else if (pd.type === 'entrepreneur' && pd.entrepreneur_data) {
-          const d = pd.entrepreneur_data as any
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        }
-        if (fio) fioCache.value.set(username, fio)
-      } catch {
-        // молча — username остаётся как fallback
-      }
-    }),
-  )
+  await deskNames.enrichFio(rows.map((row) => row.username))
 }
 
 onMounted(async () => {

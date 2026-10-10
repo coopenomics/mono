@@ -140,13 +140,15 @@ describe('Отчётность — черновики форм', () => {
     expect(JSON.parse(stored.editsJson).signer.lastName).toBe('Правкин')
   })
 
-  it(caseName('rep.draft.side.03', 'черновики ведёт только председатель — члену совета и пайщику отказ'), async () => {
+  it(caseName('rep.draft.side.03', 'черновики ведёт только председатель; член совета отчёт открывает на просмотр, пайщику отказ'), async () => {
     const input = { i: { reportType: 'BUHOTCH', year: YEAR, editsJson: '{}', editedFields: [] } }
-    for (const token of [council, member]) {
+    for (const token of [council, member])
       expectCode(await gqlError(token, SAVE, input), 'KIT_INSUFFICIENT_RIGHTS')
-      expectCode(await gqlError(token, LIST, { f: { year: YEAR } }), 'KIT_INSUFFICIENT_RIGHTS')
-      expectCode(await gqlError(token, BUILD, { t: 'BUHOTCH', y: YEAR, p: null }), 'KIT_INSUFFICIENT_RIGHTS')
-    }
+    // Член совета читает отчёты: список черновиков и начальные значения ему открыты.
+    expect(await gqlError(council, LIST, { f: { year: YEAR } })).toBeNull()
+    expect(await gqlError(council, BUILD, { t: 'BUHOTCH', y: YEAR, p: null })).toBeNull()
+    expectCode(await gqlError(member, LIST, { f: { year: YEAR } }), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(member, BUILD, { t: 'BUHOTCH', y: YEAR, p: null }), 'KIT_INSUFFICIENT_RIGHTS')
   })
 
   it(caseName('rep.draft.side.04', 'удаление черновика: удалённый не читается, несуществующий — отказ «не найдено»'), async () => {
@@ -186,9 +188,10 @@ describe('Отчётность — отметки календаря', () => {
     expect(await cellStatus(), '«сдан вне платформы» важнее черновика').toBe('SUBMITTED_EXTERNALLY')
   })
 
-  it(caseName('rep.cal.side.01', 'календарь и отметки — только председателю'), async () => {
+  it(caseName('rep.cal.side.01', 'отметки ставит только председатель; календарь читает и член совета'), async () => {
+    expect(await gqlError(council, CALENDAR, { y: YEAR }), 'совет читает календарь').toBeNull()
+    expectCode(await gqlError(member, CALENDAR, { y: YEAR }), 'KIT_INSUFFICIENT_RIGHTS')
     for (const token of [council, member]) {
-      expectCode(await gqlError(token, CALENDAR, { y: YEAR }), 'KIT_INSUFFICIENT_RIGHTS')
       expectCode(
         await gqlError(token, MARK, { d: { reportType: 'RSV', year: cell.reportYear, period: cell.periodCode, mark: null } }),
         'KIT_INSUFFICIENT_RIGHTS',

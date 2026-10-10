@@ -9,13 +9,19 @@
 экспорта, исчезнувший метод, новый обязательный параметр требуют major, а
 снятое старое — периода устаревания не меньше одного minor (INV-009).
 
-Всего экспортов: 298.
+Всего экспортов: 306.
 
 ## ACCOUNT_PORT
 
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.Account')`
+
+## ACCOUNTING_REGISTRY_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.AccountingRegistry')`
 
 ## AGREEMENT_CATALOG_PORT
 
@@ -230,6 +236,17 @@
 `const` · hooks
 
 - `Symbol.for('Innercoop.CorePort.GlobalSearchRegistry')`
+
+## IAccountingRegistryPort
+
+`interface` · core-ports
+
+- `ledgerAccounts(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerWallets(coopname: string): Promise<InnerRegistryRecord[]>`
+- `ledgerHistory(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `ledgerPostings(input: InnerRegistryRecord): Promise<InnerRegistryRecord>`
+- `process(hash: string, coopname: string): Promise<InnerRegistryRecord>`
+- `processes(filter: InnerRegistryRecord, pagination: InnerRegistryRecord): Promise<InnerRegistryRecord>`
 
 ## IAccountPort
 
@@ -653,6 +670,22 @@
 - `order: number`
 - `extension_name: string`
 - `resolve_doc_data_hash?: () => Promise<string | undefined>`
+
+## InnerAssignableRole
+
+`interface` · core-ports
+
+- `key: string`
+- `title: string`
+- `description: string`
+- `permissions: readonly InnerRolePermission[]`
+
+## InnerAttachedRole
+
+`interface` · core-ports
+
+- `key: string`
+- `permissions: readonly InnerRolePermission[]`
 
 ## InnerBankTransferData
 
@@ -1906,6 +1939,12 @@
 - `meta: string`
 - `document: ISignedDocument`
 
+## InnerRegistryRecord
+
+`type` · core-ports
+
+- `Record<string, any>`
+
 ## InnerRepresentative
 
 `interface` · core-ports
@@ -1939,6 +1978,14 @@
 - `outcome: InnerRobotDecisionOutcome`
 - `tx_hash?: string`
 - `detail?: string`
+
+## InnerRolePermission
+
+`interface` · core-ports
+
+- `title: string`
+- `access: 'read' | 'write'`
+- `rights: readonly string[]`
 
 ## InnerRoomMessageKind
 
@@ -2235,6 +2282,14 @@
 - `unregisterProgram(key: string, extensionName: string): void`
 - `registerIntakeForm(spec: InnerIntakeFormRegistration): void`
 - `unregisterIntakeForm(id: string, extensionName: string): void`
+
+## IRoleAssignmentsPort
+
+`interface` · core-ports
+
+- `declare(extensionName: string, roles: readonly InnerAssignableRole[]): void`
+- `attach(extensionName: string, roles: readonly InnerAttachedRole[]): void`
+- `rolesOf(extensionName: string, username: string): Promise<string[]>`
 
 ## ISecretCipherPort
 
@@ -2538,6 +2593,12 @@
 `const` · core-ports
 
 - `Symbol.for('Innercoop.CorePort.RegistrationRegistry')`
+
+## ROLE_ASSIGNMENTS_PORT
+
+`const` · core-ports
+
+- `Symbol.for('Innercoop.CorePort.RoleAssignments')`
 
 ## SECRET_CIPHER_PORT
 

@@ -128,6 +128,7 @@
 </template>
 
 <script setup lang="ts">
+import type { RegistrySource } from 'src/shared/lib/registry-source'
 import { onMounted, ref } from 'vue'
 import { Ledger2Contract, SovietContract } from 'cooptypes'
 import { liveTable, useLiveReload } from 'src/shared/lib/realtime'
@@ -174,6 +175,8 @@ const props = defineProps<{
   operationRouteName?: string
   /** Имя маршрута реестра проводок. Задан → клик по № проводки ведёт туда; не задан → копирование. */
   postingRouteName?: string
+  /** Откуда брать процесс, операции и проводки: общие операции ядра либо операции стола бухгалтера. */
+  source?: RegistrySource
 }>()
 
 const router = useRouter()
@@ -285,20 +288,20 @@ async function load(): Promise<void> {
   try {
     // Документы + операции + проводки одного процесса грузим параллельно.
     const [view, history, post] = await Promise.all([
-      processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }),
+      processStore.loadProcess({ coopname: props.coopname, hash: props.processHash }, props.source),
       ledger2Store.loadHistory({
         coopname: props.coopname,
         processHash: props.processHash,
         actionNames: ['apply', 'walmove', 'revert'],
         limit: 100,
         sortOrder: 'ASC',
-      }),
+      }, props.source),
       ledger2Store.loadPostings({
         coopname: props.coopname,
         processHash: props.processHash,
         limit: 100,
         sortOrder: 'ASC',
-      }),
+      }, props.source),
     ])
     documents.value = view?.documents ?? []
     operations.value = history?.items ?? []

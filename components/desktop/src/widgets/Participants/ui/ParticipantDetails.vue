@@ -42,24 +42,28 @@
     v-if="individualParticipantData"
     :key="participant.username"
     :participantData="individualParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
   EditableEntrepreneurCard(
     v-if="entrepreneurParticipantData"
     :key="participant.username"
     :participantData="entrepreneurParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
   EditableOrganizationCard(
     v-if="organizationParticipantData"
     :key="participant.username"
     :participantData="organizationParticipantData"
+    :readonly="!canEdit"
     @update="onUpdate"
   )
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useDesktopStore } from 'src/entities/Desktop'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
 import {
   highestVerificationLevel,
@@ -87,6 +91,10 @@ const props = defineProps<{
   /** Как называть верификатора и участок в подписи уровня. */
   naming?: VerificationNaming
 }>()
+
+// Данные пайщика правит председатель; остальным карточка открывается на просмотр, без кнопки «Сохранить».
+const desktop = useDesktopStore()
+const canEdit = computed(() => desktop.hasGrant('soviet', 'Account:update'))
 
 // Emits
 const emit = defineEmits<{

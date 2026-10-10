@@ -8,6 +8,7 @@
     :report-type='editorReportType'
     :year='editorYear'
     :period='editorPeriod'
+    :readonly='!canDraft'
     @generated='onGenerated'
     @marked='onMarked'
   )
@@ -18,6 +19,7 @@ import { ref } from 'vue'
 import type { IReportType } from 'src/entities/Report'
 import ReportsCalendar from 'extensions/reports/widgets/reports-calendar/ReportsCalendar.vue'
 import ReportEditorDialog from './ReportEditorDialog.vue'
+import { useReportsRights } from 'app/extensions/reports/shared/lib/rights'
 
 const showEditor = ref(false)
 const editorReportType = ref<IReportType | null>(null)
@@ -29,6 +31,9 @@ const editorPeriod = ref<number | null>(null)
 // в widget-ный ref автоматически: чтобы статус ячейки обновился сразу,
 // дёргаем widget.reload() явно.
 const calendarRef = ref<InstanceType<typeof ReportsCalendar> | null>(null)
+
+// Без права вести черновик отчёт открывается из календаря на просмотр.
+const { canDraft } = useReportsRights()
 
 function onCalendarSelect(payload: { reportType: IReportType; year: number; period: number | null }) {
   editorReportType.value = payload.reportType

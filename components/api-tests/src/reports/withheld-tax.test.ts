@@ -141,16 +141,21 @@ describe('отчёты: перечисление удержанного НДФЛ
     expect(new Date(first[0].created_at).getTime()).toBeGreaterThanOrEqual(new Date(second[0].created_at).getTime())
   })
 
-  it(caseName('mkt.cat.side.09', 'остаток удержанного налога и перечисление в бюджет — только председателю: оператору участка, члену совета и заказчику отказ'), async () => {
+  it(caseName('mkt.cat.side.09', 'перечисление налога в бюджет — только председателю, остаток читает и член совета: оператору участка, члену совета и заказчику отказ'), async () => {
     const before = await withheldState()
     const STATE = 'query{ getWithheldTaxState{ __typename } }'
     const PAYMENTS = 'query{ getWithheldTaxPayments(page:1, limit:5){ __typename } }'
-    for (const who of [ROLES.branchChairman(), COUNCIL, ROLES.member()]) {
+    for (const who of [ROLES.branchChairman(), ROLES.member()]) {
       const token = await tokenOf(who)
       expectCode(await gqlError(token, STATE), 'KIT_INSUFFICIENT_RIGHTS')
       expectCode(await gqlError(token, PAYMENTS), 'KIT_INSUFFICIENT_RIGHTS')
       expectCode(await gqlError(token, PAY, { d: { amount: 1 } }), 'KIT_INSUFFICIENT_RIGHTS')
     }
+    // Член совета остаток и заявки читает, перечислить налог не может.
+    const councilToken = await tokenOf(COUNCIL)
+    expect(await gqlError(councilToken, STATE)).toBeNull()
+    expect(await gqlError(councilToken, PAYMENTS)).toBeNull()
+    expectCode(await gqlError(councilToken, PAY, { d: { amount: 1 } }), 'KIT_INSUFFICIENT_RIGHTS')
     expectAuthDenied(await gqlError(null, PAY, { d: { amount: 1 } }))
     expect((await withheldState()).available, 'чужие запросы налог не тронули').toBe(before.available)
   })

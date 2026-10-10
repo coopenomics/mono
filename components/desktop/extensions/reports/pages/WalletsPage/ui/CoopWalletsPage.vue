@@ -126,6 +126,7 @@ div.coop-wallets-page
 import { computed, markRaw, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { uiLocale } from 'src/shared/i18n';
 import { storeToRefs } from 'pinia'
 import { copyToClipboard } from 'quasar'
@@ -134,7 +135,7 @@ import { useHeaderActions } from 'src/shared/hooks/useHeaderActions'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { useSystemStore } from 'src/entities/System/model'
 import { useSessionStore } from 'src/entities/Session/model'
-import { useLedger2Store, type ILedger2Wallet, type ILedger2Operation } from 'src/entities/Ledger2'
+import type { ILedger2Wallet, ILedger2Operation } from 'src/entities/Ledger2'
 import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
@@ -145,7 +146,7 @@ import { t } from '../../../i18n';
 
 const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
-const ledger2Store = useLedger2Store()
+const registries = useDeskRegistries()
 const session = useSessionStore()
 const { isChairman } = storeToRefs(session)
 
@@ -185,7 +186,7 @@ function openTransferFor(walletName: string): void {
 
 async function reloadWallets(): Promise<void> {
   try {
-    wallets.value = await ledger2Store.loadWallets(info.coopname)
+    wallets.value = await registries.loadWallets(info.coopname)
   } catch (e) {
     FailAlert(e)
   }
@@ -256,7 +257,7 @@ async function toggleExpand(id: string) {
   if (childOps.value.has(id)) return
   childLoading.value.add(id)
   try {
-    const resp = await ledger2Store.loadHistory({
+    const resp = await registries.loadHistory({
       coopname: info.coopname,
       walletName: id,
       actionNames: ['walletop'],
@@ -274,7 +275,7 @@ async function toggleExpand(id: string) {
 onMounted(async () => {
   try {
     loading.value = true
-    wallets.value = await ledger2Store.loadWallets(info.coopname)
+    wallets.value = await registries.loadWallets(info.coopname)
   } catch (e) {
     FailAlert(e)
   } finally {

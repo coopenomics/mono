@@ -111,8 +111,6 @@ const COUNCIL_READS: [string, string][] = [
   [F.explorer, 'getDeltas'],
   [F.explorer, 'getActions'],
   [F.explorer, 'getCurrentTableStates'],
-  [F.gateway, 'setPaymentStatus'],
-  [F.files, 'uploadPaymentProof'],
   [F.ledger, 'getLedger'],
   [F.ledger, 'getLedgerHistory'],
   [F.ledger2, 'getLedger2Accounts'],
@@ -127,6 +125,9 @@ const COUNCIL_READS: [string, string][] = [
 ];
 
 const CHAIRMAN_ONLY: [string, string][] = [
+  // Реестр платежей совет читает; оплату подтверждают председатель и кассир (C28-90).
+  [F.gateway, 'setPaymentStatus'],
+  [F.files, 'uploadPaymentProof'],
   [F.account, 'deleteAccount'],
   [F.account, 'updateAccount'],
   [F.appstore, 'getExtensions'],

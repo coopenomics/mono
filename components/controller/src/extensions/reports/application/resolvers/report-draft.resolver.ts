@@ -24,6 +24,11 @@ import { ZeroReportEditsInputDTO } from '../dto/zero-report-edits.dto';
 import { Ndfl6EditsInputDTO } from '../dto/ndfl6-edits.dto';
 import { UvNdflEditsInputDTO } from '../dto/uv-ndfl-edits.dto';
 
+/**
+ * Черновики отчётов. Читать черновик, собирать начальные значения и проверять
+ * поля вправе каждый, кто читает отчёты (член совета, ревизор) — отчёт
+ * открывается на просмотр; сохранять и удалять черновик — право ведения.
+ */
 @Resolver()
 export class ReportDraftResolver {
   constructor(
@@ -39,7 +44,7 @@ export class ReportDraftResolver {
       'с наложением dirty-полей существующего черновика (если он есть).',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Report', 'draft')
+  @RequireRight('Report', 'read')
   async buildInitialReportEdits(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
@@ -99,7 +104,7 @@ export class ReportDraftResolver {
     description: 'Получить черновик формы отчёта по типу+году+периоду (null если не существует)',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Report', 'draft')
+  @RequireRight('Report', 'read')
   async getReportDraft(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('year', { type: () => Int }) year: number,
@@ -121,7 +126,7 @@ export class ReportDraftResolver {
     description: 'Список черновиков форм отчётов текущего пользователя (с опциональной фильтрацией)',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Report', 'draft')
+  @RequireRight('Report', 'read')
   async listReportDrafts(
     @Args('filter', { type: () => ListReportDraftsFilterInputDTO, nullable: true })
     filter: ListReportDraftsFilterInputDTO | undefined,
@@ -144,7 +149,7 @@ export class ReportDraftResolver {
       'с JSONPath (совпадает с editedFields-путями на клиенте).',
   })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('Report', 'draft')
+  @RequireRight('Report', 'read')
   async validateReportEdits(
     @Args('reportType', { type: () => ReportType }) reportType: ReportType,
     @Args('editsJson') editsJson: string,

@@ -1809,6 +1809,25 @@ export type ValueTypes = {
 	/** Имя аккаунта пайщика */
 	username: string | Variable<any, string>
 };
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: AliasType<{
+	/** Пайщики с этой ролью */
+	assignments?:ValueTypes["RoleAssignment"],
+	/** Что роль открывает пайщику */
+	description?:boolean | `@${string}`,
+	/** Имя приложения, которое объявило роль */
+	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которое объявило роль */
+	extension_title?:boolean | `@${string}`,
+	/** Ключ роли */
+	key?:boolean | `@${string}`,
+	/** Полномочия роли по пунктам */
+	permissions?:ValueTypes["RolePermission"],
+	/** Название роли */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on AssignableRole']?: Omit<ValueTypes["AssignableRole"], "...on AssignableRole">
+}>;
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -11984,6 +12003,7 @@ addTrustedAccount?: [{	data: ValueTypes["AddTrustedAccountInput"] | Variable<any
 applyDocumentApprovalsSeed?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ValueTypes["ApproveVerificationInput"] | Variable<any, string>},ValueTypes["VerificationReview"]],
 assignCapabilitySet?: [{	data: ValueTypes["AssignCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
+assignRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ValueTypes["AuthorizeDecisionInput"] | Variable<any, string>},ValueTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ValueTypes["AuthorizeForceRecoveryInput"] | Variable<any, string>},ValueTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string | Variable<any, string>,	username: string | Variable<any, string>},boolean | `@${string}`],
@@ -12291,6 +12311,7 @@ returnExpenseItem?: [{	data: ValueTypes["ReturnExpenseItemInput"] | Variable<any
 	revokeAllSessions?:ValueTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ValueTypes["RevokeCapabilitySetInput"] | Variable<any, string>},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ValueTypes["RevokeParticipantKeyInput"] | Variable<any, string>},ValueTypes["RevokeKeyResult"]],
+revokeRole?: [{	data: ValueTypes["RoleAssignmentInput"] | Variable<any, string>},ValueTypes["AssignableRole"]],
 revokeSession?: [{	data: ValueTypes["RevokeSessionInput"] | Variable<any, string>},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ValueTypes["SaveCapitalProgramDocDataInput"] | Variable<any, string>},ValueTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ValueTypes["PassportInput"] | Variable<any, string>},ValueTypes["Account"]],
@@ -13911,6 +13932,8 @@ getAccounts?: [{	data?: ValueTypes["GetAccountsInput"] | undefined | null | Vari
 getActions?: [{	filters?: ValueTypes["ActionFiltersInput"] | undefined | null | Variable<any, string>,	pagination?: ValueTypes["PaginationInput"] | undefined | null | Variable<any, string>},ValueTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ValueTypes["AgendaWithDocuments"],
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles?:ValueTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ValueTypes["AvailableReport"],
 getBranches?: [{	data: ValueTypes["GetBranchesInput"] | Variable<any, string>},ValueTypes["Branch"]],
@@ -14112,6 +14135,16 @@ paymentFile?: [{	id: number | Variable<any, string>},ValueTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string | Variable<any, string>,	payment_hash: string | Variable<any, string>},ValueTypes["PaymentFile"]],
 process?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
 processes?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
+reportsLedgerAccounts?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Account"]],
+reportsLedgerHistory?: [{	input: ValueTypes["GetLedger2HistoryInput"] | Variable<any, string>},ValueTypes["Ledger2HistoryResponse"]],
+reportsLedgerPostings?: [{	input: ValueTypes["GetLedger2PostingsInput"] | Variable<any, string>},ValueTypes["Ledger2PostingsResponse"]],
+reportsLedgerWallets?: [{	coopname: string | Variable<any, string>},ValueTypes["Ledger2Wallet"]],
+reportsParticipantWallets?: [{	coopname: string | Variable<any, string>},ValueTypes["ReportsParticipantWallet"]],
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants?:ValueTypes["ReportsParticipant"],
+reportsProcess?: [{	coopname: string | Variable<any, string>,	hash: string | Variable<any, string>},ValueTypes["ProcessView"]],
+reportsProcesses?: [{	filter: ValueTypes["ProcessesFilter"] | Variable<any, string>,	pagination: ValueTypes["PaginationInput"] | Variable<any, string>},ValueTypes["ProcessSummaryPaginationResult"]],
+reportsSubjects?: [{	usernames: Array<string> | Variable<any, string>},ValueTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ValueTypes["SearchDocumentsInput"] | Variable<any, string>},ValueTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ValueTypes["SearchPrivateAccountsInput"] | Variable<any, string>},ValueTypes["PrivateAccountSearchResult"]],
 	/** Совет кооператива: идентификатор, председатель, состав и порог голосов */
@@ -14495,6 +14528,37 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: AliasType<{
+	/** ФИО пайщика или название организации */
+	name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsParticipant']?: Omit<ValueTypes["ReportsParticipant"], "...on ReportsParticipant">
+}>;
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: AliasType<{
+	/** Доступный остаток */
+	available?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsParticipantWallet']?: Omit<ValueTypes["ReportsParticipantWallet"], "...on ReportsParticipantWallet">
+}>;
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: AliasType<{
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind?:boolean | `@${string}`,
+	/** ФИО или название для показа */
+	name?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on ReportsSubject']?: Omit<ValueTypes["ReportsSubject"], "...on ReportsSubject">
+}>;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -14985,6 +15049,36 @@ verificationReviews?: [{	data?: ValueTypes["VerificationReviewsInput"] | undefin
 		__typename?: boolean | `@${string}`,
 	['...on RobotVoter']?: Omit<ValueTypes["RobotVoter"], "...on RobotVoter">
 }>;
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: AliasType<{
+	/** Дата назначения */
+	assigned_at?:boolean | `@${string}`,
+	/** Учётное имя назначившего роль */
+	assigned_by?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RoleAssignment']?: Omit<ValueTypes["RoleAssignment"], "...on RoleAssignment">
+}>;
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string | Variable<any, string>,
+	/** Учётное имя пайщика */
+	username: string | Variable<any, string>
+};
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: AliasType<{
+	/** Чтение или запись */
+	access?:boolean | `@${string}`,
+	/** Что именно читает или ведёт пайщик */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`,
+	['...on RolePermission']?: Omit<ValueTypes["RolePermission"], "...on RolePermission">
+}>;
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]:RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -17038,6 +17132,24 @@ export type ResolverInputTypes = {
 	/** Имя аккаунта пайщика */
 	username: string
 };
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: AliasType<{
+	/** Пайщики с этой ролью */
+	assignments?:ResolverInputTypes["RoleAssignment"],
+	/** Что роль открывает пайщику */
+	description?:boolean | `@${string}`,
+	/** Имя приложения, которое объявило роль */
+	extension_name?:boolean | `@${string}`,
+	/** Название приложения, которое объявило роль */
+	extension_title?:boolean | `@${string}`,
+	/** Ключ роли */
+	key?:boolean | `@${string}`,
+	/** Полномочия роли по пунктам */
+	permissions?:ResolverInputTypes["RolePermission"],
+	/** Название роли */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["AuthSequence"]: AliasType<{
 	account?:boolean | `@${string}`,
 	sequence?:boolean | `@${string}`,
@@ -26940,6 +27052,7 @@ addTrustedAccount?: [{	data: ResolverInputTypes["AddTrustedAccountInput"]},Resol
 applyDocumentApprovalsSeed?: [{	coopname: string},ResolverInputTypes["DocumentApprovalSeedResult"]],
 approveVerification?: [{	data: ResolverInputTypes["ApproveVerificationInput"]},ResolverInputTypes["VerificationReview"]],
 assignCapabilitySet?: [{	data: ResolverInputTypes["AssignCapabilitySetInput"]},boolean | `@${string}`],
+assignRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 authorizeDecision?: [{	data: ResolverInputTypes["AuthorizeDecisionInput"]},ResolverInputTypes["Transaction"]],
 authorizeForceRecovery?: [{	data: ResolverInputTypes["AuthorizeForceRecoveryInput"]},ResolverInputTypes["ForceRecoveryAuthorization"]],
 cancelMembershipExit?: [{	coopname: string,	username: string},boolean | `@${string}`],
@@ -27247,6 +27360,7 @@ returnExpenseItem?: [{	data: ResolverInputTypes["ReturnExpenseItemInput"]},Resol
 	revokeAllSessions?:ResolverInputTypes["RevokedSessionsResult"],
 revokeCapabilitySet?: [{	data: ResolverInputTypes["RevokeCapabilitySetInput"]},boolean | `@${string}`],
 revokeParticipantKey?: [{	data: ResolverInputTypes["RevokeParticipantKeyInput"]},ResolverInputTypes["RevokeKeyResult"]],
+revokeRole?: [{	data: ResolverInputTypes["RoleAssignmentInput"]},ResolverInputTypes["AssignableRole"]],
 revokeSession?: [{	data: ResolverInputTypes["RevokeSessionInput"]},boolean | `@${string}`],
 saveCapitalProgramDocDataHash?: [{	data: ResolverInputTypes["SaveCapitalProgramDocDataInput"]},ResolverInputTypes["CapitalOnboardingState"]],
 saveMyPassport?: [{	passport: ResolverInputTypes["PassportInput"]},ResolverInputTypes["Account"]],
@@ -28795,6 +28909,8 @@ getAccounts?: [{	data?: ResolverInputTypes["GetAccountsInput"] | undefined | nul
 getActions?: [{	filters?: ResolverInputTypes["ActionFiltersInput"] | undefined | null,	pagination?: ResolverInputTypes["PaginationInput"] | undefined | null},ResolverInputTypes["PaginatedActionsPaginationResult"]],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda?:ResolverInputTypes["AgendaWithDocuments"],
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles?:ResolverInputTypes["AssignableRole"],
 	/** Получить список доступных типов отчётов */
 	getAvailableReports?:ResolverInputTypes["AvailableReport"],
 getBranches?: [{	data: ResolverInputTypes["GetBranchesInput"]},ResolverInputTypes["Branch"]],
@@ -28996,6 +29112,16 @@ paymentFile?: [{	id: number},ResolverInputTypes["PaymentFile"]],
 paymentProofs?: [{	coopname: string,	payment_hash: string},ResolverInputTypes["PaymentFile"]],
 process?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
 processes?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
+reportsLedgerAccounts?: [{	coopname: string},ResolverInputTypes["Ledger2Account"]],
+reportsLedgerHistory?: [{	input: ResolverInputTypes["GetLedger2HistoryInput"]},ResolverInputTypes["Ledger2HistoryResponse"]],
+reportsLedgerPostings?: [{	input: ResolverInputTypes["GetLedger2PostingsInput"]},ResolverInputTypes["Ledger2PostingsResponse"]],
+reportsLedgerWallets?: [{	coopname: string},ResolverInputTypes["Ledger2Wallet"]],
+reportsParticipantWallets?: [{	coopname: string},ResolverInputTypes["ReportsParticipantWallet"]],
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants?:ResolverInputTypes["ReportsParticipant"],
+reportsProcess?: [{	coopname: string,	hash: string},ResolverInputTypes["ProcessView"]],
+reportsProcesses?: [{	filter: ResolverInputTypes["ProcessesFilter"],	pagination: ResolverInputTypes["PaginationInput"]},ResolverInputTypes["ProcessSummaryPaginationResult"]],
+reportsSubjects?: [{	usernames: Array<string>},ResolverInputTypes["ReportsSubject"]],
 searchDocuments?: [{	data: ResolverInputTypes["SearchDocumentsInput"]},ResolverInputTypes["SearchResult"]],
 searchPrivateAccounts?: [{	data: ResolverInputTypes["SearchPrivateAccountsInput"]},ResolverInputTypes["PrivateAccountSearchResult"]],
 	/** Совет кооператива: идентификатор, председатель, состав и порог голосов */
@@ -29361,6 +29487,34 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: AliasType<{
+	/** ФИО пайщика или название организации */
+	name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: AliasType<{
+	/** Доступный остаток */
+	available?:boolean | `@${string}`,
+	/** Идентификатор программы */
+	program_id?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: AliasType<{
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind?:boolean | `@${string}`,
+	/** ФИО или название для показа */
+	name?:boolean | `@${string}`,
+	/** Учётное имя */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
 	["RepresentedBy"]: AliasType<{
 	/** На основании чего действует */
 	based_on?:boolean | `@${string}`,
@@ -29834,6 +29988,34 @@ verificationReviews?: [{	data?: ResolverInputTypes["VerificationReviewsInput"] |
 	permission_name?:boolean | `@${string}`,
 		__typename?: boolean | `@${string}`
 }>;
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: AliasType<{
+	/** Дата назначения */
+	assigned_at?:boolean | `@${string}`,
+	/** Учётное имя назначившего роль */
+	assigned_by?:boolean | `@${string}`,
+	/** ФИО пайщика или название организации */
+	display_name?:boolean | `@${string}`,
+	/** Учётное имя пайщика */
+	username?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: AliasType<{
+	/** Чтение или запись */
+	access?:boolean | `@${string}`,
+	/** Что именно читает или ведёт пайщик */
+	title?:boolean | `@${string}`,
+		__typename?: boolean | `@${string}`
+}>;
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]:RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -31835,6 +32017,23 @@ export type ModelTypes = {
 	set_key: string,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: {
+		/** Пайщики с этой ролью */
+	assignments: Array<ModelTypes["RoleAssignment"]>,
+	/** Что роль открывает пайщику */
+	description: string,
+	/** Имя приложения, которое объявило роль */
+	extension_name: string,
+	/** Название приложения, которое объявило роль */
+	extension_title: string,
+	/** Ключ роли */
+	key: string,
+	/** Полномочия роли по пунктам */
+	permissions: Array<ModelTypes["RolePermission"]>,
+	/** Название роли */
+	title: string
 };
 	["AuthSequence"]: {
 		account: string,
@@ -41395,6 +41594,8 @@ export type ModelTypes = {
 	approveVerification: ModelTypes["VerificationReview"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
+	/** Назначить роль пайщику */
+	assignRole: ModelTypes["AssignableRole"],
 	/** Утвердить и исполнить решение совета */
 	authorizeDecision: ModelTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
@@ -41997,6 +42198,8 @@ export type ModelTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: ModelTypes["RevokeKeyResult"],
+	/** Снять роль с пайщика */
+	revokeRole: ModelTypes["AssignableRole"],
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП */
@@ -43555,6 +43758,8 @@ export type ModelTypes = {
 	getActions: ModelTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<ModelTypes["AgendaWithDocuments"]>,
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles: Array<ModelTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<ModelTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
@@ -43864,6 +44069,24 @@ export type ModelTypes = {
 	process: ModelTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: ModelTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: счета плана счетов с остатками */
+	reportsLedgerAccounts: Array<ModelTypes["Ledger2Account"]>,
+	/** Стол бухгалтера: реестр операций */
+	reportsLedgerHistory: ModelTypes["Ledger2HistoryResponse"],
+	/** Стол бухгалтера: реестр проводок */
+	reportsLedgerPostings: ModelTypes["Ledger2PostingsResponse"],
+	/** Стол бухгалтера: кошельки кооператива с остатками */
+	reportsLedgerWallets: Array<ModelTypes["Ledger2Wallet"]>,
+	/** Стол бухгалтера: кошельки пайщиков по программам кооператива */
+	reportsParticipantWallets: Array<ModelTypes["ReportsParticipantWallet"]>,
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants: Array<ModelTypes["ReportsParticipant"]>,
+	/** Стол бухгалтера: процесс целиком по его идентификатору */
+	reportsProcess: ModelTypes["ProcessView"],
+	/** Стол бухгалтера: реестр процессов */
+	reportsProcesses: ModelTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */
+	reportsSubjects: Array<ModelTypes["ReportsSubject"]>,
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<ModelTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -44215,6 +44438,31 @@ export type ModelTypes = {
 };
 	["ReportSubmissionMark"]:ReportSubmissionMark;
 	["ReportType"]:ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: {
+		/** ФИО пайщика или название организации */
+	name: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: {
+		/** Доступный остаток */
+	available: string,
+	/** Идентификатор программы */
+	program_id: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: {
+		/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind: string,
+	/** ФИО или название для показа */
+	name: string,
+	/** Учётное имя */
+	username: string
+};
 	["RepresentedBy"]: {
 		/** На основании чего действует */
 	based_on: string,
@@ -44668,6 +44916,31 @@ export type ModelTypes = {
 	/** Разрешение аккаунта с ключом робота */
 	permission_name: string
 };
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: {
+		/** Дата назначения */
+	assigned_at: ModelTypes["DateTime"],
+	/** Учётное имя назначившего роль */
+	assigned_by: string,
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	["RoleAssignmentInput"]: {
+	/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: {
+		/** Чтение или запись */
+	access: ModelTypes["RolePermissionAccess"],
+	/** Что именно читает или ведёт пайщик */
+	title: string
+};
+	["RolePermissionAccess"]:RolePermissionAccess;
 	["RoomMessageKind"]:RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
 	doc_data_hash: string
@@ -46655,6 +46928,25 @@ export type GraphQLTypes = {
 	set_key: string,
 	/** Имя аккаунта пайщика */
 	username: string
+};
+	/** Роль приложения, которую председатель назначает пайщикам */
+["AssignableRole"]: {
+	__typename: "AssignableRole",
+	/** Пайщики с этой ролью */
+	assignments: Array<GraphQLTypes["RoleAssignment"]>,
+	/** Что роль открывает пайщику */
+	description: string,
+	/** Имя приложения, которое объявило роль */
+	extension_name: string,
+	/** Название приложения, которое объявило роль */
+	extension_title: string,
+	/** Ключ роли */
+	key: string,
+	/** Полномочия роли по пунктам */
+	permissions: Array<GraphQLTypes["RolePermission"]>,
+	/** Название роли */
+	title: string,
+	['...on AssignableRole']: Omit<GraphQLTypes["AssignableRole"], "...on AssignableRole">
 };
 	["AuthSequence"]: {
 	__typename: "AuthSequence",
@@ -56840,6 +57132,8 @@ export type GraphQLTypes = {
 	approveVerification: GraphQLTypes["VerificationReview"],
 	/** Назначить пайщику набор возможностей (управляет председатель) */
 	assignCapabilitySet: boolean,
+	/** Назначить роль пайщику */
+	assignRole: GraphQLTypes["AssignableRole"],
 	/** Утвердить и исполнить решение совета */
 	authorizeDecision: GraphQLTypes["Transaction"],
 	/** Авторизовать принудительное восстановление доступа пайщика (председатель) */
@@ -57442,6 +57736,8 @@ export type GraphQLTypes = {
 	revokeCapabilitySet: boolean,
 	/** Отозвать скомпрометированный ключ пайщика (председатель) */
 	revokeParticipantKey: GraphQLTypes["RevokeKeyResult"],
+	/** Снять роль с пайщика */
+	revokeRole: GraphQLTypes["AssignableRole"],
 	/** Завершить конкретную сессию пайщика */
 	revokeSession: boolean,
 	/** Сохранить hash PrivateData параметров документов ЦПП */
@@ -59175,6 +59471,8 @@ export type GraphQLTypes = {
 	getActions: GraphQLTypes["PaginatedActionsPaginationResult"],
 	/** Получить список вопросов совета кооператива для голосования */
 	getAgenda: Array<GraphQLTypes["AgendaWithDocuments"]>,
+	/** Роли приложений кооператива и пайщики, которым они назначены */
+	getAssignableRoles: Array<GraphQLTypes["AssignableRole"]>,
 	/** Получить список доступных типов отчётов */
 	getAvailableReports: Array<GraphQLTypes["AvailableReport"]>,
 	/** Получить список кооперативных участков */
@@ -59484,6 +59782,24 @@ export type GraphQLTypes = {
 	process: GraphQLTypes["ProcessView"],
 	/** Листинг процессов ledger2 с пагинацией и фильтрами */
 	processes: GraphQLTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: счета плана счетов с остатками */
+	reportsLedgerAccounts: Array<GraphQLTypes["Ledger2Account"]>,
+	/** Стол бухгалтера: реестр операций */
+	reportsLedgerHistory: GraphQLTypes["Ledger2HistoryResponse"],
+	/** Стол бухгалтера: реестр проводок */
+	reportsLedgerPostings: GraphQLTypes["Ledger2PostingsResponse"],
+	/** Стол бухгалтера: кошельки кооператива с остатками */
+	reportsLedgerWallets: Array<GraphQLTypes["Ledger2Wallet"]>,
+	/** Стол бухгалтера: кошельки пайщиков по программам кооператива */
+	reportsParticipantWallets: Array<GraphQLTypes["ReportsParticipantWallet"]>,
+	/** Стол бухгалтера: принятые пайщики с именами для реестров */
+	reportsParticipants: Array<GraphQLTypes["ReportsParticipant"]>,
+	/** Стол бухгалтера: процесс целиком по его идентификатору */
+	reportsProcess: GraphQLTypes["ProcessView"],
+	/** Стол бухгалтера: реестр процессов */
+	reportsProcesses: GraphQLTypes["ProcessSummaryPaginationResult"],
+	/** Стол бухгалтера: имена и вид субъектов операций по учётным именам */
+	reportsSubjects: Array<GraphQLTypes["ReportsSubject"]>,
 	/** Полнотекстовый поиск по документам кооператива */
 	searchDocuments: Array<GraphQLTypes["SearchResult"]>,
 	/** Поиск приватных данных аккаунтов по запросу. Поиск осуществляется по полям ФИО, ИНН, ОГРН, наименованию организации и другим приватным данным. */
@@ -59872,6 +60188,37 @@ export type GraphQLTypes = {
 	/** Пользовательская отметка на ячейке календаря: NOT_REQUIRED («не надо сдавать») или SUBMITTED_EXTERNALLY («сдано вне платформы»). */
 ["ReportSubmissionMark"]: ReportSubmissionMark;
 	["ReportType"]: ReportType;
+	/** Пайщик в реестрах стола бухгалтера: учётное имя и имя для показа */
+["ReportsParticipant"]: {
+	__typename: "ReportsParticipant",
+	/** ФИО пайщика или название организации */
+	name: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on ReportsParticipant']: Omit<GraphQLTypes["ReportsParticipant"], "...on ReportsParticipant">
+};
+	/** Кошелёк пайщика по программе кооператива */
+["ReportsParticipantWallet"]: {
+	__typename: "ReportsParticipantWallet",
+	/** Доступный остаток */
+	available: string,
+	/** Идентификатор программы */
+	program_id: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on ReportsParticipantWallet']: Omit<GraphQLTypes["ReportsParticipantWallet"], "...on ReportsParticipantWallet">
+};
+	/** Субъект операции в реестрах стола бухгалтера: пайщик, организация, участок или кооператив */
+["ReportsSubject"]: {
+	__typename: "ReportsSubject",
+	/** Вид субъекта: пайщик, кооперативный участок, кооператив */
+	account_kind: string,
+	/** ФИО или название для показа */
+	name: string,
+	/** Учётное имя */
+	username: string,
+	['...on ReportsSubject']: Omit<GraphQLTypes["ReportsSubject"], "...on ReportsSubject">
+};
 	["RepresentedBy"]: {
 	__typename: "RepresentedBy",
 	/** На основании чего действует */
@@ -60362,6 +60709,36 @@ export type GraphQLTypes = {
 	permission_name: string,
 	['...on RobotVoter']: Omit<GraphQLTypes["RobotVoter"], "...on RobotVoter">
 };
+	/** Пайщик, которому назначена роль */
+["RoleAssignment"]: {
+	__typename: "RoleAssignment",
+	/** Дата назначения */
+	assigned_at: GraphQLTypes["DateTime"],
+	/** Учётное имя назначившего роль */
+	assigned_by: string,
+	/** ФИО пайщика или название организации */
+	display_name: string,
+	/** Учётное имя пайщика */
+	username: string,
+	['...on RoleAssignment']: Omit<GraphQLTypes["RoleAssignment"], "...on RoleAssignment">
+};
+	["RoleAssignmentInput"]: {
+		/** Ключ роли */
+	role: string,
+	/** Учётное имя пайщика */
+	username: string
+};
+	/** Полномочие роли: что пайщик с этой ролью читает или ведёт */
+["RolePermission"]: {
+	__typename: "RolePermission",
+	/** Чтение или запись */
+	access: GraphQLTypes["RolePermissionAccess"],
+	/** Что именно читает или ведёт пайщик */
+	title: string,
+	['...on RolePermission']: Omit<GraphQLTypes["RolePermission"], "...on RolePermission">
+};
+	/** Вид полномочия роли: чтение или запись */
+["RolePermissionAccess"]: RolePermissionAccess;
 	/** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 ["RoomMessageKind"]: RoomMessageKind;
 	["SaveCapitalProgramDocDataInput"]: {
@@ -62559,6 +62936,11 @@ export enum RobotVoteMode {
 	AUTO = "AUTO",
 	FOLLOW = "FOLLOW"
 }
+/** Вид полномочия роли: чтение или запись */
+export enum RolePermissionAccess {
+	READ = "READ",
+	WRITE = "WRITE"
+}
 /** Тип сообщения в истории комнаты Matrix (текст или расшифрованное аудио) */
 export enum RoomMessageKind {
 	AUDIO = "AUDIO",
@@ -63229,6 +63611,8 @@ type ZEUS_VARIABLES = {
 	["RobotDelegateKeyInput"]: ValueTypes["RobotDelegateKeyInput"];
 	["RobotRetryDecisionInput"]: ValueTypes["RobotRetryDecisionInput"];
 	["RobotVoteMode"]: ValueTypes["RobotVoteMode"];
+	["RoleAssignmentInput"]: ValueTypes["RoleAssignmentInput"];
+	["RolePermissionAccess"]: ValueTypes["RolePermissionAccess"];
 	["RoomMessageKind"]: ValueTypes["RoomMessageKind"];
 	["SaveCapitalProgramDocDataInput"]: ValueTypes["SaveCapitalProgramDocDataInput"];
 	["SaveReportDraftInput"]: ValueTypes["SaveReportDraftInput"];

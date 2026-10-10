@@ -126,6 +126,7 @@ div.processes-page
                 :process-type='props.row.processType'
                 operation-route-name='reports-operations'
                 posting-route-name='reports-postings'
+                :source='DESK_SOURCE'
               )
 
       template(#item='props')
@@ -158,8 +159,8 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
-import { useProcessStore, type IProcessSummary } from 'src/entities/Process'
-import { useFioCache } from 'src/shared/lib/account/useFioCache'
+import type { IProcessSummary } from 'src/entities/Process'
+import { DESK_SOURCE, useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { ProcessDetailCard } from 'src/widgets/Process/ProcessDetailCard'
 import {
   formatProcessAmount,
@@ -175,8 +176,9 @@ const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
-const processStore = useProcessStore()
-const { fioCache, kindCache, enrichFio } = useFioCache()
+// Реестр и имена субъектов отдают операции стола бухгалтера.
+const registries = useDeskRegistries()
+const { fioCache, kindCache, enrichFio } = useDeskFioCache()
 
 // Человекочитаемое имя субъекта процесса (пайщик/КУ/кооператив) — резолв с бэка.
 function subjectName(username: string | null | undefined): string {
@@ -313,7 +315,7 @@ async function load() {
   const myId = ++lastRequestId
   loading.value = true
   try {
-    const resp = await processStore.loadProcesses({
+    const resp = await registries.loadProcesses({
       filter: {
         coopname: info.coopname,
         ...(filters.processType ? { processType: filters.processType } : {}),
