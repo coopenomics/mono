@@ -1,17 +1,21 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TableStore, oneOf } from '@coopenomics/extension-kit';
-import { EDUBRIDGE_ADMIN_STORE, EDUBRIDGE_TEACHER_CONTRACT_STORE } from '../../infrastructure/database/edubridge-stores';
+import { EDUBRIDGE_TEACHER_CONTRACT_STORE } from '../../infrastructure/database/edubridge-stores';
 import {
   COUNCIL_PORT,
   LOGGER_PORT,
   PROGRAM_AGREEMENT_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   type ICouncilPort,
   type ILoggerPort,
   type IProgramAgreementPort,
+  type IRoleAssignmentsPort,
 } from '@coopenomics/innercoop';
 import { EDU_PARENT_AGREEMENT_TYPE, EDU_TEACHER_AGREEMENT_TYPE } from '../../constants/edubridge-agreement-ids';
 import { EduContractStatus } from '../../domain/enums';
-import { EdubridgeAdminRecord, EdubridgeTeacherContractRecord } from '../../infrastructure/entities';
+import { EdubridgeTeacherContractRecord } from '../../infrastructure/entities';
+import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
+import { EDU_ADMIN_ROLE } from '../access/edubridge-access-matrix';
 import type { IEdubridgeRoleFactsPort } from './edubridge-role-facts.port';
 import type { EdubridgeRoleFacts } from './edubridge-roles.mapper';
 
@@ -22,7 +26,7 @@ const PROGRAM_ID_TTL_MS = 60_000;
  * Факты о пайщике: подписана ли оферта ученика / преподавателя
  * (подпись программной оферты хранит ядро — `PROGRAM_AGREEMENT_PORT`), подписан
  * ли преподавателем договор УХД (зеркало `educontracts`, статус «ждёт
- * председателя» или «действует»), назначен ли администратором (таблица расширения). Номер программы берётся из реестра
+ * председателя» или «действует»), назначена ли роль администратора (общие назначения ролейя). Номер программы берётся из реестра
  * кооператива по виду соглашения — как у Стола заказов; пока программа не
  * открыта, подписи быть не может.
  */
@@ -34,8 +38,8 @@ export class EdubridgeRoleFactsAdapter implements IEdubridgeRoleFactsPort {
     @Inject(COUNCIL_PORT) private readonly council: ICouncilPort,
     @Inject(PROGRAM_AGREEMENT_PORT) private readonly programAgreements: IProgramAgreementPort,
     @Inject(LOGGER_PORT) private readonly logger: ILoggerPort,
-    @Inject(EDUBRIDGE_ADMIN_STORE)
-    private readonly admins: TableStore<EdubridgeAdminRecord>,
+    @Inject(ROLE_ASSIGNMENTS_PORT)
+    private readonly roleAssignments: IRoleAssignmentsPort,
     @Inject(EDUBRIDGE_TEACHER_CONTRACT_STORE)
     private readonly contracts: TableStore<EdubridgeTeacherContractRecord>
   ) {
@@ -47,9 +51,10 @@ export class EdubridgeRoleFactsAdapter implements IEdubridgeRoleFactsPort {
       this.hasProgramSignature(coopname, username, EDU_PARENT_AGREEMENT_TYPE),
       this.hasProgramSignature(coopname, username, EDU_TEACHER_AGREEMENT_TYPE),
       this.contracts.findOne({ coopname, teacher_username: username, status: oneOf([EduContractStatus.PENDING_APPROVAL, EduContractStatus.ACTIVE]) }),
-      this.admins.findOne({ coopname, username }),
+      // Администратора назначает председатель на странице управления доступом.
+      this.roleAssignments.rolesOf(EDUBRIDGE_EXTENSION_NAME, username),
     ]);
-    return { isLearner, hasTeacherOffer, isTeacher: hasTeacherOffer && Boolean(contract), isAdmin: Boolean(admin) };
+    return { isLearner, hasTeacherOffer, isTeacher: hasTeacherOffer && Boolean(contract), isAdmin: admin.includes(EDU_ADMIN_ROLE) };
   }
 
   private async programId(coopname: string, agreementType: string): Promise<number> {

@@ -7,7 +7,6 @@ export { EdubridgeTeacherAssignmentRecord } from './edubridge-teacher-assignment
 export { EdubridgeContributionRecord } from './edubridge-contribution.record';
 export { EdubridgeLessonRecord } from './edubridge-lesson.record';
 export { EdubridgeGroupRecord } from './edubridge-group.record';
-export { EdubridgeAdminRecord } from './edubridge-admin.record';
 export { EdubridgeTeacherContractRecord } from './edubridge-teacher-contract.record';
 export { EdubridgeTeacherProfileRecord } from './edubridge-teacher-profile.record';
 export { EdubridgeSectionRecord } from './edubridge-section.record';

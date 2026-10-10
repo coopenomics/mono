@@ -12,7 +12,6 @@ import { agreementsBase } from 'src/shared/lib/consts/workspaces';
 import type { IWorkspaceConfig, IWorkspaceRoute, IWorkspaceRouteMeta } from 'src/shared/lib/types/workspace';
 import { registerEdubridgeDecisionHandlers } from './app/decisions';
 import {
-  AdminAdminsPage,
   AdminConnectorsPage,
   AdminContributionsPage,
   AdminEconomyPage,
@@ -87,22 +86,21 @@ function workspace(name: string, title: string, icon: string, defaultRoute: stri
   };
 }
 
-/** «Стол администратора»: владелец и администратор; каталог здесь не нужен — он в столе ученика. */
+/** «Стол администратора»: председатель и администратор ведут, член совета читает; каталог здесь не нужен — он в столе ученика. */
 function adminWorkspace(): IWorkspaceConfig {
   return workspace('edubridge', t('edubridge.install.adminWorkspaceTitle'), 'admin_panel_settings', 'edubridge-admin-courses', [
     memberPage('configure', 'edubridge-configure', ConfigurePage, { title: t('edubridge.install.configureRouteTitle'), icon: 'settings', requires: 'Extension:configure', gate: true }),
-    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: t('edubridge.install.coursesRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage' }),
+    memberPage('courses', 'edubridge-admin-courses', AdminCoursesPage, { title: t('edubridge.install.coursesRouteTitle'), icon: 'library_books', requires: 'EduCourse:read' }),
     memberPage('courses/new', 'edubridge-admin-course-new', AdminCourseEditPage, { title: t('edubridge.install.courseNewRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
     memberPage('courses/:id/edit', 'edubridge-admin-course-edit', AdminCourseEditPage, { title: t('edubridge.install.courseEditRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
-    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: t('edubridge.install.courseRouteTitle'), icon: 'library_books', requires: 'EduCourse:manage', hidden: true, menuKey: 'edubridge-admin-courses' }),
-    memberPage('sections', 'edubridge-admin-sections', AdminSectionsPage, { title: t('edubridge.install.sectionsRouteTitle'), icon: 'category', requires: 'EduCourse:manage' }),
-    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: t('edubridge.install.teachersRouteTitle'), icon: 'co_present', requires: 'EduAssignment:manage' }),
-    memberPage('teachers/:username', 'edubridge-admin-teacher', AdminTeacherPage, { title: t('edubridge.install.teacherRouteTitle'), icon: 'co_present', requires: 'EduAssignment:manage', hidden: true, menuKey: 'edubridge-admin-teachers' }),
-    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: t('edubridge.install.adminContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:decide' }),
-    memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: t('edubridge.install.economyRouteTitle'), icon: 'payments', requires: 'EduEconomy:manage' }),
+    memberPage('courses/:id', 'edubridge-admin-course', AdminCoursePage, { title: t('edubridge.install.courseRouteTitle'), icon: 'library_books', requires: 'EduCourse:read', hidden: true, menuKey: 'edubridge-admin-courses' }),
+    memberPage('sections', 'edubridge-admin-sections', AdminSectionsPage, { title: t('edubridge.install.sectionsRouteTitle'), icon: 'category', requires: 'EduCourse:read' }),
+    memberPage('teachers', 'edubridge-admin-teachers', AdminTeachersPage, { title: t('edubridge.install.teachersRouteTitle'), icon: 'co_present', requires: 'EduAssignment:read:all' }),
+    memberPage('teachers/:username', 'edubridge-admin-teacher', AdminTeacherPage, { title: t('edubridge.install.teacherRouteTitle'), icon: 'co_present', requires: 'EduAssignment:read:all', hidden: true, menuKey: 'edubridge-admin-teachers' }),
+    memberPage('contributions', 'edubridge-admin-contributions', AdminContributionsPage, { title: t('edubridge.install.adminContributionsRouteTitle'), icon: 'workspace_premium', requires: 'EduContribution:read:all' }),
+    memberPage('economy', 'edubridge-admin-economy', AdminEconomyPage, { title: t('edubridge.install.economyRouteTitle'), icon: 'payments', requires: 'EduEconomy:read' }),
     memberPage('members', 'edubridge-admin-registry', AdminMembersPage, { title: t('edubridge.install.membersRouteTitle'), icon: 'groups', requires: 'EduRegistry:read' }),
     memberPage('platforms', 'edubridge-admin-connectors', AdminConnectorsPage, { title: t('edubridge.install.connectorsRouteTitle'), icon: 'hub', requires: 'EduConnector:manage' }),
-    memberPage('admins', 'edubridge-admin-admins', AdminAdminsPage, { title: t('edubridge.install.adminsRouteTitle'), icon: 'admin_panel_settings', requires: 'EduAdmin:manage', hidden: true }),
   ]);
 }
 

@@ -113,6 +113,8 @@ const CORE_LOCAL_TABLES: InnerChainChangesTable[] = [
   // пайщика (столы, меню, гранты), поэтому сигнал открыт всем: данных строки,
   // в том числе настроек расширения, в нём нет.
   { code: 'core', table: 'extensions' },
+  // Назначение и снятие роли меняют права пайщика: его стол перечитывается сам.
+  { code: 'core', table: 'role_assignments', owner_field: 'username' },
   // Журнал работы расширений — совету.
   { code: 'core', table: 'extensions_logs', staff_only: true },
   // Собрание до созыва в цепи и итог обработки закрытого — узел ведёт их сам.

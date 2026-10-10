@@ -70,10 +70,6 @@ export * as CheckConnector from './checkConnector'
 /** Включить/выключить площадку */
 export * as SetConnectorEnabled from './setConnectorEnabled'
 export * as SetConnectorCredentials from './setConnectorCredentials'
-/** Назначить администратора */
-export * as AppointAdmin from './appointAdmin'
-/** Снять администратора */
-export * as DismissAdmin from './dismissAdmin'
 
 /** Возврат остатка кошелька программы в паевой взнос: заявление пайщика и согласование кооперативом. */
 export * as SaveSection from './saveSection'

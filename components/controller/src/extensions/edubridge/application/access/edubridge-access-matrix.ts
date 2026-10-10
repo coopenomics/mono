@@ -1,5 +1,8 @@
 import type { EdubridgeRole } from '../membership/edubridge-roles.mapper';
 
+/** Ключ назначаемой роли администратора образования — он же строка таблицы прав. */
+export const EDU_ADMIN_ROLE = 'edu-admin';
+
 /**
  * Матрица доступа «Образовательного моста»: роль → ресурс → действия.
  * Токен права — `Edu<Resource>:<action>[:<scope>]`. На сервере `:all` покрывает
@@ -9,6 +12,20 @@ import type { EdubridgeRole } from '../membership/edubridge-roles.mapper';
  * Контакты (`EduContacts`) и площадки с ключами (`EduConnector`) — только у
  * владельца; ограничение дублируется на уровне данных в резолверах.
  */
+/**
+ * Чтение стола администратора: курсы и группы, ученики, очередь доступа,
+ * допуски преподавателей, взносы результатами работы, деньги программы.
+ * Его получают член совета, администратор образования и председатель.
+ */
+const STAFF_READ: Record<string, string[]> = {
+  EduCourse: ['read'],
+  EduRegistry: ['read'],
+  EduQueue: ['read'],
+  EduAssignment: ['read:all'],
+  EduContribution: ['read:all'],
+  EduEconomy: ['read'],
+};
+
 export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[]>> = {
   guest: {
     EduCatalog: ['read'],
@@ -24,22 +41,22 @@ export const edubridgeAccessMatrix: Record<EdubridgeRole, Record<string, string[
     EduContribution: ['read:own', 'create:own'],
     EduTeacherWallet: ['read:own', 'manage:own'],
   },
-  admin: {
-    EduCourse: ['manage'],
-    EduRegistry: ['read'],
+  council: STAFF_READ,
+  'edu-admin': {
+    ...STAFF_READ,
+    EduCourse: ['read', 'manage'],
     EduQueue: ['read', 'manage'],
     EduAssignment: ['read:all', 'manage'],
-    EduContribution: ['read:all', 'decide'],
-    EduEconomy: ['read', 'manage'],
   },
   owner: {
-    EduCourse: ['manage'],
-    EduRegistry: ['read'],
+    ...STAFF_READ,
+    EduCourse: ['read', 'manage'],
     EduQueue: ['read', 'manage'],
     EduAssignment: ['read:all', 'manage'],
+    // Деньги и решения по существу — только председатель: ставки часа,
+    // целевой взнос, расходы программы, отклонение взноса результатом работы.
     EduContribution: ['read:all', 'decide'],
     EduEconomy: ['read', 'manage'],
-    EduAdmin: ['manage'],
     EduContacts: ['read'],
     EduConnector: ['manage'],
     EduSettings: ['manage'],

@@ -13,7 +13,7 @@
         span(v-if="course.schedule") {{ course.schedule }}
         span(v-if="course.starts_at") {{ $t('edubridge.adminCoursePage.startsAtFact', { date: formatDate(course.starts_at) }) }}
       template(#actions)
-        .edu-course__buttons
+        .edu-course__buttons(v-if="canManageCourses")
           //- «Изменить» — слева и обычная; справа главное действие над публикацией курса.
           BaseButton(variant="secondary" @click="edit") {{ $t('edubridge.adminCoursePage.editButton') }}
           BaseButton(v-if="published" variant="danger" :loading="busy" @click="unpublish") {{ $t('edubridge.adminCoursePage.unpublishButton') }}
@@ -43,7 +43,7 @@
 
     //- Группы курса — на всю ширину под шапкой: набор идёт в группу, деньги и
     //- занятия считаются внутри неё. В узкой колонке реестр не помещается.
-    CourseGroups.q-mb-md(:course="course" @changed="reloadEconomy")
+    CourseGroups.q-mb-md(:course="course" :readonly="!canManageCourses" @changed="reloadEconomy")
 
     .row.q-col-gutter-md
       .col-12.col-md-8
@@ -140,6 +140,9 @@ import { StatTile } from '../../shared/ui/StatStrip';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageCourses } = useEduRights();
 
 /**
  * Курс глазами администратора на отдельной странице: открывается кликом по

@@ -4,9 +4,11 @@
  *
  * Гость видит только каталог. Пайщик без оферты ученика страниц ученика не
  * получает. Должность личный стол не открывает: председатель без оферты и
- * договора преподавателя прав стола преподавателя не имеет. Курсы, разделы и
- * ставки правят председатель, совет и назначенный администратор; площадки и
- * состав администраторов — только председатель.
+ * договора преподавателя прав стола преподавателя не имеет. Стол администратора
+ * читают член совета, администратор и председатель; курсы, допуски
+ * преподавателей и очередь ведут председатель и администратор; ставки, целевой
+ * взнос, расходы программы, отклонение взноса и площадки — только председатель.
+ * Администратора назначает председатель на общей странице управления доступом.
  *
  * Интерфейс мог скрыть кнопку — сервер обязан отказать сам, поэтому каждое
  * право проверяется и по правам стола, и прямым вызовом операции.
@@ -25,6 +27,7 @@ import {
   NO_RIGHTS,
   PLANNED_RATE,
   SAVE_SECTION,
+  SET_ASSIGNMENT_RATE,
   SET_COURSE_STATUS,
   SET_TEACHER_RATE,
   courseInput,
@@ -38,17 +41,20 @@ import {
 
 const COURSES = 'query{ edubridgeCourses{ totalCount } }'
 const CONNECTORS = 'query{ edubridgeConnectors{ carrier } }'
-const ADMINS = 'query{ edubridgeAdmins{ username } }'
-const APPOINT_ADMIN = 'mutation($d:EduAdminInput!){ edubridgeAppointAdmin(data:$d){ username appointed_by } }'
-const DISMISS_ADMIN = 'mutation($d:EduAdminInput!){ edubridgeDismissAdmin(data:$d) }'
+const ROLES_LIST = 'query{ getAssignableRoles{ key extension_name assignments{ username } } }'
+const ASSIGN = 'mutation($d:RoleAssignmentInput!){ assignRole(data:$d){ key assignments{ username assigned_by } } }'
+const REVOKE = 'mutation($d:RoleAssignmentInput!){ revokeRole(data:$d){ key } }'
+const EDU_ADMIN = 'edu-admin'
 
 /** Права страниц ученика и преподавателя — их открывает подключение, а не должность. */
 const LEARNER_DESK = ['EduLearner:read:own', 'EduLearner:manage:own', 'EduEnrollment:read:own', 'EduEnrollment:create:own']
 const TEACHER_DESK = ['EduAssignment:read:own', 'EduContribution:read:own', 'EduContribution:create:own', 'EduTeacherWallet:read:own', 'EduTeacherWallet:manage:own']
-/** Управление программой: то, что делят председатель, совет и администратор. */
-const ADMIN_DESK = ['EduCourse:manage', 'EduRegistry:read', 'EduQueue:read', 'EduAssignment:manage', 'EduEconomy:manage']
+/** Чтение стола администратора: член совета, администратор и председатель. */
+const STAFF_READ = ['EduCourse:read', 'EduRegistry:read', 'EduQueue:read', 'EduAssignment:read:all', 'EduContribution:read:all', 'EduEconomy:read']
+/** Ведение программы: администратор и председатель. */
+const ADMIN_WRITE = ['EduCourse:manage', 'EduQueue:manage', 'EduAssignment:manage']
 /** Только у председателя. */
-const OWNER_ONLY = ['EduAdmin:manage', 'EduContacts:read', 'EduConnector:manage', 'EduSettings:manage']
+const OWNER_ONLY = ['EduEconomy:manage', 'EduContribution:decide', 'EduContacts:read', 'EduConnector:manage', 'EduSettings:manage']
 
 describe('Образование: права гостя, пайщика, совета и председателя', () => {
   let chairman = ''
@@ -147,45 +153,51 @@ describe('Образование: права гостя, пайщика, сов�
     expectCode(await gqlError(chairman, MY_ENROLLMENTS), NO_RIGHTS)
   })
 
-  it(caseName('edu.gating.happy.06', 'управление программой — у председателя и совета; площадки, контакты и состав администраторов — только у председателя'), async () => {
+  it(caseName('edu.gating.happy.06', 'стол администратора: председатель ведёт всё, член совета только читает'), async () => {
     const owner = await deskGrants(chairman)
-    expect(owner).toEqual(expect.arrayContaining([...ADMIN_DESK, ...OWNER_ONLY]))
+    expect(owner).toEqual(expect.arrayContaining([...STAFF_READ, ...ADMIN_WRITE, ...OWNER_ONLY]))
 
     const board = await deskGrants(council)
-    expect(board).toEqual(expect.arrayContaining(ADMIN_DESK))
-    for (const right of OWNER_ONLY) expect(board, right).not.toContain(right)
+    expect(board).toEqual(expect.arrayContaining(STAFF_READ))
+    for (const right of [...ADMIN_WRITE, ...OWNER_ONLY]) expect(board, right).not.toContain(right)
     // Охват «все» в «свои» для стола не разворачивается.
-    expect(board).toContain('EduAssignment:read:all')
     expect(board).not.toContain('EduAssignment:read:own')
+
+    expect(await gqlError(council, COURSES)).toBeNull()
+    expect(await gqlError(council, COURSE, { id: draft.id })).toBeNull()
+    expectCode(await gqlError(council, CREATE_COURSE, { d: courseInput(section) }), NO_RIGHTS)
+    expectCode(await gqlError(council, SAVE_SECTION, { d: { title: 'Раздел члена совета' } }), NO_RIGHTS)
+    expectCode(await gqlError(council, SET_COURSE_STATUS, { d: { id: draft.id, status: 'PUBLISHED' } }), NO_RIGHTS)
+    expectCode(await gqlError(council, SET_TEACHER_RATE, { d: { username: member.account, hourly_rate: PLANNED_RATE } }), NO_RIGHTS)
+    expectCode(await gqlError(council, CONNECTORS), NO_RIGHTS)
+    expect((await gql<any>(chairman, COURSE, { id: draft.id })).edubridgeCourse.status, 'черновик остался черновиком').toBe('DRAFT')
   })
 
-  it(caseName('edu.admin.break.01', 'администратор программы правит разделы и курсы, но не площадки и не состав администраторов'), async () => {
-    // Член совета — администратор по должности.
-    expect(await gqlError(council, COURSES)).toBeNull()
-    expectCode(await gqlError(council, CONNECTORS), NO_RIGHTS)
-    expectCode(await gqlError(council, ADMINS), NO_RIGHTS)
-    expectCode(await gqlError(council, APPOINT_ADMIN, { d: { username: member.account } }), NO_RIGHTS)
+  it(caseName('edu.admin.break.01', 'администратор образования назначается на общей странице доступа: ведёт курсы, деньги и площадки ему закрыты'), async () => {
+    const declared = ((await gql<any>(chairman, ROLES_LIST)).getAssignableRoles as any[]).find(r => r.key === EDU_ADMIN)
+    expect(declared, 'роль объявлена приложением образования').toMatchObject({ extension_name: 'edubridge' })
+    // Назначать роли может только председатель.
+    expect(await gqlError(council, ASSIGN, { d: { username: member.account, role: EDU_ADMIN } }), 'член совета роль не назначает').not.toBeNull()
 
-    // Пайщик, назначенный администратором председателем.
-    const appointed = (await gql<any>(chairman, APPOINT_ADMIN, { d: { username: member.account } })).edubridgeAppointAdmin
-    expect(appointed).toMatchObject({ username: member.account, appointed_by: CHAIRMAN.account })
+    const assigned = (await gql<any>(chairman, ASSIGN, { d: { username: member.account, role: EDU_ADMIN } })).assignRole
+    expect((assigned.assignments as any[]).find(a => a.username === member.account)).toMatchObject({ assigned_by: CHAIRMAN.account })
     try {
-      expect(((await gql<any>(chairman, ADMINS)).edubridgeAdmins as any[]).map(a => a.username)).toContain(member.account)
       const grants = await deskGrants(memberToken)
-      expect(grants).toEqual(expect.arrayContaining(ADMIN_DESK))
+      expect(grants).toEqual(expect.arrayContaining([...STAFF_READ, ...ADMIN_WRITE]))
       for (const right of OWNER_ONLY) expect(grants, right).not.toContain(right)
 
       expect(await createSection(memberToken), 'администратор добавил раздел').toBeTruthy()
       expect(await gqlError(memberToken, COURSES)).toBeNull()
       expectCode(await gqlError(memberToken, CONNECTORS), NO_RIGHTS)
-      expectCode(await gqlError(memberToken, APPOINT_ADMIN, { d: { username: CHAIRMAN.account } }), NO_RIGHTS)
-      expectCode(await gqlError(memberToken, DISMISS_ADMIN, { d: { username: member.account } }), NO_RIGHTS)
+      expectCode(await gqlError(memberToken, SET_TEACHER_RATE, { d: { username: member.account, hourly_rate: PLANNED_RATE } }), NO_RIGHTS)
+      expectCode(await gqlError(memberToken, SET_ASSIGNMENT_RATE, { d: { assignment_id: draft.id, hourly_rate: PLANNED_RATE } }), NO_RIGHTS)
+      expect(await gqlError(memberToken, ASSIGN, { d: { username: CHAIRMAN.account, role: EDU_ADMIN } }), 'администратор роли не назначает').not.toBeNull()
     }
     finally {
-      await gql(chairman, DISMISS_ADMIN, { d: { username: member.account } })
+      await gql(chairman, REVOKE, { d: { username: member.account, role: EDU_ADMIN } })
     }
 
-    // Снятый администратор снова рядовой пайщик.
+    // Пайщик со снятой ролью снова рядовой.
     expectCode(await gqlError(memberToken, COURSES), NO_RIGHTS)
     expect(await deskGrants(memberToken)).toEqual(['EduCatalog:read', 'Onboarding:learner', 'Onboarding:teacher'])
   })

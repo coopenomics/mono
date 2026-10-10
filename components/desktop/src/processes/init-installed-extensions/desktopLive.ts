@@ -29,9 +29,10 @@ export function registerDesktopLive(router: Router): void {
       liveTable(BranchContract, BranchContract.Tables.Branches),
       { code: 'market', table: 'marketplace_cart' },
       { code: 'market', table: 'marketplace_supplier' },
-      // Образование: стол преподавателя открывает договор, стол администратора — назначение.
+      // Образование: стол преподавателя открывает договор.
       { code: 'edubridge', table: 'edubridge_teacher_contracts' },
-      { code: 'edubridge', table: 'edubridge_admins' },
+      // Роль, назначенная председателем, открывает страницы сразу.
+      { code: 'core', table: 'role_assignments' },
     ],
     () => reloadDesktop(router),
   );

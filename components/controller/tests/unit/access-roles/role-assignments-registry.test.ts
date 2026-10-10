@@ -13,6 +13,7 @@ const STOREKEEPER = { key: 'storekeeper', title: 'Кладовщик', descripti
 function makeRegistry(active: { username: string; role: string }[] = []) {
   const repository = {
     findActiveByUser: jest.fn(async (_coopname: string, username: string) => active.filter((row) => row.username === username)),
+    findActive: jest.fn(async () => active),
   };
   return { registry: new RoleAssignmentsRegistry(repository as any), repository };
 }
@@ -64,6 +65,20 @@ describe('роли пайщика', () => {
     expect(await registry.rolesOf('soviet', 'ivan')).toEqual(['cashier']);
     expect(await registry.rolesOf('market', 'ivan')).toEqual(['storekeeper']);
     expect(await registry.rolesOf('soviet', 'petr')).toEqual([]);
+  });
+
+  // access.roles.happy.14
+  it('приложение узнаёт держателей своей роли; чужую роль оно не видит', async () => {
+    const { registry } = makeRegistry([
+      { username: 'ivan', role: 'cashier' },
+      { username: 'ivan', role: 'storekeeper' },
+      { username: 'petr', role: 'storekeeper' },
+    ]);
+    registry.declare('soviet', [CASHIER]);
+    registry.declare('market', [STOREKEEPER]);
+    expect(await registry.holdersOf('market', 'storekeeper')).toEqual(['ivan', 'petr']);
+    expect(await registry.holdersOf('soviet', 'storekeeper')).toEqual([]);
+    expect(await registry.holdersOf('soviet', 'unknown')).toEqual([]);
   });
 
   // access.roles.side.01

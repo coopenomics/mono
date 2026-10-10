@@ -28,7 +28,6 @@ export const EduLive = {
   payments: { code: 'core', table: 'payments' } as ChainTableRef,
   accessTasks: table('edubridge_access_tasks'),
   connectors: table('edubridge_connector_bindings'),
-  admins: table('edubridge_admins'),
   /** Одобрения председателя: договоры и приложения преподавателей. */
   approvals: { code: 'chairman', table: 'chairman_approvals' } as ChainTableRef,
   /** Кошельки пайщиков: взносы, возвраты, расчёты преподавателя. */

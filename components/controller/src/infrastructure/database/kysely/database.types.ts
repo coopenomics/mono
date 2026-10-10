@@ -1114,14 +1114,6 @@ export interface EdubridgeAccessTasks {
   updated_at: Generated<Timestamp>;
 }
 
-export interface EdubridgeAdmins {
-  appointed_by: string;
-  coopname: string;
-  created_at: Generated<Timestamp>;
-  id: Generated<string>;
-  username: string;
-}
-
 export interface EdubridgeConnectorBindings {
   carrier: EdubridgeConnectorBindingsCarrierEnum;
   coopname: string;
@@ -2655,7 +2647,6 @@ export interface DB {
   draft_templates: DraftTemplates;
   draft_translations: DraftTranslations;
   edubridge_access_tasks: EdubridgeAccessTasks;
-  edubridge_admins: EdubridgeAdmins;
   edubridge_connector_bindings: EdubridgeConnectorBindings;
   edubridge_contributions: EdubridgeContributions;
   edubridge_courses: EdubridgeCourses;

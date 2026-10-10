@@ -15,7 +15,7 @@ function make(opts: { accepted?: boolean; teacher?: boolean; offer?: boolean; le
   };
   const membership = new EdubridgeMembershipService(facts, holder);
   const registry = { register: jest.fn() };
-  return new EdubridgeRights(registry as any, membership);
+  return new EdubridgeRights(registry as any, membership, { declare: jest.fn(), attach: jest.fn(), rolesOf: jest.fn(async () => []), holdersOf: jest.fn(async () => []) } as any);
 }
 
 const coop = 'voskhod';

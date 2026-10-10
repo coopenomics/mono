@@ -9,7 +9,7 @@
     template(v-if="tab === 'money'" #actions)
       MoneyFlowGuide
     template(v-else-if="tab === 'expenses'" #actions)
-      BaseButton(variant="primary" size="sm" @click="expenseOpen = true")
+      BaseButton(v-if="canManageEconomy" variant="primary" size="sm" @click="expenseOpen = true")
         template(#icon-left)
           q-icon(name="add" size="18px")
         | {{ $t('edubridge.adminEconomyPage.submitExpense') }}
@@ -96,10 +96,11 @@
                 :label="$t('edubridge.adminEconomyPage.markupLabel')"
                 type="number"
                 required
+                :readonly="!canManageEconomy"
               )
                 template(#append)
                   FieldHelp(:text="markupHelp")
-              BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
+              BaseButton(v-if="canManageEconomy" variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
 </template>
 
 <script setup lang="ts">
@@ -132,6 +133,9 @@ import {
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageEconomy } = useEduRights();
 
 /**
  * Экономика программы. «Деньги» — где лежат средства кооператива по программе

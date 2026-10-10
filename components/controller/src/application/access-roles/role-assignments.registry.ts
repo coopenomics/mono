@@ -95,6 +95,12 @@ export class RoleAssignmentsRegistry implements IRoleAssignmentsPort, OnApplicat
     return this.declared.get(key);
   }
 
+  async holdersOf(extensionName: string, role: string): Promise<string[]> {
+    if (this.declared.get(role)?.extensionName !== extensionName) return [];
+    const active = await this.assignments.findActive(config.coopname);
+    return active.filter((row) => row.role === role).map((row) => row.username);
+  }
+
   async rolesOf(extensionName: string, username: string): Promise<string[]> {
     const keys = new Set(this.list().filter((role) => role.extensionName === extensionName).map((role) => role.key));
     for (const [key, attachments] of this.attached) {

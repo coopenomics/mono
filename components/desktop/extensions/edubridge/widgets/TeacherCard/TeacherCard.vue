@@ -11,7 +11,7 @@
   BaseBanner.q-mt-md(v-if="!rateAssigned" variant="warn")
     .row.items-center.justify-between.no-wrap.q-gutter-sm
       span {{ $t('edubridge.adminTeachersPage.rate.notAssignedNotice') }}
-      BaseButton(variant="secondary" size="sm" @click="openRate") {{ $t('edubridge.adminTeachersPage.rate.assign') }}
+      BaseButton(v-if="canManageEconomy" variant="secondary" size="sm" @click="openRate") {{ $t('edubridge.adminTeachersPage.rate.assign') }}
 
   //- Документы на подписи у председателя — здесь же, чтобы подписать, не
   //- уходя на стол председателя. Одобрение одно: решение здесь закрывает
@@ -39,7 +39,7 @@
           .row.items-center.no-wrap.q-gutter-xs
             span.t-num(v-if="rateAssigned") {{ formatAsset2Digits(teacher.hourly_rate) }}
             BaseBadge(v-else variant="warn") {{ $t('edubridge.adminTeachersPage.rate.notAssigned') }}
-            BaseButton(variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
+            BaseButton(v-if="canManageEconomy" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openRate")
               template(#icon-left)
                 q-icon(name="edit" size="16px")
       DataRow(:label="$t('edubridge.adminTeachersPage.stats.courses')" :value="String(teacher.assignments_active)")
@@ -62,7 +62,7 @@
     //- Кнопка красная и заметная, а от случайного нажатия защищают три шага:
     //- она только открывает форму, форма требует основание, отправка
     //- спрашивает подтверждение.
-    template(v-if="teacher.contract_status === Zeus.EduContractStatus.ACTIVE")
+    template(v-if="canManageAssignments && teacher.contract_status === Zeus.EduContractStatus.ACTIVE")
       BaseButton.q-mt-lg(v-if="!terminateFormOpen" variant="danger" @click="openTerminateForm")
         template(#icon-left)
           q-icon(name="block" size="18px")
@@ -98,23 +98,23 @@
           //- Ставка на этом курсе своя: по умолчанию из договора, не выше плановой ставки курса.
           .row.items-center.no-wrap.q-gutter-xs
             .t-meta.t-muted {{ $t('edubridge.adminTeachersPage.assignment.rateLine', { rate: formatAsset2Digits(a.hourly_rate) }) }}
-            BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openAssignmentRate(a)")
+            BaseButton(v-if="canManageEconomy && a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="ghost" size="sm" icon-only :aria-label="$t('edubridge.adminTeachersPage.rate.edit')" @click="openAssignmentRate(a)")
               template(#icon-left)
                 q-icon(name="edit" size="16px")
         q-item-section(side)
           .row.items-center.q-gutter-sm
             BaseBadge(:variant="assignmentStatusOf(a.status).variant") {{ assignmentStatusOf(a.status).label }}
-            BaseButton(v-if="a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="secondary" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
+            BaseButton(v-if="canManageAssignments && a.status !== Zeus.EduAssignmentStatus.CLOSED" variant="secondary" size="sm" @click="onClose(a)") {{ $t('edubridge.adminTeachersPage.assignment.close') }}
     //- «Курсов нет» — только после загрузки: до неё список пуст потому, что ещё не прочитан.
     .t-muted.t-sm.q-mb-md(v-else-if="assignmentsLoaded") {{ $t('edubridge.adminTeachersPage.assignment.empty') }}
     CardListSkeleton(v-else :count="1")
 
-    BaseButton(v-if="!assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
+    BaseButton(v-if="canManageAssignments && !assignFormOpen" variant="secondary" size="sm" @click="openAssignForm")
       template(#icon-left)
         q-icon(name="add" size="18px")
       | {{ $t('edubridge.adminTeachersPage.assignment.open') }}
 
-    BaseForm(v-else :loading="busy" @submit="onCreate")
+    BaseForm(v-else-if="canManageAssignments" :loading="busy" @submit="onCreate")
       BaseSelect(v-model="form.course_id" :label="$t('edubridge.adminTeachersPage.assignment.courseLabel')" :options="courseOptions" required)
       BaseInput(v-model="form.schedule" :label="$t('edubridge.adminTeachersPage.assignment.scheduleLabel')")
       BaseInput(v-model="form.expected_result" :label="$t('edubridge.adminTeachersPage.assignment.expectedResultLabel')" type="textarea" :rows="2")
@@ -178,6 +178,9 @@ import {
 } from '../../entities/Teacher';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageAssignments, canManageEconomy } = useEduRights();
 
 /**
  * Карточка преподавателя: кто он, его договор и назначения на курсы. Одна и та

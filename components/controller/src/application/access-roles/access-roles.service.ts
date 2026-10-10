@@ -1,6 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DomainError } from '@coopenomics/extension-kit';
-import { NOTIFICATION_PORT, type INotificationPort } from '@coopenomics/innercoop';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  NOTIFICATION_PORT,
+  ROLE_ASSIGNMENT_CHANGED_EVENT,
+  type INotificationPort,
+  type RoleAssignmentChangedEvent,
+} from '@coopenomics/innercoop';
 import { Workflows } from '@coopenomics/notifications';
 import config from '~/config/config';
 import { ExtensionListingInteractor } from '~/application/appstore/interactors/extension-listing.interactor';
@@ -31,7 +37,8 @@ export class AccessRolesService {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(ACCOUNT_DATA_PORT) private readonly accounts: AccountDataPort,
     @Inject(NOTIFICATION_PORT) private readonly notifications: INotificationPort,
-    private readonly logger: WinstonLoggerService
+    private readonly logger: WinstonLoggerService,
+    private readonly events: EventEmitter2
   ) {
     this.logger.setContext(AccessRolesService.name);
   }
@@ -66,7 +73,10 @@ export class AccessRolesService {
       role: role.key,
       assigned_by: actor,
     });
-    if (assigned) await this.notify(Workflows.AccessRoleAssigned.id, role, data.username);
+    if (assigned) {
+      this.changed(role, data.username);
+      await this.notify(Workflows.AccessRoleAssigned.id, role, data.username);
+    }
     return this.present(role, await this.assignments.findActive(config.coopname), await this.installedApps());
   }
 
@@ -74,8 +84,17 @@ export class AccessRolesService {
   async revoke(actor: string, data: RoleAssignmentInputDTO): Promise<AssignableRoleDTO> {
     const role = this.declared(data.role);
     const revoked = await this.assignments.revoke(config.coopname, data.username, role.key, actor);
-    if (revoked) await this.notify(Workflows.AccessRoleRevoked.id, role, data.username);
+    if (revoked) {
+      this.changed(role, data.username);
+      await this.notify(Workflows.AccessRoleRevoked.id, role, data.username);
+    }
     return this.present(role, await this.assignments.findActive(config.coopname), await this.installedApps());
+  }
+
+  /** Сообщить приложениям, что состав держателей роли изменился. */
+  private changed(role: DeclaredRole, username: string): void {
+    const event: RoleAssignmentChangedEvent = { extensionName: role.extensionName, role: role.key, username };
+    this.events.emit(ROLE_ASSIGNMENT_CHANGED_EVENT, event);
   }
 
   private declared(key: string): DeclaredRole {

@@ -35,7 +35,7 @@ export class EdubridgeGroupResolver {
 
   @Query(() => [EduGroupDTO], { name: 'edubridgeCourseGroups', description: 'Группы курса' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   async edubridgeCourseGroups(@Args('course_id', { type: () => ID }) courseId: string): Promise<EduGroupDTO[]> {
     return Promise.all((await this.groups.list(coop(), courseId)).map((g) => this.dto(g)));
   }

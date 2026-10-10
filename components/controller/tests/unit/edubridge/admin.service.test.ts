@@ -5,7 +5,7 @@ import { canAccess } from '~/extensions/edubridge/application/access/edubridge-a
 
 function make() {
   const learner = { id: 'L1', display_name: 'Петя', recipient_type: 'email', recipient_value: 'petya@x.ru', is_self: false, created_at: new Date() } as any;
-  const admins = { memberRows: jest.fn(async () => []), listAdmins: jest.fn(async () => []), appoint: jest.fn(), dismiss: jest.fn() } as any;
+  const admins = { memberRows: jest.fn(async () => []) } as any;
   const learners = { findByMember: jest.fn(async () => [learner]) } as any;
   const enrollments = { findByMember: jest.fn(async () => []) } as any;
   const courses = { findById: jest.fn(async () => null), findPage: jest.fn(async () => ({ items: [] })) } as any;
@@ -22,13 +22,13 @@ function make() {
     isConfigured: jest.fn(async (_c: string, _k: string, fields: any[]) => fields.length === 0),
     setFlags: jest.fn(async (_c: string, _k: string, fields: any[]) => Object.fromEntries(fields.map((f: any) => [f.key, false]))),
   } as any;
-  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials, { refreshStaff: jest.fn() } as any), admins, credentials, bindings, connectors, learner, learners, enrollments, tasks };
+  return { service: new EdubridgeAdminService(admins, learners, enrollments, courses, tasks, bindings, connectors, outbox, config, names, credentials), admins, credentials, bindings, connectors, learner, learners, enrollments, tasks };
 }
 
 describe('EdubridgeAdminService', () => {
   it('карточка пайщика: администратор не получает контакт, владелец получает', async () => {
     const { service: s } = make();
-    const forAdmin = await s.memberCard('voskhod', 'ant', canAccess(['admin'], 'EduContacts', 'read'));
+    const forAdmin = await s.memberCard('voskhod', 'ant', canAccess(['edu-admin'], 'EduContacts', 'read'));
     const forOwner = await s.memberCard('voskhod', 'ant', canAccess(['owner'], 'EduContacts', 'read'));
     expect(forAdmin.learners[0]!.recipient_value).toBeNull();
     expect(forOwner.learners[0]!.recipient_value).toBe('petya@x.ru');

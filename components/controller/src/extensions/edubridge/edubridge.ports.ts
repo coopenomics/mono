@@ -34,6 +34,7 @@ import {
   REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,
   REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
   REGISTRATION_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
   SECRET_CIPHER_PORT,
   USER_AVATAR_PORT,
   USER_CERTIFICATE_PORT,
@@ -47,6 +48,8 @@ import {
 
 export const edubridgePorts = {
   required: [
+    // Администратора образования назначает председатель на общей странице управления доступом.
+    ROLE_ASSIGNMENTS_PORT,
     CHAIN_PORT,
     COUNCIL_PORT,
     DECISION_TRACKING_PORT,

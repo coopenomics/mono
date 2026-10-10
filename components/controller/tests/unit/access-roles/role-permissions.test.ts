@@ -10,6 +10,7 @@
 import { rightsByRole, type AppRights } from '@coopenomics/extension-kit';
 import { ReportsRights } from '~/extensions/reports/application/access/reports-rights';
 import { ExpensesRights } from '~/extensions/expenses/application/access/expenses-rights';
+import { EdubridgeRights } from '~/extensions/edubridge/application/access/edubridge-rights';
 import { makeGuard } from '../rights/core-rights.harness';
 
 const fakes = { register: jest.fn(), declare: jest.fn(), attach: jest.fn(), rolesOf: jest.fn(async () => []) } as any;
@@ -18,6 +19,7 @@ const APPS: [string, AppRights<any, any>][] = [
   ['ядро (стол совета)', makeGuard().rights],
   ['стол бухгалтера', new ReportsRights(fakes, fakes)],
   ['расходы', new ExpensesRights(fakes, fakes)],
+  ['образование', new EdubridgeRights(fakes, {} as any, fakes)],
 ];
 
 describe.each(APPS)('полномочия ролей: %s', (_title, rights) => {

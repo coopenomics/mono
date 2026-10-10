@@ -9,14 +9,13 @@ import { EdubridgeCourseKyselyRepository } from '../../infrastructure/repositori
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { EdubridgeLearnerKyselyRepository } from '../../infrastructure/repositories/edubridge-learner.kysely-repository';
 import { EdubridgeConfigHolder } from '../config/edubridge-config.holder';
-import { EduAccessTaskDTO, EduAdminDTO, EduConnectorBindingDTO, EduLearnerAccountDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
+import { EduAccessTaskDTO, EduConnectorBindingDTO, EduLearnerAccountDTO, EduMemberCardDTO, EduMemberRowDTO } from '../dto/edu-admin.dto';
 import { EdubridgeNamesService } from '../membership/edubridge-names.service';
 import { EdubridgeConnectorCredentialsStore } from '../../infrastructure/connectors/connector-credentials.store';
 import type { EduConnectorCredentialFieldDTO } from '../dto/edu-admin.dto';
 import { EduEnrollmentDTO } from '../dto/edu-enrollment.dto';
 import { EduLearnerDTO } from '../dto/edu-learner.dto';
 import { EdubridgeAccessOutboxService } from './edubridge-access-outbox.service';
-import { EdubridgeLiveFeedService } from './edubridge-live-feed.service';
 import { DomainError } from '@coopenomics/extension-kit';
 
 /** Административный контур: реестры, очередь, площадки, администраторы. */
@@ -33,8 +32,7 @@ export class EdubridgeAdminService {
     private readonly outbox: EdubridgeAccessOutboxService,
     private readonly config: EdubridgeConfigHolder,
     private readonly names: EdubridgeNamesService,
-    private readonly credentials: EdubridgeConnectorCredentialsStore,
-    private readonly liveFeed: EdubridgeLiveFeedService
+    private readonly credentials: EdubridgeConnectorCredentialsStore
   ) {}
 
   /** Ученики с ФИО; поиск — по ФИО или учётному имени. */
@@ -140,26 +138,6 @@ export class EdubridgeAdminService {
     ]);
     const credential_fields: EduConnectorCredentialFieldDTO[] = fields.map((f) => ({ key: f.key, label: f.label, secret: f.secret, note: f.note, is_set: Boolean(flags[f.key]) }));
     return new EduConnectorBindingDTO(b, configured, credential_fields);
-  }
-
-
-  async listAdmins(coopname: string): Promise<EduAdminDTO[]> {
-    const admins = await this.admins.listAdmins(coopname);
-    const names = await this.names.displayNames(admins.flatMap((a) => [a.username, a.appointed_by]));
-    return admins.map((a) => new EduAdminDTO(a, { display_name: names.get(a.username), appointed_by_display_name: names.get(a.appointed_by) }));
-  }
-
-  async appoint(coopname: string, username: string, by: string): Promise<EduAdminDTO> {
-    const a = await this.admins.appoint(coopname, username.trim(), by);
-    await this.liveFeed.refreshStaff(coopname);
-    const names = await this.names.displayNames([a.username, a.appointed_by]);
-    return new EduAdminDTO(a, { display_name: names.get(a.username), appointed_by_display_name: names.get(a.appointed_by) });
-  }
-
-  async dismiss(coopname: string, username: string) {
-    const removed = await this.admins.dismiss(coopname, username);
-    await this.liveFeed.refreshStaff(coopname);
-    return removed;
   }
 }
 

@@ -84,7 +84,7 @@ export class EdubridgeExtension extends BaseExtensionModule {
     this.registerExitBlockers();
     // Живое обновление столов: таблицы в ленте изменений и состав персонала.
     this.liveFeed.declareTables();
-    await this.liveFeed.refreshStaff(platformSettings().coopname);
+    await this.liveFeed.refreshStaff();
     // Раздел и уровень курсов, заполненные строками до справочника (7DD-23), —
     // переносим в справочник: курсы получают ссылки. Идемпотентно.
     const migrated = await this.sections.migrateLegacyCourses(platformSettings().coopname);

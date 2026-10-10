@@ -27,7 +27,7 @@ export class EdubridgeAttentionService {
 
   async summary(coopname: string, roles: readonly EdubridgeRole[]): Promise<EduAttentionDTO> {
     const [teachers, learners] = await Promise.all([
-      canAccess(roles, 'EduAssignment', 'manage') ? this.teachersToAttend(coopname) : Promise.resolve(0),
+      canAccess(roles, 'EduAssignment', 'read:all') ? this.teachersToAttend(coopname) : Promise.resolve(0),
       canAccess(roles, 'EduRegistry', 'read') ? this.learnersToAttend(coopname) : Promise.resolve(0),
     ]);
     return { teachers, learners };

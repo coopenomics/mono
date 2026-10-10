@@ -63,6 +63,23 @@ export interface IRoleAssignmentsPort {
 
   /** Роли, назначенные пайщику сейчас: объявленные приложением и те, к которым оно присоединилось. */
   rolesOf(extensionName: string, username: string): Promise<string[]>;
+
+  /** Пайщики, которым роль приложения назначена сейчас. */
+  holdersOf(extensionName: string, role: string): Promise<string[]>;
+}
+
+/**
+ * Событие «состав держателей роли изменился»: председатель назначил роль или
+ * снял её. Приложение, которому состав нужен не только в момент запроса
+ * (кому слать живые обновления стола), перечитывает держателей по событию.
+ */
+export const ROLE_ASSIGNMENT_CHANGED_EVENT = 'innercoop.role-assignment.changed';
+
+export interface RoleAssignmentChangedEvent {
+  /** Приложение, которое объявило роль. */
+  extensionName: string;
+  role: string;
+  username: string;
 }
 
 export const ROLE_ASSIGNMENTS_PORT = Symbol.for('Innercoop.CorePort.RoleAssignments');

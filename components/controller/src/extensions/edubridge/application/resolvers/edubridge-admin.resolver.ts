@@ -5,8 +5,6 @@ import { canAccess } from '../access/edubridge-access-matrix';
 import { CurrentEduMember } from '../decorators/current-edu-member.decorator';
 import {
   EduAccessTaskDTO,
-  EduAdminDTO,
-  EduAdminInputDTO,
   EduConnectorBindingDTO,
   EduMemberCardDTO,
   EduMemberRowDTO,
@@ -117,26 +115,5 @@ export class EdubridgeAdminResolver {
   @RequireRight('EduConnector', 'manage')
   edubridgeSetConnectorCredentials(@Args('data') data: EduSetConnectorCredentialsInputDTO): Promise<EduConnectorBindingDTO> {
     return this.admin.setConnectorCredentials(coop(), data.carrier, data.values);
-  }
-
-  @Query(() => [EduAdminDTO], { name: 'edubridgeAdmins', description: 'Администраторы приложения' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduAdmin', 'manage')
-  edubridgeAdmins(): Promise<EduAdminDTO[]> {
-    return this.admin.listAdmins(coop());
-  }
-
-  @Mutation(() => EduAdminDTO, { name: 'edubridgeAppointAdmin', description: 'Назначить администратора' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduAdmin', 'manage')
-  async edubridgeAppointAdmin(@CurrentEduMember() m: IEdubridgeMembership, @Args('data') data: EduAdminInputDTO): Promise<EduAdminDTO> {
-    return this.admin.appoint(coop(), data.username, m.username as string);
-  }
-
-  @Mutation(() => Boolean, { name: 'edubridgeDismissAdmin', description: 'Снять администратора' })
-  @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduAdmin', 'manage')
-  edubridgeDismissAdmin(@Args('data') data: EduAdminInputDTO): Promise<boolean> {
-    return this.admin.dismiss(coop(), data.username);
   }
 }

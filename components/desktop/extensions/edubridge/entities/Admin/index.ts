@@ -6,7 +6,6 @@ export type IMemberRow = Queries.Edubridge.Members.IOutput['edubridgeMembers'][n
 export type IMemberCard = Queries.Edubridge.MemberCard.IOutput['edubridgeMemberCard'];
 export type IAccessTask = Queries.Edubridge.Queue.IOutput['edubridgeQueue'][number];
 export type IConnector = Queries.Edubridge.Connectors.IOutput['edubridgeConnectors'][number];
-export type IAdmin = Queries.Edubridge.Admins.IOutput['edubridgeAdmins'][number];
 export type IAttention = Queries.Edubridge.Attention.IOutput['edubridgeAttention'];
 
 // Ключи — имена enum'ов схемы (`Zeus.*`): именно их отдаёт и принимает GraphQL.
@@ -60,7 +59,6 @@ export const fetchMembers = (search?: string) => q<IMemberRow[]>(Queries.Edubrid
 export const fetchMemberCard = (username: string) => q<IMemberCard>(Queries.Edubridge.MemberCard.query, Queries.Edubridge.MemberCard.name, { username });
 export const fetchQueue = (statuses?: Zeus.EduAccessTaskStatus[]) => q<IAccessTask[]>(Queries.Edubridge.Queue.query, Queries.Edubridge.Queue.name, { filter: statuses?.length ? { statuses } : undefined });
 export const fetchConnectors = () => q<IConnector[]>(Queries.Edubridge.Connectors.query, Queries.Edubridge.Connectors.name);
-export const fetchAdmins = () => q<IAdmin[]>(Queries.Edubridge.Admins.query, Queries.Edubridge.Admins.name);
 /** Отметка администратора: аккаунт обучающегося удалён в кабинете школы. */
 export const markLearnerRemoved = (learner_id: string) =>
   m<unknown>(Mutations.Edubridge.MarkLearnerRemoved.mutation, Mutations.Edubridge.MarkLearnerRemoved.name, { data: { learner_id } });
@@ -72,5 +70,3 @@ export const setConnectorEnabled = (carrier: string, enabled: boolean) =>
   m<IConnector>(Mutations.Edubridge.SetConnectorEnabled.mutation, Mutations.Edubridge.SetConnectorEnabled.name, { data: { carrier, enabled } });
 export const setConnectorCredentials = (carrier: string, values: Array<{ key: string; value: string }>) =>
   m<IConnector>(Mutations.Edubridge.SetConnectorCredentials.mutation, Mutations.Edubridge.SetConnectorCredentials.name, { data: { carrier, values } });
-export const appointAdmin = (username: string) => m<IAdmin>(Mutations.Edubridge.AppointAdmin.mutation, Mutations.Edubridge.AppointAdmin.name, { data: { username } });
-export const dismissAdmin = (username: string) => m<boolean>(Mutations.Edubridge.DismissAdmin.mutation, Mutations.Edubridge.DismissAdmin.name, { data: { username } });

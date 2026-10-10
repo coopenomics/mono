@@ -67,15 +67,15 @@ cases:
   - id: edu.admin.break.01
     level: backend
     kind: break
-    scenario: Администратор (роль admin) вызывает edubridgeConnectors / edubridgeAppointAdmin.
-    expect: Forbidden — EduConnector:manage и EduAdmin:manage только у владельца.
+    scenario: Председатель назначает пайщику роль администратора образования на общей странице управления доступом; администратор открывает площадки и меняет ставку часа.
+    expect: Администратор ведёт курсы, допуски преподавателей и очередь; площадки, ставки, целевой взнос, расходы программы и отклонение взноса ему закрыты; роли он не назначает; со снятой ролью пайщик снова рядовой.
     test: components/api-tests/src/edubridge/rights.test.ts
     api: components/api-tests/src/edubridge/rights.test.ts
     status: passing
   - id: edu.admin.happy.04
     level: ui
     kind: happy
-    scenario: Реестры, карточка, очередь с фильтром needs_attention и кнопкой «Повторить», площадки с индикатором, администраторы.
+    scenario: Реестры, карточка, очередь с фильтром needs_attention и кнопкой «Повторить», площадки с индикатором.
     expect: У администратора контактов в карточке нет; у владельца — есть.
     test: ~
     status: missing

@@ -246,7 +246,7 @@ export class EdubridgeTeacherResolver {
 
   @Mutation(() => EduAssignmentDTO, { name: 'edubridgeSetAssignmentRate', description: 'Задать ставку часа преподавателя на курсе' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduAssignment', 'manage')
+  @RequireRight('EduEconomy', 'manage')
   async edubridgeSetAssignmentRate(@Args('data') data: EduSetAssignmentRateInputDTO): Promise<EduAssignmentDTO> {
     const a = await this.teachers.setAssignmentRate(coop(), data.assignment_id, data.hourly_rate);
     const rows = await this.teachers.listAssignments(coop(), a.teacher_username);
@@ -288,7 +288,7 @@ export class EdubridgeTeacherResolver {
 
   @Query(() => [EduContributionDocumentDTO], { name: 'edubridgeContributionDocuments', description: 'Документы взноса результатом работы: заявление, акт хранения, акт приёма-передачи' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduContribution', 'decide')
+  @RequireRight('EduContribution', 'read:all')
   async edubridgeContributionDocuments(@Args('contribution_id', { type: () => ID }) id: string): Promise<EduContributionDocumentDTO[]> {
     return (await this.teachers.contributionDocuments(coop(), id)).map(({ kind, aggregate }) => new EduContributionDocumentDTO(kind, aggregate));
   }

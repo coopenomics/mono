@@ -153,7 +153,9 @@ describe('Образование: стол администратора, выд�
   it(caseName('edu.admin.happy.03', 'повтор задачи из очереди: задача снова ждёт выполнения, счёт попыток сохранён'), async () => {
     const task = ((await card(chairman)).tasks as any[]).filter(t => t.kind === 'GRANT').pop()
     expectCode(await gqlError(token, RETRY_TASK, { d: { task_id: task.id } }), NO_RIGHTS)
-    const retried = (await gql<any>(council, RETRY_TASK, { d: { task_id: task.id } })).edubridgeRetryTask
+    // Член совета очередь читает, повторить задачу не может.
+    expectCode(await gqlError(council, RETRY_TASK, { d: { task_id: task.id } }), NO_RIGHTS)
+    const retried = (await gql<any>(chairman, RETRY_TASK, { d: { task_id: task.id } })).edubridgeRetryTask
     expect(retried).toMatchObject({ id: task.id, status: 'PENDING', attempts: task.attempts, last_error: null })
     await waitFor(async () => (((await card(chairman)).tasks as any[]).find(t => t.id === task.id)?.status === 'DONE' ? true : null),
       { timeoutMs: 180_000, intervalMs: 3_000, label: 'повторённая задача выполнена очередью' })

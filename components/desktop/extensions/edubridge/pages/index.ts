@@ -18,5 +18,4 @@ export { AdminTeachersPage } from './AdminTeachersPage';
 export { AdminTeacherPage } from './AdminTeacherPage';
 export { AdminContributionsPage } from './AdminContributionsPage';
 export { AdminEconomyPage } from './AdminEconomyPage';
-export { AdminAdminsPage } from './AdminAdminsPage';
 export { AdminSectionsPage } from './AdminSectionsPage';

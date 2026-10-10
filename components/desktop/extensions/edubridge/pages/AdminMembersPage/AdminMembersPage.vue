@@ -47,7 +47,7 @@
             .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.removed', { date: formatDate(accountOf(l)?.removed_at ?? '') }) }}
           .edu-member__account(v-else-if="canMarkRemoved(l)")
             .t-sm.t-muted {{ $t('edubridge.adminMembersPage.account.noSubscriptions', { platforms: platformsOf(l) }) }}
-            BaseButton(variant="secondary" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}
+            BaseButton(v-if="canManageQueue" variant="secondary" size="sm" :loading="marking === asText(l.id)" @click="onMarkRemoved(l)") {{ $t('edubridge.adminMembersPage.account.markRemoved') }}
 
       .edu-member__section
         .edu-member__head
@@ -62,7 +62,7 @@
             .edu-row-actions(v-if="row.close_pending")
               BaseBadge(variant="neg") {{ $t('edubridge.adminMembersPage.closePending.badge') }}
                 q-tooltip(v-if="row.close_error" max-width="320px") {{ row.close_error }}
-              BaseButton(variant="secondary" size="sm" :loading="closing === asText(row.id)" @click="onRetryClose(row)") {{ $t('common.action.retry') }}
+              BaseButton(v-if="canManageQueue" variant="secondary" size="sm" :loading="closing === asText(row.id)" @click="onRetryClose(row)") {{ $t('common.action.retry') }}
 
       //- Выдача доступа: обычные задачи повторяются сами, поэтому в списке
       //- показываются те, что встали и ждут человека, — и повторяются отсюда же.
@@ -78,7 +78,7 @@
           template(#cell-status="{ row }")
             BaseBadge(:variant="taskStatusOf(row.status).variant") {{ taskStatusOf(row.status).label }}
           template(#cell-actions="{ row }")
-            BaseButton(v-if="needsHand(row)" variant="secondary" size="sm" :loading="retrying === asText(row.id)" @click="onRetry(row)") {{ $t('common.action.retry') }}
+            BaseButton(v-if="canManageQueue && needsHand(row)" variant="secondary" size="sm" :loading="retrying === asText(row.id)" @click="onRetry(row)") {{ $t('common.action.retry') }}
 </template>
 
 <script setup lang="ts">
@@ -98,6 +98,9 @@ import { CARRIER_LABELS } from '../../entities/Course';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageQueue } = useEduRights();
 
 /**
  * Ученики приложения: пайщик, который оформляет подписки, и его обучающиеся —

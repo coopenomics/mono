@@ -2,15 +2,23 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import {
   platformSettings,
   type AppRights,
+  type AssignableRole,
   type DesktopGrantsRequest,
   type RightsCaller,
   type RightsTable,
 } from '@coopenomics/extension-kit';
-import { DESKTOP_GRANTS_REGISTRY_PORT, type IDesktopGrantsRegistryPort, type MonoAccountStatus } from '@coopenomics/innercoop';
+import {
+  DESKTOP_GRANTS_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
+  type IDesktopGrantsRegistryPort,
+  type IRoleAssignmentsPort,
+  type MonoAccountStatus,
+} from '@coopenomics/innercoop';
+import { t } from '../../i18n';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
 import { EdubridgeMembershipService, type IEdubridgeMembership } from '../membership/edubridge-membership.service';
 import type { EdubridgeRole } from '../membership/edubridge-roles.mapper';
-import { edubridgeAccessMatrix } from './edubridge-access-matrix';
+import { EDU_ADMIN_ROLE, edubridgeAccessMatrix } from './edubridge-access-matrix';
 import { expandGrantsForRoles } from './edubridge-grants';
 
 /** Ключ запроса, под которым гард кладёт членство для `@CurrentEduMember`. */
@@ -30,6 +38,29 @@ export const edubridgeRightsTable: RightsTable<EdubridgeRole, never> = Object.fr
 ) as RightsTable<EdubridgeRole, never>;
 
 /**
+ * Роль, которую председатель назначает пайщику на странице управления
+ * доступом: администратор образования ведёт курсы, группы, допуски
+ * преподавателей и очередь доступа. Деньги и решения остаются у председателя.
+ */
+export const edubridgeAssignableRoles: readonly AssignableRole<EdubridgeRole>[] = [
+  {
+    key: EDU_ADMIN_ROLE,
+    title: t('edubridge.roles.admin.title'),
+    description: t('edubridge.roles.admin.description'),
+    permissions: [
+      { title: t('edubridge.roles.admin.permissions.courses'), access: 'read', rights: ['EduCourse:read'] },
+      { title: t('edubridge.roles.admin.permissions.members'), access: 'read', rights: ['EduRegistry:read'] },
+      { title: t('edubridge.roles.admin.permissions.teachers'), access: 'read', rights: ['EduAssignment:read:all', 'EduContribution:read:all'] },
+      { title: t('edubridge.roles.admin.permissions.queue'), access: 'read', rights: ['EduQueue:read'] },
+      { title: t('edubridge.roles.admin.permissions.economy'), access: 'read', rights: ['EduEconomy:read'] },
+      { title: t('edubridge.roles.admin.permissions.coursesManage'), access: 'write', rights: ['EduCourse:manage'] },
+      { title: t('edubridge.roles.admin.permissions.assignmentsManage'), access: 'write', rights: ['EduAssignment:manage'] },
+      { title: t('edubridge.roles.admin.permissions.queueManage'), access: 'write', rights: ['EduQueue:manage'] },
+    ],
+  },
+];
+
+/**
  * Описание прав образования для общего гарда операций (`RightsGuard`) и прав
  * страниц рабочего стола. Каталог открыт гостю, поэтому у таблицы названы роли
  * гостя. Членство считается один раз на запрос и кладётся в запрос — его
@@ -41,13 +72,16 @@ export class EdubridgeRights implements AppRights<EdubridgeRole, never>, OnModul
   readonly table = edubridgeRightsTable;
   readonly guestRoles: readonly EdubridgeRole[] = ['guest'];
   readonly noRightDenial = EDUBRIDGE_NO_RIGHT;
+  readonly assignableRoles = edubridgeAssignableRoles;
 
   constructor(
     @Inject(DESKTOP_GRANTS_REGISTRY_PORT) private readonly grantsRegistry: IDesktopGrantsRegistryPort,
-    private readonly membership: EdubridgeMembershipService
+    private readonly membership: EdubridgeMembershipService,
+    @Inject(ROLE_ASSIGNMENTS_PORT) private readonly roleAssignments: IRoleAssignmentsPort
   ) {}
 
   onModuleInit(): void {
+    this.roleAssignments.declare(this.extensionName, this.assignableRoles);
     this.grantsRegistry.register({ extensionName: this.extensionName, resolveGrants: (ctx) => this.resolveGrants(ctx) });
   }
 

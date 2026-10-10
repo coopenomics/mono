@@ -78,8 +78,8 @@ cases:
   - id: edu.gating.happy.06
     level: backend
     kind: happy
-    scenario: Матрица доступа — гость, владелец, администратор; столу права отдаются как записаны.
-    expect: Гость только EduCatalog:read; контакты и площадки только у владельца; список действий — хотя бы одно; охват :all в :own для стола не разворачивается.
+    scenario: Матрица доступа — гость, член совета, администратор, председатель; столу права отдаются как записаны.
+    expect: Гость только EduCatalog:read; член совета стол администратора читает и ничего не меняет; администратор ведёт курсы, допуски и очередь; деньги, отклонение взноса, контакты и площадки только у председателя; охват :all в :own для стола не разворачивается.
     test: components/controller/tests/unit/edubridge/edubridge-access.test.ts
     api: components/api-tests/src/edubridge/rights.test.ts
     status: passing

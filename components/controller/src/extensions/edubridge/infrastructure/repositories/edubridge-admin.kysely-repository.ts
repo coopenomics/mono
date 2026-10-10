@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TableStore } from '@coopenomics/extension-kit';
-import { EDUBRIDGE_ADMIN_STORE, EDUBRIDGE_ENROLLMENT_STORE, EDUBRIDGE_LEARNER_STORE } from '../database/edubridge-stores';
+import { EDUBRIDGE_ENROLLMENT_STORE, EDUBRIDGE_LEARNER_STORE } from '../database/edubridge-stores';
 import { EduAccessState, EduEnrollmentStatus } from '../../domain/enums';
-import { EdubridgeAdminRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../entities';
+import { EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../entities';
 
 export interface MemberRow {
   username: string;
@@ -14,28 +14,11 @@ export interface MemberRow {
 @Injectable()
 export class EdubridgeAdminKyselyRepository {
   constructor(
-    @Inject(EDUBRIDGE_ADMIN_STORE)
-    private readonly admins: TableStore<EdubridgeAdminRecord>,
     @Inject(EDUBRIDGE_LEARNER_STORE)
     private readonly learners: TableStore<EdubridgeLearnerRecord>,
     @Inject(EDUBRIDGE_ENROLLMENT_STORE)
     private readonly enrollments: TableStore<EdubridgeEnrollmentRecord>
   ) {}
-
-  listAdmins(coopname: string): Promise<EdubridgeAdminRecord[]> {
-    return this.admins.find({ coopname }, { order: { created_at: 'ASC' } });
-  }
-
-  async appoint(coopname: string, username: string, appointedBy: string): Promise<EdubridgeAdminRecord> {
-    const existing = await this.admins.findOne({ coopname, username });
-    if (existing) return existing;
-    return this.admins.save(this.admins.create({ coopname, username, appointed_by: appointedBy }));
-  }
-
-  async dismiss(coopname: string, username: string): Promise<boolean> {
-    const r = await this.admins.delete({ coopname, username });
-    return Boolean(r);
-  }
 
   /**
    * Ученики приложения: агрегаты по обучающимся и подпискам.

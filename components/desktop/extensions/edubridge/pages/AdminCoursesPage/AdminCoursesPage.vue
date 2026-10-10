@@ -32,8 +32,11 @@ import { fetchCourses, type ICourse } from '../../entities/Course';
 import { AdminCourseCard } from '../../widgets/AdminCourseCard';
 import { HeaderActionButton } from '../../shared/ui/HeaderActionButton';
 import { t } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
+
+const { canManageCourses } = useEduRights();
 
 /**
  * Реестр курсов — владелец и администратор (EduCourse:manage). Курсы карточками,
@@ -78,7 +81,8 @@ function openCourse(id: string): void {
 useLiveReload([EduLive.courses, EduLive.enrollments], load);
 
 onMounted(() => {
-  registerAction({ id: 'edubridge:add-course', component: HeaderActionButton, props: { label: t('edubridge.addCourseHeaderButton.label'), icon: 'add', onClick: add } });
+  // Добавляет курс тот, кто ведёт курсы; читающим стол кнопка не показывается.
+  if (canManageCourses.value) registerAction({ id: 'edubridge:add-course', component: HeaderActionButton, props: { label: t('edubridge.addCourseHeaderButton.label'), icon: 'add', onClick: add } });
   void load();
 });
 </script>

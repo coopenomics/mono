@@ -21,7 +21,7 @@
       .t-meta.text-negative(v-if="councilOutcome(row)") {{ councilOutcome(row) }}
     template(#cell-actions="{ row }")
       .edu-row-actions
-        BaseButton(v-if="canDecline(row)" variant="secondary" size="sm" @click.stop="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
+        BaseButton(v-if="canDecide && canDecline(row)" variant="secondary" size="sm" @click.stop="openDecline(row)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
   EmptyState(v-if="!firstLoad && !contributions.length" :title="$t('edubridge.adminContributionsPage.emptyTitle')" :body="$t('edubridge.adminContributionsPage.emptyBody')")
     template(#icon)
@@ -33,9 +33,9 @@
       ContributionDetails(:contribution="details" :teacher-name="teacherName(details.teacher_username)" show-teacher)
       .t-sm.text-negative.q-mt-md(v-if="councilOutcome(details)") {{ councilOutcome(details) }}
     //- Вторая подпись на акте — у председателя в «Запросах одобрений», здесь её нет.
-    template(v-if="details && canDecline(details)" #footer)
+    template(v-if="details && canDecide && canDecline(details)" #footer)
       .edu-row-actions
-        BaseButton(v-if="canDecline(details)" variant="secondary" @click="openDecline(details)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
+        BaseButton(v-if="canDecide && canDecline(details)" variant="secondary" @click="openDecline(details)") {{ $t('edubridge.adminContributionsPage.declineButton') }}
 
   BaseDialog(v-model="declineOpen" :title="$t('edubridge.adminContributionsPage.declineDialogTitle')" size="sm")
     BaseForm(:loading="busy" @submit="onDecline")
@@ -68,6 +68,9 @@ import {
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t as i18nT } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canDecide } = useEduRights();
 
 /**
  * Взносы результатами работы — отдельной страницей: председатель разбирает их

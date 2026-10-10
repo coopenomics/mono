@@ -38,21 +38,6 @@
     "addSectionHeaderButton": {
       "label": "Добавить раздел"
     },
-    "adminAdminsPage": {
-      "appointDialogHint": "Найдите пайщика по фамилии, имени или наименованию организации.",
-      "appointDialogTitle": "Назначить администратора",
-      "appointSubmit": "Назначить",
-      "appointSuccess": "Администратор назначен",
-      "cancel": "Отмена",
-      "columnAdmin": "Администратор",
-      "columnAppointedBy": "Назначил",
-      "columnSince": "С",
-      "dismissButton": "Снять",
-      "emptyBody": "Приложение ведёт председатель.",
-      "emptyTitle": "Администраторов нет",
-      "hint": "Администраторы ведут курсы, назначения, реестры и очередь. Контакты пайщиков и ключи площадок им не видны.",
-      "memberLabel": "Пайщик"
-    },
     "adminConnectorsPage": {
       "cancel": "Отмена",
       "checkButton": "Проверить",
@@ -461,9 +446,6 @@
         "acceptedAmount": "Сумма принятых взносов"
       }
     },
-    "appointAdminHeaderButton": {
-      "label": "Назначить администратора"
-    },
     "assignment": {
       "status": {
         "ACTIVE": "Действует",
@@ -738,7 +720,6 @@
     "install": {
       "adminContributionsRouteTitle": "Взносы преподавателей",
       "adminWorkspaceTitle": "Стол администратора",
-      "adminsRouteTitle": "Администраторы",
       "assignmentsRouteTitle": "Назначения",
       "catalogCourseRouteTitle": "Курс",
       "catalogRouteTitle": "Каталог курсов",

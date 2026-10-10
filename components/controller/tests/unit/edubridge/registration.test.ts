@@ -42,14 +42,14 @@ describe('EdubridgeRoleFactsAdapter', () => {
         (id === 5 && opts.parentSigned) || (id === 6 && opts.teacherSigned) ? { program_id: id } : null
       ),
     } as any;
-    const admins = { findOne: jest.fn(async () => (opts.admin ? { username: 'ant' } : null)) } as any;
+    const admins = { rolesOf: jest.fn(async () => (opts.admin ? ['edu-admin'] : [])) } as any;
     const contracts = { findOne: jest.fn(async () => (opts.contract ? { status: 'pending_approval' } : null)) } as any;
     return new EdubridgeRoleFactsAdapter(council, programAgreements, logger, admins, contracts);
   }
 
   const none = { isLearner: false, hasTeacherOffer: false, isTeacher: false, isAdmin: false };
 
-  it('подписана оферта ученика → learner; преподавателя + договор → teacher; запись в admins → admin', async () => {
+  it('подписана оферта ученика → learner; преподавателя + договор → teacher; назначенная роль администратора → admin', async () => {
     await expect(make({ parentSigned: true }).resolve('voskhod', 'ant')).resolves.toEqual({ ...none, isLearner: true });
     await expect(make({ teacherSigned: true, contract: true, admin: true }).resolve('voskhod', 'ant')).resolves.toEqual({
       isLearner: false,

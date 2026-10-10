@@ -618,9 +618,6 @@ export const AllTypesProps: Record<string,any> = {
 	EduAccessState: "enum" as const,
 	EduAccessTaskKind: "enum" as const,
 	EduAccessTaskStatus: "enum" as const,
-	EduAdminInput:{
-
-	},
 	EduArchiveInput:{
 
 	},
@@ -2046,9 +2043,6 @@ export const AllTypesProps: Record<string,any> = {
 		edubridgeAddLearner:{
 			data:"EduLearnerInput"
 		},
-		edubridgeAppointAdmin:{
-			data:"EduAdminInput"
-		},
 		edubridgeArchiveLevel:{
 			data:"EduArchiveInput"
 		},
@@ -2087,9 +2081,6 @@ export const AllTypesProps: Record<string,any> = {
 		},
 		edubridgeDeleteCourse:{
 
-		},
-		edubridgeDismissAdmin:{
-			data:"EduAdminInput"
 		},
 		edubridgeGuaranteeStatement:{
 			data:"EduGuaranteeStatementInput"
@@ -5710,14 +5701,6 @@ export const ReturnTypes: Record<string,any> = {
 		status:"EduAccessTaskStatus",
 		updated_at:"DateTime"
 	},
-	EduAdmin:{
-		appointed_by:"String",
-		appointed_by_display_name:"String",
-		created_at:"DateTime",
-		display_name:"String",
-		id:"ID",
-		username:"String"
-	},
 	EduApproval:{
 		action:"String",
 		approval_hash:"String",
@@ -7804,7 +7787,6 @@ export const ReturnTypes: Record<string,any> = {
 		disableTwoFactor:"Boolean",
 		editBranch:"Branch",
 		edubridgeAddLearner:"EduLearner",
-		edubridgeAppointAdmin:"EduAdmin",
 		edubridgeArchiveLevel:"EduLevel",
 		edubridgeArchiveSection:"EduSection",
 		edubridgeCancelCourseUnderfilled:"Int",
@@ -7818,7 +7800,6 @@ export const ReturnTypes: Record<string,any> = {
 		edubridgeCreateGroup:"EduGroup",
 		edubridgeDeclineContribution:"EduContribution",
 		edubridgeDeleteCourse:"Boolean",
-		edubridgeDismissAdmin:"Boolean",
 		edubridgeGuaranteeStatement:"GeneratedDocument",
 		edubridgeHoldContribution:"EduContribution",
 		edubridgeMarkLearnerRemoved:"EduLearnerAccount",
@@ -8707,7 +8688,6 @@ export const ReturnTypes: Record<string,any> = {
 		documentTemplateBlank:"DocumentTemplateBlank",
 		documentTemplates:"DocumentTemplate",
 		documentTemplatesAttention:"Int",
-		edubridgeAdmins:"EduAdmin",
 		edubridgeAssignments:"EduAssignment",
 		edubridgeAttention:"EduAttention",
 		edubridgeCatalog:"PaginatedEduCatalogCoursesPaginationResult",

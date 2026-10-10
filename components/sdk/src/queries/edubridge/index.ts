@@ -70,8 +70,6 @@ export * as MemberCard from './memberCard'
 export * as Queue from './queue'
 /** Площадки и их состояние */
 export * as Connectors from './connectors'
-/** Администраторы приложения */
-export * as Admins from './admins'
 export * as MyContractDocument from './myContractDocument'
 export * as TeacherContractDocument from './teacherContractDocument'
 

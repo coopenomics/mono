@@ -10,10 +10,13 @@ import type { CoreRole } from './core-roles.mapper';
  *              первой подписью — вторую ставит председатель): назначения и взносы РИД.
  *              Пока договора нет или председатель отказал, пайщик со столом
  *              преподавания не работает — его ведёт шлюз подключения.
- *   admin    — администратор (таблица edubridge_admins) или член совета: реестры, очередь, курсы.
- *   owner    — председатель: всё, что admin, плюс контакты, площадки и ключи, настройка.
+ *   council  — член совета: читает курсы, реестры, очередь, назначения, взносы и экономику.
+ *   edu-admin — администратор образования: роль назначает председатель на странице
+ *              управления доступом; ведёт курсы, группы, допуски преподавателей и очередь.
+ *   owner    — председатель: всё, что администратор, плюс ставки, целевой взнос, расходы
+ *              программы, контакты, площадки и ключи, настройка.
  */
-export type EdubridgeRole = 'guest' | 'learner' | 'teacher' | 'admin' | 'owner';
+export type EdubridgeRole = 'guest' | 'learner' | 'teacher' | 'council' | 'edu-admin' | 'owner';
 
 export interface EdubridgeRoleFacts {
   isLearner: boolean;
@@ -29,7 +32,8 @@ export function mapCoreRolesToEdubridgeRoles(coreRoles: CoreRole[], facts: Edubr
   if (coreRoles.length === 0) return roles;
   if (facts.isLearner) roles.push('learner');
   if (facts.isTeacher) roles.push('teacher');
-  if (facts.isAdmin || coreRoles.includes('Member')) roles.push('admin');
+  if (coreRoles.includes('Member')) roles.push('council');
+  if (facts.isAdmin) roles.push('edu-admin');
   if (coreRoles.includes('Chairman')) roles.push('owner');
   return roles;
 }

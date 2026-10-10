@@ -2,7 +2,7 @@
 //- Группы курса — реестр: строка открывает правую панель с группой. Набор
 //- идёт в группу, и деньги с занятиями считаются внутри неё.
 BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
-  template(#actions)
+  template(v-if="!readonly" #actions)
     BaseButton(variant="secondary" size="sm" @click="openCreate")
       template(#icon-left)
         q-icon(name="add" size="18px")
@@ -48,7 +48,7 @@ BaseCard(variant="default" :title="$t('edubridge.courseGroups.title')")
         DataRow(:label="$t('edubridge.adminCoursePage.groupProgramLabel')" :value="formatAsset2Digits(groupEconomy.group_program_month)" align="spread")
       .t-sm.t-muted.q-mt-sm.q-mb-md {{ $t('edubridge.courseGroups.termsNote') }}
 
-      BaseForm(v-if="details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
+      BaseForm(v-if="!readonly && details.status === Zeus.EduGroupStatus.ACTIVE" :loading="busy" @submit="onSave")
         BaseInput(v-model="form.title" :label="$t('edubridge.courseGroups.titleLabel')" required)
         BaseInput(v-model="form.starts_at" :label="$t('edubridge.courseGroups.startsAtLabel')" type="date" stack-label :disabled="details.lessons_held > 0" :hint="details.lessons_held > 0 ? $t('edubridge.courseGroups.startLockedHint') : ''")
         BaseSelect(v-if="platformGroupOptions.length" v-model="form.platform_group" :label="$t('edubridge.courseGroups.platformGroupLabel')" :options="platformGroupOptions" :hint="$t('edubridge.courseGroups.platformGroupHint')")
@@ -94,7 +94,11 @@ import { t } from '../../i18n';
  * день открытия, поэтому здесь правятся только название, дата начала, набор и
  * привязка к группе площадки.
  */
-const props = defineProps<{ course: ICourse }>();
+const props = defineProps<{
+  course: ICourse;
+  /** Группы показаны на просмотр: без открытия новой группы и правки. */
+  readonly?: boolean;
+}>();
 const emit = defineEmits<{ changed: [] }>();
 
 const groups = ref<IGroup[]>([]);

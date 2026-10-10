@@ -6728,22 +6728,6 @@ export type ValueTypes = {
 ["EduAccessTaskKind"]:EduAccessTaskKind;
 	/** Состояние задачи очереди выдачи доступа */
 ["EduAccessTaskStatus"]:EduAccessTaskStatus;
-	["EduAdmin"]: AliasType<{
-	appointed_by?:boolean | `@${string}`,
-	/** ФИО назначившего */
-	appointed_by_display_name?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	/** ФИО администратора */
-	display_name?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`,
-	['...on EduAdmin']?: Omit<ValueTypes["EduAdmin"], "...on EduAdmin">
-}>;
-	["EduAdminInput"]: {
-	/** Учётное имя пайщика */
-	username: string | Variable<any, string>
-};
 	["EduApproval"]: AliasType<{
 	/** Тип одобрения — действие контракта образования */
 	action?:boolean | `@${string}`,
@@ -13493,7 +13477,6 @@ deleteTrustedAccount?: [{	data: ValueTypes["DeleteTrustedAccountInput"] | Variab
 disableTwoFactor?: [{	data: ValueTypes["TwoFactorCodeInput"] | Variable<any, string>},boolean | `@${string}`],
 editBranch?: [{	data: ValueTypes["EditBranchInput"] | Variable<any, string>},ValueTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ValueTypes["EduLearnerInput"] | Variable<any, string>},ValueTypes["EduLearner"]],
-edubridgeAppointAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},ValueTypes["EduAdmin"]],
 edubridgeArchiveLevel?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ValueTypes["EduArchiveInput"] | Variable<any, string>},ValueTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
@@ -13507,7 +13490,6 @@ edubridgeCreateExpense?: [{	data: ValueTypes["EduCreateExpenseInput"] | Variable
 edubridgeCreateGroup?: [{	data: ValueTypes["EduCreateGroupInput"] | Variable<any, string>},ValueTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ValueTypes["EduDeclineContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ValueTypes["ID"] | Variable<any, string>},boolean | `@${string}`],
-edubridgeDismissAdmin?: [{	data: ValueTypes["EduAdminInput"] | Variable<any, string>},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ValueTypes["EduGuaranteeStatementInput"] | Variable<any, string>},ValueTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ValueTypes["EduHoldContributionInput"] | Variable<any, string>},ValueTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ValueTypes["EduMarkLearnerRemovedInput"] | Variable<any, string>},ValueTypes["EduLearnerAccount"]],
@@ -15457,8 +15439,6 @@ documentTemplateBlank?: [{	coopname: string | Variable<any, string>,	/** Хэш 
 	doc_data_hash?: string | undefined | null | Variable<any, string>,	edition: ValueTypes["DocumentTemplateEdition"] | Variable<any, string>,	registry_id: number | Variable<any, string>},ValueTypes["DocumentTemplateBlank"]],
 documentTemplates?: [{	coopname: string | Variable<any, string>},ValueTypes["DocumentTemplate"]],
 documentTemplatesAttention?: [{	coopname: string | Variable<any, string>},boolean | `@${string}`],
-	/** Администраторы приложения */
-	edubridgeAdmins?:ValueTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ValueTypes["EduAssignment"],
 	/** Сколько дел ждёт администратора — числа на пунктах меню */
@@ -23539,21 +23519,6 @@ export type ResolverInputTypes = {
 ["EduAccessTaskKind"]:EduAccessTaskKind;
 	/** Состояние задачи очереди выдачи доступа */
 ["EduAccessTaskStatus"]:EduAccessTaskStatus;
-	["EduAdmin"]: AliasType<{
-	appointed_by?:boolean | `@${string}`,
-	/** ФИО назначившего */
-	appointed_by_display_name?:boolean | `@${string}`,
-	created_at?:boolean | `@${string}`,
-	/** ФИО администратора */
-	display_name?:boolean | `@${string}`,
-	id?:boolean | `@${string}`,
-	username?:boolean | `@${string}`,
-		__typename?: boolean | `@${string}`
-}>;
-	["EduAdminInput"]: {
-	/** Учётное имя пайщика */
-	username: string
-};
 	["EduApproval"]: AliasType<{
 	/** Тип одобрения — действие контракта образования */
 	action?:boolean | `@${string}`,
@@ -30105,7 +30070,6 @@ deleteTrustedAccount?: [{	data: ResolverInputTypes["DeleteTrustedAccountInput"]}
 disableTwoFactor?: [{	data: ResolverInputTypes["TwoFactorCodeInput"]},boolean | `@${string}`],
 editBranch?: [{	data: ResolverInputTypes["EditBranchInput"]},ResolverInputTypes["Branch"]],
 edubridgeAddLearner?: [{	data: ResolverInputTypes["EduLearnerInput"]},ResolverInputTypes["EduLearner"]],
-edubridgeAppointAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},ResolverInputTypes["EduAdmin"]],
 edubridgeArchiveLevel?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduLevel"]],
 edubridgeArchiveSection?: [{	data: ResolverInputTypes["EduArchiveInput"]},ResolverInputTypes["EduSection"]],
 edubridgeCancelCourseUnderfilled?: [{	course_id: ResolverInputTypes["ID"]},boolean | `@${string}`],
@@ -30119,7 +30083,6 @@ edubridgeCreateExpense?: [{	data: ResolverInputTypes["EduCreateExpenseInput"]},b
 edubridgeCreateGroup?: [{	data: ResolverInputTypes["EduCreateGroupInput"]},ResolverInputTypes["EduGroup"]],
 edubridgeDeclineContribution?: [{	data: ResolverInputTypes["EduDeclineContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeDeleteCourse?: [{	id: ResolverInputTypes["ID"]},boolean | `@${string}`],
-edubridgeDismissAdmin?: [{	data: ResolverInputTypes["EduAdminInput"]},boolean | `@${string}`],
 edubridgeGuaranteeStatement?: [{	data: ResolverInputTypes["EduGuaranteeStatementInput"]},ResolverInputTypes["GeneratedDocument"]],
 edubridgeHoldContribution?: [{	data: ResolverInputTypes["EduHoldContributionInput"]},ResolverInputTypes["EduContribution"]],
 edubridgeMarkLearnerRemoved?: [{	data: ResolverInputTypes["EduMarkLearnerRemovedInput"]},ResolverInputTypes["EduLearnerAccount"]],
@@ -31994,8 +31957,6 @@ documentTemplateBlank?: [{	coopname: string,	/** Хэш приватных па�
 	doc_data_hash?: string | undefined | null,	edition: ResolverInputTypes["DocumentTemplateEdition"],	registry_id: number},ResolverInputTypes["DocumentTemplateBlank"]],
 documentTemplates?: [{	coopname: string},ResolverInputTypes["DocumentTemplate"]],
 documentTemplatesAttention?: [{	coopname: string},boolean | `@${string}`],
-	/** Администраторы приложения */
-	edubridgeAdmins?:ResolverInputTypes["EduAdmin"],
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments?:ResolverInputTypes["EduAssignment"],
 	/** Сколько дел ждёт администратора — числа на пунктах меню */
@@ -39840,20 +39801,6 @@ export type ModelTypes = {
 };
 	["EduAccessTaskKind"]:EduAccessTaskKind;
 	["EduAccessTaskStatus"]:EduAccessTaskStatus;
-	["EduAdmin"]: {
-		appointed_by: string,
-	/** ФИО назначившего */
-	appointed_by_display_name: string,
-	created_at: ModelTypes["DateTime"],
-	/** ФИО администратора */
-	display_name: string,
-	id: ModelTypes["ID"],
-	username: string
-};
-	["EduAdminInput"]: {
-	/** Учётное имя пайщика */
-	username: string
-};
 	["EduApproval"]: {
 		/** Тип одобрения — действие контракта образования */
 	action: string,
@@ -46276,8 +46223,6 @@ export type ModelTypes = {
 	editBranch: ModelTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: ModelTypes["EduLearner"],
-	/** Назначить администратора */
-	edubridgeAppointAdmin: ModelTypes["EduAdmin"],
 	/** Убрать уровень в архив либо вернуть */
 	edubridgeArchiveLevel: ModelTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
@@ -46304,8 +46249,6 @@ export type ModelTypes = {
 	edubridgeDeclineContribution: ModelTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
-	/** Снять администратора */
-	edubridgeDismissAdmin: boolean,
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
 	edubridgeGuaranteeStatement: ModelTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
@@ -48371,8 +48314,6 @@ export type ModelTypes = {
 	documentTemplates: Array<ModelTypes["DocumentTemplate"]>,
 	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей */
 	documentTemplatesAttention: number,
-	/** Администраторы приложения */
-	edubridgeAdmins: Array<ModelTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<ModelTypes["EduAssignment"]>,
 	/** Сколько дел ждёт администратора — числа на пунктах меню */
@@ -56577,22 +56518,6 @@ export type GraphQLTypes = {
 ["EduAccessTaskKind"]: EduAccessTaskKind;
 	/** Состояние задачи очереди выдачи доступа */
 ["EduAccessTaskStatus"]: EduAccessTaskStatus;
-	["EduAdmin"]: {
-	__typename: "EduAdmin",
-	appointed_by: string,
-	/** ФИО назначившего */
-	appointed_by_display_name: string,
-	created_at: GraphQLTypes["DateTime"],
-	/** ФИО администратора */
-	display_name: string,
-	id: GraphQLTypes["ID"],
-	username: string,
-	['...on EduAdmin']: Omit<GraphQLTypes["EduAdmin"], "...on EduAdmin">
-};
-	["EduAdminInput"]: {
-		/** Учётное имя пайщика */
-	username: string
-};
 	["EduApproval"]: {
 	__typename: "EduApproval",
 	/** Тип одобрения — действие контракта образования */
@@ -63490,8 +63415,6 @@ export type GraphQLTypes = {
 	editBranch: GraphQLTypes["Branch"],
 	/** Добавить обучающегося — себя или ребёнка */
 	edubridgeAddLearner: GraphQLTypes["EduLearner"],
-	/** Назначить администратора */
-	edubridgeAppointAdmin: GraphQLTypes["EduAdmin"],
 	/** Убрать уровень в архив либо вернуть */
 	edubridgeArchiveLevel: GraphQLTypes["EduLevel"],
 	/** Убрать раздел в архив либо вернуть */
@@ -63518,8 +63441,6 @@ export type GraphQLTypes = {
 	edubridgeDeclineContribution: GraphQLTypes["EduContribution"],
 	/** Удалить курс без подписок и занятий */
 	edubridgeDeleteCourse: boolean,
-	/** Снять администратора */
-	edubridgeDismissAdmin: boolean,
 	/** Сформировать заявление об аннулировании подписки по гарантийным условиям */
 	edubridgeGuaranteeStatement: GraphQLTypes["GeneratedDocument"],
 	/** Передать материалы занятия на ответственное хранение на срок гарантии курса */
@@ -65766,8 +65687,6 @@ export type GraphQLTypes = {
 	documentTemplates: Array<GraphQLTypes["DocumentTemplate"]>,
 	/** Сколько документов кооператива ждут решения совета: без утверждённой редакции или с устаревшей */
 	documentTemplatesAttention: number,
-	/** Администраторы приложения */
-	edubridgeAdmins: Array<GraphQLTypes["EduAdmin"]>,
 	/** Назначения преподавателей кооператива */
 	edubridgeAssignments: Array<GraphQLTypes["EduAssignment"]>,
 	/** Сколько дел ждёт администратора — числа на пунктах меню */
@@ -69791,7 +69710,6 @@ type ZEUS_VARIABLES = {
 	["EduAccessState"]: ValueTypes["EduAccessState"];
 	["EduAccessTaskKind"]: ValueTypes["EduAccessTaskKind"];
 	["EduAccessTaskStatus"]: ValueTypes["EduAccessTaskStatus"];
-	["EduAdminInput"]: ValueTypes["EduAdminInput"];
 	["EduArchiveInput"]: ValueTypes["EduArchiveInput"];
 	["EduAssignmentInput"]: ValueTypes["EduAssignmentInput"];
 	["EduAssignmentStatus"]: ValueTypes["EduAssignmentStatus"];

@@ -12,10 +12,11 @@ import { EdubridgeChainEconomy1791443921510 } from './migrations/database/179144
 import { EdubridgeGroups1791447267515 } from './migrations/database/1791447267515-groups';
 import { EdubridgeGroupEnrollmentClosedOnStart1791530000000 } from './migrations/database/1791530000000-group-enrollment-closed-on-start';
 import { EdubridgeLearnerPlatformRemoved1791540000000 } from './migrations/database/1791540000000-learner-platform-removed';
+import { EdubridgeAdminsToRoleAssignments1791629940202 } from './migrations/database/1791629940202-admins-to-role-assignments';
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
  * класса). Объявляются в записи реестра (`databaseMigrations`) рядом с
  * сущностями, и файлы лежат здесь же: вынесенное расширение уносит историю
  * своих таблиц с собой. Новую миграцию `pnpm schema:generate` дописывает сюда.
  */
-export const edubridgeDatabaseMigrations = [EdubridgeBaseline1790236885856, EdubridgeAssignmentWithoutAnnex1790834774344, EdubridgeTeacherProfile1790951823745, EdubridgeEnrollmentClosePending1791201397413, EdubridgeContractDocument1791201979422, EdubridgeGuaranteeClaims1791203803222, EdubridgeAssignmentHourlyRate1791290272066, EdubridgeContributionStorageActDocument1791362839623, EdubridgeContributionDecisionDocument1791365100000, EdubridgeShareReturns1791380400000, EdubridgeChainEconomy1791443921510, EdubridgeGroups1791447267515, EdubridgeGroupEnrollmentClosedOnStart1791530000000, EdubridgeLearnerPlatformRemoved1791540000000];
+export const edubridgeDatabaseMigrations = [EdubridgeBaseline1790236885856, EdubridgeAssignmentWithoutAnnex1790834774344, EdubridgeTeacherProfile1790951823745, EdubridgeEnrollmentClosePending1791201397413, EdubridgeContractDocument1791201979422, EdubridgeGuaranteeClaims1791203803222, EdubridgeAssignmentHourlyRate1791290272066, EdubridgeContributionStorageActDocument1791362839623, EdubridgeContributionDecisionDocument1791365100000, EdubridgeShareReturns1791380400000, EdubridgeChainEconomy1791443921510, EdubridgeGroups1791447267515, EdubridgeGroupEnrollmentClosedOnStart1791530000000, EdubridgeLearnerPlatformRemoved1791540000000, EdubridgeAdminsToRoleAssignments1791629940202];

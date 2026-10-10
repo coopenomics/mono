@@ -2,7 +2,7 @@ import { Field, ID, InputType, Int, ObjectType } from '@nestjs/graphql';
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EduAccessCarrier, EduAccessTaskKind, EduAccessTaskStatus, EduConnectorHealth } from '../../domain/enums';
-import type { EdubridgeAccessTaskRecord, EdubridgeAdminRecord, EdubridgeConnectorBindingRecord } from '../../infrastructure/entities';
+import type { EdubridgeAccessTaskRecord, EdubridgeConnectorBindingRecord } from '../../infrastructure/entities';
 import { EduEnrollmentDTO } from './edu-enrollment.dto';
 import { EduLearnerDTO } from './edu-learner.dto';
 import './edu-enums.registration';
@@ -121,32 +121,6 @@ export class EduSetConnectorCredentialsInputDTO {
 export class EduSetConnectorEnabledInputDTO {
   @Field(() => EduAccessCarrier) @IsEnum(EduAccessCarrier) carrier!: EduAccessCarrier;
   @Field(() => Boolean) @IsBoolean() enabled!: boolean;
-}
-
-@ObjectType('EduAdmin')
-export class EduAdminDTO {
-  @Field(() => ID) id!: string;
-  @Field(() => String) username!: string;
-  @Field(() => String, { description: 'ФИО администратора' }) display_name!: string;
-  @Field(() => String) appointed_by!: string;
-  @Field(() => String, { description: 'ФИО назначившего' }) appointed_by_display_name!: string;
-  @Field(() => Date) created_at!: Date;
-
-  constructor(a: EdubridgeAdminRecord, names: { display_name?: string; appointed_by_display_name?: string } = {}) {
-    Object.assign(this, {
-      id: a.id,
-      username: a.username,
-      display_name: names.display_name ?? '',
-      appointed_by: a.appointed_by,
-      appointed_by_display_name: names.appointed_by_display_name ?? '',
-      created_at: a.created_at,
-    });
-  }
-}
-
-@InputType('EduAdminInput')
-export class EduAdminInputDTO {
-  @Field(() => String, { description: 'Учётное имя пайщика' }) @IsString() username!: string;
 }
 
 @InputType('EduRetryEnrollmentCloseInput')

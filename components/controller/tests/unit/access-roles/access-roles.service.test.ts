@@ -3,6 +3,7 @@
  * access.roles.* в test-registry/platform.access-roles.yaml).
  */
 import { Workflows } from '@coopenomics/notifications';
+import { ROLE_ASSIGNMENT_CHANGED_EVENT } from '@coopenomics/innercoop';
 import { AccessRolesService } from '~/application/access-roles/access-roles.service';
 import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 
@@ -56,8 +57,9 @@ function makeService(options: { users?: Record<string, boolean>; notifyFails?: b
   const extensions = {
     getCombinedAppList: jest.fn(async () => (options.installed ?? ['soviet', 'reports']).map((name) => ({ name }))),
   };
-  const service = new AccessRolesService(registry, extensions as any, repository as any, users as any, accounts as any, notifications as any, logger as any);
-  return { service, repository, notifications, logger, rows };
+  const events = { emit: jest.fn() };
+  const service = new AccessRolesService(registry, extensions as any, repository as any, users as any, accounts as any, notifications as any, logger as any, events as any);
+  return { service, repository, notifications, logger, rows, events };
 }
 
 describe('назначение роли', () => {
@@ -78,6 +80,18 @@ describe('назначение роли', () => {
         payload: expect.objectContaining({ roleTitle: 'Кассир' }),
       })
     );
+  });
+
+  // access.roles.happy.14
+  it('назначение и снятие сообщают приложению о смене держателей роли; повтор без изменений молчит', async () => {
+    const { service, events } = makeService();
+    await service.assign('ant', { username: 'ivan', role: 'cashier' });
+    await service.assign('ant', { username: 'ivan', role: 'cashier' });
+    expect(events.emit).toHaveBeenCalledTimes(1);
+    expect(events.emit).toHaveBeenCalledWith(ROLE_ASSIGNMENT_CHANGED_EVENT, { extensionName: 'soviet', role: 'cashier', username: 'ivan' });
+    await service.revoke('ant', { username: 'ivan', role: 'cashier' });
+    await service.revoke('ant', { username: 'ivan', role: 'cashier' });
+    expect(events.emit).toHaveBeenCalledTimes(2);
   });
 
   // access.roles.side.03

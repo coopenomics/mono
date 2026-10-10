@@ -20,6 +20,7 @@
         .t-h3 {{ section.title }}
         BaseBadge(v-if="section.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
       SectionRowActions(
+        v-if="canManageCourses"
         :can-up="si > 0"
         :can-down="si < visible.length - 1"
         :archived="section.archived"
@@ -39,6 +40,7 @@
           span {{ level.title }}
           BaseBadge(v-if="level.archived" variant="neutral") {{ $t('edubridge.adminSectionsPage.archivedBadge') }}
         SectionRowActions(
+          v-if="canManageCourses"
           :can-up="li > 0"
           :can-down="li < levelsOf(section).length - 1"
           :archived="level.archived"
@@ -53,7 +55,7 @@
     .t-muted.t-sm.q-mt-sm(v-else) {{ $t('edubridge.adminSectionsPage.noLevels') }}
 
     .q-mt-md(v-if="!section.archived")
-      BaseButton(variant="secondary" size="sm" :disabled="busy" @click="openCreateLevel(section)")
+      BaseButton(v-if="canManageCourses" variant="secondary" size="sm" :disabled="busy" @click="openCreateLevel(section)")
         template(#icon-left)
           q-icon(name="add" size="18px")
         | {{ $t('edubridge.adminSectionsPage.addLevel') }}
@@ -88,6 +90,9 @@ import SectionRowActions from './SectionRowActions.vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { EduLive } from '../../shared/lib/live';
 import { t } from '../../i18n';
+import { useEduRights } from '../../shared/lib/rights';
+
+const { canManageCourses } = useEduRights();
 
 /**
  * Справочник разделов и уровней каталога (7DD-23). Разделы — карточками в их
@@ -183,7 +188,7 @@ const { registerAction } = useHeaderActions();
 useLiveReload([EduLive.sections, EduLive.levels], load);
 
 onMounted(() => {
-  registerAction({ id: 'edubridge-add-section', component: HeaderActionButton, props: { label: t('edubridge.addSectionHeaderButton.label'), icon: 'add', onClick: openCreateSection } });
+  if (canManageCourses.value) registerAction({ id: 'edubridge-add-section', component: HeaderActionButton, props: { label: t('edubridge.addSectionHeaderButton.label'), icon: 'add', onClick: openCreateSection } });
   void load();
 });
 </script>

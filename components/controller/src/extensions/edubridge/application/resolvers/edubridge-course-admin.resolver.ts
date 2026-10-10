@@ -35,7 +35,7 @@ export class EdubridgeCourseAdminResolver {
 
   @Query(() => PaginatedEduCoursesDTO, { name: 'edubridgeCourses', description: 'Курсы кооператива во всех состояниях' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   async edubridgeCourses(
     @Args('filter', { nullable: true }) filter?: EduCoursesFilterInputDTO,
     @Args('options', { nullable: true }) options?: PaginationInputDTO
@@ -46,21 +46,21 @@ export class EdubridgeCourseAdminResolver {
 
   @Query(() => EduCourseDTO, { name: 'edubridgeCourse', description: 'Курс со служебными полями' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   async edubridgeCourse(@Args('id', { type: () => ID }) id: string): Promise<EduCourseDTO> {
     return new EduCourseDTO(await this.courses.get(platformSettings().coopname, id));
   }
 
   @Query(() => [EduTeacherOptionDTO], { name: 'edubridgeTeacherOptions', description: 'Преподаватели, которых можно назначить на курс' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   edubridgeTeacherOptions(): Promise<EduTeacherOptionDTO[]> {
     return this.courses.teacherOptions(platformSettings().coopname);
   }
 
   @Query(() => [EduPlatformCourseDTO], { name: 'edubridgePlatformCourses', description: 'Курсы и группы на площадке кооператива — для привязки курса каталога' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   edubridgePlatformCourses(@Args('carrier', { type: () => EduAccessCarrier }) carrier: EduAccessCarrier): Promise<EduPlatformCourseDTO[]> {
     return this.courses.platformCourses(platformSettings().coopname, carrier);
   }

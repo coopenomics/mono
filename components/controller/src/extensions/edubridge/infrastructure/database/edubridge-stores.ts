@@ -2,7 +2,6 @@ import type { Provider } from '@nestjs/common';
 import type { Kysely } from 'kysely';
 import { KYSELY, TableStore } from '@coopenomics/extension-kit';
 import { EdubridgeAccessTaskRecord } from '../entities/edubridge-access-task.record';
-import { EdubridgeAdminRecord } from '../entities/edubridge-admin.record';
 import { EdubridgeConnectorBindingRecord } from '../entities/edubridge-connector-binding.record';
 import { EdubridgeContributionRecord } from '../entities/edubridge-contribution.record';
 import { EdubridgeGroupRecord } from '../entities/edubridge-group.record';
@@ -23,7 +22,6 @@ import { EdubridgeTeacherProfileRecord } from '../entities/edubridge-teacher-pro
  * (прочитал, поправил, сохранил), запросы к базе идут через Kysely.
  */
 export const EDUBRIDGE_ACCESS_TASK_STORE = Symbol('Edubridge.EDUBRIDGE_ACCESS_TASK_STORE');
-export const EDUBRIDGE_ADMIN_STORE = Symbol('Edubridge.EDUBRIDGE_ADMIN_STORE');
 export const EDUBRIDGE_CONNECTOR_BINDING_STORE = Symbol('Edubridge.EDUBRIDGE_CONNECTOR_BINDING_STORE');
 export const EDUBRIDGE_CONTRIBUTION_STORE = Symbol('Edubridge.EDUBRIDGE_CONTRIBUTION_STORE');
 export const EDUBRIDGE_COURSE_STORE = Symbol('Edubridge.EDUBRIDGE_COURSE_STORE');
@@ -51,18 +49,6 @@ export const edubridgeStoreProviders: Provider[] = [
         primaryKey: ['id'],
         json: ['recipient_override'],
         updatedAt: 'updated_at',
-        sameNames: true,
-      }),
-  },
-  {
-    provide: EDUBRIDGE_ADMIN_STORE,
-    inject: [KYSELY],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useFactory: (db: Kysely<any>) =>
-      new TableStore<EdubridgeAdminRecord>(db, {
-        table: 'edubridge_admins',
-        columns: ['id', 'coopname', 'username', 'appointed_by', 'created_at'],
-        primaryKey: ['id'],
         sameNames: true,
       }),
   },

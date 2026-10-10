@@ -87,14 +87,14 @@ export class EdubridgeEconomyResolver {
 
   @Query(() => EduCourseFeeDTO, { name: 'edubridgeCourseFeePreview', description: 'Расчёт взноса по параметрам курса — до сохранения' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   edubridgeCourseFeePreview(@Args('data') data: EduCourseEconomyInputDTO): Promise<EduCourseFeeDTO> {
     return this.economy.preview(data);
   }
 
   @Query(() => EduCourseEconomyDTO, { name: 'edubridgeCourseEconomy', description: 'Экономика курса: план и факт по назначенным преподавателям' })
   @UseGuards(GqlJwtAuthGuard, RightsGuard)
-  @RequireRight('EduCourse', 'manage')
+  @RequireRight('EduCourse', 'read')
   edubridgeCourseEconomy(
     @Args('course_id', { type: () => ID }) courseId: string,
     @Args('group_id', { type: () => ID, nullable: true }) groupId?: string

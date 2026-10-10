@@ -1,7 +1,16 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { CHAIN_CHANGES_PORT, type IChainChangesPort, type InnerChainChangesTable } from '@coopenomics/innercoop';
+import { OnEvent } from '@nestjs/event-emitter';
+import {
+  CHAIN_CHANGES_PORT,
+  ROLE_ASSIGNMENT_CHANGED_EVENT,
+  ROLE_ASSIGNMENTS_PORT,
+  type IChainChangesPort,
+  type InnerChainChangesTable,
+  type IRoleAssignmentsPort,
+  type RoleAssignmentChangedEvent,
+} from '@coopenomics/innercoop';
+import { EDU_ADMIN_ROLE } from '../access/edubridge-access-matrix';
 import { EDUBRIDGE_EXTENSION_NAME } from '../../constants/edubridge.constants';
-import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositories/edubridge-admin.kysely-repository';
 
 /**
  * Таблицы образования в ленте изменений. Имена — из `@Entity` сущностей;
@@ -10,7 +19,7 @@ import { EdubridgeAdminKyselyRepository } from '../../infrastructure/repositorie
  * Курсы открыты всем — это каталог. Записи и ученики принадлежат
  * пайщику, договоры, назначения, уроки и взносы — преподавателю: их сигналы
  * получает владелец строки и персонал. Задачи выдачи доступа, привязки
- * площадок и администраторы — только персоналу.
+ * площадок — только персоналу.
  */
 export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_courses' },
@@ -29,18 +38,17 @@ export const EDU_LIVE_TABLES: InnerChainChangesTable[] = [
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_share_returns', owner_field: 'teacher_username' },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_access_tasks', staff_only: true },
   { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_connector_bindings', staff_only: true },
-  { code: EDUBRIDGE_EXTENSION_NAME, table: 'edubridge_admins', staff_only: true },
 ];
 
 /**
  * Живое обновление стола образования: объявляет таблицы в ленте изменений и
- * держит ядро в курсе, кто персонал образования (назначенные администраторы;
+ * держит ядро в курсе, кто персонал образования (держатели роли администратора;
  * совет ядро считает персоналом само). Без ленты в контуре — ничего не делает.
  */
 @Injectable()
 export class EdubridgeLiveFeedService {
   constructor(
-    private readonly admins: EdubridgeAdminKyselyRepository,
+    @Inject(ROLE_ASSIGNMENTS_PORT) private readonly roleAssignments: IRoleAssignmentsPort,
     @Optional() @Inject(CHAIN_CHANGES_PORT) private readonly feed: IChainChangesPort | null = null
   ) {}
 
@@ -49,9 +57,16 @@ export class EdubridgeLiveFeedService {
   }
 
   /** Передать ядру текущий состав администраторов — при запуске и при смене. */
-  async refreshStaff(coopname: string): Promise<void> {
+  async refreshStaff(): Promise<void> {
     if (!this.feed) return;
-    const admins = await this.admins.listAdmins(coopname);
-    this.feed.setStaff(EDUBRIDGE_EXTENSION_NAME, admins.map((a) => a.username));
+    const admins = await this.roleAssignments.holdersOf(EDUBRIDGE_EXTENSION_NAME, EDU_ADMIN_ROLE);
+    this.feed.setStaff(EDUBRIDGE_EXTENSION_NAME, admins);
+  }
+
+  /** Председатель назначил или снял администратора — состав персонала перечитывается. */
+  @OnEvent(ROLE_ASSIGNMENT_CHANGED_EVENT)
+  async onRoleAssignmentChanged(event: RoleAssignmentChangedEvent): Promise<void> {
+    if (event.extensionName !== EDUBRIDGE_EXTENSION_NAME) return;
+    await this.refreshStaff();
   }
 }

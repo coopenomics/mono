@@ -19,6 +19,9 @@ sources:
     - components/innercoop/src/core-ports/role-assignments.port.ts
     - components/controller/src/extensions/reports/application/access/**
     - components/controller/src/extensions/expenses/application/access/**
+    - components/controller/src/extensions/edubridge/application/access/edubridge-rights.ts
+    - components/controller/src/extensions/edubridge/application/access/edubridge-access-matrix.ts
+    - components/desktop/extensions/edubridge/shared/lib/rights.ts
     - components/desktop/extensions/reports/shared/lib/rights.ts
     - components/desktop/extensions/reports/shared/lib/registries.ts
     - components/controller/src/extensions/reports/application/resolvers/registries.resolver.ts
@@ -289,6 +292,24 @@ cases:
     expect: пайщик читает реестр платежей с документами об оплате, реестры документов, пайщиков и расходов стола совета и стол бухгалтера целиком; повестка и собрания совета ему закрыты; добавить пайщика, править учётную запись, завести и оплатить расход не может; подтверждение оплаты, загрузка документов, черновики и формирование отчётов, реквизиты, отметки календаря и перечисление налога закрыты; роль объявил стол совета, приложение отчётности дополнило её чтением своего стола — на карточке роли полномочия обоих приложений, все на чтение
     test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
     api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.14
+    level: backend
+    kind: happy
+    scenario: председатель назначает пайщику роль администратора образования
+    expect: роль объявило приложение образования; администратор читает стол администратора и ведёт курсы, группы, разделы, допуски преподавателей и очередь; член совета тот же стол только читает; собственных операций назначения администраторов у образования нет — прежние назначения перенесены в общие
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.10
+    level: backend
+    kind: side
+    scenario: администратор образования или член совета меняет ставку часа, целевой членский взнос, подаёт расход программы, отклоняет взнос результатом работы
+    expect: отказ — деньги программы и отклонение взноса у председателя
+    test: components/controller/tests/unit/edubridge/edubridge-rights.guard.test.ts
+    api: components/api-tests/src/edubridge/rights.test.ts
     status: written   # прогон — CI на полигоне ci/tests
 
   - id: access.roles.break.07

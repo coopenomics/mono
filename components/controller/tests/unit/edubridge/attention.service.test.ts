@@ -21,7 +21,7 @@ function make() {
 describe('EdubridgeAttentionService — дела, ждущие администратора', () => {
   it('администратор видит документы на подписи председателя, преподавателей без ставки и застрявшие задачи выдачи доступа', async () => {
     const { service, tasks } = make();
-    await expect(service.summary('voskhod', ['admin'])).resolves.toEqual({ teachers: 3, learners: 4 });
+    await expect(service.summary('voskhod', ['edu-admin'])).resolves.toEqual({ teachers: 3, learners: 4 });
     expect(tasks.countByStatuses).toHaveBeenCalledWith('voskhod', [EduAccessTaskStatus.NEEDS_ATTENTION, EduAccessTaskStatus.FAILED]);
   });
 

@@ -55,6 +55,3 @@ const rawBindingSelector = { carrier: true, enabled: true, configured: true, cre
 const _validateBinding: MakeAllFieldsRequired<ValueTypes['EduConnectorBinding']> = rawBindingSelector
 export const eduConnectorBindingSelector = Selector('EduConnectorBinding')(rawBindingSelector)
 
-const rawAdminSelector = { id: true, username: true, display_name: true, appointed_by: true, appointed_by_display_name: true, created_at: true }
-const _validateAdmin: MakeAllFieldsRequired<ValueTypes['EduAdmin']> = rawAdminSelector
-export const eduAdminSelector = Selector('EduAdmin')(rawAdminSelector)
