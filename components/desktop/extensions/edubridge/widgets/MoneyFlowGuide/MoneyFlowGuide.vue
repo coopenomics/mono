@@ -1,35 +1,27 @@
 <template lang="pug">
-//- Ссылка над остатками открывает схему: из какого кошелька в какой и в какой
-//- момент переходят средства. Шаг = момент, откуда → куда, одно пояснение.
+//- Схема стоит прямо на странице: из какого кошелька в какой и в какой момент
+//- переходят средства. Шаг = момент, откуда → куда, одно пояснение.
 .edu-flow
-  BaseButton(variant="ghost" size="sm" @click="open = true")
-    template(#icon-left)
-      q-icon(name="help_outline" size="18px")
-    | {{ $t('edubridge.moneyFlow.button') }}
-
-  BaseDialog(v-model="open" :title="$t('edubridge.moneyFlow.title')" size="lg")
-    .t-sm.t-muted {{ $t('edubridge.moneyFlow.intro') }}
-    template(v-for="section in sections" :key="section.key")
-      .t-eyebrow.edu-flow__section {{ section.title }}
-      ol.edu-flow__steps
-        li.edu-flow__step(v-for="(step, i) in section.steps" :key="step.key")
-          .edu-flow__marker {{ i + 1 }}
-          .edu-flow__body
-            .edu-flow__when {{ step.when }}
-            .edu-flow__route
-              span.edu-flow__node(:class="{ 'edu-flow__node--outer': !step.from.icon }")
-                q-icon(v-if="step.from.icon" :name="step.from.icon" size="16px")
-                | {{ step.from.label }}
-              q-icon.edu-flow__arrow(name="arrow_forward" size="18px")
-              span.edu-flow__node(:class="{ 'edu-flow__node--outer': !step.to.icon }")
-                q-icon(v-if="step.to.icon" :name="step.to.icon" size="16px")
-                | {{ step.to.label }}
-            .t-sm.t-muted {{ step.text }}
+  .t-sm.t-muted {{ $t('edubridge.moneyFlow.intro') }}
+  template(v-for="section in sections" :key="section.key")
+    .t-eyebrow.edu-flow__section {{ section.title }}
+    ol.edu-flow__steps
+      li.edu-flow__step(v-for="(step, i) in section.steps" :key="step.key")
+        .edu-flow__marker {{ i + 1 }}
+        .edu-flow__body
+          .edu-flow__when {{ step.when }}
+          .edu-flow__route
+            span.edu-flow__node(:class="{ 'edu-flow__node--outer': !step.from.icon }")
+              q-icon(v-if="step.from.icon" :name="step.from.icon" size="16px")
+              | {{ step.from.label }}
+            q-icon.edu-flow__arrow(name="arrow_forward" size="18px")
+            span.edu-flow__node(:class="{ 'edu-flow__node--outer': !step.to.icon }")
+              q-icon(v-if="step.to.icon" :name="step.to.icon" size="16px")
+              | {{ step.to.label }}
+          .t-sm.t-muted {{ step.text }}
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { BaseButton, BaseDialog } from 'src/shared/ui/base';
 import { PROGRAM_WALLET_ICONS } from '../../shared/lib/programWallets';
 import { t } from '../../i18n';
 
@@ -45,8 +37,6 @@ interface FlowStep {
   to: FlowNode;
   text: string;
 }
-
-const open = ref(false);
 
 const member: FlowNode = { label: t('edubridge.moneyFlow.node.member'), icon: PROGRAM_WALLET_ICONS['w.edu.member'] };
 const escrow: FlowNode = { label: t('edubridge.moneyFlow.node.escrow'), icon: PROGRAM_WALLET_ICONS['w.edu.escrow'] };

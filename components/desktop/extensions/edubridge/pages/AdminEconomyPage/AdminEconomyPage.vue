@@ -14,9 +14,7 @@
   template(v-if="tab === 'money'")
     //- Четыре остатка — одной полосой по пути денег: кошельки учеников →
     //- удержано по гарантии → фонд → резерв преподавателям. У каждого свой значок.
-    //- Схема пути взноса — по ссылке над плитками, сами плитки стоят в том же порядке.
-    .row.justify-end.q-mb-sm
-      MoneyFlowGuide
+    //- Схема пути взноса стоит на вкладке «Настройки»; плитки идут в том же порядке.
     StatStrip(:items="walletStats" :loading="firstLoad")
 
     //- Таблица стоит на месте, пока идёт первая загрузка либо есть строки:
@@ -104,6 +102,10 @@
           .t-sm.t-muted {{ $t('edubridge.adminEconomyPage.markupAbout.purpose') }}
           DataRow.q-mt-md(:label="$t('edubridge.adminEconomyPage.markupAbout.scopeLabel')" :value="$t('edubridge.adminEconomyPage.markupAbout.scopeValue')" align="spread")
           DataRow(:label="$t('edubridge.adminEconomyPage.markupAbout.maxDiscountLabel')" :value="`${maxDiscount}%`" align="spread")
+      //- Как движутся средства программы — здесь же, развёрнуто: настройка взноса читается вместе с его путём.
+      .col-12
+        BaseCard(:title="$t('edubridge.moneyFlow.title')")
+          MoneyFlowGuide
 </template>
 
 <script setup lang="ts">
