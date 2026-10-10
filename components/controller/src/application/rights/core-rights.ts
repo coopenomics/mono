@@ -162,9 +162,15 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
     {
       when: [],
       rights: {
-        // Ревизор реестр платежей и документы об оплате читает, записи у него нет.
+        // Ревизор читает реестры стола совета, записи у него нет: платежи и
+        // документы об оплате, документы, пайщики, расходы.
         Payment: ['read:all'],
         PaymentFile: ['read:all'],
+        Document: ['read:all'],
+        Participant: ['read:all'],
+        Account: ['read:all'],
+        // Страница реестра расходов; сами расходы отдаёт приложение расходов.
+        Expense: ['read:all'],
       },
     },
   ],
@@ -196,6 +202,9 @@ export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] 
     permissions: [
       { title: t('accessRoles.roles.cashier.permissions.registry'), access: 'read', rights: ['Payment:read:all'] },
       { title: t('accessRoles.roles.cashier.permissions.proofs'), access: 'read', rights: ['PaymentFile:read:all'] },
+      { title: t('accessRoles.roles.auditor.permissions.documents'), access: 'read', rights: ['Document:read:all'] },
+      { title: t('accessRoles.roles.auditor.permissions.participants'), access: 'read', rights: ['Participant:read:all', 'Account:read:all'] },
+      { title: t('accessRoles.roles.auditor.permissions.expenses'), access: 'read', rights: ['Expense:read:all'] },
     ],
   },
 ];

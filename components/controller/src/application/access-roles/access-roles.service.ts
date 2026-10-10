@@ -94,9 +94,12 @@ export class AccessRolesService {
     installed: ReadonlySet<string>
   ): Promise<AssignableRoleDTO> {
     // Роль дополняют только установленные приложения: стол без приложения пайщик не увидит.
-    const attachments = this.registry.attachmentsOf(role.key).filter((attachment) => installed.has(attachment.extensionName));
+    // Встроенная часть платформы (расходы) отдельным приложением не числится и дополняет роль всегда.
+    const attachments = this.registry
+      .attachmentsOf(role.key)
+      .filter((attachment) => installed.has(attachment.extensionName) || !(attachment.extensionName in AppRegistry));
     const permissions = [...role.permissions, ...attachments.flatMap((attachment) => [...attachment.permissions])];
-    const apps = [role.extensionName, ...attachments.map((attachment) => attachment.extensionName)];
+    const apps = [role.extensionName, ...attachments.map((attachment) => attachment.extensionName).filter((name) => name in AppRegistry)];
     const holders = active.filter((row) => row.role === role.key);
     const assignments: RoleAssignmentDTO[] = await Promise.all(
       holders.map(async (row) => ({

@@ -55,6 +55,13 @@
     "returnExpenseItem": {
       "amountFormatHint": "return_amount должен быть в формате asset (например \"50.0000 RUB\")."
     },
+    "roles": {
+      "auditor": {
+        "permissions": {
+          "registry": "Расходы кооператива и реквизиты получателей"
+        }
+      }
+    },
     "uploadExpenseFile": {
       "checksumFormatHint": "checksum_sha256 должен быть 64-символьным lowercase hex.",
       "mimeTypeHint": "mime_type должен быть одним из allowed."

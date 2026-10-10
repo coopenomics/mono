@@ -1455,7 +1455,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "expenseProposalsByMember": {
     "guest": "deny",
@@ -1491,7 +1491,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "getAccount": {
     "guest": "deny",
@@ -1509,7 +1509,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "getAccounts": {
     "guest": "deny",
@@ -1527,7 +1527,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "getActions": {
     "guest": "deny",
@@ -1815,7 +1815,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "getExtensionLogs": {
     "guest": "deny",
@@ -4407,7 +4407,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "sovietRobotCouncil": {
     "guest": "deny",

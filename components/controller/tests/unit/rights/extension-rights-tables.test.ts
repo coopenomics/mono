@@ -89,7 +89,7 @@ const SUITES: Suite[] = [
   },
   {
     title: 'Расходы',
-    rights: new ExpensesRights(registry),
+    rights: new ExpensesRights(registry, roleAssignments),
     dir: 'expenses/application/resolvers',
     ops: {
       createExpenseProposal: COUNCIL,

@@ -9,6 +9,7 @@
  */
 import { rightsByRole, type AppRights } from '@coopenomics/extension-kit';
 import { ReportsRights } from '~/extensions/reports/application/access/reports-rights';
+import { ExpensesRights } from '~/extensions/expenses/application/access/expenses-rights';
 import { makeGuard } from '../rights/core-rights.harness';
 
 const fakes = { register: jest.fn(), declare: jest.fn(), attach: jest.fn(), rolesOf: jest.fn(async () => []) } as any;
@@ -16,13 +17,14 @@ const fakes = { register: jest.fn(), declare: jest.fn(), attach: jest.fn(), role
 const APPS: [string, AppRights<any, any>][] = [
   ['ядро (стол совета)', makeGuard().rights],
   ['стол бухгалтера', new ReportsRights(fakes, fakes)],
+  ['расходы', new ExpensesRights(fakes, fakes)],
 ];
 
 describe.each(APPS)('полномочия ролей: %s', (_title, rights) => {
   // Собственные роли приложения и роли других приложений, которым оно даёт права.
   const roles = [...(rights.assignableRoles ?? []), ...(rights.attachedRoles ?? [])];
 
-  it('приложение объявляет назначаемые роли', () => {
+  it('приложение объявляет назначаемые роли либо дополняет чужие', () => {
     expect(roles.length).toBeGreaterThan(0);
   });
 

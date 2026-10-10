@@ -343,5 +343,8 @@ describe('назначаемая роль «кассир» (C28-90)', () => {
     expect(grants).toContain('Payment:read:all');
     expect(grants).not.toContain('Payment:confirm');
     expect(grants).not.toContain('AccessRole:manage');
+    // Реестры документов, пайщиков и расходов ревизор читает; добавить пайщика и править учётную запись не может.
+    for (const grant of ['Document:read:all', 'Participant:read:all', 'Account:read:all', 'Expense:read:all']) expect(grants).toContain(grant);
+    for (const grant of ['Participant:create', 'Account:update', 'Agenda:read', 'Meet:create']) expect(grants).not.toContain(grant);
   });
 });

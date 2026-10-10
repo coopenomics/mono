@@ -175,13 +175,16 @@ describe('платформа: назначаемые роли и управле�
       expect((auditor.permissions as any[]).every(p => p.access === 'READ')).toBe(true)
       expect((auditor.permissions as any[]).length).toBeGreaterThan(2)
       expect((assigned.assignments as any[]).map(a => a.username)).toContain(other.account)
-      for (const name of ['getPayments', 'paymentProofs', 'getAvailableReports', 'getReportCalendar', 'getWithheldTaxState', 'reportsLedgerPostings', 'reportsProcesses'])
+      for (const name of ['getPayments', 'paymentProofs', 'getAvailableReports', 'getReportCalendar', 'getWithheldTaxState', 'reportsLedgerPostings', 'reportsProcesses', 'getDocuments', 'getAccounts', 'expenseProposalsByCooperative'])
         expect(await probe.denial(token, name), name).toBeNull()
-      for (const name of ['setPaymentStatus', 'uploadPaymentProof', 'saveReportDraft', 'generateReportFromEdits', 'markReportPeriod', 'updateReportRequisites', 'payWithheldTax', 'assignRole'])
+      for (const name of ['setPaymentStatus', 'uploadPaymentProof', 'saveReportDraft', 'generateReportFromEdits', 'markReportPeriod', 'updateReportRequisites', 'payWithheldTax', 'assignRole', 'addParticipant', 'updateAccount', 'createExpenseProposal', 'payExpenseItem'])
         expect(await probe.denial(token, name), name).toBe(NO_RIGHT)
       const soviet = await sovietGrants(token)
       expect(soviet).toContain('Payment:read:all')
       expect(soviet).not.toContain('Payment:confirm')
+      // Реестры документов, пайщиков и расходов стола совета ревизору открыты; повестка и собрания — нет.
+      for (const page of ['Document:read:all', 'Participant:read:all', 'Expense:read:all']) expect(soviet, page).toContain(page)
+      for (const page of ['Agenda:read', 'Meet:create', 'Participant:create']) expect(soviet, page).not.toContain(page)
       expect(await reportsGrants(token)).not.toContain('Report:draft')
     }
     finally {

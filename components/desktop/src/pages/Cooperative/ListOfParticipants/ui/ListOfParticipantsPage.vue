@@ -40,6 +40,7 @@ import { FailAlert } from 'src/shared/api';
 import { useAccountStore } from 'src/entities/Account/model';
 import { useSessionStore } from 'src/entities/Session';
 import { AddUserButton } from 'src/features/User/AddUser/ui';
+import { useDesktopStore } from 'src/entities/Desktop';
 import { ImportParticipantsButton } from 'src/features/User/ImportParticipants';
 import { ParticipantsTable, PARTICIPANT_LIVE_TABLES, useVerificationNaming } from 'src/widgets/Participants';
 import { VerificationsJournal } from 'src/widgets/Verifications';
@@ -124,8 +125,11 @@ const onVerificationChanged = async () => {
 
 // Инжектим кнопку добавления пользователя в заголовок
 const { registerAction } = useHeaderActions();
+const desktop = useDesktopStore();
 
 onMounted(() => {
+  // Добавление и импорт пайщиков — действия совета; тем, кто реестр только читает, кнопки не показываются.
+  if (!desktop.hasGrant('soviet', 'Participant:create')) return;
   registerAction({
     id: 'add-user',
     component: AddUserButton,
