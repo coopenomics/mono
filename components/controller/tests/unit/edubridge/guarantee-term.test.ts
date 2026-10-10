@@ -16,11 +16,11 @@ describe('Гарантийный срок группы — длина суток
     expect(guaranteeSeconds({ guarantee_days: 14 })).toBe(14 * 86_400);
   });
 
-  it('на стенде разработки сутки — пять минут сами собой; переменная задаёт другую длину', () => {
+  it('на стенде разработки сутки — одна минута сама собой; переменная задаёт другую длину', () => {
     process.env.NODE_ENV = 'development';
     delete process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS;
-    expect(guaranteeDaySeconds()).toBe(300);
-    expect(guaranteeEndsAt({ starts_at: '2026-10-01', guarantee_days: 1 })).toEqual(new Date('2026-10-01T00:05:00Z'));
+    expect(guaranteeDaySeconds()).toBe(60);
+    expect(guaranteeEndsAt({ starts_at: '2026-10-01', guarantee_days: 1 })).toEqual(new Date('2026-10-01T00:01:00Z'));
     process.env.EDUBRIDGE_GUARANTEE_DAY_SECONDS = '86400';
     expect(guaranteeDaySeconds()).toBe(86_400);
   });
