@@ -42,6 +42,11 @@ title: Стол заказов — таблица прав с условиями
 # `@RequireMarketplaceRole` и `MarketplaceDesktopGrantsProvider` удалены. Отказ
 # «право не положено» — код KIT_INSUFFICIENT_RIGHTS.
 
+# Правка 2026-10-10 (598-61, профиль поставщика и отзывы): в таблицу прав добавлены ресурсы `SupplierProfile` (read /
+# update:own / manage) и `Review` (read / create:own / update:own / moderate), в справочник объектов —
+# вид `Review` (владелец — автор отзыва). Случаи этих прав — в marketplace.reviews
+# (mkt.review.rights.*, mkt.profile.rights.*); набор случаев этой фичи прежний.
+
 sources:
   backend:
     - components/extension-kit/src/auth/rights.ts

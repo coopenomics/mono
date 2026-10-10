@@ -34,6 +34,8 @@ import { MarketplaceIssuanceSagaRepositoryAdapter } from './adapters/marketplace
 import { MarketplaceWriteoffProposalRepositoryAdapter } from './adapters/marketplace-writeoff-proposal-repository.adapter';
 import { MarketplaceCartRepositoryAdapter } from './adapters/marketplace-cart-repository.adapter';
 import { MarketplaceSupplierSettingsRepositoryAdapter } from './adapters/marketplace-supplier-settings-repository.adapter';
+import { MarketplaceSupplierProfileRepositoryAdapter } from './adapters/marketplace-supplier-profile-repository.adapter';
+import { MarketplaceReviewRepositoryAdapter } from './adapters/marketplace-review-repository.adapter';
 
 // Mappers
 import { MarketplaceVitrineMapper } from './mappers/marketplace-vitrine.mapper';
@@ -97,6 +99,8 @@ import { MARKETPLACE_CART_REPOSITORY } from '../domain/repositories/marketplace-
 import { MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY } from '../domain/repositories/marketplace-supplier-settings.repository';
 import { MARKETPLACE_HANDOFF_CODE_REPOSITORY } from '../domain/repositories/marketplace-handoff-code.repository';
 import { MarketplaceHandoffCodeRepositoryAdapter } from './adapters/marketplace-handoff-code-repository.adapter';
+import { MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY } from '../domain/repositories/marketplace-supplier-profile.repository';
+import { MARKETPLACE_REVIEW_REPOSITORY } from '../domain/repositories/marketplace-review.repository';
 import { MarketplaceLiveFeedSubscriber } from './realtime/marketplace-live-feed.subscriber';
 import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECURE_DUE_STORE, marketplaceStoreProviders } from './database/marketplace-stores';
 
@@ -270,6 +274,15 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECUR
       provide: MARKETPLACE_HANDOFF_CODE_REPOSITORY,
       useClass: MarketplaceHandoffCodeRepositoryAdapter,
     },
+    // Профиль поставщика и отзывы заказчиков (задача 598-61)
+    {
+      provide: MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY,
+      useClass: MarketplaceSupplierProfileRepositoryAdapter,
+    },
+    {
+      provide: MARKETPLACE_REVIEW_REPOSITORY,
+      useClass: MarketplaceReviewRepositoryAdapter,
+    },
   ],
   exports: [
     // Шлюзы, которыми пользуются фоновые задачи слоя application.
@@ -318,6 +331,9 @@ import { MARKETPLACE_INVENTORY_STORE, MARKETPLACE_ORDER_STORE, MARKETPLACE_SECUR
     MARKETPLACE_SUPPLIER_SETTINGS_REPOSITORY,
     // Временные коды передачи
     MARKETPLACE_HANDOFF_CODE_REPOSITORY,
+    // Профиль поставщика и отзывы заказчиков
+    MARKETPLACE_SUPPLIER_PROFILE_REPOSITORY,
+    MARKETPLACE_REVIEW_REPOSITORY,
   ],
 })
 export class MarketplaceInfrastructureModule {}

@@ -158,3 +158,13 @@ export * as ApproveSupplier from './approveSupplier'
 export * as RejectSupplier from './rejectSupplier'
 /** Смена модели работы поставщика (переподписание договора) */
 export * as SwitchSupplierModel from './switchSupplierModel'
+/** Поставщик правит свой профиль */
+export * as UpdateMySupplierProfile from './updateMySupplierProfile'
+/** Администратор правит профиль кооператива */
+export * as UpdateCooperativeProfile from './updateCooperativeProfile'
+/** Заказчик оставляет отзыв по полученному заказу */
+export * as CreateReview from './createReview'
+/** Автор правит свой отзыв */
+export * as UpdateMyReview from './updateMyReview'
+/** Администратор скрывает отзыв либо возвращает его в публикацию */
+export * as SetReviewStatus from './setReviewStatus'

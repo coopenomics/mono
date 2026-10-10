@@ -396,6 +396,23 @@ export interface MarketplaceSecureDue {
   username: string;
 }
 
+export interface MarketplaceReview {
+  author_account: string;
+  coopname: string;
+  created_at: Generated<Timestamp>;
+  hidden_at: Timestamp | null;
+  hidden_by: string | null;
+  hidden_reason: string | null;
+  id: Generated<string>;
+  offer_id: string;
+  order_id: string;
+  stars: number;
+  status: Generated<string>;
+  supplier_account: string;
+  text: Generated<string>;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface MarketplaceShipment {
   braname: string;
   coopname: string;
@@ -475,6 +492,17 @@ export interface MarketplaceSupplierClaim {
   reclamation: Json | null;
   return_claim_id: string;
   status: string;
+  supplier_account: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface MarketplaceSupplierProfile {
+  about: Generated<string>;
+  coopname: string;
+  cover: Json | null;
+  created_at: Generated<Timestamp>;
+  display_name: string | null;
+  id: Generated<string>;
   supplier_account: string;
   updated_at: Generated<Timestamp>;
 }
@@ -580,11 +608,13 @@ export interface DB {
   marketplace_outgoing_payment_request: MarketplaceOutgoingPaymentRequest;
   marketplace_return_claim: MarketplaceReturnClaim;
   marketplace_secure_due: MarketplaceSecureDue;
+  marketplace_review: MarketplaceReview;
   marketplace_shipment: MarketplaceShipment;
   marketplace_stock_proposal: MarketplaceStockProposal;
   marketplace_storage_cell: MarketplaceStorageCell;
   marketplace_supplier: MarketplaceSupplier;
   marketplace_supplier_claim: MarketplaceSupplierClaim;
+  marketplace_supplier_profile: MarketplaceSupplierProfile;
   marketplace_supplier_settings: MarketplaceSupplierSettings;
   marketplace_supply_validation_log: MarketplaceSupplyValidationLog;
   marketplace_ttn_document: MarketplaceTtnDocument;

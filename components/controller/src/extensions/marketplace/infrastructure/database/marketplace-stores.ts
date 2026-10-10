@@ -19,10 +19,12 @@ import { MarketplaceOrderEntity } from '../entities/marketplace-order.entity';
 import { MarketplaceOutgoingPaymentRequestEntity } from '../entities/marketplace-outgoing-payment-request.entity';
 import { MarketplaceReturnClaimEntity } from '../entities/marketplace-return-claim.entity';
 import { MarketplaceSecureDueEntity } from '../entities/marketplace-secure-due.entity';
+import { MarketplaceReviewEntity } from '../entities/marketplace-review.entity';
 import { MarketplaceShipmentEntity } from '../entities/marketplace-shipment.entity';
 import { MarketplaceStockProposalEntity } from '../entities/marketplace-stock-proposal.entity';
 import { MarketplaceStorageCellEntity } from '../entities/marketplace-storage-cell.entity';
 import { MarketplaceSupplierClaimEntity } from '../entities/marketplace-supplier-claim.entity';
+import { MarketplaceSupplierProfileEntity } from '../entities/marketplace-supplier-profile.entity';
 import { MarketplaceSupplierSettingsEntity } from '../entities/marketplace-supplier-settings.entity';
 import { MarketplaceSupplierEntity } from '../entities/marketplace-supplier.entity';
 import { MarketplaceSupplyValidationLogEntity } from '../entities/marketplace-supply-validation-log.entity';
@@ -54,10 +56,12 @@ export const MARKETPLACE_ORDER_STORE = Symbol('Marketplace.MARKETPLACE_ORDER_STO
 export const MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE = Symbol('Marketplace.MARKETPLACE_OUTGOING_PAYMENT_REQUEST_STORE');
 export const MARKETPLACE_RETURN_CLAIM_STORE = Symbol('Marketplace.MARKETPLACE_RETURN_CLAIM_STORE');
 export const MARKETPLACE_SECURE_DUE_STORE = Symbol('Marketplace.MARKETPLACE_SECURE_DUE_STORE');
+export const MARKETPLACE_REVIEW_STORE = Symbol('Marketplace.MARKETPLACE_REVIEW_STORE');
 export const MARKETPLACE_SHIPMENT_STORE = Symbol('Marketplace.MARKETPLACE_SHIPMENT_STORE');
 export const MARKETPLACE_STOCK_PROPOSAL_STORE = Symbol('Marketplace.MARKETPLACE_STOCK_PROPOSAL_STORE');
 export const MARKETPLACE_STORAGE_CELL_STORE = Symbol('Marketplace.MARKETPLACE_STORAGE_CELL_STORE');
 export const MARKETPLACE_SUPPLIER_CLAIM_STORE = Symbol('Marketplace.MARKETPLACE_SUPPLIER_CLAIM_STORE');
+export const MARKETPLACE_SUPPLIER_PROFILE_STORE = Symbol('Marketplace.MARKETPLACE_SUPPLIER_PROFILE_STORE');
 export const MARKETPLACE_SUPPLIER_SETTINGS_STORE = Symbol('Marketplace.MARKETPLACE_SUPPLIER_SETTINGS_STORE');
 export const MARKETPLACE_SUPPLIER_STORE = Symbol('Marketplace.MARKETPLACE_SUPPLIER_STORE');
 export const MARKETPLACE_SUPPLY_VALIDATION_LOG_STORE = Symbol('Marketplace.MARKETPLACE_SUPPLY_VALIDATION_LOG_STORE');
@@ -346,6 +350,31 @@ export const marketplaceStoreProviders: Provider[] = [
         table: 'marketplace_supplier_claim',
         primaryKey: ['id'],
         json: ['photos', 'reclamation'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: MARKETPLACE_REVIEW_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceReviewEntity>(db, {
+        table: 'marketplace_review',
+        primaryKey: ['id'],
+        updatedAt: 'updated_at',
+        sameNames: true,
+      }),
+  },
+  {
+    provide: MARKETPLACE_SUPPLIER_PROFILE_STORE,
+    inject: [KYSELY],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useFactory: (db: Kysely<any>) =>
+      new TableStore<MarketplaceSupplierProfileEntity>(db, {
+        table: 'marketplace_supplier_profile',
+        primaryKey: ['id'],
+        json: ['cover'],
         updatedAt: 'updated_at',
         sameNames: true,
       }),

@@ -1,0 +1,503 @@
+feature: marketplace.reviews
+title: Профиль поставщика и отзывы заказчиков о полученном имуществе
+
+# Задача 598-61. Заказчик открывает страницу поставщика с его имени на карточке
+# предложения: кто поставщик, что он поставляет, что о нём говорят. Отзыв
+# пишется по полученному заказу (заказ — одна позиция предложения, на заказ
+# отзыв один), публикуется сразу; администратор скрывает его с причиной.
+# Профиль и отзывы живут в базе узла, в цепь не пишутся. Профиль кооператива
+# (имущество со склада) ведёт администратор.
+#
+# Модульные тесты написаны 10.10.2026 и идут в прогоне полигона ci/tests;
+# сценарии через интерфейс ждут поднятого стенда.
+
+sources:
+  backend:
+    - components/controller/src/extensions/marketplace/application/services/marketplace-review.service.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-supplier-profile.service.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-review.resolver.ts
+    - components/controller/src/extensions/marketplace/application/resolvers/marketplace-supplier-profile.resolver.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-review.dto.ts
+    - components/controller/src/extensions/marketplace/application/dto/marketplace-supplier-profile.dto.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-review.entity.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-review.types.ts
+    - components/controller/src/extensions/marketplace/domain/entities/marketplace-supplier-profile.entity.ts
+    - components/controller/src/extensions/marketplace/domain/repositories/marketplace-review.repository.ts
+    - components/controller/src/extensions/marketplace/domain/repositories/marketplace-supplier-profile.repository.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-review-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/adapters/marketplace-supplier-profile-repository.adapter.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-review.entity.ts
+    - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-supplier-profile.entity.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1791619859005-supplier-profile-and-review.ts
+  ui:
+    - components/desktop/src/pages/Marketplace/SupplierProfile/**
+    - components/desktop/src/pages/Marketplace/SupplierMyProfile/**
+    - components/desktop/src/pages/Marketplace/CoopProfile/**
+    - components/desktop/src/pages/Marketplace/AdminReviews/**
+    - components/desktop/src/widgets/Marketplace/ReviewStars/**
+    - components/desktop/src/widgets/Marketplace/ReviewFormDialog/**
+    - components/desktop/src/widgets/Marketplace/ReviewHideDialog/**
+    - components/desktop/src/widgets/Marketplace/ReviewList/**
+    - components/desktop/src/widgets/Marketplace/ReviewSummary/**
+    - components/desktop/src/widgets/Marketplace/SupplierProfileForm/**
+    - components/desktop/src/entities/MarketplaceReview/**
+    - components/desktop/src/entities/MarketplaceSupplierProfile/**
+
+cases:
+  - id: mkt.review.happy.01
+    level: backend
+    kind: happy
+    scenario: "Заказчик оставляет отзыв по полученному заказу"
+    expect: "отзыв создан опубликованным; поставщик и предложение взяты из заказа, текст обрезан по краям"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.02
+    level: backend
+    kind: happy
+    scenario: "Оценка без текста; отзыв по заказу, возвращённому после выдачи"
+    expect: "отзыв принят с пустым текстом"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.03
+    level: backend
+    kind: happy
+    scenario: "Автор меняет оценку и текст своего отзыва"
+    expect: "отзыв переписан"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.04
+    level: backend
+    kind: happy
+    scenario: "Администратор скрывает отзыв с причиной"
+    expect: "записано, кто, когда и почему скрыл"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.05
+    level: backend
+    kind: happy
+    scenario: "Администратор возвращает скрытый отзыв в публикацию"
+    expect: "отзыв опубликован, сведения о скрытии очищены"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.06
+    level: backend
+    kind: happy
+    scenario: "Администратор просит список вместе со скрытыми отзывами"
+    expect: "в списке отзывы любого состояния либо выбранного"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.07
+    level: backend
+    kind: happy
+    scenario: "Каталог спрашивает оценку у каждой карточки страницы"
+    expect: "оценки всех карточек приходят одним запросом к базе, средняя округлена до десятых"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.happy.08
+    level: backend
+    kind: happy
+    scenario: "Сводка отзывов о поставщике"
+    expect: "пять строк распределения от пяти звёзд к одной, средняя по опубликованным отзывам"
+    test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    status: written
+
+  - id: mkt.review.side.01
+    level: backend
+    kind: side
+    scenario: "Отзыв по заказу, который ещё не получен либо отменён"
+    expect: "отказ MARKETPLACE_REVIEW_ORDER_NOT_RECEIVED, отзыв не создаётся"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.02
+    level: backend
+    kind: side
+    scenario: "Отзыв по чужому заказу"
+    expect: "отказ MARKETPLACE_REVIEW_FOREIGN_ORDER"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.03
+    level: backend
+    kind: side
+    scenario: "Отзыв по заказу, которого нет либо он другого кооператива"
+    expect: "отказ MARKETPLACE_REVIEW_ORDER_NOT_FOUND"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.04
+    level: backend
+    kind: side
+    scenario: "Второй отзыв на тот же заказ"
+    expect: "отказ MARKETPLACE_REVIEW_ALREADY_EXISTS"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.05
+    level: backend
+    kind: side
+    scenario: "Оценка вне диапазона 1–5 либо дробная"
+    expect: "отказ MARKETPLACE_REVIEW_STARS_OUT_OF_RANGE до обращения к заказу"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.06
+    level: backend
+    kind: side
+    scenario: "Текст отзыва длиннее предела"
+    expect: "отказ MARKETPLACE_REVIEW_TEXT_TOO_LONG; текст ровно в предел принимается"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.07
+    level: backend
+    kind: side
+    scenario: "Правка чужого отзыва"
+    expect: "отказ MARKETPLACE_REVIEW_FOREIGN"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.08
+    level: backend
+    kind: side
+    scenario: "Автор правит отзыв, скрытый администратором"
+    expect: "отказ MARKETPLACE_REVIEW_HIDDEN_NOT_EDITABLE"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.09
+    level: backend
+    kind: side
+    scenario: "Правка отзыва другого кооператива"
+    expect: "отказ MARKETPLACE_REVIEW_NOT_FOUND"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.10
+    level: backend
+    kind: side
+    scenario: "Скрытие отзыва без причины"
+    expect: "отказ MARKETPLACE_REVIEW_HIDE_REASON_REQUIRED"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.11
+    level: backend
+    kind: side
+    scenario: "Публикация уже опубликованного отзыва"
+    expect: "запись не меняется"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.12
+    level: backend
+    kind: side
+    scenario: "Скрытие отзыва, которого нет"
+    expect: "отказ MARKETPLACE_REVIEW_NOT_FOUND"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.13
+    level: backend
+    kind: side
+    scenario: "Пайщик без права модерации просит скрытые отзывы"
+    expect: "в списке только опубликованные"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.14
+    level: backend
+    kind: side
+    scenario: "Администратор читает список без просьбы о скрытых"
+    expect: "в списке только опубликованные"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.15
+    level: backend
+    kind: side
+    scenario: "Отзыв по заказу спрашивает не его автор"
+    expect: "ответ пуст; автору отдаётся и скрытый отзыв"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.16
+    level: backend
+    kind: side
+    scenario: "Каталог спрашивает оценки второй раз"
+    expect: "новый запрос к базе: оценки между запросами не запоминаются"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.side.17
+    level: backend
+    kind: side
+    scenario: "Оценки для пустого перечня предложений"
+    expect: "запроса к базе нет"
+    test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    status: written
+
+  - id: mkt.review.side.18
+    level: backend
+    kind: side
+    scenario: "Сводка по предложению без отзывов"
+    expect: "оценки нет, счётчик ноль, пять пустых строк"
+    test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    status: written
+
+  - id: mkt.review.side.19
+    level: backend
+    kind: side
+    scenario: "Поиск по тексту со знаками подстановки, сортировка по неразрешённому полю"
+    expect: "знаки ищутся буквально, сортировка по дате отзыва"
+    test: components/controller/tests/unit/marketplace/marketplace-review-repository.test.ts
+    status: written
+
+  - id: mkt.review.break.01
+    level: backend
+    kind: break
+    scenario: "Двойное нажатие: база отвергла вторую запись по уникальности"
+    expect: "отказ MARKETPLACE_REVIEW_ALREADY_EXISTS вместо ошибки сервера"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.break.02
+    level: backend
+    kind: break
+    scenario: "База недоступна при записи отзыва"
+    expect: "ошибка базы не маскируется под «отзыв уже есть»"
+    test: components/controller/tests/unit/marketplace/marketplace-review-service.test.ts
+    status: written
+
+  - id: mkt.review.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: "Заказчик оставляет отзыв по своему заказу и правит свой отзыв"
+    expect: "гард пропускает по охвату «своё»"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: "Администратор скрывает отзыв"
+    expect: "гард пропускает"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.happy.03
+    level: backend
+    kind: happy
+    scenario: "Отзывы и профиль поставщика читают заказчик, поставщик, оператор участка, администратор и член совета"
+    expect: "гард пропускает каждую роль"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.side.01
+    level: backend
+    kind: side
+    scenario: "Отзыв по чужому заказу, правка чужого отзыва"
+    expect: "отказ по охвату KIT_RIGHT_SCOPE_OWN"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.side.02
+    level: backend
+    kind: side
+    scenario: "Поставщик правит либо скрывает отзыв о себе"
+    expect: "отказ KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.side.03
+    level: backend
+    kind: side
+    scenario: "Заказчик без оферты и пункта выдачи оставляет отзыв"
+    expect: "отказ: право действует после подключения"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.rights.side.04
+    level: backend
+    kind: side
+    scenario: "Заказчик, оператор участка либо член совета скрывает отзыв"
+    expect: "отказ KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.profile.happy.01
+    level: backend
+    kind: happy
+    scenario: "Заказчик открывает профиль поставщика"
+    expect: "название, рассказ, обложка, число предложений каталога и сводная оценка"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.02
+    level: backend
+    kind: happy
+    scenario: "Профиль поставщика, который о себе ничего не написал"
+    expect: "имя из сертификата, рассказ пуст, страница открывается"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.03
+    level: backend
+    kind: happy
+    scenario: "Профиль кооператива — поставщика имущества со склада"
+    expect: "профиль помечен как профиль кооператива"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.04
+    level: backend
+    kind: happy
+    scenario: "Поставщик первый раз сохраняет профиль с обложкой"
+    expect: "профиль создан, текст обрезан по краям, файл обложки в хранилище"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.05
+    level: backend
+    kind: happy
+    scenario: "Поставщик правит одно поле профиля"
+    expect: "остальные поля прежние"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.06
+    level: backend
+    kind: happy
+    scenario: "Поставщик очищает название и убирает обложку"
+    expect: "имя снова из сертификата, обложки нет"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.happy.07
+    level: backend
+    kind: happy
+    scenario: "Ссылка на обложку профиля"
+    expect: "ссылку подписывает хранилище; без обложки ссылки нет"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.side.01
+    level: backend
+    kind: side
+    scenario: "Поставщик из реестра без предложений и без профиля"
+    expect: "страница открывается"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.side.02
+    level: backend
+    kind: side
+    scenario: "Учётная запись без профиля, без предложений и вне реестра поставщиков"
+    expect: "отказ MARKETPLACE_SUPPLIER_PROFILE_NOT_FOUND"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.side.03
+    level: backend
+    kind: side
+    scenario: "Сертификат поставщика не читается"
+    expect: "вместо имени показана учётная запись"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.side.04
+    level: backend
+    kind: side
+    scenario: "Рассказ либо название длиннее предела"
+    expect: "отказ, профиль не пишется"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.break.01
+    level: backend
+    kind: break
+    scenario: "Хранилище отвергло файл обложки"
+    expect: "отказ хранилища, профиль не пишется"
+    test: components/controller/tests/unit/marketplace/marketplace-supplier-profile-service.test.ts
+    status: written
+
+  - id: mkt.profile.rights.happy.01
+    level: backend
+    kind: happy
+    scenario: "Поставщик правит свой профиль"
+    expect: "гард пропускает по охвату «своё»"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.profile.rights.happy.02
+    level: backend
+    kind: happy
+    scenario: "Администратор правит профиль кооператива"
+    expect: "гард пропускает"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.profile.rights.side.01
+    level: backend
+    kind: side
+    scenario: "Заказчик, не поставщик, правит профиль поставщика"
+    expect: "отказ KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.profile.rights.side.02
+    level: backend
+    kind: side
+    scenario: "Поставщик, оператор участка либо член совета правит профиль кооператива"
+    expect: "отказ KIT_INSUFFICIENT_RIGHTS"
+    test: components/controller/tests/unit/marketplace/marketplace-review-rights.test.ts
+    status: written
+
+  - id: mkt.review.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: "Заказчик в полученном заказе нажимает «Оставить отзыв», ставит оценку и пишет текст"
+    expect: "карточка «Отзыв» показывает оценку и текст, в хронологии заказа появляется «Отзыв оставлен»"
+    status: missing
+
+  - id: mkt.review.ui.happy.02
+    level: ui
+    kind: happy
+    scenario: "Заказчик открывает страницу предложения с отзывами"
+    expect: "под именем поставщика стоит сводная оценка, ниже раздел «Отзывы» со списком"
+    status: missing
+
+  - id: mkt.review.ui.happy.03
+    level: ui
+    kind: happy
+    scenario: "Администратор в реестре отзывов скрывает отзыв с причиной и возвращает его"
+    expect: "состояние отзыва меняется в реестре, заказчик видит пометку «Скрыт администратором» с причиной"
+    status: missing
+
+  - id: mkt.profile.ui.happy.01
+    level: ui
+    kind: happy
+    scenario: "Заказчик нажимает имя поставщика на карточке каталога"
+    expect: "открывается страница поставщика: шапка с оценкой, рассказ, предложения, отзывы с названием предложения"
+    status: missing
+
+  - id: mkt.profile.ui.happy.02
+    level: ui
+    kind: happy
+    scenario: "Поставщик на странице «Мой профиль» задаёт название, рассказ и обложку"
+    expect: "профиль сохранён; «Открыть как заказчик» показывает страницу поставщика"
+    status: missing
+
+  - id: mkt.profile.ui.happy.03
+    level: ui
+    kind: happy
+    scenario: "Администратор правит «Профиль кооператива»"
+    expect: "карточка «со склада» в каталоге ведёт на страницу кооператива с новым текстом"
+    status: missing
