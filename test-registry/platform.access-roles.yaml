@@ -1,0 +1,309 @@
+feature: platform.access-roles
+title: Платформа — назначаемые роли приложений и управление доступом
+
+# Председатель выдаёт пайщику доступ к отдельным страницам ролью (C28-90).
+# Роль объявляет приложение: её права записаны в таблице прав приложения, а
+# ядро ведёт только связь «роль — пайщик» — кто назначил и когда, кто снял —
+# и показывает объявленные роли на странице управления доступом стола
+# председателя. Роли: кассир — реестр платежей стола совета, бухгалтер — стол
+# бухгалтера целиком, ревизор — чтение того и другого без записи; каждую
+# объявляет своё приложение, чужую роль приложение дополняет своими правами
+# (ревизора дополняют отчётность и расходы). Ключ роли
+# уникален среди всех приложений, повтор останавливает запуск узла.
+
+sources:
+  backend:
+    - components/controller/src/application/access-roles/**
+    - components/controller/src/domain/access-roles/**
+    - components/controller/src/infrastructure/database/kysely/repositories/role-assignment.kysely-repository.ts
+    - components/innercoop/src/core-ports/role-assignments.port.ts
+    - components/controller/src/extensions/reports/application/access/**
+    - components/controller/src/extensions/expenses/application/access/**
+    - components/desktop/extensions/reports/shared/lib/rights.ts
+    - components/desktop/extensions/reports/shared/lib/registries.ts
+    - components/controller/src/extensions/reports/application/resolvers/registries.resolver.ts
+    - components/controller/src/extensions/reports/application/services/registries.service.ts
+    - components/innercoop/src/core-ports/accounting-registry.port.ts
+    - components/controller/src/extensions/innercoop-bridge.module.ts
+  ui:
+    - components/desktop/extensions/chairman/pages/AccessRolesPage/**
+    - components/desktop/extensions/chairman/entities/AccessRole/**
+
+cases:
+  - id: access.roles.happy.01
+    level: backend
+    kind: happy
+    scenario: приложения объявляют свои назначаемые роли при запуске
+    expect: роли складываются в один перечень, у каждой названо приложение
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.02
+    level: backend
+    kind: happy
+    scenario: приложение спрашивает роли пайщика
+    expect: получает только свои назначенные роли
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.03
+    level: backend
+    kind: happy
+    scenario: председатель назначает роль действующему пайщику
+    expect: назначение записано с именем назначившего, пайщик уведомлён, роль показывает держателя
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.04
+    level: backend
+    kind: happy
+    scenario: председатель снимает роль с пайщика
+    expect: держателей нет, пайщик уведомлён о снятии
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.05
+    level: backend
+    kind: happy
+    scenario: председатель открывает страницу управления доступом
+    expect: видит объявленные роли с приложением и пайщиками, которым они назначены
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.06
+    level: backend
+    kind: happy
+    scenario: пайщик с ролью кассира читает реестр платежей, подтверждает оплату и прикладывает документ об оплате
+    expect: проход по правам роли из таблицы прав ядра
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.07
+    level: backend
+    kind: happy
+    scenario: пайщик с ролью кассира открывает рабочий стол
+    expect: из страниц стола совета получает только реестр платежей
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.08
+    level: backend
+    kind: happy
+    scenario: ядро объявляет роль кассира
+    expect: роль объявлена под приложением стола совета
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.01
+    level: backend
+    kind: side
+    scenario: у пайщика осталось назначение роли, которую больше не объявляет ни одно приложение
+    expect: прав назначение не даёт
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "роль без объявившего её приложения появляется только после удаления приложения с узла — через API стенда такое состояние не создать"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.02
+    level: backend
+    kind: side
+    scenario: роли спрашивает приложение без объявленных ролей
+    expect: пустой ответ без чтения базы
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "число чтений базы снаружи не наблюдается; ответ совпадает с ответом пайщика без роли (access.roles.side.05)"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.03
+    level: backend
+    kind: side
+    scenario: председатель назначает пайщику роль, которая у него уже есть
+    expect: ничего не меняется, второго уведомления нет
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.04
+    level: backend
+    kind: side
+    scenario: председатель снимает роль, которой у пайщика нет
+    expect: ничего не меняется, уведомления нет
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.05
+    level: backend
+    kind: side
+    scenario: пайщик без роли зовёт операции реестра платежей
+    expect: чужие платежи закрыты кодом KIT_RIGHT_SCOPE_OWN, подтверждение и загрузка — KIT_INSUFFICIENT_RIGHTS
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.06
+    level: backend
+    kind: side
+    scenario: роль назначена кандидату или пайщик вышел из кооператива
+    expect: права роли действуют только у принятого пайщика — отказ KIT_INSUFFICIENT_RIGHTS, стол совета не виден
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    external: unreachable
+    external_reason: "кандидату роль назначить нельзя (access.roles.break.04), а назначение пайщику до его выхода требует полного процесса выхода с решением совета — отдельный сценарий выхода"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.07
+    level: backend
+    kind: side
+    scenario: член совета и рядовой пайщик зовут операции управления доступом
+    expect: отказ KIT_INSUFFICIENT_RIGHTS — роли назначает председатель
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.01
+    level: backend
+    kind: break
+    scenario: два приложения объявили роль с одним ключом
+    expect: узел не запускается, в отказе названы ключ и оба приложения
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "повтор ключа останавливает запуск узла — у поднятого стенда такого состояния нет"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.02
+    level: backend
+    kind: break
+    scenario: приложение объявило один ключ дважды
+    expect: узел не запускается
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "повтор ключа останавливает запуск узла — у поднятого стенда такого состояния нет"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.03
+    level: backend
+    kind: break
+    scenario: назначается роль, которую не объявило ни одно приложение
+    expect: отказ ACCESS_ROLE_UNKNOWN, запись не создаётся
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.04
+    level: backend
+    kind: break
+    scenario: роль назначается кандидату, вышедшему или несуществующему пайщику
+    expect: отказ ACCESS_ROLE_PARTICIPANT_REQUIRED, запись не создаётся
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.05
+    level: backend
+    kind: break
+    scenario: очередь уведомлений недоступна в момент назначения
+    expect: назначение сохраняется, отказ доставки уходит в журнал
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    external: unreachable
+    external_reason: "отказ очереди уведомлений через API стенда не создать"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.09
+    level: backend
+    kind: happy
+    scenario: председатель назначает пайщику роль бухгалтера, которую объявило приложение отчётности
+    expect: пайщик получает стол бухгалтера целиком — те же права страниц, что у председателя; страниц стола совета роль не открывает; после снятия стол закрыт
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.08
+    level: backend
+    kind: side
+    scenario: роль бухгалтера назначена, пайщик перестал быть принятым
+    expect: прав стола бухгалтера нет
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    external: unreachable
+    external_reason: "кандидату роль назначить нельзя (access.roles.break.04), а назначение пайщику до его выхода требует полного процесса выхода с решением совета — отдельный сценарий выхода"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.side.09
+    level: backend
+    kind: side
+    scenario: приложение, объявившее роль, в кооперативе не установлено
+    expect: роль на странице управления доступом не показывается, назначение отвечает ACCESS_ROLE_UNKNOWN
+    test: components/controller/tests/unit/access-roles/access-roles.service.test.ts
+    external: unreachable
+    external_reason: "снятие приложения с общего стенда ломает соседние наборы; оба приложения с ролями на стенде установлены"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.10
+    level: backend
+    kind: happy
+    scenario: член совета открывает реестр платежей и стол бухгалтера
+    expect: чтение проходит; подтверждение оплаты, загрузка документа об оплате, черновики, формирование отчёта, отметки календаря, реквизиты и перечисление налога закрыты — запись ведут председатель и роли кассира и бухгалтера
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.11
+    level: backend
+    kind: happy
+    scenario: председатель открывает карточку роли на странице управления доступом
+    expect: видит полномочия роли словами в двух перечнях — что роль читает и что ведёт; перечень называет все права роли из таблицы прав приложения и ничего сверх них
+    test: components/controller/tests/unit/access-roles/role-permissions.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.12
+    level: backend
+    kind: happy
+    scenario: бухгалтер и член совета открывают реестры процессов, операций, проводок, счетов и кошельков стола бухгалтера
+    expect: данные приходят собственными операциями стола под его правом; в ядре роль бухгалтера прав не даёт — бухгалтерия, учётные записи и кошельки ядра ему закрыты; реестры получают только имя и вид субъекта, без личных данных пайщиков; после снятия роли реестры закрыты
+    test: components/controller/tests/unit/reports/registries.service.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.06
+    level: backend
+    kind: break
+    scenario: приложение объявляет назначаемую роль с ключом роли узла (председатель, член совета, пайщик)
+    expect: узел не запускается; назначение с таким ключом прав председателя и совета в ядре не даёт
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "объявление роли с ключом роли узла останавливает запуск узла — у поднятого стенда такого состояния нет"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.happy.13
+    level: backend
+    kind: happy
+    scenario: председатель назначает пайщику роль ревизора
+    expect: пайщик читает реестр платежей с документами об оплате, реестры документов, пайщиков и расходов стола совета и стол бухгалтера целиком; повестка и собрания совета ему закрыты; добавить пайщика, править учётную запись, завести и оплатить расход не может; подтверждение оплаты, загрузка документов, черновики и формирование отчётов, реквизиты, отметки календаря и перечисление налога закрыты; роль объявил стол совета, приложение отчётности дополнило её чтением своего стола — на карточке роли полномочия обоих приложений, все на чтение
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.break.07
+    level: backend
+    kind: break
+    scenario: приложение дополняет роль, которую никто не объявил, либо собственную роль
+    expect: узел не запускается, в отказе названы приложение и роль
+    test: components/controller/tests/unit/access-roles/role-assignments-registry.test.ts
+    external: unreachable
+    external_reason: "дополнение необъявленной роли останавливает запуск узла — у поднятого стенда такого состояния нет"
+    status: written   # прогон — CI на полигоне ci/tests
+
+  - id: access.roles.ui.01
+    level: ui
+    kind: happy
+    scenario: председатель на странице «Управление доступом» назначает пайщику роль кассира; пайщик открывает стол совета
+    expect: у пайщика на столе совета одна страница — реестр платежей; после снятия роли стол совета пропадает
+    status: missing   # проверяется владельцем на стенде; сценарий harness не заведён

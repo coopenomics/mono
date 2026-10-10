@@ -47,6 +47,8 @@ const FROZEN_IDS = [
   'reshenie-soveta-ne-prinyato-po-istecheniyu-sroka',
   'reshenie-soveta-po-materialnoy-pomoschi',
   'reshenie-soveta-prinyato',
+  'rol-naznachena',
+  'rol-snyata',
   'sformirovan-chernovik-proekta-spisaniya-skoroporta',
   'sobranie-nachalos',
   'sobranie-zaversheno',

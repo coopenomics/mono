@@ -164,7 +164,7 @@ describe('платежи ядра: паевой платёж, статус, че
   it(caseName('pay.core.happy.03', 'член совета отменяет ожидающий платёж с причиной — пайщик видит статус и причину'), async () => {
     const pending = await createDeposit(payerToken, payer.account, 1234)
     const reason = `отмена api-tests ${crypto.randomBytes(4).toString('hex')}`
-    await gql(await tokenOf(COUNCIL), SET_STATUS, { d: { id: pending.id, status: 'CANCELLED', message: reason } })
+    await gql(chairToken, SET_STATUS, { d: { id: pending.id, status: 'CANCELLED', message: reason } })
     const seen = await paymentByHash(payerToken, pending.hash, { username: payer.account })
     expect(seen.status).toBe('CANCELLED')
     expect(seen.message).toBe(reason)

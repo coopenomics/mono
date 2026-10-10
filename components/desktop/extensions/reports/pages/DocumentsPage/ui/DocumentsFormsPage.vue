@@ -39,15 +39,26 @@
       template(#body-cell-actions='props')
         q-td(:props='props')
           q-btn(
-            v-if='props.row.readyToGenerate'
+            v-if='canDraft && props.row.readyToGenerate'
             flat dense
             icon='fa-solid fa-pen-to-square'
             color='primary'
             @click='openEditor(props.row)'
           )
             q-tooltip {{ $t('reports.documentsFormsPage.openEditorLabel') }}
+          //- Без права вести черновик отчёт открывается на просмотр.
+          BaseButton(
+            v-else-if='!canDraft && props.row.readyToGenerate'
+            variant='ghost'
+            size='sm'
+            icon-only
+            :aria-label='$t("reports.documentsFormsPage.viewReportLabel")'
+            @click='openEditor(props.row)'
+          )
+            q-icon(name='visibility', size='18px')
+            q-tooltip {{ $t('reports.documentsFormsPage.viewReportLabel') }}
           q-btn(
-            v-else
+            v-else-if='canDraft'
             flat dense
             icon='fa-solid fa-gear'
             color='warning'
@@ -56,6 +67,7 @@
             q-tooltip {{ $t('reports.documentsFormsPage.fillRequisitesLabel') }}
 
   ReportEditorDialog(
+    :readonly='!canDraft'
     v-if='showEditor'
     v-model='showEditor'
     :report-type='editorReportType'
@@ -70,6 +82,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { REPORT_DOCS_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useReportsRights } from 'app/extensions/reports/shared/lib/rights'
 import { storeToRefs } from 'pinia'
 import { FailAlert } from 'src/shared/api'
 import {
@@ -78,6 +91,7 @@ import {
   type IReportType,
 } from 'src/entities/Report'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import type { BaseBadgeProps } from 'src/shared/ui/base/BaseBadge/BaseBadge.types'
 import ReportEditorDialog from './ReportEditorDialog.vue'
 import { t } from '../../../i18n';
@@ -133,6 +147,8 @@ function defaultPeriodFor(p: string): number | null {
   if (p === 'yearly') return null
   return 1
 }
+
+const { canDraft } = useReportsRights()
 
 function openEditor(r: IAvailableReport) {
   editorReportType.value = r.type as IReportType

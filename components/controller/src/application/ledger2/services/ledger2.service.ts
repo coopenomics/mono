@@ -9,18 +9,18 @@ import {
   LEDGER2_BLOCKCHAIN_PORT,
   type Ledger2BlockchainPort,
 } from '~/domain/ledger2/ports/ledger2-blockchain.port';
-import type { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
-import type { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
+import type { Ledger2AccountDTO } from '@coopenomics/extension-kit';
+import type { Ledger2WalletDTO } from '@coopenomics/extension-kit';
 import type {
   Ledger2HistoryResponseDTO,
   Ledger2OperationDTO,
-} from '../dto/ledger2-operation.dto';
+} from '@coopenomics/extension-kit';
 import type {
   Ledger2PostingDTO,
   Ledger2PostingsResponseDTO,
-} from '../dto/ledger2-posting.dto';
-import type { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
-import type { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
+} from '@coopenomics/extension-kit';
+import type { GetLedger2HistoryInputDTO } from '@coopenomics/extension-kit';
+import type { GetLedger2PostingsInputDTO } from '@coopenomics/extension-kit';
 import type { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import type { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
 import { t } from '~/i18n';

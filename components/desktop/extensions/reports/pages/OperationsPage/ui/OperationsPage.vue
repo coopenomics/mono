@@ -292,6 +292,7 @@
 import { computed, onMounted, nextTick, reactive, ref } from 'vue'
 import { useLiveReload } from 'src/shared/lib/realtime'
 import { LEDGER_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live'
+import { useDeskFioCache, useDeskRegistries } from 'app/extensions/reports/shared/lib/registries'
 import { uiLocale } from 'src/shared/i18n';
 import { useRoute, useRouter } from 'vue-router'
 import { useWindowSize } from 'src/shared/hooks'
@@ -300,12 +301,7 @@ import { FailAlert, SuccessAlert } from 'src/shared/api'
 import { ExpandToggleButton } from 'src/shared/ui/ExpandToggleButton'
 import { EntityIdBadge } from 'src/shared/ui'
 import { copyToClipboard } from 'quasar'
-import {
-  useLedger2Store,
-  type ILedger2Operation,
-  type ILedger2HistoryFilterInput,
-} from 'src/entities/Ledger2'
-import { useAccountStore } from 'src/entities/Account'
+import type { ILedger2Operation, ILedger2HistoryFilterInput } from 'src/entities/Ledger2'
 import { formatAsset2Digits } from 'src/shared/lib/utils'
 import { DirectionCell, WalletIdCell, AccountIdCell } from '../../../shared/ui'
 import { Ledger2 } from 'cooptypes'
@@ -316,8 +312,7 @@ const { info } = useSystemStore()
 const { isMobile } = useWindowSize()
 const route = useRoute()
 const router = useRouter()
-const ledger2Store = useLedger2Store()
-const accountStore = useAccountStore()
+const registries = useDeskRegistries()
 
 // Человекочитаемые названия операций — источник правды в
 // `cooptypes/src/ledger2/operations.ts` (LEDGER2_OPERATION_REGISTRY),
@@ -427,7 +422,9 @@ const expanded = ref(new Map<string, boolean>())
 const rowRefs = new Map<string, HTMLElement | null>()
 
 // FIO-кэш: username → ФИО
-const fioCache = ref(new Map<string, string>())
+// Имена субъектов отдаёт операция стола бухгалтера — без личных данных пайщиков.
+const deskNames = useDeskFioCache()
+const fioCache = deskNames.fioCache
 
 // Дочерние операции для развёрнутого apply
 const childOps = ref(new Map<string, ILedger2Operation[]>())
@@ -578,7 +575,7 @@ async function clearUsernameFilter() {
 
 async function resolveWalletName(walletName: string) {
   try {
-    const wallets = await ledger2Store.loadWallets(info.coopname)
+    const wallets = await registries.loadWallets(info.coopname)
     const w = wallets.find((x) => x.id === walletName)
     if (w) filters.accountName = w.name
   } catch {
@@ -588,7 +585,7 @@ async function resolveWalletName(walletName: string) {
 
 async function resolveAccountName(id: number) {
   try {
-    const accounts = await ledger2Store.loadAccounts(info.coopname)
+    const accounts = await registries.loadAccounts(info.coopname)
     const a = accounts.find((x) => x.id === id)
     if (a) filters.accountName = a.name
   } catch {
@@ -716,7 +713,7 @@ function toggleExpand(seq: string, processHash: string | null | undefined) {
 async function loadChildOps(seq: string, processHash: string) {
   childLoading.value.set(seq, true)
   try {
-    const resp = await ledger2Store.loadHistory({
+    const resp = await registries.loadHistory({
       coopname: info.coopname,
       processHash,
       parentApplyGlobalSequence: seq,
@@ -774,7 +771,7 @@ async function load() {
       input.dateTo = to
     }
 
-    const resp = await ledger2Store.loadHistory(input)
+    const resp = await registries.loadHistory(input)
     if (myId !== lastRequestId) return
     if (resp) {
       items.value = resp.items
@@ -798,30 +795,7 @@ function onRequest(props: { pagination: { page: number; rowsPerPage: number; row
 }
 
 async function enrichFio(ops: ILedger2Operation[]) {
-  const usernames = [...new Set(ops.map((o) => o.username).filter((u): u is string => !!u && !fioCache.value.has(u)))]
-  if (!usernames.length) return
-  await Promise.allSettled(
-    usernames.map(async (username) => {
-      try {
-        const acc = await accountStore.fetchAccount(username)
-        const pd = acc?.private_account
-        if (!pd) return
-        let fio = ''
-        if (pd.type === 'individual' && pd.individual_data) {
-          const d = pd.individual_data
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        } else if (pd.type === 'organization' && pd.organization_data) {
-          fio = (pd.organization_data as any).short_name ?? username
-        } else if (pd.type === 'entrepreneur' && pd.entrepreneur_data) {
-          const d = pd.entrepreneur_data as any
-          fio = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ')
-        }
-        if (fio) fioCache.value.set(username, fio)
-      } catch {
-        // молча — username остаётся как fallback
-      }
-    }),
-  )
+  await deskNames.enrichFio(ops.map((row) => row.username))
 }
 
 onMounted(async () => {

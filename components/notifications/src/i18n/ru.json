@@ -1,4 +1,36 @@
 {
+  "accessRoleAssigned": {
+    "description": "Уведомление пайщику о назначении роли",
+    "email": {
+      "body": "Председатель совета назначил вам роль «{{payload.roleTitle}}» в приложении «{{payload.appTitle}}».<br><br>{{payload.roleDescription}}<br><br>Новые страницы появятся на рабочем столе после обновления страницы.",
+      "subject": "Вам назначена роль «{{payload.roleTitle}}»"
+    },
+    "inApp": {
+      "body": "Приложение «{{payload.appTitle}}». {{payload.roleDescription}}",
+      "subject": "Вам назначена роль «{{payload.roleTitle}}»"
+    },
+    "name": "Роль назначена",
+    "push": {
+      "body": "Приложение «{{payload.appTitle}}». {{payload.roleDescription}}",
+      "subject": "Вам назначена роль «{{payload.roleTitle}}»"
+    }
+  },
+  "accessRoleRevoked": {
+    "description": "Уведомление пайщику о снятии роли",
+    "email": {
+      "body": "Председатель совета снял с вас роль «{{payload.roleTitle}}» в приложении «{{payload.appTitle}}».<br><br>Доступ, который давала роль, закрыт.",
+      "subject": "Роль «{{payload.roleTitle}}» снята"
+    },
+    "inApp": {
+      "body": "Приложение «{{payload.appTitle}}». Доступ, который давала роль, закрыт.",
+      "subject": "Роль «{{payload.roleTitle}}» снята"
+    },
+    "name": "Роль снята",
+    "push": {
+      "body": "Приложение «{{payload.appTitle}}». Доступ, который давала роль, закрыт.",
+      "subject": "Роль «{{payload.roleTitle}}» снята"
+    }
+  },
   "approvalRequest": {
     "description": "Уведомление председателю совета о новом запросе на одобрение",
     "email": {

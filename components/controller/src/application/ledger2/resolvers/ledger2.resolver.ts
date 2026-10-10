@@ -2,12 +2,12 @@ import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { GqlJwtAuthGuard, RequireRight, RightsGuard } from '@coopenomics/extension-kit';
 import { Ledger2Service } from '../services/ledger2.service';
-import { Ledger2AccountDTO } from '../dto/ledger2-account.dto';
-import { Ledger2WalletDTO } from '../dto/ledger2-wallet.dto';
-import { Ledger2HistoryResponseDTO } from '../dto/ledger2-operation.dto';
-import { Ledger2PostingsResponseDTO } from '../dto/ledger2-posting.dto';
-import { GetLedger2HistoryInputDTO } from '../dto/get-ledger2-history-input.dto';
-import { GetLedger2PostingsInputDTO } from '../dto/get-ledger2-postings-input.dto';
+import { Ledger2AccountDTO } from '@coopenomics/extension-kit';
+import { Ledger2WalletDTO } from '@coopenomics/extension-kit';
+import { Ledger2HistoryResponseDTO } from '@coopenomics/extension-kit';
+import { Ledger2PostingsResponseDTO } from '@coopenomics/extension-kit';
+import { GetLedger2HistoryInputDTO } from '@coopenomics/extension-kit';
+import { GetLedger2PostingsInputDTO } from '@coopenomics/extension-kit';
 import { WalmoveInputDTO } from '../dto/walmove-input.dto';
 import { Ledger2AdjustmentResultDTO } from '../dto/ledger2-adjustment-result.dto';
 

@@ -1,4 +1,5 @@
 export * as AccountSecurity from './accountSecurity'
+export * as AccessRoles from './accessRoles'
 export * as Accounts from './accounts'
 export * as Agreements from './agreements'
 export * as Auth from './auth'

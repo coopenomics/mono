@@ -195,6 +195,15 @@ cases:
 
   # Права по таблице прав расширения (C28-87, кусок 3, 05.10.2026): операции
   # стоят под общим гардом каркаса вместо `@AuthRoles`, состав исполнителей прежний.
+  - id: rep.tax.side.08
+    level: backend
+    kind: side
+    scenario: член совета открывает страницу удержанного налога
+    expect: остаток и заявки на перечисление читает; перечислить налог не может — кнопки перечисления у него нет, операция отвечает KIT_INSUFFICIENT_RIGHTS; ведут налог председатель и бухгалтер (C28-90)
+    test: components/controller/tests/unit/rights/extension-rights-tables.test.ts
+    api: components/api-tests/src/reports/withheld-tax.test.ts
+    status: written   # прогон — CI на полигоне ci/tests
+
   - id: rep.tax.side.07
     level: backend
     kind: side

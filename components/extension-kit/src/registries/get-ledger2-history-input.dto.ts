@@ -1,5 +1,5 @@
 import { Field, Int, InputType } from '@nestjs/graphql';
-import { validationMessage } from '@coopenomics/extension-kit';
+import { validationMessage } from '../errors/domain-error';
 import {
   IsString,
   IsOptional,

@@ -16,6 +16,8 @@ import {
   DESKTOP_GRANTS_REGISTRY_PORT,
   DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
   REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
+  ROLE_ASSIGNMENTS_PORT,
+  ACCOUNTING_REGISTRY_PORT,
   GLOBAL_SEARCH_REGISTRY_PORT,
   DOCUMENT_PORT,
   EXPENSE_CHASSIS_PORT,
@@ -120,6 +122,7 @@ import { ExtensionGrantsRegistry } from '~/application/desktop/extension-grants.
 import { ExtensionGrantsFilterRegistry } from '~/application/desktop/extension-grants-filter.registry';
 import { ExtensionOfferFilterRegistry } from '~/domain/registration/services/extension-offer-filter.registry';
 import { GlobalSearchRegistry } from '~/application/search/global-search.registry';
+import { RoleAssignmentsRegistry } from '~/application/access-roles/role-assignments.registry';
 import { PubSubModule } from '~/infrastructure/pubsub/pubsub.module';
 import { AgreementRegistryService } from '~/domain/registration/services/agreement-registry.service';
 import { MemberExitRegistryService } from '~/domain/account/services/member-exit-registry.service';
@@ -151,6 +154,8 @@ import { ChatcoopInnercoopChatCoopCalendarAdapter } from './chatcoop/infrastruct
 import { CapitalInnercoopProjectCapitalClearanceAdapter } from './capital/infrastructure/innercoop/capital-innercoop-project-capital-clearance.adapter';
 import { ExpensesInnercoopExpenseChassisAdapter } from './expenses/infrastructure/innercoop/expenses-innercoop-expense-chassis.adapter';
 import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastructure/innercoop/ledger2-innercoop-history.adapter';
+import { AccountingRegistryInnercoopAdapter } from '~/application/ledger2/infrastructure/innercoop/accounting-registry.adapter';
+import { ProcessRegistryDomainModule } from '~/domain/process-registry/process-registry-domain.module';
 
 /**
  * Глобальная привязка портов @coopenomics/innercoop к их реализациям-расширениям.
@@ -173,6 +178,7 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     ExpensesExtensionModule,
     SovietRobotExtensionModule,
     Ledger2Module,
+    ProcessRegistryDomainModule,
     RedisModule,
     SystemDomainModule,
     DocumentDomainModule,
@@ -454,6 +460,19 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
       provide: DESKTOP_GRANTS_REGISTRY_PORT,
       useExisting: ExtensionGrantsRegistry,
     },
+    AccountingRegistryInnercoopAdapter,
+    {
+      // Реестры бухгалтерии и процессов для приложений, которые показывают
+      // их на своём столе по своей таблице прав.
+      provide: ACCOUNTING_REGISTRY_PORT,
+      useExisting: AccountingRegistryInnercoopAdapter,
+    },
+    {
+      // Назначаемые роли: приложение объявляет свои и спрашивает назначенные
+      // пайщику. `RoleAssignmentsRegistryModule` глобальный.
+      provide: ROLE_ASSIGNMENTS_PORT,
+      useExisting: RoleAssignmentsRegistry,
+    },
     {
       // Сужающие политики чужих столов: расширение кладёт фильтр, ядро пересекает.
       provide: DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
@@ -567,6 +586,8 @@ import { Ledger2InnercoopHistoryAdapter } from '~/application/ledger2/infrastruc
     DESKTOP_GRANTS_FILTER_REGISTRY_PORT,
     REGISTRATION_OFFER_FILTER_REGISTRY_PORT,
     MEMBER_EXIT_REGISTRY_PORT,
+    ROLE_ASSIGNMENTS_PORT,
+    ACCOUNTING_REGISTRY_PORT,
     GLOBAL_SEARCH_REGISTRY_PORT,
     REGISTRATION_REGISTRY_PORT,
     REGISTRATION_DOCUMENT_PARAMETERS_REGISTRY_PORT,

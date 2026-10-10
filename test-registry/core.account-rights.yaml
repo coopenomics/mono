@@ -214,3 +214,12 @@ cases:
       права читать одобрения числа нет и ошибки нет
     test: ~
     status: missing   # сценарий harness не написан
+
+  - id: core.acc.happy.12
+    level: backend
+    kind: happy
+    scenario: председатель открывает рабочий стол после появления страницы управления доступом
+    expect: среди прав страниц стола председателя есть право страницы «Управление доступом»; у члена совета и пайщика его нет
+    test: components/controller/tests/unit/rights/core-rights.test.ts
+    api: components/api-tests/src/platform/access-roles.test.ts
+    status: written   # прогон — CI на полигоне ci/tests

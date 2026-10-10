@@ -39,6 +39,47 @@ export interface RightsCaller {
   status?: string | null;
 }
 
+/**
+ * Полномочие роли словами: что пайщик с этой ролью читает или ведёт.
+ * Показывается председателю на странице управления доступом.
+ */
+export interface RolePermission {
+  /** Что именно: «Реестр платежей кооператива». */
+  title: string;
+  /** `read` — пайщик видит, `write` — пайщик меняет. */
+  access: 'read' | 'write';
+  /** Права таблицы `Ресурс:действие`, которые стоят за полномочием. */
+  rights: readonly string[];
+}
+
+/**
+ * Роль, которую приложение даёт назначать пайщикам. Права роли записаны в
+ * таблице прав приложения под тем же ключом; назначение ведёт ядро.
+ */
+export interface AssignableRole<R extends string = string> {
+  key: R;
+  /** Название роли для председателя: «Кассир». */
+  title: string;
+  /** Что роль открывает пайщику — одной фразой. */
+  description: string;
+  /**
+   * Полномочия роли по пунктам. Вместе они называют все права роли из
+   * таблицы и ничего сверх них — расхождение ловит тест таблиц прав.
+   */
+  permissions: readonly RolePermission[];
+}
+
+/**
+ * Дополнение к роли другого приложения: роль объявлена один раз, а это
+ * приложение даёт ей права в своей таблице и называет их словами.
+ */
+export interface AttachedRole<R extends string = string> {
+  /** Ключ роли, объявленной другим приложением; строка с этим ключом есть в таблице прав. */
+  key: R;
+  /** Полномочия роли в этом приложении — все её права в его таблице и ничего сверх них. */
+  permissions: readonly RolePermission[];
+}
+
 export interface AppRights<R extends string = string, C extends string = string> {
   /** Имя рабочего стола расширения: под ним выдаются права страниц. */
   readonly extensionName: string;
@@ -64,6 +105,18 @@ export interface AppRights<R extends string = string, C extends string = string>
   readonly guestRoles?: readonly R[];
   /** Код отказа «права нет»; по умолчанию `KIT_INSUFFICIENT_RIGHTS`. */
   readonly noRightDenial?: string;
+  /**
+   * Роли таблицы, которые председатель назначает пайщикам на странице
+   * управления доступом. Приложение объявляет их ядру при запуске и
+   * дописывает назначенные в ответ `roles`.
+   */
+  readonly assignableRoles?: readonly AssignableRole<R>[];
+
+  /**
+   * Роли других приложений, которым это приложение даёт права в своей
+   * таблице: ревизор, объявленный столом совета, читает и стол бухгалтера.
+   */
+  readonly attachedRoles?: readonly AttachedRole<R>[];
 
   /** Роли приложения у пайщика. `request` — запрос, если роли уже посчитал гард членства. */
   roles(caller: RightsCaller, request?: unknown): Promise<R[]>;

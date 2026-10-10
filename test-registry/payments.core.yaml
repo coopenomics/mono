@@ -1,7 +1,7 @@
 feature: payments.core
 title: Платежи ядра — паевой платёж, статус, чеки об оплате, реквизиты
 
-# Ядро шлюза платежей (gateway): пайщик заводит паевой платёж, совет меняет
+# Ядро шлюза платежей (gateway): пайщик заводит паевой платёж, председатель и кассир меняют
 # его статус (PAID проводит приход в цепь и завершает платёж), кассир
 # прикладывает чек об оплате, пайщик и председатель ведут реквизиты.
 # Таблицы: payments, payment_files (TypeORM), payment_state и ipn (служебные
@@ -128,7 +128,7 @@ cases:
   - id: pay.core.happy.03
     level: backend
     kind: happy
-    scenario: член совета отменяет ожидающий платёж и указывает причину
+    scenario: председатель отменяет ожидающий платёж и указывает причину
     expect: платёж CANCELLED, причина сохранена и видна пайщику, статус больше не меняется
     test: components/api-tests/src/payments/payments.core.test.ts
     api: components/api-tests/src/payments/payments.core.test.ts

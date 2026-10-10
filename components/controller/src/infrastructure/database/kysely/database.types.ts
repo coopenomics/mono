@@ -2390,6 +2390,18 @@ export interface ReportSubmissionMarks {
   year: number;
 }
 
+export interface RoleAssignments {
+  assigned_at: Generated<Timestamp>;
+  assigned_by: string;
+  coopname: string;
+  extension_name: string;
+  id: Generated<number>;
+  revoked_at: Timestamp | null;
+  revoked_by: string | null;
+  role: string;
+  username: string;
+}
+
 export interface SchemaMigrations {
   id: Generated<number>;
   name: string;
@@ -2715,6 +2727,7 @@ export interface DB {
   report_drafts: ReportDrafts;
   report_requisites: ReportRequisites;
   report_submission_marks: ReportSubmissionMarks;
+  role_assignments: RoleAssignments;
   schema_migrations: SchemaMigrations;
   settings: Settings;
   signed_documents: SignedDocuments;

@@ -20,6 +20,13 @@ import { NO_RIGHT, candidate, chairman, councilMember, guardOver, participant, r
 
 const EXTENSIONS = join(__dirname, '../../../src/extensions');
 const registry = { register: jest.fn() } as any;
+/** Бухгалтер: принятый пайщик, которому председатель назначил роль стола бухгалтера. */
+const accountant: Caller = { username: 'olga', role: 'user', status: 'active' };
+const roleAssignments = {
+  declare: jest.fn(),
+  attach: jest.fn(),
+  rolesOf: jest.fn(async (_app: string, username: string) => (username === 'olga' ? ['accountant'] : [])),
+} as any;
 
 type Who = 'participant' | 'council' | 'chairman';
 const CALLERS: Record<Who, Caller> = { participant, council: councilMember, chairman };
@@ -37,7 +44,39 @@ interface Suite {
 }
 
 const SUITES: Suite[] = [
-  { title: 'Стол бухгалтера', rights: new ReportsRights(registry), dir: 'reports/application/resolvers', ops: {}, rest: CHAIR },
+  {
+    // Стол читает совет; черновики, формирование, реквизиты, отметки и налог ведёт председатель.
+    title: 'Стол бухгалтера',
+    rights: new ReportsRights(registry, roleAssignments),
+    dir: 'reports/application/resolvers',
+    ops: {
+      getAvailableReports: COUNCIL,
+      // Отчёт открывается на просмотр: чтение черновика — право чтения отчётов.
+      buildInitialReportEdits: COUNCIL,
+      getReportDraft: COUNCIL,
+      listReportDrafts: COUNCIL,
+      validateReportEdits: COUNCIL,
+      getReportPreview: COUNCIL,
+      getReportHistory: COUNCIL,
+      getReport: COUNCIL,
+      getReportRequisites: COUNCIL,
+      checkReportReadiness: COUNCIL,
+      getReportCalendar: COUNCIL,
+      getWithheldTaxState: COUNCIL,
+      getWithheldTaxPayments: COUNCIL,
+      // Реестры стола — собственные операции под правом стола (C28-90).
+      reportsLedgerAccounts: COUNCIL,
+      reportsLedgerWallets: COUNCIL,
+      reportsLedgerHistory: COUNCIL,
+      reportsLedgerPostings: COUNCIL,
+      reportsProcess: COUNCIL,
+      reportsProcesses: COUNCIL,
+      reportsParticipants: COUNCIL,
+      reportsParticipantWallets: COUNCIL,
+      reportsSubjects: COUNCIL,
+    },
+    rest: CHAIR,
+  },
   {
     title: 'Стол связи',
     rights: new ChatcoopRights(registry),
@@ -55,7 +94,7 @@ const SUITES: Suite[] = [
   },
   {
     title: 'Расходы',
-    rights: new ExpensesRights(registry),
+    rights: new ExpensesRights(registry, roleAssignments),
     dir: 'expenses/application/resolvers',
     ops: {
       createExpenseProposal: COUNCIL,
@@ -128,11 +167,36 @@ describe('права страниц столов расширений', () => {
   const grantsOf = async (rights: AppRights<any, any>, caller: Caller) =>
     desktopGrantsOf(rights).resolveGrants({ username: caller.username, userRole: caller.role, userStatus: caller.status });
 
-  it('Стол бухгалтера открыт председателю', async () => {
-    const rights = new ReportsRights(registry);
+  it('Стол бухгалтера ведёт председатель, член совета его читает', async () => {
+    const rights = new ReportsRights(registry, roleAssignments);
     expect(await grantsOf(rights, chairman)).toEqual(expect.arrayContaining(['Report:read', 'ReportCalendar:read', 'WithheldTax:read', 'ReportRequisites:manage']));
-    expect(await grantsOf(rights, councilMember)).toEqual([]);
+    // access.roles.happy.10
+    expect((await grantsOf(rights, councilMember)).sort()).toEqual(['Registry:read', 'Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
     expect(await grantsOf(rights, participant)).toEqual([]);
+  });
+
+  // access.roles.happy.09
+  it('Стол бухгалтера целиком открыт пайщику с ролью бухгалтера', async () => {
+    const rights = new ReportsRights(registry, roleAssignments);
+    expect(await grantsOf(rights, accountant)).toEqual(expect.arrayContaining(await grantsOf(rights, chairman)));
+    rights.onModuleInit();
+    expect(roleAssignments.declare).toHaveBeenCalledWith('reports', [expect.objectContaining({ key: 'accountant' })]);
+  });
+
+  // access.roles.happy.13
+  it('ревизор читает стол бухгалтера как член совета: ни одного права записи', async () => {
+    const auditor: Caller = { username: 'revizor', role: 'user', status: 'active' };
+    const assignments = { declare: jest.fn(), attach: jest.fn(), rolesOf: jest.fn(async () => ['auditor']) } as any;
+    const rights = new ReportsRights(registry, assignments);
+    expect((await grantsOf(rights, auditor)).sort()).toEqual(['Registry:read', 'Report:read', 'ReportCalendar:read', 'ReportRequisites:read', 'WithheldTax:read']);
+    rights.onModuleInit();
+    expect(assignments.attach).toHaveBeenCalledWith('reports', [expect.objectContaining({ key: 'auditor' })]);
+  });
+
+  // access.roles.side.08
+  it('роль бухгалтера действует у принятого пайщика', async () => {
+    const rights = new ReportsRights(registry, roleAssignments);
+    expect(await grantsOf(rights, { ...accountant, status: 'registered' })).toEqual([]);
   });
 
   it('Стол связи: комнаты секретаря — страница совета', async () => {

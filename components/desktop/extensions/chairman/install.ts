@@ -19,6 +19,7 @@ import { SystemSettingsPage } from 'app/extensions/chairman/pages/SystemSettings
 import { PaymentProviderPage } from 'app/extensions/chairman/pages/PaymentProviderPage';
 import { ConnectPage } from 'app/extensions/chairman/pages/ConnectPage';
 import { AgendaPresetsPage } from 'app/extensions/chairman/pages/AgendaPresetsPage';
+import { AccessRolesPage } from 'app/extensions/chairman/pages/AccessRolesPage';
 import { NotificationsJournalPage } from 'src/pages/Chairman/NotificationsJournalPage';
 
 import { agreementsBase } from 'src/shared/lib/consts/workspaces';
@@ -94,6 +95,18 @@ export default async function (): Promise<IWorkspaceConfig[]> {
               title: t('chairman.install.approvalsNavTitle'),
               icon: 'fa-solid fa-check-circle',
               requires: 'Approval:confirm',
+              agreements: agreementsBase,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: 'access',
+            name: 'chairman-access-roles',
+            component: markRaw(AccessRolesPage),
+            meta: {
+              title: t('chairman.install.accessRolesNavTitle'),
+              icon: 'admin_panel_settings',
+              requires: 'AccessRole:manage',
               agreements: agreementsBase,
               requiresAuth: true,
             },

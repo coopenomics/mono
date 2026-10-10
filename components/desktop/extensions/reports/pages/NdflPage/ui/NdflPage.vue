@@ -20,6 +20,7 @@
           template(v-else)
             | {{ $t('reports.ndflPage.cardCaption') }}
       BaseButton.ndfl-card__action(
+        v-if='canPayTax',
         variant='secondary',
         size='sm',
         :disabled='stateLoading || availableAmount <= 0',
@@ -132,6 +133,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { NDFL_LIVE_TABLES } from 'app/extensions/reports/shared/lib/live';
+import { useReportsRights } from 'app/extensions/reports/shared/lib/rights';
 import { uiLocale } from 'src/shared/i18n';
 import { FailAlert, SuccessAlert } from 'src/shared/api';
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge';
@@ -278,6 +280,8 @@ function loadMore(): void {
   if (paymentsLoading.value || !hasMore.value) return;
   void loadPayments(currentPage.value + 1);
 }
+
+const { canPayTax } = useReportsRights();
 
 function openPayDialog(): void {
   // Платят обычно всё накопленное — предзаполняем, но оставляем правку:

@@ -76,6 +76,8 @@ import { DesktopModule } from './application/desktop/desktop.module';
 import { SsrContextModule } from './application/ssr-context/ssr-context.module';
 import { ExtensionGrantsModule } from './application/desktop/extension-grants.registry';
 import { ExtensionGrantsFilterModule } from './application/desktop/extension-grants-filter.registry';
+import { RoleAssignmentsRegistryModule } from './application/access-roles/role-assignments.registry';
+import { AccessRolesModule } from './application/access-roles/access-roles.module';
 import { MeetModule } from './application/meet/meet.module';
 import { GatewayModule } from './application/gateway/gateway.module';
 import { WalletModule } from './application/wallet/wallet.module';
@@ -184,6 +186,8 @@ import { MarketplaceExtensionModule } from './extensions/marketplace/marketplace
     AuthModule,
     ExtensionGrantsModule,
     ExtensionGrantsFilterModule,
+    RoleAssignmentsRegistryModule,
+    AccessRolesModule,
     GlobalSearchRegistryModule,
     DesktopModule,
     SsrContextModule,

@@ -12,6 +12,8 @@ import { ReportRequisitesResolver } from './application/resolvers/report-requisi
 import { ReportDraftResolver } from './application/resolvers/report-draft.resolver';
 import { ReportCalendarResolver } from './application/resolvers/report-calendar.resolver';
 import { WithheldTaxResolver } from './application/resolvers/withheld-tax.resolver';
+import { ReportsRegistriesResolver } from './application/resolvers/registries.resolver';
+import { ReportsRegistriesService } from './application/services/registries.service';
 import { WithheldTaxService } from './application/services/withheld-tax.service';
 import { ReportsLiveFeedService } from './application/services/reports-live-feed.service';
 import { WithheldTaxPayoutSyncService } from './application/services/withheld-tax-payout-sync.service';
@@ -54,6 +56,8 @@ import { ReportsRights } from './application/access/reports-rights';
     ReportDraftResolver,
     ReportCalendarResolver,
     WithheldTaxResolver,
+    ReportsRegistriesService,
+    ReportsRegistriesResolver,
     WithheldTaxService,
     WithheldTaxPayoutSyncService,
     WithheldTaxBlockchainAdapter,
