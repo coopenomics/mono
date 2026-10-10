@@ -82,26 +82,21 @@
 
   template(v-else)
     .row.q-col-gutter-md
-      .col-12.col-md-5
+      //- Целевой членский взнос — одной панелью: что это, поле и сохранение.
+      .col-12
         BaseCard(:title="$t('edubridge.adminEconomyPage.markupCardTitle')")
+          .t-sm.t-muted.q-mb-md {{ $t('edubridge.adminEconomyPage.markupAbout.purpose') }}
           BaseForm(:loading="savingMarkup" @submit="onSaveMarkup")
-            BaseInput(
-              v-model="markup"
-              :label="$t('edubridge.adminEconomyPage.markupLabel')"
-              type="number"
-              required
-            )
-              template(#append)
-                FieldHelp(:text="markupHelp")
-            template(#footer)
-              .row.justify-end
-                BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
-      .col-12.col-md-7
-        //- Что это за взнос и на что он влияет — коротко, рядом с полем.
-        BaseCard(:title="$t('edubridge.adminEconomyPage.markupAbout.title')")
-          .t-sm.t-muted {{ $t('edubridge.adminEconomyPage.markupAbout.purpose') }}
-          DataRow.q-mt-md(:label="$t('edubridge.adminEconomyPage.markupAbout.scopeLabel')" :value="$t('edubridge.adminEconomyPage.markupAbout.scopeValue')" align="spread")
-          DataRow(:label="$t('edubridge.adminEconomyPage.markupAbout.maxDiscountLabel')" :value="`${maxDiscount}%`" align="spread")
+            .edu-econ__markup
+              BaseInput(
+                v-model="markup"
+                :label="$t('edubridge.adminEconomyPage.markupLabel')"
+                type="number"
+                required
+              )
+                template(#append)
+                  FieldHelp(:text="markupHelp")
+              BaseButton(variant="primary" type="submit" :loading="savingMarkup") {{ $t('common.action.save') }}
       //- Как движутся средства программы — здесь же, развёрнуто: настройка взноса читается вместе с его путём.
       .col-12
         BaseCard(:title="$t('edubridge.moneyFlow.title')")
@@ -321,5 +316,15 @@ onMounted(load);
   padding-bottom: var(--p-4);
   margin-bottom: var(--p-2);
   border-bottom: 1px solid var(--p-line);
+}
+/* Поле взноса и «Сохранить» в одну строку: поле короткое, кнопка рядом с ним. */
+.edu-econ__markup {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--p-3);
+  max-width: 480px;
+}
+.edu-econ__markup > :first-child {
+  flex: 1;
 }
 </style>
