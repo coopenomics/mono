@@ -167,6 +167,7 @@ export const coreRightsTable: RightsTable<CoreRightsRole, never> = {
         Payment: ['read:all'],
         PaymentFile: ['read:all'],
         Document: ['read:all'],
+        DocumentTemplate: ['read'],
         Participant: ['read:all'],
         Account: ['read:all'],
         // Страница реестра расходов; сами расходы отдаёт приложение расходов.
@@ -202,7 +203,7 @@ export const coreAssignableRoles: readonly AssignableRole<CoreAssignableRole>[] 
     permissions: [
       { title: t('accessRoles.roles.cashier.permissions.registry'), access: 'read', rights: ['Payment:read:all'] },
       { title: t('accessRoles.roles.cashier.permissions.proofs'), access: 'read', rights: ['PaymentFile:read:all'] },
-      { title: t('accessRoles.roles.auditor.permissions.documents'), access: 'read', rights: ['Document:read:all'] },
+      { title: t('accessRoles.roles.auditor.permissions.documents'), access: 'read', rights: ['Document:read:all', 'DocumentTemplate:read'] },
       { title: t('accessRoles.roles.auditor.permissions.participants'), access: 'read', rights: ['Participant:read:all', 'Account:read:all'] },
       { title: t('accessRoles.roles.auditor.permissions.expenses'), access: 'read', rights: ['Expense:read:all'] },
     ],

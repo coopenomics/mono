@@ -175,7 +175,7 @@ describe('платформа: назначаемые роли и управле�
       expect((auditor.permissions as any[]).every(p => p.access === 'READ')).toBe(true)
       expect((auditor.permissions as any[]).length).toBeGreaterThan(2)
       expect((assigned.assignments as any[]).map(a => a.username)).toContain(other.account)
-      for (const name of ['getPayments', 'paymentProofs', 'getAvailableReports', 'getReportCalendar', 'getWithheldTaxState', 'reportsLedgerPostings', 'reportsProcesses', 'getDocuments', 'getAccounts', 'expenseProposalsByCooperative'])
+      for (const name of ['getPayments', 'paymentProofs', 'getAvailableReports', 'getReportCalendar', 'getWithheldTaxState', 'reportsLedgerPostings', 'reportsProcesses', 'getDocuments', 'getAccounts', 'expenseProposalsByCooperative', 'documentTemplates', 'listReportDrafts', 'buildInitialReportEdits'])
         expect(await probe.denial(token, name), name).toBeNull()
       for (const name of ['setPaymentStatus', 'uploadPaymentProof', 'saveReportDraft', 'generateReportFromEdits', 'markReportPeriod', 'updateReportRequisites', 'payWithheldTax', 'assignRole', 'addParticipant', 'updateAccount', 'createExpenseProposal', 'payExpenseItem'])
         expect(await probe.denial(token, name), name).toBe(NO_RIGHT)

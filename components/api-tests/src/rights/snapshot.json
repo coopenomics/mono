@@ -40,7 +40,7 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "deny",
+    "council": "pass",
     "chairman": "pass",
     "candidate": "deny",
     "newcomer": "deny",
@@ -51,7 +51,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "pass",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "candidates": {
     "guest": "deny",
@@ -1329,7 +1329,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "documentTemplates": {
     "guest": "deny",
@@ -1347,7 +1347,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "documentTemplatesAttention": {
     "guest": "deny",
@@ -1365,7 +1365,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "deny",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "expenseFile": {
     "guest": "deny",
@@ -2416,7 +2416,7 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "deny",
+    "council": "pass",
     "chairman": "pass",
     "candidate": "deny",
     "newcomer": "deny",
@@ -2427,7 +2427,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "pass",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "getReportHistory": {
     "guest": "deny",
@@ -2722,7 +2722,7 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "deny",
+    "council": "pass",
     "chairman": "pass",
     "candidate": "deny",
     "newcomer": "deny",
@@ -2733,7 +2733,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "pass",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "marketplaceAidStatementSignablePayload": {
     "guest": "deny",
@@ -4504,7 +4504,7 @@
     "member": "deny",
     "supplier": "deny",
     "branchChairman": "deny",
-    "council": "deny",
+    "council": "pass",
     "chairman": "pass",
     "candidate": "deny",
     "newcomer": "deny",
@@ -4515,7 +4515,7 @@
     "exited": "deny",
     "cashier": "deny",
     "accountant": "pass",
-    "auditor": "deny"
+    "auditor": "pass"
   },
   "verificationReviewPhotos": {
     "guest": "deny",

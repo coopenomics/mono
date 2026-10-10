@@ -51,6 +51,11 @@ const SUITES: Suite[] = [
     dir: 'reports/application/resolvers',
     ops: {
       getAvailableReports: COUNCIL,
+      // Отчёт открывается на просмотр: чтение черновика — право чтения отчётов.
+      buildInitialReportEdits: COUNCIL,
+      getReportDraft: COUNCIL,
+      listReportDrafts: COUNCIL,
+      validateReportEdits: COUNCIL,
       getReportPreview: COUNCIL,
       getReportHistory: COUNCIL,
       getReport: COUNCIL,

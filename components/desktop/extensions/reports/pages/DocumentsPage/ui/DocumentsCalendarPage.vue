@@ -8,6 +8,7 @@
     :report-type='editorReportType'
     :year='editorYear'
     :period='editorPeriod'
+    :readonly='!canDraft'
     @generated='onGenerated'
     @marked='onMarked'
   )
@@ -31,11 +32,10 @@ const editorPeriod = ref<number | null>(null)
 // дёргаем widget.reload() явно.
 const calendarRef = ref<InstanceType<typeof ReportsCalendar> | null>(null)
 
+// Без права вести черновик отчёт открывается из календаря на просмотр.
 const { canDraft } = useReportsRights()
 
 function onCalendarSelect(payload: { reportType: IReportType; year: number; period: number | null }) {
-  // Редактор отчёта ведёт черновик: без права записи календарь только показывает сроки.
-  if (!canDraft.value) return
   editorReportType.value = payload.reportType
   editorYear.value = payload.year
   editorPeriod.value = payload.period

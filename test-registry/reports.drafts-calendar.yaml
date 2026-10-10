@@ -72,8 +72,8 @@ cases:
   - id: rep.draft.side.03
     level: backend
     kind: side
-    scenario: черновик сохраняет, читает список или открывает форму член совета или пайщик
-    expect: отказ по правам
+    scenario: черновик сохраняет член совета или пайщик; список черновиков и форму отчёта открывает член совета
+    expect: сохранение — отказ по правам; член совета отчёт открывает на просмотр, пайщику отказ
     test: components/api-tests/src/reports/drafts-calendar.test.ts
     status: written
 

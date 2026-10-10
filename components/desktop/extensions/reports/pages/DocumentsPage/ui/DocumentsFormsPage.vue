@@ -46,6 +46,17 @@
             @click='openEditor(props.row)'
           )
             q-tooltip {{ $t('reports.documentsFormsPage.openEditorLabel') }}
+          //- Без права вести черновик отчёт открывается на просмотр.
+          BaseButton(
+            v-else-if='!canDraft && props.row.readyToGenerate'
+            variant='ghost'
+            size='sm'
+            icon-only
+            :aria-label='$t("reports.documentsFormsPage.viewReportLabel")'
+            @click='openEditor(props.row)'
+          )
+            q-icon(name='visibility', size='18px')
+            q-tooltip {{ $t('reports.documentsFormsPage.viewReportLabel') }}
           q-btn(
             v-else-if='canDraft'
             flat dense
@@ -56,6 +67,7 @@
             q-tooltip {{ $t('reports.documentsFormsPage.fillRequisitesLabel') }}
 
   ReportEditorDialog(
+    :readonly='!canDraft'
     v-if='showEditor'
     v-model='showEditor'
     :report-type='editorReportType'
@@ -79,6 +91,7 @@ import {
   type IReportType,
 } from 'src/entities/Report'
 import { BaseBadge } from 'src/shared/ui/base/BaseBadge'
+import { BaseButton } from 'src/shared/ui/base/BaseButton'
 import type { BaseBadgeProps } from 'src/shared/ui/base/BaseBadge/BaseBadge.types'
 import ReportEditorDialog from './ReportEditorDialog.vue'
 import { t } from '../../../i18n';

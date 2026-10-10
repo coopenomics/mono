@@ -140,13 +140,15 @@ describe('Отчётность — черновики форм', () => {
     expect(JSON.parse(stored.editsJson).signer.lastName).toBe('Правкин')
   })
 
-  it(caseName('rep.draft.side.03', 'черновики ведёт только председатель — члену совета и пайщику отказ'), async () => {
+  it(caseName('rep.draft.side.03', 'черновики ведёт только председатель; член совета отчёт открывает на просмотр, пайщику отказ'), async () => {
     const input = { i: { reportType: 'BUHOTCH', year: YEAR, editsJson: '{}', editedFields: [] } }
-    for (const token of [council, member]) {
+    for (const token of [council, member])
       expectCode(await gqlError(token, SAVE, input), 'KIT_INSUFFICIENT_RIGHTS')
-      expectCode(await gqlError(token, LIST, { f: { year: YEAR } }), 'KIT_INSUFFICIENT_RIGHTS')
-      expectCode(await gqlError(token, BUILD, { t: 'BUHOTCH', y: YEAR, p: null }), 'KIT_INSUFFICIENT_RIGHTS')
-    }
+    // Член совета читает отчёты: список черновиков и начальные значения ему открыты.
+    expect(await gqlError(council, LIST, { f: { year: YEAR } })).toBeNull()
+    expect(await gqlError(council, BUILD, { t: 'BUHOTCH', y: YEAR, p: null })).toBeNull()
+    expectCode(await gqlError(member, LIST, { f: { year: YEAR } }), 'KIT_INSUFFICIENT_RIGHTS')
+    expectCode(await gqlError(member, BUILD, { t: 'BUHOTCH', y: YEAR, p: null }), 'KIT_INSUFFICIENT_RIGHTS')
   })
 
   it(caseName('rep.draft.side.04', 'удаление черновика: удалённый не читается, несуществующий — отказ «не найдено»'), async () => {
