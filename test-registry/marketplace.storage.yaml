@@ -215,3 +215,31 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе — снаружи они не видны; сам отказ списка покрыт случаем mkt.store.side.10"
     status: written
+
+  # Правка 2026-10-11 (решение владельца): тару закупает кооператив, поэтому
+  # партию боксов на выбранный участок заводит и председатель кооператива —
+  # со страницы «Боксы кооператива» стола администратора.
+  - id: mkt.store.happy.08
+    level: backend
+    kind: happy
+    scenario: председатель кооператива заводит партию боксов на выбранный участок
+    expect: боксы заведены на этом участке без адреса, оператор участка видит их в своём реестре
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.12
+    level: backend
+    kind: side
+    scenario: председатель кооператива заводит боксы на участок, которого в кооперативе нет
+    expect: отказ MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME, боксы не заведены
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.ui.01
+    level: ui
+    kind: happy
+    scenario: >
+      председатель на странице «Боксы кооператива» нажимает «Боксы», выбирает
+      участок, тип и число, заводит партию
+    expect: партия появляется в реестре у выбранного участка, счётчик раздела растёт
+    status: missing

@@ -24,6 +24,7 @@ import { useDesktopStore } from 'src/entities/Desktop'
 import { useMarketplaceKUDetailsStore } from 'src/entities/MarketplaceKUDetails'
 import {
   buildStorageIndex,
+  createContainers,
   createContainerType,
   formatVolumeM3,
   listContainerTypes,
@@ -45,7 +46,9 @@ import {
  *
  * Два раздела. «Боксы» — свод: сколько тары на каком участке стоит, чем она
  * занята и какой объём займёт её перевозка (оператор видит только свой
- * участок, а машину под перевозку считают по кооперативу). «Типы боксов» —
+ * участок, а машину под перевозку считают по кооперативу). Отсюда же
+ * председатель заводит партию боксов на выбранный участок: тару закупает
+ * кооператив и раздаёт участкам (решение владельца 11.10.2026). «Типы боксов» —
  * общий справочник габаритов: тару закупают одинаковыми партиями, и объём
  * должен считаться по одной линейке на всех участках, поэтому типы заводит
  * председатель здесь, а участки только выбирают готовый тип при заведении
@@ -65,6 +68,8 @@ const tab = ref<'containers' | 'types'>('containers')
 
 /** Заводить типы тары может только председатель — у совета раздел читающий. */
 const canManageTypes = computed(() => desktop.hasGrant('market-admin', 'Container:manage:types'))
+/** Завести боксы на любом участке — тоже право председателя. */
+const canCreateBoxes = computed(() => desktop.hasGrant('market-admin', 'Container:manage:all'))
 
 function onSelectTab(selected: PageTab): void {
   tab.value = selected.key === 'types' ? 'types' : 'containers'
@@ -141,12 +146,24 @@ function branchAddress(braname: string): string {
   return address && address !== branchName(braname) ? address : ''
 }
 
-const branchOptions = computed<BaseSelectOption[]>(() => {
-  const set = new Set(containers.value.map((c) => c.braname))
-  return [...set]
+/** Участки по наименованию: адрес — пояснением в списке, чтобы различать тёзок. */
+function branchOptionsOf(branames: Iterable<string>): BaseSelectOption[] {
+  return [...new Set(branames)]
     .sort((a, b) => branchName(a).localeCompare(branchName(b), uiLocale()))
-    .map((braname) => ({ value: braname, label: branchName(braname) }))
-})
+    .map((braname) => ({ value: braname, label: branchName(braname), caption: branchAddress(braname) || undefined }))
+}
+
+/** Отбор реестра — по участкам, на которых тара уже есть. */
+const branchOptions = computed(() => branchOptionsOf(containers.value.map((c) => c.braname)))
+
+/** Завести боксы можно на любом участке кооператива. */
+const allBranchOptions = computed(() => branchOptionsOf(kuStore.details.map((d) => d.coreBraname)))
+
+const typeOptions = computed<BaseSelectOption[]>(() =>
+  types.value
+    .filter((type) => type.is_active)
+    .map((type) => ({ value: type.id, label: type.name, caption: formatVolumeM3(type.volume_m3) })),
+)
 
 function cellCodeOf(container: MarketplaceContainerView): string {
   if (!container.cell_id) return '—'
@@ -252,6 +269,56 @@ const typeColumns = computed<BaseTableColumn<MarketplaceContainerTypeView>[]>(()
   },
 ])
 
+// ─── Завести боксы на участок ───
+const BATCH_MAX = 200
+const batchOpen = ref(false)
+const batchSaving = ref(false)
+const batchBraname = ref<string | null>(null)
+const batchTypeId = ref<string | null>(null)
+const batchCount = ref<number | null>(10)
+const batchLabel = ref('')
+
+const batchValid = computed(
+  () =>
+    !!batchBraname.value &&
+    !!batchTypeId.value &&
+    Number(batchCount.value) >= 1 &&
+    Number(batchCount.value) <= BATCH_MAX,
+)
+
+function openBatch(): void {
+  // Участок подставляется из отбора реестра: смотрят тару участка — на него и заводят.
+  batchBraname.value = branchFilter.value ?? (allBranchOptions.value.length === 1 ? String(allBranchOptions.value[0].value) : null)
+  batchTypeId.value = typeOptions.value.length ? String(typeOptions.value[0].value) : null
+  batchCount.value = 10
+  batchLabel.value = ''
+  batchOpen.value = true
+}
+
+async function submitBatch(): Promise<void> {
+  if (!batchValid.value || !batchBraname.value || !batchTypeId.value) return
+  batchSaving.value = true
+  try {
+    const created = await createContainers({
+      braname: batchBraname.value,
+      container_type_id: batchTypeId.value,
+      count: Math.trunc(Number(batchCount.value)),
+      label: batchLabel.value.trim() || null,
+    })
+    SuccessAlert(
+      created.length === 1
+        ? i18nT('marketplace.operatorContainers.createdOneMessage', { code: created[0]?.code })
+        : i18nT('marketplace.operatorContainers.createdManyMessage', { count: created.length, firstCode: created[0]?.code, lastCode: created[created.length - 1]?.code }),
+    )
+    batchOpen.value = false
+    await load()
+  } catch (e) {
+    FailAlert(e, i18nT('marketplace.adminContainerRegistry.createBoxesFailedError'))
+  } finally {
+    batchSaving.value = false
+  }
+}
+
 // ─── Завести тип боксов ───
 const typeOpen = ref(false)
 const typeSaving = ref(false)
@@ -354,6 +421,15 @@ onMounted(async () => {
 q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.pageAriaLabel")')
   Teleport(to='#header-actions-host', defer)
     BaseButton(
+      v-if='tab === "containers" && canCreateBoxes',
+      variant='primary',
+      size='sm',
+      @click='openBatch'
+    )
+      template(#icon-left)
+        q-icon(name='add', size='16px')
+      | {{ $t('marketplace.adminContainerRegistry.addBoxesButton') }}
+    BaseButton(
       v-if='tab === "types" && canManageTypes',
       variant='primary',
       size='sm',
@@ -378,10 +454,14 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
         :placeholder='$t("marketplace.containerRegistry.searchPlaceholder")',
         clearable
       )
+      //- Отбор по участку нужен, когда тара стоит хотя бы на двух участках.
       BaseSelect.boxreg__branch.field-flush(
+        v-if='branchOptions.length > 1',
         v-model='branchFilter',
         :options='branchOptions',
-        :placeholder='$t("marketplace.containerRegistry.allBranchesPlaceholder")'
+        :label='$t("marketplace.containerRegistry.column.branch")',
+        :placeholder='$t("marketplace.containerRegistry.allBranchesPlaceholder")',
+        clearable
       )
 
     BaseTable(
@@ -422,6 +502,8 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
     )
       template(#icon)
         q-icon(name='inbox', size='48px')
+      template(v-if='canCreateBoxes && !containers.length', #action)
+        BaseButton(variant='secondary', size='sm', @click='openBatch') {{ $t('marketplace.adminContainerRegistry.addBoxesButton') }}
 
   //- ────────────────────────── Типы боксов ──────────────────────
   template(v-else)
@@ -461,6 +543,28 @@ q-page.boxreg(role='region', :aria-label='$t("marketplace.containerRegistry.page
     :volume='openedContainer ? volumeOf(openedContainer) : ""',
     :cell-code='openedContainer ? cellCodeOf(openedContainer) : ""'
   )
+
+  //- ─────────────────────── Диалог: боксы на участок ───────────────────────
+  BaseDialog(v-model='batchOpen', :title='$t("marketplace.operatorContainers.batchDialogTitle")', size='sm')
+    .boxreg__form
+      .boxreg__note {{ $t('marketplace.adminContainerRegistry.createBoxesHint') }}
+      BaseSelect(
+        v-model='batchBraname',
+        :options='allBranchOptions',
+        :label='$t("marketplace.containerRegistry.column.branch")',
+        searchable
+      )
+      BaseSelect(
+        v-model='batchTypeId',
+        :options='typeOptions',
+        :label='$t("marketplace.operatorContainers.batchTypeLabel")',
+        :hint='typeOptions.length ? undefined : $t("marketplace.adminContainerRegistry.noTypesHint")'
+      )
+      BaseInput(v-model.number='batchCount', type='number', :label='$t("marketplace.operatorContainers.batchCountLabel")')
+      BaseInput(v-model='batchLabel', :label='$t("marketplace.operatorContainers.batchLabelLabel")', :placeholder='$t("marketplace.operatorContainers.batchLabelPlaceholder")')
+    template(#footer)
+      BaseButton(variant='ghost', size='sm', :disabled='batchSaving', @click='batchOpen = false') {{ $t('common.action.cancel') }}
+      BaseButton(variant='primary', size='sm', :loading='batchSaving', :disabled='!batchValid', @click='submitBatch') {{ $t('marketplace.operatorContainers.batchSubmit') }}
 
   //- ─────────────────────── Диалог: тип боксов ───────────────────────
   BaseDialog(v-model='typeOpen', :title='$t("marketplace.containerRegistry.createTypeDialogTitle")', size='sm')

@@ -269,3 +269,16 @@ cases:
     test: components/controller/tests/unit/marketplace/marketplace-right-scopes.test.ts
     api: components/api-tests/src/rights/matrix.test.ts
     status: written
+
+  - id: mkt.rights.side.11
+    level: backend
+    kind: side
+    scenario: >
+      право завести боксы на любом участке (`Container:manage:all`) зовут
+      председатель кооператива, член совета и оператор участка
+    expect: >
+      председателю право положено; совету и оператору — отказ
+      KIT_INSUFFICIENT_RIGHTS: оператор заводит боксы только на своём участке
+    test: components/controller/tests/unit/marketplace/marketplace-access-guard.test.ts
+    api: components/api-tests/src/marketplace/storage.test.ts
+    status: written
