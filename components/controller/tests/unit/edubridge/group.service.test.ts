@@ -192,12 +192,14 @@ describe('EdubridgeGroupService — группа как единица расч�
     }
   });
 
-  it('подписку можно продлить, пока программа группы идёт после оплаченного срока; оплаченную до конца программы — нельзя', async () => {
-    // 8 занятий по 8 в месяц — программа в один месяц: с 01.09.2099 по 01.10.2099.
-    const { service } = make({ groups: [group({ lessons_total: 8 })] });
+  it('подписку можно продлить у программы длиннее месяца, пока она идёт после оплаченного срока; программу в один месяц и оплаченную до конца — нельзя', async () => {
+    // 16 занятий по 8 в месяц — программа в два месяца: с 01.09.2099 по 01.11.2099.
+    const { service } = make({ groups: [group({ lessons_total: 16 })] });
     const sub = (paid: string | null, groupId: string | null = 'G1') => ({ coopname: 'voskhod', group_id: groupId, paid_until: paid ? new Date(paid) : null }) as any;
-    await expect(service.isRenewable(sub('2099-09-20'))).resolves.toBe(true);
-    await expect(service.isRenewable(sub('2099-10-01'))).resolves.toBe(false);
+    await expect(service.isRenewable(sub('2099-10-01'))).resolves.toBe(true);
+    await expect(service.isRenewable(sub('2099-11-01'))).resolves.toBe(false);
+    // Программа в один месяц оплачивается одним взносом: продления нет, даже когда оплаченный срок кончается раньше программы.
+    await expect(make({ groups: [group({ lessons_total: 8 })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);
     // Программа без конца продлевается всегда; завершённая группа — никогда.
     await expect(make({ groups: [group({ lessons_total: 0 })] }).service.isRenewable(sub('2199-01-01'))).resolves.toBe(true);
     await expect(make({ groups: [group({ status: EduGroupStatus.CLOSED })] }).service.isRenewable(sub('2099-09-20'))).resolves.toBe(false);

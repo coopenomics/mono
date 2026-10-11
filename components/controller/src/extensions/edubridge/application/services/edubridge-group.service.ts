@@ -294,15 +294,17 @@ export class EdubridgeGroupService {
   }
 
   /**
-   * Подписку можно продлить: группа идёт, и программа продолжается после
-   * оплаченного срока. Программа, оплаченная до конца, заканчивается сама —
-   * продлевать её нечем.
+   * Подписку можно продлить: группа идёт, программа длиннее одного месяца и
+   * продолжается после оплаченного срока. Программа в один месяц оплачивается
+   * одним взносом и заканчивается сама: следующий раз — запись в новую группу.
+   * Программа без конечного числа занятий продлевается всегда.
    */
   async isRenewable(enrollment: Pick<EdubridgeEnrollmentRecord, 'coopname' | 'group_id' | 'paid_until'>): Promise<boolean> {
     if (!enrollment.group_id) return true;
     const group = await this.groups.findById(enrollment.coopname, enrollment.group_id);
     if (!group) return true;
     if (group.status !== EduGroupStatus.ACTIVE) return false;
+    if (courseMonths(group.lessons_per_month, group.lessons_total) === 1) return false;
     const end = programEndsAt(group);
     if (!end || !enrollment.paid_until) return true;
     return new Date(enrollment.paid_until).getTime() < end.getTime();
