@@ -141,6 +141,25 @@ describe('Стол заказов — боксы участка', () => {
     for (const box of boxes) expect(all.map((b: any) => b.id)).toContain(box.id)
   })
 
+  it(caseName('mkt.store.happy.08', 'председатель кооператива заводит партию боксов на выбранный участок — оператор участка её видит'), async () => {
+    const fromCoop = (await gql<any>(chairman, CREATE_BOXES, {
+      d: { braname: KRG, container_type_id: type.id, count: 2, label: `Закупка ${T}` },
+    })).marketplaceCreateContainers
+    expect(fromCoop).toHaveLength(2)
+    for (const box of fromCoop)
+      expect(box).toMatchObject({ braname: KRG, container_type_id: type.id, label: `Закупка ${T}`, cell_id: null, is_active: true })
+
+    const seen = (await gql<any>(operator, LIST_BOXES, { d: { braname: KRG, container_type_id: type.id } })).marketplaceListContainers
+    for (const box of fromCoop) expect(seen.map((b: any) => b.id)).toContain(box.id)
+  })
+
+  it(caseName('mkt.store.side.12', 'боксы на участке, которого нет в кооперативе, председатель не заводит'), async () => {
+    expectCode(
+      await gqlError(chairman, CREATE_BOXES, { d: { braname: `нет${T}`.toLowerCase().slice(0, 12), container_type_id: type.id, count: 1 } }),
+      'MARKETPLACE_BRANCH_NOT_FOUND_BY_NAME',
+    )
+  })
+
   it(caseName('mkt.store.side.03', 'партия с нулём боксов, с типом, которого нет, и сверх предела — отказ'), async () => {
     invalid(
       await gqlError(operator, CREATE_BOXES, { d: { braname: KRG, container_type_id: type.id, count: 0 } }),

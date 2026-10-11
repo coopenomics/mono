@@ -7160,7 +7160,7 @@
     "supplier": "deny",
     "branchChairman": "deny",
     "council": "deny",
-    "chairman": "deny",
+    "chairman": "pass",
     "candidate": "deny",
     "newcomer": "deny",
     "supplierPending": "deny",

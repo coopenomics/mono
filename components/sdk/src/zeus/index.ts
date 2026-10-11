@@ -43189,7 +43189,7 @@ export type ModelTypes = {
 	marketplaceCreateBranchExpense: string,
 	/** Заведение типа боксов с габаритами и объёмом. */
 	marketplaceCreateContainerType: ModelTypes["MarketplaceContainerType"],
-	/** Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно. */
+	/** Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке. */
 	marketplaceCreateContainers: Array<ModelTypes["MarketplaceContainer"]>,
 	/** Добавить собственную категорию кооператива */
 	marketplaceCreateCustomCategory: ModelTypes["MarketplaceCategory"],
@@ -59122,7 +59122,7 @@ export type GraphQLTypes = {
 	marketplaceCreateBranchExpense: string,
 	/** Заведение типа боксов с габаритами и объёмом. */
 	marketplaceCreateContainerType: GraphQLTypes["MarketplaceContainerType"],
-	/** Председатель кооперативного участка заводит партию боксов одного типа; коды выдаются последовательно. */
+	/** Заведение партии боксов одного типа на участке; коды выдаются последовательно. Председатель участка заводит боксы у себя, председатель кооператива — на любом участке. */
 	marketplaceCreateContainers: Array<GraphQLTypes["MarketplaceContainer"]>,
 	/** Добавить собственную категорию кооператива */
 	marketplaceCreateCustomCategory: GraphQLTypes["MarketplaceCategory"],
