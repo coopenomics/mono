@@ -3,6 +3,7 @@ import { computed, nextTick, ref } from 'vue';
 import { uiLocale } from 'src/shared/i18n';
 import { Avatar, BaseButton, BaseCard } from 'src/shared/ui/base';
 import type { MarketplaceSupplierProfileView } from 'src/entities/MarketplaceSupplierProfile';
+import GeneratedCover from './GeneratedCover.vue';
 
 /**
  * Шапка поставщика — одна поверхность с уровнями сверху вниз: обложка, значок
@@ -89,8 +90,8 @@ function cancelNameEdit(): void {
 
 <template lang="pug">
 BaseCard.profile-head(:class="{ 'profile-head--editable': editable }")
-  //- Обложка: снимок поставщика либо спокойная полоса; значок перекрывает её край.
-  .profile-head__cover(:class="{ 'profile-head__cover--blank': !coverUrl }")
+  //- Обложка: снимок поставщика либо рисунок из его имени; значок перекрывает её край.
+  .profile-head__cover
     q-img.profile-head__cover-img(
       v-if="coverUrl",
       :src="coverUrl",
@@ -98,6 +99,7 @@ BaseCard.profile-head(:class="{ 'profile-head--editable': editable }")
       no-spinner,
       :alt="displayName"
     )
+    GeneratedCover(v-else, :seed="profile.supplier_account")
     //- Правка обложки — кнопками на ней самой, видны при наведении.
     .profile-head__cover-actions(v-if="editable")
       BaseButton(variant="secondary", size="sm", @click="pickCover")
@@ -165,16 +167,12 @@ BaseCard.profile-head(:class="{ 'profile-head--editable': editable }")
     padding: 0;
   }
 
+  // Высота одна и с обложкой, и с рисунком: кнопки над ней стоят одинаково.
   &__cover {
     position: relative;
     aspect-ratio: 6 / 1;
     max-height: 240px;
     background: var(--p-surface-2);
-
-    &--blank {
-      aspect-ratio: auto;
-      height: var(--p-10);
-    }
   }
 
   &__cover-img {
