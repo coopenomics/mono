@@ -8,7 +8,7 @@ import { useFirstLoad } from 'src/shared/lib/composables';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useLiveReload } from 'src/shared/lib/realtime';
 import { formatDateToLocalTimezone } from 'src/shared/lib/utils/dates/timezone';
-import { Avatar, BaseButton, EmptyState } from 'src/shared/ui/base';
+import { Avatar, BaseButton } from 'src/shared/ui/base';
 import { listReviews, type MarketplaceReviewView } from 'src/entities/MarketplaceReview';
 
 /**
@@ -117,13 +117,12 @@ defineExpose({ reload: load });
   .review-list__skeleton(v-if="firstLoad")
     q-skeleton(v-for="n in 3", :key="n", type="rect", height="72px")
 
-  EmptyState(
-    v-else-if="items.length === 0",
-    :title="$t('marketplace.reviewList.emptyTitle')",
-    :body="$t('marketplace.reviewList.emptyBody')"
-  )
-    template(#icon)
-      q-icon(name="rate_review", size="40px")
+  //- Пусто — короткая строка: список стоит внутри карточки раздела.
+  .review-list__empty(v-else-if="items.length === 0")
+    q-icon(name="rate_review", size="20px")
+    .review-list__empty-text
+      .review-list__empty-title {{ $t('marketplace.reviewList.emptyTitle') }}
+      .review-list__empty-body {{ $t('marketplace.reviewList.emptyBody') }}
 
   template(v-else)
     article.review-list__item(v-for="review in items", :key="review.id")
@@ -162,6 +161,29 @@ defineExpose({ reload: load });
     display: flex;
     flex-direction: column;
     gap: var(--p-3);
+  }
+
+  &__empty {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--p-3);
+    color: var(--p-ink-3);
+  }
+
+  &__empty-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-1);
+  }
+
+  &__empty-title {
+    font-weight: 600;
+    color: var(--p-ink);
+  }
+
+  &__empty-body {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
   }
 
   // Зоны отзыва: кто и когда → оценка → о чём → текст; действие прижато вправо.

@@ -13,11 +13,12 @@ import {
   type MarketplaceSupplierProfileView,
 } from 'src/entities/MarketplaceSupplierProfile';
 import { SupplierProfileForm } from 'src/widgets/Marketplace/SupplierProfileForm';
+import { SupplierProfileHead } from 'src/widgets/Marketplace/SupplierProfileHead';
 
 /**
  * Профиль кооператива на столе администратора. Кооператив — поставщик
  * имущества со своего склада: заказчик открывает этот профиль с карточек
- * «со склада».
+ * «со склада». Сверху шапка глазами заказчика, под ней форма правки.
  */
 const route = useRoute();
 const router = useRouter();
@@ -49,8 +50,9 @@ function openProfile(): void {
   });
 }
 
-// Профиль может править другой администратор — форма подхватывает его правку.
-useLiveReload(marketLiveTables('supplier'), () => {
+// Профиль может править другой администратор; отзывы и предложения меняются
+// без участия этой страницы — шапка подхватывает всё сама.
+useLiveReload(marketLiveTables('supplier', 'review', 'offer'), () => {
   if (!loading.value) void load();
 });
 
@@ -62,14 +64,19 @@ q-page.coop-profile(role="region", :aria-label="$t('marketplace.coopProfilePage.
   PageHint(storage-key="mp:coop-profile:banner-dismissed")
     | {{ $t('marketplace.coopProfilePage.hint') }}
 
-  q-skeleton(v-if="firstLoad", type="rect", height="320px")
+  .coop-profile__skeleton(v-if="firstLoad")
+    q-skeleton(type="rect", height="260px")
+    q-skeleton(type="rect", height="320px")
 
-  SupplierProfileForm(v-else, :profile="profile", :save="updateCooperativeProfile", @saved="onSaved")
-    template(#actions)
-      BaseButton(variant="secondary", @click="openProfile")
-        template(#icon-left)
-          q-icon(name="visibility", size="16px")
-        | {{ $t('marketplace.coopProfilePage.openProfileAction') }}
+  template(v-else)
+    SupplierProfileHead(v-if="profile", :profile="profile")
+      template(#actions)
+        BaseButton(variant="secondary", size="sm", @click="openProfile")
+          template(#icon-left)
+            q-icon(name="visibility", size="16px")
+          | {{ $t('marketplace.coopProfilePage.openProfileAction') }}
+
+    SupplierProfileForm(:profile="profile", :save="updateCooperativeProfile", @saved="onSaved")
 </template>
 
 <style scoped lang="scss">
@@ -78,7 +85,12 @@ q-page.coop-profile(role="region", :aria-label="$t('marketplace.coopProfilePage.
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-  max-width: 880px;
+
+  &__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: var(--p-4);
+  }
 }
 
 @media (max-width: 768px) {

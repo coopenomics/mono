@@ -6,7 +6,7 @@ import { FailAlert } from 'src/shared/api';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { marketLiveTables } from 'src/shared/lib/marketplace';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { BaseButton, BaseCard } from 'src/shared/ui/base';
+import { BaseButton } from 'src/shared/ui/base';
 import { PageHint } from 'src/shared/ui/domain';
 import { useSessionStore } from 'src/entities/Session';
 import {
@@ -14,12 +14,12 @@ import {
   updateMySupplierProfile,
   type MarketplaceSupplierProfileView,
 } from 'src/entities/MarketplaceSupplierProfile';
-import { ReviewStars } from 'src/widgets/Marketplace/ReviewStars';
 import { SupplierProfileForm } from 'src/widgets/Marketplace/SupplierProfileForm';
+import { SupplierProfileHead } from 'src/widgets/Marketplace/SupplierProfileHead';
 
 /**
- * «Мой профиль» на столе поставщика: что заказчик увидит на странице
- * поставщика — обложка, название, рассказ о себе — и как поставщика оценивают.
+ * «Мой профиль» на столе поставщика. Сверху — шапка в том виде, в каком её
+ * видит заказчик: обложка, имя, оценка и числа; под ней форма правки.
  */
 const route = useRoute();
 const router = useRouter();
@@ -70,30 +70,18 @@ q-page.my-profile(role="region", :aria-label="$t('marketplace.supplierMyProfileP
     | {{ $t('marketplace.supplierMyProfilePage.hint') }}
 
   .my-profile__skeleton(v-if="firstLoad")
-    q-skeleton(type="rect", height="96px")
+    q-skeleton(type="rect", height="260px")
     q-skeleton(type="rect", height="320px")
 
   template(v-else)
-    //- Сводка: как поставщика видят заказчики — оценка и число предложений.
-    BaseCard.my-profile__summary(v-if="profile")
-      .my-profile__stats
-        .my-profile__stat
-          .my-profile__stat-label {{ $t('marketplace.supplierMyProfilePage.ratingLabel') }}
-          ReviewStars(
-            :rating="profile.rating_avg",
-            :count="profile.reviews_count",
-            :empty-text="$t('marketplace.supplierMyProfilePage.noReviews')"
-          )
-        .my-profile__stat
-          .my-profile__stat-label {{ $t('marketplace.supplierMyProfilePage.offersLabel') }}
-          .my-profile__stat-value {{ profile.offers_count }}
-
-    SupplierProfileForm(:profile="profile", :save="updateMySupplierProfile", @saved="onSaved")
+    SupplierProfileHead(v-if="profile", :profile="profile")
       template(#actions)
-        BaseButton(variant="secondary", @click="openAsOrderer")
+        BaseButton(variant="secondary", size="sm", @click="openAsOrderer")
           template(#icon-left)
             q-icon(name="visibility", size="16px")
           | {{ $t('marketplace.supplierMyProfilePage.openAsOrdererAction') }}
+
+    SupplierProfileForm(:profile="profile", :save="updateMySupplierProfile", @saved="onSaved")
 </template>
 
 <style scoped lang="scss">
@@ -102,37 +90,11 @@ q-page.my-profile(role="region", :aria-label="$t('marketplace.supplierMyProfileP
   display: flex;
   flex-direction: column;
   gap: var(--p-4);
-  max-width: 880px;
 
   &__skeleton {
     display: flex;
     flex-direction: column;
     gap: var(--p-4);
-  }
-
-  &__stats {
-    display: flex;
-    gap: var(--p-7);
-    flex-wrap: wrap;
-  }
-
-  &__stat {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1);
-  }
-
-  &__stat-label {
-    font-size: var(--p-fs-eyebrow);
-    letter-spacing: var(--p-ls-eyebrow);
-    text-transform: uppercase;
-    color: var(--p-ink-3);
-  }
-
-  &__stat-value {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
   }
 }
 

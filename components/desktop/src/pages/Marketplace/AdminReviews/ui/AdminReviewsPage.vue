@@ -188,7 +188,7 @@ q-page.mp-role-admin.admin-reviews(role="region", :aria-label="$t('marketplace.a
     :body="$t('marketplace.adminReviewsPage.emptyBody')"
   )
     template(#icon)
-      q-icon(name="rate_review", size="48px")
+      q-icon(name="rate_review", size="22px")
 
   TablePager(
     v-if="total > PAGE_SIZE",
