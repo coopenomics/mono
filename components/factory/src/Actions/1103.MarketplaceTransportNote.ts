@@ -51,7 +51,7 @@ export class Factory extends DocFactory<MarketplaceTransportNote.Action> {
       cycle_id: data.cycle_id,
       shipment_id: data.shipment_id,
       accept_braname: data.accept_braname,
-      total_amount: data.total_amount,
+      total_amount: this.formatAsset(data.total_amount),
       currency: data.currency,
       supplier_account: data.supplier_account,
       supplier,

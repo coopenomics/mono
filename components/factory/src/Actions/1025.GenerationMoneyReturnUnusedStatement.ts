@@ -79,7 +79,7 @@ export class Factory extends DocFactory<GenerationMoneyReturnUnusedStatement.Act
       generator_agreement_number: String(generatorAgreementUdata.value),
       generator_agreement_created_at: String(generatorAgreementCreatedAtUdata.value),
       project_hash: data.project_hash,
-      amount: data.amount,
+      amount: this.formatAsset(data.amount),
     }
 
     await this.validate(combinedData, template.model)

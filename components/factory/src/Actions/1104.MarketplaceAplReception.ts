@@ -37,17 +37,13 @@ export class Factory extends DocFactory<MarketplaceAplReception.Action> {
     // request строится напрямую из данных заказа в Action (а не из заглушки
     // getRequest): АПП несёт ИМЕННО переданное имущество — артикул (СКУ),
     // наименование, фактическое количество и его стоимость, а не агрегат партии.
-    const cleanNum = (s: string): string => {
-      const n = Number.parseFloat(s)
-      return Number.isFinite(n) ? String(n) : s
-    }
     const request: MarketplaceAplReception.Model['request'] = {
       hash: data.sku,
       title: data.product_title,
       unit_of_measurement: data.unit_of_measurement,
       units: data.fact_quantity,
-      unit_cost: cleanNum(data.unit_cost),
-      total_cost: cleanNum(data.total_amount),
+      unit_cost: this.formatAsset(data.unit_cost),
+      total_cost: this.formatAsset(data.total_amount),
       currency: data.currency,
       type: 'receive',
       program_id: 0,

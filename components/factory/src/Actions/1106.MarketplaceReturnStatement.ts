@@ -38,9 +38,9 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
       title: data.product_title,
       unit_of_measurement: data.unit_of_measurement,
       units: data.actual_quantity,
-      // Суммы в тексте — с двумя знаками, как во всех документах: цепь отдаёт четыре.
-      unit_cost: this.formatShare(data.unit_cost),
-      total_cost: this.formatShare(data.fact_cost),
+      // Суммы в тексте — только через formatAsset: два знака, цепь отдаёт четыре.
+      unit_cost: this.formatAsset(data.unit_cost),
+      total_cost: this.formatAsset(data.fact_cost),
       currency: data.currency,
       type: 'receive',
       program_id: 0,
@@ -63,7 +63,7 @@ export class Factory extends DocFactory<MarketplaceReturnStatement.Action> {
       user: commonUser,
       request,
       program,
-      fact_cost: this.formatShare(data.fact_cost),
+      fact_cost: this.formatAsset(data.fact_cost),
       actual_quantity: String(data.actual_quantity),
       reason_text: data.reason_text,
       branch,

@@ -54,7 +54,7 @@ export class Factory extends DocFactory<MarketplaceWriteoffProtocol.Action> {
       decision,
       proposal_hash: data.proposal_hash,
       cycle_started_at: data.cycle_started_at,
-      total_amount: data.total_amount,
+      total_amount: this.formatAsset(data.total_amount),
       items_count: data.items_count,
     }
 

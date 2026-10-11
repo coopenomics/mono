@@ -796,14 +796,23 @@ export abstract class DocFactory<T extends IGenerate> {
     return this.truncateDecimal(parsed.toFixed(precision + 4), precision)
   }
 
-  public formatAsset(asset: string, precision: number = 2): string {
-    if (!asset)
+  /**
+   * Сумма для текста документа — единственный способ писать деньги: два знака
+   * после точки, остальное отсекается. Принимает сумму с символом валюты
+   * («300.0000 RUB» → «300.00 RUB») и голое число («300.0000» → «300.00») —
+   * второе нужно шаблонам, где валюта стоит в подписи колонки. Строку иного
+   * вида (уже оформленную человеком) отдаёт как есть.
+   */
+  public formatAsset(asset: string | number, precision: number = 2): string {
+    if (asset === undefined || asset === null || asset === '')
       return ''
-    const match = asset.match(/^(\d+\.\d+)\s+([A-Z]+)$/)
+    const text = String(asset).trim()
+    const match = text.match(/^(-?\d+(?:\.\d+)?)(?:\s+([A-Z]+))?$/)
     if (!match)
-      return asset
+      return text
     const [, amount, symbol] = match
-    return `${this.truncateDecimal(amount, precision)} ${symbol}`
+    const value = this.truncateDecimal(amount, precision)
+    return symbol ? `${value} ${symbol}` : value
   }
 
   public formatPaymentDetails(paymentMethod: any, recipientName: string): string {

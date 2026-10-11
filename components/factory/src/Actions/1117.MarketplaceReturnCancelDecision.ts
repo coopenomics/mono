@@ -39,17 +39,13 @@ export class Factory extends DocFactory<MarketplaceReturnCancelDecision.Action> 
 
     const decision: Cooperative.Document.IDecisionData = await this.getDecision(coop, data.coopname, data.decision_id, meta.created_at, meta.timezone)
 
-    const cleanNum = (s: string): string => {
-      const n = Number.parseFloat(s)
-      return Number.isFinite(n) ? String(n) : s
-    }
     const request: MarketplaceReturnCancelDecision.Model['request'] = {
       hash: data.sku,
       title: data.product_title,
       unit_of_measurement: data.unit_of_measurement,
       units: data.actual_quantity,
-      unit_cost: cleanNum(data.unit_cost),
-      total_cost: cleanNum(data.fact_cost),
+      unit_cost: this.formatAsset(data.unit_cost),
+      total_cost: this.formatAsset(data.fact_cost),
       currency: data.currency,
       type: 'receive',
       program_id: 0,
@@ -70,9 +66,9 @@ export class Factory extends DocFactory<MarketplaceReturnCancelDecision.Action> 
       decision,
       program,
       branch,
-      fact_cost: cleanNum(data.fact_cost),
-      fee_refund: cleanNum(data.fee_refund),
-      total_refund: cleanNum(data.total_refund),
+      fact_cost: this.formatAsset(data.fact_cost),
+      fee_refund: this.formatAsset(data.fee_refund),
+      total_refund: this.formatAsset(data.total_refund),
       reason_text: data.reason_text,
       inspection_result: data.inspection_result,
       order_hash: data.order_hash,
