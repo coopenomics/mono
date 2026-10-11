@@ -4,9 +4,10 @@ import { computed } from 'vue';
 /**
  * Обложка по умолчанию — рисуется из учётного имени, пока поставщик не
  * загрузил свою. Слои холмов: каждый — сумма двух синусоид со своими
- * амплитудами, частотами и фазами, слои темнеют книзу. Тон, фазы и
- * амплитуды выводятся из хэша имени, поэтому у каждого поставщика обложка
- * своя, а стиль у всех один. Цвета — часть рисунка, а не оформления.
+ * амплитудами, частотами и фазами, слои плотнеют книзу. Фазы, амплитуды и
+ * плотность выводятся из хэша имени, поэтому у каждого поставщика обложка
+ * своя, а стиль у всех один. Цвет — основной цвет платформы из токенов
+ * `--p-primary*`: сменится цвет или тема — сменятся и обложки.
  */
 const props = defineProps<{
   seed: string;
@@ -41,8 +42,7 @@ function makeRandom(seed: number): () => number {
 const art = computed(() => {
   const seed = hash(props.seed);
   const random = makeRandom(seed);
-  const hue = Math.floor(random() * 360);
-  const layers: { d: string; fill: string }[] = [];
+  const layers: { d: string; opacity: number; strong: boolean }[] = [];
   for (let i = 0; i < LAYERS; i++) {
     const base = HEIGHT * (0.38 + (i / LAYERS) * 0.55);
     const amp1 = 12 + random() * 26;
@@ -57,30 +57,52 @@ const art = computed(() => {
       d += ` L${x} ${y.toFixed(1)}`;
     }
     d += ` L${WIDTH} ${HEIGHT} Z`;
-    layers.push({ d, fill: `hsl(${(hue + i * 12) % 360} ${38 + i * 4}% ${80 - i * 7}%)` });
+    // Плотность растёт книзу с небольшим разбросом; нижний слой — тёмным оттенком.
+    const opacity = Math.min(1, 0.12 + i * 0.16 + random() * 0.06);
+    layers.push({ d, opacity, strong: i === LAYERS - 1 });
   }
-  return {
-    id: `cover-${seed.toString(36)}`,
-    sky: [`hsl(${hue} 55% 95%)`, `hsl(${(hue + 36) % 360} 60% 88%)`],
-    layers,
-  };
+  return { id: `cover-${seed.toString(36)}`, layers };
 });
+
 </script>
 
 <template lang="pug">
 svg.generated-cover(:viewBox="`0 0 ${WIDTH} ${HEIGHT}`", preserveAspectRatio="xMidYMid slice", aria-hidden="true")
   defs
     linearGradient(:id="art.id", x1="0", y1="0", x2="1", y2="1")
-      stop(offset="0", :stop-color="art.sky[0]")
-      stop(offset="1", :stop-color="art.sky[1]")
+      stop.generated-cover__sky-start(offset="0")
+      stop.generated-cover__sky-end(offset="1")
   rect(:width="WIDTH", :height="HEIGHT", :fill="`url(#${art.id})`")
-  path(v-for="(layer, i) in art.layers", :key="i", :d="layer.d", :fill="layer.fill")
+  path.generated-cover__layer(
+    v-for="(layer, i) in art.layers",
+    :key="i",
+    :class="{ 'generated-cover__layer--strong': layer.strong }",
+    :d="layer.d",
+    :fill-opacity="layer.opacity"
+  )
 </template>
 
 <style scoped lang="scss">
+// Цвета — токены платформы: обложка следует за основным цветом и темой.
 .generated-cover {
   display: block;
   width: 100%;
   height: 100%;
+
+  &__sky-start {
+    stop-color: var(--p-surface);
+  }
+
+  &__sky-end {
+    stop-color: var(--p-primary-soft);
+  }
+
+  &__layer {
+    fill: var(--p-primary);
+
+    &--strong {
+      fill: var(--p-primary-strong);
+    }
+  }
 }
 </style>
