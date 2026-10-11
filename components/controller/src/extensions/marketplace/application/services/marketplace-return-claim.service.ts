@@ -297,6 +297,21 @@ export class MarketplaceReturnClaimService {
    * его одной подписью (`signDocument(doc, operator, 1)`) и отправляет в
    * `acceptReturnAtVisit`. Ownership-проверка КУ — на резолвере.
    */
+  /**
+   * Заявление пайщика с текстом и подписями — для показа на странице
+   * заявления. Нет документа либо его тело не собралось — пусто: страница
+   * остаётся рабочей без текста.
+   */
+  async statementAggregate(claim: MarketplaceReturnClaimDomainEntity): Promise<InnerDocumentAggregate | null> {
+    if (!claim.statement) return null;
+    try {
+      return await this.documentPort.buildAggregate(claim.statement);
+    } catch (err) {
+      this.logger.warn(`Заявление на возврат ${claim.id}: текст заявления не собран (${(err as Error).message}).`);
+      return null;
+    }
+  }
+
   async getChairmanReturnSignablePayload(input: {
     coopname: string;
     claim_id: string;

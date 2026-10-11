@@ -4721,6 +4721,7 @@ export type MessageKey =
   | 'marketplace.operatorReturnClaimDetail.reasonLabel'
   | 'marketplace.operatorReturnClaimDetail.refundAmountLabel'
   | 'marketplace.operatorReturnClaimDetail.restoredToMemberLabel'
+  | 'marketplace.operatorReturnClaimDetail.statementHeader'
   | 'marketplace.operatorReturnClaimDetail.timelineCreatedTitle'
   | 'marketplace.operatorReturnClaimDetail.timelineHeader'
   | 'marketplace.operatorReturnClaimsPage.archiveEmpty'

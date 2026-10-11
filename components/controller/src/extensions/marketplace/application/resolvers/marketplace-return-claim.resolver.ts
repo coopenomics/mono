@@ -247,7 +247,9 @@ export class MarketplaceReturnClaimResolver {
     @Args('claim_id') claim_id: string
   ): Promise<MarketplaceReturnClaimDTO> {
     const claim = await this.service.findById(platformSettings().coopname, claim_id);
-    return this.toClaimDTO(claim);
+    // Текст заявления собирается только для одного заявления: в списках он не нужен.
+    const [dto, statement] = await Promise.all([this.toClaimDTO(claim), this.service.statementAggregate(claim)]);
+    return { ...dto, statement: statement ? new DocumentAggregateDTO(statement) : null };
   }
 
   @Mutation(() => MarketplaceReturnClaimResultDTO, {

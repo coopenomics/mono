@@ -1652,6 +1652,7 @@
       "reasonLabel": "Причина возврата",
       "refundAmountLabel": "Сумма возврата",
       "restoredToMemberLabel": "Восстановлено пайщику",
+      "statementHeader": "Заявление",
       "timelineCreatedTitle": "Заявление подано",
       "timelineHeader": "Хронология"
     },

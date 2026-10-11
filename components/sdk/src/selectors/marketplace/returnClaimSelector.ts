@@ -1,5 +1,6 @@
 import { Selector, type ValueTypes } from '../../zeus/index'
 import type { MakeAllFieldsRequired } from '../../utils/MakeAllFieldsRequired'
+import { rawDocumentAggregateSelector } from '../documents/documentAggregateSelector'
 
 export const rawPhotoSelector = {
   url: true,
@@ -96,6 +97,7 @@ const rawClaimSelector = {
   council_decision_id: true,
   council_decision_mode: true,
   accepted_at: true,
+  statement: rawDocumentAggregateSelector,
   created_at: true,
   updated_at: true,
 }

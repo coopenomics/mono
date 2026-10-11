@@ -516,6 +516,13 @@ export class MarketplaceReturnClaimDTO {
   @Field(() => Date, { nullable: true, description: 'Момент приёма имущества у стойки оператором участка.' })
   public readonly accepted_at!: Date | null;
 
+  @Field(() => DocumentAggregateDTO, {
+    nullable: true,
+    description:
+      'Заявление пайщика на гарантийный возврат с подписями — текст для чтения. Отдаётся при запросе одного заявления; в списках пусто.',
+  })
+  public readonly statement!: DocumentAggregateDTO | null;
+
   @Field() public readonly created_at!: Date;
   @Field() public readonly updated_at!: Date;
 }
