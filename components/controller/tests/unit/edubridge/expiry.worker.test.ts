@@ -1,4 +1,4 @@
-/** Граница оплаченного периода: закрытие подписки в цепи, отзыв доступа и подписка, которой в цепи уже нет. */
+/** Граница оплаченного периода: отзыв доступа, срок на отчёт преподавателя, закрытие подписки в цепи и подписка, которой в цепи уже нет. */
 import { EdubridgeExpiryWorker } from '~/extensions/edubridge/application/workers/edubridge-expiry.worker';
 import { EduAccessTaskKind, EduEnrollmentStatus } from '~/extensions/edubridge/domain/enums';
 
@@ -7,6 +7,7 @@ const logger = { setContext: jest.fn(), info: jest.fn(), warn: jest.fn(), error:
 function make(due: any[]) {
   const enrollments = {
     findExpired: jest.fn(async () => due),
+    findChainCloseDue: jest.fn(async () => [] as any[]),
     findActiveByMember: jest.fn(async () => due),
     save: jest.fn(async (e: any) => e),
   } as any;
@@ -21,41 +22,46 @@ function make(due: any[]) {
 const sub = (id: string) => ({ id, sub_hash: `h${id}`, course_id: 'C1', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date('2026-01-01') });
 
 describe('EdubridgeExpiryWorker', () => {
-  it('истёкшая подписка: expiresub в цепь, статус «истекла», доступ отзывается', async () => {
-    const e = sub('1');
-    const { worker, outbox, chain } = make([e]);
-    await worker.expire('voskhod');
-    expect(chain.expireSubscription).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'h1' });
-    expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
-    expect(outbox.enqueue).toHaveBeenCalledWith(expect.objectContaining({ kind: EduAccessTaskKind.REVOKE, trigger: 'TRX' }));
-  });
-
-  it('подписки в цепи уже нет: запись всё равно закрывается и доступ отзывается — очередь о неё не спотыкается', async () => {
-    const e = sub('2');
-    const { worker, outbox, chain } = make([e]);
-    chain.expireSubscription.mockRejectedValue(new Error('assertion failure with message: EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена'));
+  it('оплаченный срок вышел: доступ отзывается сразу, подписка в цепи остаётся на срок отчёта преподавателя', async () => {
+    const e = sub('1') as any;
+    const { worker, outbox, chain, funds } = make([e]);
     await worker.expire('voskhod');
     expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
     expect(outbox.enqueue).toHaveBeenCalledWith(expect.objectContaining({ kind: EduAccessTaskKind.REVOKE }));
+    // Занятия оплаченного срока ещё могут быть отчитаны: в цепи подписка не закрыта, срок закрытия — через семь суток.
+    expect(chain.expireSubscription).not.toHaveBeenCalled();
+    expect(funds.afterClosed).not.toHaveBeenCalled();
+    expect(e.chain_close_after).toEqual(new Date('2026-01-08'));
   });
 
-  it('цепь не отвечает: подписка остаётся действующей до следующего прохода, остальные обрабатываются', async () => {
-    const first = sub('3');
-    const second = sub('4');
-    const { worker, outbox, chain } = make([first, second]);
-    chain.expireSubscription.mockRejectedValueOnce(new Error('connect ECONNREFUSED'));
-    await worker.expire('voskhod');
-    expect(first.status).toBe(EduEnrollmentStatus.ACTIVE);
-    expect(second.status).toBe(EduEnrollmentStatus.EXPIRED);
-    expect(outbox.enqueue).toHaveBeenCalledTimes(1);
-  });
-
-  it('закрытая подписка отдаёт удержанное: резерв преподавателям по курсу выравнивается', async () => {
-    const e = { ...sub('6'), locked_amount: '400.0000 RUB' } as any;
-    const { worker, funds } = make([e]);
-    await worker.expire('voskhod');
+  it('срок на отчёт вышел: подписка закрывается в цепи, учёт курса выравнивается, срок закрытия снимается', async () => {
+    const e = { ...sub('2'), status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2026-01-08'), locked_amount: '400.0000 RUB' } as any;
+    const { worker, chain, funds, enrollments } = make([]);
+    enrollments.findChainCloseDue.mockResolvedValue([e]);
+    await expect(worker.closeReported('voskhod')).resolves.toBe(1);
+    expect(chain.expireSubscription).toHaveBeenCalledWith({ coopname: 'voskhod', sub_hash: 'h2' });
     expect(funds.afterClosed).toHaveBeenCalledWith('voskhod', e);
-    expect(e.status).toBe(EduEnrollmentStatus.EXPIRED);
+    expect(e.chain_close_after).toBeNull();
+  });
+
+  it('подписки в цепи уже нет: срок закрытия всё равно снимается — очередь о неё не спотыкается', async () => {
+    const e = { ...sub('3'), status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2026-01-08') } as any;
+    const { worker, chain, enrollments } = make([]);
+    enrollments.findChainCloseDue.mockResolvedValue([e]);
+    chain.expireSubscription.mockRejectedValue(new Error('assertion failure with message: EDUBRIDGE_SUBSCRIPTION_NOT_FOUND: Подписка с указанным hash не найдена'));
+    await expect(worker.closeReported('voskhod')).resolves.toBe(1);
+    expect(e.chain_close_after).toBeNull();
+  });
+
+  it('по подписке идёт расчёт открытого занятия либо цепь не отвечает: закрытие повторится, остальные обрабатываются', async () => {
+    const first = { ...sub('4'), status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2026-01-08') } as any;
+    const second = { ...sub('5'), status: EduEnrollmentStatus.EXPIRED, chain_close_after: new Date('2026-01-08') } as any;
+    const { worker, chain, enrollments } = make([]);
+    enrollments.findChainCloseDue.mockResolvedValue([first, second]);
+    chain.expireSubscription.mockRejectedValueOnce(new Error('assertion failure with message: EDUBRIDGE_SUBSCRIPTION_LESSON_PENDING: По подписке не завершён расчёт за проведённое занятие'));
+    await expect(worker.closeReported('voskhod')).resolves.toBe(1);
+    expect(first.chain_close_after).toEqual(new Date('2026-01-08'));
+    expect(second.chain_close_after).toBeNull();
   });
 
   it('досрочный отзыв при выходе пайщика переживает отсутствие записи в цепи', async () => {

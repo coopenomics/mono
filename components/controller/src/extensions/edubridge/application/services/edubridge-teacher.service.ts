@@ -30,6 +30,7 @@ import { EdubridgeFundsService } from './edubridge-funds.service';
 import { EdubridgeGroupService } from './edubridge-group.service';
 import { EdubridgeEnrollmentKyselyRepository } from '../../infrastructure/repositories/edubridge-enrollment.kysely-repository';
 import { chainAssignmentRef, EdubridgeChainTermsService, toChainTime } from './edubridge-chain-terms.service';
+import { isResumable } from '../../domain/lib/resumable';
 import { formatDate, formatDateTime } from '../../domain/lib/lesson-dates';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type {
@@ -779,7 +780,9 @@ export class EdubridgeTeacherService {
     const subscriptions = lesson.group_id ? await this.enrollments.findByGroup(coopname, lesson.group_id) : await this.enrollments.findByCourse(coopname, course.id);
     for (const enrollment of subscriptions) {
       // Отбор по записи приложения — только чтобы не слать заведомо лишнее; право на расчёт проверяет контракт.
-      if (enrollment.status !== EduEnrollmentStatus.ACTIVE || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
+      // Истёкшая подписка в сроке на отчёт ещё в цепи: занятие её оплаченного срока по ней рассчитывается.
+      const chargeable = enrollment.status === EduEnrollmentStatus.ACTIVE || isResumable(enrollment);
+      if (!chargeable || !enrollment.paid_until || new Date(enrollment.paid_until) <= heldAt) continue;
       try {
         await this.chain.chargeLesson({ coopname, rid_hash: c.rid_hash, sub_hash: enrollment.sub_hash });
       } catch (e) {

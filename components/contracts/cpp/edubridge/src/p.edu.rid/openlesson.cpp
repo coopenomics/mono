@@ -39,7 +39,8 @@ void edubridge::openlesson(eosio::name coopname,
   const auto now = eosio::time_point_sec(eosio::current_time_point());
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, assign->course_id);
   eosio::check(terms.open_lesson_id == 0, "EDUBRIDGE_LESSON_PREVIOUS_OPEN: Расчёт по предыдущему занятию курса не завершён");
-  eosio::check(terms.is_started() && held_at >= terms.starts_at, "EDUBRIDGE_LESSON_BEFORE_COURSE_START: Занятие не может быть раньше начала занятий курса");
+  // Дата занятия — день без времени: сравнивается с днём начала занятий.
+  eosio::check(terms.is_started() && held_at >= Edubridge::day_start(terms.starts_at), "EDUBRIDGE_LESSON_BEFORE_COURSE_START: Занятие не может быть раньше начала занятий курса");
   eosio::check(held_at <= now, "EDUBRIDGE_LESSON_IN_FUTURE: Дата занятия не может быть в будущем");
   eosio::check(held_at >= terms.last_held_at, "EDUBRIDGE_LESSON_DATE_ORDER: Занятия курса отчитываются по порядку дат");
   eosio::check(terms.lessons_total == 0 || terms.lessons_opened < terms.lessons_total,

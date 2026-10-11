@@ -73,6 +73,11 @@ export class EdubridgeEnrollmentKyselyRepository {
   }
 
   /** Подписки, закрытие которых при выходе пайщика не прошло, — для повтора. */
+  /** Истёкшие подписки, у которых срок на отчёт преподавателя вышел: пора закрывать в цепи. */
+  findChainCloseDue(coopname: string, now: Date, limit = 100): Promise<EdubridgeEnrollmentRecord[]> {
+    return this.repo.find({ coopname, status: EduEnrollmentStatus.EXPIRED, chain_close_after: lessOrEqual(now) }, { order: { chain_close_after: 'ASC' }, limit });
+  }
+
   findClosePending(coopname: string, limit = 100): Promise<EdubridgeEnrollmentRecord[]> {
     return this.repo.find({ coopname, close_pending_since: notNull() }, { order: { close_pending_since: 'ASC' }, limit });
   }

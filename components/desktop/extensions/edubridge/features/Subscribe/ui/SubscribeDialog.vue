@@ -82,6 +82,8 @@ const props = defineProps<{
   learners: ILearner[];
   courses: ICatalogCourse[];
   lockedCourseId?: string | null;
+  /** Продление: взнос идёт в группу подписки, выбора группы нет. */
+  lockedGroupId?: string | null;
 }>();
 const emit = defineEmits<{
   'update:modelValue': [v: boolean];
@@ -166,18 +168,20 @@ const groupOptions = computed(() =>
 
 async function loadGroups(): Promise<void> {
   openGroups.value = [];
-  groupId.value = null;
-  if (!courseId.value) return;
+  groupId.value = props.lockedGroupId ?? null;
+  // Продление идёт в группе подписки: набор в ней закрыт, выбирать не из чего.
+  if (!courseId.value || props.lockedGroupId) return;
   try {
     openGroups.value = await fetchOpenGroups(courseId.value);
   } catch {
     // Группы не прочитаны — сервер запишет в единственную группу с открытым набором.
     openGroups.value = [];
   }
-  if (openGroups.value.length > 1) groupId.value = asText(openGroups.value[0].id);
+  // Группа называется всегда: запись в другую группу курса — новая подписка, а не продление прежней.
+  if (openGroups.value.length) groupId.value = asText(openGroups.value[0].id);
 }
 
-watch(courseId, loadGroups, { immediate: true });
+watch([courseId, () => props.lockedGroupId], loadGroups, { immediate: true });
 watch([learnerId, courseId, groupId], async () => {
   period.value = Zeus.EduEnrollmentPeriod.MONTH;
   await reloadQuotes();

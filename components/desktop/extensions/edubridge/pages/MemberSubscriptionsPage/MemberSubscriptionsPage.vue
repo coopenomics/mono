@@ -42,7 +42,7 @@
       BaseBadge(:variant="accessOf(row.access_state).variant") {{ $t(`edubridge.access.short.${row.access_state}`) }}
     //- «Продлить» нажимают каждый период — кнопка в строке; остальные действия — в панели.
     template(#cell-actions="{ row }")
-      BaseButton(v-if="isActive(row) && row.renewable" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
+      BaseButton(v-if="row.renewable" variant="primary" size="sm" @click.stop="extend(row)") {{ $t('edubridge.memberSubscriptionsPage.extend') }}
   EmptyState(v-else :title="$t('edubridge.memberSubscriptionsPage.emptyTitle')" :body="$t('edubridge.memberSubscriptionsPage.emptyBody')")
     template(#icon)
       q-icon(name="school" size="32px")
@@ -67,6 +67,7 @@
     :learners="learners"
     :courses="courses"
     :locked-course-id="lockedCourseId"
+    :locked-group-id="lockedGroupId"
     @learner-added="onLearnerAdded"
     @subscribed="onSubscribed"
   )
@@ -155,6 +156,7 @@ const loading = ref(true);
 const firstLoad = useFirstLoad(loading);
 const extendOpen = ref(false);
 const lockedCourseId = ref<string | null>(null);
+const lockedGroupId = ref<string | null>(null);
 const cancelOpen = ref(false);
 const cancelTarget = ref<IEnrollment | null>(null);
 const refund = ref<IRefundPreview | null>(null);
@@ -248,6 +250,7 @@ async function load(): Promise<void> {
 
 function extend(row: IEnrollment): void {
   lockedCourseId.value = asText(row.course_id);
+  lockedGroupId.value = row.group_id ? asText(row.group_id) : null;
   extendOpen.value = true;
 }
 /** Курс подписки из каталога — за расписанием; снятый с публикации курс в каталоге не найдётся. */

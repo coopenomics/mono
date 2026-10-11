@@ -103,6 +103,16 @@ export function feeForMonths(feeMonth: string, months: number, discountPercent: 
   return { base: formatAmount(base, symbol), discount: formatAmount(discount, symbol), amount: formatAmount(base - discount, symbol) };
 }
 
+/**
+ * Взнос за неполный последний месяц — доля месячного взноса за занятия,
+ * которые в группе ещё впереди. Деление нацело — как в контракте (`Edubridge::quote_fee`).
+ */
+export function feeForLessons(feeMonth: string, lessons: number, lessonsPerMonth: number): FeeForMonths {
+  const { amount, symbol } = parseAmount(feeMonth);
+  const base = lessonsPerMonth > 0 ? Number((BigInt(amount) * BigInt(Math.max(0, lessons))) / BigInt(lessonsPerMonth)) : 0;
+  return { base: formatAmount(base, symbol), discount: formatAmount(0, symbol), amount: formatAmount(base, symbol) };
+}
+
 /** Стоимость часов по ставке — общий множитель себестоимости. */
 export function costOfHours(hourlyRate: string, hours: number): string {
   const { amount, symbol } = parseAmount(hourlyRate);

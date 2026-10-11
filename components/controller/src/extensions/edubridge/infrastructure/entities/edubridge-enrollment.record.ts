@@ -71,6 +71,13 @@ export class EdubridgeEnrollmentRecord {
    */
   public close_pending_since!: Date | null;
 
+  /**
+   * Срок на отчёт преподавателя: оплаченный срок вышел, доступ отозван, а
+   * подписка в цепи живёт до этого момента — по ней ещё идёт расчёт занятий,
+   * проведённых в оплаченный срок. Пусто — подписка в цепи закрыта либо действует.
+   */
+  public chain_close_after!: Date | null;
+
   /** Чем кончилась последняя попытка закрытия. */
   public close_error!: string | null;
 

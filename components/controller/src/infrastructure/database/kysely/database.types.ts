@@ -1199,6 +1199,7 @@ export interface EdubridgeCourses {
 export interface EdubridgeEnrollments {
   access_state: Generated<EdubridgeEnrollmentsAccessStateEnum>;
   cancelled_at: Timestamp | null;
+  chain_close_after: Timestamp | null;
   close_error: string | null;
   close_pending_since: Timestamp | null;
   coopname: string;

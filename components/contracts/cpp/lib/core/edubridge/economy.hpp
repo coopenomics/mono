@@ -116,6 +116,25 @@ inline eosio::time_point_sec lesson_hold_until(const edu_terms& terms, eosio::ti
   return eosio::time_point_sec(terms.starts_at.sec_since_epoch() + terms.guarantee_secs);
 }
 
+// ── Занятие и оплаченный срок ─────────────────────────────────────────────
+
+/// Начало суток (UTC), на которые приходится момент.
+inline eosio::time_point_sec day_start(eosio::time_point_sec at) {
+  return eosio::time_point_sec(at.sec_since_epoch() / SECONDS_IN_DAY * SECONDS_IN_DAY);
+}
+
+/**
+ * @brief Оплачено ли занятие подпиской.
+ *
+ * Дату занятия преподаватель называет днём, без времени. Поэтому начало
+ * оплаченного срока сравнивается по дням: участник, записавшийся утром,
+ * оплатил занятие вечера того же дня. Конец срока — как есть: занятие в день,
+ * когда срок ещё не вышел, оплачено.
+ */
+inline bool lesson_covered(const edu_subscription& sub, eosio::time_point_sec held_at) {
+  return day_start(sub.plan.value().paid_from) <= held_at && held_at < sub.paid_until;
+}
+
 // ── Взнос участника ──────────────────────────────────────────────────────
 
 /// Что оплачивает один взнос — считает контракт по условиям курса.
@@ -135,6 +154,8 @@ struct FeeQuote {
  * сегодняшнего дня, но не раньше начала занятий: записавшийся заранее
  * оплачивает месяц занятий, а не дни ожидания. За конец программы оплаченный
  * срок не выходит, и взнос за оплаченную до конца программу не принимается.
+ * Неполный последний месяц оплачивается по остатку: за занятия, которые в
+ * группе ещё не проведены, долей месячного взноса.
  * Взнос разом оплачивает месяцы до конца программы со скидкой курса:
  * пришедший в середине вносит за остаток.
  */
@@ -146,6 +167,8 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
 
   FeeQuote q;
   uint32_t discount_bp = 0;
+  // Сколько занятий оплачивает помесячный взнос; меньше месячного числа — взнос по остатку.
+  uint32_t month_lessons = terms.lessons_per_month;
   if (period == SubscriptionPeriod::MONTH) {
     const eosio::time_point_sec start = terms.is_started() ? terms.starts_at : from;
     const eosio::time_point_sec base = from > start ? from : start;
@@ -156,7 +179,13 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
     if (terms.is_started() && total > 0) {
       const eosio::time_point_sec end = add_months(start, total, terms.month_len());
       eosio::check(base < end, "EDUBRIDGE_COURSE_FULLY_PAID: Курс оплачен до конца программы");
-      if (q.paid_until > end) q.paid_until = end;
+      if (q.paid_until > end) {
+        // Последний неполный месяц: оплачиваются занятия, которые в группе ещё впереди.
+        q.paid_until = end;
+        const uint32_t ahead = terms.lessons_total > terms.lessons_opened ? terms.lessons_total - terms.lessons_opened : 0;
+        eosio::check(ahead > 0, "EDUBRIDGE_COURSE_FULLY_PAID: Все занятия программы проведены");
+        if (ahead < month_lessons) month_lessons = ahead;
+      }
     }
   } else {
     eosio::check(period == SubscriptionPeriod::COURSE, "EDUBRIDGE_PERIOD_INVALID: Недопустимый период оплаты: ожидается month либо course");
@@ -175,7 +204,7 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   }
 
   // Занятий не больше, чем осталось в программе курса.
-  uint32_t lessons = terms.lessons_per_month * q.months;
+  uint32_t lessons = period == SubscriptionPeriod::MONTH ? month_lessons : terms.lessons_per_month * q.months;
   if (terms.lessons_total > 0) {
     const uint32_t already = sub.has_plan() ? sub.plan.value().lessons_paid : 0;
     const uint32_t left = terms.lessons_total > already ? terms.lessons_total - already : 0;
@@ -184,7 +213,12 @@ inline FeeQuote quote_fee(const edu_terms& terms, const edu_subscription& sub, e
   }
   q.lessons = lessons;
 
-  const eosio::asset base_amount = terms.fee_month() * static_cast<int64_t>(q.months);
+  eosio::asset base_amount = terms.fee_month() * static_cast<int64_t>(q.months);
+  if (period == SubscriptionPeriod::MONTH && month_lessons < terms.lessons_per_month) {
+    base_amount = eosio::asset(
+        static_cast<int64_t>(static_cast<__int128>(terms.fee_month().amount) * month_lessons / terms.lessons_per_month),
+        base_amount.symbol);
+  }
   const eosio::asset discount(base_amount.amount * discount_bp / BP_IN_WHOLE, base_amount.symbol);
   q.amount = base_amount - discount;
   q.teach = terms.lesson_unit() * static_cast<int64_t>(lessons);
@@ -457,8 +491,7 @@ inline void check_no_pending_lesson(eosio::name coopname, const edu_terms& terms
   auto lesson = lessons.find(terms.open_lesson_id);
   if (lesson == lessons.end()) return;
   const auto& plan = sub.plan.value();
-  const bool covered = plan.paid_from <= lesson->held_at && lesson->held_at < sub.paid_until;
-  eosio::check(!covered || plan.last_lesson >= lesson->number,
+  eosio::check(!lesson_covered(sub, lesson->held_at) || plan.last_lesson >= lesson->number,
                "EDUBRIDGE_SUBSCRIPTION_LESSON_PENDING: По подписке не завершён расчёт за проведённое занятие");
 }
 

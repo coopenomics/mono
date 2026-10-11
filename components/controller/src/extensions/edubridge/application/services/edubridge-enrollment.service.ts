@@ -13,8 +13,9 @@ import {
   type IUserWalletPort,
 } from '@coopenomics/innercoop';
 import { EduAccessState, EduCourseStatus, EduEnrollmentPeriod, EduEnrollmentStatus } from '../../domain/enums';
-import { courseMonths, feeForMonths } from '../../domain/economy/course-fee.calculator';
+import { courseMonths, feeForLessons, feeForMonths } from '../../domain/economy/course-fee.calculator';
 import { monthPeriod, remainingCoursePeriod } from '../../domain/economy/course-period.calculator';
+import { isResumable } from '../../domain/lib/resumable';
 import { RefundReason, type RefundCalculation } from '../../domain/economy/refund.calculator';
 import { EDUBRIDGE_CHAIN_PORT, type EdubridgeChainPort } from '../../domain/ports/edubridge-chain.port';
 import type { EdubridgeCourseRecord, EdubridgeEnrollmentRecord, EdubridgeLearnerRecord } from '../../infrastructure/entities';
@@ -122,7 +123,9 @@ export class EdubridgeEnrollmentService {
   }
 
   /** Подписку можно продлить: программа группы продолжается после оплаченного срока. */
-  isRenewable(enrollment: EdubridgeEnrollmentRecord): Promise<boolean> {
+  async isRenewable(enrollment: EdubridgeEnrollmentRecord): Promise<boolean> {
+    // Действующая подписка либо истёкшая в сроке на отчёт: опоздавший с взносом продлевает её.
+    if (enrollment.status !== EduEnrollmentStatus.ACTIVE && !isResumable(enrollment)) return false;
     return this.groups.isRenewable(enrollment);
   }
 
@@ -139,28 +142,22 @@ export class EdubridgeEnrollmentService {
     const learner = await this.learnerService.getOwned(coopname, member, learnerId);
     const program = await this.courses.findById(coopname, courseId);
     if (!program) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED');
-    // Действующая подписка живёт в цепи до закрытия, даже когда оплаченный срок
-    // уже истёк, а очередь закрытия до неё ещё не дошла: новый взнос её
-    // продлевает, а не открывает заново — иначе цепь ответит «уже существует».
-    const running = (await this.enrollments.findByLearner(coopname, learnerId)).find(
-      (e) => e.course_id === courseId && e.status === EduEnrollmentStatus.ACTIVE && Boolean(e.paid_until)
-    );
-    const isExtension = Boolean(running);
+    const running = await this.runningOf(coopname, learnerId, courseId, groupId);
     // Снятый с публикации курс новых участников не принимает, но действующие
     // подписки на нём продлеваются.
-    if (program.status !== EduCourseStatus.PUBLISHED && !isExtension) {
+    if (program.status !== EduCourseStatus.PUBLISHED && !running) {
       throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND_OR_UNPUBLISHED');
     }
     // Продление идёт в группе подписки; новый участник записывается в группу с открытым набором.
     const group = running?.group_id ? await this.groups.get(coopname, running.group_id) : await this.groups.openFor(coopname, program, groupId);
     const existing = running ?? (await this.enrollments.findByLearnerAndGroup(coopname, learnerId, group.id));
+    // Подписка есть в цепи — действующая либо истёкшая в сроке на отчёт: взнос её продлевает, открыть заново цепь не даст.
+    const isExtension = Boolean(running) || isLapsed(existing);
     // Условия, дата начала и номер для цепи — группы: взнос и срок считаются по ним.
     const course = this.groups.viewOf(program, group);
 
     const symbol = course.fee_month.split(' ')[1] ?? '';
-    const now = new Date();
-    const paidUntil = isExtension ? (existing?.paid_until as Date) : null;
-    const terms = this.termsOf(course, period, paidUntil && paidUntil > now ? paidUntil : now);
+    const terms = this.termsOf(course, period, paidFrom(isExtension ? existing : null), await this.lessonsOpened(coopname, course));
 
     return {
       learner,
@@ -180,18 +177,32 @@ export class EdubridgeEnrollmentService {
   }
 
   /**
+   * Подписка участника, которую продлевает взнос. Подписка живёт в группе:
+   * запись в другую группу того же курса — новая подписка, действующая в
+   * первой ей не мешает; группа не названа — продлевается действующая подписка
+   * курса. Оплаченный срок вышел, а подписка ещё в цепи (срок на отчёт
+   * преподавателя) — опоздавший с взносом продлевает её в своей группе, хотя
+   * набор в группу закрыт.
+   */
+  private async runningOf(coopname: string, learnerId: string, courseId: string, groupId?: string | null): Promise<EdubridgeEnrollmentRecord | null> {
+    const active = (await this.enrollments.findByLearner(coopname, learnerId)).filter(
+      (e) => e.course_id === courseId && e.status === EduEnrollmentStatus.ACTIVE && Boolean(e.paid_until)
+    );
+    if (!groupId) return active[0] ?? null;
+    const inGroup = active.find((e) => e.group_id === groupId);
+    if (inGroup) return inGroup;
+    const own = await this.enrollments.findByLearnerAndGroup(coopname, learnerId, groupId);
+    return isLapsed(own) ? own : null;
+  }
+
+  /**
    * Помесячный взнос оплачивает месяц — от начала занятий, если запись сделана
    * раньше, и не дальше конца программы. Взнос за весь курс разом — месяцы до
    * конца программы со скидкой курса: пришедший в середине вносит за остаток.
    * Показ до транзакции: срок и сумму считает контракт тем же порядком.
    */
-  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date): PeriodTerms {
-    if (period === EduEnrollmentPeriod.MONTH) {
-      const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, courseMonths(course.lessons_per_month, course.lessons_total), from);
-      if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
-      const fee = feeForMonths(course.fee_month, 1, 0);
-      return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
-    }
+  private termsOf(course: EdubridgeCourseRecord, period: EduEnrollmentPeriod, from: Date, lessonsOpened: number): PeriodTerms {
+    if (period === EduEnrollmentPeriod.MONTH) return monthTerms(course, from, lessonsOpened);
     if (period !== EduEnrollmentPeriod.COURSE) {
       throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_YEAR_PERIOD_DISABLED');
     }
@@ -275,29 +286,7 @@ export class EdubridgeEnrollmentService {
     const trxId = String((result as { transaction_id?: string })?.transaction_id ?? document.hash);
     this.logger.info(`[EDU.SUB] ${member}: ${plan.isExtension ? 'extendsub' : 'opensub'} ${plan.subHash} до ${plan.paidUntil.toISOString()} (trx ${trxId})`);
 
-    const entity =
-      plan.existing ??
-      this.enrollments.create({
-        coopname,
-        member_username: member,
-        learner_id: learnerId,
-        course_id: courseId,
-        group_id: plan.groupId,
-        sub_hash: plan.subHash,
-      });
-    entity.group_id = entity.group_id ?? plan.groupId;
-    entity.period = period;
-    // Сумму, срок и удержание посчитал контракт — в запись идёт прочитанное из цепи.
-    Object.assign(entity, await this.chainState(coopname, plan));
-    entity.status = EduEnrollmentStatus.ACTIVE;
-    entity.statement_hash = document.hash.toLowerCase();
-    entity.expiry_notified_at = null;
-    if (!plan.isExtension) {
-      entity.access_state = EduAccessState.PENDING;
-      // Ученик вписался в курс: от этого дня (не раньше начала занятий) идёт его гарантийный срок.
-      entity.joined_at = new Date();
-    }
-    const saved = await this.enrollments.save(entity);
+    const { saved, opened } = await this.saveAfterPayment(coopname, member, learnerId, courseId, plan, period, document);
 
     const payload: IEduEnrollmentEventPayload = {
       coopname,
@@ -307,8 +296,49 @@ export class EdubridgeEnrollmentService {
       member_username: member,
       trx_id: trxId,
     };
-    this.events.emit(plan.isExtension ? EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT : EDUBRIDGE_ENROLLMENT_OPENED_EVENT, payload);
+    this.events.emit(opened ? EDUBRIDGE_ENROLLMENT_OPENED_EVENT : EDUBRIDGE_ENROLLMENT_EXTENDED_EVENT, payload);
     return saved;
+  }
+
+  /**
+   * Запись подписки после взноса. Сумму, срок и удержание посчитал контракт —
+   * в запись идёт прочитанное из цепи. `opened` — доступ выдаётся: подписка
+   * новая либо истёкшая продлена в срок на отчёт (доступ по ней был отозван).
+   */
+  private async saveAfterPayment(
+    coopname: string,
+    member: string,
+    learnerId: string,
+    courseId: string,
+    plan: EnrollmentPlan,
+    period: EduEnrollmentPeriod,
+    document: ISignedDocument
+  ): Promise<{ saved: EdubridgeEnrollmentRecord; opened: boolean }> {
+    const entity =
+      plan.existing ?? this.enrollments.create({ coopname, member_username: member, learner_id: learnerId, course_id: courseId, group_id: plan.groupId, sub_hash: plan.subHash });
+    const opened = !plan.isExtension || entity.status === EduEnrollmentStatus.EXPIRED;
+    entity.group_id = entity.group_id ?? plan.groupId;
+    Object.assign(entity, await this.chainState(coopname, plan), {
+      period,
+      status: EduEnrollmentStatus.ACTIVE,
+      chain_close_after: null,
+      statement_hash: document.hash.toLowerCase(),
+      expiry_notified_at: null,
+    });
+    if (opened) entity.access_state = EduAccessState.PENDING;
+    // Ученик вписался в курс: от этого дня (не раньше начала занятий) идёт его гарантийный срок.
+    if (!plan.isExtension) entity.joined_at = new Date();
+    return { saved: await this.enrollments.save(entity), opened };
+  }
+
+  /** Сколько занятий группы уже отчитано в цепи: от него считается остаток программы для неполного месяца. */
+  private async lessonsOpened(coopname: string, course: EdubridgeCourseRecord): Promise<number> {
+    try {
+      return Number((await this.chain.readTerms(coopname, course.chain_ref))?.lessons_opened ?? 0);
+    } catch {
+      // Условия группы не прочитались — показ считает месяц полным, сумму проверит контракт.
+      return 0;
+    }
   }
 
   /**
@@ -696,4 +726,31 @@ export class EdubridgeEnrollmentService {
 /** Отменить можно действующую подписку; истёкшую, отозванную и уже отменённую — нет. */
 export function isCancellable(e: EdubridgeEnrollmentRecord): boolean {
   return e.status === EduEnrollmentStatus.ACTIVE || e.status === EduEnrollmentStatus.PENDING;
+}
+
+/** Истёкшая подписка в сроке на отчёт преподавателя: в цепи она ещё есть. */
+function isLapsed(enrollment: EdubridgeEnrollmentRecord | null | undefined): enrollment is EdubridgeEnrollmentRecord {
+  return Boolean(enrollment) && isResumable(enrollment as EdubridgeEnrollmentRecord);
+}
+
+/** С какого момента идёт новый оплаченный срок: с конца уже оплаченного либо с этой минуты. */
+function paidFrom(existing: EdubridgeEnrollmentRecord | null): Date {
+  const now = new Date();
+  const paidUntil = existing?.paid_until ? new Date(existing.paid_until) : null;
+  return paidUntil && paidUntil > now ? paidUntil : now;
+}
+
+/**
+ * Помесячный взнос — показ до транзакции, тем же порядком, что считает
+ * контракт. Неполный последний месяц оплачивается по остатку: за занятия,
+ * которые в группе ещё впереди.
+ */
+function monthTerms(course: EdubridgeCourseRecord, from: Date, lessonsOpened: number): PeriodTerms {
+  const month = monthPeriod(course.starts_at ? new Date(course.starts_at) : null, courseMonths(course.lessons_per_month, course.lessons_total), from);
+  if (!month) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
+  const ahead = Math.max(0, course.lessons_total - lessonsOpened);
+  if (month.partial && ahead === 0) throw DomainError.badRequest('EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID');
+  const byRemainder = month.partial && ahead < course.lessons_per_month;
+  const fee = byRemainder ? feeForLessons(course.fee_month, ahead, course.lessons_per_month) : feeForMonths(course.fee_month, 1, 0);
+  return { months: 1, paidUntil: month.paid_until, baseAmount: fee.base, discountAmount: fee.discount, amount: fee.amount };
 }

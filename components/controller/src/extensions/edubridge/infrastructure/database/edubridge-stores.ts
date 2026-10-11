@@ -101,7 +101,7 @@ export const edubridgeStoreProviders: Provider[] = [
     useFactory: (db: Kysely<any>) =>
       new TableStore<EdubridgeEnrollmentRecord>(db, {
         table: 'edubridge_enrollments',
-        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'group_id', 'sub_hash', 'period', 'group_id', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at', 'close_pending_since', 'close_error'],
+        columns: ['id', 'coopname', 'member_username', 'learner_id', 'course_id', 'group_id', 'sub_hash', 'period', 'group_id', 'paid_until', 'status', 'access_state', 'paid_amount', 'paid_months', 'locked_amount', 'joined_at', 'cancelled_at', 'refunded_amount', 'refund_reason', 'statement_hash', 'expiry_notified_at', 'created_at', 'updated_at', 'close_pending_since', 'chain_close_after', 'close_error'],
         primaryKey: ['id'],
         updatedAt: 'updated_at',
         sameNames: true,

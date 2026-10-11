@@ -23,13 +23,13 @@ const course = {
   starts_at: null,
 } as any;
 
-function make(opts: { existing?: any; available?: string; program?: string; course?: any; chainSub?: any; lostSub?: any } = {}) {
+function make(opts: { existing?: any; available?: string; program?: string; course?: any; chainSub?: any; lostSub?: any; lessonsOpened?: number; byGroup?: Record<string, any> } = {}) {
   const saved: any[] = [];
   const enrollments = {
     findByPair: jest.fn(async () => opts.existing ?? null),
     // Подписки обучающегося и его подписка в группе: запись идёт в группу курса.
     findByLearner: jest.fn(async () => (opts.existing ? [{ course_id: 'C1', ...opts.existing }] : [])),
-    findByLearnerAndGroup: jest.fn(async () => opts.existing ?? null),
+    findByLearnerAndGroup: jest.fn(async (_c: string, _l: string, groupId: string) => (opts.byGroup ? opts.byGroup[groupId] ?? null : opts.existing ?? null)),
     findById: jest.fn(async () => opts.existing ?? null),
     findByCourse: jest.fn(async () => (opts.existing ? [opts.existing] : [])),
     create: jest.fn((d: any) => ({ ...d })),
@@ -49,6 +49,8 @@ function make(opts: { existing?: any; available?: string; program?: string; cour
     }),
     cancelSubscription: jest.fn(async () => ({ transaction_id: 'TRX2' })),
     // Строка подписки в цепи: суммы и срок после взноса приложение читает отсюда.
+    // Условия группы в цепи: сколько её занятий уже отчитано.
+    readTerms: jest.fn(async () => ({ lessons_opened: opts.lessonsOpened ?? 0 })),
     readSubscription: jest.fn(async () => opts.lostSub ?? (paid ? opts.chainSub ?? null : null)),
   } as any;
   const documents = { generate: jest.fn(async () => ({ hash: 'ABC', html: '', full_title: '', binary: '', meta: {} })) } as any;
@@ -289,6 +291,37 @@ describe('EdubridgeEnrollmentService — удержание взноса', () =>
     expect(chain.convertAndSubscribe.mock.calls[0][3].lock).toBeUndefined();
     expect(saved.locked_amount).toBe('1000.0000 RUB');
     expect(saved.paid_until!.toISOString()).toBe('2026-12-01T00:00:00.000Z');
+  });
+
+  it('неполный последний месяц программы оплачивается по остатку занятий; полный — целиком', async () => {
+    // Программа в один месяц (8 занятий) началась 20 дней назад: до её конца меньше месяца.
+    const started = { ...course, lessons_total: 8, starts_at: new Date(Date.now() - 20 * 86400_000).toISOString() };
+    const partial = await make({ course: started, lessonsOpened: 5 }).service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
+    // Впереди три занятия из восьми: взнос — три восьмых месячного.
+    expect(partial.amount).toBe('375.0000 RUB');
+    const whole = await make({ course: { ...started, starts_at: new Date(Date.now() + 86400_000).toISOString() } }).service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH);
+    expect(whole.amount).toBe('1000.0000 RUB');
+    // Все занятия программы проведены — оплачивать нечего.
+    await expect(make({ course: started, lessonsOpened: 8 }).service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH)).rejects.toMatchObject({ code: 'EDUBRIDGE_ENROLLMENT_COURSE_FULLY_PAID' });
+  });
+
+  it('действующая подписка в одной группе курса записи в другую не мешает: это новая подписка, а не продление', async () => {
+    const inFirst = { id: 'E1', status: EduEnrollmentStatus.ACTIVE, paid_until: new Date(Date.now() + 10 * 86400_000), access_state: EduAccessState.GRANTED, learner_id: 'L1', course_id: 'C1', group_id: 'G0', sub_hash: 'первая' };
+    const { service } = make({ existing: inFirst, byGroup: {} });
+    // Группа названа и она другая: подписки в ней у участника нет.
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, 'G1')).resolves.toMatchObject({ is_extension: false });
+    // Группа не названа — взнос продлевает действующую подписку курса.
+    await expect(service.quote('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH)).resolves.toMatchObject({ is_extension: true });
+  });
+
+  it('оплаченный срок вышел, подписка ещё в цепи (срок на отчёт): новый взнос её продлевает, доступ выдаётся заново', async () => {
+    const expired = { id: 'E9', status: EduEnrollmentStatus.EXPIRED, paid_until: new Date(Date.now() - 86400_000), chain_close_after: new Date(Date.now() + 5 * 86400_000), access_state: EduAccessState.REVOKED, learner_id: 'L1', course_id: 'C1', sub_hash: 'x' };
+    const { service, chain, events } = make({ byGroup: { G1: expired }, chainSub: { charged: '2000.0000 RUB', locked: '0.0000 RUB', paid_until: '2099-12-01T00:00:00', plan: { version: 1 } } });
+    const saved = await service.subscribe('voskhod', 'ant', 'L1', 'C1', EduEnrollmentPeriod.MONTH, await docFor(service, EduEnrollmentPeriod.MONTH));
+    // В цепи подписка есть: она продлевается, а не открывается заново.
+    expect(chain.convertAndSubscribe.mock.calls[0][1]).toBeNull();
+    expect(saved).toMatchObject({ status: EduEnrollmentStatus.ACTIVE, access_state: EduAccessState.PENDING, chain_close_after: null });
+    expect(events.emit).toHaveBeenCalledWith(EDUBRIDGE_ENROLLMENT_OPENED_EVENT, expect.anything());
   });
 
   it('взнос в цепи прошёл, а записи на узле нет: повторная запись второй взнос не берёт, запись заводится по данным цепи', async () => {

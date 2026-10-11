@@ -48,7 +48,7 @@ void edubridge::chargelesson(eosio::name coopname,
 
   const auto& plan = sub->plan.value();
   eosio::check(plan.last_lesson < lesson->number, "EDUBRIDGE_LESSON_ALREADY_CHARGED: Расчёт за это занятие по подписке уже прошёл");
-  eosio::check(plan.paid_from <= lesson->held_at && lesson->held_at < sub->paid_until,
+  eosio::check(Edubridge::lesson_covered(*sub, lesson->held_at),
                "EDUBRIDGE_LESSON_NOT_COVERED: На дату занятия доступ по подписке не оплачен");
 
   const edu_terms terms = Edubridge::get_terms_or_fail(coopname, lesson->course_id);

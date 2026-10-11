@@ -43,16 +43,18 @@ export function addMonths(date: Date, months: number): Date {
  *
  * @param startsAt начало занятий; `null` — не назначено, месяц идёт от `from`
  * @param courseMonths длительность программы в месяцах; 0 — программа без конца
- * @returns `null`, когда оплачивать нечего: программа закончилась либо оплачена до конца
+ * @returns `null`, когда оплачивать нечего: программа закончилась либо оплачена до конца;
+ *   `partial` — месяц неполный, последний в программе
  */
-export function monthPeriod(startsAt: Date | null, courseMonths: number, from: Date): CoursePeriod | null {
+export function monthPeriod(startsAt: Date | null, courseMonths: number, from: Date): (CoursePeriod & { partial: boolean }) | null {
   const start = startsAt ?? from;
   const base = from > start ? from : start;
   const paidUntil = addMonths(base, 1);
-  if (!startsAt || !(courseMonths > 0)) return { months: 1, paid_until: paidUntil };
+  if (!startsAt || !(courseMonths > 0)) return { months: 1, paid_until: paidUntil, partial: false };
   const end = addMonths(start, courseMonths);
   if (base >= end) return null;
-  return { months: 1, paid_until: paidUntil > end ? end : paidUntil };
+  // Месяц обрезан концом программы — последний неполный: взнос идёт по остатку занятий.
+  return paidUntil > end ? { months: 1, paid_until: end, partial: true } : { months: 1, paid_until: paidUntil, partial: false };
 }
 
 /**
