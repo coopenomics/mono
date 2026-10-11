@@ -11,11 +11,12 @@ import type {
 import { SupplierProfileHead } from '../SupplierProfileHead';
 
 /**
- * Правка профиля поставщика. Обложка и название правятся прямо в шапке —
- * такой, какой её видит заказчик; под ней карточка с рассказом о себе и
- * кнопкой сохранения. Одна форма на два стола — поставщик правит свой
- * профиль, администратор — профиль кооператива; чем сохранять, решает
- * страница (`save`).
+ * Правка профиля поставщика. Профиль показан таким, каким его видит
+ * заказчик: обложка и название правятся прямо в шапке, рассказ о себе —
+ * текстом с кнопкой «Изменить», по нажатию он становится полем. Полоса
+ * «Отмена / Сохранить» появляется внизу только при несохранённых правках.
+ * Одна форма на два стола — поставщик правит свой профиль, администратор —
+ * профиль кооператива; чем сохранять, решает страница (`save`).
  */
 const ABOUT_MAX = 4000;
 const NAME_MAX = 200;
@@ -36,6 +37,7 @@ const about = ref('');
 const coverFile = ref<File | null>(null);
 const removeCover = ref(false);
 const saving = ref(false);
+const editingAbout = ref(false);
 /** Адрес выбранного файла для показа в шапке; живёт до следующего выбора. */
 const coverPreviewUrl = ref<string | null>(null);
 
@@ -45,24 +47,32 @@ const aboutError = computed(() =>
   about.value.length > ABOUT_MAX ? t('marketplace.supplierProfileForm.aboutTooLong', { max: ABOUT_MAX }) : undefined,
 );
 const canSave = computed(() => !aboutError.value);
+/** Есть несохранённые правки — показывается полоса сохранения. */
+const dirty = computed(
+  () =>
+    displayName.value !== (props.profile?.custom_display_name ?? '') ||
+    about.value !== (props.profile?.about ?? '') ||
+    coverFile.value !== null ||
+    removeCover.value,
+);
 
 function releasePreview(): void {
   if (coverPreviewUrl.value) URL.revokeObjectURL(coverPreviewUrl.value);
   coverPreviewUrl.value = null;
 }
 
+/** Поля — из сохранённого профиля; так же отменяются правки. */
+function reset(): void {
+  displayName.value = props.profile?.custom_display_name ?? '';
+  about.value = props.profile?.about ?? '';
+  coverFile.value = null;
+  removeCover.value = false;
+  editingAbout.value = false;
+  releasePreview();
+}
+
 // Профиль пришёл либо обновился после сохранения — поля берутся из него.
-watch(
-  () => props.profile,
-  (profile) => {
-    displayName.value = profile?.custom_display_name ?? '';
-    about.value = profile?.about ?? '';
-    coverFile.value = null;
-    removeCover.value = false;
-    releasePreview();
-  },
-  { immediate: true },
-);
+watch(() => props.profile, reset, { immediate: true });
 
 function onCoverPicked(file: File): void {
   if (!COVER_ACCEPT.split(',').includes(file.type)) {
@@ -127,18 +137,32 @@ onBeforeUnmount(releasePreview);
     template(v-if="$slots.actions", #actions)
       slot(name="actions")
 
-  BaseCard
+  //- Рассказ о себе — текстом, как его увидит заказчик; поле только по «Изменить».
+  BaseCard.profile-form__about
+    .profile-form__about-head
+      .profile-form__about-title {{ $t('marketplace.supplierProfileForm.aboutLabel') }}
+      BaseButton(v-if="editingAbout", variant="secondary", size="sm", @click="editingAbout = false") {{ $t('marketplace.supplierProfileForm.doneAction') }}
+      BaseButton(v-else, variant="secondary", size="sm", @click="editingAbout = true")
+        template(#icon-left)
+          q-icon(name="edit", size="16px")
+        | {{ $t('marketplace.supplierProfileForm.editAboutAction') }}
     BaseInput(
+      v-if="editingAbout",
       v-model="about",
       type="textarea",
       :rows="6",
       autogrow,
-      :label="$t('marketplace.supplierProfileForm.aboutLabel')",
+      autofocus,
       :hint="$t('marketplace.supplierProfileForm.aboutHint', { count: about.length, max: ABOUT_MAX })",
       :error="aboutError"
     )
-    .profile-form__actions
-      BaseButton(variant="primary", :loading="saving", :disabled="!canSave", @click="submit") {{ $t('marketplace.supplierProfileForm.saveAction') }}
+    .profile-form__about-text(v-else-if="about") {{ about }}
+    .profile-form__about-empty(v-else) {{ $t('marketplace.supplierProfileForm.aboutEmpty') }}
+
+  //- Полоса сохранения прибита к низу и видна только при несохранённых правках.
+  .profile-form__bar(v-if="dirty")
+    BaseButton(variant="ghost", :disabled="saving", @click="reset") {{ $t('common.action.cancel') }}
+    BaseButton(variant="primary", :loading="saving", :disabled="!canSave", @click="submit") {{ $t('marketplace.supplierProfileForm.saveAction') }}
 </template>
 
 <style scoped lang="scss">
@@ -147,13 +171,53 @@ onBeforeUnmount(releasePreview);
   flex-direction: column;
   gap: var(--p-4);
 
-  &__actions {
+  &__about-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--p-3);
+    margin-bottom: var(--p-3);
+  }
+
+  &__about-title {
+    font-size: var(--p-fs-h3);
+    font-weight: 600;
+    letter-spacing: var(--p-ls-h3);
+    color: var(--p-ink);
+  }
+
+  &__about-text {
+    max-width: 72ch;
+    font-size: var(--p-fs-body);
+    line-height: 1.6;
+    color: var(--p-ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  &__about-empty {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-3);
+  }
+
+  &__bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
     display: flex;
     justify-content: flex-end;
     gap: var(--p-2);
-    margin-top: var(--p-4);
-    padding-top: var(--p-4);
+    margin: 0 calc(-1 * var(--p-6)) calc(-1 * var(--p-6));
+    padding: var(--p-3) var(--p-6);
     border-top: 1px solid var(--p-line);
+    background: var(--p-canvas);
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-form__bar {
+    margin: 0 calc(-1 * var(--p-4)) calc(-1 * var(--p-4));
+    padding: var(--p-3) var(--p-4);
   }
 }
 </style>
