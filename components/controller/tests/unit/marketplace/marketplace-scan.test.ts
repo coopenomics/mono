@@ -64,17 +64,16 @@ describe('разбор кода передачи', () => {
     expect(parseMarketplaceHandoffCode('container:voskhod:BX-0001', COOP)?.ref).toBe('BX-0001');
     expect(parseMarketplaceHandoffCode('blago:shipment:voskhod:sh-1', COOP)?.ref).toBe('sh-1');
     expect(parseMarketplaceHandoffCode('blago:container:voskhod:BX-0001', COOP)?.kind).toBe(MarketplaceHandoffCodeKind.Container);
-    expect(parseMarketplaceHandoffCode('blago:receive:voskhod:ant', COOP)).toEqual({
-      kind: MarketplaceHandoffCodeKind.Receive, coopname: COOP, ref: 'ant',
-    });
-    expect(parseMarketplaceHandoffCode(' blago:return:voskhod:claim-1 ', COOP)?.kind).toBe(MarketplaceHandoffCodeKind.Return);
-    expect(parseMarketplaceHandoffCode('ant', COOP)).toEqual({ kind: MarketplaceHandoffCodeKind.Receive, coopname: COOP, ref: 'ant' });
+    expect(parseMarketplaceHandoffCode('ant', COOP)).toEqual({ kind: 'login', coopname: COOP, ref: 'ant' });
     expect(parseMarketplaceHandoffCode('bx-0007', COOP)).toEqual({ kind: MarketplaceHandoffCodeKind.Container, coopname: COOP, ref: 'BX-0007' });
   });
 
   // mkt.scan.side.01
-  it('отвергает мусор, лишние сегменты и неизвестный вид', () => {
+  it('отвергает мусор, лишние сегменты, неизвестный вид и прежние коды пайщика и заявления с идентификатором внутри', () => {
     expect(parseMarketplaceHandoffCode('', COOP)).toBeNull();
+    expect(parseMarketplaceHandoffCode('blago:receive:voskhod:ant', COOP)).toBeNull();
+    expect(parseMarketplaceHandoffCode('pickup:voskhod:ant', COOP)).toBeNull();
+    expect(parseMarketplaceHandoffCode('blago:return:voskhod:claim-1', COOP)).toBeNull();
     expect(parseMarketplaceHandoffCode('https://example.org', COOP)).toBeNull();
     expect(parseMarketplaceHandoffCode('blago:receive:voskhod:ant:extra', COOP)).toBeNull();
     expect(parseMarketplaceHandoffCode('order:voskhod:1', COOP)).toBeNull();
@@ -115,7 +114,7 @@ describe('визит по коду', () => {
       },
     });
 
-    const visit = await service.resolveVisit(COOP, KU, 'blago:receive:voskhod:ant');
+    const visit = await service.resolveVisit(COOP, KU, 'ant');
 
     expect(visit.target).toBe(MarketplaceScanTarget.PERSON);
     expect(visit.account).toBe('ant');
@@ -125,46 +124,9 @@ describe('визит по коду', () => {
       { kind: MarketplaceScanMatterKind.RECEPTION, ids: ['p1'] },
       { kind: MarketplaceScanMatterKind.RETURN, ids: ['c1'] },
     ]);
-    expect(visit.focus_claim_id).toBeNull();
     expect(orders.listForIssuanceByBraname).toHaveBeenCalledWith(COOP, KU);
     expect(reception.listSupplierPickupOrders).toHaveBeenCalledWith(COOP, KU, 'ant');
     expect(claims.listByDeliveryBraname).toHaveBeenCalledWith(COOP, KU, 'APPROVED_FOR_VISIT');
-  });
-
-  // mkt.scan.happy.03
-  it('код заявления ведёт к заявителю и отмечает заявление, если оно ждёт осмотра здесь', async () => {
-    const { service } = build({
-      claims: {
-        findById: jest.fn().mockResolvedValue({
-          id: 'c1', coopname: COOP, orderer_account: 'ant', delivery_braname: KU, status: 'APPROVED_FOR_VISIT',
-        }),
-        listByDeliveryBraname: jest.fn().mockResolvedValue([{ id: 'c1', orderer_account: 'ant' }]),
-      },
-    });
-
-    const visit = await service.resolveVisit(COOP, KU, 'blago:return:voskhod:c1');
-
-    expect(visit.account).toBe('ant');
-    expect(visit.focus_claim_id).toBe('c1');
-    expect(visit.matters).toEqual([{ kind: MarketplaceScanMatterKind.RETURN, ids: ['c1'] }]);
-  });
-
-  // mkt.scan.side.02
-  it('заявление другого участка или не в статусе осмотра не отмечается, но визит заявителя собирается', async () => {
-    const { service } = build({
-      claims: {
-        findById: jest.fn().mockResolvedValue({
-          id: 'c1', coopname: COOP, orderer_account: 'ant', delivery_braname: 'pvz2', status: 'APPROVED_FOR_VISIT',
-        }),
-        listByDeliveryBraname: jest.fn().mockResolvedValue([]),
-      },
-    });
-
-    const visit = await service.resolveVisit(COOP, KU, 'blago:return:voskhod:c1');
-
-    expect(visit.account).toBe('ant');
-    expect(visit.focus_claim_id).toBeNull();
-    expect(visit.matters).toEqual([]);
   });
 
   // mkt.scan.side.03
@@ -206,14 +168,11 @@ describe('визит по коду', () => {
     await expect(service.resolveVisit(COOP, KU, 'BX-0001')).rejects.toMatchObject({
       code: 'MARKETPLACE_SCAN_CONTAINER_OTHER_BRANCH',
     });
-    await expect(service.resolveVisit(COOP, KU, 'blago:receive:othercoop:ant')).rejects.toMatchObject({
+    await expect(service.resolveVisit(COOP, KU, 'shipment:othercoop:sh1')).rejects.toMatchObject({
       code: 'MARKETPLACE_SCAN_CODE_WRONG_COOP',
     });
     await expect(service.resolveVisit(COOP, KU, 'https://example.org')).rejects.toMatchObject({
       code: 'MARKETPLACE_SCAN_CODE_UNRECOGNIZED',
-    });
-    await expect(service.resolveVisit(COOP, KU, 'blago:return:voskhod:missing')).rejects.toMatchObject({
-      code: 'MARKETPLACE_SCAN_RETURN_CLAIM_NOT_FOUND',
     });
   });
 

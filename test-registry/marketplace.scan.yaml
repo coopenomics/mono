@@ -13,8 +13,9 @@ title: Единый сканер стола ПВЗ — визит пайщика
 # из 10 знаков, выдаёт сервер, живёт сутки (решение владельца), хранится в
 # таблице marketplace_handoff_code; по истечении выдаётся новый. Префикс
 # `blago:` из кодов убран (решение владельца), старые накладные и этикетки
-# сервер понимает. Старый код пайщика с учётной записью и голый логин —
-# ручной путь оператора.
+# сервер понимает. Прежние коды пайщика с учётной записью внутри и код
+# заявления сервер не принимает (слово владельца: «зачем принимать»); голый
+# логин остаётся ручным вводом оператора без камеры.
 
 sources:
   backend:
@@ -35,8 +36,8 @@ cases:
   - id: mkt.scan.happy.01
     level: backend
     kind: happy
-    scenario: разбор строки читает все пять видов кода, голый логин и код бокса с этикетки
-    expect: вид, кооператив и ссылка разобраны; логин считается кодом заказчика, BX-код — кодом бокса
+    scenario: разбор строки читает временный код, коды накладной и бокса (с префиксом и без), голый логин и код бокса с этикетки
+    expect: вид, кооператив и ссылка разобраны; логин — ручной ввод, BX-код — код бокса
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts
     status: written
@@ -44,7 +45,7 @@ cases:
   - id: mkt.scan.side.01
     level: backend
     kind: side
-    scenario: пустая строка, адрес сайта, лишний сегмент, неизвестный вид, пустой кооператив
+    scenario: пустая строка, адрес сайта, лишний сегмент, неизвестный вид, пустой кооператив, прежний код с учётной записью или заявлением внутри
     expect: разбор отвечает «не код»
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts
@@ -55,24 +56,6 @@ cases:
     kind: happy
     scenario: код заказчика, у которого на участке есть заказы к выдаче, ожидаемая поставка и одобренный возврат
     expect: три дела в порядке выдача, приёмка, возврат; чужие заказы и заявления не попадают; имя из сертификата
-    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
-    api: components/api-tests/src/marketplace/scan.test.ts
-    status: written
-
-  - id: mkt.scan.happy.03
-    level: backend
-    kind: happy
-    scenario: код заявления на возврат, которое ждёт осмотра на этом участке
-    expect: визит заявителя с отметкой заявления и делом «возврат»
-    test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
-    api: components/api-tests/src/marketplace/scan.test.ts
-    status: written
-
-  - id: mkt.scan.side.02
-    level: backend
-    kind: side
-    scenario: код заявления другого участка или не в статусе осмотра
-    expect: визит заявителя собирается, заявление не отмечается
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts
     status: written
@@ -107,7 +90,7 @@ cases:
   - id: mkt.scan.break.01
     level: backend
     kind: break
-    scenario: партия и бокс другого участка, код чужого кооператива, нераспознанная строка, несуществующее заявление
+    scenario: партия и бокс другого участка, код чужого кооператива, нераспознанная строка, несуществующий бокс
     expect: отказ своим кодом для каждого случая
     test: components/controller/tests/unit/marketplace/marketplace-scan.test.ts
     api: components/api-tests/src/marketplace/scan.test.ts

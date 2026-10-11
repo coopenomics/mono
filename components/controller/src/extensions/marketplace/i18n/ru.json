@@ -317,7 +317,6 @@
     "MARKETPLACE_SCAN_CODE_UNRECOGNIZED": "Код не распознан. Отсканируйте код из Стола заказов или введите логин пайщика.",
     "MARKETPLACE_SCAN_CODE_WRONG_COOP": "Код выписан в другом кооперативе.",
     "MARKETPLACE_SCAN_CONTAINER_OTHER_BRANCH": "Бокс числится за участком {braname}.",
-    "MARKETPLACE_SCAN_RETURN_CLAIM_NOT_FOUND": "Заявление на возврат по этому коду не найдено.",
     "MARKETPLACE_SCAN_SHIPMENT_NOT_FOUND": "Партия по этому коду не найдена.",
     "MARKETPLACE_SCAN_SHIPMENT_OTHER_BRANCH": "Партия направлена на участок {braname}.",
     "MARKETPLACE_SHELF_LIFE_NEGATIVE": "Срок годности не может быть отрицательным.",

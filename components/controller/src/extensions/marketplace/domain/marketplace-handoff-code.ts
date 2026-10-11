@@ -7,15 +7,15 @@
  * Код пайщика — временный: случайная строка из `TOKEN_LENGTH` знаков, которую
  * выдал сервер и которая живёт `HANDOFF_CODE_TTL_HOURS`. Её сервер ищет в
  * таблице кодов и так узнаёт учётную запись. Алфавит без 0/O/1/I — код
- * читается с экрана и набирается руками без ошибок.
+ * читается с экрана и набирается руками без ошибок. Кодов пайщика с учётной
+ * записью внутри (прежние `receive`/`pickup`) и кода заявления (`return`)
+ * больше нет: по ним мог бы прийти кто угодно.
  *
  * Коды предметов постоянны: `<kind>:<coopname>:<ref>`
  *  - `shipment:<coop>:<id партии>`   — QR на накладной экспедитора;
  *  - `container:<coop>:<код бокса>`  — QR на боксе (`BX-0001`).
  * Старый формат с префиксом `blago:` (четыре сегмента) сервер понимает: такие
- * накладные и этикетки уже напечатаны. Старые коды пайщика `receive`/`pickup`
- * с учётной записью внутри и код заявления `return` разбираются как ручной
- * ввод — они не секрет, оператор сам отвечает за сверку личности.
+ * накладные и этикетки уже напечатаны.
  *
  * Ручной ввод без камеры: голый логин пайщика считается кодом заказчика, код
  * бокса с этикетки — кодом бокса.
@@ -30,16 +30,16 @@ const LEGACY_PREFIX = 'blago';
 const SEP = ':';
 
 export enum MarketplaceHandoffCodeKind {
-  Receive = 'receive',
-  Pickup = 'pickup',
-  Return = 'return',
   Shipment = 'shipment',
   Container = 'container',
 }
 
 export type MarketplaceHandoffCode =
   | { kind: MarketplaceHandoffCodeKind; coopname: string; ref: string }
-  | { kind: 'token'; coopname: string; ref: string };
+  /** Временный код пайщика: учётную запись по нему знает таблица кодов. */
+  | { kind: 'token'; coopname: string; ref: string }
+  /** Голый логин — ручной ввод оператора. */
+  | { kind: 'login'; coopname: string; ref: string };
 
 const KINDS = new Set<string>(Object.values(MarketplaceHandoffCodeKind));
 
@@ -103,7 +103,7 @@ function parseBare(value: string, coopname: string): MarketplaceHandoffCode | nu
     return { kind: MarketplaceHandoffCodeKind.Container, coopname, ref: value.toUpperCase() };
   }
   if (ACCOUNT_NAME_RE.test(value)) {
-    return { kind: MarketplaceHandoffCodeKind.Receive, coopname, ref: value };
+    return { kind: 'login', coopname, ref: value };
   }
   return null;
 }

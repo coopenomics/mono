@@ -75,7 +75,7 @@ export class MarketplaceScanService {
       if (issued.expires_at.getTime() <= now.getTime()) {
         throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_EXPIRED');
       }
-      return this.personVisit(coopname, braname, issued.account, null);
+      return this.personVisit(coopname, braname, issued.account);
     }
 
     switch (code.kind) {
@@ -83,10 +83,8 @@ export class MarketplaceScanService {
         return this.shipmentVisit(coopname, braname, code.ref);
       case MarketplaceHandoffCodeKind.Container:
         return this.containerVisit(coopname, braname, code.ref);
-      case MarketplaceHandoffCodeKind.Return:
-        return this.returnVisit(coopname, braname, code.ref);
       default:
-        return this.personVisit(coopname, braname, code.ref, null);
+        return this.personVisit(coopname, braname, code.ref);
     }
   }
 
@@ -117,7 +115,7 @@ export class MarketplaceScanService {
   private async manualVisit(coopname: string, braname: string, raw: string): Promise<MarketplaceScanVisitDTO> {
     const login = raw.trim().toLowerCase();
     if (!isAccountName(login)) throw DomainError.badRequest('MARKETPLACE_SCAN_CODE_UNRECOGNIZED');
-    return this.personVisit(coopname, braname, login, null);
+    return this.personVisit(coopname, braname, login);
   }
 
   private async shipmentVisit(coopname: string, braname: string, shipment_id: string): Promise<MarketplaceScanVisitDTO> {
@@ -133,7 +131,6 @@ export class MarketplaceScanService {
       account: null,
       display_name: null,
       matters: [],
-      focus_claim_id: null,
       shipment_id: shipment.id,
       container_code: null,
     };
@@ -149,30 +146,12 @@ export class MarketplaceScanService {
       account: null,
       display_name: null,
       matters: [],
-      focus_claim_id: null,
       shipment_id: null,
       container_code: container.code,
     };
   }
 
-  /** Код заявления ведёт к заявителю: у него на участке могут быть и другие дела. */
-  private async returnVisit(coopname: string, braname: string, claim_id: string): Promise<MarketplaceScanVisitDTO> {
-    const claim = await this.claimRepo.findById(claim_id);
-    if (!claim || claim.coopname !== coopname) {
-      throw DomainError.notFound('MARKETPLACE_SCAN_RETURN_CLAIM_NOT_FOUND');
-    }
-    const awaitsVisitHere =
-      claim.delivery_braname === braname &&
-      claim.status === MarketplaceReturnClaimStatuses.APPROVED_FOR_VISIT;
-    return this.personVisit(coopname, braname, claim.orderer_account, awaitsVisitHere ? claim.id : null);
-  }
-
-  private async personVisit(
-    coopname: string,
-    braname: string,
-    account: string,
-    focus_claim_id: string | null
-  ): Promise<MarketplaceScanVisitDTO> {
+  private async personVisit(coopname: string, braname: string, account: string): Promise<MarketplaceScanVisitDTO> {
     const [issuance, pickup, claims, names] = await Promise.all([
       this.orderRepo.listForIssuanceByBraname(coopname, braname),
       this.reception.listSupplierPickupOrders(coopname, braname, account),
@@ -191,7 +170,6 @@ export class MarketplaceScanService {
       account,
       display_name: names.get(account) ?? null,
       matters,
-      focus_claim_id,
       shipment_id: null,
       container_code: null,
     };

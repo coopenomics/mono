@@ -6624,7 +6624,6 @@ export const ReturnTypes: Record<string,any> = {
 		account:"String",
 		container_code:"String",
 		display_name:"String",
-		focus_claim_id:"String",
 		matters:"MarketplaceScanMatter",
 		shipment_id:"String",
 		target:"MarketplaceScanTarget"
