@@ -116,6 +116,10 @@
 
     BaseForm(v-else-if="canManageAssignments" :loading="busy" @submit="onCreate")
       BaseSelect(v-model="form.course_id" :label="$t('edubridge.adminTeachersPage.assignment.courseLabel')" :options="courseOptions" required)
+      //- Преподаватель уже допущен к выбранному курсу — периоды видны до отправки:
+      //- новый допуск принимается только окном, которое с ними не пересекается.
+      .t-sm.t-muted.q-mb-md(v-if="courseAssignments.length")
+        | {{ $t('edubridge.adminTeachersPage.assignment.existingNote', { periods: courseAssignments.map((a) => `${formatDate(a.period_from)} — ${formatDate(a.period_to)}`).join('; ') }) }}
       BaseInput(v-model="form.schedule" :label="$t('edubridge.adminTeachersPage.assignment.scheduleLabel')")
       BaseInput(v-model="form.expected_result" :label="$t('edubridge.adminTeachersPage.assignment.expectedResultLabel')" type="textarea" :rows="2")
       .row.q-col-gutter-md
@@ -123,10 +127,14 @@
           BaseInput(v-model="form.period_from" :label="$t('edubridge.adminTeachersPage.assignment.periodFromLabel')" type="date" stack-label required)
         .col-6
           BaseInput(v-model="form.period_to" :label="$t('edubridge.adminTeachersPage.assignment.periodToLabel')" type="date" stack-label required)
+      BaseBanner(v-if="periodOverlaps" variant="warn")
+        template(#icon)
+          q-icon(name="event_busy")
+        | {{ $t('edubridge.adminTeachersPage.assignment.overlapWarning') }}
       template(#footer)
         .row.justify-end.q-gutter-sm
           BaseButton(variant="ghost" type="button" :disabled="busy" @click="assignFormOpen = false") {{ $t('edubridge.adminTeachersPage.cancel') }}
-          BaseButton(variant="primary" type="submit" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
+          BaseButton(variant="primary" type="submit" :disabled="periodOverlaps" :loading="busy") {{ $t('edubridge.adminTeachersPage.assignment.submit') }}
 
   BaseDialog(v-model="rateOpen" :title="rateTarget ? $t('edubridge.adminTeachersPage.rate.courseDialogTitle', { courseTitle: rateTarget.course_title }) : $t('edubridge.adminTeachersPage.rate.dialogTitle')" size="sm")
     BaseForm(:loading="savingRate" @submit="onSaveRate")
@@ -243,6 +251,20 @@ const form = reactive<IAssignmentInput>({ teacher_username: '', course_id: '', s
 
 const courseOptions = computed(() => courses.value.map((c) => ({ value: asText(c.id), label: `${c.title} · ${courseSectionLabel(c.section_title, c.level_title, ', ')}` })));
 const ownAssignments = computed(() => assignments.value.filter((a) => a.teacher_username === props.teacher.username));
+/** Действующие допуски преподавателя к курсу, выбранному в форме назначения. */
+const courseAssignments = computed(() =>
+  ownAssignments.value.filter((a) => asText(a.course_id) === form.course_id && a.status === Zeus.EduAssignmentStatus.ACTIVE),
+);
+/** День периода без времени, как в полях формы: ГГГГ-ММ-ДД. */
+const dayOf = (v: unknown): string => {
+  const input = asDateInput(v);
+  return input ? new Date(input).toISOString().slice(0, 10) : '';
+};
+/** Период из формы пересекается с действующим допуском к этому курсу — сервер такой допуск не примет; границы включительно. */
+const periodOverlaps = computed(() => {
+  if (!form.period_from || !form.period_to) return false;
+  return courseAssignments.value.some((a) => dayOf(a.period_from) <= form.period_to && form.period_from <= dayOf(a.period_to));
+});
 // Договор на вкладке — подписанный документ из записи договора: он есть в любом
 // состоянии. У договоров, подписанных до появления этого поля, документа в
 // записи нет — тогда, пока договор на подписи, текст берётся из одобрения.

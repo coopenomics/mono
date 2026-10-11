@@ -72,6 +72,11 @@ const OPEN_CONTRIBUTIONS = [
   EduContributionStatus.ACT_SIGNED,
 ];
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** День периода допуска без времени: периоды сравниваются днями, границы включительно. */
+function dayOf(value: string | Date): string {
+  return new Date(value).toISOString().slice(0, 10);
+}
 /** Допуск на расхождение часов клиента и сервера при проверке даты занятия. */
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 /** Ответ цепи на повторную подачу заявления по тем же материалам. */
@@ -385,6 +390,7 @@ export class EdubridgeTeacherService {
     if (!course) throw DomainError.notFound('EDUBRIDGE_COURSE_NOT_FOUND');
     if (input.period_to < input.period_from) throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID');
     const contract = await this.assertCanTeach(coopname, input.teacher_username.trim());
+    await this.assertPeriodFree(coopname, input.teacher_username.trim(), course.id, input.period_from, input.period_to);
     const hourlyRate = rateOnCourse(input.hourly_rate, contract.hourly_rate, course.planned_hourly_rate);
     const entity = this.teachers.createAssignment({
       coopname,
@@ -409,6 +415,18 @@ export class EdubridgeTeacherService {
       await this.courses.save(course);
     }
     return saved;
+  }
+
+  /**
+   * Допуски одного преподавателя к одному курсу не пересекаются по периодам:
+   * вести курс «окнами» можно, а второй допуск на те же дни — нет, иначе у
+   * занятия два допуска и непонятно, по какому оно отчитано.
+   */
+  private async assertPeriodFree(coopname: string, teacher: string, courseId: string, from: string, to: string): Promise<void> {
+    const active = (await this.teachers.listAssignments(coopname, { teacher })).filter((a) => a.course_id === courseId && a.status === EduAssignmentStatus.ACTIVE);
+    if (active.some((a) => dayOf(a.period_from) <= dayOf(to) && dayOf(from) <= dayOf(a.period_to))) {
+      throw DomainError.badRequest('EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP');
+    }
   }
 
   /**

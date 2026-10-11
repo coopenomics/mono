@@ -632,3 +632,11 @@ cases:
     test: components/controller/tests/unit/edubridge/teacher.service.test.ts
     api: components/api-tests/src/edubridge/guarantee-term.test.ts
     status: written
+  - id: edu.teach.side.29
+    level: backend
+    kind: side
+    scenario: "Администратор допускает преподавателя к курсу, к которому тот уже допущен: на те же дни, окном внахлёст, следующим окном, после снятия прежнего допуска."
+    expect: "Допуск с пересекающимся периодом отклоняется с кодом EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP, границы периода включительно. Следующее окно, другой курс и окно после снятого допуска принимаются."
+    test: components/controller/tests/unit/edubridge/teacher.service.test.ts
+    api: components/api-tests/src/edubridge/teacher.test.ts
+    status: written

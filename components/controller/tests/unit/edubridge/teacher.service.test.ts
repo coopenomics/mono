@@ -169,7 +169,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
   it('преподаватель без назначенной ставки к курсу не допускается', async () => {
     const { service, teachers } = make();
     (await service.contract('voskhod', 'teach'))!.hourly_rate = '0.0000 RUB';
-    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
     await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
     // Ставка на курсе, названная в допуске, договорную не заменяет.
     await expect(service.createAssignment('voskhod', { ...input, hourly_rate: '700.0000 RUB' })).rejects.toMatchObject({ code: 'EDUBRIDGE_TEACHER_RATE_NOT_ASSIGNED' });
@@ -218,8 +218,22 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
     expect(udata.save).toHaveBeenCalledWith({ coopname: 'voskhod', username: 'teach', key: 'education_contract_created_at', value: '06.10.2026' });
   });
 
+  it('допуски одного преподавателя к одному курсу не пересекаются по периодам: то же окно — отказ, следующее и после снятия — можно', async () => {
+    // В заготовке преподаватель допущен к курсу C1 с 01.09.2025 по 01.06.2027.
+    const admit = (from: string, to: string, course = 'C1') => ({ teacher_username: 'teach', course_id: course, period_from: from, period_to: to }) as any;
+    const taken = make();
+    await expect(taken.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31'))).rejects.toMatchObject({ code: 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP' });
+    // Границы включительно: окно с последнего дня действующего допуска пересекается.
+    await expect(taken.service.createAssignment('voskhod', admit('2027-06-01', '2027-08-01'))).rejects.toMatchObject({ code: 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP' });
+    await expect(taken.service.createAssignment('voskhod', admit('2027-06-02', '2027-08-01'))).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+    // Другой курс и снятый допуск окно не занимают.
+    await expect(taken.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31', 'C2'))).resolves.toMatchObject({ course_id: 'C2' });
+    const freed = make({ assignmentStatus: EduAssignmentStatus.CLOSED });
+    await expect(freed.service.createAssignment('voskhod', admit('2026-09-01', '2026-12-31'))).resolves.toMatchObject({ status: EduAssignmentStatus.ACTIVE });
+  });
+
   it('назначение на курс: ставка на курсе — из договора, но не выше плановой; названная выше плановой — отказ', async () => {
-    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
     const covered = make();
     await expect(covered.service.createAssignment('voskhod', input)).resolves.toMatchObject({ teacher_username: 'teach', status: EduAssignmentStatus.ACTIVE, hourly_rate: '1000.0000 RUB' });
     // В договоре 1000, плановая ставка курса 900: на этом курсе преподаватель ведёт занятия за 900.
@@ -268,7 +282,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
   });
 
   it('назначение на курс: без договора, с отклонённым либо прекращённым договором пайщик к курсу не допускается', async () => {
-    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
     for (const contract of [false, EduContractStatus.DECLINED, EduContractStatus.TERMINATED] as const) {
       const { service, teachers, courses } = make({ contract, courseTeachers: [] });
       await expect(service.createAssignment('voskhod', input)).rejects.toMatchObject({ code: 'EDUBRIDGE_COURSE_TEACHERS_WITHOUT_CONTRACT' });
@@ -289,7 +303,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
 
   it('допуск к курсу действует сразу: документа и подписей нет, в цепь ничего не уходит', async () => {
     const { service, chain, teachers } = make();
-    const a = await service.createAssignment('voskhod', { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any);
+    const a = await service.createAssignment('voskhod', { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any);
     expect(a.status).toBe(EduAssignmentStatus.ACTIVE);
     expect(teachers.saveAssignment).toHaveBeenCalledTimes(1);
     for (const call of Object.values(chain) as jest.Mock[]) expect(call).not.toHaveBeenCalled();
@@ -299,7 +313,7 @@ describe('EdubridgeTeacherService — договор УХД и приложен�
   });
 
   it('допущенный преподаватель попадает в список «Курс ведут»; уже стоящий в списке курс не пересохраняет', async () => {
-    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2026-09-01', period_to: '2027-06-01' } as any;
+    const input = { teacher_username: 'teach', course_id: 'C1', period_from: '2027-09-01', period_to: '2028-06-01' } as any;
     const absent = make({ courseTeachers: [] });
     await absent.service.createAssignment('voskhod', input);
     expect(absent.courses.save).toHaveBeenCalledWith(expect.objectContaining({ teacher_usernames: ['teach'] }));

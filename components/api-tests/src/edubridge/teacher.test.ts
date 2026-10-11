@@ -232,4 +232,18 @@ describe('Образование: преподаватель — профиль,
     expect(mine.filter(a => a.course_id === led.id && a.status === 'ACTIVE')).toEqual([])
     expect(mine.filter(a => a.course_id === course.id && a.status === 'ACTIVE')).toHaveLength(1)
   })
+
+  it(caseName('edu.teach.side.29', 'допуски одного преподавателя к одному курсу не пересекаются по периодам: то же окно — отказ, следующее — можно'), async () => {
+    const windowed = await publishCourse(chairman, section, 30)
+    const admit = (from: number, to: number) => ({ d: { teacher_username: teacher.account, course_id: windowed.id, period_from: dayFromNow(from), period_to: dayFromNow(to) } })
+    const first = (await gql<any>(chairman, CREATE_ASSIGNMENT, admit(0, 30))).edubridgeCreateAssignment
+    expect(first.status).toBe('ACTIVE')
+    // Те же дни и окно внахлёст — отказ; границы включительно.
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(0, 30)), 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP')
+    expectCode(await gqlError(chairman, CREATE_ASSIGNMENT, admit(30, 60)), 'EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP')
+    // Следующее окно — отдельный действующий допуск.
+    const second = (await gql<any>(chairman, CREATE_ASSIGNMENT, admit(31, 60))).edubridgeCreateAssignment
+    expect(second.status).toBe('ACTIVE')
+    expect((await assignmentsOf()).filter(a => a.course_id === windowed.id && a.status === 'ACTIVE')).toHaveLength(2)
+  })
 })

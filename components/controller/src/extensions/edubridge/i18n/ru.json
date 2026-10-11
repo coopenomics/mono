@@ -251,6 +251,7 @@
     "EDUBRIDGE_ASSIGNMENT_NOT_ACTIVE": "Допуск к курсу снят — отчитаться по занятию нельзя",
     "EDUBRIDGE_ASSIGNMENT_NOT_FOUND": "Назначение не найдено",
     "EDUBRIDGE_ASSIGNMENT_PERIOD_INVALID": "Конец периода раньше начала",
+    "EDUBRIDGE_ASSIGNMENT_PERIOD_OVERLAP": "Преподаватель уже допущен к этому курсу на этот период. Измените действующий допуск либо назовите другой период",
     "EDUBRIDGE_CARRIER_NOT_SUPPORTED": "Носитель не поддерживается",
     "EDUBRIDGE_CONNECTOR_NOT_CONFIGURED": "Площадка не настроена: сначала задайте ключи подключения",
     "EDUBRIDGE_CONNECTOR_UNKNOWN_FIELDS": "Неизвестные поля подключения: {fields}",
