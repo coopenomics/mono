@@ -3,10 +3,13 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { debounce } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { FailAlert } from 'src/shared/api';
+import { t } from 'src/shared/i18n';
 import { useFirstLoad } from 'src/shared/lib/composables';
 import { getMembershipFeePercent, marketLiveTables } from 'src/shared/lib/marketplace';
 import { useLiveReload } from 'src/shared/lib/realtime';
-import { Avatar, BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import { BaseButton, BaseCard, EmptyState } from 'src/shared/ui/base';
+import { AccountBadge } from 'src/shared/ui/domain';
+import { PageTabs, type PageTab } from 'src/shared/ui/layout';
 import { useMarketplaceCartStore } from 'src/entities/MarketplaceCart';
 import {
   loadSupplierProfile,
@@ -15,6 +18,7 @@ import {
 import { CatalogOfferCard, CatalogOfferCardSkeleton } from 'src/widgets/Marketplace/CatalogOfferCard';
 import { ReviewStars } from 'src/widgets/Marketplace/ReviewStars';
 import { ReviewSummary } from 'src/widgets/Marketplace/ReviewSummary';
+import { SupplierProfileHead } from 'src/widgets/Marketplace/SupplierProfileHead';
 import { canOrderOffer, toCatalogOffer, type MarketplaceOfferView } from '../../MarketplaceCatalog';
 import { fetchCatalog, fetchCategories } from '../../MarketplaceCatalog/api';
 import AddToCartDialog from '../../MarketplaceCatalog/ui/AddToCartDialog.vue';
@@ -25,8 +29,9 @@ import AddToCartDialog from '../../MarketplaceCatalog/ui/AddToCartDialog.vue';
  * предложения. Показывает все его предложения, доступные к заказу; у
  * кооператива — имущество со склада.
  *
- * Зоны: опознание (обложка, имя) → оценка → числа → рассказ о себе →
- * имущество → отзывы.
+ * Экран сверху вниз: шапка поставщика (обложка → контекст → имя → оценка →
+ * числа полосой), вкладки, один раздел — имущество, отзывы либо рассказ о
+ * себе. Пустой раздел — короткая строка, а не экран-заглушка.
  */
 const PAGE_SIZE = 24;
 const SKELETON_COUNT = 4;
@@ -58,6 +63,27 @@ const firstLoad = useFirstLoad(loading);
 const hasMoreOffers = computed(() => offers.value.length < offersTotal.value);
 // В корзину нельзя, пока заказчик не выбрал пункт выдачи.
 const needsKU = computed(() => !cartStore.currentBraname);
+
+// Разделы страницы — вкладками: счётчик говорит, сколько в разделе, до захода в него.
+type Section = 'offers' | 'reviews' | 'about';
+const section = ref<Section>('offers');
+const tabs = computed<PageTab[]>(() => {
+  const list: PageTab[] = [
+    { key: 'offers', label: t('marketplace.supplierProfilePage.offersTitle'), count: profile.value?.offers_count ?? 0 },
+    { key: 'reviews', label: t('marketplace.supplierProfilePage.reviewsTab'), count: profile.value?.reviews_count ?? 0 },
+  ];
+  if (profile.value?.about) list.push({ key: 'about', label: t('marketplace.supplierProfilePage.aboutTitle') });
+  return list;
+});
+
+function onSelectTab(tab: PageTab): void {
+  section.value = tab.key as Section;
+}
+
+const hasReviews = computed(() => (profile.value?.reviews_count ?? 0) > 0);
+const backLabel = computed(() =>
+  readonly.value ? t('marketplace.supplierProfilePage.backToSuppliers') : t('marketplace.supplierProfilePage.backToCatalog'),
+);
 
 const cartDialogOpen = ref(false);
 const cartDialogOffer = ref<MarketplaceOfferView | null>(null);
@@ -151,6 +177,7 @@ useLiveReload(marketLiveTables('offer', 'supplier', 'review'), () => reloadLive(
 // другой адрес.
 watch(account, () => {
   offersShown.value = PAGE_SIZE;
+  section.value = 'offers';
   void load();
 });
 
@@ -170,84 +197,76 @@ onMounted(async () => {
 
 <template lang="pug">
 q-page.supplier-profile(role="region", :aria-label="$t('marketplace.supplierProfilePage.ariaLabel')")
-  .supplier-profile__back
-    BaseButton(variant="ghost", size="sm", @click="goBack")
-      template(#icon-left)
-        q-icon(name="arrow_back", size="16px")
-      | {{ $t('marketplace.supplierProfilePage.backAction') }}
-
   template(v-if="firstLoad")
-    q-skeleton(type="rect", height="160px")
+    q-skeleton(type="rect", height="260px")
     .row.q-col-gutter-md
       .col-12.col-sm-6.col-md-4.col-lg-3(v-for="n in SKELETON_COUNT", :key="`skel-${n}`")
         CatalogOfferCardSkeleton
 
-  EmptyState(
-    v-else-if="!profile",
-    :title="$t('marketplace.supplierProfilePage.notFoundTitle')",
-    :body="$t('marketplace.supplierProfilePage.notFoundBody')"
-  )
-    template(#icon)
-      q-icon(name="search_off", size="48px")
+  BaseCard(v-else-if="!profile")
+    EmptyState(
+      :title="$t('marketplace.supplierProfilePage.notFoundTitle')",
+      :body="$t('marketplace.supplierProfilePage.notFoundBody')"
+    )
+      template(#icon)
+        q-icon(name="search_off", size="22px")
+      template(#action)
+        BaseButton(variant="secondary", size="sm", @click="goBack") {{ backLabel }}
 
   template(v-else)
-    //- Шапка: обложка → контекст → имя → оценка → числа под линией.
-    BaseCard.supplier-profile__head
-      .supplier-profile__hero
-        .supplier-profile__cover
-          q-img(v-if="profile.cover_url", :src="profile.cover_url", :ratio="1", fit="cover", :alt="profile.display_name")
-          Avatar(v-else, :name="profile.display_name", size="xl")
-        .supplier-profile__identity
-          .supplier-profile__eyebrow
-            | {{ profile.is_cooperative ? $t('marketplace.supplierProfilePage.eyebrowCooperative') : $t('marketplace.supplierProfilePage.eyebrowSupplier') }}
-          h1.supplier-profile__name {{ profile.display_name }}
-          ReviewStars(
-            :rating="profile.rating_avg",
-            :count="profile.reviews_count",
-            :empty-text="$t('marketplace.supplierProfilePage.noReviews')"
-          )
-      .supplier-profile__stats
-        .supplier-profile__stat
-          .supplier-profile__stat-label {{ $t('marketplace.supplierProfilePage.offersLabel') }}
-          .supplier-profile__stat-value {{ profile.offers_count }}
-        .supplier-profile__stat
-          .supplier-profile__stat-label {{ $t('marketplace.supplierProfilePage.reviewsLabel') }}
-          .supplier-profile__stat-value {{ profile.reviews_count }}
+    SupplierProfileHead(:profile="profile")
+      template(#context)
+        //- Возврат — первой крошкой строки контекста, внутри карточки.
+        button.supplier-profile__back(type="button", @click="goBack")
+          q-icon(name="arrow_back", size="14px")
+          span {{ backLabel }}
+        span(aria-hidden="true") ·
+        span {{ profile.is_cooperative ? $t('marketplace.supplierProfileHead.eyebrowCooperative') : $t('marketplace.supplierProfileHead.eyebrowSupplier') }}
+      template(v-if="hasReviews || readonly", #facts)
+        ReviewStars(:rating="profile.rating_avg", :count="profile.reviews_count")
+        AccountBadge(v-if="readonly", :account-name="profile.supplier_account", size="sm")
 
-    BaseCard(v-if="profile.about", :title="$t('marketplace.supplierProfilePage.aboutTitle')")
+    PageTabs.supplier-profile__tabs(:tabs="tabs", :active-key="section", @select="onSelectTab")
+
+    //- Имущество: карточки каталога, как на витрине.
+    template(v-if="section === 'offers'")
+      .supplier-profile__empty(v-if="offers.length === 0")
+        q-icon(name="inventory_2", size="22px")
+        .supplier-profile__empty-title {{ $t('marketplace.supplierProfilePage.offersEmptyTitle') }}
+        .supplier-profile__empty-body {{ $t('marketplace.supplierProfilePage.offersEmptyBody') }}
+      template(v-else)
+        .supplier-profile__note(v-if="!readonly && needsKU")
+          q-icon(name="info", size="18px")
+          span {{ $t('marketplace.supplierProfilePage.selectPvzHint') }}
+        .row.q-col-gutter-md
+          .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in offers", :key="o.id")
+            CatalogOfferCard(
+              :offer="toCatalogOffer(o, categoryNames)",
+              :fee-percent="feePercent",
+              :show-fee-note="false",
+              @click="goToOffer(o)"
+            )
+              template(v-if="!readonly", #actions)
+                BaseButton(
+                  variant="primary",
+                  size="sm",
+                  :disabled="!canOrderOffer(o) || needsKU",
+                  @click.stop="onSelectOffer(o)"
+                ) {{ $t('marketplace.supplierProfilePage.addToCartAction') }}
+        .supplier-profile__more(v-if="hasMoreOffers")
+          BaseButton(variant="secondary", size="sm", :loading="loadingMore", @click="showMoreOffers") {{ $t('marketplace.supplierProfilePage.showMoreAction') }}
+
+    //- Отзывы: сводка и список в одной карточке; без отзывов — тихая строка.
+    template(v-else-if="section === 'reviews'")
+      .supplier-profile__empty(v-if="!hasReviews")
+        q-icon(name="rate_review", size="22px")
+        .supplier-profile__empty-title {{ $t('marketplace.reviewList.emptyTitle') }}
+        .supplier-profile__empty-body {{ $t('marketplace.reviewList.emptyBody') }}
+      BaseCard(v-else)
+        ReviewSummary(:supplier-account="account", :offer-route-name="offerRouteName")
+
+    BaseCard(v-else)
       .supplier-profile__about {{ profile.about }}
-
-    section.supplier-profile__section
-      h2.supplier-profile__section-head {{ $t('marketplace.supplierProfilePage.offersTitle') }}
-      EmptyState(
-        v-if="offers.length === 0",
-        :title="$t('marketplace.supplierProfilePage.offersEmptyTitle')",
-        :body="$t('marketplace.supplierProfilePage.offersEmptyBody')"
-      )
-        template(#icon)
-          q-icon(name="inventory_2", size="40px")
-      .row.q-col-gutter-md(v-else)
-        .col-12.col-sm-6.col-md-4.col-lg-3(v-for="o in offers", :key="o.id")
-          CatalogOfferCard(
-            :offer="toCatalogOffer(o, categoryNames)",
-            :fee-percent="feePercent",
-            :show-fee-note="false",
-            @click="goToOffer(o)"
-          )
-            template(v-if="!readonly", #actions)
-              BaseButton(
-                variant="primary",
-                size="sm",
-                :disabled="!canOrderOffer(o) || needsKU",
-                @click.stop="onSelectOffer(o)"
-              ) {{ $t('marketplace.supplierProfilePage.addToCartAction') }}
-      .supplier-profile__more(v-if="hasMoreOffers")
-        BaseButton(variant="secondary", size="sm", :loading="loadingMore", @click="showMoreOffers") {{ $t('marketplace.supplierProfilePage.showMoreAction') }}
-      .supplier-profile__note(v-if="!readonly && needsKU && offers.length")
-        | {{ $t('marketplace.supplierProfilePage.selectPvzHint') }}
-
-    BaseCard(:title="$t('marketplace.supplierProfilePage.reviewsTitle')")
-      ReviewSummary(:supplier-account="account", :offer-route-name="offerRouteName")
 
   AddToCartDialog(
     v-if="!readonly",
@@ -264,97 +283,76 @@ q-page.supplier-profile(role="region", :aria-label="$t('marketplace.supplierProf
   flex-direction: column;
   gap: var(--p-4);
 
-  &__hero {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--p-5);
+  &__back {
+    display: inline-flex;
     align-items: center;
+    gap: var(--p-1);
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--p-ink-2);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--p-primary);
+    }
+
+    &:focus-visible {
+      outline: 1px solid var(--p-primary);
+      outline-offset: var(--p-1);
+      border-radius: var(--p-r-sm);
+    }
   }
 
-  &__cover {
-    width: 96px;
-    height: 96px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--p-r-lg);
-    overflow: hidden;
-    background: var(--p-surface-2);
+  // Первая вкладка стоит по левому краю карточек: у полосы свои боковые поля
+  // рассчитаны на страницу без отступов.
+  :deep(.supplier-profile__tabs .tabbar__tabs) {
+    padding: 0;
   }
 
-  &__identity {
+  // Пустой раздел — короткий тихий блок на холсте, без коробки.
+  &__empty {
     display: flex;
     flex-direction: column;
-    gap: var(--p-1);
-    min-width: 0;
-  }
-
-  &__eyebrow,
-  &__stat-label {
-    font-size: var(--p-fs-eyebrow);
-    letter-spacing: var(--p-ls-eyebrow);
-    text-transform: uppercase;
+    align-items: center;
+    gap: var(--p-2);
+    padding: var(--p-9) var(--p-6);
+    text-align: center;
     color: var(--p-ink-3);
   }
 
-  &__name {
-    margin: 0;
-    font-size: var(--p-fs-h1);
-    line-height: var(--p-lh-h1);
-    font-weight: 700;
+  &__empty-title {
+    margin-top: var(--p-1);
+    font-size: var(--p-fs-h3);
+    font-weight: 600;
     color: var(--p-ink);
-    overflow-wrap: anywhere;
   }
 
-  &__stats {
+  &__empty-body,
+  &__note {
+    font-size: var(--p-fs-body-sm);
+    color: var(--p-ink-2);
+  }
+
+  &__note {
     display: flex;
-    gap: var(--p-7);
-    flex-wrap: wrap;
-    margin-top: var(--p-4);
-    padding-top: var(--p-4);
-    border-top: 1px solid var(--p-line);
-  }
-
-  &__stat {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-1);
-  }
-
-  &__stat-value {
-    font-size: var(--p-fs-h2);
-    font-weight: 700;
-    color: var(--p-ink);
+    align-items: center;
+    gap: var(--p-2);
   }
 
   &__about {
-    color: var(--p-ink-2);
+    max-width: 72ch;
+    font-size: var(--p-fs-body);
+    line-height: 1.6;
+    color: var(--p-ink);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--p-3);
-  }
-
-  &__section-head {
-    margin: 0;
-    font-size: var(--p-fs-h2);
-    line-height: var(--p-lh-h2);
-    font-weight: 600;
-    color: var(--p-ink);
   }
 
   &__more {
     display: flex;
     justify-content: center;
-  }
-
-  &__note {
-    font-size: var(--p-fs-body-sm);
-    color: var(--p-ink-3);
   }
 }
 

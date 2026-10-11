@@ -2320,10 +2320,7 @@
     "supplierMyProfilePage": {
       "ariaLabel": "Мой профиль",
       "hint": "Профиль открывается заказчику с вашего имени на карточке предложения. Расскажите, что вы поставляете и где работаете.",
-      "noReviews": "Отзывов пока нет",
-      "offersLabel": "Предложений в каталоге",
-      "openAsOrdererAction": "Открыть как заказчик",
-      "ratingLabel": "Оценка заказчиков"
+      "openAsOrdererAction": "Открыть как заказчик"
     },
     "supplierOnboardingPage": {
       "applicationPendingText1": "Заявку рассмотрит председатель кооператива. После одобрения",
@@ -2367,18 +2364,14 @@
       "aboutTitle": "О поставщике",
       "addToCartAction": "В корзину",
       "ariaLabel": "Поставщик",
-      "backAction": "Назад",
-      "eyebrowCooperative": "Склад кооператива",
-      "eyebrowSupplier": "Поставщик",
-      "noReviews": "Отзывов пока нет",
+      "backToCatalog": "К каталогу",
+      "backToSuppliers": "К реестру поставщиков",
       "notFoundBody": "Проверьте ссылку либо вернитесь в каталог.",
       "notFoundTitle": "Поставщик не найден",
       "offersEmptyBody": "Предложения появятся здесь после публикации.",
       "offersEmptyTitle": "Опубликованных предложений нет",
-      "offersLabel": "Предложений",
       "offersTitle": "Имущество",
-      "reviewsLabel": "Отзывов",
-      "reviewsTitle": "Отзывы о поставщике",
+      "reviewsTab": "Отзывы",
       "selectPvzHint": "Выберите пункт выдачи в каталоге, чтобы положить имущество в корзину.",
       "showMoreAction": "Показать ещё"
     },
@@ -2663,6 +2656,14 @@
         "onAgenda": "На повестке"
       },
       "warrantyReturnLabel": "Гарантийный возврат"
+    },
+    "supplierProfileHead": {
+      "eyebrowCooperative": "Склад кооператива",
+      "eyebrowSupplier": "Поставщик",
+      "offersLabel": "Предложений",
+      "ratingLabel": "Оценка",
+      "ratingOutOf": "из 5",
+      "reviewsLabel": "Отзывов"
     }
   }
 }

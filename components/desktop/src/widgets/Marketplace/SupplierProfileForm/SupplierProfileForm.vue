@@ -92,11 +92,16 @@ async function submit(): Promise<void> {
 <template lang="pug">
 BaseCard.profile-form
   .profile-form__fields
+    //- Сама обложка видна в шапке над формой; здесь — выбор новой и снятие прежней.
     .profile-form__cover
-      .profile-form__label {{ $t('marketplace.supplierProfileForm.coverLabel') }}
-      .profile-form__cover-current(v-if="currentCoverUrl && !coverFile")
-        q-img.profile-form__cover-img(:src="currentCoverUrl", :ratio="16 / 9", fit="cover")
-        BaseButton(variant="secondary", size="sm", @click="removeCover = true") {{ $t('marketplace.supplierProfileForm.removeCoverAction') }}
+      .profile-form__cover-head
+        .profile-form__label {{ $t('marketplace.supplierProfileForm.coverLabel') }}
+        BaseButton(
+          v-if="currentCoverUrl && !coverFile",
+          variant="secondary",
+          size="sm",
+          @click="removeCover = true"
+        ) {{ $t('marketplace.supplierProfileForm.removeCoverAction') }}
       FileUploader(
         :model-value="coverFile",
         :accept="COVER_ACCEPT",
@@ -145,18 +150,11 @@ BaseCard.profile-form
     color: var(--p-ink-2);
   }
 
-  &__cover-current {
+  &__cover-head {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--p-3);
-    flex-wrap: wrap;
-  }
-
-  &__cover-img {
-    width: 320px;
-    max-width: 100%;
-    border: 1px solid var(--p-line);
-    border-radius: var(--p-r-md);
   }
 
   &__actions {
