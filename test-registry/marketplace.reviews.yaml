@@ -30,6 +30,8 @@ sources:
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-review.entity.ts
     - components/controller/src/extensions/marketplace/infrastructure/entities/marketplace-supplier-profile.entity.ts
     - components/controller/src/extensions/marketplace/migrations/database/1791619859005-supplier-profile-and-review.ts
+    - components/controller/src/extensions/marketplace/migrations/database/1791723152953-order-review-invite.ts
+    - components/controller/src/extensions/marketplace/application/services/marketplace-review-invite-cron.service.ts
   ui:
     - components/desktop/src/pages/Marketplace/SupplierProfile/**
     - components/desktop/src/pages/Marketplace/SupplierMyProfile/**
@@ -561,4 +563,72 @@ cases:
     kind: happy
     scenario: "Администратор правит «Профиль кооператива»"
     expect: "карточка «со склада» в каталоге ведёт на страницу кооператива с новым текстом"
+    status: missing
+
+  # Правка 2026-10-11: приглашение оставить отзыв. Через три часа после
+  # получения заказа заказчику уходит одно уведомление со ссылкой на форму
+  # отзыва; на странице заказа «Отзыв» и «Гарантийный возврат» стоят сразу под
+  # заказом.
+  - id: mkt.review.invite.happy.01
+    level: backend
+    kind: happy
+    scenario: задача по расписанию находит заказы, полученные от трёх часов до двух суток назад, без отзыва и без приглашения
+    expect: по каждому ставится отметка и заказчику уходит приглашение с названием имущества и номером заказа
+    test: components/controller/tests/unit/marketplace/marketplace-review-invite.test.ts
+    external: unreachable
+    external_reason: "приглашение шлёт задача по расписанию через три часа после получения — снаружи время не подвинуть; условия выборки и отметка проверены на запросах"
+    status: written
+
+  - id: mkt.review.invite.side.01
+    level: backend
+    kind: side
+    scenario: два прогона задачи сошлись на одном заказе
+    expect: отметку ставит один, второй приглашение не шлёт
+    test: components/controller/tests/unit/marketplace/marketplace-review-invite.test.ts
+    external: unreachable
+    external_reason: "приглашение шлёт задача по расписанию через три часа после получения — снаружи время не подвинуть; условия выборки и отметка проверены на запросах"
+    status: written
+
+  - id: mkt.review.invite.side.02
+    level: backend
+    kind: break
+    scenario: выборка заказов упала; отметка по одному из заказов не поставилась
+    expect: прогон заканчивается без приглашений либо приглашает остальных, задача не падает
+    test: components/controller/tests/unit/marketplace/marketplace-review-invite.test.ts
+    external: unreachable
+    external_reason: "приглашение шлёт задача по расписанию через три часа после получения — снаружи время не подвинуть; условия выборки и отметка проверены на запросах"
+    status: written
+
+  - id: mkt.review.invite.side.03
+    level: backend
+    kind: side
+    scenario: заказ с отзывом, заказ с отправленным приглашением, заказ, полученный час назад, и заказ, полученный неделю назад
+    expect: в выборку приглашений ни один не попадает
+    test: components/controller/tests/unit/marketplace/marketplace-review-invite.test.ts
+    external: unreachable
+    external_reason: "приглашение шлёт задача по расписанию через три часа после получения — снаружи время не подвинуть; условия выборки и отметка проверены на запросах"
+    status: written
+
+  - id: mkt.review.invite.side.04
+    level: backend
+    kind: side
+    scenario: отметка приглашения ставится на заказ повторно
+    expect: первая постановка проходит, вторая сообщает, что отметка уже стоит
+    test: components/controller/tests/unit/marketplace/marketplace-review-invite.test.ts
+    external: unreachable
+    external_reason: "приглашение шлёт задача по расписанию через три часа после получения — снаружи время не подвинуть; условия выборки и отметка проверены на запросах"
+    status: written
+
+  - id: mkt.review.ui.invite.01
+    level: ui
+    kind: happy
+    scenario: "Заказчик открывает приглашение оставить отзыв из колокольчика либо по ссылке из письма"
+    expect: "открывается заказ с формой отзыва; после обновления страницы форма сама не открывается"
+    status: missing
+
+  - id: mkt.review.ui.invite.02
+    level: ui
+    kind: happy
+    scenario: "Заказчик открывает полученный заказ"
+    expect: "карточки «Отзыв» и «Гарантийный возврат» стоят сразу под заказом, выше «Где забрать» и «Факта выдачи»"
     status: missing

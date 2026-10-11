@@ -354,10 +354,25 @@ async function onOrderCancelled(): Promise<void> {
   await load();
 }
 
+/**
+ * Прямая ссылка из приглашения оставить отзыв (`?review=1`) открывает форму
+ * сразу. Признак снимается из адреса: обновление страницы форму не возвращает.
+ */
+async function openReviewFromLink(): Promise<void> {
+  if (!route.query.review) return;
+  await Promise.all([load(), loadReview()]);
+  const { review: _review, ...query } = route.query;
+  void router.replace({ query });
+  if (canReview.value && !reviewHidden.value) reviewDialogOpen.value = true;
+}
+
 onMounted(() => {
-  void load();
+  if (route.query.review) void openReviewFromLink();
+  else {
+    void load();
+    void loadReview();
+  }
   void loadReturnClaims();
-  void loadReview();
   void getMembershipFeePercent()
     .then((p) => {
       feePercent.value = p;
@@ -437,62 +452,9 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
             .order-detail__hero-cancel(v-if="cancellable")
               BaseButton(variant="danger", size="sm", @click="openCancelDialog") {{ $t('marketplace.ordererOrderDetailPage.cancelOrderButton') }}
 
-      BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
-        template(#head)
-          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.pickupLocationLabel') }}
-        .order-detail__pvz(:class="{ 'q-mb-sm': hasMap }")
-          q-icon(name="place", size="18px")
-          .order-detail__pvz-text
-            .order-detail__pvz-name(v-if="pvzName") {{ pvzName }}
-            .t-muted(v-if="pvzAddress") {{ pvzAddress }}
-        MapView(v-if="hasMap", :lat="pvzLat ?? 0", :long="pvzLng ?? 0")
-
-      BaseCard.order-detail__card(v-if="issuanceFact")
-        template(#head)
-          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.handoffFactLabel') }}
-        table.order-detail__table
-          thead
-            tr
-              th
-              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.order') }}
-              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.fact') }}
-          tbody
-            tr
-              td {{ $t('marketplace.ordererOrderDetailPage.column.quantity') }}
-              td.text-right {{ order.quantity }} {{ unitShort }}
-              td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
-            tr
-              td {{ $t('marketplace.ordererOrderDetailPage.column.amount') }}
-              td.text-right {{ formatPrice(String(totalWithFee)) }}
-              td.text-right {{ formatPrice(String(factCostWithFee)) }}
-
-      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
-        template(#head)
-          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.warrantyReturnLabel') }}
-        .order-detail__return
-          .order-detail__return-hero
-            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
-            .order-detail__return-text
-              .order-detail__return-primary {{ returnPrimaryText }}
-              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
-            BaseBadge.order-detail__return-badge(
-              v-if="displayedReturnClaim"
-              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
-            )
-              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
-
-          .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
-            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") {{ $t('marketplace.ordererOrderDetailPage.detailsLink') }}
-            BaseButton(
-              v-if="canSubmitReturn"
-              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
-              size="sm"
-              @click="openSubmitReturn"
-            )
-              template(#icon-left)
-                q-icon(name="assignment", size="16px")
-              | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
-
+      //- После получения заказчику нужны два действия — оценить полученное и, если
+      //- что-то не так, заявить возврат. Они стоят сразу под заказом; «где
+      //- забрать» и «факт выдачи» после получения — справка, она ниже.
       //- Отзыв о полученном имуществе: оставить, прочитать свой, поправить.
       BaseCard.order-detail__card(v-if="canReview")
         template(#head)
@@ -522,6 +484,62 @@ q-page.order-detail(role="region", :aria-label="$t('marketplace.ordererOrderDeta
                 template(#icon-left)
                   q-icon(name="rate_review", size="16px")
                 | {{ $t('marketplace.ordererOrderDetailPage.reviewLeaveButton') }}
+
+      BaseCard.order-detail__card(v-if="order.status === 'RECEIVED'")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.warrantyReturnLabel') }}
+        .order-detail__return
+          .order-detail__return-hero
+            q-icon.order-detail__return-icon(:name="returnHeroIcon", size="24px")
+            .order-detail__return-text
+              .order-detail__return-primary {{ returnPrimaryText }}
+              .order-detail__return-secondary(v-if="returnSecondaryText") {{ returnSecondaryText }}
+            BaseBadge.order-detail__return-badge(
+              v-if="displayedReturnClaim"
+              :variant="returnClaimStatusVariant(displayedReturnClaim.status)"
+            )
+              | {{ returnClaimStatusLabel(displayedReturnClaim.status) }}
+
+          .order-detail__return-actions(v-if="displayedReturnClaim || canSubmitReturn")
+            BaseButton(v-if="displayedReturnClaim", variant="ghost", size="sm", @click="openReturnDetails(displayedReturnClaim)") {{ $t('marketplace.ordererOrderDetailPage.detailsLink') }}
+            BaseButton(
+              v-if="canSubmitReturn"
+              :variant="displayedReturnClaim ? 'secondary' : 'primary'"
+              size="sm"
+              @click="openSubmitReturn"
+            )
+              template(#icon-left)
+                q-icon(name="assignment", size="16px")
+              | {{ displayedReturnClaim ? $t('marketplace.ordererOrderDetailPage.submitNewClaimButton') : $t('marketplace.ordererOrderDetailPage.submitClaimButton') }}
+
+      BaseCard.order-detail__card(v-if="pvzName || pvzAddress")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.pickupLocationLabel') }}
+        .order-detail__pvz(:class="{ 'q-mb-sm': hasMap }")
+          q-icon(name="place", size="18px")
+          .order-detail__pvz-text
+            .order-detail__pvz-name(v-if="pvzName") {{ pvzName }}
+            .t-muted(v-if="pvzAddress") {{ pvzAddress }}
+        MapView(v-if="hasMap", :lat="pvzLat ?? 0", :long="pvzLng ?? 0")
+
+      BaseCard.order-detail__card(v-if="issuanceFact")
+        template(#head)
+          .t-h3 {{ $t('marketplace.ordererOrderDetailPage.handoffFactLabel') }}
+        table.order-detail__table
+          thead
+            tr
+              th
+              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.order') }}
+              th.text-right {{ $t('marketplace.ordererOrderDetailPage.column.fact') }}
+          tbody
+            tr
+              td {{ $t('marketplace.ordererOrderDetailPage.column.quantity') }}
+              td.text-right {{ order.quantity }} {{ unitShort }}
+              td.text-right {{ issuanceFact.actual_quantity }} {{ unitShort }}
+            tr
+              td {{ $t('marketplace.ordererOrderDetailPage.column.amount') }}
+              td.text-right {{ formatPrice(String(totalWithFee)) }}
+              td.text-right {{ formatPrice(String(factCostWithFee)) }}
 
       BaseCard.order-detail__card(v-if="timelineEvents.length")
         template(#head)

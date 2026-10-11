@@ -47,6 +47,10 @@ function plainText(s: string | null | undefined): string {
 function linkFromNotification(n: IInboxNotification, coopname: string): string | undefined {
   const p = (n.payload ?? null) as Record<string, unknown> | null;
   if (p && typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  // Приглашение оставить отзыв ведёт в заказ с открытой формой отзыва.
+  if (p && typeof p.reviewOrderId === 'string' && p.reviewOrderId) {
+    return `/${coopname}/market/orders/${p.reviewOrderId}?review=1`;
+  }
   return undefined;
 }
 

@@ -172,6 +172,7 @@ import { MarketplaceOrderCloseCronService } from './services/marketplace-order-c
 import { MarketplaceChainRetryCronService } from './services/marketplace-chain-retry-cron.service';
 // Задача 99D-16: закрытие заказов, не привезённых за 48 часов после принятия
 import { MarketplaceUndeliveredOrderCronService } from './services/marketplace-undelivered-order-cron.service';
+import { MarketplaceReviewInviteCronService } from './services/marketplace-review-invite-cron.service';
 // Задача 99D-14: сверка инвариантов учёта (счёт 76 и остальные) по часам и по запросу
 import {
   MarketplaceLedgerInvariantsService,
@@ -473,6 +474,7 @@ import {
     MarketplaceChainRetryCronService,
     // Задача 99D-16: закрытие непоставленных заказов по сроку
     MarketplaceUndeliveredOrderCronService,
+    MarketplaceReviewInviteCronService,
     // Задача 99D-14: инварианты учёта Стола заказов
     {
       provide: MARKETPLACE_LEDGER_INVARIANTS_SERVICE,

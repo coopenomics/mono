@@ -1,6 +1,7 @@
 import { MarketplaceBaseline1790197276758 } from './migrations/database/1790197276758-baseline';
 import { MarketplaceDropFirstVersionCatalog1791028868299 } from './migrations/database/1791028868299-drop-first-version-catalog';
 import { MarketplaceSupplierProfileAndReview1791619859005 } from './migrations/database/1791619859005-supplier-profile-and-review';
+import { MarketplaceOrderReviewInvite1791723152953 } from './migrations/database/1791723152953-order-review-invite';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -12,4 +13,5 @@ export const marketplaceDatabaseMigrations = [
   MarketplaceBaseline1790197276758,
   MarketplaceDropFirstVersionCatalog1791028868299,
   MarketplaceSupplierProfileAndReview1791619859005,
+  MarketplaceOrderReviewInvite1791723152953,
 ];

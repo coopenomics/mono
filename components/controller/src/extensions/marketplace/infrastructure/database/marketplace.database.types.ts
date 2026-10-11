@@ -310,6 +310,7 @@ export interface MarketplaceOrder {
   quantity: Numeric;
   ready_announced_at: Timestamp | null;
   received_at: Timestamp | null;
+  review_invited_at: Timestamp | null;
   shipment_id: string | null;
   status: string;
   supplier_account: string;

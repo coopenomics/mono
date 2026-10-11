@@ -29,6 +29,13 @@ export interface ReviewCreateInput {
   text: string;
 }
 
+/** Полученный заказ без отзыва: кого и о чём пригласить. */
+export interface ReviewInviteCandidate {
+  order_id: string;
+  orderer_account: string;
+  product_name: string;
+}
+
 /** Чей это объект сводки: предложение либо поставщик. */
 export type ReviewSummaryTarget = { offer_id: string } | { supplier_account: string };
 
@@ -54,4 +61,16 @@ export interface MarketplaceReviewDomainRepository {
 
   /** Сводная оценка с распределением по звёздам — по опубликованным отзывам. */
   summary(coopname: string, target: ReviewSummaryTarget): Promise<MarketplaceReviewSummary>;
+
+  /**
+   * Заказы, полученные в названный промежуток, по которым нет ни отзыва, ни
+   * отправленного приглашения оставить его. Давно полученные идут первыми.
+   */
+  listOrdersAwaitingInvite(coopname: string, receivedFrom: Date, receivedTo: Date, limit: number): Promise<ReviewInviteCandidate[]>;
+
+  /**
+   * Отметить, что приглашение по заказу ушло. Отвечает `false`, если отметка
+   * уже стоит: приглашение отправил другой прогон.
+   */
+  claimInvite(coopname: string, order_id: string, at: Date): Promise<boolean>;
 }

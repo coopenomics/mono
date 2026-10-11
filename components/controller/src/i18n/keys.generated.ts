@@ -2426,6 +2426,7 @@ export type MessageKey =
   | 'marketplace.notification.returnRejectedInspectionTitle'
   | 'marketplace.notification.returnRejectedRemoteTitle'
   | 'marketplace.notification.returnedAmountNote'
+  | 'marketplace.notification.reviewInviteProductFallback'
   | 'marketplace.notification.signActPromptBody'
   | 'marketplace.offer.rejectedStatusLabel'
   | 'marketplace.offer.unpublishedStatusLabel'

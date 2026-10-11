@@ -13,6 +13,7 @@ import {
   MARKETPLACE_APL_RECEPTION_CANCELLED_BY_SUPPLIER_EVENT,
   MARKETPLACE_CASHIER_NEW_PAYMENT_EVENT,
   MARKETPLACE_ORDER_READY_TO_RECEIVE_EVENT,
+  MARKETPLACE_REVIEW_INVITE_EVENT,
   MARKETPLACE_NEW_ORDER_FOR_SUPPLIER_EVENT,
   MARKETPLACE_ORDER_DECLINED_BY_SUPPLIER_EVENT,
   MARKETPLACE_RETURN_CLAIM_DECIDED_EVENT,
@@ -36,6 +37,7 @@ import {
   type MarketplaceAplReceptionCancelledBySupplierEvent,
   type MarketplaceCashierNewPaymentEvent,
   type MarketplaceOrderReadyToReceiveEvent,
+  type MarketplaceReviewInviteEvent,
   type MarketplaceNewOrderForSupplierEvent,
   type MarketplaceOrderDeclinedBySupplierEvent,
   type MarketplaceReturnClaimDecidedEvent,
@@ -332,6 +334,32 @@ export class MarketplaceNotificationService implements OnModuleInit {
     } catch (err: any) {
       this.logger.warn(
         `Order ${event.order_id}: ошибка отправки push заказчику о готовности (${err.message}) — flow не блокируется.`
+      );
+    }
+  }
+
+  @OnEvent(MARKETPLACE_REVIEW_INVITE_EVENT)
+  async handleReviewInvite(event: MarketplaceReviewInviteEvent): Promise<void> {
+    try {
+      const ordererName = await this.accountPort.getDisplayName(event.orderer_account);
+      const payload: Workflows.MarketplaceReviewInvite.IPayload = {
+        ordererName,
+        productName: event.product_name || t('marketplace.notification.reviewInviteProductFallback'),
+        coopname: event.coopname,
+        order_id: event.order_id,
+        reviewOrderId: event.order_id,
+        // Ссылка открывает заказ сразу с формой отзыва.
+        deepLinkUrl: `${platformSettings().frontendUrl}/${event.coopname}/market/orders/${event.order_id}?review=1`,
+      };
+      await this.notificationSenderService.notifyUser(
+        event.orderer_account,
+        Workflows.MarketplaceReviewInvite.id,
+        payload
+      );
+      this.logger.log(`Order ${event.order_id}: приглашение оставить отзыв отправлено заказчику ${event.orderer_account}.`);
+    } catch (err: any) {
+      this.logger.warn(
+        `Order ${event.order_id}: ошибка отправки приглашения оставить отзыв (${err.message}) — flow не блокируется.`
       );
     }
   }

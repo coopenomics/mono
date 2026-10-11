@@ -611,6 +611,7 @@
       "returnRejectedInspectionTitle": "Возврат отклонён по результатам очного осмотра",
       "returnRejectedRemoteTitle": "Возврат отклонён удалённо председателем",
       "returnedAmountNote": " — {returnedAmount} ₽ восстановлены",
+      "reviewInviteProductFallback": "ваш заказ",
       "signActPromptBody": "Подпишите акт приёма-передачи в приложении — имущество ждёт вас на участке {kuName}."
     },
     "offer": {

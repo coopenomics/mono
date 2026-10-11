@@ -177,6 +177,20 @@ export interface MarketplaceSupplierPaymentDeclinedEvent {
   reason: string;
 }
 
+/**
+ * Задача 598-61: заказчику через несколько часов после получения заказа уходит
+ * приглашение оставить отзыв — один раз, если отзыва ещё нет.
+ */
+export const MARKETPLACE_REVIEW_INVITE_EVENT = 'marketplace.review.orderer.invite';
+
+export interface MarketplaceReviewInviteEvent {
+  coopname: string;
+  order_id: string;
+  orderer_account: string;
+  /** Название полученного имущества; пусто, если предложение не прочиталось. */
+  product_name: string;
+}
+
 export interface MarketplaceOrderReadyToReceiveEvent {
   coopname: string;
   order_id: string;

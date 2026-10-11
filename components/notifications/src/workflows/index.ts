@@ -38,6 +38,7 @@ import { workflow as marketplaceCashierNewPaymentWorkflow } from './marketplace-
 import { workflow as marketplaceSupplierPaymentConfirmedWorkflow } from './marketplace-supplier-payment-confirmed';
 import { workflow as marketplaceSupplierPaymentDeclinedWorkflow } from './marketplace-supplier-payment-declined';
 import { workflow as marketplaceOrderReadyWorkflow } from './marketplace-order-ready';
+import { workflow as marketplaceReviewInviteWorkflow } from './marketplace-review-invite';
 import { workflow as marketplaceIssuanceDecidedWorkflow } from './marketplace-issuance-decided';
 import { workflow as marketplaceReturnCouncilDecidedWorkflow } from './marketplace-return-council-decided';
 import { workflow as marketplaceReturnClaimSubmittedWorkflow } from './marketplace-return-claim-submitted';
@@ -112,6 +113,7 @@ export * as MarketplaceCashierNewPayment from './marketplace-cashier-new-payment
 export * as MarketplaceSupplierPaymentConfirmed from './marketplace-supplier-payment-confirmed';
 export * as MarketplaceSupplierPaymentDeclined from './marketplace-supplier-payment-declined';
 export * as MarketplaceOrderReady from './marketplace-order-ready';
+export * as MarketplaceReviewInvite from './marketplace-review-invite';
 export * as MarketplaceIssuanceDecided from './marketplace-issuance-decided';
 export * as MarketplaceReturnCouncilDecided from './marketplace-return-council-decided';
 export * as MarketplaceReturnClaimSubmitted from './marketplace-return-claim-submitted';
@@ -183,6 +185,7 @@ export const allWorkflows: WorkflowDefinition[] = [
   marketplaceSupplierPaymentConfirmedWorkflow,
   marketplaceSupplierPaymentDeclinedWorkflow,
   marketplaceOrderReadyWorkflow,
+  marketplaceReviewInviteWorkflow,
   marketplaceIssuanceDecidedWorkflow,
   marketplaceReturnCouncilDecidedWorkflow,
   marketplaceReturnClaimSubmittedWorkflow,
