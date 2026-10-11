@@ -2347,11 +2347,14 @@
       "submitHint": "После подачи заявку рассмотрит председатель кооператива — затем стол поставщика откроется."
     },
     "supplierProfileForm": {
+      "aboutEmpty": "Расскажите заказчикам, что вы поставляете и где работаете.",
       "aboutHint": "{count} из {max} знаков",
       "aboutLabel": "О себе",
       "aboutTooLong": "Текст длиннее {max} знаков",
       "coverTooLarge": "Файл больше 10 МБ",
       "coverWrongType": "Нужен JPEG, PNG или WEBP",
+      "doneAction": "Готово",
+      "editAboutAction": "Изменить",
       "saveAction": "Сохранить",
       "savedNotice": "Профиль сохранён"
     },
