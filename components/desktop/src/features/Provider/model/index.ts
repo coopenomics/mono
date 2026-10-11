@@ -40,8 +40,11 @@ export function useProviderSubscriptions() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // IP адрес сервера для делегирования домена
-  const SERVER_IP = '51.250.114.13';
+  // Имя точки входа кооператива для CNAME-записи домена кабинета. Запись-шаблон
+  // *.connector.coopenomics.world отвечает адресами всех L7-прокси, поэтому имя
+  // существует для любого кооператива заранее — выдавать записи не нужно, а
+  // куда ведёт кабинет, решается на стороне сети без участия кооператива.
+  const CONNECTOR_HOST = computed(() => `${system.info.coopname}.connector.coopenomics.world`);
 
   // Получить подписку на хостинг (id=1)
   const hostingSubscription = computed(() =>
@@ -116,7 +119,7 @@ export function useProviderSubscriptions() {
     instanceStatus,
     loadSubscriptions,
     startAutoRefresh,
-    SERVER_IP,
+    CONNECTOR_HOST,
   };
 }
 
