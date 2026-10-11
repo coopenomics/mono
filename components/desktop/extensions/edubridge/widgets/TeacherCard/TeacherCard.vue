@@ -334,8 +334,10 @@ function openAssignForm(): void {
 async function onCreate(): Promise<void> {
   busy.value = true;
   try {
-    const created = await createAssignment({ ...form });
-    assignments.value = [created, ...assignments.value];
+    await createAssignment({ ...form });
+    // Список перечитывается с сервера: приписывать ответ к списку нельзя — лента изменений
+    // успевает перечитать его раньше, и новый допуск встал бы двумя строками.
+    await loadAssignments();
     // Допуск действует сразу — действующих назначений тоже стало больше.
     patch((t) => ({ ...t, assignments_total: t.assignments_total + 1, assignments_active: t.assignments_active + 1 }));
     assignFormOpen.value = false;
