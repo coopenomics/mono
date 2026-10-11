@@ -3,6 +3,7 @@ import { MarketplaceDropFirstVersionCatalog1791028868299 } from './migrations/da
 import { MarketplaceHandoffCode1791736800000 } from './migrations/database/1791736800000-handoff-code';
 import { MarketplaceSecureDue1793440000000 } from './migrations/database/1793440000000-secure-due';
 import { MarketplaceSupplierProfileAndReview1791619859005 } from './migrations/database/1791619859005-supplier-profile-and-review';
+import { MarketplaceOrderReviewInvite1791723152953 } from './migrations/database/1791723152953-order-review-invite';
 
 /**
  * Миграции таблиц расширения — в порядке появления (метка времени в имени
@@ -16,4 +17,5 @@ export const marketplaceDatabaseMigrations = [
   MarketplaceHandoffCode1791736800000,
   MarketplaceSecureDue1793440000000,
   MarketplaceSupplierProfileAndReview1791619859005,
+  MarketplaceOrderReviewInvite1791723152953,
 ];

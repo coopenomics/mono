@@ -1,6 +1,7 @@
 import {
   TableStore,
   ilike,
+  rawQuery,
   type FindOptions,
   type PaginationInputDTO,
   type PaginationResult,
@@ -18,6 +19,7 @@ import {
 import type {
   MarketplaceReviewDomainRepository,
   ReviewCreateInput,
+  ReviewInviteCandidate,
   ReviewListFilter,
   ReviewSummaryTarget,
 } from '../../domain/repositories/marketplace-review.repository';
@@ -49,6 +51,46 @@ export class MarketplaceReviewRepositoryAdapter implements MarketplaceReviewDoma
   async findById(id: string): Promise<MarketplaceReviewDomainEntity | null> {
     const row = await this.repo.findOne({ id });
     return row ? toDomain(row) : null;
+  }
+
+  async listOrdersAwaitingInvite(
+    coopname: string,
+    receivedFrom: Date,
+    receivedTo: Date,
+    limit: number
+  ): Promise<ReviewInviteCandidate[]> {
+    const rows = await rawQuery<{ order_id: string; orderer_account: string; product_name: string | null }>(
+      this.repo.kysely,
+      `SELECT o.id AS order_id, o.orderer_account, f.product_name
+         FROM marketplace_order o
+         LEFT JOIN marketplace_offer f ON f.id = o.offer_id
+        WHERE o.coopname = $1
+          AND o.status = 'RECEIVED'
+          AND o.review_invited_at IS NULL
+          AND o.received_at > $2
+          AND o.received_at <= $3
+          AND NOT EXISTS (SELECT 1 FROM marketplace_review r WHERE r.coopname = o.coopname AND r.order_id = o.id)
+        ORDER BY o.received_at ASC
+        LIMIT $4`,
+      [coopname, receivedFrom, receivedTo, limit]
+    );
+    return rows.map((row) => ({
+      order_id: row.order_id,
+      orderer_account: row.orderer_account,
+      product_name: row.product_name ?? '',
+    }));
+  }
+
+  async claimInvite(coopname: string, order_id: string, at: Date): Promise<boolean> {
+    // Отметка заказчику не показывается — сигнал ленты изменений по ней не нужен.
+    const rows = await rawQuery(
+      this.repo.kysely,
+      `UPDATE marketplace_order SET review_invited_at = $3
+        WHERE coopname = $1 AND id = $2 AND review_invited_at IS NULL
+        RETURNING id`,
+      [coopname, order_id, at]
+    );
+    return rows.length > 0;
   }
 
   async findByOrder(coopname: string, order_id: string): Promise<MarketplaceReviewDomainEntity | null> {

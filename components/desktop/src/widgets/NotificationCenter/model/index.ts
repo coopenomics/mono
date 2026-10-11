@@ -63,6 +63,10 @@ function linkFromNotification(n: IInboxNotification, coopname: string): string |
   const p = (n.payload ?? null) as Record<string, unknown> | null;
   if (!p) return undefined;
   if (typeof p.securityUrl === 'string' && p.securityUrl) return `/${coopname}/user/settings`;
+  // Приглашение оставить отзыв ведёт в заказ с открытой формой отзыва.
+  if (typeof p.reviewOrderId === 'string' && p.reviewOrderId) {
+    return `/${coopname}/market/orders/${p.reviewOrderId}?review=1`;
+  }
   return agendaPathOf(p.agendaUrl, coopname);
 }
 
