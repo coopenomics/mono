@@ -85,7 +85,7 @@ function offerConditions(eb: ExpressionBuilder<any, any>, filter: OfferCondition
   const conditions: Expression<SqlBool>[] = [eb('coopname', '=', filter.coopname)];
   if (filter.supplier_account) conditions.push(eb('supplier_account', '=', filter.supplier_account));
   if (filter.status) conditions.push(eb('status', 'in', Array.isArray(filter.status) ? filter.status : [filter.status]));
-  if (filter.category_id !== undefined) conditions.push(eb('category_id', '=', filter.category_id));
+  if (filter.category_id != null) conditions.push(eb('category_id', '=', filter.category_id));
   if (filter.available_only) conditions.push(sql<boolean>`(unlimited_flag = true OR quantity_available > 0)`);
   if (filter.delivery_braname) {
     conditions.push(sql<boolean>`delivery_points @> ${JSON.stringify([{ braname: filter.delivery_braname }])}::jsonb`);

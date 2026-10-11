@@ -53,7 +53,7 @@ export class LedgerOperationKyselyRepository implements LedgerOperationRepositor
 
   async getHistory(params: GetLedgerHistoryInputDomainInterface): Promise<LedgerHistoryResponseDomainInterface> {
     let query = this.db.selectFrom('ledger_operations').where('coopname', '=', params.coopname);
-    if (params.account_id !== undefined) query = query.where('account_id', '=', String(params.account_id));
+    if (params.account_id != null) query = query.where('account_id', '=', String(params.account_id));
 
     const total = await query.select((eb) => eb.fn.countAll<string>().as('count')).executeTakeFirstOrThrow();
     const totalCount = Number(total.count);

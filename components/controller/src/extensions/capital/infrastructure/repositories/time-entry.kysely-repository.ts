@@ -190,7 +190,7 @@ export class TimeEntryKyselyRepository implements TimeEntryRepository {
       query.andWhere('te.contributor_hash = :contributorHash', { contributorHash: filter.contributorHash });
     }
 
-    if (filter.isCommitted !== undefined) {
+    if (filter.isCommitted != null) {
       query.andWhere('te.is_committed = :isCommitted', { isCommitted: filter.isCommitted });
     }
 
@@ -279,7 +279,7 @@ export class TimeEntryKyselyRepository implements TimeEntryRepository {
     if (filter.issueHash) {
       queryBuilder.andWhere('te.issue_hash = :issueHash', { issueHash: filter.issueHash });
     }
-    if (filter.isCommitted !== undefined) {
+    if (filter.isCommitted != null) {
       queryBuilder.andWhere('te.is_committed = :isCommitted', { isCommitted: filter.isCommitted });
     }
     if (filter.coopname) {
@@ -319,7 +319,7 @@ export class TimeEntryKyselyRepository implements TimeEntryRepository {
     if (filter.issueHash) {
       queryBuilder.andWhere('te.issue_hash = :issueHash', { issueHash: filter.issueHash });
     }
-    if (filter.isCommitted !== undefined) {
+    if (filter.isCommitted != null) {
       queryBuilder.andWhere('te.is_committed = :isCommitted', { isCommitted: filter.isCommitted });
     }
     if (filter.coopname) {

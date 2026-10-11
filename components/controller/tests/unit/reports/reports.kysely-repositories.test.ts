@@ -25,6 +25,19 @@ describe('хранилища отчётов на Kysely', () => {
     expect(queries[1].parameters).toEqual(['voskhod', 'ant', 'NDFL6', 2026, 3]);
   });
 
+  it('пустой год в отборе (null от стола) условием не становится — список не пустеет', async () => {
+    const { db, queries } = make();
+    const emptyYear = null as unknown as undefined;
+
+    await new ReportDraftKyselyRepository(db).list({ coopname: 'voskhod', owner_username: 'ant', year: emptyYear } as never);
+    await new ReportSubmissionMarkKyselyRepository(db).list({ coopname: 'voskhod', year: emptyYear } as never);
+
+    expect(queries).toHaveLength(2);
+    for (const query of queries) expect(query.sql).not.toContain('"year"');
+    expect(queries[0].parameters).toEqual(['voskhod', 'ant']);
+    expect(queries[1].parameters).toEqual(['voskhod']);
+  });
+
   it('черновик удаляется только у своего владельца в своём кооперативе', async () => {
     const { db, queries } = make([{ affected: 0 }]);
 

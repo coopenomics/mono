@@ -78,7 +78,7 @@ export class KuTrustRequestKyselyRepository
     if (filter?.coopname) where.coopname = filter.coopname;
     if (filter?.braname) where.braname = filter.braname;
     if (filter?.username) where.username = filter.username;
-    if (filter?.present !== undefined) where.present = filter.present;
+    if (filter?.present != null) where.present = filter.present;
 
     const totalCount = await this.repository.count(where);
 

@@ -22,7 +22,7 @@ function agreementConditions(filter?: AgreementFilterInput): Record<string, unkn
   for (const field of ['coopname', 'username', 'type'] as const) {
     if (filter[field]) where[field] = filter[field];
   }
-  if (filter.program_id !== undefined) where.program_id = filter.program_id;
+  if (filter.program_id != null) where.program_id = filter.program_id;
   if (filter.statuses && filter.statuses.length > 0) where.blockchain_status = oneOf(filter.statuses);
   if (filter.created_from || filter.created_to) where._created_at = within(filter.created_from, filter.created_to);
   return where;

@@ -187,3 +187,31 @@ cases:
     external: unreachable
     external_reason: "проверяются условия запросов к базе — снаружи они не видны; раскладка и вывод боксов через API покрыты случаями mkt.store.*"
     status: written
+
+  - id: mkt.store.side.10
+    level: backend
+    kind: side
+    scenario: >
+      список типов боксов и боксов с пустым фильтром: стол передаёт
+      невыбранное условие значением null, а не пропуском поля
+    expect: >
+      пустое условие список не сужает — заведённые типы и боксы приходят;
+      11.10.2026 типы боксов кооператива пропадали из списка сразу после
+      заведения
+    test: components/api-tests/src/marketplace/storage.test.ts
+    status: written
+
+  - id: mkt.store.side.11
+    level: backend
+    kind: side
+    scenario: >
+      хранилища Стола заказов получают пустое (null) необязательное условие
+      отбора: признак оборота типа и бокса, участок, тип и ячейка бокса,
+      состояние заявления на возврат, признак публикации остатка
+    expect: >
+      условие в запрос не попадает, отбор идёт по остальным полям; заданное
+      значение остаётся условием
+    test: components/controller/tests/unit/marketplace/marketplace-optional-filter-null.test.ts
+    external: unreachable
+    external_reason: "проверяются условия запросов к базе — снаружи они не видны; сам отказ списка покрыт случаем mkt.store.side.10"
+    status: written

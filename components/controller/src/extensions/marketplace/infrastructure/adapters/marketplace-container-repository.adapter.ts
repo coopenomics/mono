@@ -63,7 +63,7 @@ private readonly repo: TableStore<MarketplaceContainerTypeEntity>,
 
   async list(coopname: string, is_active?: boolean): Promise<MarketplaceContainerTypeDomainEntity[]> {
     const where: Record<string, unknown> = { coopname };
-    if (is_active !== undefined) where.is_active = is_active;
+    if (is_active != null) where.is_active = is_active;
     const rows = await this.repo.find(where, { order: { name: 'ASC' } });
     return rows.map((row) => this.mapper.toDomain(row));
   }
@@ -121,13 +121,13 @@ private readonly repo: TableStore<MarketplaceContainerEntity>,
 
   async list(filter: MarketplaceContainerListFilter): Promise<MarketplaceContainerDomainEntity[]> {
     const where: Record<string, unknown> = { coopname: filter.coopname };
-    if (filter.braname !== undefined) {
+    if (filter.braname != null) {
       where.braname = Array.isArray(filter.braname) ? oneOf(filter.braname) : filter.braname;
     }
-    if (filter.is_active !== undefined) where.is_active = filter.is_active;
-    if (filter.container_type_id !== undefined) where.container_type_id = filter.container_type_id;
+    if (filter.is_active != null) where.is_active = filter.is_active;
+    if (filter.container_type_id != null) where.container_type_id = filter.container_type_id;
     if (filter.unplaced_only) where.cell_id = isNull();
-    else if (filter.cell_id !== undefined) where.cell_id = filter.cell_id;
+    else if (filter.cell_id != null) where.cell_id = filter.cell_id;
 
     const rows = await this.repo.find(where, { order: { code: 'ASC' } });
     return rows.map((row) => this.mapper.toDomain(row));

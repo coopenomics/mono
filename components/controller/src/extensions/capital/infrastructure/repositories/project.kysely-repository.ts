@@ -420,10 +420,10 @@ export class ProjectKyselyRepository
     if (filter?.parent_hash) {
       where.parent_hash = filter.parent_hash;
     }
-    if (filter?.is_opened !== undefined) {
+    if (filter?.is_opened != null) {
       where.is_opened = filter.is_opened;
     }
-    if (filter?.is_planed !== undefined) {
+    if (filter?.is_planed != null) {
       where.is_planed = filter.is_planed;
     }
     if (filter?.has_voting) {
@@ -522,10 +522,10 @@ export class ProjectKyselyRepository
     if (filter?.project_hash) {
       queryBuilder = queryBuilder.andWhere('p.project_hash = :project_hash', { project_hash: filter.project_hash });
     }
-    if (filter?.is_opened !== undefined) {
+    if (filter?.is_opened != null) {
       queryBuilder = queryBuilder.andWhere('p.is_opened = :is_opened', { is_opened: filter.is_opened });
     }
-    if (filter?.is_planed !== undefined) {
+    if (filter?.is_planed != null) {
       queryBuilder = queryBuilder.andWhere('p.is_planed = :is_planed', { is_planed: filter.is_planed });
     }
     if (filter?.has_voting) {
@@ -542,10 +542,10 @@ export class ProjectKyselyRepository
     // origin=any|all — без ограничения (список «мои проекты» по master)
 
     // Логика для parent_hash и is_component:
-    if (filter?.parent_hash !== undefined) {
+    if (filter?.parent_hash != null) {
       // Если parent_hash указан явно - фильтруем по нему
       queryBuilder = queryBuilder.andWhere('p.parent_hash = :parent_hash', { parent_hash: filter.parent_hash });
-    } else if (filter?.is_component !== undefined) {
+    } else if (filter?.is_component != null) {
       // Логика для is_component:
       if (filter.is_component) {
         // Компоненты: проекты с parent_hash не null и не пустым хэшем

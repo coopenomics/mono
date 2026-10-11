@@ -114,7 +114,7 @@ private readonly repo: TableStore<MarketplaceReturnClaimEntity>,
     // и архивная секция требует финальные статусы. Раньше дефолт был
     // ACTIVE_STATUSES — это делало секцию архива всегда пустой.
     const where: Record<string, unknown> = { coopname, delivery_braname };
-    if (status !== undefined) {
+    if (status != null) {
       where.status = Array.isArray(status) ? oneOf(status) : status;
     }
     const rows = await this.repo.find(where, { order: { created_at: 'DESC' } });

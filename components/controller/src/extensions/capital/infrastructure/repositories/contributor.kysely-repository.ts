@@ -140,7 +140,7 @@ export class ContributorKyselyRepository
         contributor_hash: filter.contributor_hash,
       });
     }
-    if (filter?.is_external_contract !== undefined) {
+    if (filter?.is_external_contract != null) {
       queryBuilder.andWhere('contributor.is_external_contract = :is_external_contract', {
         is_external_contract: filter.is_external_contract,
       });
